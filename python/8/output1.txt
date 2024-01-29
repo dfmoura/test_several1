@@ -1,0 +1,531 @@
+Leonardo Ropelato
+Agile Master of Education at DIO
+Trabalhando em
+Trabalhando em  
+Equipes Ágeis
+Equipes Ágeis
+Engenharia de Bioprocessos e Biotecnologia
+Gerenciamento de Projetos e Liderança
+SCRUM Fundamentals Certified (SFC)
+Agile Master do time de Educação da Dio
+       UNESP Araraquara
+       SCRUMstudy
+Sobre mim
+Sobre mim
+Leonardo Ropelato
+Objetivo deste Curso
+Objetivo deste Curso
+Compreender o que é ser Ágil
+Entender os princípios da Gestão Ágil
+Conhecer os principais Métodos e Ferramentas Ágeis
+Conhecer as características de um time ágil
+Ser algo leve e valioso para a sua jornada :)
+Introdução à Cultura ágil
+Gerenciamento de Projetos
+Gestão Ágil
+Nosso percurso
+Nosso percurso
+Métodos e Ferramentas Ágeis
+Introdução à Cultura Ágil
+Introdução à Cultura Ágil
+Quem é mais 
+Quem é mais rápido
+rápido??
+Trem bala
+Guepardo
+Quem é mais 
+Quem é mais ágil
+ágil??
+Trem bala
+Guepardo
+O documento foi criado em fevereiro de 2001, quando 17 
+profissionais, que já praticavam métodos ágeis como XP, DSDM, 
+Scrum, FDD etc, se reuniram.
+Embora esses 17 desenvolvedores utilizassem abordagens e 
+métodos diferentes, eles compartilhavam dos mesmos 
+fundamentos.
+Os doze princípios
+Os doze princípios
+1 - Nossa maior prioridade é satisfazer o cliente através da entrega contínua e adiantada de software 
+com valor agregado.
+2 - Aceitar mudanças de requisitos, mesmo no fim do desenvolvimento. Processos ágeis se adequam a 
+mudanças, para que o cliente possa tirar vantagens competitivas.
+3 - Entregar frequentemente software funcionando, de poucas semanas a poucos meses, com 
+preferência à menor escala de tempo.
+4 - Pessoas de negócio e desenvolvedores devem trabalhar diariamente em conjunto por todo o projeto.
+5 - Construir projetos em torno de indivíduos motivados, dando a eles o ambiente e o suporte necessário 
+e confiando neles para fazer o trabalho.
+6 - O método mais eficiente e eficaz de transmitir informações para e entre uma equipe de 
+desenvolvimento é por meio de conversa face a face.
+7 - Software funcionando é a medida primária de progresso.
+8 - Os processos ágeis promovem desenvolvimento sustentável. Os patrocinadores, desenvolvedores e 
+usuários devem ser capazes de manter um ritmo constante indefinidamente.
+9 - Contínua atenção a excelência técnica e bom design aumenta a agilidade.
+10 - Simplicidade: a arte de maximizar a quantidade de trabalho não realizado é essencial.
+11 - As melhores arquiteturas, requisitos e designs emergem de times auto-organizáveis.
+12 - Em intervalos regulares, a equipe reflete sobre como se tornar mais eficaz e então refina e ajusta seu 
+comportamento de acordo.
+Os doze princípios
+Os doze princípios
+1 - Nossa maior prioridade é satisfazer o cliente através da entrega 
+contínua e adiantada de software com valor agregado.
+2 - Aceitar mudanças de requisitos, mesmo no fim do desenvolvimento. 
+Processos ágeis se adequam a mudanças, para que o cliente possa 
+tirar vantagens competitivas.
+6 - O método mais eficiente e eficaz de transmitir informações para e 
+entre uma equipe de desenvolvimento é por meio de conversa face a 
+face.
+Os doze princípios
+Os doze princípios
+10 - Simplicidade: a arte de maximizar a quantidade de trabalho não 
+realizado é essencial.
+12 - Em intervalos regulares, a equipe reflete sobre como se tornar 
+mais eficaz e então refina e ajusta seu comportamento de acordo.
+Os doze princípios
+Os doze princípios
+Alinhado com o cliente e stakeholders
+Auto-organizado e Responsável
+Multidisciplinar
+Entrega valor continuamente
+Está sempre aprendendo 
+Melhoria contínua
+Possui métricas e metas claras
+Unido
+Características de um time ágil
+Características de um time ágil
+Importância da
+Importância da  
+agilidade no mundo
+agilidade no mundo  
+de tecnologia
+de tecnologia
+Inovação
+Inovação
+Entregas rápidas
+Entregas rápidas
+Eficiência
+Eficiência
+Importância da
+Importância da  
+agilidade no mundo
+agilidade no mundo  
+de tecnologia
+de tecnologia
+VV
+UU
+C
+C
+AA
+OLÁTIL
+OLÁTIL
+INCERTO
+INCERTO
+OMPLEXO
+OMPLEXO
+MBÍGUO
+MBÍGUO
+Volatility
+Uncertainty
+Complexity
+Ambiguity
+Gerenciamento de
+Gerenciamento de  
+Projetos
+Projetos
+Qual é a diferença entre...
+Qual é a diferença entre...
+PROCESSO
+PROJETO
+Um esforço temporário para atingir um objetivo
+O resultado é exclusivo
+Tem início e fim bem definidos
+É recorrente e contínuo
+É replicável
+Geralmente é repetitivo e realizado regularmente
+Exemplos
+Exemplos
+PROCESSO
+Processo de solicitação de 
+compra em uma empresa
+Você solicita ao responsável do setor de compras a compra de 
+um notebook, ele faz os orçamentos, o gestor/diretor aprova a 
+compra e ele realiza o pedido.
+Exemplos
+Exemplos
+Projeto de desenvolvimento de 
+um novo modelo de fones de 
+ouvido de uma marca
+Esse projeto iniciará com o objetivo de criar um modelo de fone 
+de ouvido e passará pelas fases do projeto até a entrega do 
+produto, o novo fone. 
+PROJETO
+Gerenciamento de Projetos
+Gerenciamento de Projetos
+Ágil x Tradicional
+Ágil x Tradicional
+MODELO TRADICIONAL CASCATA (WATERFALL)
+Análise
+Projeto
+(Design)
+Implementação
+Teste
+Entrega / 
+Manutenção
+Gerenciamento de Projetos
+Gerenciamento de Projetos
+Ágil x Tradicional
+Ágil x Tradicional
+Fonte: Adaptado de Guia SBOK - Um Guia para o Conhecimento em Scrum (3ª Ed.) - Scrum Study
+MODELO TRADICIONAL CASCATA (WATERFALL)
+Gerenciamento de Projetos
+Gerenciamento de Projetos
+Ágil x Tradicional
+Ágil x Tradicional
+Fonte: Adaptado de Guia SBOK - Um Guia para o Conhecimento em Scrum (3ª Ed.) - Scrum Study
+MODELO ÁGIL COM SCRUM
+Resumindo...
+Resumindo...
+SCRUM
+CASCATA (WATERFALL)
+Planejamento inicial 
+Escopo
+Custo
+Cronograma
+Valor entregue no final
+Planejamento por Sprints
+Desenvolvimento iterativo  
+e incremental
+Valor entregue continuamente
+FEEDBACK
+SCRUM
+CASCATA (WATERFALL)
+Planejamento inicial 
+Escopo
+Custo
+Cronograma
+Valor entregue no final
+Planejamento por Sprints
+Desenvolvimento iterativo  
+e incremental
+Valor entregue continuamente
+Qual é melhor?
+Qual é melhor?
+DEPENDE!
+O que é Gestão Ágil?
+O que é Gestão Ágil?
+CLIQUE NAS IMAGENS PARA LER AS NOTÍCIAS
+Flexível e que se adapte às mudanças
+Colaborativa e que gere transparência
+Voltada ao aprendizado
+Entrega Contínua de Valor
+uma forma de gestão que seja...
+Gestão Ágil é:
+Gestão Ágil é:
+Alinhado com o cliente e stakeholders
+Auto-organizado e Responsável
+Multidisciplinar
+Entrega valor continuamente
+Está sempre aprendendo 
+Melhoria contínua
+Possui métricas e metas claras
+Unido
+RELEMBRANDO...
+Características de um time ágil
+Características de um time ágil
+Métodos e
+Métodos e  
+Ferramentas Ágeis
+Ferramentas Ágeis
+Framework Scrum 
+Extreme Programming (XP)
+Kanban
+OKR
+Métodos Ágeis
+Métodos Ágeis
+Scrum
+Scrum
+"Scrum é um framework leve que ajuda pessoas, times e
+organizações a gerar valor por meio de soluções
+adaptativas para problemas complexos." 
+Scrum Guide (Nov. 2020)
+As bases do Scrum
+As bases do Scrum
+Lean Thinking
+Empirismo
+Pilares do Scrum
+Pilares do Scrum
+TRANSPARÊNCIA
+A transparência permite que todos os ângulos de qualquer processo Scrum
+sejam observados por qualquer pessoa. Isto promove um fluxo de informação
+fácil e transparente em toda a organização e cria uma cultura de trabalho
+aberta.
+Pilares do Scrum
+Pilares do Scrum
+Olhando e medindo o progresso do time
+Feedback dos clientes e stakeholders
+Inspeção e aprovação das entregas
+A inspeção é a arte de pensar, no sentido de aplicar uma visão crítica sobre o que está
+acontecendo. É detectar variações ou problemas potencialmente indesejáveis.
+INSPEÇÃO
+TRANSPARÊNCIA
+Pilares do Scrum
+Pilares do Scrum
+A adaptação acontece quando o Time Scrum aprende através da transparência
+e da inspeção e, em seguida, adaptam o processo ao fazerem melhorias no
+trabalho que está sendo realizado, evitando, também, novos desvios.
+ADAPTAÇÃO
+INSPEÇÃO
+TRANSPARÊNCIA
+O framework Scrum é propositalmente incompleto, apenas
+definindo as partes necessárias para implementar a teoria 
+Scrum. 
+Em vez de fornecer às pessoas instruções detalhadas, as 
+regras do Guia do Scrum orientam seus relacionamentos e 
+interações.
+Scrum Guide (Nov. 2020)
+Framework ou Metodologia ágil?
+Framework ou Metodologia ágil?
+SPRINT
+Product Owner (PO)
+Scrum Master (SM)
+Developers
+Extreme Programming (XP)
+Extreme Programming (XP)
+Extreme Programming (XP) é um método ágil criado no
+final da década de 90 para desenvolvimento de software.
+É uma metodologia que tem como objetivo criar sistemas
+com alta qualidade, com base em uma interação próxima
+com os clientes, testagem constante e ciclos de
+desenvolvimento curtos.
+Extreme Programming (XP)
+Extreme Programming (XP)
+Objetivo principal: fazer ciclos de entregas rápidos, contínuos e
+incrementais, para atingir os resultados esperados pelo cliente.
+PLANEJA
+FAZ
+TESTA /
+MENSURA
+MELHORA /
+INCREMENTA
+Extreme Programming (XP)
+Extreme Programming (XP)
+Objetivo principal: fazer ciclos de entregas rápidos, contínuos e
+incrementais, para atingir os resultados esperados pelo cliente.
+PLANEJA
+FAZ
+TESTA /
+MENSURA
+MELHORA /
+INCREMENTA
+CICLOS
+"CERIMÔNIAS"
+TESTES 
+PROGRAMAÇÃO EM PARES
+FEEDBACK
+APROXIMAÇÃO COM O CLIENTE
+FLEXIBILIDADE
+O QUE TEM NO XP?
+O que é?
+É um método para definir, gerenciar e melhorar serviços
+que entregam trabalho de conhecimento, como serviços
+profissionais, atividades criativas e o design de produtos
+físicos e de software.
+Kanban
+Kanban
+O que é?
+É um método para definir, gerenciar e melhorar serviços
+que entregam trabalho de conhecimento, como serviços
+profissionais, atividades criativas e o design de produtos
+físicos e de software.
+Kanban
+Kanban
+A simplicidade e os benefícios que o método 
+proporciona, faz dele um dos mais utilizados 
+em empresas de todos os segmentos.
+Desenvolvido pela Toyota na década de 40
+Problema: Gestão de estoque
+Calma...
+Calma...  
+Vamos a um pouco de História
+Vamos a um pouco de História
+ESTOQUE
+Menos produtos em circulação /
+No mercado
+Desenvolvido pela Toyota na década de 40
+Problema: Gestão de estoque
+Calma...
+Calma...  
+Vamos a um pouco de História
+Vamos a um pouco de História
+Produtos / Estoque
+ Suprir a demanda que os 
+seus clientes necessitam
+CONCORRÊNCIA
+Com o intuito de equilibrar a sua produção para evitar essas duas
+situações, a Toyota (fabricante de automóveis) desenvolveu o método
+kanban na década de 1940, que foi englobado como uma parte do
+Sistema Toyota de Produção. 
+O seu objetivo era promover o controle do estoque de materiais para
+que os produtos não excedessem e nem faltassem, trazendo
+equilíbrio para o seu estoque e linha de produção.
+Calma...
+Calma...  
+Vamos a um pouco de História
+Vamos a um pouco de História
+Princípio Lean
+Em equipes de marketing
+Prestação de serviços
+Desenvolvimento de softwares
+Na atualidade, o quadro kanban ultrapassou os limites da indústria e
+passou a ser utilizado em diferentes áreas, como:
+Funcionando como uma ferramenta de GESTÃO DE
+TAREFAS.
+Kanban hoje
+Kanban hoje  
+O quadro Kanban
+O quadro Kanban
+Kanban = Método
+kanban = palavra japonesa = "cartão"
+A palavra japonesa "kanban" significa:
+"sinal" / "placa de sinalização" / "cartão"
+Curiosidade
+Curiosidade
+O que é?
+Objectives
+Key
+Results
+OKR
+OKR
+O que é?
+O OKR é um método de gestão ágil que foi criado pelo ex-CEO da Intel
+Andrew Grove e tem como objetivo simplificar a forma de encarar os
+chamados os principais objetivos estratégicos de uma empresa.
+Pode ter certeza de que o método funciona, já que é usado no Google
+desde 1999.
+OKR
+OKR
+Claro
+Inspirador
+Desafiador
+Alinhado com a missão do negócio 
+Os objetivos do OKR são descrições qualitativas que apontam a
+direção que deverá ser seguida pela empresa.
+Em alguns casos, os objetivos também podem trazer números (ex.: aumentar
+lucro em 10%), mas sempre direcionados a um propósito mais amplo.
+Objectives
+Objectives
+Criar uma experiência inesquecível para o cliente em todos os pontos de
+contato;
+Crescer as vendas na região sul do país, dominando a região;
+Tornar-se referência nacional e autoridade absoluta na área de Educação
+em Tecnologia;
+Os objetivos (Objectives) do OKR são descrições qualitativas que apontam a
+direção que deverá ser seguida pela empresa.
+Objectives
+Objectives
+EXEMPLOS
+EXEMPLOS
+Criar uma experiência inesquecível para o cliente em todos os pontos de
+contato;
+Crescer as vendas na região sul do país, dominando a região;
+Tornar-se referência nacional e autoridade absoluta na área de Educação
+em Tecnologia;
+Os objetivos (Objectives) do OKR são descrições qualitativas que apontam a
+direção que deverá ser seguida pela empresa.
+Objectives
+Objectives
+EXEMPLOS
+EXEMPLOS
+TENHO O NORTE... 
+TENHO A DIREÇÃO, MAS 
+E O CAMINHO?
+Baseadas em indicadores-chave de desempenho (KPIs)
+Quantitativas
+SMART: Específicas, Mensuráveis, Atingíveis, Relevantes e
+Temporais
+Os resultados-chave, também chamados apenas de KRs, são as metas
+que determinam o atingimento do objetivo na metodologia OKR.
+Key Results
+Key Results
+Assim, os Key Results servirão de referência para indicar o
+PROGRESSO em direção ao objetivo principal.
+Criar uma experiência inesquecível para o 
+cliente em todos os pontos de contato
+OBJETIVO
+Criar uma experiência inesquecível para o 
+cliente em todos os pontos de contato
+OBJETIVO
+KR1 - Integrar a base de dados dos 5 canais de
+atendimento
+KR 2 - Contratar mais 15 atendentes e 1 gestor de
+comunidade
+KR 3 - Alcançar um NPS de 80%
+AGILIDADE
+COOPERAÇÃO
+TRANSPARÊNCIA
+MONITORAMENTO CONTÍNUO
+Benefícios
+Benefícios  
+Jira
+Clickup
+Pipefy
+Asana
+MUITAS outras...
+Trello
+Notion
+Miro
+Monday
+EasyRetro
+Algumas FERRAMENTAS
+Algumas FERRAMENTAS
+utilizadas para GESTÃO ÁGIL de projetos
+utilizadas para GESTÃO ÁGIL de projetos
+LEGENDA
+FREE
+FREEMIUM
+PAGO
+Conclusão
+Conclusão
+Objetivo deste Curso
+Objetivo deste Curso
+Compreender o que é ser Ágil
+Entender os princípios da Gestão Ágil
+Conhecer os principais Métodos e Ferramentas Ágeis
+Conhecer as características de um time ágil
+Ser algo leve e valioso para a sua jornada :)
+Para saber mais
+Para saber mais
+Manifesto para Desenvolvimento Ágil de Software 
+https://agilemanifesto.org/iso/ptbr/manifesto.html
+Scrum.org 
+https://www.scrum.org/
+Download - Scrum Guide
+https://scrumguides.org/index.html
+Kanban University
+https://kanban.university/
+NOTÍCIAS / ARTIGOS
+https://forbes.com.br/forbes-tech/2022/06/marcelo-ciascasua-lideranca-e-agil/
+https://forbes.com.br/forbesesg/2021/12/heineken-aplica-prototipagem-para-levar-energia-renovavel-a-bares/
+Links Úteis e Referências
+Links Úteis e Referências
+Dicas de Leitura
+Dicas de Leitura
+Mentoria - Introdução ao Scrum e à Cultura ágil
+https://www.youtube.com/watch?v=j_z2JVHgmuc
+Quero me aprofundar...
+Quero me aprofundar...
+Clique aqui para 
+acessar a mentoria
+CONFIRA AS NOSSAS 
+FORMAÇÕES NA 
+PLATAFORMA
+Formação - Scrum Master Certification - Dio.me
+Foco: Certificação Professional Scrum Master (PSM I) da Scrum.org
+Quero me aprofundar...
+Quero me aprofundar...
+OBRIGADO
+OBRIGADO
+E SUCESSO EM SUA
+E SUCESSO EM SUA  
+JORNADA!
+JORNADA!

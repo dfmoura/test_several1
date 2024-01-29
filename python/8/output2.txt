@@ -1,0 +1,565 @@
+Elidiana Andrade
+Desenvolvedora Front-end
+@elidianaandrade
+Versionamento de Código com 
+Git e GitHub
+[1]
+Cursando Especialização em Desenvolvimento 
+de Software com Metodologias Ágeis
+Sobre Mim
+[2]
+Gosta de Compartilhar Conhecimento
+Desenvolvedora Front-end
+/elidianaandrade
+@elidianaandrade
+Pós-Graduanda em Desenv. de Software
+users/elidianaandrade
+@casalfullstack
+Sobre Mim
+[3]
+@elicosmaker
+Sobre Mim
+[4]
+We live in a society exquisitely dependent on 
+science and technology, in which hardly anyone 
+knows anything about science and technology. 
+This is a clear prescription for disaster."
+SAGAN, C. “Why We Need To Understand Science”. 1990. 
+The Skeptical Inquirer.
+Objetivo Geral
+[5]
+Introduzir ao versionamento de código com Git e GitHub.
+Dicas e Materiais 
+de Apoio
+Primeiros Passos
+com Git e GitHub
+Conhecer as 
+ferramentas
+Instalar, Configurar 
+e Autenticar
+✓ Computador com acesso à internet
+✓ Vontade de aprender
+✓ Fechar as outras abas XD
+Pré-requisitos
+[6]
+Percurso
+❑ Visão Geral do Curso e Ferramentas
+❑ Instalação, Configuração e Autenticação
+❑ Primeiros Passos com Git e GitHub
+❑ Dicas e Materiais de Apoio
+[7]
+Visão Geral do Curso e 
+Ferramentas
+Versionamento de Código, Git e GitHub
+O que é Versionamento 
+de Código?
+[9]
+zapzap-v1.zip
+zapzap-v1.zip
+zapzap-ARRUMEI.zip
+O que é Versionamento 
+de Código?
+[10]
+zapzap-v17.zip
+zapzap-ARRUMEI.zip
+zapzap-ARRUMAAI.zip
+...
+O que é Versionamento 
+de Código?
+[11]
+Sistemas de Controle de Versão
+[12]
+Registra o histórico de atualizações de um arquivo;
+Organização, controle e segurança.
+Gerencia quais foram as alterações, a data, autor, etc.;
+Controlam as versões de um arquivo ao longo do tempo.
+VCS Centralizado (CVCS)
+Ex.: CVS, Subversion.
+[13]
+Tipos de Sistemas de Controle 
+de Versão
+Dentre os Sistemas de Controle de Versão (VCS), temos: 
+VCS Distribuído (DVCS)
+Ex.: Git, Mercurial.
+VCS Centralizado (CVCS)
+Servidor Central
+[14]
+Arquivo
+Arquivo
+Versão 3
+Versão 2
+Versão 1
+Banco de Versões
+VCS Distribuído (DVCS)
+[15]
+Arquivo
+Servidor
+Versão 3
+Versão 2
+Versão 1
+Banco de Versões
+Versão 3
+Versão 2
+Versão 1
+Banco de Versões
+Arquivo
+Versão 3
+Versão 2
+Versão 1
+Banco de Versões
+Cada clone é como um backup;
+VCS Distribuído (DVCS)
+[16]
+Possibilidade de trabalhar sem 
+conexão à rede.
+Possibilita um fluxo de trabalho flexível;
+Clona o repositório completo, o que inclui o histórico de versões.
+{...}
+[17]
+O que é Git?
+Sistema de Controle de Versão Distribuído.
+Gratuito e Open Source (Código Aberto);
+Leve e rápido.
+Ramificações (branching) e fusões (merging) eficientes;
+[18]
+Hands On!
+https://git-scm.com/
+2002 →
+[19]
+Breve Histórico do Git
+2005 →
+Após conflitos com a comunidade, o BitKeeper
+rescinde a licença gratuita. O que leva a Linus
+Torvalds, o criador do Linux, e sua equipe, a
+desenvolverem sua própria ferramenta, o Git.
+O projeto do núcleo (kernel) do Linux, que é open
+source, começa a utilizar o BitKeeper, um DVCS
+proprietário;
+git clone → clona um repositório Git existente
+para um novo diretório (pasta) local.
+Fluxo Básico no Git
+[20]
+Servidor
+git clone
+git clone
+Banco de Versões
+Versão 1
+Fluxo Básico no Git
+[21]
+Servidor
+git clone
+git clone
+git clone → clona um repositório Git existente
+para um novo diretório (pasta) local.
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Fluxo Básico no Git
+[22]
+Servidor
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+git commit → gravaalterações no repositório.
+Fluxo Básico no Git
+[23]
+Servidor
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Versão 2
+git commit → gravaalterações no repositório.
+Fluxo Básico no Git
+[24]
+Servidor
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Versão 2
+git pull
+git pull → “puxa” as alterações do repositório
+remoto para o local (busca e mescla).
+Fluxo Básico no Git
+[25]
+Servidor
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Versão 2
+git push
+git push → “empurra” as alterações do
+repositório local para o remoto.
+Banco de Versões
+Versão 1
+Versão 2
+Fluxo Básico no Git
+[26]
+Servidor
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Versão 2
+git push
+git push → “empurra” as alterações do
+repositório local para o remoto.
+Banco de Versões
+Versão 1
+Versão 2
+Fluxo Básico no Git
+[27]
+Servidor
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Versão 2
+git pull → “puxa” as alterações do repositório
+remoto para o local (busca e mescla).
+Banco de Versões
+Versão 1
+Versão 2
+Fluxo Básico no Git
+[28]
+Servidor
+Banco de Versões
+Versão 1
+Banco de Versões
+Versão 1
+Versão 2
+git pull
+Banco de Versões
+Versão 1
+Versão 2
+git pull → “puxa” as alterações do repositório
+remoto para o local (busca e mescla).
+Banco de Versões
+Versão 1
+Versão 2
+Fluxo Básico no Git
+[29]
+Servidor
+Banco de Versões
+Versão 1
+Versão 2
+git pull
+Banco de Versões
+Versão 1
+Versão 2
+Fluxo Básico no Git
+[30]
+Servidor
+Banco de Versões
+Versão 1
+Versão 2
+Banco de Versões
+Versão 1
+Versão 2
+Comunidade ativa;
+Mascote “Octocat”.
+[31]
+O que é GitHub?
+Plataforma de hospedagem de código para
+controle de versão com Git, e colaboração.
+Utilizado mundialmente;
+2008 →
+[32]
+Breve Histórico do GitHub
+2018 →
+Vítima de um dos maiores ataques de DDoS
+(ataque distribuído de negação de serviço);
+Comprado pela Microsoft Corporation por 
+US $ 7,5 bilhões.
+Desenvolvido por Chris Wanstrath, J. Hyett, Tom 
+Preston-Werner e Scott Chacon.
+Banco de Versões
+Versão 1
+Versão 2
+Git ≠ GitHub
+[33]
+Servidor
+Banco de Versões
+Versão 1
+Versão 2
+Banco de Versões
+Versão 1
+Versão 2
+[34]
+Autenticação de Dois Fatores
+1
+2
+3
+Leia o QR Code através do aplicativo autenticador (ex.: 
+Microsoft Authenticator) e insira o código no GitHub;
+Autenticação ativada! ;D
+Salve os códigos de recuperação;
+Acesse sua conta do GitHub e vá em Settings > Password and
+authentication > Two-factor authentication > Authenticator app
+[35]
+Hands On!
+https://github.com/
+Instalação, Configuração e 
+Autenticação
+Instalando e configurando o Git, e 
+autenticando o GitHub via Token e Chave SSH
+[37]
+Hands On!
+https://git-scm.com/downloads
+[38]
+Instalando o Git no Windows
+1
+2
+3
+Acesse < https://git-scm.com/download/win >;
+Aceite a licença e clique em “Next”, e siga configurando 
+como desejar¹ e clicando em “Next”;
+Faça o download do instalador e execute;
+¹Em "Select Components“, deixe as opções “Git Bash Here” e “Git GUI Here” marcadas.
+4
+Finalize clicando em “Install”, e “Finish”.
+[39]
+Hands On!
+https://git-scm.com/download/win
+[40]
+1
+2
+Confira a doc.: < https://git-scm.com/download/linux >;
+Instale a última versão estável do Git:
+Instalando o Git no Linux (Ubuntu)
+# add-apt-repository ppa:git-core/ppa
+# apt update
+# apt install git
+[41]
+Hands On!
+https://git-scm.com/download/linux
+[42]
+1
+2
+Confira a doc.: < https://git-scm.com/download/mac>;
+Instale o Homebrew: < https://brew.sh/>;
+Instalando o Git no macOS
+3
+Instale o Git: 
+$ brew install git
+[43]
+1
+2
+Configurando seu nome de usuário e e-mail (globalmente):
+Configurando o nome da Branch Padrão:
+Configurando o Git
+$ git config --list
+$ git config --global user.name "Nome Sobrenome"
+$ git config --global user.email seuemail@email.com
+$ git config --global init.defaultBranch main
+[44]
+Para gerar um Token, acesse sua conta no GitHub, e no
+menu superior direito clique em Settings > Developer
+settings > Tokens (classic) > Generate new token.
+Autenticando via Token
+Você pode armazenar suas credenciais para reduzir o número
+de vezes que você deve digitar seu nome de usuário ou senha:
+Salvando no cache:
+Ou permanentemente:
+Armazenando Credenciais
+$ git config --global credential.helper cache
+$ git config --global credential.helper store
+Veja mais na doc.: https://git-scm.com/book/pt-br/v2/Git-Tools-Credential-Storage
+[45]
+[46]
+Autenticando via Chave SSH
+Para adicionar uma Chave SSH, acesse sua conta no
+GitHub, e no menu superior direito clique em Settings
+> SSH and GPG keys > New SSH key.
+Primeiros Passos com 
+Git e GitHub
+Do primeiro repositório à manipulação de 
+branches
+[48]
+Criando e Clonando 
+Repositórios
+Existem duas formas de obter um repositório Git na sua
+máquina:
+1
+Transformando um diretório local que não está sob
+controle de versão, num repositório Git;
+2
+Clonando um repositório Git existente.
+Acesse a pasta que deseja transformar em um repositório
+Git pelo terminal ou clique no atalho em “Git Bash Here”:
+[49]
+1
+Inicialize um repositório Git no diretório escolhido:
+$ git init
+2
+Conecte o repositório local com o repositório remoto:
+$ git remote add origin 
+https://github.com/username/nome-do-repositorio.git
+Criando um Repositório Local
+[50]
+Clonando um Repositório
+Em “Code”, copie o código HTTPS ou SSH (a depender de
+comoautenticousuaconta)do repositóriono GitHub;
+Abra o GitBash, insira o comando git clone e cole o
+conteúdo copiado para cloná-lo:
+$ git clone https://github.com/username/nome-do-repositorio
+Para clonar um repositório no Git, acesse seu repositório no
+GitHub e siga os próximos passos:
+1
+2
+Acesse a sua conta do GitHub, clique no “+” no canto
+superior direito, e em “New repository”:
+[51]
+1
+Insira um nome (obrigatório), e a descrição (opcional);
+2
+Coloque uma breve descrição sobre o projeto, essa
+etapa é opcional;
+Criando um Repositório Remoto
+3
+Defina se o acesso será público ou privado;
+Acesse a sua conta do GitHub, clique no “+” no canto
+superior direito, e em “New repository”:
+[52]
+4
+Escolha como deseja inicializar seu repositório (se
+quiser vazio, deixe as opções desmarcadas)
+5
+Clique em “Create repository”, e pronto!
+Criando um Repositório Remoto
+Salvando Alterações no 
+Repositório Local
+[53]
+1
+Adicione o conteúdo que deseja inserir no commit:
+$ git add
+2
+Crie um commit e adicione uma mensagem descritiva:
+$ git commit -m "message"
+1) Como criar um commit:
+Desfazendo Alterações 
+no Repositório Local
+[54]
+$ git commit --amend
+1) Como alterar a mensagem do último commit:
+$ git commit --amend –m"nova mensagem"
+Alterando a mensagem sem abrir o editor:
+Desfazendo Alterações 
+no Repositório Local
+[55]
+$ git reset
+2) Como desfazer um commit:
+$ git reset --mixed
+$ git reset --hard
+$ git reset --soft
+Enviando Alterações para 
+o Repositório Remoto
+[56]
+Como enviar as alterações do repositório local para oremoto:
+$ git push
+$ git pull
+“Puxar” as alterações do repositório remoto para o local
+(busca e mescla).
+[57]
+Trabalhando com Branches
+De maneira simplista, uma Branch (em tradução, “Ramo”),
+é uma ramificação do seu projeto.
+É um ponteiro móvel para um commit no histórico do
+repositório;
+Quando vocêcriaumanovaBranch apartirde outra
+existente, a nova se inicia apontando para o mesmo
+commitdaBranch queestavaquando foicriada.
+[58]
+Trabalhando com Branches
+main
+commit 0
+[59]
+Trabalhando com Branches
+main
+commit 0
+commit 1
+[60]
+Trabalhando com Branches
+main
+commit 0
+teste
+commit 1
+commit 2
+[61]
+Trabalhando com Branches
+main
+commit 0
+teste
+commit 1
+commit 2
+commit 3
+• Deletar uma Branch
+• Trocar de Branch e criar uma nova:
+[62]
+Trabalhando com Branches
+$ git branch
+$ git checkout -b nova-branch
+$ git branch –d nome-da-branch
+• Ver o último commit de cada Branch:
+$ git branch -v
+Dicas e Materiais de Apoio
+Links Úteis e Para Saber Mais
+● Repositório no GitHub
+● Documentação Git  | Documentação GitHub
+● Referências:
+○
+https://git-scm.com/
+○
+https://docs.github.com/
+○
+https://github.blog/
+Links Úteis
+[64]
+● Referências:
+○
+https://github.blog/2020-12-15-token-authentication-
+requirements-for-git-operations/
+○
+https://github.blog/2018-03-01-ddos-incident-report/
+○
+https://news.microsoft.com/2018/06/04/microsoft-to-acquire-
+github-for-7-5-billion/
+○
+https://github.blog/2023-03-09-raising-the-bar-for-software-
+security-github-2fa-begins-march-13/
+Links Úteis
+[65]
+Para saber mais
+[66]
+● Tech Talk: Linus Torvalds on git: https://youtu.be/4XpnKHJAok8
+● ProGit: https://git-scm.com/book/en/v2
+● Markdown: https://docs.github.com/pt/get-started/writing-
+on-github
+● Conventional Commits: https://github.com/conventional-
+commits/conventionalcommits.org 
+Para saber mais
+[67]
+● Chocolatey: https://community.chocolatey.org/packages/git
+● GitHub Desktop: https://desktop.github.com/
+● GitFluence: https://gitfluence.com/
+● My Octocat: https://myoctocat.com/
+● GitHub Pages: https://docs.github.com/en/pages/getting-
+started-with-github-pages
+> Fórum/Artigos
+> Comunidade Online (Discord)
+Dúvidas?
+[68]

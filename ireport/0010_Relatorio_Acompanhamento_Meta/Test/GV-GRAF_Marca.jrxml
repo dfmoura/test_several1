@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="GV_GRAF_MARCA" language="groovy" pageWidth="350" pageHeight="842" columnWidth="350" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.1289478601075882"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="DTINI" class="java.sql.Timestamp" isForPrompting="false">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DTFIM" class="java.sql.Timestamp" isForPrompting="false">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<parameter name="EMPRESA" class="java.math.BigDecimal" isForPrompting="false">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="NOMETABELA" value="TSIEMP"/>
+		<parameterDescription><![CDATA[Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODPARC" class="java.math.BigDecimal" isForPrompting="false">
+		<property name="NOMETABELA" value="TGFPAR"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Parceiro:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND" class="java.math.BigDecimal" isForPrompting="false">
+		<property name="NOMETABELA" value="TGFVEN"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Vendedor:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="MARCA" class="java.math.BigDecimal" isForPrompting="false">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="NOMETABELA" value="AD_VGFMARCA"/>
+		<parameterDescription><![CDATA[Marca]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="BONIFICACOES" class="java.lang.Boolean" isForPrompting="false">
+		<parameterDescription><![CDATA[Analisar Bonificações?]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="CODGRUPOPROD" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CR" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="GRUPOSATIS" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="AD_GRUPOPRODSATIS"/>
+		<parameterDescription><![CDATA[Grupo Prod. Satis]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+CODVEND
+, APELIDO
+
+, SUM(QTDPREV) AS QTDPREV
+, SUM(QTDREAL) AS QTDREAL
+, SUM(QTDPREV * PRECOLT)  AS VLR_PREV
+, SUM(NVL(VLRREAL, 0)) AS VLR_REAL
+, CASE WHEN SUM(QTDPREV) = 0 THEN 100 ELSE SUM(QTDREAL) * 100 / SUM(QTDPREV) END AS PERC
+, CASE WHEN SUM(QTDPREV * PRECOLT) = 0 THEN 100 ELSE NVL(SUM(VLRREAL) * 100 / SUM(QTDPREV * PRECOLT),0) END AS PERC_VLR
+FROM
+(
+SELECT
+MET.DTREF
+, MET.CODVEND
+, VEN.APELIDO
+, MET.CODPARC
+, PAR.RAZAOSOCIAL
+, PAR.CGC_CPF
+, MET.MARCA
+, MET.QTDPREV
+, MET.QTDREAL
+, NVL(PRC.VLRVENDALT,0) AS PRECOLT,  SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL
+
+FROM TGMMET MET
+  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)
+  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)
+  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')
+
+  LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0
+
+  LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA
+  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPROD
+
+WHERE
+
+  MET.CODMETA = $P{P_CODMETA}
+  AND MET.DTREF >= $P{P_DTINI}
+  AND MET.DTREF <= $P{P_DTFIN}
+  AND (MET.CODVEND = $P{P_CODVEND} OR $P{P_CODVEND} IS NULL)
+  AND (MET.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+  AND (($P{P_NTEMMETA}=1 AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR $P{P_NTEMMETA}=0)
+
+GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL,  NVL(PRC.VLRVENDALT,0),PAR.CGC_CPF
+)
+
+WHERE (QTDPREV <> 0 OR QTDREAL <> 0)
+GROUP BY
+CODVEND
+, APELIDO
+
+ORDER BY APELIDO ASC, "QTDREAL" DESC]]>
+	</queryString>
+	<field name="QTD" class="java.math.BigDecimal"/>
+	<field name="VLR" class="java.math.BigDecimal"/>
+	<field name="MARCA" class="java.lang.String"/>
+	<field name="BONIF" class="java.lang.String"/>
+	<field name="QTD_DESCR" class="java.lang.String"/>
+	<field name="VLR_DESCR" class="java.lang.String"/>
+	<variable name="TotalQtdGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{QTD}]]></variableExpression>
+	</variable>
+	<variable name="TotalVlrGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLR}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="155" splitType="Stretch">
+			<pieChart>
+				<chart isShowLegend="false" evaluationTime="Report">
+					<reportElement mode="Transparent" x="0" y="0" width="159" height="100" forecolor="#000000" backcolor="#FFFFFF"/>
+					<chartTitle>
+						<font size="6"/>
+						<titleExpression><![CDATA["TOP 5 VOLUME"]]></titleExpression>
+					</chartTitle>
+					<chartSubtitle>
+						<font size="5"/>
+					</chartSubtitle>
+					<chartLegend>
+						<font size="5"/>
+					</chartLegend>
+				</chart>
+				<pieDataset maxCount="5">
+					<keyExpression><![CDATA[$F{MARCA}+"-"+$F{QTD_DESCR}]]></keyExpression>
+					<valueExpression><![CDATA[$F{QTD}]]></valueExpression>
+				</pieDataset>
+				<piePlot isCircular="true">
+					<plot/>
+					<itemLabel color="#000000" backgroundColor="#FFFFFF">
+						<font size="5"/>
+					</itemLabel>
+				</piePlot>
+			</pieChart>
+			<pieChart>
+				<chart isShowLegend="false" evaluationTime="Report">
+					<reportElement mode="Transparent" x="174" y="3" width="162" height="100" forecolor="#000000" backcolor="#FFFFFF"/>
+					<chartTitle>
+						<font size="6"/>
+						<titleExpression><![CDATA["TOP 5 VALOR"]]></titleExpression>
+					</chartTitle>
+					<chartSubtitle>
+						<font size="5"/>
+					</chartSubtitle>
+					<chartLegend>
+						<font size="5"/>
+					</chartLegend>
+				</chart>
+				<pieDataset maxCount="5">
+					<keyExpression><![CDATA[$F{MARCA}+"-"+$F{VLR_DESCR}]]></keyExpression>
+					<valueExpression><![CDATA[$F{VLR}]]></valueExpression>
+				</pieDataset>
+				<piePlot isCircular="true">
+					<plot/>
+					<itemLabel color="#000000" backgroundColor="#FFFFFF">
+						<font size="5"/>
+					</itemLabel>
+				</piePlot>
+			</pieChart>
+		</band>
+	</title>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch"/>
+	</detail>
+	<columnFooter>
+		<band/>
+	</columnFooter>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>

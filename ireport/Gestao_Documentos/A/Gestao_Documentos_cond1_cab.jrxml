@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Gestao_Documentos_cond1_cab" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.1269722013523664"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<style name="style1" mode="Opaque" fill="Solid"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several\\ireport\\Gestao_Documentos\\"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[/*BASE GESTAO DOCUMENTOS - POSICAO A
+
+(REC.DTVALIDADE < SYSDATE AND REC.STATUS = 'E') OR REC.DTVALIDADE < SYSDATE
+
+*/
+WITH DES AS (
+  SELECT OPC.VALOR, OPC.OPCAO
+  FROM tddcam CAM
+  INNER JOIN TDDOPC OPC ON CAM.NUCAMPO = OPC.NUCAMPO
+  WHERE CAM.NOMETAB = 'AD_GESTAODOCUM' AND CAM.NOMECAMPO = 'STATUS'
+)
+SELECT DISTINCT
+  CUM.NUTIPDOCS,
+  TIP.DOCUMENTO,
+  CASE WHEN REC.DTVALIDADE < SYSDATE THEN 'VENCIDO' ELSE NULL END AS DTVALIDADE,
+  REC.STATUS,
+  DES.OPCAO,
+  COUNT(CASE WHEN REC.DTVALIDADE < SYSDATE THEN 1 ELSE NULL END) AS TOTAL
+FROM
+  AD_GESTAODOC DOC
+  INNER JOIN AD_GESTAODOCUM CUM ON DOC.CODIGO = CUM.CODIGO
+  INNER JOIN AD_GESTAODOCUMREC REC ON CUM.CODIGO = REC.CODIGO AND CUM.NUMDOC = REC.NUMDOC
+  INNER JOIN AD_TIPDOCS TIP ON CUM.NUTIPDOCS = TIP.NUTIPDOCS
+  INNER JOIN TSICID CID ON DOC.CODCID = CID.CODCID
+  INNER JOIN DES ON REC.STATUS = DES.VALOR
+WHERE
+  (REC.DTVALIDADE < SYSDATE AND REC.STATUS = 'E') OR REC.DTVALIDADE < SYSDATE
+GROUP BY
+  CUM.NUTIPDOCS,
+  TIP.DOCUMENTO,
+  CASE WHEN REC.DTVALIDADE < SYSDATE THEN 'VENCIDO' ELSE NULL END,
+  REC.STATUS,
+  DES.OPCAO
+ORDER BY 1,4]]>
+	</queryString>
+	<field name="NUTIPDOCS" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[NÚ. Tip. Doc.]]></fieldDescription>
+	</field>
+	<field name="DOCUMENTO" class="java.lang.String">
+		<fieldDescription><![CDATA[Documento]]></fieldDescription>
+	</field>
+	<field name="DTVALIDADE" class="java.lang.String">
+		<fieldDescription><![CDATA[Dt. Validade]]></fieldDescription>
+	</field>
+	<field name="STATUS" class="java.lang.String">
+		<fieldDescription><![CDATA[Status]]></fieldDescription>
+	</field>
+	<field name="OPCAO" class="java.lang.String">
+		<fieldDescription><![CDATA[Descr.]]></fieldDescription>
+	</field>
+	<field name="TOTAL" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Total]]></fieldDescription>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="44">
+			<elementGroup/>
+			<staticText>
+				<reportElement mode="Opaque" x="1" y="0" width="554" height="44" backcolor="#F0F0F0"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true" isItalic="false"/>
+				</textElement>
+				<text><![CDATA[Condição 1: Contém Documentos Vencidos
+	- Data de Validade Vencido  e documentos com status Deferido ou;
+	- Data de Validade Vencido;]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="23" splitType="Stretch">
+			<staticText>
+				<reportElement x="1" y="5" width="183" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Documento]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="184" y="5" width="92" height="15"/>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Dt. Validade]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="276" y="5" width="92" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Status]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="368" y="5" width="51" height="15"/>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20">
+			<textField>
+				<reportElement x="0" y="0" width="29" height="13"/>
+				<textElement/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUTIPDOCS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="29" y="0" width="155" height="13"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DOCUMENTO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="184" y="0" width="92" height="13"/>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DTVALIDADE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="276" y="0" width="24" height="13"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{STATUS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="300" y="0" width="68" height="13"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{OPCAO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="368" y="0" width="51" height="13"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{TOTAL}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="1" y="16" width="418" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dotted"/>
+				</graphicElement>
+			</line>
+		</band>
+	</detail>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="94" splitType="Stretch">
+			<subreport>
+				<reportElement key="Gestao_Documentos_cond1_det" x="0" y="3" width="554" height="88"/>
+				<subreportParameter name="PDIR_MODELO"/>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Gestao_Documentos_cond1_det.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+	</summary>
+</jasperReport>

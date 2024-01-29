@@ -1,0 +1,7 @@
+# Gemfile
+source 'https://rubygems.org'
+
+ruby '2.7.4'
+
+# Add your gems with version constraints if necessary
+# gem 'some_gem', '~> 1.0'

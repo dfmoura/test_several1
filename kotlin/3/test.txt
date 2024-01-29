@@ -1,0 +1,10 @@
+// criar o jar
+kotlinc HelloWorld.kt -include-runtime -d HelloWorld.jar
+
+
+//buildar
+docker build -t kotlin-hello-world .
+
+//rodar
+docker run kotlin-hello-world
+

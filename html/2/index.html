@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Graph Example</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    canvas {
+      border: 1px solid #d3d3d3;
+    }
+  </style>
+</head>
+
+<body>
+
+  <canvas id="myChart" width="400" height="200"></canvas>
+
+  <script>
+    // Sample data
+    const data = {
+      labels: ['January', 'February', 'March', 'April', 'May'],
+      datasets: [{
+        label: 'Monthly Sales',
+        data: [10, 25, 15, 30, 20],
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1
+      }]
+    };
+
+    // Chart configuration
+    const config = {
+      type: 'line',
+      data: data,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Digite o Título do Grafico Aqui...'
+          },
+          scales: {
+            x: {
+              type: 'category',
+              labels: data.labels,
+            },
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      }
+    };
+
+    // Create the chart
+    const myChart = new Chart(document.getElementById('myChart'), config);
+
+    // Add interactivity (click event)
+    document.getElementById('myChart').onclick = function (e) {
+      const activePoints = myChart.getElementsAtEvent(e);
+
+      if (activePoints.length > 0) {
+        const clickedDatasetIndex = activePoints[0].datasetIndex;
+        const clickedLabel = myChart.data.labels[activePoints[0].index];
+        const clickedValue = myChart.data.datasets[clickedDatasetIndex].data[activePoints[0].index];
+
+        alert(`Clicked on label: ${clickedLabel}, value: ${clickedValue}`);
+      }
+    };
+  </script>
+
+</body>
+
+</html>

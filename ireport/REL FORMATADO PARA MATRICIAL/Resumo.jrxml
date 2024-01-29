@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Resumo" printOrder="Horizontal" pageWidth="595" pageHeight="391" orientation="Landscape" whenNoDataType="BlankPage" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="0.7009877989627858"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="net.sf.jasperreports.export.text.character.width" value="6.55"/>
+	<property name="net.sf.jasperreports.export.text.character.height" value="11.9"/>
+	<property name="ireport.definition"/>
+	<parameter name="A_ORDEMCARGA" class="java.math.BigDecimal">
+		<parameterDescription><![CDATA[Ordem Carga]]></parameterDescription>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[WITH
+ENDI AS (
+select
+PAR.CODPARC,
+ENDI.TIPO||' '||ENDI.NOMEEND||', '||PAR.NUMEND||' - '|| PAR.COMPLEMENTO ||' Bairro: '||BAI.NOMEBAI||' - '||CID.NOMECID||'/'||UFS.UF||' Cep:'||PAR.CEP AS ENDERECO_ENTREGA,
+PAR.TELEFONE
+from TGFPAR PAR
+INNER JOIN TSIEND ENDI ON PAR.CODEND = ENDI.CODEND
+INNER JOIN TSIBAI BAI ON PAR.CODBAI = BAI.CODBAI
+INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
+INNER JOIN TSIUFS UFS ON CID.UF = UFS.CODUF
+),
+
+ENDI2 AS (
+select
+CTT.CODPARC,
+CTT.CODCONTATO,
+'Contato: ' || CTT.NOMECONTATO || ' - ' ||ENDI.TIPO||' '||ENDI.NOMEEND||', '||CTT.NUMEND||' - '||CTT.COMPLEMENTO||' Bairro:'||BAI.NOMEBAI||' - '|| CID.NOMECID||'/'||UFS.UF||' Cep:'||CTT.CEP AS ENDERECO_ENTREGA,
+CTT.TELEFONE
+from tgfctt CTT
+LEFT JOIN TSIEND ENDI ON CTT.CODEND = ENDI.CODEND
+LEFT JOIN TSIBAI BAI ON CTT.CODBAI = BAI.CODBAI
+LEFT JOIN TSICID CID ON CTT.CODCID = CID.CODCID
+LEFT JOIN TSIUFS UFS ON CID.UF = UFS.CODUF
+)
+
+
+SELECT
+ENT.CODENTREGA
+,ENT.CODPROG
+,ENT.ORDEMCARGA
+,PROG.NUNOTA
+,PROG.SEQUENCIA
+,CAB.CODPARC
+,PAR.RAZAOSOCIAL
+,CASE WHEN NVL(CAB.CODCONTATO,0) = 0 THEN NVL(ENDI.ENDERECO_ENTREGA,'NAO CADASTRADO') ELSE ENDI2.ENDERECO_ENTREGA END AS ENDERECO_ENTREGA
+,CASE WHEN NVL(CAB.CODCONTATO,0) = 0 THEN NVL(ENDI.TELEFONE,'NAO CADASTRADO') ELSE ENDI2.TELEFONE END AS TELEFONE
+
+
+,PROG.CODPROD
+,PRO.DESCRPROD
+,PROG.CODVOL
+,ENT.QTDENTREGUE
+,ITE.VLRUNIT
+,ITE.VLRTOT
+,PROG.STATUS
+,VEN.APELIDO AS VENDEDOR
+FROM AD_ENTREGA ENT
+INNER JOIN AD_PROGENTREGA PROG ON ENT.CODPROG = PROG.CODPROG
+INNER JOIN TGFCAB CAB ON PROG.NUNOTA = CAB.NUNOTA
+INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+INNER JOIN ENDI ON CAB.CODPARC = ENDI.CODPARC
+LEFT JOIN ENDI2 ON CAB.CODPARC = ENDI2.CODPARC AND CAB.CODCONTATO = ENDI2.CODCONTATO
+INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+INNER JOIN TGFITE ITE ON PROG.NUNOTA = ITE.NUNOTA AND PROG.SEQUENCIA = ITE.SEQUENCIA
+INNER JOIN TGFPRO PRO ON PROG.CODPROD = PRO.CODPROD
+
+WHERE ENT.ORDEMCARGA = $P{A_ORDEMCARGA}
+
+ORDER BY PROG.NUNOTA]]>
+	</queryString>
+	<field name="ORDEMCARGA" class="java.math.BigDecimal"/>
+	<field name="NUNOTA" class="java.math.BigDecimal"/>
+	<field name="CODPARC" class="java.math.BigDecimal"/>
+	<field name="RAZAOSOCIAL" class="java.lang.String"/>
+	<field name="ENDERECO_ENTREGA" class="java.lang.String"/>
+	<field name="TELEFONE" class="java.lang.String"/>
+	<field name="VENDEDOR" class="java.lang.String"/>
+	<field name="CODPROD" class="java.math.BigDecimal"/>
+	<field name="DESCRPROD" class="java.lang.String"/>
+	<field name="CODVOL" class="java.lang.String"/>
+	<field name="QTDENTREGUE" class="java.math.BigDecimal"/>
+	<field name="VLRUNIT" class="java.math.BigDecimal"/>
+	<field name="VLRTOT" class="java.math.BigDecimal"/>
+	<variable name="PESO" class="java.math.BigDecimal" resetType="Group" resetGroup="PEDIDO" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLRTOT}]]></variableExpression>
+	</variable>
+	<group name="PEDIDO" isStartNewPage="true">
+		<groupExpression><![CDATA[$F{NUNOTA}]]></groupExpression>
+	</group>
+	<title>
+		<band height="391">
+			<subreport isUsingCache="true">
+				<reportElement key="ResumoCarga" x="0" y="0" width="595" height="391"/>
+				<subreportParameter name="A_ORDEMCARGA">
+					<subreportParameterExpression><![CDATA[$P{A_ORDEMCARGA}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="SUBREPORT_DIR"/>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "ResumoCarga.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+	</title>
+	<pageFooter>
+		<band/>
+	</pageFooter>
+</jasperReport>

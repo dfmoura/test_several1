@@ -1,0 +1,11 @@
+docker build -t main .
+
+
+docker run main
+
+docker run -it main
+
+
+venv:
+conda deactivate
+conda activate myenv

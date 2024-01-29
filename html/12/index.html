@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chart Example</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    #myChart {
+      width: 80%;
+      margin: auto;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="myChart"></canvas>
+
+  <script>
+    // Function to fetch data from the website
+    async function fetchData() {
+      try {
+        const response = await axios.get("https://abir.org.br/o-setor/dados/refrigerantes/");
+        const parser = new DOMParser();
+        const htmlDoc = parser.parseFromString(response.data, "text/html");
+
+        // Extracting data from the table
+        const rows = htmlDoc.querySelectorAll('table tr');
+        const data = [];
+        rows.forEach(row => {
+          const ano = row.querySelector('td:nth-child(1)');
+          const volume = row.querySelector('td:nth-child(2)');
+          if (ano && volume) {
+            data.push({
+              ano: ano.textContent.trim(),
+              volume: parseFloat(volume.textContent.trim().replace(',', '.')),
+            });
+          }
+        });
+
+        // Call function to create chart with the extracted data
+        createChart(data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+
+    // Function to create a bar chart
+    function createChart(data) {
+      const labels = data.map(entry => entry.ano);
+      const volumes = data.map(entry => entry.volume);
+
+      const ctx = document.getElementById('myChart').getContext('2d');
+      const myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Volume',
+            data: volumes,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+    }
+
+    // Fetch data when the page loads
+    fetchData();
+  </script>
+</body>
+</html>

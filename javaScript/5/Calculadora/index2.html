@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #F6f5f5;
+            margin: 0;
+            font-family: Arial;
+        }
+
+        #calculadora {
+            width: 200px;
+            background-color: #FFF;
+            box-shadow: 0px 0px 5px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        #display {
+            width: 100%;
+            height: 50px;
+            border-bottom: 1px solid #CCC;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        #displayInput {
+            text-align: center;
+            width: 100%;
+            border: none;
+        }
+
+        #teclado {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr) auto;
+        }
+
+        button {
+            height: 60px;
+            border: none;
+            font-size: 2rem;
+            transition: .3s;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #ccc6c6;
+        }
+
+        .num,
+        .ponto,
+        .igual {
+            color: #333;
+        }
+
+        .operador {
+            color: #f7931b;
+        }
+
+        .reset {
+            grid-column: span 4;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="calculadora">
+        <div id="display">
+            <input type="text" id="displayInput" disable />
+        </div>
+        <div id="teclado">
+            <button class="num">7</button>
+            <button class="num">8</button>
+            <button class="num">9</button>
+            <button class="operador">/</button>
+            <button class="num">4</button>
+            <button class="num">5</button>
+            <button class="num">6</button>
+            <button class="operador">*</button>
+            <button class="num">1</button>
+            <button class="num">2</button>
+            <button class="num">3</button>
+            <button class="operador">-</button>
+            <button class="num">0</button>
+            <button class="ponto">.</button>
+            <button class="igual">=</button>
+            <button class="operador">+</button>
+            <button id="reset" class="reset">Limpar</button>
+        </div>
+    </div>
+    <script>
+        // seleção dos elementos
+        const display = document.querySelector("#displayInput");
+        const botaoIgual = document.querySelector(".igual");
+        const botaoPonto = document.querySelector(".ponto");
+        const botoesNumeros = document.querySelectorAll(".num");
+        const botoesOperadores = document.querySelectorAll(".operador");
+        const botaoReset = document.querySelector("#reset");
+
+        // variáveis globais
+        let operacaoAtual = "";
+        let operador = null;
+        let valorAnterior = "";
+        let calculando = false;
+
+        // funções
+        function atualizaDisplay() {
+            display.value = operacaoAtual;
+        }
+
+        function insereNumero(evento) {
+            if (calculando) {
+                operacaoAtual = evento.target.textContent;
+                calculando = false;
+            } else {
+                operacaoAtual += evento.target.textContent;
+            }
+            atualizaDisplay();
+        }
+
+        function inserePonto() {
+            if (operacaoAtual.indexOf(".") === -1) {
+                operacaoAtual += ".";
+                atualizaDisplay();
+            }
+        }
+
+        function insereOperador(evento) {
+            if (operacaoAtual !== "") {
+                if (!calculando) {
+                    if (operador !== null) {
+                        calcula()
+                    }
+                    valorAnterior = operacaoAtual;
+                    operacaoAtual = "";
+                }
+                operador = evento.target.textContent;
+            }
+        }
+
+        function calcula() {
+
+            let resultado = null;
+            const operandoAnterior = parseFloat(valorAnterior);
+            const operandoAtual = parseFloat(operacaoAtual);
+
+            switch (operador) {
+                case "+":
+                    resultado = operandoAnterior + operandoAtual;
+                    break;
+                case "-":
+                    resultado = operandoAnterior - operandoAtual;
+                    break;
+                case "*":
+                    resultado = operandoAnterior * operandoAtual;
+                    break;
+                case "/":
+                    resultado = operandoAnterior / operandoAtual;
+                    break;
+            }
+
+            operacaoAtual = String(resultado);
+            valorAnterior = operacaoAtual;
+            calculando = true;
+            atualizaDisplay();
+        }
+
+        function reset() {
+            operacaoAtual = "";
+            operador = null;
+            valorAnterior = "";
+            calculando = false;
+            atualizaDisplay();
+        }
+
+        // evento
+        botaoPonto.addEventListener("click", inserePonto);
+        botoesNumeros.forEach((botao) => botao.addEventListener("click", insereNumero));
+        botoesOperadores.forEach((botao) => botao.addEventListener("click", insereOperador));
+        botaoIgual.addEventListener("click", calcula);
+        botaoReset.addEventListener("click", reset);
+    </script>
+</body>
+
+</html>

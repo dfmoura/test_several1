@@ -1,0 +1,16 @@
+// criar o jar
+kotlinc main.kt -include-runtime -d main.jar
+
+
+//buildar
+docker build -t main .
+
+//rodar
+docker run main
+
+
+
+main.kt:15:29: warning: variable 'nullable' initializer is redundant
+    var nullable: String? = "You can keep a null here"      // 3 se eu quiser, terei que explicitamente dizer diretamente que a variavel
+
+openjdk:11-jre-slim

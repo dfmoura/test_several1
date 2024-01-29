@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Acomp_Meta_Vend_Graf" language="groovy" pageWidth="350" pageHeight="842" columnWidth="350" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.1289478601075882"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODPARC" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFPAR"/>
+		<parameterDescription><![CDATA[Cód. Parceiro]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Cód. Vendedor]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt. Inicial]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_DTFIN" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt. Final]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODMETA" class="java.math.BigDecimal">
+		<parameterDescription><![CDATA[Cód. Meta]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_NTEMMETA" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Ignorar Ref. Sem Meta Prev./Real]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+    CODVEND,
+    APELIDO,
+    METRIC_TYPE,
+    METRIC_VALUE
+FROM
+(
+    SELECT
+        MET.DTREF,
+        MET.CODVEND,
+        VEN.APELIDO,
+        MET.CODPARC,
+        PAR.RAZAOSOCIAL,
+        PAR.CGC_CPF,
+        MET.MARCA,
+        MET.QTDPREV,
+        MET.QTDREAL,
+        NVL(PRC.VLRVENDALT,0) AS PRECOLT,
+        SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END) AS VLRREAL
+    FROM
+        TGMMET MET
+        LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)
+        LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)
+        LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')
+        LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0
+        LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA
+        LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPROD
+    WHERE
+        MET.CODMETA = $P{P_CODMETA}
+        AND MET.DTREF >= $P{P_DTINI}
+        AND MET.DTREF <= $P{P_DTFIN}
+        AND (MET.CODVEND = $P{P_CODVEND} OR $P{P_CODVEND} IS NULL)
+        AND (MET.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+        AND (($P{P_NTEMMETA}=1 AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR $P{P_NTEMMETA}=0)
+    GROUP BY
+        MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0), PAR.CGC_CPF
+    HAVING
+        (QTDPREV <> 0 OR QTDREAL <> 0)
+)
+UNPIVOT
+(
+    MAX(METRIC_VALUE) FOR METRIC_TYPE IN ('VLR_PREV' AS VLR_PREV, 'VLR_REAL' AS VLR_REAL)
+)
+ORDER BY APELIDO ASC, METRIC_TYPE DESC]]>
+	</queryString>
+	<field name="APELIDO" class="java.lang.String">
+		<fieldDescription><![CDATA[Vendedor]]></fieldDescription>
+	</field>
+	<field name="METRIC_VALUE" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Vlr]]></fieldDescription>
+	</field>
+	<field name="METRIC_TYPE" class="java.lang.String">
+		<fieldDescription><![CDATA[Vendedor]]></fieldDescription>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="100" splitType="Stretch">
+			<pieChart>
+				<chart isShowLegend="false" evaluationTime="Report">
+					<reportElement mode="Transparent" x="0" y="0" width="225" height="100" forecolor="#000000" backcolor="#FFFFFF"/>
+					<chartTitle>
+						<font size="6"/>
+						<titleExpression><![CDATA["Valor"]]></titleExpression>
+					</chartTitle>
+					<chartSubtitle>
+						<font size="5"/>
+					</chartSubtitle>
+					<chartLegend>
+						<font size="5"/>
+					</chartLegend>
+				</chart>
+				<pieDataset maxCount="5">
+					<keyExpression><![CDATA[$F{METRIC_TYPE}]]></keyExpression>
+					<valueExpression><![CDATA[$F{METRIC_VALUE}]]></valueExpression>
+					<labelExpression><![CDATA[$F{APELIDO}]]></labelExpression>
+				</pieDataset>
+				<piePlot isCircular="true">
+					<plot orientation="Horizontal"/>
+					<itemLabel color="#000000" backgroundColor="#FFFFFF">
+						<font size="5"/>
+					</itemLabel>
+				</piePlot>
+			</pieChart>
+		</band>
+	</title>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch"/>
+	</detail>
+	<columnFooter>
+		<band/>
+	</columnFooter>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>

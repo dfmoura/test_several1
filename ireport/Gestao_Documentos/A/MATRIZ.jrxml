@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Data base" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.1269722013523664"/>
+	<property name="ireport.x" value="1"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<style name="style1" mode="Opaque" fill="Solid"/>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["./"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[/*BASE GESTAO DOCUMENTOS - POSICAO A
+
+(REC.DTVALIDADE < SYSDATE AND REC.STATUS = 'E') OR REC.DTVALIDADE < SYSDATE
+
+*/
+WITH DES AS (
+  SELECT OPC.VALOR, OPC.OPCAO
+  FROM tddcam CAM
+  INNER JOIN TDDOPC OPC ON CAM.NUCAMPO = OPC.NUCAMPO
+  WHERE CAM.NOMETAB = 'AD_GESTAODOCUM' AND CAM.NOMECAMPO = 'STATUS'
+)
+SELECT DISTINCT
+  CUM.NUTIPDOCS,
+  TIP.DOCUMENTO,
+  CASE WHEN REC.DTVALIDADE < SYSDATE THEN 'VENCIDO' ELSE NULL END AS DTVALIDADE,
+  REC.STATUS,
+  DES.OPCAO,
+  COUNT(CASE WHEN REC.DTVALIDADE < SYSDATE THEN 1 ELSE NULL END) AS TOTAL
+FROM
+  AD_GESTAODOC DOC
+  INNER JOIN AD_GESTAODOCUM CUM ON DOC.CODIGO = CUM.CODIGO
+  INNER JOIN AD_GESTAODOCUMREC REC ON CUM.CODIGO = REC.CODIGO AND CUM.NUMDOC = REC.NUMDOC
+  INNER JOIN AD_TIPDOCS TIP ON CUM.NUTIPDOCS = TIP.NUTIPDOCS
+  INNER JOIN TSICID CID ON DOC.CODCID = CID.CODCID
+  INNER JOIN DES ON REC.STATUS = DES.VALOR
+WHERE
+  (REC.DTVALIDADE < SYSDATE AND REC.STATUS = 'E') OR REC.DTVALIDADE < SYSDATE
+GROUP BY
+  CUM.NUTIPDOCS,
+  TIP.DOCUMENTO,
+  CASE WHEN REC.DTVALIDADE < SYSDATE THEN 'VENCIDO' ELSE NULL END,
+  REC.STATUS,
+  DES.OPCAO
+ORDER BY 1,4]]>
+	</queryString>
+	<field name="NUTIPDOCS" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[NÚ. Tip. Doc.]]></fieldDescription>
+	</field>
+	<field name="DOCUMENTO" class="java.lang.String">
+		<fieldDescription><![CDATA[Documento]]></fieldDescription>
+	</field>
+	<field name="DTVALIDADE" class="java.lang.String">
+		<fieldDescription><![CDATA[Dt. Validade]]></fieldDescription>
+	</field>
+	<field name="STATUS" class="java.lang.String">
+		<fieldDescription><![CDATA[Status]]></fieldDescription>
+	</field>
+	<field name="OPCAO" class="java.lang.String">
+		<fieldDescription><![CDATA[Descr.]]></fieldDescription>
+	</field>
+	<field name="TOTAL" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Total]]></fieldDescription>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="63">
+			<elementGroup/>
+			<staticText>
+				<reportElement x="516" y="2" width="15" height="15"/>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[/]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="502" y="2" width="14" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="6" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="463" y="2" width="39" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Página]]></text>
+			</staticText>
+			<textField evaluationTime="Report">
+				<reportElement x="531" y="2" width="23" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="284" y="2" width="54" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Emitido em]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy HH.mm">
+				<reportElement x="340" y="2" width="123" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="17" width="551" height="22"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[GESTÃO DE DOCUMENTO POR CIDADE E EMPRESA]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="15" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="92" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[NÚ. Tip. Doc.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="92" y="0" width="92" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Documento]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="184" y="0" width="92" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Dt. Validade]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="276" y="0" width="92" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Status]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="368" y="0" width="92" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Descr.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="460" y="0" width="92" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="13">
+			<textField>
+				<reportElement x="0" y="0" width="92" height="13"/>
+				<textElement/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUTIPDOCS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="92" y="0" width="92" height="13"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DOCUMENTO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="184" y="0" width="92" height="13"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DTVALIDADE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="276" y="0" width="92" height="13"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{STATUS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="368" y="0" width="92" height="13"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{OPCAO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="460" y="0" width="92" height="13"/>
+				<textElement/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{TOTAL}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="11" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="51" splitType="Stretch">
+			<line>
+				<reportElement x="1" y="30" width="554" height="1"/>
+			</line>
+		</band>
+	</summary>
+</jasperReport>

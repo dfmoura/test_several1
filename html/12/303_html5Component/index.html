@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chart from ABIR Data</title>
+  <style>
+    /* Add your CSS styles here */
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 20px;
+    }
+
+    #chartContainer {
+      width: 80%;
+      margin: auto;
+    }
+  </style>
+</head>
+<body>
+
+<div id="chartContainer"></div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    fetchData();
+  });
+
+  async function fetchData() {
+    try {
+      const response = await fetch('https://abir.org.br/o-setor/dados/refrigerantes/');
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      const table = doc.querySelector('/html/body/div[2]/section/div/div/div/div[2]/div/table[1]');
+      const data = extractDataFromTable(table);
+
+      // Now, you can use the data to create a chart using a charting library like Chart.js or any other of your choice.
+
+      console.log(data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  }
+
+  function extractDataFromTable(table) {
+    const data = {
+      labels: [],
+      values: []
+    };
+
+    // Assuming the first row contains the headers, change this if the structure is different
+    const headers = table.querySelectorAll('thead tr th');
+
+    // Assuming the second row contains the data, change this if the structure is different
+    const rows = table.querySelectorAll('tbody tr');
+
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      data.labels.push(cells[0].textContent.trim()); // Assuming the first cell contains 'ANO'
+      data.values.push(parseFloat(cells[1].textContent.trim())); // Assuming the second cell contains 'VOLUME'
+    });
+
+    return data;
+  }
+</script>
+
+</body>
+</html>

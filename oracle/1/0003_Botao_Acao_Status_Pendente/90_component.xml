@@ -1,0 +1,985 @@
+<gadget >
+  <prompt-parameters>
+    <parameter  id="P_PERIODO" description="Periodo" metadata="datePeriod" required="true" keep-last="true" keep-date="false" order="0" label="P_PERIODO : Período"/>
+    <parameter  id="P_SOLPEND" description="Solic. pendentes?" metadata="singleList:Text" listType="text" required="true" keep-last="true" keep-date="false" order="1" label="P_SOLPEND : singleList:Text">
+      <item value="0" label="Todas"/>
+      <item value="1" label="Sim"/>
+      <item value="2" label="Não"/>
+    </parameter>
+    <parameter  id="P_DIFPED" description="Dif. Pedido" metadata="singleList:Text" listType="text" required="true" keep-last="true" keep-date="false" order="2" label="P_DIFPED : singleList:Text">
+      <item value="9999999" label="Todos"/>
+      <item value="0" label="Pendentes"/>
+    </parameter>
+    <parameter  id="P_DIFNOTA" description="Dif. Nota" metadata="singleList:Text" listType="text" required="true" keep-last="true" keep-date="false" order="3" label="P_DIFNOTA : singleList:Text">
+      <item value="9999999" label="Todos"/>
+      <item value="0" label="Pendentes"/>
+    </parameter>
+    <parameter  id="P_CANCELADOS" description="Mostrar Cancelados?" metadata="boolean" required="true" keep-last="true" keep-date="false" default="false" order="4" label="P_CANCELADOS : Verdadeiro/Falso"/>
+    <parameter  id="P_NUMCOTACAO" description="Numero da Cotacao" metadata="integer" required="false" keep-last="true" keep-date="false" order="5" label="P_NUMCOTACAO : Número Inteiro"/>
+    <parameter  id="P_CODPROD" description="Produto" metadata="entity:Produto@CODPROD" required="false" keep-last="true" keep-date="false" order="6" label="P_CODPROD : Entidade/Tabela"/>
+    <parameter  id="P_NUNOTA" description="Nro.Único Sol." metadata="integer" required="false" keep-last="true" keep-date="false" order="7" label="P_NUNOTA : Número Inteiro"/>
+    <parameter  id="P_EMPRESA" description="Empresa" metadata="multiList:Text" listType="sql" required="true" keep-last="true" keep-date="false" order="8" label="P_EMPRESA : multiList:Text">
+      <expression type="SQL">SELECT DISTINCT CODEMP AS VALUE, 
+CODEMP || ' - ' || NOMEFANTASIA AS LABEL 
+FROM 
+TSIEMP EMP
+ORDER BY 1</expression>
+    </parameter>
+  </prompt-parameters>
+  <level id="lvl_drr1kl" description="Cabeçalho">
+    <args >
+      <arg id="A_CODPROD" type="integer" label="A_CODPROD : Número Inteiro"/>
+      <arg id="A_NUMCOTACAO" type="integer" label="A_NUMCOTACAO : Número Inteiro"/>
+      <arg id="A_NUNOTA1" type="integer" label="A_NUNOTA1 : Número Inteiro"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_drr1mx" entityName="AD_GERARCOTACAO" multiplaSelecao="N" useNewGrid="S">
+        <title>
+          <![CDATA[
+          
+          
+          
+          
+          
+          
+          
+          <b>SOLICITAÇÕES DE COMPRA - CABEÇALHO</b>
+        
+        
+        
+        
+        
+        
+        
+        ]]>
+        </title>
+        <expression type="sql" data-source="MGEDS">
+          <![CDATA[
+          
+          WITH 
+
+CABE AS (
+
+/*JUNCAO DE PARTE1 COM PARTE2 */
+
+SELECT 
+:P_SOLPEND AS PARAMETRO,
+NUNOTA,
+NUMNOTA,
+NUMCOTACAO,
+CASE WHEN PENDENTE = 'S' THEN 'Sim' ELSE 'Não' END AS PENDENTE,
+--CASE WHEN PENDENTE='S' THEN 'RED' END AS FGCOLOR,
+CODEMP,
+NOMEFANTASIA,
+DTNEG,
+CODUSUINC,
+NOMEUSU,
+CODPROD,
+DESCRPROD,
+CODVOL,
+QTDNEGS,
+QTDCOTADA,
+QTDCOTCAN,
+ROUND(QTDNEGP,2) AS QTDNEGP,
+ROUND(QTDNEGP,2) - CASE WHEN ROUND(QTDNEGS,2) = 0 THEN (QTDCOTADA + QTDCOTCAN) ELSE (ROUND(QTDNEGS,2) - QTDCOTCAN) END AS QTDPENDP,
+ROUND(QTDNEGC,2) AS QTDNEGC, 
+ROUND(QTDNEGC,2) - CASE WHEN ROUND(QTDNEGS,2) = 0 THEN (QTDCOTADA + QTDCOTCAN) ELSE (ROUND(QTDNEGS,2) - QTDCOTCAN) END  AS QTDPENDC,
+CODNAT,
+CODCENCUS,
+CODPROJ,
+AD_DT_MARC_ENTREG,
+AD_USU_MARC_ENTREG
+FROM (
+
+
+/* PARTE: 1 */
+
+SELECT DISTINCT 
+CAB.NUNOTA,
+CAB.NUMNOTA,
+CAB.NUMCOTACAO,
+MAX(ITE.PENDENTE) AS PENDENTE,
+CAB.CODEMP,
+EMP.NOMEFANTASIA,
+CAB.DTNEG,
+CAB.CODUSUINC,
+USU.NOMEUSU,
+CAB.CODNAT,
+CAB.CODCENCUS,
+CAB.CODPROJ,
+ITE.CODPROD,
+PRO.DESCRPROD,
+PRO.CODVOL,
+SUM(ITE.QTDNEG) AS QTDNEGS,
+NVL((SELECT SUM(CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN ITC.QTDCOTADA / VOA.QUANTIDADE WHEN VOA.DIVIDEMULTIPLICA='M' THEN ITC.QTDCOTADA * VOA.QUANTIDADE ELSE ITC.QTDCOTADA END) FROM TGFITC ITC LEFT JOIN TGFVOA VOA ON VOA.CODVOL=ITC.CODVOL AND VOA.CODPROD=ITC.CODPROD WHERE ITC.CODPROD=ITE.CODPROD AND ITC.NUMCOTACAO=CAB.NUMCOTACAO AND CABECALHO='S' AND ITC.STATUSPRODCOT <> 'C'),0) AS QTDCOTADA,
+NVL((SELECT SUM(CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN ITC.QTDCOTADA / VOA.QUANTIDADE WHEN VOA.DIVIDEMULTIPLICA='M' THEN ITC.QTDCOTADA * VOA.QUANTIDADE ELSE ITC.QTDCOTADA END) FROM TGFITC ITC LEFT JOIN TGFVOA VOA ON VOA.CODVOL=ITC.CODVOL AND VOA.CODPROD=ITC.CODPROD WHERE ITC.CODPROD=ITE.CODPROD AND ITC.NUMCOTACAO=CAB.NUMCOTACAO AND CABECALHO='S' AND ITC.STATUSPRODCOT = 'C'),0) AS QTDCOTCAN,
+NVL((SELECT SUM(ITEP.QTDNEG) FROM TGFITE ITEP, TGFCAB CABP WHERE CABP.NUNOTA=ITEP.NUNOTA AND CABP.STATUSNOTA='L' AND ITEP.CODPROD=ITE.CODPROD AND ITEP.NUNOTA IN (SELECT NUNOTACPA FROM TGFITC WHERE NUMCOTACAO=CAB.NUMCOTACAO)),0) AS QTDNEGP,
+NVL((SELECT SUM(VAR.QTDATENDIDA) FROM TGFVAR VAR, TGFITE ITEP WHERE ITEP.NUNOTA=VAR.NUNOTAORIG AND VAR.SEQUENCIAORIG=ITEP.SEQUENCIA AND ITEP.CODPROD=ITE.CODPROD AND ITEP.NUNOTA IN (SELECT NUNOTACPA FROM TGFITC WHERE NUMCOTACAO=CAB.NUMCOTACAO)),0) AS QTDNEGC,
+CAB.AD_DT_MARC_ENTREG,
+CAB.AD_USU_MARC_ENTREG
+FROM 
+TGFCAB CAB
+INNER JOIN TGFITE ITE ON CAB.NUNOTA=ITE.NUNOTA
+INNER JOIN TGFPRO PRO ON ITE.CODPROD=PRO.CODPROD
+INNER JOIN TSIUSU USU ON CAB.CODUSUINC=USU.CODUSU
+INNER JOIN TSIEMP EMP ON CAB.CODEMP=EMP.CODEMP
+WHERE 
+CAB.TIPMOV IN ('J')
+AND CAB.STATUSNOTA='L'
+AND (CAB.NUMCOTACAO = :P_NUMCOTACAO OR :P_NUMCOTACAO IS NULL)
+AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN OR :P_PERIODO.INI IS NULL)
+AND (CAB.CODEMP IN :P_EMPRESA)
+AND (ITE.CODPROD = :P_CODPROD OR :P_CODPROD IS NULL)
+AND (CAB.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+GROUP BY
+CAB.NUNOTA,
+CAB.NUMNOTA,
+CAB.CODEMP,
+CAB.DTNEG,
+CAB.CODUSUINC,
+USU.NOMEUSU,
+CAB.CODNAT,
+CAB.CODCENCUS,
+CAB.CODPROJ,
+ITE.CODPROD,
+PRO.DESCRPROD,
+PRO.CODVOL,
+EMP.NOMEFANTASIA,
+CAB.NUMCOTACAO,
+CAB.AD_DT_MARC_ENTREG,
+CAB.AD_USU_MARC_ENTREG
+
+UNION ALL
+
+/* PARTE: 2 */
+
+
+SELECT DISTINCT 
+0 AS NUNOTA,
+0 AS NUMNOTA,
+COT.NUMCOTACAO,
+CASE WHEN 
+NVL(CASE WHEN ITC.STATUSPRODCOT <> 'C' THEN NVL(( CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN SUM(ITC.QTDCOTADA / VOA.QUANTIDADE) WHEN VOA.DIVIDEMULTIPLICA='M' THEN SUM(ITC.QTDCOTADA * VOA.QUANTIDADE) ELSE SUM(ITC.QTDCOTADA) END),0) END,0) = NVL((SELECT SUM(VAR.QTDATENDIDA) FROM TGFVAR VAR, TGFITE ITEP WHERE ITEP.NUNOTA=VAR.NUNOTAORIG AND VAR.SEQUENCIAORIG=ITEP.SEQUENCIA AND ITEP.CODPROD=ITC.CODPROD AND ITEP.NUNOTA IN (SELECT NUNOTACPA FROM TGFITC WHERE NUMCOTACAO=COT.NUMCOTACAO)),0)
+THEN 'N' ELSE 'S' END AS PENDENTE,
+COT.CODEMP,
+'' AS NOMEFANTASIA,
+(SELECT DTNEG FROM TGFCAB WHERE NUNOTA=COT.NUNOTAORIG) AS DTNEG,
+0 AS CODUSUINC,
+'' AS NOMEUSU,
+0 AS CODNAT,
+0 AS CODCENCUS,
+0 AS CODPROJ,
+ITC.CODPROD,
+PRO.DESCRPROD,
+PRO.CODVOL,
+0 AS QTDNEGS,
+NVL(CASE WHEN ITC.STATUSPRODCOT <> 'C' THEN NVL(( CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN SUM(ITC.QTDCOTADA / VOA.QUANTIDADE) WHEN VOA.DIVIDEMULTIPLICA='M' THEN SUM(ITC.QTDCOTADA * VOA.QUANTIDADE) ELSE SUM(ITC.QTDCOTADA) END),0) END,0) AS QTDCOTADA,
+NVL(CASE WHEN ITC.STATUSPRODCOT = 'C' THEN NVL(( CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN SUM(ITC.QTDCOTADA / VOA.QUANTIDADE) WHEN VOA.DIVIDEMULTIPLICA='M' THEN SUM(ITC.QTDCOTADA * VOA.QUANTIDADE) ELSE SUM(ITC.QTDCOTADA) END),0) END,0) AS QTDCOTCAN,
+NVL((SELECT SUM(ITEP.QTDNEG) FROM TGFITE ITEP WHERE ITEP.CODPROD=ITC.CODPROD AND ITEP.NUNOTA IN (SELECT NUNOTACPA FROM TGFITC WHERE NUMCOTACAO=COT.NUMCOTACAO)),0) AS QTDNEGP,
+NVL((SELECT SUM(VAR.QTDATENDIDA) FROM TGFVAR VAR, TGFITE ITEP WHERE ITEP.NUNOTA=VAR.NUNOTAORIG AND VAR.SEQUENCIAORIG=ITEP.SEQUENCIA AND ITEP.CODPROD=ITC.CODPROD AND ITEP.NUNOTA IN (SELECT NUNOTACPA FROM TGFITC WHERE NUMCOTACAO=COT.NUMCOTACAO)),0) AS QTDNEGC,
+NULL AS AD_DT_MARC_ENTREG,
+0 AS AD_USU_MARC_ENTREG
+FROM 
+TGFCOT COT
+INNER JOIN TGFITC ITC ON ITC.NUMCOTACAO=COT.NUMCOTACAO AND ITC.CABECALHO='S' AND  ITC.STATUSPRODCOT <> 'C'
+INNER JOIN TGFPRO PRO ON ITC.CODPROD=PRO.CODPROD
+LEFT JOIN TGFVOA VOA ON VOA.CODVOL=ITC.CODVOL AND VOA.CODPROD=ITC.CODPROD
+WHERE 
+ITC.CODPROD NOT IN  (SELECT CODPROD FROM TGFITE WHERE NUNOTA=COT.NUNOTAORIG)
+AND (COT.NUMCOTACAO = :P_NUMCOTACAO OR :P_NUMCOTACAO IS NULL)
+AND ((SELECT DTNEG FROM TGFCAB WHERE NUNOTA=COT.NUNOTAORIG) BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN OR :P_PERIODO.INI IS NULL)
+AND (COT.CODEMP IN :P_EMPRESA)
+AND (ITC.CODPROD = :P_CODPROD OR :P_CODPROD IS NULL)
+AND (:P_NUNOTA IS NULL OR 0=:P_NUNOTA)
+GROUP BY
+COT.NUMCOTACAO,
+COT.CODEMP,
+ITC.CODPROD,
+PRO.DESCRPROD,
+PRO.CODVOL,
+VOA.DIVIDEMULTIPLICA,
+COT.NUNOTAORIG,
+ITC.STATUSPRODCOT
+
+
+)
+WHERE
+(QTDNEGP - QTDNEGS) < :P_DIFPED
+AND (QTDNEGP - QTDNEGS) < :P_DIFNOTA
+AND (QTDCOTCAN = 0 OR :P_CANCELADOS='S')
+AND ((PENDENTE = 'S' AND :P_SOLPEND =1) OR :P_SOLPEND IN (0,2))
+AND ((PENDENTE = 'N' AND :P_SOLPEND =2) OR :P_SOLPEND IN (0,1))
+)
+
+
+SELECT 
+CABE.NUNOTA,
+CABE.NUMNOTA,
+CABE.NUMCOTACAO,
+CABE.CODEMP,
+CABE.NOMEFANTASIA,
+CABE.PENDENTE,
+CABE.DTNEG,
+CABE.CODUSUINC,
+CABE.NOMEUSU,
+CABE.CODNAT,
+NAT.DESCRNAT,
+CABE.CODCENCUS,
+CUS.DESCRCENCUS,
+CABE.CODPROJ,
+PRJ.IDENTIFICACAO,
+SUM(CABE.QTDNEGS) AS QTDNEGS,
+SUM(CABE.QTDCOTADA) AS QTDCOTADA,
+SUM(CABE.QTDCOTCAN) AS QTDCOTCAN,
+SUM(CABE.QTDNEGP) AS QTDNEGP,
+SUM(CABE.QTDPENDP) AS QTDPENDP,
+SUM(CABE.QTDNEGC) AS QTDNEGC,
+SUM(CABE.QTDPENDC) AS QTDPENDC,
+CABE.AD_DT_MARC_ENTREG,
+CABE.AD_USU_MARC_ENTREG
+
+FROM CABE CABE
+INNER JOIN TGFNAT NAT ON CABE.CODNAT = NAT.CODNAT
+INNER JOIN TSICUS CUS ON CABE.CODCENCUS = CUS.CODCENCUS
+INNER JOIN TCSPRJ PRJ ON CABE.CODPROJ = PRJ.CODPROJ
+GROUP BY
+CABE.NUNOTA,
+CABE.NUMNOTA,
+CABE.NUMCOTACAO,
+CABE.CODEMP,
+CABE.NOMEFANTASIA,
+CABE.PENDENTE,
+CABE.DTNEG,
+CABE.CODUSUINC,
+CABE.NOMEUSU,
+CABE.CODNAT,
+NAT.DESCRNAT,
+CABE.CODCENCUS,
+CUS.DESCRCENCUS,
+CABE.CODPROJ,
+PRJ.IDENTIFICACAO,
+CABE.AD_DT_MARC_ENTREG,
+CABE.AD_USU_MARC_ENTREG
+
+        
+        ]]>
+        </expression>
+        <metadata>
+          <field name="NUNOTA" label="Nro.Único" type="I" visible="true" useFooter="false"></field>
+          <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"></field>
+          <field name="NUMCOTACAO" label="Nro. Cot." type="I" visible="true" useFooter="false"></field>
+          <field name="CODEMP" label="Cod. Emp." type="I" visible="true" useFooter="false"></field>
+          <field name="NOMEFANTASIA" label="Nome Emp." type="S" visible="true" useFooter="false"></field>
+          <field name="PENDENTE" label="Pendente" type="S" visible="true" useFooter="false"></field>
+          <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"></field>
+          <field name="CODUSUINC" label="Cod. Usu." type="F" visible="true" useFooter="false"></field>
+          <field name="NOMEUSU" label="Nome Usuário" type="S" visible="true" useFooter="false"></field>
+          <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"></field>
+          <field name="DESCRNAT" label="Desr. Natureza" type="S" visible="true" useFooter="false"></field>
+          <field name="CODCENCUS" label="Cód. CR" type="I" visible="true" useFooter="false"></field>
+          <field name="DESCRCENCUS" label="Descr. CR" type="S" visible="true" useFooter="false"></field>
+          <field name="CODPROJ" label="Cód. Proj." type="I" visible="true" useFooter="false"></field>
+          <field name="IDENTIFICACAO" label="Descr. Projeto" type="S" visible="true" useFooter="false"></field>
+          <field name="QTDNEGS" label="Qtd. Solicitada" type="F" visible="true" useFooter="SUM" mask="#.##0,00"></field>
+          <field name="QTDCOTADA" label="Qtd. Cotada" type="F" visible="true" useFooter="SUM" mask="#.##0,00"></field>
+          <field name="QTDCOTCAN" label="Qtd. Can." type="F" visible="true" useFooter="SUM" mask="#.##0,00"></field>
+          <field name="QTDNEGP" label="Qtd. Pedido" type="F" visible="true" useFooter="SUM" mask="#.##0,00"></field>
+          <field name="QTDPENDP" label="Qtd. Pendente" type="F" visible="true" useFooter="SUM" mask="#.##0,00"></field>
+          <field name="QTDNEGC" label="Qtd. Nota" type="F" visible="true" useFooter="SUM" mask="#.##0,00"></field>
+          <field name="QTDPENDC" label="Qtd. Pendente" type="F" visible="true" useFooter="SUM" mask="#.##0,00"></field>
+          <field name="AD_DT_MARC_ENTREG" label="Atu. Dt. Pendente" type="D" visible="true" useFooter="false"></field>
+          <field name="AD_USU_MARC_ENTREG" label="Usu. Atu. Pendente" type="F" visible="true" useFooter="false"></field>
+        </metadata>
+        <on-click  navigate-to="lvl_r4mn4v">
+          <param id="A_NUMCOTACAO">$NUMCOTACAO</param>
+          <param id="A_CODPROD"/>
+          <param id="A_QTDCOTADA"/>
+          <param id="A_NUNOTA"/>
+          <param id="A_CONTROLE"/>
+          <param id="A_NUNOTA1">$NUNOTA</param>
+        </on-click>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_r4mn4v" description="Detalhe">
+    <args>
+      <arg  id="A_CODPROD" type="integer" label="A_CODPROD : Número Inteiro"/>
+      <arg  id="A_CONTROLE" type="text" label="A_CONTROLE : Texto"/>
+      <arg  id="A_NUMCOTACAO" type="integer" label="A_NUMCOTACAO : Número Inteiro"/>
+      <arg  id="A_NUNOTA" type="integer" label="A_NUNOTA : Número Inteiro"/>
+      <arg  id="A_NUNOTA1" type="integer" label="A_NUNOTA1 : Número Inteiro"/>
+      <arg  id="A_QTDCOTADA" type="decimal" label="A_QTDCOTADA : Número Decimal"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="184">
+        <container orientacao="V" tamanhoRelativo="100">
+          <grid id="grd_drr1kc" entityName="AD_GERARCOTACAO" multiplaSelecao="N" useNewGrid="S">
+            <args>
+              <arg id="A_NUNOTA1" type="integer"></arg>
+              <arg id="A_CODPROD" type="integer"></arg>
+              <arg id="A_NUMCOTACAO" type="integer"></arg>
+            </args>
+            <title>
+              <![CDATA[
+              
+              
+              
+              
+              
+              
+              
+              <b>SOLICITAÇÕES DE COMPRA - DETALHE</b>
+            
+            
+            
+            
+            
+            
+            
+            ]]>
+            </title>
+            <expression type="sql" data-source="MGEDS">
+              <![CDATA[
+              
+              
+              SELECT
+:P_SOLPEND AS PARAMETRO,
+NUNOTA,
+NUMNOTA,
+NUMCOTACAO,
+CASE WHEN PENDENTE = 'S' THEN 'Sim' ELSE 'Não' END AS PENDENTE,
+--CASE WHEN PENDENTE='S' THEN 'RED' END AS FGCOLOR,
+CODEMP,
+NOMEFANTASIA,
+DTNEG,
+CODUSUINC,
+NOMEUSU,
+CODPROD,
+DESCRPROD,
+CODVOL,
+QTDNEGS,
+QTDCOTADA,
+QTDCOTCAN,
+ROUND(QTDNEGP,2) AS QTDNEGP,
+ROUND(QTDNEGP,2) - CASE WHEN ROUND(QTDNEGS,2) = 0 THEN (QTDCOTADA + QTDCOTCAN) ELSE (ROUND(QTDNEGS,2) - QTDCOTCAN) END AS QTDPENDP,
+ROUND(QTDNEGC,2) AS QTDNEGC, 
+ROUND(QTDNEGC,2) - CASE WHEN ROUND(QTDNEGS,2) = 0 THEN (QTDCOTADA + QTDCOTCAN) ELSE (ROUND(QTDNEGS,2) - QTDCOTCAN) END  AS QTDPENDC,
+CODNAT,
+CODCENCUS,
+CODPROJ,
+AD_DT_MARC_ENTREG,
+AD_USU_MARC_ENTREG
+FROM (
+SELECT DISTINCT 
+
+CAB.NUNOTA,
+CAB.NUMNOTA,
+CAB.NUMCOTACAO,
+MAX(ITE.PENDENTE) AS PENDENTE,
+CAB.CODEMP,
+EMP.NOMEFANTASIA,
+CAB.DTNEG,
+CAB.CODUSUINC,
+USU.NOMEUSU,
+CAB.CODNAT,
+CAB.CODCENCUS,
+CAB.CODPROJ,
+ITE.CODPROD,
+PRO.DESCRPROD,
+PRO.CODVOL,
+SUM(ITE.QTDNEG) AS QTDNEGS,
+NVL((SELECT SUM(CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN ITC.QTDCOTADA / VOA.QUANTIDADE WHEN VOA.DIVIDEMULTIPLICA='M' THEN ITC.QTDCOTADA * VOA.QUANTIDADE ELSE ITC.QTDCOTADA END) FROM TGFITC ITC LEFT JOIN TGFVOA VOA ON VOA.CODVOL=ITC.CODVOL AND VOA.CODPROD=ITC.CODPROD WHERE ITC.CODPROD=ITE.CODPROD AND ITC.NUMCOTACAO=CAB.NUMCOTACAO AND CABECALHO='S' AND ITC.STATUSPRODCOT <> 'C'),0) AS QTDCOTADA,
+NVL((SELECT SUM(CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN ITC.QTDCOTADA / VOA.QUANTIDADE WHEN VOA.DIVIDEMULTIPLICA='M' THEN ITC.QTDCOTADA * VOA.QUANTIDADE ELSE ITC.QTDCOTADA END) FROM TGFITC ITC LEFT JOIN TGFVOA VOA ON VOA.CODVOL=ITC.CODVOL AND VOA.CODPROD=ITC.CODPROD WHERE ITC.CODPROD=ITE.CODPROD AND ITC.NUMCOTACAO=CAB.NUMCOTACAO AND CABECALHO='S' AND ITC.STATUSPRODCOT = 'C'),0) AS QTDCOTCAN,
+NVL((SELECT SUM(ITEP.QTDNEG) FROM TGFITE ITEP, TGFCAB CABP WHERE CABP.NUNOTA=ITEP.NUNOTA AND CABP.STATUSNOTA='L' AND ITEP.CODPROD=ITE.CODPROD AND ITEP.NUNOTA IN (SELECT NUNOTACPA FROM TGFITC WHERE NUMCOTACAO=CAB.NUMCOTACAO)),0) AS QTDNEGP,
+NVL((SELECT SUM(VAR.QTDATENDIDA) FROM TGFVAR VAR, TGFITE ITEP WHERE ITEP.NUNOTA=VAR.NUNOTAORIG AND VAR.SEQUENCIAORIG=ITEP.SEQUENCIA AND ITEP.CODPROD=ITE.CODPROD AND ITEP.NUNOTA IN (SELECT NUNOTACPA FROM TGFITC WHERE NUMCOTACAO=CAB.NUMCOTACAO)),0) AS QTDNEGC,
+ITE.AD_DT_MARC_ENTREG,
+ITE.AD_USU_MARC_ENTREG
+
+FROM 
+TGFCAB CAB
+INNER JOIN TGFITE ITE ON CAB.NUNOTA=ITE.NUNOTA
+INNER JOIN TGFPRO PRO ON ITE.CODPROD=PRO.CODPROD
+INNER JOIN TSIUSU USU ON CAB.CODUSUINC=USU.CODUSU
+INNER JOIN TSIEMP EMP ON CAB.CODEMP=EMP.CODEMP
+WHERE 
+CAB.TIPMOV IN ('J')
+AND CAB.STATUSNOTA='L'
+AND (CAB.NUMCOTACAO = :P_NUMCOTACAO OR :P_NUMCOTACAO IS NULL)
+AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN OR :P_PERIODO.INI IS NULL)
+AND (CAB.CODEMP IN :P_EMPRESA)
+AND (ITE.CODPROD = :P_CODPROD OR :P_CODPROD IS NULL)
+AND (CAB.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+GROUP BY
+CAB.NUNOTA,
+CAB.NUMNOTA,
+CAB.CODEMP,
+CAB.DTNEG,
+CAB.CODUSUINC,
+USU.NOMEUSU,
+CAB.CODNAT,
+CAB.CODCENCUS,
+CAB.CODPROJ,
+ITE.CODPROD,
+PRO.DESCRPROD,
+PRO.CODVOL,
+EMP.NOMEFANTASIA,
+CAB.NUMCOTACAO,
+ITE.AD_DT_MARC_ENTREG,
+ITE.AD_USU_MARC_ENTREG
+
+UNION ALL
+
+SELECT DISTINCT 
+0 AS NUNOTA,
+0 AS NUMNOTA,
+COT.NUMCOTACAO,
+CASE WHEN 
+NVL(CASE WHEN ITC.STATUSPRODCOT <> 'C' THEN NVL(( CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN SUM(ITC.QTDCOTADA / VOA.QUANTIDADE) WHEN VOA.DIVIDEMULTIPLICA='M' THEN SUM(ITC.QTDCOTADA * VOA.QUANTIDADE) ELSE SUM(ITC.QTDCOTADA) END),0) END,0) = NVL((SELECT SUM(VAR.QTDATENDIDA) FROM TGFVAR VAR, TGFITE ITEP WHERE ITEP.NUNOTA=VAR.NUNOTAORIG AND VAR.SEQUENCIAORIG=ITEP.SEQUENCIA AND ITEP.CODPROD=ITC.CODPROD AND ITEP.NUNOTA IN (SELECT NUNOTACPA FROM TGFITC WHERE NUMCOTACAO=COT.NUMCOTACAO)),0)
+THEN 'N' ELSE 'S' END AS PENDENTE,
+COT.CODEMP,
+'' AS NOMEFANTASIA,
+(SELECT DTNEG FROM TGFCAB WHERE NUNOTA=COT.NUNOTAORIG) AS DTNEG,
+0 AS CODUSUINC,
+'' AS NOMEUSU,
+0 AS CODNAT,
+0 AS CODCENCUS,
+0 AS CODPROJ,
+ITC.CODPROD,
+PRO.DESCRPROD,
+PRO.CODVOL,
+0 AS QTDNEGS,
+NVL(CASE WHEN ITC.STATUSPRODCOT <> 'C' THEN NVL(( CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN SUM(ITC.QTDCOTADA / VOA.QUANTIDADE) WHEN VOA.DIVIDEMULTIPLICA='M' THEN SUM(ITC.QTDCOTADA * VOA.QUANTIDADE) ELSE SUM(ITC.QTDCOTADA) END),0) END,0) AS QTDCOTADA,
+NVL(CASE WHEN ITC.STATUSPRODCOT = 'C' THEN NVL(( CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN SUM(ITC.QTDCOTADA / VOA.QUANTIDADE) WHEN VOA.DIVIDEMULTIPLICA='M' THEN SUM(ITC.QTDCOTADA * VOA.QUANTIDADE) ELSE SUM(ITC.QTDCOTADA) END),0) END,0) AS QTDCOTCAN,
+NVL((SELECT SUM(ITEP.QTDNEG) FROM TGFITE ITEP WHERE ITEP.CODPROD=ITC.CODPROD AND ITEP.NUNOTA IN (SELECT NUNOTACPA FROM TGFITC WHERE NUMCOTACAO=COT.NUMCOTACAO)),0) AS QTDNEGP,
+NVL((SELECT SUM(VAR.QTDATENDIDA) FROM TGFVAR VAR, TGFITE ITEP WHERE ITEP.NUNOTA=VAR.NUNOTAORIG AND VAR.SEQUENCIAORIG=ITEP.SEQUENCIA AND ITEP.CODPROD=ITC.CODPROD AND ITEP.NUNOTA IN (SELECT NUNOTACPA FROM TGFITC WHERE NUMCOTACAO=COT.NUMCOTACAO)),0) AS QTDNEGC,
+NULL AS AD_DT_MARC_ENTREG,
+0 AS AD_USU_MARC_ENTREG
+FROM 
+TGFCOT COT
+INNER JOIN TGFITC ITC ON ITC.NUMCOTACAO=COT.NUMCOTACAO AND ITC.CABECALHO='S' AND  ITC.STATUSPRODCOT <> 'C'
+INNER JOIN TGFPRO PRO ON ITC.CODPROD=PRO.CODPROD
+LEFT JOIN TGFVOA VOA ON VOA.CODVOL=ITC.CODVOL AND VOA.CODPROD=ITC.CODPROD
+WHERE 
+ITC.CODPROD NOT IN  (SELECT CODPROD FROM TGFITE WHERE NUNOTA=COT.NUNOTAORIG)
+AND (COT.NUMCOTACAO = :P_NUMCOTACAO OR :P_NUMCOTACAO IS NULL)
+AND ((SELECT DTNEG FROM TGFCAB WHERE NUNOTA=COT.NUNOTAORIG) BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN OR :P_PERIODO.INI IS NULL)
+AND (COT.CODEMP IN :P_EMPRESA)
+AND (ITC.CODPROD = :P_CODPROD OR :P_CODPROD IS NULL)
+AND (:P_NUNOTA IS NULL OR 0=:P_NUNOTA)
+GROUP BY
+COT.NUMCOTACAO,
+COT.CODEMP,
+ITC.CODPROD,
+PRO.DESCRPROD,
+PRO.CODVOL,
+VOA.DIVIDEMULTIPLICA,
+COT.NUNOTAORIG,
+ITC.STATUSPRODCOT
+)
+WHERE
+(QTDNEGP - QTDNEGS) < :P_DIFPED
+AND (QTDNEGP - QTDNEGS) < :P_DIFNOTA
+AND (QTDCOTCAN = 0 OR :P_CANCELADOS='S')
+AND ((PENDENTE = 'S' AND :P_SOLPEND =1) OR :P_SOLPEND IN (0,2))
+AND ((PENDENTE = 'N' AND :P_SOLPEND =2) OR :P_SOLPEND IN (0,1))
+AND NUNOTA = :A_NUNOTA1
+ORDER BY  NUMCOTACAO, CODPROD
+
+            
+            
+            ]]>
+            </expression>
+            <metadata>
+              <field name="PARAMETRO" label="PARAMETRO" type="S" visible="false" useFooter="false"></field>
+              <field name="NUNOTA" label="Nro.Único" type="I" visible="true" useFooter="false"></field>
+              <field name="NUMNOTA" label="Nro.Nota" type="I" visible="true" useFooter="false"></field>
+              <field name="NUMCOTACAO" label="Nro.Cot." type="I" visible="true" useFooter="false"></field>
+              <field name="PENDENTE" label="Pendente" type="S" visible="true" useFooter="false"></field>
+              <field name="CODEMP" label="Cod.Emp." type="I" visible="true" useFooter="false"></field>
+              <field name="NOMEFANTASIA" label="Nome Emp." type="S" visible="true" useFooter="false"></field>
+              <field name="DTNEG" label="Dt.Neg." type="D" visible="true" useFooter="false"></field>
+              <field name="CODUSUINC" label="Cod.Usu." type="I" visible="false" useFooter="false"></field>
+              <field name="NOMEUSU" label="Nome Usuário" type="S" visible="true" useFooter="false"></field>
+              <field name="CODPROD" label="Cod.Prod." type="I" visible="true" useFooter="false"></field>
+              <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"></field>
+              <field name="CODVOL" label="Vol." type="S" visible="true" useFooter="false"></field>
+              <field name="QTDNEGS" label="Qtd.Solicitada" type="F" visible="true" useFooter="false">
+                <formatter isEmpty="false">
+                  <![CDATA[<span style=""><b>$VALUE</b></span>]]>
+                </formatter>
+              </field>
+              <field name="QTDCOTADA" label="Qtd.Cotada" type="F" visible="true" useFooter="false">
+                <formatter isEmpty="false">
+                  <![CDATA[<span style="; background-color:#FFFFCC">$VALUE</span>]]>
+                </formatter>
+              </field>
+              <field name="QTDCOTCAN" label="Qtd.Can." type="F" visible="true" useFooter="false">
+                <formatter greaterThan="0">
+                  <![CDATA[<span style="; background-color:#FFFFCC; src:iconFlagRed">$VALUE</span>]]>
+                </formatter>
+                <formatter lessEqualThan="0">
+                  <![CDATA[<span style="; background-color:#FFFFCC">$VALUE</span>]]>
+                </formatter>
+              </field>
+              <field name="QTDNEGP" label="Qtd.Pedido" type="F" visible="true" useFooter="false">
+                <formatter isEmpty="false">
+                  <![CDATA[<span style="; background-color:#00FF99"><b>$VALUE</b></span>]]>
+                </formatter>
+              </field>
+              <field name="QTDPENDP" label="Qtd. Pendente" type="F" visible="true" useFooter="false">
+                <formatter greaterEqualThan="0">
+                  <![CDATA[<span style="; background-color:#00FF99; src:iconAccept"><b>$VALUE</b></span>]]>
+                </formatter>
+                <formatter lessThan="0">
+                  <![CDATA[<span style="; background-color:#00FF99; src:iconOvalRed"><b>$VALUE</b></span>]]>
+                </formatter>
+              </field>
+              <field name="QTDNEGC" label="Qtd.Nota" type="F" visible="true" useFooter="false">
+                <formatter isEmpty="false">
+                  <![CDATA[<span style="; background-color:#33CCFF"><b>$VALUE</b></span>]]>
+                </formatter>
+              </field>
+              <field name="QTDPENDC" label="Qtd. Pendente" type="F" visible="true" useFooter="false">
+                <formatter greaterEqualThan="0">
+                  <![CDATA[<span style="; background-color:#33CCFF; src:iconAccept"><b>$VALUE</b></span>]]>
+                </formatter>
+                <formatter lessThan="0">
+                  <![CDATA[<span style="; background-color:#33CCFF; src:iconOvalRed"><b>$VALUE</b></span>]]>
+                </formatter>
+              </field>
+              <field name="CODNAT" label="Cod.Nat." type="I" visible="true" useFooter="false"></field>
+              <field name="CODCENCUS" label="Cod.CR" type="I" visible="true" useFooter="false"></field>
+              <field name="CODPROJ" label="Cod.Proj." type="I" visible="true" useFooter="false"></field>
+              <field name="AD_DT_MARC_ENTREG" label="Atu. Dt. Pendente" type="D" visible="true" useFooter="false"></field>
+              <field name="AD_USU_MARC_ENTREG" label="Usu. Atu. Pendente" type="F" visible="true" useFooter="false"></field>
+            </metadata>
+            <on-click-launcher  resource-id="br.com.sankhya.com.mov.CentralNotas">
+              <NUNOTA>$NUNOTA</NUNOTA>
+            </on-click-launcher>
+            <refresh-details  ui-list="grd_r4mn4x">
+              <param id="A_NUMCOTACAO">$NUMCOTACAO</param>
+              <param id="A_CODPROD">$CODPROD</param>
+            </refresh-details>
+          </grid>
+        </container>
+      </container>
+      <container orientacao="H" tamanhoRelativo="100">
+        <container orientacao="V" tamanhoRelativo="120">
+          <grid id="grd_r4mn4x" useNewGrid="S">
+            <args>
+              <arg id="A_NUMCOTACAO" type="integer"></arg>
+              <arg id="A_CODPROD" type="integer"></arg>
+            </args>
+            <title>
+              <![CDATA[
+              
+              
+              
+              
+              
+              
+              
+              COTAÇÃO
+            
+            
+            
+            
+            
+            
+            
+            ]]>
+            </title>
+            <expression type="sql" data-source="MGEDS">
+              <![CDATA[
+              
+              
+              
+              
+              
+              
+              
+              SELECT  DISTINCT
+COT.CODEMP,
+COT.CODUSUREQ,
+COT.CODUSURESP,
+USU.NOMEUSU,
+COT.DHINIC,
+COT.DHFINAL,
+
+CASE WHEN ITC.STATUSPRODCOT = 'F'  THEN
+ITC.NUNOTACPA
+WHEN ITC.STATUSPRODCOT IN ( 'A', 'C', 'A' ,'E' , 'P' )THEN
+0
+END AS NOTA1,
+
+
+CASE WHEN COT.SITUACAO = 'F' THEN 'FECHADA'
+WHEN COT.SITUACAO = 'E' THEN  'EM APROVAÇÃO'
+WHEN COT.SITUACAO = 'A' THEN 'ABERTA'
+WHEN COT.SITUACAO = 'C' THEN 'CANCELADA'
+
+END AS SITUACAO_COTACAO,
+
+COT.NUMCOTACAO,
+ITC.CODPROD AS PRODUTO,
+PRO.DESCRPROD,
+ITC.CONTROLE,
+
+CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN ITC.QTDCOTADA / VOA.QUANTIDADE WHEN VOA.DIVIDEMULTIPLICA='M' THEN ITC.QTDCOTADA * VOA.QUANTIDADE ELSE ITC.QTDCOTADA END AS QTDCOTADA,
+
+CASE WHEN ITC.STATUSPRODCOT = 'F' THEN 'FECHADA'
+WHEN ITC.STATUSPRODCOT = 'O' THEN 'ABERTA'
+WHEN ITC.STATUSPRODCOT = 'C' THEN 'CANCELADA'
+WHEN ITC.STATUSPRODCOT = 'A' THEN 'APROVADA'
+WHEN ITC.STATUSPRODCOT = 'E' THEN 'ENVIADA'
+WHEN ITC.STATUSPRODCOT = 'P' THEN 'PRECIFICADA'
+
+END SITUACAO_PRODUTO,
+
+ITC.CODPARC,
+
+CAB.NUNOTA AS SOLICITACAO
+
+FROM  TGFCOT COT
+INNER JOIN TGFCAB CAB ON COT.NUNOTAORIG = CAB.NUNOTA
+INNER JOIN TGFITC ITC ON ITC.NUMCOTACAO = COT.NUMCOTACAO
+LEFT JOIN TGFVOA VOA ON VOA.CODVOL=ITC.CODVOL AND VOA.CODPROD=ITC.CODPROD
+INNER JOIN TSIUSU USU ON USU.CODUSU=COT.CODUSURESP
+INNER JOIN TGFPRO PRO ON PRO.CODPROD=ITC.CODPROD
+WHERE 
+ITC.CABECALHO = 'S'
+AND ITC.STATUSPRODCOT <> 'F'
+AND ITC.NUNOTACPA IS NULL
+AND ITC.NUMCOTACAO = :A_NUMCOTACAO
+AND ITC.CODPROD = :A_CODPROD
+AND (ITC.CONTROLE = :A_CONTROLE OR :A_CONTROLE IS NULL)
+
+UNION ALL
+
+SELECT  DISTINCT
+COT.CODEMP,
+COT.CODUSUREQ,
+COT.CODUSURESP,
+USU.NOMEUSU,
+COT.DHINIC,
+COT.DHFINAL,
+
+CASE WHEN ITC.STATUSPRODCOT = 'O' AND ITC.NUNOTACPA <> 0  THEN
+ITC.NUNOTACPA
+ELSE
+0
+END AS NOTA1,
+
+
+CASE WHEN COT.SITUACAO = 'F' THEN 'FECHADA'
+WHEN COT.SITUACAO = 'E' THEN  'EM APROVAÇÃO'
+WHEN COT.SITUACAO = 'A' THEN 'ABERTA'
+WHEN COT.SITUACAO = 'C' THEN 'CANCELADA'
+
+END AS SITUACAO_COTACAO,
+
+
+
+COT.NUMCOTACAO,
+ITC.CODPROD AS PRODUTO,
+PRO.DESCRPROD,
+ITC.CONTROLE,
+CASE WHEN VOA.DIVIDEMULTIPLICA='D' THEN ITC.QTDCOTADA / VOA.QUANTIDADE WHEN VOA.DIVIDEMULTIPLICA='M' THEN ITC.QTDCOTADA * VOA.QUANTIDADE ELSE ITC.QTDCOTADA END AS QTDCOTADA,
+
+CASE WHEN ITC.STATUSPRODCOT = 'O' AND ITC.NUNOTACPA <> 0 THEN
+'FECHADA'
+ELSE 'ABERTA'
+END SITUACAO_PRODUTO,
+
+ITC.CODPARC,
+
+CAB.NUNOTA AS SOLICITACAO
+
+FROM  TGFCOT COT
+INNER JOIN TGFCAB CAB ON COT.NUNOTAORIG = CAB.NUNOTA
+INNER JOIN TGFITC ITC ON ITC.NUMCOTACAO = COT.NUMCOTACAO
+LEFT JOIN TGFVOA VOA ON VOA.CODVOL=ITC.CODVOL AND VOA.CODPROD=ITC.CODPROD
+INNER JOIN TSIUSU USU ON USU.CODUSU=COT.CODUSURESP
+INNER JOIN TGFPRO PRO ON PRO.CODPROD=ITC.CODPROD
+WHERE 
+NVL(ITC.NUNOTACPA,0) <> 0 
+AND ITC.NUMCOTACAO = :A_NUMCOTACAO
+AND ITC.CODPROD = :A_CODPROD
+AND (ITC.CONTROLE = :A_CONTROLE OR :A_CONTROLE IS NULL)
+ORDER BY SOLICITACAO, PRODUTO
+ 
+            
+            
+            
+            
+            
+            
+            
+            ]]>
+            </expression>
+            <metadata>
+              <field name="CODEMP" label="Cód.Emp" type="I" visible="false" useFooter="false"></field>
+              <field name="CODUSUREQ" label="Cód.Usu.Req." type="I" visible="false" useFooter="false"></field>
+              <field name="CODUSURESP" label="Cód.Usu.Resp." type="I" visible="true" useFooter="false"></field>
+              <field name="NOMEUSU" label="Usu.Resp." type="S" visible="true" useFooter="false"></field>
+              <field name="DHINIC" label="Dt.Inicio" type="D" visible="true" useFooter="false"></field>
+              <field name="DHFINAL" label="Dt.Final" type="D" visible="true" useFooter="false"></field>
+              <field name="NOTA1" label="NOTA1" type="F" visible="false" useFooter="false"></field>
+              <field name="SITUACAO_COTACAO" label="Situação" type="S" visible="true" useFooter="false"></field>
+              <field name="NUMCOTACAO" label="Nro.Cot." type="I" visible="true" useFooter="false"></field>
+              <field name="PRODUTO" label="Cód.Prod." type="I" visible="true" useFooter="false"></field>
+              <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"></field>
+              <field name="CONTROLE" label="Controle" type="S" visible="true" useFooter="false"></field>
+              <field name="QTDCOTADA" label="Qtd. Cotada" type="F" visible="true" useFooter="false"></field>
+              <field name="SITUACAO_PRODUTO" label="SituaçãoProd." type="S" visible="true" useFooter="false"></field>
+              <field name="CODPARC" label="Cód.parc" type="I" visible="false" useFooter="false"></field>
+              <field name="SOLICITACAO" label="Solicitação" type="I" visible="false" useFooter="false"></field>
+            </metadata>
+            <on-click-launcher  resource-id="br.com.sankhya.swb.cotacao.rotinas.cotacao">
+              <NUMCOTACAO>$NUMCOTACAO</NUMCOTACAO>
+              <CODPROD>$PRODUTO</CODPROD>
+              <CODPARC/>
+              <CONTROLE/>
+              <CODLOCAL/>
+              <CABECALHO/>
+              <DIFERENCIADOR/>
+            </on-click-launcher>
+            <refresh-details  ui-list="grd_5xspje,grd_5xspjc">
+              <param id="A_NUMCOTACAO">$NUMCOTACAO</param>
+              <param id="A_CODPROD">$PRODUTO</param>
+            </refresh-details>
+          </grid>
+        </container>
+        <container orientacao="H" tamanhoRelativo="260">
+          <container orientacao="H" tamanhoRelativo="127">
+            <grid id="grd_5xspje" useNewGrid="S">
+              <args>
+                <arg id="A_NUMCOTACAO" type="integer"></arg>
+                <arg id="A_CODPROD" type="integer"></arg>
+              </args>
+              <title>
+                <![CDATA[
+                
+                
+                
+                
+                
+                
+                
+                PEDIDOS DE COMPRA
+              
+              
+              
+              
+              
+              
+              
+              ]]>
+              </title>
+              <expression type="sql" data-source="MGEDS">
+                <![CDATA[
+                
+                
+                
+                
+                
+                
+                
+                SELECT DISTINCT
+CAB.CODPARC,
+PAR.NOMEPARC,
+ITE.CODPROD,
+PRO.DESCRPROD,
+ITE.CONTROLE,
+PRO.CODVOL,
+ITE.QTDNEG,
+ITE.QTDENTREGUE AS QTDENTREGUE,
+ITE.QTDNEG-ITE.QTDENTREGUE AS QTDPENDENTE,
+CAB.NUNOTA,
+CAB.NUMNOTA,
+ITC.NUMCOTACAO,
+CAB.CODEMP,
+EMP.RAZAOSOCIAL,
+
+CAB.CODUSUINC,
+USU.NOMEUSU,
+
+CASE WHEN CAB.STATUSNOTA = 'L' 
+THEN 'Sim'
+ELSE 'Não' END STATUSNOTA,
+
+CAB.CODNAT,
+CAB.CODPROJ
+
+
+
+
+
+FROM TGFCAB CAB,
+TGFITC ITC,
+TGFITE ITE,
+TGFPRO PRO,
+TSIUSU USU,
+TSIEMP EMP,
+TGFPAR PAR
+
+WHERE CAB.NUNOTA = ITC.NUNOTACPA
+AND CAB.NUNOTA = ITE.NUNOTA
+AND ITC.CODPROD = ITE.CODPROD
+AND ITE.CODPROD = PRO.CODPROD
+AND CAB.CODUSUINC =  USU.CODUSU
+AND CAB.CODEMP = EMP.CODEMP
+AND CAB.CODPARC = PAR.CODPARC
+AND CAB.STATUSNOTA = 'L' 
+AND ITC.NUMCOTACAO =  :A_NUMCOTACAO
+AND ITC.CODPROD =  :A_CODPROD
+ORDER BY CAB.NUNOTA, ITE.CODPROD, QTDENTREGUE
+
+              
+              
+              
+              
+              
+              
+              
+              ]]>
+              </expression>
+              <metadata>
+                <field name="CODPARC" label="Cód.Parc." type="I" visible="true" useFooter="false"></field>
+                <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"></field>
+                <field name="CODPROD" label="Cód.Prod." type="I" visible="true" useFooter="false"></field>
+                <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"></field>
+                <field name="CONTROLE" label="Controle" type="S" visible="true" useFooter="false"></field>
+                <field name="CODVOL" label="Vol." type="S" visible="true" useFooter="false"></field>
+                <field name="QTDNEG" label="Qtd.Neg." type="F" visible="true" useFooter="false"></field>
+                <field name="QTDENTREGUE" label="Qtd. Entregue" type="F" visible="true" useFooter="false"></field>
+                <field name="QTDPENDENTE" label="Qtd. Pendente" type="F" visible="true" useFooter="false"></field>
+                <field name="NUNOTA" label="Nro.Único" type="I" visible="true" useFooter="false"></field>
+                <field name="NUMNOTA" label="Nro.Nota" type="I" visible="true" useFooter="false"></field>
+                <field name="NUMCOTACAO" label="Nro.Cot." type="I" visible="false" useFooter="false"></field>
+                <field name="CODEMP" label="CODEMP" type="I" visible="false" useFooter="false"></field>
+                <field name="RAZAOSOCIAL" label="RAZAOSOCIAL" type="S" visible="false" useFooter="false"></field>
+                <field name="CODUSUINC" label="Cód.Usu.Inc." type="I" visible="true" useFooter="false"></field>
+                <field name="NOMEUSU" label="Usuário Inc." type="S" visible="true" useFooter="false"></field>
+                <field name="STATUSNOTA" label="Confirmada" type="S" visible="true" useFooter="false"></field>
+                <field name="CODNAT" label="Cód.Nat." type="I" visible="true" useFooter="false"></field>
+                <field name="CODPROJ" label="Cód.Proj." type="I" visible="true" useFooter="false"></field>
+              </metadata>
+              <on-click-launcher  resource-id="br.com.sankhya.com.mov.CentralNotas">
+                <NUNOTA>$NUNOTA</NUNOTA>
+              </on-click-launcher>
+              <refresh-details  ui-list="grd_5xspjc">
+                <param id="A_NUMCOTACAO">$NUMCOTACAO</param>
+                <param id="A_CODPROD">$CODPROD</param>
+              </refresh-details>
+            </grid>
+          </container>
+          <container orientacao="V" tamanhoRelativo="100">
+            <grid id="grd_5xspjc" useNewGrid="S">
+              <args>
+                <arg id="A_NUMCOTACAO" type="integer"></arg>
+                <arg id="A_CODPROD" type="integer"></arg>
+              </args>
+              <title>
+                <![CDATA[
+                
+                
+                
+                
+                
+                
+                
+                NOTAS DE COMPRA
+              
+              
+              
+              
+              
+              
+              
+              ]]>
+              </title>
+              <expression type="sql" data-source="MGEDS">
+                <![CDATA[
+                
+                
+                
+                
+                
+                
+                
+                SELECT DISTINCT
+VAR.NUNOTA,
+VAR.NUNOTAORIG,
+CAB.CODEMP,
+EMP.RAZAOSOCIAL,
+CAB.DTENTSAI,
+CAB.CODUSUINC,
+USU.NOMEUSU,
+CAB.CODUSU,
+USU1.NOMEUSU AS NOMEUSU1,
+ITE.CODPROD,
+PRO.DESCRPROD,
+ITE.CONTROLE,
+PRO.CODVOL,
+CASE WHEN CAB.STATUSNOTA = 'L' THEN 'Sim' ELSE 'Não' END AS STATUSNOTA,
+ITE.QTDNEG,
+(SELECT ITE.QTDNEG FROM TGFITE ITE WHERE  ITE.NUNOTA = VAR.NUNOTAORIG AND ITE.SEQUENCIA = VAR.SEQUENCIAORIG) 
+ AS QTDPED,
+ITE.QTDNEG -(SELECT (ITE.QTDNEG) FROM  TGFCAB CAB WHERE CAB.NUNOTA = NUNOTAORIG)  AS QTDFALTA
+
+FROM TGFCAB CAB, TGFVAR VAR, TSIUSU USU, TSIUSU USU1,
+TGFITE ITE, TGFPRO PRO, TSIEMP EMP, TGFCAB CABP, TGFITC ITC
+
+WHERE VAR.NUNOTA = CAB.NUNOTA
+AND PRO.CODPROD = ITE.CODPROD
+AND CAB.CODEMP =  EMP.CODEMP
+AND USU.CODUSU = CAB.CODUSUINC
+AND USU1.CODUSU = CAB.CODUSU
+AND CAB.NUNOTA = ITE.NUNOTA
+AND ITE.SEQUENCIA = VAR.SEQUENCIA
+AND CAB.STATUSNOTA = 'L' 
+AND VAR.NUNOTAORIG = CABP.NUNOTA
+AND ITE.CODPROD = ITC.CODPROD
+--AND (ITE.CONTROLE = ITC.CONTROLE)
+AND ITC.NUNOTACPA = CABP.NUNOTA
+AND ITC.NUMCOTACAO=:A_NUMCOTACAO
+AND ITC.CODPROD=:A_CODPROD
+              
+              
+              
+              
+              
+              
+              
+              ]]>
+              </expression>
+              <metadata>
+                <field name="NUNOTA" label="Nro.Único" type="I" visible="true" useFooter="false"></field>
+                <field name="NUNOTAORIG" label="Nro.Nota" type="I" visible="true" useFooter="false"></field>
+                <field name="CODEMP" label="CODEMP" type="I" visible="false" useFooter="false"></field>
+                <field name="RAZAOSOCIAL" label="RAZAOSOCIAL" type="S" visible="false" useFooter="false"></field>
+                <field name="DTENTSAI" label="Dt.Entrada" type="D" visible="true" useFooter="false"></field>
+                <field name="CODUSUINC" label="Cód.Usu.Inc." type="I" visible="true" useFooter="false"></field>
+                <field name="NOMEUSU" label="Usu.Inclusão" type="S" visible="true" useFooter="false"></field>
+                <field name="CODUSU" label="Cód.Usu.Alteração" type="I" visible="true" useFooter="false"></field>
+                <field name="NOMEUSU1" label="NOMEUSU1" type="S" visible="false" useFooter="false"></field>
+                <field name="CODPROD" label="Cód.Prod." type="I" visible="true" useFooter="false"></field>
+                <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"></field>
+                <field name="CONTROLE" label="Controle" type="S" visible="true" useFooter="false"></field>
+                <field name="CODVOL" label="Vol." type="S" visible="true" useFooter="false"></field>
+                <field name="STATUSNOTA" label="Confirmada" type="S" visible="true" useFooter="false"></field>
+                <field name="QTDNEG" label="Qtd.Neg." type="F" visible="true" useFooter="false"></field>
+                <field name="QTDPED" label="Qtd.Pedido" type="F" visible="true" useFooter="false"></field>
+                <field name="QTDFALTA" label="Qtd.Falta" type="F" visible="true" useFooter="false"></field>
+              </metadata>
+              <on-click-launcher  resource-id="br.com.sankhya.mgecom.mov.PortalCompras">
+                <NUNOTA>$NOTADESTINO</NUNOTA>
+              </on-click-launcher>
+            </grid>
+          </container>
+        </container>
+      </container>
+    </container>
+  </level>
+</gadget>

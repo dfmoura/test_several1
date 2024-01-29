@@ -1,0 +1,780 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Acomp_Meta" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.2100000000000002"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_EMPRESA" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="NOMETABELA" value="TSIEMP"/>
+		<parameterDescription><![CDATA[Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODPARC" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFPAR"/>
+		<parameterDescription><![CDATA[Cód. Parceiro]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Cód. Vendedor]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND_1" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Cód. Vendedor 1]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND_2" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Cód. Vendedor 2]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt. Inicial]]></parameterDescription>
+		
+	</parameter>
+	<parameter name="P_DTFIN" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt. Final]]></parameterDescription>
+		
+	</parameter>
+	<parameter name="P_CODMETA" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGMCFG"/>
+		<parameterDescription><![CDATA[Cód. Meta]]></parameterDescription>
+		
+	</parameter>
+	<parameter name="P_NTEMMETA" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Ignorar Ref. Sem Meta Prev./Real]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_MARCA" class="java.lang.String">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="AD_VGFMARCA"/>
+		<parameterDescription><![CDATA[Marca]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_GRUPOPROD" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFGRU"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<parameterDescription><![CDATA[Grupo de Produtos]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CR" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TSICUS"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Centro de Resultado]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several\\ireport\\0010_Relatorio_Acompanhamento_Meta\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_GRUPOMARCA" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="ad_grumarcacab"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<parameterDescription><![CDATA[Grupo Marca]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+CODVEND
+, APELIDO
+, CODPARC
+, RAZAOSOCIAL
+, CGC_CPF
+, MARCA
+, SUM(QTDPREV) AS QTDPREV
+, SUM(QTDREAL) AS QTDREAL
+, SUM(QTDPREV * PRECOLT)  AS VLR_PREV
+, SUM(VLRREAL)  AS VLR_REAL
+, CASE WHEN SUM(QTDPREV) = 0 THEN 100 ELSE SUM(QTDREAL) * 100 / SUM(QTDPREV) END AS PERC
+, CASE WHEN SUM(QTDPREV * PRECOLT) = 0 THEN 100 ELSE SUM(VLRREAL) * 100 / SUM(QTDPREV * PRECOLT) END AS PERC_VLR
+FROM
+(
+SELECT
+MET.DTREF
+, MET.CODVEND
+, VEN.APELIDO
+, MET.CODPARC
+, PAR.RAZAOSOCIAL
+, PAR.CGC_CPF
+, MET.MARCA
+, MET.QTDPREV
+, MET.QTDREAL
+, NVL(PRC.VLRVENDALT,0) AS PRECOLT,
+SUM(NVL(
+  CASE
+    WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED) * -1
+    ELSE (ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED)
+  END,
+  0
+)) AS VLRREAL
+
+FROM TGMMET MET
+  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)
+  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)
+  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')
+
+  LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0
+
+  LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA
+  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPROD
+  /*INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)*/
+  LEFT JOIN AD_VGFMARCA VGMAR ON PRO.MARCA = VGMAR.MARCA
+LEFT JOIN AD_GRUMARCAITE MARITE ON VGMAR.SEQ = MARITE.CODMARCA
+LEFT JOIN AD_GRUMARCACAB MARCAB ON MARITE.CODGRU = MARCAB.CODGRU
+
+WHERE
+  MET.CODMETA = $P{P_CODMETA}
+  AND MET.DTREF >= $P{P_DTINI}
+  AND MET.DTREF <= $P{P_DTFIN}
+  AND (
+    MET.CODVEND IN ($P{P_CODVEND}, $P{P_CODVEND_1}, $P{P_CODVEND_2})
+    OR COALESCE($P{P_CODVEND}, $P{P_CODVEND_1}, $P{P_CODVEND_2}) IS NULL
+  )
+
+  AND (($P{P_NTEMMETA}=1 AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR $P{P_NTEMMETA}=0)
+  AND (MET.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+  AND (CAB.CODEMP=$P{P_EMPRESA} OR $P{P_EMPRESA} IS NULL)
+  AND (PRO.MARCA = (SELECT MARCA FROM TGFPRO WHERE CODPROD=$P{P_MARCA}) OR $P{P_MARCA} IS NULL)
+  AND (PRO.CODGRUPOPROD = $P{P_GRUPOPROD} OR $P{P_GRUPOPROD} IS NULL)
+  AND (CAB.CODCENCUS = $P{P_CR} OR $P{P_CR} IS NULL)
+  AND (MARCAB.CODGRU = $P{P_GRUPOMARCA} OR $P{P_GRUPOMARCA} IS NULL)
+
+GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL,  NVL(PRC.VLRVENDALT,0),PAR.CGC_CPF
+)
+
+WHERE (QTDPREV <> 0 OR QTDREAL <> 0)
+GROUP BY
+CODVEND
+, APELIDO
+, CODPARC
+, RAZAOSOCIAL
+, CGC_CPF
+, MARCA
+ORDER BY APELIDO ASC, RAZAOSOCIAL ASC, MARCA ASC, "QTDREAL" DESC]]>
+	</queryString>
+	<field name="CODVEND" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Vend.]]></fieldDescription>
+	</field>
+	<field name="APELIDO" class="java.lang.String">
+		<fieldDescription><![CDATA[Vendedor]]></fieldDescription>
+	</field>
+	<field name="CODPARC" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Parc.]]></fieldDescription>
+	</field>
+	<field name="RAZAOSOCIAL" class="java.lang.String">
+		<fieldDescription><![CDATA[Parceiro]]></fieldDescription>
+	</field>
+	<field name="CGC_CPF" class="java.lang.String"/>
+	<field name="MARCA" class="java.lang.String">
+		<fieldDescription><![CDATA[Marca]]></fieldDescription>
+	</field>
+	<field name="QTDPREV" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Qtd. Prev.]]></fieldDescription>
+	</field>
+	<field name="QTDREAL" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Qtd. Real]]></fieldDescription>
+	</field>
+	<field name="VLR_PREV" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Vlr. Prev.]]></fieldDescription>
+	</field>
+	<field name="VLR_REAL" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Vlr. Real]]></fieldDescription>
+	</field>
+	<field name="PERC" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[%]]></fieldDescription>
+	</field>
+	<field name="PERC_VLR" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[%]]></fieldDescription>
+	</field>
+	<variable name="SVLRPREV_VEN" class="java.math.BigDecimal" resetType="Group" resetGroup="VENDEDOR" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLR_PREV}]]></variableExpression>
+	</variable>
+	<variable name="SVLRREAL_VEN" class="java.math.BigDecimal" resetType="Group" resetGroup="VENDEDOR" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLR_REAL}]]></variableExpression>
+	</variable>
+	<variable name="SVLRPREV_CLI" class="java.math.BigDecimal" resetType="Group" resetGroup="CLIENTE" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLR_PREV}]]></variableExpression>
+	</variable>
+	<variable name="SVLRREAL_CLI" class="java.math.BigDecimal" resetType="Group" resetGroup="CLIENTE" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLR_REAL}]]></variableExpression>
+	</variable>
+	<variable name="SQTDPREV_VEN" class="java.math.BigDecimal" resetType="Group" resetGroup="VENDEDOR" calculation="Sum">
+		<variableExpression><![CDATA[$F{QTDPREV}]]></variableExpression>
+	</variable>
+	<variable name="SQTDREAL_VEN" class="java.math.BigDecimal" resetType="Group" resetGroup="VENDEDOR" calculation="Sum">
+		<variableExpression><![CDATA[$F{QTDREAL}]]></variableExpression>
+	</variable>
+	<variable name="SQTDPREV_CLI" class="java.math.BigDecimal" resetType="Group" resetGroup="CLIENTE" calculation="Sum">
+		<variableExpression><![CDATA[$F{QTDPREV}]]></variableExpression>
+	</variable>
+	<variable name="SQTDREAL_CLI" class="java.math.BigDecimal" resetType="Group" resetGroup="CLIENTE" calculation="Sum">
+		<variableExpression><![CDATA[$F{QTDREAL}]]></variableExpression>
+	</variable>
+	<group name="VENDEDOR">
+		<groupExpression><![CDATA[$F{CODVEND}]]></groupExpression>
+		<groupHeader>
+			<band height="17">
+				<rectangle>
+					<reportElement x="0" y="0" width="555" height="15" forecolor="#F0F0F0" backcolor="#F0F0F0"/>
+				</rectangle>
+				<staticText>
+					<reportElement x="3" y="0" width="45" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Cód. Vend.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="93" y="0" width="54" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Vendedor]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="48" y="0" width="45" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODVEND}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="147" y="0" width="99" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{APELIDO}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="20">
+				<line>
+					<reportElement x="0" y="1" width="551" height="1"/>
+				</line>
+				<textField pattern="#,##0.00">
+					<reportElement x="458" y="2" width="50" height="15"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SVLRREAL_VEN}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00">
+					<reportElement x="407" y="2" width="50" height="15"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SVLRPREV_VEN}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="117" y="2" width="163" height="15"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<text><![CDATA[Total por Vendedor:]]></text>
+				</staticText>
+				<textField pattern="#,##0.00">
+					<reportElement x="280" y="2" width="40" height="15"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SQTDPREV_VEN}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00">
+					<reportElement x="322" y="2" width="40" height="15"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SQTDREAL_VEN}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="CLIENTE">
+		<groupExpression><![CDATA[$F{CODPARC}]]></groupExpression>
+		<groupHeader>
+			<band height="20">
+				<rectangle>
+					<reportElement x="0" y="0" width="555" height="15" forecolor="#FFFF99" backcolor="#FFFF99"/>
+				</rectangle>
+				<staticText>
+					<reportElement x="3" y="0" width="45" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Cód. Parc.]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="48" y="0" width="45" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPARC}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="93" y="0" width="54" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Parceiro]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="147" y="0" width="404" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOSOCIAL}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="0" y="15" width="551" height="1"/>
+					<graphicElement>
+						<pen lineWidth="0.5" lineStyle="Dashed"/>
+					</graphicElement>
+				</line>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="20">
+				<staticText>
+					<reportElement x="117" y="0" width="163" height="15"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<text><![CDATA[Total por Cliente:]]></text>
+				</staticText>
+				<textField pattern="#,##0.00">
+					<reportElement x="407" y="0" width="50" height="15"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SVLRPREV_CLI}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00">
+					<reportElement x="458" y="0" width="50" height="15"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SVLRREAL_CLI}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00">
+					<reportElement x="280" y="0" width="40" height="15"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SQTDPREV_CLI}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00">
+					<reportElement x="322" y="0" width="40" height="15"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SQTDREAL_CLI}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="MARCA">
+		<groupExpression><![CDATA[$F{MARCA}]]></groupExpression>
+		<groupHeader>
+			<band/>
+		</groupHeader>
+		<groupFooter>
+			<band/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="70" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="551" height="34"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Relatório - Orçado x Realizado]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="205" y="37" width="35" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Período De:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="283" y="37" width="41" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Período Até:]]></text>
+			</staticText>
+			<image hAlign="Center" vAlign="Middle">
+				<reportElement key="image-1" x="0" y="0" width="90" height="68"/>
+				<box>
+					<topPen lineWidth="0.0"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "Logo.bmp"]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="500" y="15" width="14" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="6" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="497" y="0" width="49" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="531" y="15" width="15" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="447" y="0" width="50" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Emitido em]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="461" y="15" width="39" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Página]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="516" y="15" width="15" height="15"/>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[/]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="240" y="37" width="40" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$P{P_DTINI}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="false">
+				<reportElement x="324" y="37" width="40" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$P{P_DTFIN}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="150" y="37" width="55" height="31"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Filtros Utilizados:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="240" y="48" width="20" height="10"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$P{P_EMPRESA}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="205" y="48" width="35" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Emp.:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="260" y="48" width="35" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Parc.:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="295" y="48" width="20" height="10"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$P{P_CODPARC}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="316" y="48" width="35" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Vend.:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="352" y="48" width="20" height="10"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$P{P_CODVEND}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="410" y="48" width="20" height="10"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$P{P_CODVEND_1}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="467" y="48" width="20" height="10"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$P{P_CODVEND_2}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="373" y="48" width="37" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Vend1.:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="430" y="48" width="37" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Vend2.:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="487" y="48" width="37" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Meta.:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="524" y="48" width="20" height="10"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$P{P_CODMETA}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="352" y="58" width="20" height="10"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$P{P_GRUPOMARCA}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="205" y="58" width="35" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Marca:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="240" y="58" width="20" height="10"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$P{P_MARCA}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="260" y="58" width="35" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Gru. Prod.:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="295" y="58" width="20" height="10"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$P{P_GRUPOPROD}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="410" y="58" width="77" height="10"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$P{P_CR}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="316" y="58" width="35" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Gru. Marca:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="373" y="58" width="35" height="10"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CR:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="150" y="35" width="399" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="23" splitType="Stretch">
+			<staticText>
+				<reportElement x="280" y="0" width="40" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Qtd. Prev.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="322" y="0" width="40" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Qtd. Real]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="407" y="0" width="50" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Vlr. Prev.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="458" y="0" width="50" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Vlr. Real]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="364" y="0" width="40" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Qtd (%)]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="19" width="551" height="1"/>
+			</line>
+			<staticText>
+				<reportElement x="509" y="0" width="40" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Vlr (%)]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField pattern="#,##0.00">
+				<reportElement x="280" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDPREV}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="322" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDREAL}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="407" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLR_PREV}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="458" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLR_REAL}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement x="364" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="0" width="45" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Marca]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="45" y="0" width="72" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{MARCA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement x="509" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC_VLR}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="138" splitType="Stretch">
+			<subreport>
+				<reportElement key="Acomp_Meta_Res" x="0" y="31" width="555" height="107"/>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Acomp_Meta_Res.jasper"]]></subreportExpression>
+			</subreport>
+			<staticText>
+				<reportElement x="0" y="5" width="555" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[RESUMO]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>

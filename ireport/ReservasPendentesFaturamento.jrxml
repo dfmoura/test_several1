@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ReservasPendentesFaturamento" language="groovy" pageWidth="555" pageHeight="822" columnWidth="527" leftMargin="14" rightMargin="14" topMargin="14" bottomMargin="14">
+	<property name="ireport.zoom" value="1.948717100000002"/>
+	<property name="ireport.x" value="154"/>
+	<property name="ireport.y" value="59"/>
+	<property name="ireport.definition"/>
+	<style name="Title" fontName="Arial" fontSize="26" isBold="true" pdfFontName="Helvetica-Bold"/>
+	<style name="SubTitle" forecolor="#666666" fontName="Arial" fontSize="18"/>
+	<style name="Column header" forecolor="#FFFFFF" fontName="Arial" fontSize="12" isBold="true"/>
+	<style name="Detail" fontName="Arial" fontSize="12"/>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_EMP" class="java.lang.String">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="NOMETABELA" value="TSIEMP"/>
+		<parameterDescription><![CDATA[Empresa:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_HOTEL" class="java.lang.String">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="NOMETABELA" value="TGFPAR"/>
+		<parameterDescription><![CDATA[Hotel:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[with
+sol as (
+SELECT VALOR AS SOL_VALOR,OPCAO AS SOL_OPCAO
+FROM TDDCAM CAM
+JOIN TDDOPC OPC ON OPC.NUCAMPO = CAM.NUCAMPO
+WHERE CAM.NOMETAB='AD_RESERVAS' AND CAM.NOMECAMPO='STATUSSOL'
+ORDER BY OPC.ORDEM),
+rese as (
+SELECT VALOR AS RESE_VALOR,OPCAO AS RESE_OPCAO
+FROM TDDCAM CAM
+JOIN TDDOPC OPC ON OPC.NUCAMPO = CAM.NUCAMPO
+WHERE CAM.NOMETAB='AD_RESERVAS' AND CAM.NOMECAMPO='STATUSRES'
+ORDER BY OPC.ORDEM),
+FAT as (
+SELECT VALOR AS FAT_VALOR,OPCAO AS FAT_OPCAO
+FROM TDDCAM CAM
+JOIN TDDOPC OPC ON OPC.NUCAMPO = CAM.NUCAMPO
+WHERE CAM.NOMETAB='AD_RESERVAS' AND CAM.NOMECAMPO='STATUSFAT'
+ORDER BY OPC.ORDEM)
+
+select
+    res.codres,
+    res.empresafat,
+    emp.nomefantasia,
+    fat.fat_opcao,
+    SOL.SOL_OPCAO,
+    rese.RESe_OPCAO,
+    res.hotelsug,
+    res.codparchotel,
+    par.razaosocial,
+    res.codparc,
+    par1.razaosocial as razaosocial1,
+    res.checkout - res.checkin as dias,
+    res.valor,
+    (res.checkout - res.checkin) * res.valor as valortotal
+from
+    ad_reservas res
+    left join tgfpar par on res.codparchotel = par.codparc
+    inner join tgfpar par1 on res.codparc = par1.codparc
+    left join tsiemp emp on res.empresafat = emp.codemp
+    INNER join sol on res.STATUSSOL = sol.SOL_VALOR
+    INNER join RESe on res.STATUSRES = RESe.RESe_VALOR
+    INNER join FAT on res.STATUSFAT = FAT.FAT_VALOR
+where
+    res.statusfat = 1
+    and (res.empresafat = $P{P_EMP} or $P{P_EMP} is null)
+    and (res.codparchotel = $P{P_HOTEL} or $P{P_HOTEL} is null)
+order by 2,8]]>
+	</queryString>
+	<field name="CODRES" class="java.math.BigDecimal"/>
+	<field name="EMPRESAFAT" class="java.math.BigDecimal"/>
+	<field name="NOMEFANTASIA" class="java.lang.String"/>
+	<field name="FAT_OPCAO" class="java.lang.String"/>
+	<field name="SOL_OPCAO" class="java.lang.String"/>
+	<field name="RESE_OPCAO" class="java.lang.String"/>
+	<field name="HOTELSUG" class="java.lang.String"/>
+	<field name="CODPARCHOTEL" class="java.math.BigDecimal"/>
+	<field name="RAZAOSOCIAL" class="java.lang.String"/>
+	<field name="CODPARC" class="java.math.BigDecimal"/>
+	<field name="RAZAOSOCIAL1" class="java.lang.String"/>
+	<field name="DIAS" class="java.math.BigDecimal"/>
+	<field name="VALOR" class="java.math.BigDecimal"/>
+	<field name="VALORTOTAL" class="java.math.BigDecimal"/>
+	<variable name="variable1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{VALORTOTAL}]]></variableExpression>
+	</variable>
+	<variable name="variable2" class="java.math.BigDecimal" resetType="Group" resetGroup="Hotel" calculation="Sum">
+		<variableExpression><![CDATA[$F{VALORTOTAL}]]></variableExpression>
+	</variable>
+	<variable name="variable3" class="java.math.BigDecimal" resetType="Group" resetGroup="Empresa" calculation="Sum">
+		<variableExpression><![CDATA[$F{VALORTOTAL}]]></variableExpression>
+	</variable>
+	<group name="Empresa">
+		<groupExpression><![CDATA[$F{EMPRESAFAT}]]></groupExpression>
+		<groupHeader>
+			<band height="15">
+				<textField>
+					<reportElement x="41" y="3" width="23" height="12"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{EMPRESAFAT}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="64" y="3" width="170" height="12"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEFANTASIA}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="1" y="3" width="42" height="12"/>
+					<textElement>
+						<font size="8" isBold="true" isItalic="true"/>
+					</textElement>
+					<text><![CDATA[Empresa]]></text>
+				</staticText>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="18">
+				<staticText>
+					<reportElement x="376" y="4" width="94" height="12"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="7" isBold="true" isItalic="true"/>
+					</textElement>
+					<text><![CDATA[Total por Empresa:]]></text>
+				</staticText>
+				<textField pattern="¤ #,##0.00">
+					<reportElement x="471" y="4" width="53" height="12"/>
+					<textElement verticalAlignment="Middle">
+						<font size="7" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{variable3}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="Hotel">
+		<groupExpression><![CDATA[$F{CODPARCHOTEL}]]></groupExpression>
+		<groupHeader>
+			<band height="19">
+				<rectangle>
+					<reportElement x="1" y="3" width="526" height="12" forecolor="#CCCCCC" backcolor="#CCCCCC"/>
+				</rectangle>
+				<staticText>
+					<reportElement x="1" y="3" width="24" height="12"/>
+					<textElement>
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Cód.]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="64" y="3" width="24" height="12"/>
+					<textElement>
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPARCHOTEL}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="88" y="3" width="30" height="12"/>
+					<textElement>
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Hotel]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="118" y="3" width="260" height="12"/>
+					<textElement>
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOSOCIAL}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="20">
+				<textField pattern="¤ #,##0.00">
+					<reportElement x="470" y="6" width="54" height="12"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{variable2}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="376" y="6" width="94" height="12"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Total por Hotel:]]></text>
+				</staticText>
+			</band>
+		</groupFooter>
+	</group>
+	<title>
+		<band height="69" splitType="Stretch">
+			<image>
+				<reportElement x="12" y="0" width="78" height="54"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "logo.jpg"]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement style="Title" x="118" y="0" width="409" height="32"/>
+				<textElement verticalAlignment="Middle">
+					<font size="24" isBold="false" isUnderline="true" pdfFontName="Helvetica"/>
+				</textElement>
+				<text><![CDATA[Reservas Pendentes Faturamento]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="15" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="25" height="12"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Res.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="25" y="0" width="18" height="12"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="44" y="0" width="71" height="12"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Empresa]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="283" y="0" width="21" height="12"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="307" y="0" width="95" height="12"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Parceiro]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="401" y="0" width="30" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Diária(s)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="432" y="0" width="39" height="12"/>
+				<textElement textAlignment="Right">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Vlr. Diaria]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="471" y="0" width="53" height="12"/>
+				<textElement textAlignment="Right">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Vlr. Tot.]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="12" width="524" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement x="129" y="0" width="59" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Fat Status]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="187" y="0" width="47" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Sol Status]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="234" y="0" width="47" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Res Status]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="12" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="25" height="12"/>
+				<textElement verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODRES}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="25" y="0" width="18" height="12"/>
+				<textElement verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{EMPRESAFAT}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="44" y="0" width="81" height="12"/>
+				<textElement verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEFANTASIA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="283" y="0" width="21" height="12"/>
+				<textElement verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPARC}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="307" y="0" width="95" height="12"/>
+				<textElement verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOSOCIAL1}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="401" y="0" width="30" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DIAS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="432" y="0" width="39" height="12"/>
+				<textElement textAlignment="Right" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VALOR}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="471" y="0" width="53" height="12"/>
+				<textElement textAlignment="Right" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VALORTOTAL}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="129" y="0" width="59" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{FAT_OPCAO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="234" y="0" width="47" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{RESE_OPCAO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="187" y="0" width="47" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{SOL_OPCAO}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="34" splitType="Stretch">
+			<textField pattern="EEEEE dd MMMMM yyyy">
+				<reportElement style="Column header" x="339" y="5" width="185" height="20" forecolor="#000000"/>
+				<textElement textAlignment="Right">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1" y="5" width="45" height="20"/>
+				<textElement>
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Pag: "+$V{PAGE_NUMBER}+" de"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="46" y="5" width="213" height="20"/>
+				<textElement>
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="1" y="4" width="524" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement x="101" y="4" width="347" height="20" forecolor="#0033FF"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="12" isBold="true" isUnderline="true"/>
+				</textElement>
+				<text><![CDATA[Total Pendente Faturamento:]]></text>
+			</staticText>
+			<textField pattern="¤ #,##0.00">
+				<reportElement x="448" y="4" width="76" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{variable1}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

@@ -1,0 +1,241 @@
+SELECT
+    *
+FROM
+    (
+        SELECT
+            NUTIPDOCS,
+            DOCUMENTO,
+            SUM(A) AS A_AGUARDANDO,
+            SUM(C) AS C_ConcluIdo,
+            SUM(D) AS D_Dispensado,
+            SUM(E) AS E_Deferido,
+            SUM(G) AS G_Vigente,
+            SUM(I) AS I_INDETERMINADO,
+            SUM(N) AS N_INDEFERIDO,
+            SUM(P) AS P_PENDENTE,
+            SUM(S) AS S_SUSPENSO,
+            SUM(V) AS V_VENCIDO,
+            (
+                SUM(A) + SUM(C) + SUM(D) + SUM(E) + SUM(G) + SUM(I) + SUM(N) + SUM(P) + SUM(S) + SUM(V)
+            ) AS TOTAL
+        FROM
+(
+                SELECT
+                    *
+                FROM
+                    (
+                        WITH DES AS (
+                            SELECT
+                                OPC.VALOR,
+                                OPC.OPCAO
+                            FROM
+                                tddcam CAM
+                                INNER JOIN TDDOPC OPC ON CAM.NUCAMPO = OPC.NUCAMPO
+                            WHERE
+                                CAM.NOMETAB = 'AD_GESTAODOCUM'
+                                AND CAM.NOMECAMPO = 'STATUS'
+                        )
+                        SELECT
+                            DISTINCT DOC.CODCID,
+                            CID.NOMECID,
+                            DOC.CODEMP,
+                            DOC.EMPRESA,
+                            CUM.NUTIPDOCS,
+                            TIP.DOCUMENTO,
+                            MAX(REC.DTVALIDADE) AS DTVALIDADE,
+                            REC.STATUS,
+                            DES.OPCAO
+                        FROM
+                            AD_GESTAODOC DOC
+                            INNER JOIN AD_GESTAODOCUM CUM ON DOC.CODIGO = CUM.CODIGO
+                            INNER JOIN AD_GESTAODOCUMREC REC ON CUM.CODIGO = REC.CODIGO
+                            AND CUM.NUMDOC = REC.NUMDOC
+                            INNER JOIN AD_TIPDOCS TIP ON CUM.NUTIPDOCS = TIP.NUTIPDOCS
+                            INNER JOIN TSICID CID ON DOC.CODCID = CID.CODCID
+                            INNER JOIN DES ON REC.STATUS = DES.VALOR
+                        WHERE
+                            (
+                                (
+                                    (:P_DTVALIDADE = '1')
+                                    OR (
+                                        :P_DTVALIDADE = '2'
+                                        AND (
+                                            SELECT
+                                                MAX(REC.DTVALIDADE)
+                                            FROM
+                                                AD_GESTAODOCUMREC REC
+                                            WHERE
+                                                CUM.CODIGO = REC.CODIGO
+                                                AND CUM.NUMDOC = REC.NUMDOC
+                                        ) < SYSDATE
+                                    )
+                                    OR (
+                                        :P_DTVALIDADE = '3'
+                                        AND (
+                                            SELECT
+                                                MAX(REC.DTVALIDADE)
+                                            FROM
+                                                AD_GESTAODOCUMREC REC
+                                            WHERE
+                                                CUM.CODIGO = REC.CODIGO
+                                                AND CUM.NUMDOC = REC.NUMDOC
+                                        ) > SYSDATE
+                                    )
+                                )
+                                AND (
+                                    CUM.NUTIPDOCS IN :P_DOCUMENTO
+                                    AND (
+                                        DOC.CODCID = :P_CIDADE
+                                        OR :P_CIDADE IS NULL
+                                    )
+                                    AND CID.UF IN :P_UF
+                                )
+                            )
+                        GROUP BY
+                            DOC.CODCID,
+                            CID.NOMECID,
+                            DOC.CODEMP,
+                            DOC.EMPRESA,
+                            CUM.NUTIPDOCS,
+                            TIP.DOCUMENTO,
+                            REC.STATUS,
+                            DES.OPCAO
+                    ) PIVOT (
+                        COUNT(OPCAO) FOR STATUS IN (
+                            'A' AS A,
+                            'E' AS E,
+                            'C' AS C,
+                            'D' AS D,
+                            'G' AS G,
+                            'I' AS I,
+                            'N' AS N,
+                            'P' AS P,
+                            'S' AS S,
+                            'V' AS V
+                        )
+                    )
+            )
+        GROUP BY
+            NUTIPDOCS,
+            DOCUMENTO
+    )
+UNION
+ALL
+SELECT
+    *
+FROM
+    (
+        SELECT
+            9999 AS NUTIPDOCS,
+            'TOTAL' AS DOCUMENTO,
+            SUM(A) AS A_AGUARDANDO,
+            SUM(C) AS C_ConcluIdo,
+            SUM(D) AS D_Dispensado,
+            SUM(E) AS E_Deferido,
+            SUM(G) AS G_Vigente,
+            SUM(I) AS I_INDETERMINADO,
+            SUM(N) AS N_INDEFERIDO,
+            SUM(P) AS P_PENDENTE,
+            SUM(S) AS S_SUSPENSO,
+            SUM(V) AS V_VENCIDO,
+            (
+                SUM(A) + SUM(C) + SUM(D) + SUM(E) + SUM(G) + SUM(I) + SUM(N) + SUM(P) + SUM(S) + SUM(V)
+            ) AS TOTAL
+        FROM
+(
+                SELECT
+                    *
+                FROM
+                    (
+                        WITH DES AS (
+                            SELECT
+                                OPC.VALOR,
+                                OPC.OPCAO
+                            FROM
+                                tddcam CAM
+                                INNER JOIN TDDOPC OPC ON CAM.NUCAMPO = OPC.NUCAMPO
+                            WHERE
+                                CAM.NOMETAB = 'AD_GESTAODOCUM'
+                                AND CAM.NOMECAMPO = 'STATUS'
+                        )
+                        SELECT
+                            DISTINCT DOC.CODCID,
+                            CID.NOMECID,
+                            DOC.CODEMP,
+                            DOC.EMPRESA,
+                            CUM.NUTIPDOCS,
+                            TIP.DOCUMENTO,
+                            MAX(REC.DTVALIDADE) AS DTVALIDADE,
+                            REC.STATUS,
+                            DES.OPCAO
+                        FROM
+                            AD_GESTAODOC DOC
+                            INNER JOIN AD_GESTAODOCUM CUM ON DOC.CODIGO = CUM.CODIGO
+                            INNER JOIN AD_GESTAODOCUMREC REC ON CUM.CODIGO = REC.CODIGO
+                            AND CUM.NUMDOC = REC.NUMDOC
+                            INNER JOIN AD_TIPDOCS TIP ON CUM.NUTIPDOCS = TIP.NUTIPDOCS
+                            INNER JOIN TSICID CID ON DOC.CODCID = CID.CODCID
+                            INNER JOIN DES ON REC.STATUS = DES.VALOR
+                        WHERE
+                            (
+                                (
+                                    (:P_DTVALIDADE = '1')
+                                    OR (
+                                        :P_DTVALIDADE = '2'
+                                        AND (
+                                            SELECT
+                                                MAX(REC.DTVALIDADE)
+                                            FROM
+                                                AD_GESTAODOCUMREC REC
+                                            WHERE
+                                                CUM.CODIGO = REC.CODIGO
+                                                AND CUM.NUMDOC = REC.NUMDOC
+                                        ) < SYSDATE
+                                    )
+                                    OR (
+                                        :P_DTVALIDADE = '3'
+                                        AND (
+                                            SELECT
+                                                MAX(REC.DTVALIDADE)
+                                            FROM
+                                                AD_GESTAODOCUMREC REC
+                                            WHERE
+                                                CUM.CODIGO = REC.CODIGO
+                                                AND CUM.NUMDOC = REC.NUMDOC
+                                        ) > SYSDATE
+                                    )
+                                )
+                                AND (
+                                    CUM.NUTIPDOCS IN :P_DOCUMENTO
+                                    AND (
+                                        DOC.CODCID = :P_CIDADE
+                                        OR :P_CIDADE IS NULL
+                                    )
+                                    AND CID.UF IN :P_UF
+                                )
+                            )
+                        GROUP BY
+                            DOC.CODCID,
+                            CID.NOMECID,
+                            DOC.CODEMP,
+                            DOC.EMPRESA,
+                            CUM.NUTIPDOCS,
+                            TIP.DOCUMENTO,
+                            REC.STATUS,
+                            DES.OPCAO
+                    ) PIVOT (
+                        COUNT(OPCAO) FOR STATUS IN (
+                            'A' AS A,
+                            'E' AS E,
+                            'C' AS C,
+                            'D' AS D,
+                            'G' AS G,
+                            'I' AS I,
+                            'N' AS N,
+                            'P' AS P,
+                            'S' AS S,
+                            'V' AS V
+                        )
+                    )
+            )
+    )

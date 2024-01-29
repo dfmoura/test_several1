@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Web Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        input[type="text"] {
+            width: 200px;
+            padding: 5px;
+            margin: 5px;
+        }
+        #date, #quantity {
+            width: 100px;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #output {
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple Web Page</h1>
+    <input type="text" id="date" placeholder="Date">
+    <input type="text" id="quantity" placeholder="Quantity">
+    <button id="insert">Insert</button>
+    <button id="delete">Delete</button>
+    <button id="refresh">Refresh</button>
+    <div id="output"></div>
+
+    <script>
+        // Sample data array to store Date and Quantity
+        let data = [];
+
+        // Function to insert data
+        function insertData() {
+            const dateInput = document.getElementById('date');
+            const quantityInput = document.getElementById('quantity');
+            const date = dateInput.value;
+            const quantity = quantityInput.value;
+
+            if (date && quantity) {
+                data.push({ date, quantity });
+                dateInput.value = '';
+                quantityInput.value = '';
+                refreshData();
+            }
+        }
+
+        // Function to delete data
+        function deleteData() {
+            data.pop();
+            refreshData();
+        }
+
+        // Function to refresh the data display
+        function refreshData() {
+            const output = document.getElementById('output');
+            output.innerHTML = '';
+            for (let i = 0; i < data.length; i++) {
+                const entry = data[i];
+                output.innerHTML += `${entry.date}: ${entry.quantity}<br>`;
+            }
+        }
+
+        // Add event listeners to buttons
+        document.getElementById('insert').addEventListener('click', insertData);
+        document.getElementById('delete').addEventListener('click', deleteData);
+        document.getElementById('refresh').addEventListener('click', refreshData);
+    </script>
+</body>
+</html>
+

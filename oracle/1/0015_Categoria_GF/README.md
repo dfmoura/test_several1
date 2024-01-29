@@ -1,0 +1,14 @@
+# Objetivos
+```markdown
+Objetivo: Demonstrar agrupamento de nova classificação por categorias no gasto fixo.
+```
+
+### 1. Log's Execução
+
+#### 1.1. 25/01/2024 20:40 as 23:40
+
+GM - Categoria GF - 1) Preparação de acessa a nova tela a partir de botão criado chamado 'Analise por Categoria', neste local ficava somente um link 'Evolução por Natureza', adaptamos o espaço e substituimos por dois botões, o 'Evolução por Natureza' permanece com sua função já existente, o 'Analise por Categoria GF' será direcionado para o novo nivel. 2) Neste novo nivel criamos um componente de tabela agrupa as datas de lançamentos contábeis existentes por mês/ano. *Este será um ponto de opção que o usuario poderá filtrar o periodo por este componente ou pelo paramentro de periodo que ja exite no dash.* 3) Logo abaixo criamos um gráfico de pizza que demonstra o agrupamento das categorias criadas no plano de contas, para as contas que são custo fixo: - Operacional - Não Operacional - Variavel - Não Classificado (quando o plano de contas não tiver classificação). 4) E por fim, criamos um componente que demonstra a partir do click na pizza o detlhamento dos lançamentos contábeis inerentes a categoria clicada na pizza.
+
+#### 1.2. 26/01/2024 07:00 as 11:30
+
+GM - Categoria GF - 5) Iniciamos os teste configurando os argumentos no select para cada componente associado ao componente principal de periodo, (de modo cada evento seja predecessor a um evento subsequente). 6)Configuramos o click no componente de periodo, que salva um arumento de 'mes/ano' e atualiza o componente de pizza. 7)Configuramos esse componente de pizza para receber este argumento de 'mes-ano' e refletir com atualização e configuramos tambem a pizza que ao clicar repassa um argumento de periodo e tipo de categoria para ser atualizada no componente de tabala na sequencia com o detalhamento dos lançamentos contábeis. 8)Por fim configuramos este componente de tabela para receber este argumentos da pizza e atualizar a informação recebida *Instruimos o usuario para o preechimento dos campos Representa Custo Fixo? / Tipo de Custo Fixo: no plano de contas.

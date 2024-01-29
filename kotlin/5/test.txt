@@ -1,0 +1,10 @@
+// criar o jar
+kotlinc main.kt -include-runtime -d main.jar
+
+
+//buildar
+docker build -t main .
+
+//rodar
+docker run main
+

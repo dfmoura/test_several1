@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ResumoEntregas_PorCidade" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.3310000000000013"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="A_OC" class="java.math.BigDecimal">
+		<parameterDescription><![CDATA[Ordem Carga]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+ENT.ORDEMCARGA,
+PROG.NUNOTA,
+PROG.SEQUENCIA,
+CASE WHEN CID.NOMECID = '    ' THEN CID2.NOMECID ELSE CID.NOMECID END AS NOMECID,
+NVL(PAR.RAZAOSOCIAL, PAR.NOMEPARC) as PARCEIRO,
+PROG.CODPROD,
+CASE WHEN ITE.CONTROLE = ' ' THEN PRO.DESCRPROD ELSE PRO.DESCRPROD||' - '||CONTROLE END AS DESCRPROD,
+PRO.REFERENCIA,
+PROG.CODVOL,
+ENT.QTDENTREGUE
+from AD_ENTREGA ENT
+INNER JOIN ad_progentrega PROG ON ENT.CODPROG = PROG.CODPROG
+INNER JOIN TGFPRO PRO ON PROG.CODPROD = PRO.CODPROD
+INNER JOIN TGFCAB CAB ON PROG.NUNOTA = CAB.NUNOTA
+INNER JOIN TGFITE ITE ON PROG.NUNOTA = ITE.NUNOTA AND PROG.SEQUENCIA = ITE.SEQUENCIA
+INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
+LEFT JOIN TGFCTT CTT ON CAB.CODCONTATO = CTT.CODCONTATO AND CAB.CODPARC = CTT.CODPARC
+LEFT JOIN TSICID CID2 ON CTT.CODCID = CID2.CODCID
+WHERE
+ENT.ORDEMCARGA = $P{A_OC}]]>
+	</queryString>
+	<field name="NUNOTA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[NÚ. Nota]]></fieldDescription>
+	</field>
+	<field name="SEQUENCIA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Seq.]]></fieldDescription>
+	</field>
+	<field name="PARCEIRO" class="java.lang.String">
+		<fieldDescription><![CDATA[Parceiro]]></fieldDescription>
+	</field>
+	<field name="NOMECID" class="java.lang.String">
+		<fieldDescription><![CDATA[Cidade]]></fieldDescription>
+	</field>
+	<field name="QTDENTREGUE" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Qtd. Entregue]]></fieldDescription>
+	</field>
+	<field name="CODVOL" class="java.lang.String">
+		<fieldDescription><![CDATA[Cód. Vol.]]></fieldDescription>
+	</field>
+	<field name="REFERENCIA" class="java.lang.String">
+		<fieldDescription><![CDATA[Referência]]></fieldDescription>
+	</field>
+	<field name="CODPROD" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Prod.]]></fieldDescription>
+	</field>
+	<field name="DESCRPROD" class="java.lang.String">
+		<fieldDescription><![CDATA[Produto]]></fieldDescription>
+	</field>
+	<group name="Cidade">
+		<groupExpression><![CDATA[$F{NOMECID}]]></groupExpression>
+		<groupHeader>
+			<band height="15">
+				<staticText>
+					<reportElement mode="Opaque" x="0" y="0" width="35" height="15" backcolor="#E3E3E3"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Cidade:]]></text>
+				</staticText>
+				<textField>
+					<reportElement mode="Opaque" x="35" y="0" width="517" height="15" backcolor="#E3E3E3"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMECID}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="20">
+				<textField>
+					<reportElement x="42" y="3" width="87" height="13"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.lang.Integer"><![CDATA[$V{Cidade_COUNT}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement mode="Opaque" x="0" y="3" width="42" height="13" backcolor="#FFFFFF"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Entregas]]></text>
+				</staticText>
+				<line>
+					<reportElement x="0" y="17" width="552" height="1"/>
+					<graphicElement>
+						<pen lineWidth="0.5" lineStyle="Dashed"/>
+					</graphicElement>
+				</line>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="68" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="9" width="555" height="18"/>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[SS MATERIAIS PARA CONSTRUÇÃO LTDA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="27" width="555" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Resumo de Entregas - Produtos por Cidade]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="53" width="58" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Top">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Qtd. Lev.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="64" y="53" width="39" height="15"/>
+				<textElement verticalAlignment="Top">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Un]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="105" y="53" width="80" height="15"/>
+				<textElement verticalAlignment="Top">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Barras]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="189" y="53" width="50" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Top">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Prod.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="247" y="53" width="305" height="15"/>
+				<textElement verticalAlignment="Top">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Produto]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="545" y="29" width="10" height="10"/>
+				<textElement textAlignment="Right" verticalAlignment="Top">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Opaque" x="515" y="29" width="30" height="10" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Página:]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="455" y="9" width="100" height="10"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField pattern="h.mm.ss a">
+				<reportElement x="498" y="19" width="57" height="10"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="49" width="552" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="0" y="51" width="552" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="13" splitType="Stretch">
+			<textField pattern="#,##0.00">
+				<reportElement x="0" y="0" width="58" height="13"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDENTREGUE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="64" y="0" width="39" height="13"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODVOL}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="105" y="0" width="80" height="13"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{REFERENCIA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="189" y="0" width="50" height="13"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPROD}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="247" y="0" width="305" height="13"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRPROD}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

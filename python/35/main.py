@@ -1,0 +1,4 @@
+import pandas as pd
+
+tabela = pd.read_excel("Vendas.xlsx")
+display(tabela)

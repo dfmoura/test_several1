@@ -1,0 +1,181 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="REFERENCIA" description="Referência (informe a primeira data do ano)" metadata="date" required="true" keep-last="true" keep-date="false" order="0"/>
+    <parameter id="CODEMP" description="Empresa" metadata="entity:Empresa@CODEMP" required="true" keep-last="true" keep-date="false" order="1"/>
+  </prompt-parameters>
+  <local-vars>
+    <var id="V_ANO">
+      <expression type="sql" data-source="MGEDS"><![CDATA[SELECT TO_CHAR(:REFERENCIA,'YYYY') AS ANO FROM DUAL]]></expression>
+    </var>
+  </local-vars>
+  <level id="lvl_omnm2j" description="Principal">
+    <args>
+      <arg id="CODIGO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="100">
+        <container orientacao="V" tamanhoRelativo="102">
+          <simple-value id="svl_omnm2m">
+            <value-expression><![CDATA[<div style='text-align: center;'><img src="https://static.wixstatic.com/media/220800_25bd148b8f0f476b89717fbfd409f5c8~mv2.png/v1/fill/w_167,h_167,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/Favicon.png" width="100" height="65" /></div>]]></value-expression>
+          </simple-value>
+        </container>
+        <container orientacao="H" tamanhoRelativo="340">
+          <container orientacao="V" tamanhoRelativo="50">
+            <html5component id="html5_a30ygy9" entryPoint="cabecalho.jsp"/>
+          </container>
+        </container>
+        <container orientacao="V" tamanhoRelativo="104">
+          <simple-value id="svl_omnm2o">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT SYSDATE FROM DUAL]]></expression>
+            <metadata>
+              <field name="SYSDATE" label="SYSDATE" type="D" visible="true" useFooter="false" mask="EEEEE, D MMMMM YYYY HH:NN:SS"/>
+            </metadata>
+            <value-expression><![CDATA[<pre><span style='color: #FF0000; font-size: 14px;'><b><marquee>$SYSDATE</marquee></b></span><span style='color: #FF0E0D;'></span></pre>]]></value-expression>
+          </simple-value>
+        </container>
+      </container>
+      <container orientacao="H" tamanhoRelativo="350">
+        <container orientacao="H" tamanhoRelativo="348">
+          <container orientacao="V" tamanhoRelativo="287">
+            <grid id="grd_omnm2k" useNewGrid="S">
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODIGO, CASE WHEN GRAU = 1 AND CODIGO NOT IN (1600000000) THEN '<u><b>'||DESCRICAO||'</b></u>'                     WHEN GRAU = 2 AND CODIGO IN (0101000000) THEN '<b>'||DESCRICAO||'</b>'                    ELSE ''||DESCRICAO END AS DRE_GERENCIAL,CASE WHEN GRAU = 1 AND CODIGO NOT IN (0200000000,1600000000) THEN '#8EA9DB'                    WHEN GRAU = 2 AND ANALITICO <> 'S' OR CODIGO = 0200000000 THEN '#c7ecee'                    ELSE 'white' END AS BKCOLOR,CASE WHEN GRAU = 1 THEN 'black'                    WHEN GRAU = 2 THEN ' '                    ELSE ' ' END AS FGCOLOR,                         NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,0), 'N')),0) AS JANEIRO,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,1), 'N')),0) AS FEVEREIRO,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,2), 'N')),0) AS MARCO,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,3), 'N')),0) AS ABRIL,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,4), 'N')),0) AS MAIO,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,5), 'N')),0) AS JUNHO,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,6), 'N')),0) AS JULHO,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,7), 'N')),0) AS AGOSTO,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,8), 'N')),0) AS SETEMBRO,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,9), 'N')),0) AS OUTUBRO,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,10), 'N')),0) AS NOVEMBRO,     NVL( ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,11), 'N')),0) AS DEZEMBROFROM AD_DREGERENCIALWHERE CODIGO >= 100000000 AND CODIGO NOT IN (1500000000,2100000000,2000000000) UNION ALLSELECT CODIGO, CASE WHEN GRAU = 1 AND CODIGO NOT IN (1600000000) THEN '<u><b>'||DESCRICAO||'</b></u>'                     WHEN GRAU = 2 AND CODIGO IN (0101000000) THEN '<b>'||DESCRICAO||'</b>'                    ELSE ''||DESCRICAO END AS DRE_GERENCIAL,CASE WHEN GRAU = 1 AND CODIGO NOT IN (0200000000,1600000000) THEN '#8EA9DB'                    WHEN GRAU = 2 AND ANALITICO <> 'S' OR CODIGO = 0200000000 THEN '#c7ecee'                    ELSE 'white' END AS BKCOLOR,CASE WHEN GRAU = 1 THEN 'black'                    WHEN GRAU = 2 THEN ' '                    ELSE ' ' END AS FGCOLOR,                      NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,0), 'E')),0) AS JANEIRO,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,1), 'E')),0) AS FEVEREIRO,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,2), 'E')),0) AS MARCO,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,3), 'E')),0) AS ABRIL,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,4), 'E')),0) AS MAIO,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,5), 'E')),0) AS JUNHO,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,6), 'E')),0) AS JULHO,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,7), 'E')),0) AS AGOSTO,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,8), 'E')),0) AS SETEMBRO,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,9), 'E')),0) AS OUTUBRO,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,10), 'E')),0)AS NOVEMBRO,  NVL(  ABS(GET_VALORDRE_GM(:CODEMP, CODIGO, ADD_MONTHS(:REFERENCIA,11), 'E')),0)AS DEZEMBROFROM AD_DREGERENCIALWHERE CODIGO IN (2000000000) UNION ALLSELECT CODIGO, CASE WHEN GRAU = 1 AND CODIGO NOT IN (1600000000) THEN '<u><b>'||DESCRICAO||'</b></u>'                     WHEN GRAU = 2 AND CODIGO IN (0101000000) THEN '<b>'||DESCRICAO||'</b>'                    ELSE ''||DESCRICAO END AS DRE_GERENCIAL,CASE WHEN GRAU = 1 AND CODIGO NOT IN (0200000000,1600000000) THEN '#8EA9DB'                    WHEN GRAU = 2 AND ANALITICO <> 'S' OR CODIGO = 0200000000 THEN '#c7ecee'                    ELSE 'white' END AS BKCOLOR,CASE WHEN GRAU = 1 THEN 'black'                    WHEN GRAU = 2 THEN ' '                    ELSE ' ' END AS FGCOLOR,                      ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,0), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,0), 'N'))*100,2)  AS JANEIRO,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,1), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,1), 'N'))*100,2)  AS FEVEREIRO,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,2), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,2), 'N'))*100,2)  AS MARCO,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,3), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,3), 'N'))*100,2)  AS ABRIL,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,4), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,4), 'N'))*100,2)  AS MAIO,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,5), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,5), 'N'))*100,2)  AS JUNHO,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,6), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,6), 'N'))*100,2)  AS JULHO,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,7), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,7), 'N'))*100,2)  AS AGOSTO,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,8), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,8), 'N'))*100,2)  AS SETEMBRO,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,9), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,9), 'N'))*100,2)  AS OUTUBRO,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,10), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP,100000000, ADD_MONTHS(:REFERENCIA,10), 'N'))*100,2)  AS NOVEMBRO,   ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 1400000000, ADD_MONTHS(:REFERENCIA,11), 'N')) / ABS(GET_VALORDRE_GM(:CODEMP,100000000, ADD_MONTHS(:REFERENCIA,11), 'N'))*100,2)  AS DEZEMBROFROM AD_DREGERENCIALWHERE CODIGO IN (1500000000) UNION ALLSELECT CODIGO, CASE WHEN GRAU = 1 AND CODIGO NOT IN (1600000000) THEN '<u><b>'||DESCRICAO||'</b></u>'                     WHEN GRAU = 2 AND CODIGO IN (0101000000) THEN '<b>'||DESCRICAO||'</b>'                     ELSE ''||DESCRICAO END AS DRE_GERENCIAL,  CASE WHEN GRAU = 1 AND CODIGO NOT IN (0200000000,1600000000) THEN '#8EA9DB'                     WHEN GRAU = 2 AND ANALITICO <> 'S' OR CODIGO = 0200000000 THEN '#c7ecee'                     ELSE 'white' END AS BKCOLOR,  CASE WHEN GRAU = 1 THEN 'black'                     WHEN GRAU = 2 THEN ' '                     ELSE ' ' END AS FGCOLOR,                      ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,0), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,0), 'N'))*100 ,2)  AS JANEIRO, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,1), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,1), 'N'))*100 ,2)  AS FEVEREIRO, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,2), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,2), 'N'))*100 ,2)  AS MARCO, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,3), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,3), 'N'))*100 ,2)  AS ABRIL, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,4), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,4), 'N'))*100 ,2)  AS MAIO, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,5), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,5), 'N'))*100 ,2)  AS JUNHO, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,6), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,6), 'N'))*100 ,2)  AS JULHO, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,7), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,7), 'N'))*100 ,2)  AS AGOSTO, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,8), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,8), 'N'))*100 ,2)  AS SETEMBRO, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,9), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP, 100000000, ADD_MONTHS(:REFERENCIA,9), 'N'))*100 ,2)  AS OUTUBRO, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,10), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP,100000000, ADD_MONTHS(:REFERENCIA,10), 'N'))*100 ,2)   AS NOVEMBRO, ROUND( ABS(GET_VALORDRE_GM(:CODEMP, 2000000000, ADD_MONTHS(:REFERENCIA,11), 'E')) / ABS(GET_VALORDRE_GM(:CODEMP,100000000, ADD_MONTHS(:REFERENCIA,11), 'N'))*100 ,2)   AS DEZEMBROFROM AD_DREGERENCIALWHERE CODIGO IN (2100000000) ORDER BY 1 ]]></expression>
+              <metadata>
+                <field name="CODIGO" label="CODIGO" type="I" visible="true" useFooter="false"/>
+                <field name="DRE_GERENCIAL" label="DESCRICAO DA CONTA" type="S" visible="true" useFooter="false"/>
+                <field name="BKCOLOR" label="BKCOLOR" type="S" visible="false" useFooter="false"/>
+                <field name="FGCOLOR" label="FGCOLOR" type="S" visible="false" useFooter="false"/>
+                <field name="JANEIRO" label="JANEIRO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="FEVEREIRO" label="FEVEREIRO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="MARCO" label="MARCO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="ABRIL" label="ABRIL" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="MAIO" label="MAIO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="JUNHO" label="JUNHO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="JULHO" label="JULHO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="AGOSTO" label="AGOSTO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="SETEMBRO" label="SETEMBRO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="OUTUBRO" label="OUTUBRO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="NOVEMBRO" label="NOVEMBRO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="DEZEMBRO" label="DEZEMBRO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              </metadata>
+              <on-click navigate-to="lvl_a0kazo8">
+                <param id="CODIGO">$CODIGO</param>
+              </on-click>
+              <refresh-details ui-list="cht_a30ygvc">
+                <param id="CODIGO">$CODIGO</param>
+              </refresh-details>
+            </grid>
+          </container>
+        </container>
+      </container>
+      <container orientacao="V" tamanhoRelativo="189">
+        <chart id="cht_a30ygvc" type="line" nroColuna="6">
+          <args>
+            <arg id="CODIGO" type="integer"/>
+          </args>
+          <title><![CDATA[Evolução]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT :CODIGO AS CODIGO,TO_CHAR(L.REFERENCIA,'MM-YYYY') AS MES_ANO, TO_CHAR(L.REFERENCIA,'Month')||'/'||TO_CHAR(L.REFERENCIA,'YYYY') AS MES, ABS(sum((CASE WHEN L.TIPLANC = 'R' THEN (L.VLRLANC * (-1)) ELSE L.VLRLANC END)) ) AS VALOR,'#778ca3' AS BKCOLOR        FROM TCBLAN L, TCBPLA PLA        WHERE PLA.CODCTACTB = L.CODCTACTB        AND L.CODCTACTB IN (select codctactb from ad_dregerencial c join ad_drecontas i on c.codigo = i.codigo where c.codigo = :CODIGO AND C.CODIGO NOT IN (2000000000))        AND L.CODEMP = :CODEMP        AND TO_CHAR(L.REFERENCIA,'YYYY') = TO_CHAR(:REFERENCIA,'YYYY')GROUP BY L.REFERENCIA  ORDER BY TO_CHAR(L.REFERENCIA,'MM/YYYY')]]></expression>
+          <metadata>
+            <field name="CODIGO" label="CODIGO" type="I" visible="true" useFooter="false"/>
+            <field name="MES_ANO" label="MES_ANO" type="S" visible="true" useFooter="false"/>
+            <field name="MES" label="Mês" type="S" visible="true" useFooter="false"/>
+            <field name="VALOR" label="Valor" type="I" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="BKCOLOR" label="BKCOLOR" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <series>
+            <serie type="line" circle-intersection="true">
+              <xField>$MES_ANO</xField>
+              <yField>$VALOR</yField>
+              <on-click navigate-to="lvl_dd7guh">
+                <param id="CODIGO">$CODIGO</param>
+                <param id="A_MES_ANO">$MES_ANO</param>
+              </on-click>
+            </serie>
+          </series>
+        </chart>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_a0kazo8" description="Gráfico de Linhas - Evolução">
+    <args>
+      <arg id="CODIGO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <simple-value id="svl_a0kazqa">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODIGO||' - '||DESCRICAO AS DESCRICAO FROM AD_DREGERENCIAL WHERE CODIGO = :CODIGO]]></expression>
+          <metadata>
+            <field name="DESCRICAO" label="DESCRICAO" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <value-expression><![CDATA[<div style='text-align: center;'><b><PRE>D E T A L H A M E N T O   D A   C O N T A</PRE></b></div><span style='color: #0033FF;'><b><div style='text-align: center;'>$DESCRICAO</div></b></span>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="V" tamanhoRelativo="554">
+        <grid id="grd_a30yguu" useNewGrid="S">
+          <args>
+            <arg id="CODIGO" type="integer"/>
+          </args>
+          <title><![CDATA[$DESCRICAO]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CTACTB, DESCRCTA, SUM(JANEIRO) AS JANEIRO, SUM(FEVEREIRO) AS FEVEREIRO, SUM(MARCO) AS MARCO, SUM(ABRIL) AS ABRIL, SUM(MAIO) AS MAIO, SUM(JUNHO) AS JUNHO, SUM(JULHO) AS JULHO, SUM(AGOSTO) AS AGOSTO, SUM(SETEMBRO) AS SETEMBRO, SUM(OUTUBRO) AS OUTUBRO, SUM(NOVEMBRO) AS NOVEMBRO, SUM(DEZEMBRO) AS DEZEMBROFROM(SELECT  LAN.CODEMP,        LAN.REFERENCIA,         PLA.CODCTACTB,        PLA.CTACTB,        PLA.DESCRCTA,               CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 1 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS JANEIRO,              CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 2 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS FEVEREIRO,                       CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 3 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS MARCO,            CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 4 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS ABRIL,                                          CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 5 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS MAIO,                                       CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 6 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS JUNHO,                                       CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 7 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS JULHO,                                       CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 8 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS AGOSTO,                                       CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 9 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS SETEMBRO,                                       CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 10 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS OUTUBRO,                                       CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 11 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS NOVEMBRO,                                       CASE WHEN TO_CHAR(LAN.REFERENCIA,'MM') = 12 THEN (SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC * (-1))                                 ELSE LAN.VLRLANC END)) END AS DEZEMBRO                          FROM   TCBLAN LANINNER JOIN TCBPLA PLA ON PLA.CODCTACTB = LAN.CODCTACTBWHERE  LAN.CODEMP IN (:CODEMP)  AND    LAN.REFERENCIA >= :REFERENCIA AND    LAN.REFERENCIA <= ADD_MONTHS(:REFERENCIA,11)  AND  PLA.CODCTACTB IN (SELECT I.CODCTACTB FROM AD_DRECONTAS I, AD_DREGERENCIAL C WHERE I.CODIGO = C.CODIGO AND I.CODIGO = :CODIGO AND C.ANALITICO = 'S')GROUP BY LAN.CODEMP,        LAN.REFERENCIA,        PLA.CTACTB,        PLA.DESCRCTA,        PLA.CODCTACTB                ORDER BY LAN.REFERENCIA)DGROUP BY CTACTB, DESCRCTA]]></expression>
+          <metadata>
+            <field name="CTACTB" label="CONTA" type="S" visible="true" useFooter="false"/>
+            <field name="DESCRCTA" label="DESCRICAO CONTABIL" type="S" visible="true" useFooter="false"/>
+            <field name="JANEIRO" label="JANEIRO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="FEVEREIRO" label="FEVEREIRO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="MARCO" label="MARCO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="ABRIL" label="ABRIL" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="MAIO" label="MAIO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="JUNHO" label="JUNHO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="JULHO" label="JULHO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="AGOSTO" label="AGOSTO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="SETEMBRO" label="SETEMBRO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="OUTUBRO" label="OUTUBRO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="NOVEMBRO" label="NOVEMBRO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="DEZEMBRO" label="DEZEMBRO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          </metadata>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_dd7guh" description="Nivel1">
+    <args>
+      <arg id="CODIGO" type="integer"/>
+      <arg id="A_MES_ANO" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <grid id="grd_dd7gui" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT L.*,(CASE WHEN L.TIPLANC = 'R' THEN (L.VLRLANC *(-1)) ELSE L.VLRLANC END) AS VLRLANC        FROM TCBLAN L, TCBPLA PLA        WHERE PLA.CODCTACTB = L.CODCTACTB        AND L.CODCTACTB IN (select codctactb from ad_dregerencial c join ad_drecontas i on c.codigo = i.codigo where c.codigo = :CODIGO AND C.CODIGO NOT IN (2000000000))        AND L.CODEMP = :CODEMP        AND TO_CHAR(L.REFERENCIA, 'MM-YYYY') = :A_MES_ANOORDER BY 2]]></expression>
+          <metadata>
+            <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+            <field name="REFERENCIA" label="Referencia" type="D" visible="true" useFooter="false"/>
+            <field name="NUMLOTE" label="Nro. Lote" type="I" visible="true" useFooter="false"/>
+            <field name="NUMLANC" label="Nro. Lanç." type="I" visible="true" useFooter="false"/>
+            <field name="TIPLANC" label="Tip. Lanç." type="S" visible="true" useFooter="false"/>
+            <field name="CODCTACTB" label="CODCTACTB" type="I" visible="true" useFooter="false"/>
+            <field name="CODCONPAR" label="Cód. Con. Par" type="I" visible="true" useFooter="false"/>
+            <field name="CODCENCUS" label="Cód. CR" type="I" visible="true" useFooter="false"/>
+            <field name="DTMOV" label="Dt. Mov." type="D" visible="true" useFooter="false"/>
+            <field name="VLRLANC" label="Vlr. Lanç." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="CODHISTCTB" label="Cód. Hist." type="I" visible="true" useFooter="false"/>
+            <field name="COMPLHIST" label="Comp. Hist." type="S" visible="true" useFooter="false"/>
+            <field name="NUMDOC" label="Nro. Doc" type="I" visible="true" useFooter="false"/>
+            <field name="VENCIMENTO" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+            <field name="LIBERADO" label="Liberado" type="S" visible="true" useFooter="false"/>
+            <field name="CODUSU" label="Cód. Usu." type="I" visible="true" useFooter="false"/>
+            <field name="CODPROJ" label="Cód. Proj." type="I" visible="true" useFooter="false"/>
+            <field name="PARTLALUR_A" label="PARTLALUR_A" type="S" visible="true" useFooter="false"/>
+            <field name="SEQUENCIA" label="SEQUENCIA" type="I" visible="true" useFooter="false"/>
+            <field name="EXTEMPORANEO" label="EXTEMPORANEO" type="S" visible="true" useFooter="false"/>
+            <field name="DTEXTEMPORANEO" label="DTEXTEMPORANEO" type="D" visible="true" useFooter="false"/>
+            <field name="CODEMPORIG" label="CODEMPORIG" type="I" visible="true" useFooter="false"/>
+            <field name="AD_CONCILIADO" label="AD_CONCILIADO" type="S" visible="true" useFooter="false"/>
+            <field name="AD_DTCONCILIACAO" label="AD_DTCONCILIACAO" type="D" visible="true" useFooter="false"/>
+            <field name="AD_CODPARC" label="AD_CODPARC" type="I" visible="true" useFooter="false"/>
+            <field name="CHAVE" label="CHAVE" type="S" visible="true" useFooter="false"/>
+            <field name="CONCILIADO" label="CONCILIADO" type="S" visible="true" useFooter="false"/>
+          </metadata>
+        </grid>
+      </container>
+    </container>
+  </level>
+</gadget>

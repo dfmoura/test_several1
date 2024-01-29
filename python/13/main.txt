@@ -1,0 +1,4 @@
+# main.py
+resultado = 1024 / 2
+print("Resultado de 1024/2:", resultado)
+print("eu estudo Python")

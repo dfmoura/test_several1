@@ -1,0 +1,7 @@
+docker build -t app .
+docker run -it app
+
+
+
+docker build -t main .
+docker run main
