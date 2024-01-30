@@ -80,10 +80,16 @@ Satis - Dash Comparação Comercial - Atualizações pós reunião - (25-01 - 17
 
 Satis - Dash Comparação Comercial - Grafico Linhas Safra atual e anterior - 1) Extraímos o comando SELECT relacionado ao período atual da safra da tabela principal.
 2) Adicionamos configurações a este comando SELECT para incluir colunas nulas referentes ao período anterior, especificamente para as quantidades e valores planejados e realizados. 3) Replicamos o comando SELECT configurado, modificando as colunas nulas para o período atual e revertendo os dados para o período anterior. 4) Combinamos todos os comandos SELECT usando UNION ALL. 5) Finalizamos com a configuração dos parâmetros, argumentos e formatos necessários, além de criar um campo CASE para servir como índice de ordenação dos dados e outro para nomear a interseção das informações.
+
 ```
 
 
+#### 1.9. 29/01/2024 09:00 as 09:30
+```markdown
 
+Satis - Dash Comparação Comercial - Ativação de botão análise vendedores e atualização no select retirando dos agrupamentos por vendedor e filtros por argumento, deixando somente os parâmetros do dash como opção de filtro.
+
+```
 
 
 

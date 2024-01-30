@@ -1,0 +1,132 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="PERIODO" description="Periodo Negociação" metadata="datePeriod" required="false" keep-last="true" keep-date="false" order="0"/>
+    <parameter id="PERIODOBAI" description="Periodo Baixa" metadata="datePeriod" required="false" keep-last="true" keep-date="false" order="1"/>
+    <parameter id="P_PERIODOVENC" description="Periodo Vencimento" metadata="datePeriod" required="false" keep-last="true" keep-date="false" order="2"/>
+    <parameter id="P_PERIODOENT" description="Periodo Entrada" metadata="datePeriod" required="false" keep-last="true" keep-date="false" order="3"/>
+    <parameter id="P_RECDESP" description="Receita/Despesa" metadata="singleList:Text" listType="text" required="false" keep-last="true" keep-date="false" order="4">
+      <item value="-1" label="Despesas"/>
+      <item value="0" label="Ambos"/>
+      <item value="1" label="Receita"/>
+    </parameter>
+    <parameter id="CR" description="Centro de Resultado" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="5">
+      <expression type="SQL"><![CDATA[SELECTCODCENCUS AS VALUE,DESCRCENCUS||'-'||AD_APELIDO AS LABELFROM TSICUSWHERE ATIVO = 'S'AND ANALITICO = 'S'ORDER BY CODCENCUS]]></expression>
+    </parameter>
+    <parameter id="NATDIF" description="Natureza Diferente de" metadata="entity:Natureza@CODNAT" required="false" keep-last="true" keep-date="false" order="6"/>
+    <parameter id="P_CRINI" description="C.R maior ou igual que?" metadata="entity:CentroResultado@CODCENCUS" required="false" keep-last="true" keep-date="false" order="7"/>
+    <parameter id="P_CRFIN" description="C.R menor que?" metadata="entity:CentroResultado@CODCENCUS" required="false" keep-last="true" keep-date="false" order="8"/>
+    <parameter id="P_CUSFIXO" description="Apenas Nat. Custo Fixo?" metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="9"/>
+  </prompt-parameters>
+  <level id="lvl_w3038x" description="Principal">
+    <args>
+      <arg id="A_CODCENCUS" type="integer"/>
+      <arg id="A_DESCRCENCUS" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="100"/>
+      <container orientacao="H" tamanhoRelativo="3137">
+        <container orientacao="V" tamanhoRelativo="100">
+          <container orientacao="V" tamanhoRelativo="50">
+            <grid id="grd_w3039c" useNewGrid="S">
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CUS1.CODCENCUS,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSAND (DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN OR :PERIODO.INI IS NULL)AND (DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.INI IS NULL)AND (DTENTSAI BETWEEN :P_PERIODOENT.INI AND :P_PERIODOENT.FIN OR :P_PERIODOENT.INI IS NULL)AND (DTVENC BETWEEN :P_PERIODOVENC.INI AND :P_PERIODOVENC.FIN OR :P_PERIODOVENC.INI IS NULL)AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICOORDER BY CUS1.CODCENCUS]]></expression>
+              <metadata>
+                <field name="CODCENCUS" label="Cód.CR" type="I" visible="true" useFooter="false"/>
+                <field name="DESCRCENCUS" label="Descr.CR" type="S" visible="true" useFooter="false"/>
+                <field name="GRAU" label="GRAU" type="I" visible="false" useFooter="false"/>
+                <field name="ANALITICO" label="ANALITICO" type="S" visible="false" useFooter="false"/>
+                <field name="VLRDESDOB_REC" label="REC-Vlr.Desdob" type="F" visible="true" useFooter="SUM" mask=" #.##0,00;-n">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#00CCCC">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRDESDOB_DESP" label="DESP-Vlr.Desdob" type="F" visible="false" useFooter="SUM" mask=" #.##0,00;-n">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#00CCCC">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRDESDOB" label="LÍQ-Vlr.Desdob" type="F" visible="false" useFooter="SUM" mask=" #.##0,00;-n">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#00CCCC">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRJURO" label="Vlr. Juro" type="F" visible="false" useFooter="SUM" mask="#.##0,00;-n"/>
+                <field name="VLRMULTA" label="Vlr. Multa" type="F" visible="false" useFooter="SUM" mask="#.##0,00;-n"/>
+                <field name="VLRDESC" label="Vlr. Desconto" type="F" visible="false" useFooter="SUM" mask="#.##0,00;-n"/>
+                <field name="VLRBAIXA_REC" label="REC-Vlr.Baixa" type="F" visible="false" useFooter="SUM" mask=" #.##0,00;-n">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#66FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA_DESP" label="DESP-Vlr.Baixa" type="F" visible="false" useFooter="SUM" mask=" #.##0,00;-n">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#66FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#66FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+              <refresh-details ui-list="grd_w304gx,cht_w304hj">
+                <param id="A_CODCENCUS">$CODCENCUS</param>
+                <param id="A_DESCRCENCUS">$DESCRCENCUS</param>
+              </refresh-details>
+            </grid>
+          </container>
+          <container orientacao="V" tamanhoRelativo="50">
+            <grid id="grd_w304gx" useNewGrid="S">
+              <args>
+                <arg id="A_CODCENCUS" type="integer"/>
+                <arg id="A_DESCRCENCUS" type="text"/>
+              </args>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECTCODNAT,DESCRNAT,SUM(VLRDESDOB) AS VLRDESDOB,SUM(VLRJURO) AS VLRJURO,SUM(VLRMULTA) AS VLRMULTA,SUM(VLRDESC) AS VLRMULTA,SUM(VLRBAIXA) AS VLRBAIXAFROM (SELECT CASE WHEN X.VLRDESDOB < 0 THEN 'RED' ELSE 'BLUE' END AS FGCOLOR,X.*FROM (SELECT 'Financeiro' AS ORIGEM, CASE WHEN FIN.RECDESP = 1 THEN 'Receita' ELSE 'Despesa' END AS RECDESP, FIN.NUFIN, FIN.NUMNOTA, FIN.DTNEG, FIN.DHBAIXA, FIN.DTENTSAI, FIN.DTVENC, FIN.CODPARC, PAR.NOMEPARC, FIN.CODCENCUS, CUS.CODCENCUSPAI, CUS.GRAU, CUS.DESCRCENCUS, FIN.CODNAT, NAT.DESCRNAT, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * FIN.VLRDESDOB AS VLRDESDOB, FIN.VLRJURO, FIN.VLRMULTA, FIN.VLRDESC, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * FIN.VLRBAIXA AS VLRBAIXA, TOP.CODTIPOPER,TOP.DESCROPER, PRJ.CODPROJ, PRJ.IDENTIFICACAOFROM TGFFIN FIN INNER JOIN TGFNAT NAT ON NAT.CODNAT=FIN.CODNATINNER JOIN TSICUS CUS ON CUS.CODCENCUS=FIN.CODCENCUSINNER JOIN TGFPAR PAR ON PAR.CODPARC=FIN.CODPARCLEFT JOIN TGFTOP TOP ON TOP.CODTIPOPER=FIN.CODTIPOPER AND TOP.DHALTER=FIN.DHTIPOPERLEFT JOIN TCSPRJ PRJ ON FIN.CODPROJ = PRJ.CODPROJWHERE NOT EXISTS (SELECT 1 FROM TGFRAT WHERE (NUFIN=FIN.NUFIN) AND ORIGEM='F')AND NOT EXISTS (SELECT 1 FROM TGFRAT WHERE (NUFIN=FIN.NUNOTA) AND ORIGEM='E')AND FIN.RECDESP <> 0AND FIN.PROVISAO = 'N'AND (FIN.RECDESP=:P_RECDESP OR :P_RECDESP = 0)UNION ALLSELECT 'Rateio Financeiro' AS ORIGEM, CASE WHEN FIN.RECDESP = 1 THEN 'Receita' ELSE 'Despesa' END AS RECDESP, RAT.NUFIN, FIN.NUMNOTA, FIN.DTNEG, FIN.DHBAIXA, FIN.DTENTSAI, FIN.DTVENC, FIN.CODPARC, PAR.NOMEPARC,  RAT.CODCENCUS, CUS.CODCENCUSPAI, CUS.GRAU, CUS.DESCRCENCUS, RAT.CODNAT, NAT.DESCRNAT, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * (FIN.VLRDESDOB / 100 * RAT.PERCRATEIO) AS VLRDESDOB, FIN.VLRJURO, FIN.VLRMULTA, FIN.VLRDESC, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * (FIN.VLRBAIXA / 100 * RAT.PERCRATEIO) AS VLRBAIXA, TOP.CODTIPOPER,TOP.DESCROPER, PRJ.CODPROJ, PRJ.IDENTIFICACAOFROM TGFRAT RATINNER JOIN TGFNAT NAT ON NAT.CODNAT=RAT.CODNATINNER JOIN TSICUS CUS ON CUS.CODCENCUS=RAT.CODCENCUSINNER JOIN TGFFIN FIN ON RAT.NUFIN=FIN.NUFIN AND RAT.ORIGEM='F' INNER JOIN TGFPAR PAR ON PAR.CODPARC=FIN.CODPARCLEFT JOIN TGFTOP TOP ON TOP.CODTIPOPER=FIN.CODTIPOPER AND TOP.DHALTER=FIN.DHTIPOPERLEFT JOIN TCSPRJ PRJ ON RAT.CODPROJ = PRJ.CODPROJWHERE FIN.RECDESP <> 0AND FIN.PROVISAO = 'N'AND (FIN.RECDESP=:P_RECDESP OR :P_RECDESP = 0)UNION ALLSELECT 'Rateio Nota' AS ORIGEM, CASE WHEN FIN.RECDESP = 1 THEN 'Receita' ELSE 'Despesa' END AS RECDESP, FIN.NUFIN, FIN.NUMNOTA, FIN.DTNEG, FIN.DHBAIXA, FIN.DTENTSAI, FIN.DTVENC, FIN.CODPARC, PAR.NOMEPARC,  RAT.CODCENCUS, CUS.CODCENCUSPAI, CUS.GRAU, CUS.DESCRCENCUS, RAT.CODNAT, NAT.DESCRNAT, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * (FIN.VLRDESDOB / 100 * RAT.PERCRATEIO) AS VLRDESDOB, FIN.VLRJURO, FIN.VLRMULTA, FIN.VLRDESC, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * (FIN.VLRBAIXA / 100 * RAT.PERCRATEIO) AS VLRBAIXA, TOP.CODTIPOPER,TOP.DESCROPER, PRJ.CODPROJ, PRJ.IDENTIFICACAOFROM TGFRAT RATINNER JOIN TGFNAT NAT ON NAT.CODNAT=RAT.CODNATINNER JOIN TSICUS CUS ON CUS.CODCENCUS=RAT.CODCENCUSINNER JOIN TGFFIN FIN ON RAT.NUFIN=FIN.NUNOTA AND RAT.ORIGEM='E' INNER JOIN TGFPAR PAR ON PAR.CODPARC=FIN.CODPARCLEFT JOIN TGFTOP TOP ON TOP.CODTIPOPER=FIN.CODTIPOPER AND TOP.DHALTER=FIN.DHTIPOPERLEFT JOIN TCSPRJ PRJ ON RAT.CODPROJ = PRJ.CODPROJWHERE FIN.RECDESP <> 0AND FIN.PROVISAO = 'N'AND (FIN.RECDESP=:P_RECDESP OR :P_RECDESP = 0)) XWHERE (DTNEG BETWEEN :PERIODO.INI AND :PERIODO.FIN OR :PERIODO.INI IS NULL)AND (DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.INI IS NULL)AND (DTENTSAI BETWEEN :P_PERIODOENT.INI AND :P_PERIODOENT.FIN OR :P_PERIODOENT.INI IS NULL)AND (DTVENC BETWEEN :P_PERIODOVENC.INI AND :P_PERIODOVENC.FIN OR :P_PERIODOVENC.INI IS NULL)AND X.CODCENCUS IN :A_CODCENCUSAND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )ORDER BY X.DTNEG, X.CODCENCUS, X.NUMNOTA)GROUP BYCODNAT,DESCRNAT]]></expression>
+              <metadata>
+                <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+                <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+                <field name="VLRDESDOB" label="Vlr. Desd." type="F" visible="false" useFooter="SUM" mask="#.##0,00"/>
+                <field name="VLRJURO" label="Vlr. Juros" type="F" visible="false" useFooter="SUM" mask="#.##0,00"/>
+                <field name="VLRMULTA" label="Vlr. Multa" type="F" visible="false" useFooter="SUM" mask="#.##0,00"/>
+                <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              </metadata>
+            </grid>
+          </container>
+        </container>
+        <container orientacao="V" tamanhoRelativo="157">
+          <chart id="cht_w304hj" type="line" nroColuna="13">
+            <args>
+              <arg id="A_CODCENCUS" type="integer"/>
+              <arg id="A_DESCRCENCUS" type="text"/>
+            </args>
+            <title><![CDATA[<b>CR: :A_DESCRCENCUS</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECTTO_CHAR(DHBAIXA,'YYYY') AS ANO,TO_CHAR(DHBAIXA,'MM') AS MES,TO_CHAR(DHBAIXA,'MM-YYYY') AS MES_ANO,SUM(VLRBAIXA) AS VLRBAIXAFROM (SELECT CASE WHEN X.VLRDESDOB < 0 THEN 'RED' ELSE 'BLUE' END AS FGCOLOR,X.*FROM (SELECT 'Financeiro' AS ORIGEM, CASE WHEN FIN.RECDESP = 1 THEN 'Receita' ELSE 'Despesa' END AS RECDESP, FIN.NUFIN, FIN.NUMNOTA, FIN.DTNEG, FIN.DHBAIXA, FIN.DTENTSAI, FIN.DTVENC, FIN.CODPARC, PAR.NOMEPARC, FIN.CODCENCUS, CUS.CODCENCUSPAI, CUS.GRAU, CUS.DESCRCENCUS, FIN.CODNAT, NAT.DESCRNAT, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * FIN.VLRDESDOB AS VLRDESDOB, FIN.VLRJURO, FIN.VLRMULTA, FIN.VLRDESC, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * FIN.VLRBAIXA AS VLRBAIXA, TOP.CODTIPOPER,TOP.DESCROPER, PRJ.CODPROJ, PRJ.IDENTIFICACAOFROM TGFFIN FIN INNER JOIN TGFNAT NAT ON NAT.CODNAT=FIN.CODNATINNER JOIN TSICUS CUS ON CUS.CODCENCUS=FIN.CODCENCUSINNER JOIN TGFPAR PAR ON PAR.CODPARC=FIN.CODPARCLEFT JOIN TGFTOP TOP ON TOP.CODTIPOPER=FIN.CODTIPOPER AND TOP.DHALTER=FIN.DHTIPOPERLEFT JOIN TCSPRJ PRJ ON FIN.CODPROJ = PRJ.CODPROJWHERE NOT EXISTS (SELECT 1 FROM TGFRAT WHERE (NUFIN=FIN.NUFIN) AND ORIGEM='F')AND NOT EXISTS (SELECT 1 FROM TGFRAT WHERE (NUFIN=FIN.NUNOTA) AND ORIGEM='E')AND FIN.RECDESP <> 0AND FIN.PROVISAO = 'N'AND (FIN.RECDESP=:P_RECDESP OR :P_RECDESP = 0)UNION ALLSELECT 'Rateio Financeiro' AS ORIGEM, CASE WHEN FIN.RECDESP = 1 THEN 'Receita' ELSE 'Despesa' END AS RECDESP, RAT.NUFIN, FIN.NUMNOTA, FIN.DTNEG, FIN.DHBAIXA, FIN.DTENTSAI, FIN.DTVENC, FIN.CODPARC, PAR.NOMEPARC,  RAT.CODCENCUS, CUS.CODCENCUSPAI, CUS.GRAU, CUS.DESCRCENCUS, RAT.CODNAT, NAT.DESCRNAT, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * (FIN.VLRDESDOB / 100 * RAT.PERCRATEIO) AS VLRDESDOB, FIN.VLRJURO, FIN.VLRMULTA, FIN.VLRDESC, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * (FIN.VLRBAIXA / 100 * RAT.PERCRATEIO) AS VLRBAIXA, TOP.CODTIPOPER,TOP.DESCROPER, PRJ.CODPROJ, PRJ.IDENTIFICACAOFROM TGFRAT RATINNER JOIN TGFNAT NAT ON NAT.CODNAT=RAT.CODNATINNER JOIN TSICUS CUS ON CUS.CODCENCUS=RAT.CODCENCUSINNER JOIN TGFFIN FIN ON RAT.NUFIN=FIN.NUFIN AND RAT.ORIGEM='F' INNER JOIN TGFPAR PAR ON PAR.CODPARC=FIN.CODPARCLEFT JOIN TGFTOP TOP ON TOP.CODTIPOPER=FIN.CODTIPOPER AND TOP.DHALTER=FIN.DHTIPOPERLEFT JOIN TCSPRJ PRJ ON RAT.CODPROJ = PRJ.CODPROJWHERE FIN.RECDESP <> 0AND FIN.PROVISAO = 'N'AND (FIN.RECDESP=:P_RECDESP OR :P_RECDESP = 0)UNION ALLSELECT 'Rateio Nota' AS ORIGEM, CASE WHEN FIN.RECDESP = 1 THEN 'Receita' ELSE 'Despesa' END AS RECDESP, FIN.NUFIN, FIN.NUMNOTA, FIN.DTNEG, FIN.DHBAIXA, FIN.DTENTSAI, FIN.DTVENC, FIN.CODPARC, PAR.NOMEPARC,  RAT.CODCENCUS, CUS.CODCENCUSPAI, CUS.GRAU, CUS.DESCRCENCUS, RAT.CODNAT, NAT.DESCRNAT, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * (FIN.VLRDESDOB / 100 * RAT.PERCRATEIO) AS VLRDESDOB, FIN.VLRJURO, FIN.VLRMULTA, FIN.VLRDESC, CASE WHEN FIN.RECDESP=-1 THEN -1 ELSE 1 END * (FIN.VLRBAIXA / 100 * RAT.PERCRATEIO) AS VLRBAIXA, TOP.CODTIPOPER,TOP.DESCROPER, PRJ.CODPROJ, PRJ.IDENTIFICACAOFROM TGFRAT RATINNER JOIN TGFNAT NAT ON NAT.CODNAT=RAT.CODNATINNER JOIN TSICUS CUS ON CUS.CODCENCUS=RAT.CODCENCUSINNER JOIN TGFFIN FIN ON RAT.NUFIN=FIN.NUNOTA AND RAT.ORIGEM='E' INNER JOIN TGFPAR PAR ON PAR.CODPARC=FIN.CODPARCLEFT JOIN TGFTOP TOP ON TOP.CODTIPOPER=FIN.CODTIPOPER AND TOP.DHALTER=FIN.DHTIPOPERLEFT JOIN TCSPRJ PRJ ON RAT.CODPROJ = PRJ.CODPROJWHERE FIN.RECDESP <> 0AND FIN.PROVISAO = 'N'AND (FIN.RECDESP=:P_RECDESP OR :P_RECDESP = 0)) XWHERE(DHBAIXA BETWEEN ADD_MONTHS(:PERIODOBAI.FIN, -12) AND :PERIODOBAI.FIN OR :PERIODOBAI.INI IS NULL)/*AND (DTNEG BETWEEN ADD_MONTHS(:PERIODO.FIN, -12) AND :PERIODO.FIN OR :PERIODO.INI IS NULL)AND (DTENTSAI BETWEEN ADD_MONTHS(:PERIODO.FIN, -12) AND :PERIODO.FIN OR :PERIODO.INI IS NULL)AND (DTVENC BETWEEN ADD_MONTHS(:PERIODO.FIN, -12) AND :PERIODO.FIN OR :PERIODO.INI IS NULL)*/AND X.CODCENCUS = :A_CODCENCUSAND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' ))GROUP BYTO_CHAR(DHBAIXA,'YYYY'),TO_CHAR(DHBAIXA,'MM'),TO_CHAR(DHBAIXA,'MM-YYYY')ORDER BY 1,2]]></expression>
+            <metadata>
+              <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+              <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+              <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <horizontal-axis>
+              <category field="MES_ANO" rotation="-90" dropLabel="false">
+                <initView value="first"/>
+              </category>
+            </horizontal-axis>
+            <vertical-axis>
+              <linear resultRotation="0" vResizing="true">
+                <mask/>
+              </linear>
+            </vertical-axis>
+            <series>
+              <serie type="line" circle-intersection="true">
+                <xField>MES_ANO</xField>
+                <yField>VLRBAIXA</yField>
+                <display><![CDATA[Mês / Ano]]></display>
+                <color>0x33cc00</color>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+</gadget>

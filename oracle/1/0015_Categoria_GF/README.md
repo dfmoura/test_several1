@@ -12,3 +12,8 @@ GM - Categoria GF - 1) Preparação de acessa a nova tela a partir de botão cri
 #### 1.2. 26/01/2024 07:00 as 11:30
 
 GM - Categoria GF - 5) Iniciamos os teste configurando os argumentos no select para cada componente associado ao componente principal de periodo, (de modo cada evento seja predecessor a um evento subsequente). 6)Configuramos o click no componente de periodo, que salva um arumento de 'mes/ano' e atualiza o componente de pizza. 7)Configuramos esse componente de pizza para receber este argumento de 'mes-ano' e refletir com atualização e configuramos tambem a pizza que ao clicar repassa um argumento de periodo e tipo de categoria para ser atualizada no componente de tabala na sequencia com o detalhamento dos lançamentos contábeis. 8)Por fim configuramos este componente de tabela para receber este argumentos da pizza e atualizar a informação recebida *Instruimos o usuario para o preechimento dos campos Representa Custo Fixo? / Tipo de Custo Fixo: no plano de contas.
+
+#### 1.3. 29/01/2024 08:30 as 09:00
+
+GM - Categoria GF - Foi removido um componente que anteriormente consolidava os períodos e, em seu lugar, foi efetuada configuração do filtro de período do nível, nos paramentros de período do dash.
+
