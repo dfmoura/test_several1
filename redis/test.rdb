@@ -1,0 +1,103 @@
+
+
+
+Welcome to Try Redis, a demonstration of the Redis database!
+
+Please type TUTORIAL to begin a brief tutorial, HELP to see a list of supported commands, or any valid Redis command to play with the database.
+> help
+Please type HELP for one of these commands: DECR, DECRBY, DEL, EXISTS, EXPIRE, GET, GETSET, HDEL, HEXISTS, HGET, HGETALL, HINCRBY, HKEYS, HLEN, HMGET, HMSET, HSET, HVALS, INCR, INCRBY, KEYS, LINDEX, LLEN, LPOP, LPUSH, LRANGE, LREM, LSET, LTRIM, MGET, MSET, MSETNX, MULTI, PEXPIRE, RENAME, RENAMENX, RPOP, RPOPLPUSH, RPUSH, SADD, SCARD, SDIFF, SDIFFSTORE, SET, SETEX, SETNX, SINTER, SINTERSTORE, SISMEMBER, SMEMBERS, SMOVE, SORT, SPOP, SRANDMEMBER, SREM, SUNION, SUNIONSTORE, TTL, TYPE, ZADD, ZCARD, ZCOUNT, ZINCRBY, ZRANGE, ZRANGEBYSCORE, ZRANK, ZREM, ZREMRANGEBYSCORE, ZREVRANGE, ZSCORE
+> help set
+SET key value
+
+TIME COMPLEXITY: O(1)
+
+DESCRIPTION: Set key to hold the string value. If key already holds a value, it is overwritten, regardless of its type. Any previous time to live associated with the key is discarded on successful SET operation.
+Options
+
+    EX seconds -- Set the specified expire time, in seconds.
+    PX milliseconds -- Set the specified expire time, in milliseconds.
+    NX -- Only set the key if it does not already exist.
+    XX -- Only set the key if it already exist.
+
+RETURN VALUE: Status code reply: OK if SET was executed correctly. Null multi-bulk reply: a Null Bulk Reply is returned if the SET operation was not performed becase the user specified the NX or XX option but the condition was not met.
+> SET nome "Diogo"
+OK
+> SET nome_2 "Debora"
+OK
+> GET nome
+"Diogo"
+> GET nome_2
+"Debora"
+> KEYS nome*
+1) "nome_2"
+2) "nome"
+> SET usuario_3 "Maria"
+OK
+> GET nom* and usu*
+(error) wrong number of arguments (given 3, expected 1)
+> SET nome_3 "Maria"
+OK
+> GET nom*
+(nil)
+> KEYS nom*
+1) "nome_3"
+2) "nome_2"
+3) "nome"
+> DEL nome
+(integer) 1
+> KEYS nom*
+1) "nome_3"
+2) "nome_2"
+> EXPERI nome_2
+(error) I'm sorry, I don't recognize that command. Please type HELP for one of these commands: DECR, DECRBY, DEL, EXISTS, EXPIRE, GET, GETSET, HDEL, HEXISTS, HGET, HGETALL, HINCRBY, HKEYS, HLEN, HMGET, HMSET, HSET, HVALS, INCR, INCRBY, KEYS, LINDEX, LLEN, LPOP, LPUSH, LRANGE, LREM, LSET, LTRIM, MGET, MSET, MSETNX, MULTI, PEXPIRE, RENAME, RENAMENX, RPOP, RPOPLPUSH, RPUSH, SADD, SCARD, SDIFF, SDIFFSTORE, SET, SETEX, SETNX, SINTER, SINTERSTORE, SISMEMBER, SMEMBERS, SMOVE, SORT, SPOP, SRANDMEMBER, SREM, SUNION, SUNIONSTORE, TTL, TYPE, ZADD, ZCARD, ZCOUNT, ZINCRBY, ZRANGE, ZRANGEBYSCORE, ZRANK, ZREM, ZREMRANGEBYSCORE, ZREVRANGE, ZSCORE
+> EXPERI nome_2 1
+(error) I'm sorry, I don't recognize that command. Please type HELP for one of these commands: DECR, DECRBY, DEL, EXISTS, EXPIRE, GET, GETSET, HDEL, HEXISTS, HGET, HGETALL, HINCRBY, HKEYS, HLEN, HMGET, HMSET, HSET, HVALS, INCR, INCRBY, KEYS, LINDEX, LLEN, LPOP, LPUSH, LRANGE, LREM, LSET, LTRIM, MGET, MSET, MSETNX, MULTI, PEXPIRE, RENAME, RENAMENX, RPOP, RPOPLPUSH, RPUSH, SADD, SCARD, SDIFF, SDIFFSTORE, SET, SETEX, SETNX, SINTER, SINTERSTORE, SISMEMBER, SMEMBERS, SMOVE, SORT, SPOP, SRANDMEMBER, SREM, SUNION, SUNIONSTORE, TTL, TYPE, ZADD, ZCARD, ZCOUNT, ZINCRBY, ZRANGE, ZRANGEBYSCORE, ZRANK, ZREM, ZREMRANGEBYSCORE, ZREVRANGE, ZSCORE
+> EXPERE nome_2 1
+(error) I'm sorry, I don't recognize that command. Please type HELP for one of these commands: DECR, DECRBY, DEL, EXISTS, EXPIRE, GET, GETSET, HDEL, HEXISTS, HGET, HGETALL, HINCRBY, HKEYS, HLEN, HMGET, HMSET, HSET, HVALS, INCR, INCRBY, KEYS, LINDEX, LLEN, LPOP, LPUSH, LRANGE, LREM, LSET, LTRIM, MGET, MSET, MSETNX, MULTI, PEXPIRE, RENAME, RENAMENX, RPOP, RPOPLPUSH, RPUSH, SADD, SCARD, SDIFF, SDIFFSTORE, SET, SETEX, SETNX, SINTER, SINTERSTORE, SISMEMBER, SMEMBERS, SMOVE, SORT, SPOP, SRANDMEMBER, SREM, SUNION, SUNIONSTORE, TTL, TYPE, ZADD, ZCARD, ZCOUNT, ZINCRBY, ZRANGE, ZRANGEBYSCORE, ZRANK, ZREM, ZREMRANGEBYSCORE, ZREVRANGE, ZSCORE
+> EXPIRE nome_2 1
+(integer) 1
+> KEYS nom*
+1) "nome_3"
+> EXPIRE nome_3 1
+(integer) 1
+> KEYS nom*
+(empty list or set)
+> SET nome "dioogo"
+OK
+> EXPIRE nome 15
+(integer) 1
+> TTL nome
+(integer) 5
+> KEYS nom*
+(empty list or set)
+> GET nome
+(nil)
+> EXISTS nome
+(integer) 0
+> SET acessos 1
+OK
+> GET acessos
+"1"
+> INCR acessos
+(integer) 2
+> GET acessos
+"2"
+> DECR acessos
+(integer) 1
+> GET acessos
+"1"
+> LPUSH usuarios "diogo" "debora" "felicia"
+(integer) 3
+> LRANGE usuarios 0 -1
+1) "felicia"
+2) "debora"
+3) "diogo"
+> LPUSH usuarios "jordan"
+(integer) 4
+> LRANGE usuarios 0 -1
+1) "jordan"
+2) "felicia"
+3) "debora"
+4) "diogo"
+> LLEN usuarios
+(integer) 4

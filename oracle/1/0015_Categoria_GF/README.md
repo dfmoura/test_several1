@@ -17,3 +17,14 @@ GM - Categoria GF - 5) Iniciamos os teste configurando os argumentos no select p
 
 GM - Categoria GF - Foi removido um componente que anteriormente consolidava os períodos e, em seu lugar, foi efetuada configuração do filtro de período do nível, nos paramentros de período do dash.
 
+#### 1.4. 02/01/2024 08:30 as 12:30
+```markdown
+GM - Categoria GF - 1) Foi realizado um aprimoramento no nível principal do Dash, especificamente na coluna de "GASTO FIXO", mediante a atualização do seletor do gasto fixo. Esta atualização reproduz a estrutura utilizada no "DRE Gerencial", incorporando ainda o filtro adicional PLA.AD_REPCUSFIXO = 'S'. 2) Além disso, efetuou-se a replicação desta atualização no seletor em nível Level1_GF, abrangendo todos os componentes pertencentes a este nível.
+
+```
+
+#### 1.4. 02/01/2024 13:30 as 18:30
+```markdown
+GM - Categoria GF - 3) Prosseguindo com a atualização, foi realizada a replicação das modificações no seletor para os demais níveis hierárquicos inferiores, abrangendo os respectivos componentes. Essa replicação engloba os níveis Level1_GF1, Level2_GF e Level3_GF, garantindo assim a uniformidade e consistência das alterações em toda a estrutura do Dash.
+
+```

@@ -54,3 +54,21 @@ Satis - Resultado financeiro por C.R - 11) Continuação da atividade da manhão
 
 ```
 
+#### 1.7. 01/02/2024 7:00 as 12:00
+```markdown
+
+Satis - Resultado financeiro por C.R - 12) Realizou-se um ajuste no painel principal do dashboard, especificamente no componente de tabela utilizado para consolidar dados por centro de resultado (CR), visando agregar a soma dos dois primeiros dígitos do CR. 13) Implementou-se a replicação de lógica em um componente de tabela destinado à consolidação por natureza de despesa, com o objetivo de agregar a soma dos valores consolidados pelos dois primeiros dígitos do CR. Adicionalmente, foi incorporada a funcionalidade de atualização dinâmica da tabela ao clicar em cada código de resultado, exibindo as informações específicas do CR selecionado.14) Efetuou-se um ajuste no gráfico, onde foi estabelecido que o filtro de período 1 é obrigatório, enquanto o período 2 é opcional. Ambos os períodos devem corresponder à mesma quantidade de meses para permitir comparações adequadas.
+
+
+```
+
+
+
+
+#### 1.8. 01/02/2024 13:20 as 17:50
+```markdown
+Satis - Resultado financeiro por C.R - 15) No mesmo contexto do ajuste anterior, foram adicionados quatro níveis adicionais ao dashboard, cada um correspondendo a um grau de detalhamento da numeração do centro de resultado. Por exemplo: Grau 2 = 0000, Grau 3 = 000000, Grau 4 = 00000000 e Grau 5 = 0000000000. 16) Desenvolveram-se argumentos que permitem a passagem de nível em nível, proporcionando uma atomização progressiva do detalhamento. Essa abordagem possibilita uma análise mais granular dos dados, permitindo uma compreensão mais precisa e aprofundada das informações apresentadas. 17) Para os demais componentes relacionados aos diferentes níveis de detalhamento, como a tabela consolidada por natureza e o gráfico comparativo por período, foi replicada a funcionalidade de atualização dinâmica com base no cr selecionado no componente principal. Isso garante uma consistência na visualização dos dados em todos os níveis de detalhamento, facilitando a análise e tomada de decisões.
+
+```
+
+
