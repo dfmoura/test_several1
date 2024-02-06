@@ -1,5 +1,5 @@
 
-Criar esturtura do dre gerencial olhando diretamente para o financeiro.
+Criar estrutura do dre gerencial olhando diretamente para o financeiro.
 Ser utilizado como ferramenta diária de monitoramento dos gastos.
 Na contabilidade os números não são contabilizados diáriamente e a auditoria
 deve acontecer antes da contabilização.
