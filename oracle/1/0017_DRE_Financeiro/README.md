@@ -1,4 +1,6 @@
 
+# Objetivos
+```markdown
 Criar estrutura do dre gerencial olhando diretamente para o financeiro.
 Ser utilizado como ferramenta diária de monitoramento dos gastos.
 Na contabilidade os números não são contabilizados diáriamente e a auditoria
@@ -19,4 +21,13 @@ valor
 )
 
 *com exceção da receita: dash rentabilidade
+```
 
+
+### 1. Log's Execução
+
+#### 1.1. 06/02/2024 
+```markdown
+
+
+```
