@@ -1,0 +1,82 @@
+
+Resumo para basico para assembly
+
+
+1) cria arquivo asm.s
+2) declara CODIGO
+.global _start  ;"como se fosse a função main do c.
+
+_start:
+
+3) rodar no terminal o assembly: as asm.s -o asm.o
+#nao deu erro...
+
+4) transformar o arquivo em um executavel: gcc -o asm asm.o -nostdlib  
+
+5) executar o arquivo: ./asm
+
+6) criar primeira instruco MOV
+.global _start
+.intel_syntax noprefix
+
+_start:
+    MOV rax, 0x3c
+    MOV rdi, 11
+    SYSCALL
+
+
+7) criar uma função
+.global _start
+.intel_syntax noprefix
+
+_start:
+    JMP exit
+
+
+exit:
+    MOV rax, 0x3c
+    MOV rdi, 11
+    SYSCALL
+
+
+8) criar um frase:
+
+.global _start
+.intel_syntax noprefix
+
+_start:
+    CALL print_hello_world ; 8.6) chamar o entry point...
+    JMP exit
+
+
+print_hello_world: ; 8.3) vamos chamar a syscall - write. 
+    MOV rax, 0x01
+    MOV rdi, 0x01
+    LEA rsi, [hell_str] ;8.4) colocar o ponteiro do começo da string que criou (load efective address)
+    MOV rdx, 14 ; 8.5) depois tem que dizer o tamanho da string
+    SYSCALL
+    RET
+
+
+
+exit:
+    MOV rax, 0x3c
+    MOV rdi, 11
+    SYSCALL
+
+.section .data  ; 8.1) criado esta section para deixar o "hello world" dentro do binario.
+    hello_str: .asciz "hello, world!\n" ; 8.2) tem que dizer que é uma string 'asci' terminado com o null terminator igual em c = z
+
+
+
+TERMINAL
+
+Utilize esta sequencia para rodar:
+ rodar assembly = as asm.s -o asm.o
+ rodar compilador = gcc -o asm asm.o -nostdlib  -no-pie
+ rodar o executavel = ./asm
+ rodar o eco para saber o ultimo status code do terminal = echo $?
+
+
+Observações:
+.intel_syntax noprefix = VERSAO HUMANA DA SINTAXE, -oprefix para nao utilizar o % antes dos registradores

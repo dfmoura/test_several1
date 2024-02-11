@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Presentation</title>
+    <style>
+        .card {
+            border: 2px solid #000;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+            position: relative;
+            background-color: #f9f9f9;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border: 2px solid #000;
+            border-radius: 15px;
+            z-index: -1;
+        }
+
+        .field {
+            margin-bottom: 10px;
+        }
+
+        .field-name {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="field">
+            <span class="field-name">Field 1:</span> Small content 1
+        </div>
+        <div class="field">
+            <span class="field-name">Field 2:</span> Small content 2
+        </div>
+        <div class="field">
+            <span class="field-name">Field 3:</span> Small content 3
+        </div>
+        <div class="field">
+            <span class="field-name">Field 4:</span> Small content 4
+        </div>
+        <div class="field">
+            <span class="field-name">Field 5:</span> Small content 5
+        </div>
+        <div class="field">
+            <span class="field-name">Field 6:</span> Small content 6
+        </div>
+        <div class="field">
+            <span class="field-name">Field 7:</span> Small content 7
+        </div>
+        <div class="field">
+            <span class="field-name">Field 8:</span>
+            <p>Large paragraph content 1</p>
+        </div>
+        <div class="field">
+            <span class="field-name">Field 9:</span>
+            <p>Large paragraph content 2</p>
+        </div>
+        <div class="field">
+            <span class="field-name">Field 10:</span>
+            <p>Large paragraph content 3</p>
+        </div>
+    </div>
+</body>
+</html>

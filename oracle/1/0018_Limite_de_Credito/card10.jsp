@@ -21,6 +21,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            line-height: 1;
         }
 
         .card {
@@ -28,18 +29,19 @@
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             padding: 15px;
-            max-width: 600px;
+            max-width: 800px;
             width: 100%;
             box-sizing: border-box;
+            margin: 0 auto;
         }
 
         .card div {
             margin-bottom: 10px;
-            font-size: 10px; 
+            font-size: 14px; 
         }
 
         .card div:first-child {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: bold;
             margin-bottom: 16px;
         }
@@ -104,7 +106,8 @@
             
             <div><strong>Dados IR:</strong>${row.dadosir}</div>
 
-            <div><strong>Pretenção Compra:</strong><fmt:formatNumber value="${row.pretcompra}" pattern="#,##0.00" /> - <strong>Carta Fiança:</strong>${row.catfianca}</div>
+            <div><strong>Pretenção Compra:</strong><fmt:formatNumber value="${row.pretcompra}" pattern="#,##0.00" /> - <strong>Carta Fiança:</strong><fmt:formatDate value="${row.catfianca}" pattern="dd-MM-yyyy"/></div>
+            
             <div><strong>Obs.:</strong>${row.observacoes}</div>
             <div><strong>Parecer:</strong>${row.parecer}</div>
             <div><strong>Ano Análise:</strong>${row.anoanalise} - <strong>Ano Fat.:</strong>${row.anofat} - <strong>Valor Faturamento:</strong><fmt:formatNumber value="${row.valorfat}" pattern="#,##0.00" /></div>

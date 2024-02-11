@@ -56,7 +56,9 @@
 <body>
 
 <snk:query var="dias">
-    SELECT
+
+SELECT
+    CODPARC,
     NVL(AVG(DIAS_EM_ATRASO), 0) AS DIAS_EM_ATRASO
     FROM
     (
@@ -83,17 +85,24 @@
     VLRBAIXA
     FROM TGFFIN FIN
     WHERE RECDESP=1 AND PROVISAO='N'
-    AND ((DTVENC < SYSDATE AND DHBAIXA IS NULL)
-    OR ((DTVENC - DHBAIXA)> 0 AND DHBAIXA IS NOT NULL)
-    OR ((DTVENC - DHBAIXA) < 0 AND DHBAIXA IS NOT NULL)
-    OR ((DTVENC - DHBAIXA)=0 AND DHBAIXA IS NOT NULL))
-    AND CODPARC=:A_CODPARC
-    )
+    AND (FIN.DHBAIXA IS NOT NULL OR FIN.DTVENC < TRUNC(SYSDATE))
+    AND CODPARC = :A_CODPARC
+    )GROUP BY CODPARC
+
+    UNION ALL
+    
+    SELECT :A_CODPARC AS CODPARC
+    ,0 AS DIAS_EM_ATRASO
+    FROM DUAL
+    WHERE ( SELECT COUNT(*) FROM TGFFIN FIN WHERE RECDESP=1 AND PROVISAO='N' AND CODPARC=:A_CODPARC AND (FIN.DHBAIXA IS NOT NULL OR FIN.DTVENC < TRUNC(SYSDATE)) ) = 0
+
+
+
 </snk:query>
 
 <c:forEach items="${dias.rows}" var="row">
     <div class="card ${row.DIAS_EM_ATRASO >= 0 ? 'blue-card' : 'red-card'}" onclick="abrir('${row.CODPARC}')">  
-        <div class="card-title">PONTUALIDADE</div>
+        <div class="card-title">PONTUALIDADE</value></div>
         <div class="card-content">
             <fmt:formatNumber value="${row.DIAS_EM_ATRASO}" pattern="#0" />
         </div>
@@ -103,8 +112,9 @@
 
 <script>
     function abrir(codparc) {
-        const parametros = { 'A_CODPARC': 'codparc' };
-        openLevel('lvl_82xfp3', parametros);
+        const parametros = { A_CODPARC: parseInt(codparc) };
+        const level = 'lvl_82xfp3';
+        openLevel(level, parametros);
     }
 </script>
 

@@ -59,8 +59,14 @@ Satis - Limite de Credito - 5) Foi desenvolvido um recurso de nível inferior pa
 
 ```
 
-#### 1.2. 07/02/2024 07:00 as 11:30
+#### 1.3. 07/02/2024 07:00 as 11:30
 ```markdown
 Satis - Limite de Credito - 6) Uma adição significativa à interface principal foi concebida, visando proporcionar aos usuários um resumo dos dados destacados na tela de 'Análise de Crédito'. Este componente foi meticulosamente configurado para atualizar de forma dinâmica sempre que um parceiro for selecionado na tabela principal. Essa sinergia entre os elementos da interface possibilita uma visualização mais eficiente e ágil das informações críticas, elevando assim a experiência do usuário a um novo patamar de fluidez e intuição. 7) Na tabela financeira TGFFIN, foi introduzido um campo calculado que espelha a funcionalidade de pontualidade implementada no dashboard 'Análise de Crédito'. Este campo, apresenta, a quantidade de dias a partir da situação de recebimento, conforme: a) "Aberto Vencido", b) "Antecipação", c) "Pago em atraso" e d) "Pago no dia", fornecendo uma representação visual clara da pontualidade associada aos registros financeiros.
+
+```
+
+#### 1.4. 07/02/2024 13:00 as 15:30
+```markdown
+Satis - Limite de Credito - 8) Desenvolvemos uma procedure para permitir a atualização dinâmica do limite de crédito diretamente através do botão de ação incorporado na tabela principal do nosso painel. Este recurso oferece maior agilidade e praticidade aos usuários, permitindo que eles ajustem os limites de crédito de forma rápida e intuitiva, sem a necessidade de navegar por múltiplas telas ou formulários.
 
 ```

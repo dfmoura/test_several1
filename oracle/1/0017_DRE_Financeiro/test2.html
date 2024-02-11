@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tree Component</title>
+<style>
+    /* CSS styles for the tree */
+    .tree {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    .tree li {
+        position: relative;
+        margin-left: 20px;
+        padding-left: 10px;
+    }
+    .tree li::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -10px;
+        border-left: 1px solid #000;
+        height: 100%;
+    }
+    .tree li:last-child::before {
+        height: 10px;
+    }
+    .tree li:last-child::before, .tree li:last-child::after {
+        display: none;
+    }
+    .tree li::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -20px;
+        border-top: 1px solid #000;
+        width: 20px;
+    }
+    .tree li span {
+        background-color: #f9f9f9;
+        padding: 5px 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+
+<ul class="tree">
+    <li>
+        <span onclick="toggleNode('010000')">010000 - MASTER</span>
+        <ul id="010000" style="display: none;">
+            <li>
+                <span onclick="toggleNode('010100')">010100 - SON1</span>
+            </li>
+            <li>
+                <span onclick="toggleNode('010200')">010200 - SON2</span>
+            </li>
+        </ul>
+    </li>
+    <li>
+        <span onclick="toggleNode('020000')">020000 - VIDA</span>
+        <ul id="020000" style="display: none;">
+            <li>
+                <span onclick="toggleNode('020100')">020100 - COMIDA1</span>
+            </li>
+            <li>
+                <span onclick="toggleNode('020200')">020200 - BEBIDA1</span>
+                <ul id="020200" style="display: none;">
+                    <li>
+                        <span onclick="toggleNode('020201')">020201 - FANTA</span>
+                    </li>
+                    <li>
+                        <span onclick="toggleNode('020202')">020202 - COCA</span>
+                    </li>
+                    <li>
+                        <span onclick="toggleNode('020203')">020203 - CAFE</span>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+</ul>
+
+<script>
+    // JavaScript function to toggle visibility of child nodes
+    function toggleNode(id) {
+        var node = document.getElementById(id);
+        if (node.style.display === "none") {
+            node.style.display = "block";
+        } else {
+            node.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>
