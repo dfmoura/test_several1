@@ -1,4 +1,3 @@
-Aqui está o seu arquivo Markdown com o código e a sequência de comandos, formatado para uma melhor visualização:
 
 ```markdown
 # Resumo Básico de Assembly
@@ -97,5 +96,3 @@ Utilize esta sequência para rodar:
 - `.intel_syntax noprefix`: Versão "humana" da sintaxe.
 - `-oprefix` para não utilizar o `%` antes dos registradores.
 ```
-
-Isso deve tornar a leitura e entendimento do seu arquivo Markdown muito mais fácil!
