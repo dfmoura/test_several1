@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  financial_control:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+
+  db:
+    image: "postgres:13"
+    volumes:
+      - financial-control-db:/var/lib/postgresql/data
+
+volumes:
+  financial-control-db:

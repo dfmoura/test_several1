@@ -70,3 +70,10 @@ Satis - Limite de Credito - 6) Uma adição significativa à interface principal
 Satis - Limite de Credito - 8) Desenvolvemos uma procedure para permitir a atualização dinâmica do limite de crédito diretamente através do botão de ação incorporado na tabela principal do nosso painel. Este recurso oferece maior agilidade e praticidade aos usuários, permitindo que eles ajustem os limites de crédito de forma rápida e intuitiva, sem a necessidade de navegar por múltiplas telas ou formulários.
 
 ```
+
+#### 1.5. 12/02/2024 08:00 as 12:30
+```markdown
+Satis - Limite de Credito - 9) Criado atalho para abrir a tela de analise de credito. A utilização do atalho ocorre a partir de click sobre o card de análise de crédito. 10) Criado campos na tabela de limite de crédito (nível principal): a) Campo data de vencimento do cadastro b) Campo status do vencimento do cadastro. 11) Feita atualização no select para considerar as filiais na composição do limite de crédito consumido.
+
+
+```

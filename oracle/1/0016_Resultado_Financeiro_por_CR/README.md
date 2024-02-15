@@ -72,3 +72,9 @@ Satis - Resultado financeiro por C.R - 15) No mesmo contexto do ajuste anterior,
 ```
 
 
+
+#### 1.9. 09/02/2024 08:30 as 16:20
+```markdown
+Satis - Resultado financeiro por C.R - 18) Reestruturação do recurso "select" em todos os 05 níveis do painel de controle, com a introdução de uma coluna consolidada para receita, despesa e valor líquido. As Receitas serão filtradas com base nas "Receitas de vendas" negociadas durante o período e "Outras Receitas", que correspondem às receitas baixadas no mesmo período. As Despesas serão filtradas pelas "Comissões" e "Devoluções de Venda" negociadas no período, enquanto "Outras Despesas" representarão as despesas baixadas durante o mesmo período. Ajustes na lógica serão implementados para garantir a correta apresentação do nível acessado após o duplo clique na tabela de cada nível, considerando os registros de  CR's.
+
+```

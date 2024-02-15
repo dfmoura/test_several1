@@ -60,11 +60,17 @@ valor
 GF - DRE Gerencial Financeiro - 1) Foi criado uma tabela principal no construtor de telas, inserida no contexto hierárquico da 'DRE Gerencial Financeiro'. 2) Adicionalmente, implementou-se uma tela de detalhes como tabela secundária, destinada ao cadastro das naturezas correspondentes, incluindo uma aba específica para as naturezas associadas a esse nível.3) Introduziu-se um novo campo para identificar o tipo de produto a ser recuperado, proporcionando maior flexibilidade e detalhamento na gestão.4) Acrescentou-se um campo adicional para especificar os tipos de movimentos a serem considerados no contexto, oferecendo opções como Venda, Devolução de Venda ou ambos, conforme necessário. Essa adição visa otimizar a funcionalidade e personalização do sistema de acordo com as necessidades do usuário.
 
 ```
-#### 1.2. 08/02/2024 08:30 as 
+#### 1.2. 08/02/2024 08:30 as 12:30
 ```markdown
 
-GF - DRE Gerencial Financeiro - 5)Feita a padronização inicial das máscaras para determinar os niveis de cada movimento no DRE. 6) Finalizado a estrutura de cadastro para 
+GF - DRE Gerencial Financeiro - 5) Concluída a etapa inicial de padronização das máscaras, estabelecendo os níveis correspondentes a cada movimento identificado no Demonstrativo do Resultado do Exercício (DRE). Este processo visa proporcionar uniformidade e consistência na representação dos dados contábeis, contribuindo para uma análise mais precisa e eficaz das operações financeiras. 6) Concluída a implementação da estrutura de cadastro padronizada que servirá como base fundamental para a elaboração do DRE e lançamento da tela para acesso. Esta estrutura estabelece os parâmetros essenciais para a coleta, organização e apresentação das informações contábeis, garantindo a integridade e confiabilidade do relatório financeiro.
+
+```
 
 
+#### 1.3. 08/02/2024 13:30 as 18:30
+```markdown
+
+GF - DRE Gerencial Financeiro - 7) Implementação de uma estruturação de consultas (select) que integra dados relacionados ao faturamento, categorizados por tipo de produto e tipo de movimentação. Além disso, a análise da movimentação financeira é refinada mediante a consideração da natureza da operação associada. Este processo técnico visa otimizar a coleta e organização de informações, proporcionando uma visão mais abrangente e detalhada das transações comerciais, aprimorando assim a tomada de decisões e a eficiência operacional. 8) Formatação por grau na apresentação dos níveis.
 
 ```
