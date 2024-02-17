@@ -38,10 +38,24 @@ Dash Orçamento Financeiro
 
 ### 1. Log's Execução
 
-#### 1.1. 12/02/2024 08:00 as 10:30
+#### 1.1. 14/02/2024 13:00 as 18:00
 ```markdown
 
-Satis - Controle de Acesso - Foram implantadas medidas de controle de acesso para as seguintes ferramentas comerciais: - Dash Comparativo Metas Comerciais - Relatório Orçado x Realizado (Metas) - Dash Análise de Metas Comerciais O mecanismo de controle de acesso segue uma hierarquia definida da seguinte forma: 1) Acesso Completo: Os usuários marcados como 'Gestor de Meta' = 'S' (ativado) na guia geral do cadastro de usuários possuem acesso completo às funcionalidades das ferramentas.   
-2) Acesso de Gerente: Os usuários gerentes têm permissão para visualizar a movimentação com base nos vendedores que estão sob sua gestão. 3) Acesso de Vendedor: Os usuários vendedores têm acesso restrito e podem visualizar apenas sua própria movimentação. É importante ressaltar que é necessário que tanto os vendedores quanto os gerentes estejam devidamente vinculados ao cadastro de usuários para garantir o correto funcionamento dessas medidas de controle de acesso.
+Satis - Dash Orçamento Financeiro - 1) No âmbito do aprimoramento da funcionalidade do construtor de telas, foram implementadas tabelas destinadas a proporcionar uma nova estrutura que visa otimizar a elaboração do dashboard de orçamento financeiro. A primeira tabela foi concebida para a definição de elementos essenciais, tais como grau, código e descrição. Adicionalmente, em integração com a primeira tabela, foi criada uma segunda tabela que oferece uma análise mais aprofundada, delineando as naturezas associadas a cada código específico. Esse refinamento proporciona uma abordagem mais robusta e detalhada no processo de construção e interpretação do orçamento financeiro.
+
 
 ```
+#### 1.2. 15/02/2024 08:00 as 11:30
+```markdown
+
+Satis - Dash Orçamento Financeiro - 2) Implementou-se a entrada de dados dentro da nova estrutura de tabelas criadas, destinadas a servir como um ponto de referência crucial durante o processo de crição do select que consolidar de maneira eficaz as informações pertinentes ao orçamento financeiro. 3) Desenvolveu-se no select uma estrutra que possibilita uma visualização de informações similar à de uma planilha adjacente ao orçamento financeiro (planilha da consultoria).
+
+```
+
+#### 1.3. 15/02/2024 13:00 as 18:00
+```markdown
+
+Satis - Dash Orçamento Financeiro - 4) Em continuidade no desenvolvimento do mecanismo de select, foram implementados recursos adicionais para aprimorar a análise dos dados. Acrescentaram-se funcionalidades de agrupamento e totalização, proporcionando uma visão mais abrangente e detalhada para cada grau dentro da estrutura pré-estabelecida. Essas melhorias permitem uma análise mais refinada dos dados do orçamento financeiro.
+
+```
+
