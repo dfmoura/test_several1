@@ -59,3 +59,18 @@ Satis - Dash Orçamento Financeiro - 4) Em continuidade no desenvolvimento do me
 
 ```
 
+#### 1.3. 16/02/2024 08:00 as 11:30
+```markdown
+
+Satis - Dash Orçamento Financeiro - 5) No prosseguimento do aprimoramento do mecanismo de seleção, foi implementado um recurso adicional para a categorização dos resultados com base nos códigos das contas do orçamento financeiro. Essa inovação permite a agregação e totalização dos valores correspondentes a cada nível ou grau, alinhando-se integralmente com a estrutura da planilha de orçamento modelo. Essa funcionalidade não apenas intensifica a capacidade de análise e relatório, mas também promove uma maior fidedignidade na representação dos dados orçamentários, otimizando assim o processo de gestão financeira.
+
+```
+
+
+#### 1.3. 16/02/2024 13:00 as 18:30
+```markdown
+
+Satis - Dash Orçamento Financeiro - 6) Prosseguindo com o aprimoramento, foi desenvolvido um dashboard. 7) No nível principal desse dashboard, incorporou-se um gráfico que ilustra a evolução da posição real em comparação com o previsto. 8) Introduziu-se um velocímetro que exibe o percentual de cumprimento do orçamento. 9) Acrescentou-se um gráfico de colunas que destaca as naturezas cujo valor realizado ultrapassou as projeções previstas. 10) Implementou-se um botão de "Análise do Orçamento". 11) Para proporcionar uma análise mais aprofundada, criou-se um nível inferior acessado pelo botão "Análise de Orçamento", o qual apresenta, por meio de um componente de tabela, o detalhamento do "Orçamento Financeiro". Essa abordagem visa fornecer uma visão mais granular e elucidativa do desempenho orçamentário, contribuindo para uma tomada de decisão mais informada.
+
+
+```
