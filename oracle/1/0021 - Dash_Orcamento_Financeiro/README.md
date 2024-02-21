@@ -59,7 +59,7 @@ Satis - Dash Orçamento Financeiro - 4) Em continuidade no desenvolvimento do me
 
 ```
 
-#### 1.3. 16/02/2024 08:00 as 11:30
+#### 1.4. 16/02/2024 08:00 as 11:30
 ```markdown
 
 Satis - Dash Orçamento Financeiro - 5) No prosseguimento do aprimoramento do mecanismo de seleção, foi implementado um recurso adicional para a categorização dos resultados com base nos códigos das contas do orçamento financeiro. Essa inovação permite a agregação e totalização dos valores correspondentes a cada nível ou grau, alinhando-se integralmente com a estrutura da planilha de orçamento modelo. Essa funcionalidade não apenas intensifica a capacidade de análise e relatório, mas também promove uma maior fidedignidade na representação dos dados orçamentários, otimizando assim o processo de gestão financeira.
@@ -67,10 +67,73 @@ Satis - Dash Orçamento Financeiro - 5) No prosseguimento do aprimoramento do me
 ```
 
 
-#### 1.3. 16/02/2024 13:00 as 18:30
+#### 1.5. 16/02/2024 13:00 as 18:30
 ```markdown
 
 Satis - Dash Orçamento Financeiro - 6) Prosseguindo com o aprimoramento, foi desenvolvido um dashboard. 7) No nível principal desse dashboard, incorporou-se um gráfico que ilustra a evolução da posição real em comparação com o previsto. 8) Introduziu-se um velocímetro que exibe o percentual de cumprimento do orçamento. 9) Acrescentou-se um gráfico de colunas que destaca as naturezas cujo valor realizado ultrapassou as projeções previstas. 10) Implementou-se um botão de "Análise do Orçamento". 11) Para proporcionar uma análise mais aprofundada, criou-se um nível inferior acessado pelo botão "Análise de Orçamento", o qual apresenta, por meio de um componente de tabela, o detalhamento do "Orçamento Financeiro". Essa abordagem visa fornecer uma visão mais granular e elucidativa do desempenho orçamentário, contribuindo para uma tomada de decisão mais informada.
+```
 
 
+
+#### 1.6. 19/02/2024 08:30 as 11:30
+```markdown
+
+Satis - Dash Orçamento Financeiro - 12) Implementou-se uma correção no comando SELECT para evitar a recuperação inadvertida de chaves inválidas (VALORES COM '00'). 13) Foi adicionado um filtro ao comando SELECT, permitindo a exclusão do "Grupo de Produtos Bio" das operações de faturamento, quando apropriado. Este filtro oferece a flexibilidade de incluir ou excluir o referido grupo conforme necessário para análise. Caso não seja especificado, o sistema considerará todos os grupos de produtos no processo de faturamento.14) Introduziu-se uma nova coluna no comando SELECT para calcular o percentual do valor real em relação ao Faturamento Bruto. Essa adição proporciona uma análise mais abrangente dos dados, permitindo uma compreensão mais profunda da distribuição dos valores no contexto do faturamento geral.
+
+```
+
+
+#### 1.7. 19/02/2024 14:00 as 18:30
+```markdown
+
+Satis - Dash Orçamento Financeiro - 15) Desenvolveu-se uma adaptação no comando SELECT para apresentar, de forma consolidada, os dados referentes aos meses de janeiro a dezembro, exibindo as colunas correspondentes aos valores previstos, reais e a porcentagem de ICM (%). Essa implementação envolveu a aplicação de uma estrutura condicional "CASE WHEN", na qual, ao identificar o mês correspondente, é realizada uma quebra lógica para transição para o próximo mês. Essa abordagem proporciona uma visualização clara e organizada dos dados ao longo do ano, facilitando a análise comparativa entre as previsões, resultados reais e a contribuição percentual do ICM para cada mês.
+
+```
+
+#### 1.8. 20/02/2024 08:00 as 11:30
+```markdown
+
+Satis - Dash Orçamento Financeiro - 16) Foi realizada uma atualização na configuração de ordenação para o gráfico de velocímetro, invertendo a sequência de apresentação. 17) Foi implementada uma estrutura para filtrar por ano em todos os componentes, conforme o parâmetro Periodo.18) Realizou-se ajustes no gráfico de evolução previsto versus realizado para demonstrar o consolidado sintético.
+```
+
+#### 1.9. 20/02/2024 13:00 as 18:30
+```markdown
+
+Satis - Dash Orçamento Financeiro - 19) Foi estabelecido um nível para fornecer detalhes por natureza/cr/projeto conta na apresentação do planejamento financeiro. 20) Adicionalmente, foi implementada a criação de outro nível, acessível por meio de um duplo clique no nível anterior, apresentando informações detalhadas na visualização financeira correspondente à linha selecionada.
+```
+
+#### 1.10. 21/02/2024 08:00 as 11:30
+```markdown
+
+Satis - Dash Orçamento Financeiro - 21) 
+            Botão Gráfico de Evolução por Natureza
+                Apresenta um gráfico de linha de evolução da natureza selecionada para o ano fiscal filtrado
+            Botão Gráfico de Evolução do Orçamento
+                Apresenta um gráfico de linha de evolução do orçamento filtrado selecionada para o ano fiscal filtrado
+
+```
+
+
+
+#### 1.10. 21/02/2024 08:00 as 11:30
+```markdown
+
+        Botão Comparação do Orçamento
+            Apresenta o orçamento em tabela, da mesma forma que foi explicado no tópico anterior, porém agora teremos duas tabelas, uma na parte superior da tela e outra na parte inferior
+            A tabela superior apresenta o orçamento do período 1
+            A tabela inferior apresenta o orçamento do período 2
+	
+
+alterado de:
+AND ((:P_LINHABIO = 'S' AND PRO.CODGRUPOPROD <> 1020000) OR (:P_LINHABIO = 'N'))
+
+para: 
+AND (ORC.GRUPOPROD = PRO.CODGRUPOPROD OR ORC.GRUPOPROD IS NULL)
+AND (ORC.GRUPOPRODDIF = PRO.CODGRUPOPROD OR ORC.GRUPOPRODDIF IS NULL)
+	
+	
+	***
+	grafico de barra apresentar o previsto e descrição natureza
+	
+	
 ```
