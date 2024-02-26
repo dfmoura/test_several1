@@ -1,0 +1,569 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Boletim_Medicao_Detalhado" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.2100000000000006"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["\\\\192.168.0.51\\SankhyaW\\modelos\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="A_BM" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several1\\ireport\\0011_GestaoPesagens\\"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT * FROM
+(
+SELECT
+PES.AD_NUBM,
+PES.CODPESAV,
+PES.AD_TICKETBALANCA,
+PES.CODPROD || ' - ' || PRO.DESCRPROD AS DESCRPROD,
+PRO.COMPLDESC AS ESPECIFICACAO,
+'KG' AS UNIDADE,
+PES.AD_DTHRENTRADA,
+PES.AD_DTHRSAIDA,
+PES.AD_PESOENTRADA,
+PES.AD_PESOSAIDA,
+PES.AD_PESOENTRADA - AD_PESOSAIDA AS PESOLIQUIDO,
+NVL(PRE.VALOR / 1000,0) AS VALOR,
+NVL(PES.AD_PESOENTRADA - AD_PESOSAIDA,0) * NVL((PRE.VALOR / 1000),0) AS VALORTOT,
+PRE.REFERENCIA AS DTVIGORPRECO,
+PES.DHPEINIC AS DTMOV,
+PES.CODEMP || ' - ' || EMP.NOMEFANTASIA AS NOMEEMP,
+PES.AD_NUMCONTRATO,
+PES.CODPARC,
+PAR.NOMEPARC,
+PES.CODPARC || ' - ' || PAR.NOMEPARC||' ('||PAR.CGC_CPF||')' AS PARCEIRO,
+CID.NOMECID||'/'||UFS.UF AS ORIGEM,
+PES.OBSERVACAO,
+PES.AD_NUMOS,
+PES.AD_NUMMTR,
+NVL(PES.CODVEI || ' - ' || VEI.PLACA,0) AS PLACA,
+VEI.MARCAMODELO AS VEICULO,
+PES.CODMOTO || ' - ' || MOT.NOMEPARC AS MOTORISTA,
+BM.DTINI,BM.DTFIN
+FROM TGAPEA PES
+LEFT JOIN TCSCON CON ON CON.NUMCONTRATO = PES.AD_NUMCONTRATO
+LEFT JOIN TCSPRE PRE ON PRE.NUMCONTRATO = CON.NUMCONTRATO AND PRE.CODPROD = PES.CODPROD AND PRE.REFERENCIA = (SELECT MAX(P.REFERENCIA) FROM TCSPRE P WHERE P.CODPROD = PRE.CODPROD AND P.NUMCONTRATO = PRE.NUMCONTRATO AND REFERENCIA <= TRUNC(PES.AD_DTHRENTRADA) )
+INNER JOIN TGFPAR PAR ON PAR.CODPARC = PES.CODPARC
+INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
+INNER JOIN TSIUFS UFS ON CID.UF = UFS.CODUF
+INNER JOIN TSIEMP EMP ON EMP.CODEMP = PES.CODEMP
+INNER JOIN TGFVEI VEI ON VEI.CODVEICULO = PES.CODVEI
+LEFT JOIN TGFPAR MOT ON MOT.CODPARC = PES.CODMOTO
+LEFT JOIN TGFPRO PRO ON PRO.CODPROD = PES.CODPROD
+LEFT JOIN TGFPRO PROT ON PROT.CODPROD = PES.AD_CODPROD
+LEFT JOIN AD_BM BM ON PES.AD_NUBM = BM.NUBM
+WHERE
+PES.AD_NUBM = $P{A_BM}
+
+
+UNION ALL
+
+SELECT
+PES.AD_NUBM,
+PES.CODPESAV,
+PES.AD_TICKETBALANCA,
+PES.CODPROD || ' - ' || PRO.DESCRPROD AS DESCRPROD,
+PRO.COMPLDESC AS ESPECIFICACAO,
+'UN' AS UNIDADE,
+PES.AD_DTHRENTRADA,
+PES.AD_DTHRSAIDA,
+0 AS AD_PESOENTRADA,
+0 AS AD_PESOSAIDA,
+1 AS PESOLIQUIDO,
+NVL(PRE.VALOR,0) AS AD_VALOR,
+NVL(PRE.VALOR,0) AS VALORTOT,
+PRE.REFERENCIA AS DTVIGORPRECO,
+PES.DHPEINIC AS DTMOV,
+PES.CODEMP || ' - ' || EMP.NOMEFANTASIA AS NOMEEMP,
+PES.AD_NUMCONTRATO,
+PES.CODPARC,
+PAR.NOMEPARC,
+PES.CODPARC || ' - ' || PAR.NOMEPARC||' ('||PAR.CGC_CPF||')' AS PARCEIRO,
+CID.NOMECID||'/'||UFS.UF AS ORIGEM,
+PES.OBSERVACAO,
+PES.AD_NUMOS,
+PES.AD_NUMMTR,
+NVL(PES.CODVEI || ' - ' || VEI.PLACA,0) AS PLACA,
+VEI.MARCAMODELO AS VEICULO,
+PES.CODMOTO || ' - ' || MOT.NOMEPARC AS MOTORISTA,
+BM.DTINI,BM.DTFIN
+FROM TGAPEA PES
+LEFT JOIN TCSCON CON ON CON.NUMCONTRATO = PES.AD_NUMCONTRATO
+LEFT JOIN TCSPRE PRE ON PRE.NUMCONTRATO = CON.NUMCONTRATO AND PRE.CODPROD = PES.AD_CODPROD AND PRE.REFERENCIA = (SELECT MAX(P.REFERENCIA) FROM TCSPRE P WHERE P.CODPROD = PRE.CODPROD AND P.NUMCONTRATO = PRE.NUMCONTRATO AND REFERENCIA <= TRUNC(PES.AD_DTHRENTRADA) )
+INNER JOIN TGFPAR PAR ON PAR.CODPARC = PES.CODPARC
+INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
+INNER JOIN TSIUFS UFS ON CID.UF = UFS.CODUF
+INNER JOIN TSIEMP EMP ON EMP.CODEMP = PES.CODEMP
+INNER JOIN TGFVEI VEI ON VEI.CODVEICULO = PES.CODVEI
+LEFT JOIN TGFPAR MOT ON MOT.CODPARC = PES.CODMOTO
+LEFT JOIN TGFPRO PRO ON PRO.CODPROD = PES.AD_CODPROD
+LEFT JOIN TGFPRO PROT ON PROT.CODPROD = PES.AD_CODPROD
+LEFT JOIN AD_BM BM ON PES.AD_NUBM = BM.NUBM
+WHERE
+PES.AD_CODPROD IS NOT NULL
+AND PES.AD_NUBM = $P{A_BM}
+
+UNION ALL
+
+--RETORNA HORAS EXTRAS DO BM
+SELECT
+BM.NUBM AS AD_NUBM,
+0 AS CODPESAV,
+'0' AS AD_TICKETBALANCA,
+PRO.CODPROD || ' - ' || PRO.DESCRPROD AS DESCRPROD,
+NULL AS ESPECIFICACAO,
+'HR' AS UNIDADE,
+BM.DTINI AS AD_DTHRENTRADA,
+BM.DTFIN AS AD_DTHRSAIDA,
+0 AS AD_PESOENTRADA,
+0 AS AD_PESOSAIDA,
+NVL(BM.QTDHORAEXTRA,0) AS PESOLIQUIDO,
+NVL(PRE.VALOR,0) AS AD_VALOR,
+NVL(PRE.VALOR,0) * NVL(BM.QTDHORAEXTRA,0) AS VALORTOT,
+PRE.REFERENCIA AS DTVIGORPRECO,
+NULL AS DTMOV,
+EMP.CODEMP || ' - ' || EMP.NOMEFANTASIA AS NOMEEMP,
+CON.NUMCONTRATO AS AD_NUMCONTRATO,
+BM.CODPARC,
+PAR.NOMEPARC,
+BM.CODPARC || ' - ' || PAR.NOMEPARC||' ('||PAR.CGC_CPF||')' AS PARCEIRO,
+CID.NOMECID||'/'||UFS.UF AS ORIGEM,
+NULL AS OBSERVACAO,
+NULL AS AD_NUMOS,
+NULL AS AD_NUMMTR,
+NULL AS PLACA,
+NULL AS VEICULO,
+NULL AS MOTORISTA,
+BM.DTINI,BM.DTFIN
+
+FROM AD_BM BM
+LEFT JOIN TCSCON CON ON CON.NUMCONTRATO = BM.NUMCONTRATO
+LEFT JOIN TCSPRE PRE ON PRE.NUMCONTRATO = CON.NUMCONTRATO AND PRE.CODPROD = 80 AND PRE.REFERENCIA = (SELECT MAX(P.REFERENCIA) FROM TCSPRE P WHERE P.CODPROD = PRE.CODPROD AND P.NUMCONTRATO = PRE.NUMCONTRATO AND REFERENCIA <= TRUNC(BM.DTFIN) )
+LEFT JOIN TGFPRO PRO ON PRO.CODPROD = 80
+LEFT JOIN TSIEMP EMP ON EMP.CODEMP = CON.CODEMP
+LEFT JOIN TGFPAR PAR ON PAR.CODPARC = BM.CODPARC
+INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
+INNER JOIN TSIUFS UFS ON CID.UF = UFS.CODUF
+WHERE
+NVL(BM.QTDHORAEXTRA,0)  <>0
+AND BM.NUBM = $P{A_BM}
+
+) ORDER BY NOMEEMP, AD_NUMCONTRATO, CODPARC, AD_PESOENTRADA]]>
+	</queryString>
+	<field name="AD_NUBM" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[N° BM]]></fieldDescription>
+	</field>
+	<field name="CODPESAV" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Seq.]]></fieldDescription>
+	</field>
+	<field name="AD_TICKETBALANCA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Pesagem]]></fieldDescription>
+	</field>
+	<field name="DESCRPROD" class="java.lang.String">
+		<fieldDescription><![CDATA[Resíduo]]></fieldDescription>
+	</field>
+	<field name="ESPECIFICACAO" class="java.lang.String">
+		<fieldDescription><![CDATA[Especifícação]]></fieldDescription>
+	</field>
+	<field name="UNIDADE" class="java.lang.String">
+		<fieldDescription><![CDATA[Und]]></fieldDescription>
+	</field>
+	<field name="AD_PESOENTRADA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Peso Entrada]]></fieldDescription>
+	</field>
+	<field name="AD_PESOSAIDA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Peso Saída]]></fieldDescription>
+	</field>
+	<field name="PESOLIQUIDO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Peso Líq.]]></fieldDescription>
+	</field>
+	<field name="DTMOV" class="java.sql.Timestamp">
+		<fieldDescription><![CDATA[Data]]></fieldDescription>
+	</field>
+	<field name="AD_NUMCONTRATO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Número do contrato]]></fieldDescription>
+	</field>
+	<field name="PARCEIRO" class="java.lang.String">
+		<fieldDescription><![CDATA[Nome]]></fieldDescription>
+	</field>
+	<field name="DTINI" class="java.sql.Timestamp">
+		<fieldDescription><![CDATA[Dt. Ini.]]></fieldDescription>
+	</field>
+	<field name="DTFIN" class="java.sql.Timestamp">
+		<fieldDescription><![CDATA[Dt. Fim]]></fieldDescription>
+	</field>
+	<field name="ORIGEM" class="java.lang.String">
+		<fieldDescription><![CDATA[Origem]]></fieldDescription>
+	</field>
+	<field name="AD_NUMOS" class="java.lang.String">
+		<fieldDescription><![CDATA[OS]]></fieldDescription>
+	</field>
+	<field name="AD_NUMMTR" class="java.lang.String">
+		<fieldDescription><![CDATA[Mtr]]></fieldDescription>
+	</field>
+	<field name="PLACA" class="java.lang.String">
+		<fieldDescription><![CDATA[Placa]]></fieldDescription>
+	</field>
+	<field name="VEICULO" class="java.lang.String">
+		<fieldDescription><![CDATA[Veículo]]></fieldDescription>
+	</field>
+	<variable name="PESOLIQ" class="java.math.BigDecimal" resetType="Group" resetGroup="NUBM" calculation="Sum">
+		<variableExpression><![CDATA[$F{PESOLIQUIDO}]]></variableExpression>
+	</variable>
+	<group name="NUBM">
+		<groupExpression><![CDATA[$F{AD_NUBM}]]></groupExpression>
+		<groupHeader>
+			<band height="124">
+				<rectangle>
+					<reportElement x="0" y="0" width="555" height="20" backcolor="#696969"/>
+					<graphicElement>
+						<pen lineColor="#FFFFFF"/>
+					</graphicElement>
+				</rectangle>
+				<rectangle>
+					<reportElement x="0" y="53" width="555" height="15" backcolor="#E3E3E3"/>
+					<graphicElement>
+						<pen lineColor="#FFFFFF"/>
+					</graphicElement>
+				</rectangle>
+				<rectangle>
+					<reportElement x="0" y="104" width="555" height="20" backcolor="#696969"/>
+					<graphicElement>
+						<pen lineColor="#FFFFFF"/>
+					</graphicElement>
+				</rectangle>
+				<staticText>
+					<reportElement x="0" y="104" width="42" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Seq.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="42" y="104" width="42" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Pesagem]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="180" y="104" width="59" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Placa]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="33" y="21" width="369" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{PARCEIRO}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="0" y="21" width="33" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Nome:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="0" y="53" width="60" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Origem:]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="62" y="53" width="340" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{ORIGEM}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="62" y="69" width="493" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRPROD}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="0" y="69" width="60" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Resíduo:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="0" y="85" width="60" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Especificação:]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="62" y="85" width="340" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{ESPECIFICACAO}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="84" y="104" width="60" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Data]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="144" y="104" width="36" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[OS]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="239" y="104" width="72" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Veículo]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="310" y="104" width="58" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Peso Entr.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="367" y="104" width="61" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Peso Saída]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="427" y="104" width="59" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Peso Líq.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="485" y="104" width="22" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Und]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="506" y="104" width="45" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Mtr]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="0" y="0" width="555" height="20" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="10" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Cliente]]></text>
+				</staticText>
+				<textField pattern="dd/MM/yyyy">
+					<reportElement x="33" y="37" width="46" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTINI}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="78" y="37" width="22" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[ATÉ]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="0" y="37" width="32" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[REF.:]]></text>
+				</staticText>
+				<textField pattern="dd/MM/yyyy">
+					<reportElement x="100" y="37" width="65" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTFIN}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="16">
+				<line>
+					<reportElement x="0" y="0" width="555" height="1"/>
+					<graphicElement>
+						<pen lineWidth="0.5"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="366" y="0" width="61" height="15"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Total:]]></text>
+				</staticText>
+				<textField pattern="#,##0.00">
+					<reportElement x="427" y="1" width="58" height="14"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{PESOLIQ}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="36" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="555" height="35"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="20" isBold="true"/>
+				</textElement>
+				<text><![CDATA[BOLETIM DE MEDIÇÃO - DETALHADO]]></text>
+			</staticText>
+			<image onErrorType="Blank">
+				<reportElement x="0" y="0" width="79" height="36"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "//logo-sk.gif"]]></imageExpression>
+			</image>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="506" y="0" width="49" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="506" y="10" width="30" height="22"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[BM N°]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="536" y="10" width="19" height="22"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{AD_NUBM}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="2" splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="42" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPESAV}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="42" y="0" width="42" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{AD_TICKETBALANCA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="180" y="0" width="59" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PLACA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="84" y="0" width="60" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTMOV}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="144" y="0" width="36" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_NUMOS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="239" y="0" width="72" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{VEICULO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="310" y="0" width="58" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{AD_PESOENTRADA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="367" y="0" width="61" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{AD_PESOSAIDA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="427" y="0" width="59" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PESOLIQUIDO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="485" y="0" width="22" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{UNIDADE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="506" y="0" width="45" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_NUMMTR}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="16" splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="13" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="12" splitType="Stretch"/>
+	</summary>
+</jasperReport>
