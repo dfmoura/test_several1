@@ -105,35 +105,29 @@ Satis - Dash Orçamento Financeiro - 19) Foi estabelecido um nível para fornece
 #### 1.10. 21/02/2024 08:00 as 11:30
 ```markdown
 
-Satis - Dash Orçamento Financeiro - 21) 
-            Botão Gráfico de Evolução por Natureza
-                Apresenta um gráfico de linha de evolução da natureza selecionada para o ano fiscal filtrado
-            Botão Gráfico de Evolução do Orçamento
-                Apresenta um gráfico de linha de evolução do orçamento filtrado selecionada para o ano fiscal filtrado
+Satis - Dash Orçamento Financeiro - 21) Foi desenvolvido um botão para acessar o Gráfico de Evolução por Natureza a partir do nível que oferece detalhamento específico sobre a natureza em questão. 22) Em seguida, foi implementado um gráfico de linha de evolução da natureza selecionada em um nível hierárquico inferior, permitindo uma análise mais detalhada para o ano fiscal filtrado. 23) Adicionalmente, foi integrado ao painel principal um botão para visualização do Gráfico de Evolução geral do Orçamento. 24) Prosseguindo, foi criado um gráfico de linha de evolução geral do orçamento, também em um nível inferior, possibilitando uma análise detalhada para o ano fiscal filtrado.
 
 ```
 
-
-
-#### 1.10. 21/02/2024 08:00 as 11:30
+#### 1.11. 21/02/2024 13:00 as 18:30
 ```markdown
+Satis - Dash Orçamento Financeiro - 25) Foi implementado um botão para a Comparação do Orçamento no painel principal do sistema, oferecendo uma funcionalidade adicional de análise financeira. 26) Ao acessar o nível inferior através do botão de Comparação do Orçamento no painel principal, uma nova tela é apresentada, composta por dois componentes de tabela. Estes componentes foram projetados para exibir a demonstração do orçamento financeiro, adaptando-se dinamicamente às seleções de período realizadas no painel. O primeiro componente de tabela é atualizado de acordo com o primeiro período selecionado, enquanto o segundo componente reflete as informações do segundo período escolhido. Dessa forma, são apresentadas duas tabelas lado a lado: uma na parte superior da tela, exibindo o orçamento do primeiro período, e outra na parte inferior, mostrando o orçamento do segundo período. 27) No âmbito da estrutura do orçamento financeiro, foi introduzida uma atualização que adiciona a opção de aplicação ao faturamento para a quebra por grupo de produto. Essa modificação permitiu uma visualização diferenciada dos produtos da linha bio em comparação com os produtos de fabricação própria. Essa distinção é configurada por meio da seguinte condição: 'AND (ORC.GRUPOPROD = PRO.CODGRUPOPROD OR ORC.GRUPOPROD IS NULL) AND (ORC.GRUPOPRODDIF = PRO.CODGRUPOPROD OR ORC.GRUPOPRODDIF IS NULL)', onde a igualdade ou diferença do código da estrutura determina a apresentação ou não dos dados.
 
-        Botão Comparação do Orçamento
-            Apresenta o orçamento em tabela, da mesma forma que foi explicado no tópico anterior, porém agora teremos duas tabelas, uma na parte superior da tela e outra na parte inferior
-            A tabela superior apresenta o orçamento do período 1
-            A tabela inferior apresenta o orçamento do período 2
-	
 
-alterado de:
-AND ((:P_LINHABIO = 'S' AND PRO.CODGRUPOPROD <> 1020000) OR (:P_LINHABIO = 'N'))
-
-para: 
-AND (ORC.GRUPOPROD = PRO.CODGRUPOPROD OR ORC.GRUPOPROD IS NULL)
-AND (ORC.GRUPOPRODDIF = PRO.CODGRUPOPROD OR ORC.GRUPOPRODDIF IS NULL)
-	
-	
-	***
-	grafico de barra apresentar o previsto e descrição natureza
-	
-	
 ```
+
+
+#### 1.12. 22/02/2024 15:00 as 16:00
+```markdown
+Satis - Dash Orçamento Financeiro - Reunião de apresentação de estrutura de orçamento financeiro e dash de orçamento financeiro.
+
+```
+
+
+#### 1.12. 22/02/2024 16:30 as 18:40
+```markdown
+Satis - Dash Orçamento Financeiro - 1) Foram realizados ajustes nos títulos dos componentes das tabelas comparativas de orçamento, no título do gráfico de natureza no painel principal e no título do gráfico de evolução geral do orçamento. Além disso, foi feito um ajuste no select do valor previsto e real para o gráfico no painel principal "Naturezas cujo valor real ultrapassou o valor previsto" e as barras do gráfico foram ordenadas em ordem decrescente de acordo com o valor real.
+
+```
+
+

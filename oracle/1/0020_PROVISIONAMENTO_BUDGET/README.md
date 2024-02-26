@@ -25,10 +25,17 @@ O objetivo é criar uma rotina personalizada que identifique o valor de despesa 
 
 ### 1. Log's Execução
 
-#### 1.1. 12/02/2024 13:00 as 18:30
+#### 1.1. 22/02/2024 08:00 as 11:30
 ```markdown
 
-Satis - Controle de Acesso - Foram implantadas medidas de controle de acesso para as seguintes ferramentas comerciais: - Dash Comparativo Metas Comerciais - Relatório Orçado x Realizado (Metas) - Dash Análise de Metas Comerciais O mecanismo de controle de acesso segue uma hierarquia definida da seguinte forma: 1) Acesso Completo: Os usuários marcados como 'Gestor de Meta' = 'S' (ativado) na guia geral do cadastro de usuários possuem acesso completo às funcionalidades das ferramentas.   
-2) Acesso de Gerente: Os usuários gerentes têm permissão para visualizar a movimentação com base nos vendedores que estão sob sua gestão. 3) Acesso de Vendedor: Os usuários vendedores têm acesso restrito e podem visualizar apenas sua própria movimentação. É importante ressaltar que é necessário que tanto os vendedores quanto os gerentes estejam devidamente vinculados ao cadastro de usuários para garantir o correto funcionamento dessas medidas de controle de acesso.
+Satis - Provisionamento Financeiro - 1)Foi desenvolvido um comando SELECT base que, com base nos valores registrados nas despesas e comparando-os com o orçamento estabelecido, determina o montante a ser provisionado. Este comando considera as seguintes condições: a) Se o valor real das despesas for maior que o valor previsto, o montante a ser provisionado será zero. b) Se o mês de competência for anterior ao mês atual, o montante a ser provisionado será zero. c) Caso nenhuma das condições anteriores seja satisfeita, o montante a ser provisionado será a diferença entre o valor previsto e o valor real das despesas. Este SELECT base foi elaborado para otimizar o processo de provisionamento financeiro, garantindo uma alocação precisa dos recursos de acordo com a performance das despesas em relação ao orçamento.
 
 ```
+
+#### 1.1. 22/02/2024 13:00 as 15:00
+```markdown
+
+Satis - Provisionamento Financeiro - 2) Prosseguindo, iniciou-se a elaboração das tabelas que serão preenchidas a partir do SELECT anteriormente desenvolvido, utilizando uma rotina que será implementada posteriormente. Este conjunto de tabelas tem como objetivo armazenar de forma estruturada as informações derivadas da análise comparativa entre as despesas reais e orçamentárias.
+
+```
+
