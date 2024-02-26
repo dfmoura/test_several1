@@ -130,4 +130,14 @@ Satis - Dash Orçamento Financeiro - 1) Foram realizados ajustes nos títulos do
 
 ```
 
+#### 1.12. 23/02/2024 08:00 as 11:30
+```markdown
+Satis - Dash Orçamento Financeiro - 1) Realizou-se ajuste no select do componente de tabela do orçamento financeiro acessado pelo botao Analise do Orçamento no Dash Principal, campos do valor previsto que estavam trazendo valores nulos mesmo existindo informações e alguns valores reais não estavam de acordo. Feito estas correções replicamos o select para o nivel de comparação em ambos os compontentes de tabela.
 
+```
+
+#### 1.12. 23/02/2024 14:00 as 18:30
+```markdown
+Satis - Dash Orçamento Financeiro - 1) Realizou-se ajuste no select do componente de atingimento da meta no dash principal, o mesmo reflete a o consolidade do grafico ao lado de previsto versus realizado, ajustamos alguns valores indevidos que o select estava trazendo, e deixamos o select no mesmo padrão dos demais componentes do dashboard.
+
+```

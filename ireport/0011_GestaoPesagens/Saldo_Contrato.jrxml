@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Saldo_Contrato" pageWidth="555" pageHeight="802" columnWidth="535" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
-	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.zoom" value="1.4641000000000006"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<parameter name="P_CONTRATO" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_DATA" class="java.sql.Timestamp">
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
 	</parameter>
 	<queryString>
@@ -13,8 +16,9 @@ TCSCON CON
 INNER JOIN TCSPSC PSC ON PSC.NUMCONTRATO = CON.NUMCONTRATO
 LEFT JOIN AD_SALDOPRODCON VGF ON CON.NUMCONTRATO = VGF.NUMCONTRATO AND PSC.CODPROD = VGF.CODPROD
 WHERE VGF.NUMCONTRATO = $P{P_CONTRATO}
-AND VGF.DATA <= (SELECT MAX(VGF.DATA) FROM AD_SALDOPRODCON VGF WHERE VGF.NUMCONTRATO = $P{P_CONTRATO})
-GROUP BY VGF.CODPROD, VGF.DESCRPROD, PSC.QTDEPREVISTA]]>
+AND VGF.DATA <= TRUNC($P{P_DATA})
+GROUP BY VGF.CODPROD, VGF.DESCRPROD, PSC.QTDEPREVISTA
+ORDER BY 1]]>
 	</queryString>
 	<field name="CODPROD" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Cód. Produto]]></fieldDescription>
@@ -22,7 +26,7 @@ GROUP BY VGF.CODPROD, VGF.DESCRPROD, PSC.QTDEPREVISTA]]>
 	<field name="DESCRPROD" class="java.lang.String">
 		<fieldDescription><![CDATA[Descrição]]></fieldDescription>
 	</field>
-	<field name="QTDPREVISTA" class="java.lang.String">
+	<field name="QTDEPREVISTA" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Qtd. Prevista]]></fieldDescription>
 	</field>
 	<field name="QTDCONSUMIDA" class="java.math.BigDecimal">
@@ -32,59 +36,92 @@ GROUP BY VGF.CODPROD, VGF.DESCRPROD, PSC.QTDEPREVISTA]]>
 		<fieldDescription><![CDATA[Saldo]]></fieldDescription>
 	</field>
 	<columnHeader>
-		<band height="20" splitType="Stretch">
+		<band height="29" splitType="Stretch">
 			<staticText>
-				<reportElement x="0" y="0" width="64" height="20"/>
-				<textElement verticalAlignment="Middle"/>
-				<text><![CDATA[Cód. Produto]]></text>
+				<reportElement x="0" y="14" width="35" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="64" y="0" width="111" height="20"/>
-				<textElement verticalAlignment="Middle"/>
+				<reportElement x="35" y="14" width="97" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
 				<text><![CDATA[Descrição]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="175" y="0" width="64" height="20"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<reportElement x="132" y="14" width="40" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
 				<text><![CDATA[Qtd. Prevista]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="239" y="0" width="77" height="20"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle"/>
-				<text><![CDATA[Qtd. Consumida]]></text>
+				<reportElement x="172" y="14" width="47" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Qtd. Consum]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="316" y="0" width="70" height="20"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<reportElement x="219" y="14" width="46" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
 				<text><![CDATA[Saldo]]></text>
 			</staticText>
+			<staticText>
+				<reportElement x="0" y="0" width="132" height="12"/>
+				<textElement>
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ACOMPANHAMENTO DE SALDO]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="0" width="265" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Solid"/>
+				</graphicElement>
+			</line>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="20" splitType="Stretch">
+		<band height="15" splitType="Stretch">
 			<textField>
-				<reportElement x="0" y="0" width="64" height="20"/>
-				<textElement verticalAlignment="Middle"/>
+				<reportElement x="0" y="0" width="35" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPROD}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="64" y="0" width="111" height="20"/>
-				<textElement verticalAlignment="Middle"/>
+				<reportElement x="35" y="0" width="97" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRPROD}]]></textFieldExpression>
 			</textField>
-			<textField>
-				<reportElement x="175" y="0" width="64" height="20"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle"/>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{QTDPREVISTA}]]></textFieldExpression>
+			<textField pattern="#,##0.00">
+				<reportElement x="132" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDEPREVISTA}]]></textFieldExpression>
 			</textField>
-			<textField>
-				<reportElement x="239" y="0" width="77" height="20"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+			<textField pattern="#,##0.00">
+				<reportElement x="172" y="0" width="47" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDCONSUMIDA}]]></textFieldExpression>
 			</textField>
-			<textField>
-				<reportElement x="316" y="0" width="70" height="20"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+			<textField pattern="#,##0.00">
+				<reportElement x="219" y="0" width="46" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{SALDO}]]></textFieldExpression>
 			</textField>
 		</band>

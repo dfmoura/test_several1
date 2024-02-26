@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Boletim_Medicao" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
-	<property name="ireport.zoom" value="1.464100000000001"/>
+	<property name="ireport.zoom" value="1.2100000000000006"/>
 	<property name="ireport.x" value="0"/>
-	<property name="ireport.y" value="86"/>
+	<property name="ireport.y" value="48"/>
 	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
 		<defaultValueExpression><![CDATA["\\\\192.168.0.51\\SankhyaW\\modelos\\"]]></defaultValueExpression>
 	</parameter>
 	<parameter name="A_BM" class="java.math.BigDecimal"/>
+	<parameter name="P_CONTRATO" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_DATA" class="java.sql.Timestamp">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several1\\ireport\\0011_GestaoPesagens\\"]]></defaultValueExpression>
+	</parameter>
 	<queryString>
 		<![CDATA[SELECT A.*,
 CASE WHEN CODPROD NOT IN (43,80) THEN NVL(VALORTOT,0) ELSE 0 END AS PROD,
@@ -16,6 +25,7 @@ CASE WHEN CODPROD=80 THEN NVL(VALORTOT,0) ELSE 0 END AS HORAEX
 FROM
 (
 SELECT
+BM.NUMCONTRATO,
 BM.CODPARC||' - '||PAR.NOMEPARC||' ('||PAR.CGC_CPF||')' AS NOMEPARC,
 CID.NOMECID||'/'||UFS.UF AS ORIGEM,
 BM.DTINI,BM.DTFIN,
@@ -39,6 +49,7 @@ WHERE
 BM.NUBM = $P{A_BM}
 
 GROUP BY
+BM.NUMCONTRATO,
 BM.CODPARC||' - '||PAR.NOMEPARC||' ('||PAR.CGC_CPF||')',
 CID.NOMECID||'/'||UFS.UF,
 BM.DTINI,BM.DTFIN,
@@ -50,6 +61,7 @@ NVL(PRE.VALOR,0)
 UNION ALL
 
 SELECT
+BM.NUMCONTRATO,
 BM.CODPARC||' - '||PAR.NOMEPARC||' ('||PAR.CGC_CPF||')' AS NOMEPARC,
 CID.NOMECID||'/'||UFS.UF AS ORIGEM,
 BM.DTINI,BM.DTFIN,
@@ -73,6 +85,7 @@ WHERE
 PES.AD_CODPROD IS NOT NULL
 AND BM.NUBM = $P{A_BM}
 GROUP BY
+BM.NUMCONTRATO,
 BM.CODPARC||' - '||PAR.NOMEPARC||' ('||PAR.CGC_CPF||')',
 CID.NOMECID||'/'||UFS.UF,
 BM.DTINI,BM.DTFIN,
@@ -85,6 +98,7 @@ UNION ALL
 
 --RETORNA HORAS EXTRAS DO BM
 SELECT
+BM.NUMCONTRATO,
 BM.CODPARC||' - '||PAR.NOMEPARC||' ('||PAR.CGC_CPF||')' AS NOMEPARC,
 CID.NOMECID||'/'||UFS.UF AS ORIGEM,
 BM.DTINI,BM.DTFIN,
@@ -109,6 +123,9 @@ AND BM.NUBM = $P{A_BM}
 
 ORDER BY CODPROD]]>
 	</queryString>
+	<field name="NUMCONTRATO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[NUMCONTRATO]]></fieldDescription>
+	</field>
 	<field name="NUBM" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[NUBM]]></fieldDescription>
 	</field>
@@ -158,10 +175,10 @@ ORDER BY CODPROD]]>
 		<variableExpression><![CDATA[$F{VALORTOT}]]></variableExpression>
 	</variable>
 	<variable name="VLRTOT_1" class="java.math.BigDecimal" resetType="Group" resetGroup="NUBM" calculation="Sum">
-		<variableExpression><![CDATA[$F{TRANSP} + $F{HORAEX}]]></variableExpression>
+		<variableExpression><![CDATA[$F{TRANSP}.add($F{HORAEX})]]></variableExpression>
 	</variable>
 	<variable name="VLRTOT_2" class="java.math.BigDecimal" resetType="Group" resetGroup="NUBM" calculation="Sum">
-		<variableExpression><![CDATA[$F{TRANSP} + $F{HORAEX} + $F{VALORTOT}]]></variableExpression>
+		<variableExpression><![CDATA[$F{TRANSP}.add($F{HORAEX}).add($F{VALORTOT})]]></variableExpression>
 	</variable>
 	<variable name="VLRTOT_3" class="java.math.BigDecimal" resetType="Group" resetGroup="NUBM" calculation="Sum">
 		<variableExpression><![CDATA[$F{PROD}]]></variableExpression>
@@ -303,7 +320,7 @@ ORDER BY CODPROD]]>
 			</band>
 		</groupHeader>
 		<groupFooter>
-			<band height="114">
+			<band height="208">
 				<line>
 					<reportElement x="0" y="0" width="555" height="1"/>
 					<graphicElement>
@@ -325,54 +342,65 @@ ORDER BY CODPROD]]>
 					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLRTOT}]]></textFieldExpression>
 				</textField>
 				<staticText>
-					<reportElement mode="Opaque" x="0" y="46" width="555" height="15" forecolor="#000000" backcolor="#E3E3E3"/>
+					<reportElement mode="Opaque" x="0" y="24" width="555" height="15" forecolor="#000000" backcolor="#E3E3E3"/>
 					<textElement verticalAlignment="Middle">
 						<font size="8" isBold="true"/>
 					</textElement>
 					<text><![CDATA[Resumo Financeiro]]></text>
 				</staticText>
 				<staticText>
-					<reportElement x="2" y="61" width="207" height="15"/>
+					<reportElement x="2" y="39" width="207" height="15"/>
 					<textElement verticalAlignment="Middle">
 						<font size="8" isBold="false"/>
 					</textElement>
 					<text><![CDATA[Custo Total de Destinação:]]></text>
 				</staticText>
 				<staticText>
-					<reportElement x="2" y="76" width="207" height="15"/>
+					<reportElement x="2" y="54" width="207" height="15"/>
 					<textElement verticalAlignment="Middle">
 						<font size="8" isBold="false"/>
 					</textElement>
 					<text><![CDATA[Custo Total de Coleta/Fornecimento de Caixa:]]></text>
 				</staticText>
 				<staticText>
-					<reportElement x="2" y="91" width="53" height="15"/>
+					<reportElement x="2" y="69" width="53" height="15"/>
 					<textElement verticalAlignment="Middle">
 						<font size="8" isBold="true"/>
 					</textElement>
 					<text><![CDATA[Total Geral:]]></text>
 				</staticText>
 				<textField pattern="#,##0.00">
-					<reportElement x="209" y="76" width="59" height="15"/>
+					<reportElement x="209" y="54" width="59" height="15"/>
 					<textElement textAlignment="Center" verticalAlignment="Middle">
 						<font size="8" isUnderline="true"/>
 					</textElement>
 					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLRTOT_1}]]></textFieldExpression>
 				</textField>
 				<textField pattern="#,##0.00">
-					<reportElement x="209" y="91" width="59" height="15"/>
+					<reportElement x="209" y="69" width="59" height="15"/>
 					<textElement textAlignment="Center" verticalAlignment="Middle">
 						<font size="8" isBold="true"/>
 					</textElement>
 					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLRTOT}]]></textFieldExpression>
 				</textField>
 				<textField pattern="#,##0.00">
-					<reportElement x="209" y="61" width="59" height="15"/>
+					<reportElement x="209" y="39" width="59" height="15"/>
 					<textElement textAlignment="Center" verticalAlignment="Middle">
 						<font size="8" isUnderline="true"/>
 					</textElement>
 					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLRTOT_3}]]></textFieldExpression>
 				</textField>
+				<subreport>
+					<reportElement key="Saldo_Contrato" x="0" y="101" width="555" height="107"/>
+					<subreportParameter name="P_CONTRATO">
+						<subreportParameterExpression><![CDATA[$F{NUMCONTRATO}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="P_DATA">
+						<subreportParameterExpression><![CDATA[$F{DTFIN}]]></subreportParameterExpression>
+					</subreportParameter>
+					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Saldo_Contrato.jasper"]]></subreportExpression>
+				</subreport>
 			</band>
 		</groupFooter>
 	</group>

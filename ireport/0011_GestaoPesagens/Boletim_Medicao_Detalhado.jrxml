@@ -12,6 +12,12 @@
 	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
 		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several1\\ireport\\0011_GestaoPesagens\\"]]></defaultValueExpression>
 	</parameter>
+	<parameter name="P_CONTRATO" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_DATA" class="java.sql.Timestamp">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
 	<queryString>
 		<![CDATA[SELECT * FROM
 (
@@ -388,14 +394,14 @@ AND BM.NUBM = $P{A_BM}
 					<textElement verticalAlignment="Middle">
 						<font size="8" isBold="true"/>
 					</textElement>
-					<text><![CDATA[ATÉ]]></text>
+					<text><![CDATA[Até]]></text>
 				</staticText>
 				<staticText>
 					<reportElement x="0" y="37" width="32" height="15"/>
 					<textElement verticalAlignment="Middle">
 						<font size="8" isBold="true"/>
 					</textElement>
-					<text><![CDATA[REF.:]]></text>
+					<text><![CDATA[Ref.:]]></text>
 				</staticText>
 				<textField pattern="dd/MM/yyyy">
 					<reportElement x="100" y="37" width="65" height="15"/>
@@ -407,7 +413,7 @@ AND BM.NUBM = $P{A_BM}
 			</band>
 		</groupHeader>
 		<groupFooter>
-			<band height="16">
+			<band height="106">
 				<line>
 					<reportElement x="0" y="0" width="555" height="1"/>
 					<graphicElement>
@@ -428,6 +434,17 @@ AND BM.NUBM = $P{A_BM}
 					</textElement>
 					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{PESOLIQ}]]></textFieldExpression>
 				</textField>
+				<subreport>
+					<reportElement key="Saldo_Contrato" x="0" y="35" width="555" height="71"/>
+					<subreportParameter name="P_CONTRATO">
+						<subreportParameterExpression><![CDATA[$F{AD_NUMCONTRATO}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="P_DATA">
+						<subreportParameterExpression><![CDATA[$F{DTFIN}]]></subreportParameterExpression>
+					</subreportParameter>
+					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Saldo_Contrato.jasper"]]></subreportExpression>
+				</subreport>
 			</band>
 		</groupFooter>
 	</group>
@@ -451,14 +468,14 @@ AND BM.NUBM = $P{A_BM}
 				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "//logo-sk.gif"]]></imageExpression>
 			</image>
 			<textField pattern="dd/MM/yyyy">
-				<reportElement x="506" y="0" width="49" height="10"/>
+				<reportElement x="504" y="0" width="51" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="506" y="10" width="30" height="22"/>
+				<reportElement x="504" y="10" width="32" height="22"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="10" isBold="true"/>
 				</textElement>
