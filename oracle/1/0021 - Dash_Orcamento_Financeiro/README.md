@@ -132,12 +132,12 @@ Satis - Dash Orçamento Financeiro - 1) Foram realizados ajustes nos títulos do
 
 #### 1.12. 23/02/2024 08:00 as 11:30
 ```markdown
-Satis - Dash Orçamento Financeiro - 1) Realizou-se ajuste no select do componente de tabela do orçamento financeiro acessado pelo botao Analise do Orçamento no Dash Principal, campos do valor previsto que estavam trazendo valores nulos mesmo existindo informações e alguns valores reais não estavam de acordo. Feito estas correções replicamos o select para o nivel de comparação em ambos os compontentes de tabela.
+Satis - Dash Orçamento Financeiro - 2) Realizou-se uma otimização no comando SELECT do componente de tabela do módulo de orçamento financeiro, acessado por meio do botão "Análise do Orçamento" na interface principal do Dash. Identificou-se que determinados campos de valores previstos estavam retornando valores nulos, apesar de haver informações disponíveis, enquanto alguns valores reais não estavam refletindo com precisão os dados originais. Após efetuar as devidas correções, procedeu-se com a replicação do comando SELECT para o nível de comparação em ambos os componentes de tabela, assegurando consistência e integridade nos resultados apresentados.
 
 ```
 
 #### 1.12. 23/02/2024 14:00 as 18:30
 ```markdown
-Satis - Dash Orçamento Financeiro - 1) Realizou-se ajuste no select do componente de atingimento da meta no dash principal, o mesmo reflete a o consolidade do grafico ao lado de previsto versus realizado, ajustamos alguns valores indevidos que o select estava trazendo, e deixamos o select no mesmo padrão dos demais componentes do dashboard.
+Satis - Dash Orçamento Financeiro - 3)Realizou-se um ajuste no comando SELECT do componente de acompanhamento do atingimento da meta no painel principal do Dash. Este componente reflete a consolidação do gráfico que compara os valores previstos versus realizados. Durante a análise, foram identificados alguns valores incorretos que estavam sendo retornados pelo comando SELECT. Além disso, foi padronizado o formato do comando SELECT deste componente, alinhando-o aos demais componentes presentes no painel. Essas melhorias visam garantir a consistência e a precisão dos dados apresentados, proporcionando uma experiência mais confiável aos usuários do sistema.
 
 ```
