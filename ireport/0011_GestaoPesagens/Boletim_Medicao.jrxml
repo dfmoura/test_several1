@@ -7,15 +7,6 @@
 		<defaultValueExpression><![CDATA["\\\\192.168.0.51\\SankhyaW\\modelos\\"]]></defaultValueExpression>
 	</parameter>
 	<parameter name="A_BM" class="java.math.BigDecimal"/>
-	<parameter name="P_CONTRATO" class="java.math.BigDecimal">
-		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
-	</parameter>
-	<parameter name="P_DATA" class="java.sql.Timestamp">
-		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
-	</parameter>
-	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
-		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several1\\ireport\\0011_GestaoPesagens\\"]]></defaultValueExpression>
-	</parameter>
 	<queryString>
 		<![CDATA[SELECT A.*,
 CASE WHEN CODPROD NOT IN (43,80) THEN NVL(VALORTOT,0) ELSE 0 END AS PROD,
@@ -390,17 +381,6 @@ ORDER BY CODPROD]]>
 					</textElement>
 					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLRTOT_3}]]></textFieldExpression>
 				</textField>
-				<subreport>
-					<reportElement key="Saldo_Contrato" x="0" y="101" width="555" height="107"/>
-					<subreportParameter name="P_CONTRATO">
-						<subreportParameterExpression><![CDATA[$F{NUMCONTRATO}]]></subreportParameterExpression>
-					</subreportParameter>
-					<subreportParameter name="P_DATA">
-						<subreportParameterExpression><![CDATA[$F{DTFIN}]]></subreportParameterExpression>
-					</subreportParameter>
-					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
-					<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Saldo_Contrato.jasper"]]></subreportExpression>
-				</subreport>
 			</band>
 		</groupFooter>
 	</group>
