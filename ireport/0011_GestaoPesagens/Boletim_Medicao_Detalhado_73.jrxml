@@ -6,8 +6,45 @@
 	<parameter name="A_BM" class="java.math.BigDecimal">
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
 	</parameter>
+	<parameter name="P_DATA" class="java.sql.Timestamp">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CONTRATO" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
 	<queryString>
-		<![CDATA[SELECT * FROM
+		<![CDATA[WITH SAL AS
+(
+SELECT
+    NUMCONTRATO,
+    MAX(SALDO) AS SALDO_FINAL
+FROM (
+    SELECT
+        PSC.NUMCONTRATO,
+        VGF.DATA,
+        VGF.CODPROD,
+        VGF.DESCRPROD,
+        NVL(PSC.QTDEPREVISTA,0) AS QTDEPREVISTA,
+        SUM(CASE WHEN VGF.QTD < 0 THEN VGF.QTD ELSE 0 END) AS QTDCONSUMIDA,
+        SUM(VGF.QTD) AS SALDO
+    FROM
+        TCSCON CON
+    INNER JOIN TCSPSC PSC ON PSC.NUMCONTRATO = CON.NUMCONTRATO
+    LEFT JOIN AD_SALDOPRODCON VGF ON CON.NUMCONTRATO = VGF.NUMCONTRATO AND PSC.CODPROD = VGF.CODPROD
+    WHERE VGF.NUMCONTRATO = $P{P_CONTRATO}
+    AND VGF.DATA <= TRUNC($P{P_DATA})
+    GROUP BY
+        PSC.NUMCONTRATO,
+        VGF.DATA,
+        VGF.CODPROD,
+        VGF.DESCRPROD,
+        PSC.QTDEPREVISTA
+) A
+GROUP BY NUMCONTRATO
+)
+
+
+SELECT BAS.*,SAL.SALDO_FINAL FROM
 (
 SELECT
 PES.AD_NUBM,
@@ -50,8 +87,8 @@ LEFT JOIN TGFPAR MOT ON MOT.CODPARC = PES.CODMOTO
 LEFT JOIN TGFPRO PRO ON PRO.CODPROD = PES.CODPROD
 LEFT JOIN TGFPRO PROT ON PROT.CODPROD = PES.AD_CODPROD
 LEFT JOIN AD_BM BM ON PES.AD_NUBM = BM.NUBM
-WHERE
-PES.AD_NUBM = $P{A_BM}
+--WHERE
+--PES.AD_NUBM = $P{A_BM}
 
 
 UNION ALL
@@ -146,7 +183,10 @@ WHERE
 NVL(BM.QTDHORAEXTRA,0)  <>0
 AND BM.NUBM = $P{A_BM}
 
-) ORDER BY NOMEEMP, AD_NUMCONTRATO, CODPARC, AD_PESOENTRADA]]>
+)BAS
+LEFT JOIN SAL ON BAS.AD_NUMCONTRATO = SAL.NUMCONTRATO
+
+ORDER BY NOMEEMP, AD_NUMCONTRATO, CODPARC, AD_PESOENTRADA]]>
 	</queryString>
 	<field name="AD_NUBM" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[N° BM]]></fieldDescription>
@@ -206,6 +246,9 @@ AND BM.NUBM = $P{A_BM}
 		<fieldDescription><![CDATA[Veículo]]></fieldDescription>
 	</field>
 	<variable name="PESOLIQ" class="java.math.BigDecimal" resetType="Group" resetGroup="NUBM" calculation="Sum">
+		<variableExpression><![CDATA[$F{PESOLIQUIDO}]]></variableExpression>
+	</variable>
+	<variable name="PESOLIQ_1" class="java.math.BigDecimal" resetType="Group" resetGroup="NUBM" calculation="Highest">
 		<variableExpression><![CDATA[$F{PESOLIQUIDO}]]></variableExpression>
 	</variable>
 	<group name="NUBM">
@@ -428,7 +471,7 @@ AND BM.NUBM = $P{A_BM}
 			</band>
 		</groupHeader>
 		<groupFooter>
-			<band height="15">
+			<band height="28">
 				<line>
 					<reportElement x="0" y="0" width="555" height="1"/>
 					<graphicElement>

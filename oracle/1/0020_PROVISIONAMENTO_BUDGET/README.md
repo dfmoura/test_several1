@@ -50,3 +50,40 @@ Satis - Provisionamento Financeiro - 1) Foram criadas as tabelas que servirão d
 ```markdown
 Satis - Provisionamento Financeiro - 3) Continuando a rotina de provisionamento, foi criada uma procedure que executa três cursores. O primeiro cursor realiza uma sequência de procedimentos que armazenam dados nas variáveis V_CODIGO, V_REF, V_CODNAT, V_CODCENCUS, V_CODPROJ, V_VLRPREV, V_VLRREAL, V_SALDO e V_VLRAPROV, utilizando o select criado anteriormente. Em seguida, é feita uma contagem de registros na tabela adicional de detalhe AD_DETPROVFINAN usando os filtros CODIGO = V_CODIGO, REF = V_REF, CODNAT = V_CODNAT, CODCENCUS = V_CODCENCUS e CODPROJ = V_CODPROJ. Se a contagem for igual a 0, é executado um comando de insert na tabela AD_DETPROVFINAN utilizando os dados armazenados nas variáveis. Caso contrário, é feito um update na tabela AD_DETPROVFINAN apenas nos campos VLRPREV, VLRREAL, SALDO e VLRAPROV. 4) Em seguida, foi criado o segundo cursor realizando um select na tabela de detalhe AD_DETPROVFINAN com o campo NUFIN nulo e o campo VLRAPROV > 0. Este cursor armazena os dados nas variáveis V_CODIGO2, V_ID2, V_REF, V_CODNAT2, V_CODCENCUS2, V_CODPROJ2 e V_VLRAPROV2, e em seguida executa um insert na tabela TGFFIN com os dados armazenados nas variáveis e nos demais campos. Simultaneamente, o campo NUFIN na tabela adicional AD_DETPROVFINAN é atualizado com base no insert realizado.
 ```
+
+
+#### 1.5. 27/02/2024 08:00 as 11:30
+```markdown
+Satis - Provisionamento Financeiro - 5) Para dar continuidade à criação da rotina de provisionamento, foi desenvolvido outro cursor que acessa a tabela de detalhamento e verifica se o valor a ser provisionado é zero ou se o mês atual é posterior ao mês de referência. Em seguida, caso haja registros que atendam a essas condições, o cursor acessa a movimentação financeira e oculta o registro, definindo TGFFIN.RECDESP como 0, e também zera o valor financeiro do registro, estabelecendo TGFFIN.VLRDESDOB como 0. Este procedimento visa adequar os dados conforme as necessidades do processo de provisionamento, garantindo a consistência e integridade das informações financeiras.
+
+```
+
+
+#### 1.5. 27/02/2024 13:00 as 18:00
+```markdown
+Satis - Provisionamento Financeiro - 6) Em seguida, foi desenvolvido outro cursor que, simultaneamente à atualização da tabela financeira, realiza uma verificação para identificar registros vencidos no mês corrente, adicionando um novo vencimento com a data atual mais 1 dia útil. Essa ação visa garantir a atualização e correção dos registros financeiros, assegurando a precisão dos dados no sistema.7) Após a conclusão do desenvolvimento do código, procedeu-se com a compilação e criação da ação agendada para a execução automatizada da rotina de provisionamento. Posteriormente, foram realizados testes para verificar o funcionamento correto da rotina, garantindo sua eficácia e conformidade com os requisitos estabelecidos.
+```
+
+
+#### 1.6. 28/02/2024 08:30 as 11:30
+```markdown
+Satis - Provisionamento Financeiro - 1) "Aprimoramento do código para efetuar o provisionamento exclusivamente para tipos de natureza classificados como despesa." 2) "Correção no relacionamento de seleção de base para o processo de provisionamento, assegurando que os valores retornados sejam zerados mesmo na ausência de movimentações realizadas. Isso garante que o cálculo de provisionamento seja realizado de forma precisa e consistente."
+```
+
+
+ORA-20101: Atenção - Favor Informar o Projeto
+ORA-06512: em "SATISTST.TRG_INC_UPD_TGFFIN_SATIS", line 47
+ORA-04088: erro durante a execução do gatilho 'SATISTST.TRG_INC_UPD_TGFFIN_SATIS'
+ORA-06512: em "SATISTST.STP_ATUBASEPROV", line 179
+ORA-06512: em line 2
+
+ORA-20101: Conta bancária 0 não está ativa. Financeiro de Nro Único: 217776.
+ORA-06512: em "SATISTST.TRG_INC_TGFFIN", line 335
+ORA-04088: erro durante a execução do gatilho 'SATISTST.TRG_INC_TGFFIN'
+ORA-06512: em "SATISTST.STP_ATUBASEPROV", line 179
+ORA-06512: em line 2
+
+
+ORA-01722: número inválido
+ORA-06512: em "SATISTST.STP_ATUBASEPROV", line 219
+ORA-06512: em line 2

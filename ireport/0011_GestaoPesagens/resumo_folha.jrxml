@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="resumo_folha" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["./"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="empresas" class="net.sf.jasperreports.engine.data.JRBeanCollectionDataSource"/>
+	<parameter name="totalizadorGeral" class="br.com.sankhya.pes.model.folha.TotalizadorResumo"/>
+	<parameter name="imprimirCabecalhos" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[true]]></defaultValueExpression>
+	</parameter>
+	<parameter name="imprimirApenasTotalizadores" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[false]]></defaultValueExpression>
+	</parameter>
+	<parameter name="imprimirComposicaoDeBases" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[false]]></defaultValueExpression>
+	</parameter>
+	<parameter name="parZeraFer" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[false]]></defaultValueExpression>
+	</parameter>
+	<parameter name="parZeraRes" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[false]]></defaultValueExpression>
+	</parameter>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="31">
+			<line>
+				<reportElement x="0" y="28" width="553" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<textField pattern="dd/MM/yyyy HH:mm">
+				<reportElement x="487" y="5" width="70" height="20"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="437" y="5" width="46" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Bottom">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Emissão:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="0" width="112" height="25"/>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="SansSerif" size="13" isBold="true" pdfFontName="Helvetica"/>
+				</textElement>
+				<text><![CDATA[Pessoal +]]></text>
+			</staticText>
+		</band>
+	</title>
+	<detail>
+		<band height="125" splitType="Stretch">
+			<subreport>
+				<reportElement x="0" y="0" width="555" height="125" isRemoveLineWhenBlank="true"/>
+				<subreportParameter name="imprimirApenasTotalizadores">
+					<subreportParameterExpression><![CDATA[$P{imprimirApenasTotalizadores}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="imprimirCabecalhos">
+					<subreportParameterExpression><![CDATA[$P{imprimirCabecalhos}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="parZeraFer">
+					<subreportParameterExpression><![CDATA[$P{parZeraFer}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="parZeraRes">
+					<subreportParameterExpression><![CDATA[$P{parZeraRes}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="imprimirComposicaoDeBases">
+					<subreportParameterExpression><![CDATA[$P{imprimirComposicaoDeBases}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="SUBREPORT_DIR">
+					<subreportParameterExpression><![CDATA[$P{SUBREPORT_DIR}]]></subreportParameterExpression>
+				</subreportParameter>
+				<dataSourceExpression><![CDATA[$P{empresas}]]></dataSourceExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "resumo_folha_empresas.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+		<band height="139">
+			<subreport>
+				<reportElement x="0" y="0" width="555" height="138" isRemoveLineWhenBlank="true"/>
+				<subreportParameter name="isTotalGeral">
+					<subreportParameterExpression><![CDATA[true]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="cabecalhoEmpresa">
+					<subreportParameterExpression><![CDATA[$P{totalizadorGeral}.getCabecalhoEmpresa()]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="detalhamento">
+					<subreportParameterExpression><![CDATA[$P{totalizadorGeral}.getDetalhamento()]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="totalizadorGuia">
+					<subreportParameterExpression><![CDATA[$P{totalizadorGeral}.getTotalizadorGuia()]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="SUBREPORT_DIR">
+					<subreportParameterExpression><![CDATA[$P{SUBREPORT_DIR}]]></subreportParameterExpression>
+				</subreportParameter>
+				<dataSourceExpression><![CDATA[new net.sf.jasperreports.engine.JREmptyDataSource()]]></dataSourceExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "resumo_folha_agrupadores_total.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+		<band height="103">
+			<break>
+				<reportElement x="0" y="0" width="100" height="1"/>
+			</break>
+			<subreport runToBottom="true">
+				<reportElement x="0" y="11" width="555" height="92"/>
+				<subreportParameter name="isTotalGeral">
+					<subreportParameterExpression><![CDATA[true]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="totalizadorGuia">
+					<subreportParameterExpression><![CDATA[$P{totalizadorGeral}.getTotalizadorGuia()]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="SUBREPORT_DIR">
+					<subreportParameterExpression><![CDATA[$P{SUBREPORT_DIR}]]></subreportParameterExpression>
+				</subreportParameter>
+				<dataSourceExpression><![CDATA[new net.sf.jasperreports.engine.JREmptyDataSource()]]></dataSourceExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "resumo_folha_total_guia.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="54" splitType="Stretch">
+			<textField>
+				<reportElement x="433" y="34" width="80" height="20"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Pagina "+$V{PAGE_NUMBER}+" de"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="513" y="34" width="40" height="20"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+</jasperReport>

@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="duplicatas_garantia" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="0">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<style name="Title" fontName="Arial" fontSize="26" isBold="true" pdfFontName="Helvetica-Bold"/>
+	<style name="SubTitle" forecolor="#666666" fontName="Arial" fontSize="18"/>
+	<style name="Column header" forecolor="#FFFFFF" fontName="Arial" fontSize="12" isBold="true"/>
+	<style name="Detail" fontName="Arial" fontSize="12"/>
+	<parameter name="CODPARC" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TGFPAR"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Parceiro]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="CODDUPL" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="AD_CTRLDUPL"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Nº Duplicata]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DATAINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DATAFIN" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT DPL.CODPARC
+, PAR.NOMEPARC
+, DPL.CODDUPL
+, FIN.NUFIN
+, FIN.NUMNOTA
+, FIN.DTNEG
+, FIN.DTVENC
+, USU.NOMEUSU
+, HIST.DHINC
+, HIST.OBSERVACAO
+, DPL.VALOR
+, FIN.VLRDESDOB
+
+FROM AD_CTRLDUPL DPL
+JOIN AD_CTRLDUPLITE HIST ON HIST.CODDUPL = DPL.CODDUPL
+JOIN TSIUSU USU ON USU.CODUSU = HIST.CODUSUINC
+JOIN TGFFIN FIN ON FIN.NUFIN = DPL.NUFIN
+JOIN TGFPAR PAR ON PAR.CODPARC = DPL.CODPARC
+
+WHERE FIN.CODTIPTIT = 34
+AND (DPL.CODDUPL = $P{CODDUPL} OR $P{CODDUPL} IS NULL)
+AND (DPL.CODPARC = $P{CODPARC} OR $P{CODPARC} IS NULL)
+AND FIN.DTVENC BETWEEN $P{DATAINI} AND $P{DATAFIN}]]>
+	</queryString>
+	<field name="CODPARC" class="java.math.BigDecimal"/>
+	<field name="NOMEPARC" class="java.lang.String"/>
+	<field name="CODDUPL" class="java.math.BigDecimal"/>
+	<field name="NUFIN" class="java.math.BigDecimal"/>
+	<field name="NUMNOTA" class="java.math.BigDecimal"/>
+	<field name="DTNEG" class="java.sql.Timestamp"/>
+	<field name="DTVENC" class="java.sql.Timestamp"/>
+	<field name="NOMEUSU" class="java.lang.String"/>
+	<field name="DHINC" class="java.sql.Timestamp"/>
+	<field name="OBSERVACAO" class="java.lang.String"/>
+	<field name="VALOR" class="java.lang.Double"/>
+	<field name="VLRDESDOB" class="java.lang.Double"/>
+	<group name="PARCEIRO">
+		<groupExpression><![CDATA[$F{CODPARC}]]></groupExpression>
+		<groupHeader>
+			<band height="25">
+				<textField>
+					<reportElement style="SubTitle" x="180" y="4" width="552" height="18" forecolor="#000000"/>
+					<textElement>
+						<font size="14" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEPARC}]]></textFieldExpression>
+				</textField>
+				<rectangle>
+					<reportElement mode="Opaque" x="27" y="4" width="36" height="18" forecolor="#CCCCCC" backcolor="#CCCCCC"/>
+				</rectangle>
+				<textField>
+					<reportElement x="66" y="4" width="100" height="18"/>
+					<textElement>
+						<font fontName="Arial" size="14" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPARC}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="30"/>
+		</groupFooter>
+	</group>
+	<group name="CODDUPL">
+		<groupExpression><![CDATA[$F{CODDUPL}]]></groupExpression>
+		<groupHeader>
+			<band height="21">
+				<textField>
+					<reportElement style="SubTitle" x="27" y="3" width="113" height="15"/>
+					<textElement>
+						<font size="12" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODDUPL}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement style="Detail" x="139" y="3" width="91" height="15"/>
+					<textElement/>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUFIN}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement style="Detail" x="239" y="3" width="100" height="15"/>
+					<textElement/>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUMNOTA}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement style="Detail" x="339" y="3" width="100" height="15"/>
+					<textElement/>
+					<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTNEG}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement style="Detail" x="439" y="3" width="100" height="15"/>
+					<textElement/>
+					<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTVENC}]]></textFieldExpression>
+				</textField>
+				<textField pattern="¤ #,##0.00">
+					<reportElement x="539" y="3" width="100" height="15"/>
+					<textElement>
+						<font fontName="Arial" size="12"/>
+					</textElement>
+					<textFieldExpression class="java.lang.Double"><![CDATA[$F{VALOR}]]></textFieldExpression>
+				</textField>
+				<textField pattern="¤ #,##0.00">
+					<reportElement x="639" y="3" width="93" height="15"/>
+					<textElement>
+						<font fontName="Arial" size="12"/>
+					</textElement>
+					<textFieldExpression class="java.lang.Double"><![CDATA[$F{VLRDESDOB}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<background>
+		<band height="575" splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="74" splitType="Stretch">
+			<staticText>
+				<reportElement style="Title" x="0" y="0" width="802" height="50"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="38" isBold="false" pdfFontName="Helvetica"/>
+				</textElement>
+				<text><![CDATA[CONTROLE DE DUPLICATAS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement style="SubTitle" x="263" y="49" width="255" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Bottom">
+					<font size="12"/>
+				</textElement>
+				<text><![CDATA[PERÍODO:]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="518" y="50" width="110" height="20" forecolor="#666666"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$P{DATAINI}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement mode="Opaque" x="671" y="50" width="131" height="20" forecolor="#666666"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$P{DATAFIN}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement style="SubTitle" x="628" y="49" width="43" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="12"/>
+				</textElement>
+				<text><![CDATA[E]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="25" splitType="Stretch">
+			<frame>
+				<reportElement mode="Opaque" x="27" y="5" width="705" height="20" backcolor="#666666"/>
+				<staticText>
+					<reportElement style="Column header" x="114" y="0" width="100" height="20"/>
+					<textElement/>
+					<text><![CDATA[Nº Financeiro]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="216" y="1" width="100" height="19"/>
+					<textElement/>
+					<text><![CDATA[Nº Nota]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="316" y="0" width="100" height="20"/>
+					<textElement/>
+					<text><![CDATA[Data Neg.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="415" y="0" width="100" height="20"/>
+					<textElement/>
+					<text><![CDATA[Data Venc]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="4" y="2" width="109" height="18"/>
+					<textElement/>
+					<text><![CDATA[Nº Duplicata]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="515" y="0" width="100" height="20"/>
+					<textElement/>
+					<text><![CDATA[Vlr Duplicata]]></text>
+				</staticText>
+				<staticText>
+					<reportElement style="Column header" x="615" y="0" width="88" height="20"/>
+					<textElement/>
+					<text><![CDATA[Vlr Financeiro]]></text>
+				</staticText>
+			</frame>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="21" splitType="Stretch">
+			<frame>
+				<reportElement x="27" y="1" width="705" height="15"/>
+				<textField>
+					<reportElement style="Detail" x="2" y="0" width="100" height="15"/>
+					<textElement/>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEUSU}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement style="Detail" x="103" y="0" width="100" height="15"/>
+					<textElement/>
+					<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DHINC}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement style="Detail" x="203" y="0" width="487" height="15"/>
+					<textElement/>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{OBSERVACAO}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<line>
+				<reportElement positionType="FixRelativeToBottom" x="27" y="16" width="705" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#999999"/>
+				</graphicElement>
+			</line>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="39" splitType="Stretch">
+			<textField pattern="EEEEE dd MMMMM yyyy">
+				<reportElement style="Column header" x="671" y="0" width="131" height="20" forecolor="#000000"/>
+				<textElement textAlignment="Right">
+					<font size="12" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>
