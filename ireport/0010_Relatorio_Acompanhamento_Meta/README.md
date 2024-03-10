@@ -90,3 +90,24 @@ Revisão do SELECT relacionado aos os filtros implementados, na sequência efetu
 CONTINUAÇÃO na Revisão do SELECT relacionado aos os filtros implementados, na sequência efetuação de testes com validação, e ajuste no GRUPO MARCAS.
 
 ```
+#### 1.9. 04/03/2024 08:30 as 11:30
+```markdown
+SATIS - Relatorio Orçados x Realizado - 1)Revisão do comando SELECT no relatório para alinhamento dos valores conforme especificações do Dash Orçado x Realizado V2. Este processo inclui a análise e ajuste dos critérios de seleção de dados para garantir a consistência e precisão dos valores apresentados no relatório em relação ao comparativo entre orçamento e desempenho efetivo, conforme estabelecido no framework do Dash Orçado x Realizado V2.
+
+```
+
+#### 1.10. 04/01/2024 13:00 as 18:00
+```markdown
+SATIS - Relatorio Orçados x Realizado - 2)Prosseguimento da análise minuciosa dos comandos SELECT no relatório, com o objetivo de garantir o alinhamento preciso dos valores de acordo com as diretrizes estabelecidas no Dash Orçado x Realizado V2. Este processo envolve a revisão detalhada dos critérios de seleção de dados, bem como a validação da lógica de consulta, visando assegurar a integridade e consistência das informações apresentadas no contexto do comparativo entre orçamento e execução, conforme definido no referido framework.
+```
+
+
+#### 1.10. 05/01/2024 8:00 as 11:30
+```markdown
+SATIS - Relatorio Orçados x Realizado - 3) Realização de uma análise abrangente do dash de comparação, visando identificar discrepâncias ou inconsistências nos dados apresentados. Além disso, está sendo realizado um processo de alinhamento das pendências identificadas com os usuários responsáveis, a fim de resolver eventuais desvios e garantir a precisão e confiabilidade das informações fornecidas pelo painel de comparação.
+```
+
+#### 1.10. 05/01/2024 13:00 as 18:00
+```markdown
+SATIS - Relatorio Orçados x Realizado - Prosseguimento da análise abrangente do painel de controle de comparação, com o objetivo de identificar e mitigar quaisquer discrepâncias ou inconsistências nos dados apresentados. Adicionalmente, está sendo executado um processo de alinhamento das pendências identificadas com os usuários responsáveis, com o intuito de corrigir possíveis desvios e assegurar a precisão e confiabilidade das informações fornecidas pelo painel de comparação. Este processo inclui a revisão criteriosa dos dados, a identificação de possíveis lacunas ou erros, e a implementação de medidas corretivas conforme necessário para garantir a integridade dos dados e a qualidade da análise comparativa.
+```

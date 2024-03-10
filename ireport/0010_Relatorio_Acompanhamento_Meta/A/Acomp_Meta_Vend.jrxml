@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Acomp_Meta_Cli" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
-	<property name="ireport.zoom" value="1.2100000000000006"/>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Acomp_Meta_Vend" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.4641000000000015"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<property name="ireport.definition"/>
@@ -93,83 +93,99 @@
 	</parameter>
 	<queryString>
 		<![CDATA[SELECT
-CODPARC
-, RAZAOSOCIAL
-, SUM(QTDPREV) AS QTDPREV
-, SUM(QTDREAL) AS QTDREAL
-, SUM(QTDPREV * PRECOLT)  AS VLR_PREV
-, SUM(NVL(VLRREAL, 0)) AS VLR_REAL
-, CASE WHEN SUM(QTDPREV) = 0 THEN 100 ELSE SUM(QTDREAL) * 100 / SUM(QTDPREV) END AS PERC
-, CASE WHEN SUM(QTDPREV * PRECOLT) = 0 THEN 100 ELSE NVL(SUM(VLRREAL) * 100 / SUM(QTDPREV * PRECOLT),0) END AS PERC_VLR
+MES_ANO,CODVEND,APELIDO,QTDPREV, QTDREAL,PREV,REAL,
+CASE WHEN SUM(QTDPREV) = 0 THEN 0 ELSE SUM(QTDREAL) * 100 / SUM(QTDPREV) END AS PERC_QTD,
+CASE WHEN SUM(PREV) = 0 THEN 0 ELSE SUM(REAL) * 100 / SUM(PREV) END AS PERC_VLR
+
 FROM
 (
 SELECT
-MET.DTREF
-, MET.CODVEND
-, VEN.APELIDO
-, MET.CODPARC
-, PAR.RAZAOSOCIAL
-, PAR.CGC_CPF
-, MET.MARCA
-, MET.QTDPREV
-, MET.QTDREAL
-, NVL(PRC.VLRVENDALT,0) AS PRECOLT,  SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL
+MES_ANO,CODVEND,APELIDO,MARCA,CODPARC,RAZAOSOCIAL,SUM(QTDPREV)AS QTDPREV, SUM(QTDREAL)AS QTDREAL,SUM(PREV)AS PREV,SUM(REAL)AS REAL
+FROM
+(
+SELECT
+TO_CHAR(MET.DTREF,'MM-YYYY') AS MES_ANO,
+MET.CODVEND,VEN.APELIDO, MET.MARCA, MET.CODPARC,PAR.RAZAOSOCIAL,
+SUM(MET.QTDPREV) AS QTDPREV,
+SUM(MET.QTDREAL) AS QTDREAL,
+SUM(MET.QTDPREV * NVL(PRC.VLRVENDALT,0)) AS PREV,
+0 AS REAL
+FROM TGFMET MET
+LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')
+INNER JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)
+INNER JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)
+WHERE
+MET.CODMETA = 4
+AND TRUNC(MET.DTREF) >= $P{P_DTINI}
+AND TRUNC(MET.DTREF) <= $P{P_DTFIN}
+AND (
+(MET.CODVEND IN ($P{P_CODVEND}, $P{P_CODVEND_1}, $P{P_CODVEND_2})
+OR ($P{P_CODVEND} IS NULL AND $P{P_CODVEND_1} IS NULL AND $P{P_CODVEND_2} IS NULL))
+)
+AND (MET.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+AND (MET.MARCA = (SELECT MARCA FROM TGFPRO WHERE CODPROD=$P{P_MARCA}) OR $P{P_MARCA} IS NULL)
+AND (VEN.CODGER = $P{P_CODGER} OR $P{P_CODGER} IS NULL)
+AND (MET.CODGRUPOPROD = $P{P_GRUPOPROD} OR $P{P_GRUPOPROD} IS NULL)
+AND (MET.CODCENCUS = $P{P_CR} OR $P{P_CR} IS NULL)
+GROUP BY
+TO_CHAR(MET.DTREF,'MM-YYYY'), MET.CODVEND,VEN.APELIDO, MET.MARCA, MET.CODPARC,PAR.RAZAOSOCIAL
 
-FROM TGMMET MET
-  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)
-  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)
-  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')
+UNION ALL
 
-  LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0
-
-  LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA
-  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPROD
-
-  LEFT JOIN AD_VGFMARCA VGMAR ON PRO.MARCA = VGMAR.MARCA
-  LEFT JOIN AD_GRUMARCAITE MARITE ON VGMAR.SEQ = MARITE.CODMARCA
-  LEFT JOIN AD_GRUMARCACAB MARCAB ON MARITE.CODGRU = MARCAB.CODGRU
+SELECT
+TO_CHAR(CAB.DTMOV,'MM-YYYY') AS MES_ANO,
+CAB.CODVEND,
+VEN.APELIDO,
+PRO.MARCA,
+CAB.CODPARC,
+PAR.RAZAOSOCIAL,
+0 AS QTDPREV,
+0 AS QTDREAL,
+0 AS PREV,
+SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END) AS REAL
+FROM TSIEMP EMP
+INNER JOIN TGFCAB CAB ON (EMP.CODEMP = CAB.CODEMP)
+INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
+INNER JOIN TGFPAR PAR ON (CAB.CODPARC = PAR.CODPARC)
+INNER JOIN TGFITE ITE ON (CAB.NUNOTA = ITE.NUNOTA)
+INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
+INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)
+INNER JOIN TSICID CID ON (PAR.CODCID=CID.CODCID)
+INNER JOIN TSIUFS UFS ON (CID.UF=UFS.CODUF)
+INNER JOIN TGFGRU GRU ON (PRO.CODGRUPOPROD=GRU.CODGRUPOPROD)
+INNER JOIN TSICUS CUS ON (CUS.CODCENCUS=CAB.CODCENCUS)
 
 WHERE
-
-  MET.CODMETA = $P{P_CODMETA}
-  AND MET.DTREF >= $P{P_DTINI}
-  AND MET.DTREF <= $P{P_DTFIN}
-  AND (
-    (MET.CODVEND IN ($P{P_CODVEND}, $P{P_CODVEND_1}, $P{P_CODVEND_2})
-    OR ($P{P_CODVEND} IS NULL AND $P{P_CODVEND_1} IS NULL AND $P{P_CODVEND_2} IS NULL))
-  )
-  AND (($P{P_NTEMMETA}=1 AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR $P{P_NTEMMETA}=0)
-  AND (MET.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
-  AND (CAB.CODEMP=$P{P_EMPRESA} OR $P{P_EMPRESA} IS NULL)
-  AND (PRO.MARCA = (SELECT MARCA FROM TGFPRO WHERE CODPROD=$P{P_MARCA}) OR $P{P_MARCA} IS NULL)
-  AND (PRO.CODGRUPOPROD = $P{P_GRUPOPROD} OR $P{P_GRUPOPROD} IS NULL)
-  AND (CAB.CODCENCUS = $P{P_CR} OR $P{P_CR} IS NULL)
-  AND (MARCAB.CODGRU = $P{P_GRUPOMARCA} OR $P{P_GRUPOMARCA} IS NULL)
-  AND (VEN.CODGER = $P{P_CODGER} OR $P{P_CODGER} IS NULL)
-
-
-AND
-(
-VEN.CODVEND = (SELECT CODVEND FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO) /*CONSULTA VENDEDOR*/
-OR VEN.CODVEND IN (SELECT VEN.CODVEND FROM TGFVEN VEN, TSIUSU USU WHERE USU.CODVEND = VEN.CODGER AND USU.CODUSU = STP_GET_CODUSULOGADO) /*CONSULTA GERENTE*/
-OR (SELECT AD_GESTOR_META FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO) = 'S' /*CONSULTA MASTER*/
+(TOP.ATUALEST <> 'N' OR TOP.CODTIPOPER = 1112)
+AND TRUNC(CAB.DTMOV) >= $P{P_DTINI}
+AND TRUNC(CAB.DTMOV) <= $P{P_DTFIN}
+AND (
+(CAB.CODVEND IN ($P{P_CODVEND}, $P{P_CODVEND_1}, $P{P_CODVEND_2})
+OR ($P{P_CODVEND} IS NULL AND $P{P_CODVEND_1} IS NULL AND $P{P_CODVEND_2} IS NULL))
 )
-
-
-GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL,  NVL(PRC.VLRVENDALT,0),PAR.CGC_CPF
-)
-
-WHERE (QTDPREV <> 0 OR QTDREAL <> 0)
+AND (CAB.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+AND (PRO.MARCA = (SELECT MARCA FROM TGFPRO WHERE CODPROD=$P{P_MARCA}) OR $P{P_MARCA} IS NULL)
+AND (VEN.CODGER = $P{P_CODGER} OR $P{P_CODGER} IS NULL)
+AND (PRO.CODGRUPOPROD = $P{P_GRUPOPROD} OR $P{P_GRUPOPROD} IS NULL)
+AND CAB.TIPMOV IN ('V','D')
+AND CAB.STATUSNOTA='L'
+AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE = 'S' OR CAB.STATUSNFE IS NULL)
+AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I'))
+AND (CAB.CODCENCUS = $P{P_CR} OR $P{P_CR} IS NULL)
+GROUP BY TO_CHAR(CAB.DTMOV,'MM-YYYY'),CAB.CODVEND,VEN.APELIDO,PRO.MARCA,CAB.CODPARC,PAR.RAZAOSOCIAL
+)BAS
+WHERE
+(PREV <> 0 OR REAL <> 0)
+GROUP BY MES_ANO,CODVEND,APELIDO,MARCA,CODPARC,RAZAOSOCIAL
+)A
 GROUP BY
-CODPARC
-, RAZAOSOCIAL
-ORDER BY "VLR_REAL" DESC]]>
+MES_ANO,CODVEND,APELIDO,QTDPREV, QTDREAL,PREV,REAL]]>
 	</queryString>
-	<field name="CODPARC" class="java.math.BigDecimal">
-		<fieldDescription><![CDATA[Cód. Parc.]]></fieldDescription>
+	<field name="CODVEND" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Vend.]]></fieldDescription>
 	</field>
-	<field name="RAZAOSOCIAL" class="java.lang.String">
-		<fieldDescription><![CDATA[Parceiro]]></fieldDescription>
+	<field name="APELIDO" class="java.lang.String">
+		<fieldDescription><![CDATA[Vendedor]]></fieldDescription>
 	</field>
 	<field name="QTDPREV" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Qtd. Prev.]]></fieldDescription>
@@ -180,10 +196,10 @@ ORDER BY "VLR_REAL" DESC]]>
 	<field name="VLR_PREV" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Vlr. Prev.]]></fieldDescription>
 	</field>
-	<field name="VLR_REAL" class="java.math.BigDecimal">
+	<field name="REAL" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Vlr. Real]]></fieldDescription>
 	</field>
-	<field name="PERC" class="java.math.BigDecimal">
+	<field name="PERC_QTD" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[%]]></fieldDescription>
 	</field>
 	<field name="PERC_VLR" class="java.math.BigDecimal">
@@ -196,10 +212,10 @@ ORDER BY "VLR_REAL" DESC]]>
 		<variableExpression><![CDATA[$F{QTDREAL}]]></variableExpression>
 	</variable>
 	<variable name="SVLRPREV" class="java.math.BigDecimal" calculation="Sum">
-		<variableExpression><![CDATA[$F{VLR_PREV}]]></variableExpression>
+		<variableExpression><![CDATA[$F{PREV}]]></variableExpression>
 	</variable>
 	<variable name="SVLRREAL" class="java.math.BigDecimal" calculation="Sum">
-		<variableExpression><![CDATA[$F{VLR_REAL}]]></variableExpression>
+		<variableExpression><![CDATA[$F{REAL}]]></variableExpression>
 	</variable>
 	<variable name="SPERC" class="java.math.BigDecimal" calculation="Sum">
 		<variableExpression><![CDATA[$F{PERC}]]></variableExpression>
@@ -216,35 +232,35 @@ ORDER BY "VLR_REAL" DESC]]>
 	<columnHeader>
 		<band height="18" splitType="Stretch">
 			<staticText>
-				<reportElement x="217" y="0" width="50" height="15"/>
+				<reportElement x="144" y="0" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Qtd. Prev.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="268" y="0" width="50" height="15"/>
+				<reportElement x="195" y="0" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Qtd. Real]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="359" y="0" width="50" height="15"/>
+				<reportElement x="283" y="0" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Vlr. Prev.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="409" y="0" width="50" height="15"/>
+				<reportElement x="333" y="0" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Vlr. Real]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="320" y="0" width="37" height="15"/>
+				<reportElement x="245" y="0" width="37" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
@@ -254,21 +270,21 @@ ORDER BY "VLR_REAL" DESC]]>
 				<reportElement x="0" y="16" width="550" height="1"/>
 			</line>
 			<staticText>
-				<reportElement x="2" y="0" width="36" height="15"/>
+				<reportElement x="2" y="0" width="25" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Cód.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="38" y="0" width="61" height="15"/>
+				<reportElement x="27" y="0" width="72" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Parceiro]]></text>
+				<text><![CDATA[Vendedor]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="459" y="0" width="35" height="15"/>
+				<reportElement x="383" y="0" width="35" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
@@ -279,56 +295,56 @@ ORDER BY "VLR_REAL" DESC]]>
 	<detail>
 		<band height="15" splitType="Stretch">
 			<textField pattern="#,##0.00">
-				<reportElement x="217" y="0" width="50" height="15"/>
+				<reportElement x="144" y="0" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDPREV}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="268" y="0" width="50" height="15"/>
+				<reportElement x="195" y="0" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDREAL}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="359" y="0" width="50" height="15"/>
+				<reportElement x="283" y="0" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLR_PREV}]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PREV}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="409" y="0" width="50" height="15"/>
+				<reportElement x="333" y="0" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLR_REAL}]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{REAL}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00" isBlankWhenNull="false">
-				<reportElement x="320" y="0" width="37" height="15"/>
+				<reportElement x="245" y="0" width="37" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC}]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC_QTD}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="2" y="0" width="36" height="15"/>
+				<reportElement x="2" y="0" width="25" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPARC}]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODVEND}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="38" y="0" width="178" height="15"/>
+				<reportElement x="27" y="0" width="116" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOSOCIAL}]]></textFieldExpression>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{APELIDO}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00" isBlankWhenNull="false">
-				<reportElement x="459" y="0" width="35" height="15"/>
+				<reportElement x="383" y="0" width="35" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
@@ -348,35 +364,35 @@ ORDER BY "VLR_REAL" DESC]]>
 				<reportElement x="0" y="2" width="550" height="1"/>
 			</line>
 			<textField pattern="#,##0.00" isBlankWhenNull="false">
-				<reportElement x="217" y="4" width="50" height="15"/>
+				<reportElement x="144" y="4" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SQTDPREV}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00" isBlankWhenNull="false">
-				<reportElement x="268" y="4" width="50" height="15"/>
+				<reportElement x="195" y="4" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SQTDREAL}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="359" y="4" width="50" height="15"/>
+				<reportElement x="283" y="4" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SVLRPREV}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="409" y="4" width="50" height="15"/>
+				<reportElement x="333" y="4" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SVLRREAL}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="172" y="4" width="44" height="15"/>
+				<reportElement x="99" y="4" width="44" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>

@@ -74,3 +74,17 @@ GF - DRE Gerencial Financeiro - 5) Concluída a etapa inicial de padronização 
 GF - DRE Gerencial Financeiro - 7) Implementação de uma estruturação de consultas (select) que integra dados relacionados ao faturamento, categorizados por tipo de produto e tipo de movimentação. Além disso, a análise da movimentação financeira é refinada mediante a consideração da natureza da operação associada. Este processo técnico visa otimizar a coleta e organização de informações, proporcionando uma visão mais abrangente e detalhada das transações comerciais, aprimorando assim a tomada de decisões e a eficiência operacional. 8) Formatação por grau na apresentação dos níveis.
 
 ```
+
+#### 1.4. 29/02/2024 13:30 as 18:30
+```markdown
+
+GF - DRE Gerencial Financeiro - 7) Iniciou-se a fase de implementação no código desenvolvido para a estrutura do Demonstrativo do Resultado do Exercício (DRE) gerencial financeiro, com a adição dos seguintes totalizadores essenciais para uma análise abrangente: (=) Faturamento Líquido, (=) Receita Líquida, (=) Margem de Contribuição Direta, (=) EBITDA (Lucro Antes de Juros, Impostos, Depreciação e Amortização), (=) Resultado Antes dos Impostos, (=) Resultado Líquido e (=) Resultado Após Depreciação e Investimentos. Este aprimoramento proporcionará uma visão mais completa e detalhada do desempenho financeiro da empresa, permitindo uma melhor tomada de decisões e análise estratégica.
+
+```
+
+#### 1.4. 01/03/2024 13:00 as 18:00
+```markdown
+
+GF - DRE Gerencial Financeiro - 7) Prosseguiu-se com o desenvolvimento do código para a estrutura do Demonstrativo do Resultado do Exercício (DRE) no âmbito financeiro, visando aprimorar a capacidade de análise gerencial. Este processo envolve a implementação e integração de algoritmos e lógicas de programação para a construção de um modelo robusto que permita a geração automatizada e precisa do DRE, considerando diversos aspectos contábeis e financeiros relevantes para a tomada de decisões estratégicas e operacionais.
+
+```

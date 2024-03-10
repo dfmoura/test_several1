@@ -77,6 +77,9 @@
 		<parameterDescription><![CDATA[Centro de Resultado]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several\\ireport\\0010_Relatorio_Acompanhamento_Meta\\"]]></defaultValueExpression>
+	</parameter>
 	<parameter name="P_GRUPOMARCA" class="java.math.BigDecimal">
 		<property name="NOMETABELA" value="ad_grumarcacab"/>
 		<property name="PESQUISA" value="TRUE"/>
@@ -774,6 +777,11 @@ ORDER BY APELIDO ASC, RAZAOSOCIAL ASC, MARCA ASC, "QTDREAL" DESC]]>
 	</pageFooter>
 	<summary>
 		<band height="138" splitType="Stretch">
+			<subreport>
+				<reportElement key="Acomp_Meta_Res" x="0" y="31" width="555" height="107"/>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Acomp_Meta_Res.jasper"]]></subreportExpression>
+			</subreport>
 			<staticText>
 				<reportElement x="0" y="5" width="555" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Top">

@@ -7,18 +7,11 @@
 	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
 		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
 	</parameter>
-	<parameter name="P_EMPRESA" class="java.math.BigDecimal">
-		<property name="PESQUISA" value="TRUE"/>
-		<property name="NOMETABELA" value="TSIEMP"/>
-		<parameterDescription><![CDATA[Empresa]]></parameterDescription>
-		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	<parameter name="P_DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt. Inicial]]></parameterDescription>
 	</parameter>
-	<parameter name="P_CODPARC" class="java.math.BigDecimal">
-		<property name="PESQUISA" value="TRUE"/>
-		<property name="Type" value="D"/>
-		<property name="nomeTabela" value="TGFPAR"/>
-		<parameterDescription><![CDATA[Cód. Parceiro]]></parameterDescription>
-		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	<parameter name="P_DTFIN" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt. Final]]></parameterDescription>
 	</parameter>
 	<parameter name="P_CODVEND" class="java.math.BigDecimal">
 		<property name="PESQUISA" value="TRUE"/>
@@ -41,23 +34,18 @@
 		<parameterDescription><![CDATA[Cód. Vendedor 2]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
-	<parameter name="P_DTINI" class="java.sql.Timestamp">
-		<parameterDescription><![CDATA[Dt. Inicial]]></parameterDescription>
-	</parameter>
-	<parameter name="P_DTFIN" class="java.sql.Timestamp">
-		<parameterDescription><![CDATA[Dt. Final]]></parameterDescription>
-	</parameter>
-	<parameter name="P_NTEMMETA" class="java.lang.Boolean">
-		<parameterDescription><![CDATA[Ignorar Ref. Sem Meta Prev./Real]]></parameterDescription>
-		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
-	</parameter>
-	<parameter name="P_CODMETA" class="java.math.BigDecimal">
+	<parameter name="P_CODPARC" class="java.math.BigDecimal">
 		<property name="PESQUISA" value="TRUE"/>
 		<property name="Type" value="D"/>
-		<property name="nomeTabela" value="TGMCFG"/>
-		<parameterDescription><![CDATA[Cód. Meta]]></parameterDescription>
+		<property name="nomeTabela" value="TGFPAR"/>
+		<parameterDescription><![CDATA[Cód. Parceiro]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
-	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+	<parameter name="P_CODGER" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Cód. Coordenador/Gerente]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
 	<parameter name="P_MARCA" class="java.lang.String">
@@ -78,20 +66,6 @@
 		<property name="NOMETABELA" value="TSICUS"/>
 		<property name="PESQUISA" value="TRUE"/>
 		<parameterDescription><![CDATA[Centro de Resultado]]></parameterDescription>
-		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
-	</parameter>
-	<parameter name="P_GRUPOMARCA" class="java.math.BigDecimal">
-		<property name="NOMETABELA" value="ad_grumarcacab"/>
-		<property name="PESQUISA" value="TRUE"/>
-		<property name="Type" value="D"/>
-		<parameterDescription><![CDATA[Grupo Marca]]></parameterDescription>
-		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
-	</parameter>
-	<parameter name="P_CODGER" class="java.math.BigDecimal">
-		<property name="PESQUISA" value="TRUE"/>
-		<property name="Type" value="D"/>
-		<property name="nomeTabela" value="TGFVEN"/>
-		<parameterDescription><![CDATA[Cód. Coordenador/Gerente]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
 	<queryString>

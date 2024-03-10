@@ -3,6 +3,7 @@
 	<property name="ireport.zoom" value="1.4641000000000015"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
 	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
 		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
 	</parameter>
@@ -42,11 +43,9 @@
 	</parameter>
 	<parameter name="P_DTINI" class="java.sql.Timestamp">
 		<parameterDescription><![CDATA[Dt. Inicial]]></parameterDescription>
-		
 	</parameter>
 	<parameter name="P_DTFIN" class="java.sql.Timestamp">
 		<parameterDescription><![CDATA[Dt. Final]]></parameterDescription>
-		
 	</parameter>
 	<parameter name="P_NTEMMETA" class="java.lang.Boolean">
 		<parameterDescription><![CDATA[Ignorar Ref. Sem Meta Prev./Real]]></parameterDescription>
@@ -57,7 +56,6 @@
 		<property name="Type" value="D"/>
 		<property name="nomeTabela" value="TGMCFG"/>
 		<parameterDescription><![CDATA[Cód. Meta]]></parameterDescription>
-		
 	</parameter>
 	<parameter name="P_MARCA" class="java.lang.String">
 		<property name="PESQUISA" value="TRUE"/>
@@ -84,6 +82,13 @@
 		<property name="PESQUISA" value="TRUE"/>
 		<property name="Type" value="D"/>
 		<parameterDescription><![CDATA[Grupo Marca]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODGER" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Cód. Coordenador/Gerente]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
 	<queryString>
@@ -131,8 +136,8 @@ WHERE
   AND MET.DTREF >= $P{P_DTINI}
   AND MET.DTREF <= $P{P_DTFIN}
   AND (
-    MET.CODVEND IN ($P{P_CODVEND}, $P{P_CODVEND_1}, $P{P_CODVEND_2})
-    OR COALESCE($P{P_CODVEND}, $P{P_CODVEND_1}, $P{P_CODVEND_2}) IS NULL
+    (MET.CODVEND IN ($P{P_CODVEND}, $P{P_CODVEND_1}, $P{P_CODVEND_2})
+    OR ($P{P_CODVEND} IS NULL AND $P{P_CODVEND_1} IS NULL AND $P{P_CODVEND_2} IS NULL))
   )
   AND (($P{P_NTEMMETA}=1 AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR $P{P_NTEMMETA}=0)
   AND (MET.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
@@ -141,6 +146,17 @@ WHERE
   AND (PRO.CODGRUPOPROD = $P{P_GRUPOPROD} OR $P{P_GRUPOPROD} IS NULL)
   AND (CAB.CODCENCUS = $P{P_CR} OR $P{P_CR} IS NULL)
   AND (MARCAB.CODGRU = $P{P_GRUPOMARCA} OR $P{P_GRUPOMARCA} IS NULL)
+  AND (VEN.CODGER = $P{P_CODGER} OR $P{P_CODGER} IS NULL)
+
+
+AND
+(
+VEN.CODVEND = (SELECT CODVEND FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO) /*CONSULTA VENDEDOR*/
+OR VEN.CODVEND IN (SELECT VEN.CODVEND FROM TGFVEN VEN, TSIUSU USU WHERE USU.CODVEND = VEN.CODGER AND USU.CODUSU = STP_GET_CODUSULOGADO) /*CONSULTA GERENTE*/
+OR (SELECT AD_GESTOR_META FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO) = 'S' /*CONSULTA MASTER*/
+)
+
+
 GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL,  NVL(PRC.VLRVENDALT,0),PAR.CGC_CPF
 )
 

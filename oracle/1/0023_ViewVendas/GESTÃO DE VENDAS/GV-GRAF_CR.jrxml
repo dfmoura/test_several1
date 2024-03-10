@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="GV-GRAF_CR" language="groovy" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.0263162364614138"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DTFIM" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<parameter name="EMPRESA" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="NOMETABELA" value="TSIEMP"/>
+		<parameterDescription><![CDATA[Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODPARC" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFPAR"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Parceiro:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFVEN"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Vendedor:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="CODGRUPOPROD" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="MARCA" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="NOMETABELA" value="AD_VGFMARCA"/>
+		<parameterDescription><![CDATA[Marca]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="BONIFICACOES" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Analisar Bonificações?]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="APELIDO" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Apresenta o apelido do CR?]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CR" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="GRUPOSATIS" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="AD_GRUPOPRODSATIS"/>
+		<parameterDescription><![CDATA[Grupo Prod. Satis]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+ROW_NUMBER() OVER(
+    ORDER BY SUM(VGF1.VLR) DESC
+) SEQ,
+VGF1.DESCRCENCUS || CASE WHEN $P{APELIDO}=1 THEN  CASE WHEN VGF1.AD_APELIDO IS NOT NULL THEN ' | Apelido: ' ||VGF1.AD_APELIDO ELSE '' END ELSE '' END AS DESCRCENCUS,
+VGF1.DESCRCENCUS AS DESCRCENCUS2,
+to_char(SUM(VGF1.QTD), 'FM999G999G999D90') AS QTD_DESCR,
+to_char(SUM(VGF1.VLR), 'FM999G999G999D90') AS VLR_DESCR,
+SUM(VGF1.QTD) AS QTD,
+SUM(VGF1.VLR) AS VLR,
+CASE WHEN $P{BONIFICACOES}=1 THEN 'S' ELSE 'N' END AS BONIF
+FROM VGF_VENDAS_SATIS VGF1
+LEFT JOIN AD_ITENSGRUPOSATIS GRUS ON (GRUS.CODPROD=VGF1.CODPROD AND $P{GRUPOSATIS} IS NOT NULL)
+WHERE
+    TRUNC(VGF1.DTMOV) >= $P{DTINI}
+AND TRUNC(VGF1.DTMOV) <= $P{DTFIM}
+AND (VGF1.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+AND (VGF1.CODVEND = $P{P_CODVEND} OR $P{P_CODVEND} IS NULL)
+AND ((VGF1.ATUALFIN<>0 AND VGF1.TIPATUALFIN='I' AND $P{BONIFICACOES} = 0) OR (VGF1.CODTIPOPER IN (1112,1113)  AND $P{BONIFICACOES} = 0) OR ($P{BONIFICACOES} = 1 AND VGF1.BONIFICACAO='S'))
+AND (VGF1.CODEMP=$P{EMPRESA} OR $P{EMPRESA} IS NULL)
+AND (VGF1.MARCA = (SELECT MARCA FROM TGFPRO WHERE CODPROD=$P{MARCA}) OR $P{MARCA} IS NULL)
+AND (VGF1.CODGRUPOPROD = $P{CODGRUPOPROD} OR $P{CODGRUPOPROD} IS NULL)
+AND (VGF1.CODCENCUS = $P{P_CR} OR $P{P_CR} IS NULL)
+AND (GRUS.CODGRUPO = $P{GRUPOSATIS} OR $P{GRUPOSATIS} IS NULL)
+GROUP BY VGF1.DESCRCENCUS, VGF1.AD_APELIDO]]>
+	</queryString>
+	<field name="QTD" class="java.math.BigDecimal"/>
+	<field name="VLR" class="java.math.BigDecimal"/>
+	<field name="DESCRCENCUS" class="java.lang.String"/>
+	<field name="BONIF" class="java.lang.String"/>
+	<field name="VLR_DESCR" class="java.lang.String"/>
+	<field name="QTD_DESCR" class="java.lang.String"/>
+	<field name="DESCRCENCUS2" class="java.lang.String"/>
+	<variable name="TotalQtdGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{QTD}]]></variableExpression>
+	</variable>
+	<variable name="TotalVlrGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLR}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="216" splitType="Stretch">
+			<pieChart>
+				<chart isShowLegend="false" evaluationTime="Report">
+					<reportElement mode="Transparent" x="277" y="16" width="278" height="100" forecolor="#000000" backcolor="#FFFFFF"/>
+					<chartTitle>
+						<font size="6"/>
+						<titleExpression><![CDATA["TOP 5 VOLUME"]]></titleExpression>
+					</chartTitle>
+					<chartSubtitle>
+						<font size="5"/>
+					</chartSubtitle>
+					<chartLegend>
+						<font size="5"/>
+					</chartLegend>
+				</chart>
+				<pieDataset maxCount="5">
+					<keyExpression><![CDATA[$F{DESCRCENCUS2}+"-"+$F{QTD_DESCR}]]></keyExpression>
+					<valueExpression><![CDATA[$F{QTD}]]></valueExpression>
+				</pieDataset>
+				<piePlot isCircular="true">
+					<plot/>
+					<itemLabel color="#000000" backgroundColor="#FFFFFF">
+						<font size="5"/>
+					</itemLabel>
+				</piePlot>
+			</pieChart>
+			<pieChart>
+				<chart isShowLegend="false" evaluationTime="Report">
+					<reportElement mode="Transparent" x="277" y="116" width="278" height="100" forecolor="#000000" backcolor="#FFFFFF"/>
+					<chartTitle>
+						<font size="6"/>
+						<titleExpression><![CDATA["TOP 5 VALOR"]]></titleExpression>
+					</chartTitle>
+					<chartSubtitle>
+						<font size="5"/>
+					</chartSubtitle>
+					<chartLegend>
+						<font size="5"/>
+					</chartLegend>
+				</chart>
+				<pieDataset maxCount="5">
+					<keyExpression><![CDATA[$F{DESCRCENCUS2}+"-"+$F{VLR_DESCR}]]></keyExpression>
+					<valueExpression><![CDATA[$F{VLR}]]></valueExpression>
+				</pieDataset>
+				<piePlot isCircular="true">
+					<plot/>
+					<itemLabel color="#000000" backgroundColor="#FFFFFF">
+						<font size="5"/>
+					</itemLabel>
+				</piePlot>
+			</pieChart>
+		</band>
+	</title>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch"/>
+	</detail>
+	<columnFooter>
+		<band/>
+	</columnFooter>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>

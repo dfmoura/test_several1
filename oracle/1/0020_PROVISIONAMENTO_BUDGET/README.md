@@ -87,3 +87,8 @@ ORA-06512: em line 2
 ORA-01722: número inválido
 ORA-06512: em "SATISTST.STP_ATUBASEPROV", line 219
 ORA-06512: em line 2
+
+#### 1.6. 30/02/2024 08:30 as 11:30
+```markdown
+Satis - Provisionamento Financeiro - 1) Realizada correção na procedure de provisionamento para abordar o problema de valores zerados retornados para determinados conjuntos de dados. 2) Implementada correção no comando de inserção de provisões na tabela tgffin, específicamente para os campos relacionados às contas bancárias, a fim de mitigar impactos adversos em outros processos associados.
+```
