@@ -141,3 +141,10 @@ Satis - Dash Orçamento Financeiro - 2) Realizou-se uma otimização no comando 
 Satis - Dash Orçamento Financeiro - 3)Realizou-se um ajuste no comando SELECT do componente de acompanhamento do atingimento da meta no painel principal do Dash. Este componente reflete a consolidação do gráfico que compara os valores previstos versus realizados. Durante a análise, foram identificados alguns valores incorretos que estavam sendo retornados pelo comando SELECT. Além disso, foi padronizado o formato do comando SELECT deste componente, alinhando-o aos demais componentes presentes no painel. Essas melhorias visam garantir a consistência e a precisão dos dados apresentados, proporcionando uma experiência mais confiável aos usuários do sistema.
 
 ```
+
+
+#### 1.12. 13/02/2024 13:00 as 18:30
+```markdown
+Satis - Dash Orçamento Financeiro -6) Implementou-se uma otimização no comando SELECT para permitir a especificação de parâmetros de data por intervalo. Isso proporciona uma flexibilidade maior na consulta de dados temporais. 7) Resolvido um problema de divisão por zero que ocorria nos níveis do demonstrativo, assegurando a integridade dos cálculos e a precisão dos resultados.8) Corrigiu-se o filtro de período para o nível comparativo, garantindo que os dados correspondam corretamente ao Período 2. Isso elimina discrepâncias e garante a consistência dos dados em todas as análises comparativas. 9) Realizou-se uma refatoração do SELECT para otimizar o código e aprimorar o desempenho das consultas. Essa medida visa a eficiência operacional, reduzindo o tempo de resposta e melhorando a experiência do usuário durante a pesquisa de dados.
+
+```

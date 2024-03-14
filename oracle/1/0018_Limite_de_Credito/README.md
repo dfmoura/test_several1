@@ -77,3 +77,10 @@ Satis - Limite de Credito - 9) Criado atalho para abrir a tela de analise de cre
 
 
 ```
+
+#### 1.6. 13/03/2024 09:30 as 11:30
+```markdown
+Satis - Limite de Credito - 10) Inciamos um correção onde foi apontado que a filial de uma matriz com saldo em aberto no financeiro não estava sendo apresentado no Dash de Análise de Credito. Repassamos o select do dash, verificando passo a passo, limite de credito cadastrado por parceiro, saldo consumido com base na movimentação financeira em aberto, e saldo disponivel de acordo com a diferença do saldo cadastrado pelo saldo consumido, toda esta abrangencia foi revisada estabelecedo o grupo de parceiro matriz e filial, onde a liberação do credito fica na matriz, e toda movimentação influencia na composição do saldo. Detectamos uma falhama no relacionamento criado para nomear a matriz e corrigimos.
+
+
+```
