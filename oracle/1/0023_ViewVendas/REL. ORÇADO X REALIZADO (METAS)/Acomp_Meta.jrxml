@@ -131,8 +131,10 @@ INNER JOIN TGFPAR PAR ON A.CODPARC = PAR.CODPARC
 INNER JOIN TGFVEN VEN ON A.CODVEND = VEN.CODVEND
 GROUP BY A.CODVEND, APELIDO,A.CODPARC,RAZAOSOCIAL,MARCA
 )
+GROUP BY CODVEND, APELIDO,CODPARC,RAZAOSOCIAL,MARCA
 HAVING SUM(QTDPREV) + SUM(QTDREAL) + SUM(VLR_PREV) + SUM(VLR_REAL) <> 0
-GROUP BY CODVEND, APELIDO,CODPARC,RAZAOSOCIAL,MARCA]]>
+
+ORDER BY 1,3,5]]>
 	</queryString>
 	<field name="CODVEND" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Cód. Vend.]]></fieldDescription>
@@ -208,31 +210,31 @@ GROUP BY CODVEND, APELIDO,CODPARC,RAZAOSOCIAL,MARCA]]>
 		<groupHeader>
 			<band height="17">
 				<rectangle>
-					<reportElement x="0" y="0" width="555" height="15" forecolor="#F0F0F0" backcolor="#F0F0F0"/>
+					<reportElement x="0" y="2" width="555" height="15" forecolor="#F0F0F0" backcolor="#F0F0F0"/>
 				</rectangle>
 				<staticText>
-					<reportElement x="3" y="0" width="45" height="15"/>
+					<reportElement x="3" y="2" width="45" height="15"/>
 					<textElement verticalAlignment="Middle">
 						<font size="8" isBold="true"/>
 					</textElement>
 					<text><![CDATA[Cód. Vend.]]></text>
 				</staticText>
 				<staticText>
-					<reportElement x="93" y="0" width="54" height="15"/>
+					<reportElement x="93" y="2" width="54" height="15"/>
 					<textElement verticalAlignment="Middle">
 						<font size="8" isBold="true"/>
 					</textElement>
 					<text><![CDATA[Vendedor]]></text>
 				</staticText>
 				<textField>
-					<reportElement x="48" y="0" width="45" height="15"/>
+					<reportElement x="48" y="2" width="45" height="15"/>
 					<textElement verticalAlignment="Middle">
 						<font size="8" isBold="true"/>
 					</textElement>
 					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODVEND}]]></textFieldExpression>
 				</textField>
 				<textField>
-					<reportElement x="147" y="0" width="99" height="15"/>
+					<reportElement x="147" y="2" width="99" height="15"/>
 					<textElement verticalAlignment="Middle">
 						<font size="8" isBold="true"/>
 					</textElement>
@@ -286,9 +288,9 @@ GROUP BY CODVEND, APELIDO,CODPARC,RAZAOSOCIAL,MARCA]]>
 	<group name="CLIENTE">
 		<groupExpression><![CDATA[$F{CODPARC}]]></groupExpression>
 		<groupHeader>
-			<band height="20">
+			<band height="16">
 				<rectangle>
-					<reportElement x="0" y="0" width="555" height="15" forecolor="#FFFF99" backcolor="#FFFF99"/>
+					<reportElement x="0" y="0" width="554" height="15" forecolor="#FFFF99" backcolor="#FFFF99"/>
 				</rectangle>
 				<staticText>
 					<reportElement x="3" y="0" width="45" height="15"/>
@@ -368,12 +370,6 @@ GROUP BY CODVEND, APELIDO,CODPARC,RAZAOSOCIAL,MARCA]]>
 	</group>
 	<group name="MARCA">
 		<groupExpression><![CDATA[$F{MARCA}]]></groupExpression>
-		<groupHeader>
-			<band/>
-		</groupHeader>
-		<groupFooter>
-			<band/>
-		</groupFooter>
 	</group>
 	<background>
 		<band splitType="Stretch"/>
@@ -384,7 +380,7 @@ GROUP BY CODVEND, APELIDO,CODPARC,RAZAOSOCIAL,MARCA]]>
 	<pageHeader>
 		<band height="70" splitType="Stretch">
 			<staticText>
-				<reportElement x="0" y="0" width="551" height="34"/>
+				<reportElement x="8" y="2" width="546" height="34"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="18" isBold="true"/>
 				</textElement>
@@ -530,65 +526,65 @@ GROUP BY CODVEND, APELIDO,CODPARC,RAZAOSOCIAL,MARCA]]>
 				</textElement>
 				<text><![CDATA[%]]></text>
 			</staticText>
+			<staticText>
+				<reportElement x="3" y="0" width="45" height="19"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Marca]]></text>
+			</staticText>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="15" splitType="Stretch">
+		<band height="22" splitType="Stretch">
 			<textField pattern="#,##0.00">
-				<reportElement x="280" y="0" width="40" height="15"/>
+				<reportElement x="281" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDPREV}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="322" y="0" width="40" height="15"/>
+				<reportElement x="323" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDREAL}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="407" y="0" width="50" height="15"/>
+				<reportElement x="408" y="4" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PREV}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="458" y="0" width="50" height="15"/>
+				<reportElement x="459" y="4" width="50" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{REAL}]]></textFieldExpression>
 			</textField>
-			<staticText>
-				<reportElement x="0" y="0" width="45" height="15"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Marca]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="45" y="0" width="72" height="15"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8"/>
-				</textElement>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{MARCA}]]></textFieldExpression>
-			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="361" y="0" width="46" height="15"/>
+				<reportElement x="362" y="4" width="46" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC_QTD}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="508" y="0" width="38" height="15"/>
+				<reportElement x="509" y="4" width="38" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC_VLR}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="3" y="4" width="117" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{MARCA}]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>

@@ -127,7 +127,8 @@ GROUP BY MET.DTREF, MET.CODVEND, MET.CODPARC, MET.MARCA, MET.QTDPREV, MET.QTDREA
 GROUP BY MARCA
 )
 HAVING SUM(QTDPREV) + SUM(QTDREAL) + SUM(VLR_PREV) + SUM(VLR_REAL) <> 0
-GROUP BY MARCA]]>
+GROUP BY MARCA
+ORDER BY 1]]>
 	</queryString>
 	<field name="MARCA" class="java.lang.String">
 		<fieldDescription><![CDATA[Marca]]></fieldDescription>

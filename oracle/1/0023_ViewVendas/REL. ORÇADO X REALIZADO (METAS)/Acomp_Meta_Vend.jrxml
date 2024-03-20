@@ -130,7 +130,8 @@ INNER JOIN TGFVEN VEN ON A.CODVEND = VEN.CODVEND
 GROUP BY A.CODVEND, APELIDO
 )
 HAVING SUM(QTDPREV) + SUM(QTDREAL) + SUM(VLR_PREV) + SUM(VLR_REAL) <> 0
-GROUP BY CODVEND,APELIDO]]>
+GROUP BY CODVEND,APELIDO
+ORDER BY 2]]>
 	</queryString>
 	<field name="CODVEND" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Cód. Vend.]]></fieldDescription>
