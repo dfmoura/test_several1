@@ -50,5 +50,30 @@ Satis - Análise de Meta / Custo por Vendedor e Equipe - 4) Concluímos o tratam
 
 Satis - Análise de Meta / Custo por Vendedor e Equipe - 7) Continuamos o desenvolvimento implementando um próximo nível de detalhamento, acessível por meio de um duplo clique no vendedor. Essa funcionalidade proporciona uma navegação mais granular nos dados, permitindo uma análise mais aprofundada das informações associadas a cada vendedor.8) Para isso, empregamos o mesmo SELECT anteriormente utilizado, com uma adaptação para agrupar os registros do vendedor por CR (Centro de Resultado). Essa abordagem facilita a visualização e compreensão da distribuição dos resultados financeiros em relação aos diferentes Centros de Resultado associados a cada vendedor. 9) Em paralelo, desenvolvemos o componente principal de tabela, integrando as informações de CR e valor de custo. Esse componente serve como ponto focal para a análise dos dados, fornecendo uma visão consolidada dos resultados financeiros de cada vendedor em relação aos diferentes Centros de Resultado.10) Adicionalmente, criamos um painel lateral que detalha as informações do painel principal por natureza. Utilizamos uma adaptação do SELECT, incluindo o Centro de Resultado como argumento para filtragem. Essa abordagem permite uma análise mais detalhada e específica das informações por natureza, proporcionando uma visão abrangente e contextualizada dos resultados financeiros.
 
+```
+
+
+#### 1.1. 20/03/2024 8:00 as 11:30
+```markdown
+
+Satis - Análise de Meta / Custo por Vendedor e Equipe - 11) Identificamos um problema decorrente do acesso à movimentação de vendas associada a um centro de resultado específico dos vendedores, onde a ausência de movimentação estava causando uma interferência na visualização dos custos correspondentes ao mesmo centro de resultado para o respectivo vendedor. Diante disso, iniciamos um processo de refatoração com o objetivo de integrar essa dinâmica ao comando de seleção de dados, garantindo uma melhor integridade e precisão na análise das transações.
+
 
 ```
+
+#### 1.1. 21/03/2024 13:00 as 18:00
+```markdown
+
+Satis - Análise de Meta / Custo por Vendedor e Equipe - 12) Após a conclusão da reestruturação, o comando SELECT foi aprimorado para garantir que, mesmo na ausência de transações de vendas em um centro de resultado específico, seja possível visualizar as despesas associadas, promovendo uma visão abrangente do custo total. 13) As atualizações foram aplicadas com sucesso ao componente SELECT, assegurando sua capacidade de refletir com precisão tanto os custos quanto as vendas associadas a cada centro de resultado, mesmo em cenários onde as vendas não tenham ocorrido. 14) Iniciamos então o processo de configuração do SELECT no painel lateral, visando incorporar a porcentagem do custo em relação às vendas realizadas. Em situações onde não há vendas registradas, aplicaremos a participação direta sobre o custo total, garantindo uma análise completa e abrangente da performance financeira.
+
+```
+
+#### 1.1. 22/03/2024 08:00 as 12:00
+```markdown
+
+Satis - Análise de Meta / Custo por Vendedor e Equipe - 15) Concluímos a implementação do comando SELECT no painel lateral, responsável pelo detalhamento da natureza por centro de resultado, acionado mediante clique no componente principal. 16) Realizamos também a atualização das formatações e do layout em todos os níveis de detalhamento abordados, assegurando uma apresentação uniforme e coerente dos dados em todo o sistema.
+
+
+```
+
+
