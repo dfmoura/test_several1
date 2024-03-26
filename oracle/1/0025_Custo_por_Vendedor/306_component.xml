@@ -4,236 +4,16 @@
     <parameter id="P_CODMETA" description="Cód. Meta" metadata="entity:ConfiguracaoMeta@CODMETA" required="true" keep-last="true" keep-date="false" order="2" label="P_CODMETA : Entidade/Tabela"/>
     <parameter id="P_CODPARC" description="Cliente" metadata="entity:Parceiro@CODPARC" required="false" keep-last="true" keep-date="false" order="4" label="P_CODPARC : Entidade/Tabela"/>
     <parameter id="P_MARCA" description="Marca" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="5" label="P_MARCA : multiList:Text">
-      <expression type="SQL"><![CDATA[
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        select
-SEQ AS VALUE
-,SEQ ||' - ' ||MARCA AS LABEL
-from AD_VGFMARCA
-order by MARCA
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      ]]></expression>
+      <expression type="SQL"><![CDATA[                                                                                                                                                                                                                                                                                                selectSEQ AS VALUE,SEQ ||' - ' ||MARCA AS LABELfrom AD_VGFMARCAorder by MARCA                                                                                                                                                                                                                        ]]></expression>
     </parameter>
     <parameter id="P_NTEMMETA" description="Ignorar Ref. Sem Meta Prev./Real" metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="6" label="P_NTEMMETA : Verdadeiro/Falso"/>
     <parameter id="P_GRUPOPROD" description="Grupo de Produtos" metadata="entity:GrupoProduto@CODGRUPOPROD" required="false" keep-last="true" keep-date="false" order="7" label="P_GRUPOPROD : Entidade/Tabela"/>
     <parameter id="P_CR" description="CR" metadata="entity:CentroResultado@CODCENCUS" required="false" keep-last="true" keep-date="false" order="9" label="P_CR : Entidade/Tabela"/>
     <parameter id="P_CODGER" description="Coordenador / Supervisor" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="10" label="P_CODGER : multiList:Text">
-      <expression type="SQL"><![CDATA[
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        select
-ven.codger as value
-, ven.codger||' - '||ven1.apelido as label
-from tgfven ven
-inner join tgfven ven1 on ven.codger = ven1.codvend
-group by 
-ven.codger
-, ven1.apelido
-order by ven1.apelido
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      ]]></expression>
+      <expression type="SQL"><![CDATA[                                                                                                                                                                                                                                                                                                selectven.codger as value, ven.codger||' - '||ven1.apelido as labelfrom tgfven veninner join tgfven ven1 on ven.codger = ven1.codvendgroup by ven.codger, ven1.apelidoorder by ven1.apelido                                                                                                                                                                                                                        ]]></expression>
     </parameter>
     <parameter id="P_CODVEND" description="Vendedor" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" show-inactives="false" label="P_CODVEND : multiList:Text" order="11">
-      <expression type="SQL"><![CDATA[
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        SELECT
-MET.CODVEND AS VALUE
-, MET.CODVEND  ||' - '|| VEN.APELIDO AS LABEL
-FROM TGMMET MET
-LEFT JOIN TGFVEN VEN ON MET.CODVEND = VEN.CODVEND
-GROUP BY
-MET.CODVEND
-, VEN.APELIDO
-ORDER BY VEN.APELIDO
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      ]]></expression>
+      <expression type="SQL"><![CDATA[                                                                                                                                                                                                                                SELECTMET.CODVEND AS VALUE, MET.CODVEND  ||' - '|| VEN.APELIDO AS LABELFROM TGMMET METLEFT JOIN TGFVEN VEN ON MET.CODVEND = VEN.CODVENDGROUP BYMET.CODVEND, VEN.APELIDOORDER BY VEN.APELIDO                                                                                                                                                                        ]]></expression>
     </parameter>
   </prompt-parameters>
   <level id="lvl_c3rh8k" description="Principal">
@@ -1888,16 +1668,25 @@ ORDER BY VEN.APELIDO
       <container orientacao="V" tamanhoRelativo="209">
         <grid id="grd_v5w40d" useNewGrid="S">
           <title><![CDATA[<b>Consolidado por Vendedor</b>]]></title>
-          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTCODVEND,APELIDO,VLR_PREV,VLRREAL,VLRDESP,CASE WHEN VLRREAL = 0 THEN 0 ELSE VLRDESP / VLRREAL*-1*100 END AS PERC_VLRDESP_EM_REALFROM(WITH CUS4 AS(SELECTAD_VENDEDOR_RESP,SUM(VLRDESP) AS VLRDESPFROM(SELECT NVL(CUS1.AD_VENDEDOR_RESP,0) AS AD_VENDEDOR_RESP,CUS1.CODCENCUS,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA,NVL(SUM(CASE WHEN X.CODNAT = 1010000 AND X.RECDESP = 1 THEN X.VLRDESDOB 		WHEN X.CODNAT <> 1010000 AND X.RECDESP = 1 THEN X.VLRBAIXA 		ELSE 0 END),0) AS VLRREC,NVL(SUM(CASE WHEN X.CODNAT = 2020202 AND X.RECDESP IN (-1,0) THEN X.VLRDESDOB 		WHEN X.CODNAT <> 2020202 AND X.RECDESP IN (-1) THEN X.VLRBAIXA 		ELSE 0 END),0) AS VLRDESPFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSINNER JOIN TGFNAT NAT ON X.CODNAT = NAT.CODNATWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT NOT IN (2020202, 1010000) AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)))OR( (    X.RECDESP IN (1,0,-1)    AND X.PROVISAO = 'N'     AND X.CODNAT <> 2020202     AND X.NUNOTA IN (        SELECT NUNOTA         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE IN ('A', 'T', 'S') OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )		  AND (CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))  )OR    X.RECDESP IN (1)    AND X.PROVISAO = 'N'     AND X.CODNAT <> 1010000    AND(X.DHBAIXA BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)/* OR :PERIODO.FIN IS NULL)*/)AND X.CODNAT <> 1010000 AND X.CODNAT <> 1020000/*AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )*/GROUP BYNVL(CUS1.AD_VENDEDOR_RESP,0),CUS1.CODCENCUS,CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT)GROUP BY AD_VENDEDOR_RESP)SELECT A.CODVEND, APELIDO, SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) AS QTDREAL, CASE WHEN SUM(QTDPREV) = 0 THEN 100 ELSE SUM(QTDREAL) * 100 / NULLIF(SUM(QTDPREV), 0) END AS PERC, SUM(QTDPREV * PRECOLT)  AS VLR_PREV, SUM(VLRREAL) AS VLRREAL, CASE WHEN SUM(QTDPREV * PRECOLT) = 0 THEN 100 ELSE NVL(SUM(VLRREAL) * 100 / NULLIF(SUM(QTDPREV * PRECOLT), 0), 0) END AS PERC_VLR, NVL(CUS4.VLRDESP,0) AS VLRDESPFROM(SELECT MET.DTREF, MET.CODVEND, MET.CODPARC, MET.MARCA, NVL(VGF.CODCENCUS,0) AS CODCENCUS,NVL(MET.QTDPREV,0) AS QTDPREV, SUM(NVL(VGF.QTD,0)) AS QTDREAL,NVL(PRC.VLRVENDALT,0)AS PRECOLT, SUM(NVL(VGF.VLR,0)) AS VLRREALFROM TGFMET METLEFT JOIN VGF_VENDAS_SATIS VGF ON MET.DTREF = TRUNC(VGF.DTMOV,'MM') AND MET.CODVEND = VGF.CODVEND AND MET.CODPARC = VGF.CODPARC AND MET.MARCA = VGF.MARCALEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA = MET.CODMETA AND PRC.DTREF = '01/07/2023')WHERE MET.CODMETA = 4 /*:P_CODMETA*/AND MET.DTREF BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN/*AND ((:P_NTEMMETA = 'S' AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR :P_NTEMMETA = 'N')AND (VGF.CODGRUPOPROD = :P_GRUPOPROD OR :P_GRUPOPROD IS NULL)*/GROUP BY MET.DTREF, MET.CODVEND, MET.CODPARC, MET.MARCA,NVL(VGF.CODCENCUS,0), NVL(MET.QTDPREV,0), NVL(PRC.VLRVENDALT,0))AINNER JOIN TGFVEN VEN ON A.CODVEND = VEN.CODVENDINNER JOIN TGFPAR PAR ON A.CODPARC = PAR.CODPARCLEFT JOIN CUS4 ON A.CODVEND = CUS4.AD_VENDEDOR_RESP/*WHERE(VEN.CODVEND IN :P_CODVEND)AND (VEN.CODGER IN :P_CODGER)AND (PAR.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)AND (A.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA))AND (A.CODCENCUS = :P_CR OR :P_CR IS NULL)*/GROUP BY A.CODVEND, APELIDO,NVL(CUS4.VLRDESP,0))WHERE CODVEND <> 0 ORDER BY 2]]></expression>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTCODVEND,APELIDO,VLR_PREV,VLRREAL,PERC_VLR,VLRDESP,CASE WHEN VLRREAL = 0 THEN 0 ELSE VLRDESP / VLRREAL*-1*100 END AS PERC_VLRDESP_EM_REALFROM(WITH CUS4 AS(SELECTAD_VENDEDOR_RESP,SUM(VLRDESP) AS VLRDESPFROM(SELECT NVL(CUS1.AD_VENDEDOR_RESP,0) AS AD_VENDEDOR_RESP,CUS1.CODCENCUS,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA,NVL(SUM(CASE WHEN X.CODNAT = 1010000 AND X.RECDESP = 1 THEN X.VLRDESDOB 		WHEN X.CODNAT <> 1010000 AND X.RECDESP = 1 THEN X.VLRBAIXA 		ELSE 0 END),0) AS VLRREC,NVL(SUM(CASE WHEN X.CODNAT = 2020202 AND X.RECDESP IN (-1,0) THEN X.VLRDESDOB 		WHEN X.CODNAT <> 2020202 AND X.RECDESP IN (-1) THEN X.VLRBAIXA 		ELSE 0 END),0) AS VLRDESPFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSINNER JOIN TGFNAT NAT ON X.CODNAT = NAT.CODNATWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT NOT IN (2020202, 1010000) AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)))OR( (    X.RECDESP IN (1,0,-1)    AND X.PROVISAO = 'N'     AND X.CODNAT <> 2020202     AND X.NUNOTA IN (        SELECT NUNOTA         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE IN ('A', 'T', 'S') OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )		  AND (CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))  )OR    X.RECDESP IN (1)    AND X.PROVISAO = 'N'     AND X.CODNAT <> 1010000    AND(X.DHBAIXA BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)/* OR :PERIODO.FIN IS NULL)*/)AND X.CODNAT <> 1010000 AND X.CODNAT <> 1020000/*AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )*/GROUP BYNVL(CUS1.AD_VENDEDOR_RESP,0),CUS1.CODCENCUS,CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT)GROUP BY AD_VENDEDOR_RESP)SELECT A.CODVEND, APELIDO, SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) AS QTDREAL, CASE WHEN SUM(QTDPREV) = 0 THEN 100 ELSE SUM(QTDREAL) * 100 / NULLIF(SUM(QTDPREV), 0) END AS PERC, SUM(QTDPREV * PRECOLT)  AS VLR_PREV, SUM(VLRREAL) AS VLRREAL, CASE WHEN SUM(QTDPREV * PRECOLT) = 0 THEN 100 ELSE NVL(SUM(VLRREAL) * 100 / NULLIF(SUM(QTDPREV * PRECOLT), 0), 0) END AS PERC_VLR, NVL(CUS4.VLRDESP,0) AS VLRDESPFROM(SELECT MET.DTREF, MET.CODVEND, MET.CODPARC, MET.MARCA, NVL(VGF.CODCENCUS,0) AS CODCENCUS,NVL(MET.QTDPREV,0) AS QTDPREV, SUM(NVL(VGF.QTD,0)) AS QTDREAL,NVL(PRC.VLRVENDALT,0)AS PRECOLT, SUM(NVL(VGF.VLR,0)) AS VLRREALFROM TGFMET METLEFT JOIN VGF_VENDAS_SATIS VGF ON MET.DTREF = TRUNC(VGF.DTMOV,'MM') AND MET.CODVEND = VGF.CODVEND AND MET.CODPARC = VGF.CODPARC AND MET.MARCA = VGF.MARCALEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA = MET.CODMETA AND PRC.DTREF = '01/07/2023')WHERE MET.CODMETA = 4 /*:P_CODMETA*/AND MET.DTREF BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN/*AND ((:P_NTEMMETA = 'S' AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR :P_NTEMMETA = 'N')AND (VGF.CODGRUPOPROD = :P_GRUPOPROD OR :P_GRUPOPROD IS NULL)*/GROUP BY MET.DTREF, MET.CODVEND, MET.CODPARC, MET.MARCA,NVL(VGF.CODCENCUS,0), NVL(MET.QTDPREV,0), NVL(PRC.VLRVENDALT,0))AINNER JOIN TGFVEN VEN ON A.CODVEND = VEN.CODVENDINNER JOIN TGFPAR PAR ON A.CODPARC = PAR.CODPARCLEFT JOIN CUS4 ON A.CODVEND = CUS4.AD_VENDEDOR_RESP/*WHERE(VEN.CODVEND IN :P_CODVEND)AND (VEN.CODGER IN :P_CODGER)AND (PAR.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)AND (A.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA))AND (A.CODCENCUS = :P_CR OR :P_CR IS NULL)*/GROUP BY A.CODVEND, APELIDO,NVL(CUS4.VLRDESP,0))WHERE CODVEND <> 0 ORDER BY 2]]></expression>
           <metadata>
             <field name="CODVEND" label="Cód. Vend." type="I" visible="true" useFooter="false"/>
             <field name="APELIDO" label="Vendedor" type="S" visible="true" useFooter="false"/>
-            <field name="VLR_PREV" label="Vlr.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
-            <field name="VLRREAL" label="Vlr.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
-            <field name="VLRDESP" label="Vlr. Custo" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+            <field name="VLR_PREV" label="Vlr.Prev." type="F" visible="true" useFooter="AVG" mask="#.##0,00"/>
+            <field name="VLRREAL" label="Vlr.Real" type="F" visible="true" useFooter="AVG" mask="#.##0,00"/>
+            <field name="PERC_VLR" label="% Real" type="F" visible="true" useFooter="AVG" mask="#.##0,00">
+              <formatter lessThan="80"><![CDATA[<span style="color:#FFFFFF; background-color:#FF0000">$VALUE</span>]]></formatter>
+              <formatter between="80" and="99.99"><![CDATA[<span style="color:#000000; background-color:#FFFF00">$VALUE</span>]]></formatter>
+              <formatter greaterEqualThan="100"><![CDATA[<span style="color:#FFFFFF; background-color:#009900">$VALUE</span>]]></formatter>
+            </field>
+            <field name="VLRDESP" label="Vlr. Custo" type="F" visible="true" useFooter="AVG" mask="#.##0,00">
               <formatter lessThan="0"><![CDATA[<span style="color:#FF0000">$VALUE</span>]]></formatter>
             </field>
-            <field name="PERC_VLRDESP_EM_REAL" label="%" type="F" visible="true" useFooter="false"/>
+            <field name="PERC_VLRDESP_EM_REAL" label="% Custo" type="F" visible="true" useFooter="AVG" mask="#.##0,00">
+              <formatter lessThan="21"><![CDATA[<span style="color:#FFFFFF; background-color:#339900">$VALUE</span>]]></formatter>
+              <formatter between="21" and="24.99"><![CDATA[<span style="color:#000000; background-color:#FFFF00">$VALUE</span>]]></formatter>
+              <formatter greaterEqualThan="25"><![CDATA[<span style="color:#FFFFFF; background-color:#FF0000">$VALUE</span>]]></formatter>
+            </field>
           </metadata>
           <on-click navigate-to="lvl_xrixyq">
             <param id="A_CODVEND">$CODVEND</param>
@@ -1920,10 +1709,14 @@ ORDER BY VEN.APELIDO
             <field name="CODVEND" label="CODVEND" type="I" visible="false" useFooter="false"/>
             <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
             <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
-            <field name="VLRDESP" label="Vlr. Custo" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+            <field name="VLRDESP" label="Vlr. Custo" type="F" visible="true" useFooter="AVG" mask="#.##0,00">
               <formatter lessThan="0"><![CDATA[<span style="color:#FF0000">$VALUE</span>]]></formatter>
             </field>
-            <field name="PERC_NAT_NO_REAL" label="%" type="I" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="PERC_NAT_NO_REAL" label="% Custo" type="I" visible="true" useFooter="AVG" mask="#.##0,00">
+              <formatter lessThan="21"><![CDATA[<span style="color:#FFFFFF; background-color:#339900">$VALUE</span>]]></formatter>
+              <formatter between="21" and="24.99"><![CDATA[<span style="color:#000000; background-color:#FFFF00">$VALUE</span>]]></formatter>
+              <formatter greaterEqualThan="25"><![CDATA[<span style="color:#FFFFFF; background-color:#FF0000">$VALUE</span>]]></formatter>
+            </field>
           </metadata>
         </grid>
       </container>
@@ -1943,11 +1736,15 @@ ORDER BY VEN.APELIDO
           <metadata>
             <field name="CODCENCUS" label="CR" type="I" visible="true" useFooter="false"/>
             <field name="DESCRCENCUS" label="Descr. CR" type="S" visible="true" useFooter="false"/>
-            <field name="VLRREAL" label="Vlr. Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
-            <field name="VLRDESP" label="Vlr. Custo" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+            <field name="VLRREAL" label="Vlr. Real" type="F" visible="true" useFooter="AVG" mask="#.##0,00"/>
+            <field name="VLRDESP" label="Vlr. Custo" type="F" visible="true" useFooter="AVG" mask="#.##0,00">
               <formatter lessThan="0"><![CDATA[<span style="color:#FF0000">$VALUE</span>]]></formatter>
             </field>
-            <field name="PERC" label="%" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="PERC" label="% Custo" type="F" visible="true" useFooter="AVG" mask="#.##0,00">
+              <formatter lessThan="21"><![CDATA[<span style="color:#FFFFFF; background-color:#339900">$VALUE</span>]]></formatter>
+              <formatter between="21" and="24.99"><![CDATA[<span style="color:#000000; background-color:#FFFF00">$VALUE</span>]]></formatter>
+              <formatter greaterEqualThan="25"><![CDATA[<span style="color:#FFFFFF; background-color:#FF0000">$VALUE</span>]]></formatter>
+            </field>
           </metadata>
           <refresh-details ui-list="grd_xrix7y">
             <param id="A_CODCENCUS">$CODCENCUS</param>
@@ -1964,10 +1761,10 @@ ORDER BY VEN.APELIDO
           <metadata>
             <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
             <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
-            <field name="VLRDESP" label="Vlr. Custo" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+            <field name="VLRDESP" label="Vlr. Custo" type="F" visible="true" useFooter="AVG" mask="#.##0,00">
               <formatter lessThan="0"><![CDATA[<span style="color:#FF0000">$VALUE</span>]]></formatter>
             </field>
-            <field name="PERC" label="%" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="PERC" label="% Custo" type="F" visible="true" useFooter="AVG" mask="#.##0,00"/>
           </metadata>
         </grid>
       </container>

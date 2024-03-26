@@ -77,3 +77,7 @@ Satis - Análise de Meta / Custo por Vendedor e Equipe - 15) Concluímos a imple
 ```
 
 
+
+nufin orig da tgfcom = nu financeiro comissao.
+nonotaorgig...
+
