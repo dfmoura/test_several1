@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="RECIBO" pageWidth="566" pageHeight="439" orientation="Landscape" columnWidth="546" leftMargin="10" rightMargin="10" topMargin="10" bottomMargin="10">
+	<property name="ireport.zoom" value="1.610510000000001"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.definition"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="PK_NUFIN" class="java.math.BigDecimal" isForPrompting="false">
+		<parameterDescription><![CDATA[Número único]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT DISTINCT
+(CASE WHEN FIN.VLRBAIXA = '' THEN FIN.VLRDESDOB ELSE FIN.VLRBAIXA END) AS Valor
+,EMP.RAZAOSOCIAL AS "RAZAO SOCIAL"
+,ED1.NOMEEND||' '||EMP.NUMEND||'  -  '||BAI1.NOMEBAI AS "ENDERECOEMP"
+,TRIM(CID1.NOMECID)||' - '||TRIM(UFS1.UF) AS "CIDADEUPEMP"
+,BAI1.NOMEBAI AS EMPBAI
+,TRIM(CID1.NOMECID) AS EMPCID
+,TRIM(UFS1.UF) AS EMPUF
+,EMP.CGC
+,EMP.INSCESTAD
+,TRIM(EMP.TELEFONE) AS TELEFONE
+,PAR.CODPARC
+,PAR.NOMEPARC
+,ED.NOMEEND
+,PAR.NUMEND
+,BAI.NOMEBAI
+,TRIM(CID.NOMECID) AS NOMECID
+,TRIM(UFS.UF) AS UF
+,PAR.CGC_CPF
+,PAR.IDENTINSCESTAD
+,FIN.NUMNOTA
+,FIN.DESDOBRAMENTO
+,FIN.VLRBAIXA
+,MBC.CODCTABCOINT
+,MBC.HISTORICO
+,FIN.HISTORICO AS HISTFIN,
+CASE WHEN FIN.RECDESP = 1 THEN 'R' ELSE 'D' END AS RECDESP
+,PAR.TELEFONE AS TELPAR
+,MBC.NUMDOC
+FROM
+TGFFIN FIN
+LEFT JOIN TGFPAR PAR ON(FIN.CODPARC=PAR.CODPARC)
+LEFT JOIN TGFMBC MBC ON(FIN.NUBCO=MBC.NUBCO)
+LEFT JOIN TSIEMP EMP ON(FIN.CODEMP=EMP.CODEMP)
+LEFT JOIN TSIEND ED  ON(PAR.CODEND=ED.CODEND)
+LEFT JOIN TSICID CID ON(PAR.CODCID=CID.CODCID)
+LEFT JOIN TSIBAI BAI ON(PAR.CODBAI=BAI.CODBAI)
+LEFT JOIN TSIUFS UFS ON(CID.UF=UFS.CODUF)
+LEFT JOIN TSIEND ED1 ON(EMP.CODEND=ED1.CODEND)
+LEFT JOIN TSICID CID1 ON(EMP.CODCID=CID1.CODCID)
+LEFT JOIN TSIBAI BAI1 ON(EMP.CODBAI=BAI1.CODBAI)
+LEFT JOIN TSIUFS UFS1 ON(CID1.UF=UFS1.CODUF)
+WHERE NUFIN = $P{PK_NUFIN}]]>
+	</queryString>
+	<field name="Valor" class="java.math.BigDecimal"/>
+	<field name="RAZAO SOCIAL" class="java.lang.String"/>
+	<field name="ENDERECOEMP" class="java.lang.String"/>
+	<field name="CIDADEUPEMP" class="java.lang.String"/>
+	<field name="CGC" class="java.lang.String"/>
+	<field name="INSCESTAD" class="java.lang.String"/>
+	<field name="TELEFONE" class="java.lang.String"/>
+	<field name="CODPARC" class="java.math.BigDecimal"/>
+	<field name="NOMEPARC" class="java.lang.String"/>
+	<field name="NOMEEND" class="java.lang.String"/>
+	<field name="NUMEND" class="java.lang.String"/>
+	<field name="NOMEBAI" class="java.lang.String"/>
+	<field name="NOMECID" class="java.lang.String"/>
+	<field name="UF" class="java.lang.String"/>
+	<field name="CGC_CPF" class="java.lang.String"/>
+	<field name="IDENTINSCESTAD" class="java.lang.String"/>
+	<field name="NUMNOTA" class="java.math.BigDecimal"/>
+	<field name="DESDOBRAMENTO" class="java.lang.String"/>
+	<field name="VLRBAIXA" class="java.lang.Double"/>
+	<field name="CODCTABCOINT" class="java.math.BigDecimal"/>
+	<field name="HISTORICO" class="java.lang.String"/>
+	<field name="HISTFIN" class="java.lang.String"/>
+	<field name="RECDESP" class="java.lang.String"/>
+	<field name="TELPAR" class="java.lang.String"/>
+	<field name="EMPBAI" class="java.lang.String"/>
+	<field name="EMPCID" class="java.lang.String"/>
+	<field name="EMPUF" class="java.lang.String"/>
+	<field name="NUMDOC" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="399" splitType="Stretch">
+			<frame>
+				<reportElement key="frame" x="0" y="0" width="546" height="84"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<frame>
+					<reportElement key="frame" x="318" y="0" width="228" height="84"/>
+					<box>
+						<pen lineWidth="1.0"/>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<staticText>
+						<reportElement key="staticText" x="0" y="0" width="111" height="25"/>
+						<textElement textAlignment="Center" verticalAlignment="Middle">
+							<font fontName="Calibri" size="16" isBold="true"/>
+						</textElement>
+						<text><![CDATA[R E C I B O]]></text>
+					</staticText>
+					<staticText>
+						<reportElement key="staticText" x="25" y="59" width="39" height="25"/>
+						<textElement textAlignment="Center" verticalAlignment="Middle">
+							<font fontName="Calibri" size="16" isBold="true"/>
+						</textElement>
+						<text><![CDATA[R$]]></text>
+					</staticText>
+					<textField isBlankWhenNull="false">
+						<reportElement key="textField" x="70" y="63" width="154" height="21"/>
+						<textElement>
+							<font fontName="Calibri" size="14" isBold="true" isItalic="true"/>
+						</textElement>
+						<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.StringUtils.formatNumeric($F{Valor})]]></textFieldExpression>
+					</textField>
+				</frame>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="0" y="1" width="318" height="21"/>
+					<textElement textAlignment="Center">
+						<font fontName="Calibri" size="12" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ?  $F{RAZAO SOCIAL} : $F{CODPARC} + " - " + $F{NOMEEND} )]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="0" y="17" width="318" height="15"/>
+					<textElement textAlignment="Center">
+						<font fontName="Calibri" size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? $F{ENDERECOEMP} : $F{NOMEEND} + " - " +$F{NUMEND} + " - " + $F{NOMEBAI})]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="0" y="42" width="318" height="13"/>
+					<textElement textAlignment="Center">
+						<font fontName="Calibri" size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? "Telefone:"+' '+com.sankhya.util.StringUtils.formataTelefone($F{TELEFONE}) :
+    "Telefone:"+' '+com.sankhya.util.StringUtils.formataTelefone($F{TELPAR}))]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="0" y="55" width="318" height="15"/>
+					<textElement textAlignment="Center">
+						<font fontName="Calibri" size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? "CNPJ Nº"+' '+com.sankhya.util.StringUtils.formataCgcCpf($F{CGC}) :
+    "CNPJ Nº"+' '+com.sankhya.util.StringUtils.formataCgcCpf($F{CGC_CPF}) )]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="0" y="69" width="318" height="15"/>
+					<textElement textAlignment="Center">
+						<font fontName="Calibri" size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? "INCS. EST. Nº"+' '+$F{INSCESTAD} :
+    "INCS. EST. Nº"+' '+$F{IDENTINSCESTAD})]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="0" y="29" width="318" height="15"/>
+					<textElement textAlignment="Center">
+						<font fontName="Calibri" size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? $F{CIDADEUPEMP} : $F{NOMECID} + " - " + $F{UF})]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement key="frame" x="0" y="84" width="546" height="315"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<staticText>
+					<reportElement key="staticText" x="10" y="2" width="82" height="20"/>
+					<textElement verticalAlignment="Middle">
+						<font fontName="Calibri" size="12" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Recebemos de :]]></text>
+				</staticText>
+				<line>
+					<reportElement key="line" x="88" y="20" width="454" height="1"/>
+				</line>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="10" y="23" width="71" height="20"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="12" isBold="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["Endereço..:"]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement key="line" x="77" y="42" width="465" height="1"/>
+				</line>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="10" y="45" width="52" height="20"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="12" isBold="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["Bairro :"]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement key="line" x="58" y="64" width="157" height="1"/>
+				</line>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="222" y="46" width="55" height="20"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="12" isBold="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["Cidade :"]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement key="line" x="273" y="65" width="171" height="1"/>
+				</line>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="452" y="47" width="55" height="20"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="12" isBold="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["Estado :"]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement key="line" x="503" y="66" width="39" height="1"/>
+				</line>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="10" y="67" width="67" height="20"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="12" isBold="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["CNPJ/CPF :"]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement key="line" x="77" y="86" width="138" height="1"/>
+				</line>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="222" y="68" width="65" height="20"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="12" isBold="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["Insc.Est. :"]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement key="line" x="273" y="87" width="146" height="1"/>
+				</line>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="429" y="69" width="48" height="20"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="12" isBold="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["Ident. :"]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement key="line" x="477" y="88" width="65" height="1"/>
+				</line>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="10" y="89" width="116" height="20"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="12" isBold="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["A importância de R$ :"]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement key="line" x="126" y="108" width="89" height="1"/>
+				</line>
+				<line>
+					<reportElement key="line" x="229" y="109" width="313" height="1"/>
+				</line>
+				<line>
+					<reportElement key="line" x="10" y="129" width="532" height="1"/>
+				</line>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="10" y="133" width="82" height="19"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="12" isBold="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["Referenta a .. :"]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="10" y="261" width="237" height="19"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["Pelo que dou plena e geral quitação."]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+					<reportElement key="textField" x="10" y="280" width="262" height="35"/>
+					<textElement verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="8" isBold="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? "Esse documento é seu comprovante de pagamento, só aceitaremos reclamações com a apresentação do mesmo. Dúvidas, favor contactar nossa central de cobranças"+' '+' '+com.sankhya.util.StringUtils.formataTelefone($F{TELEFONE}) :
+    "Esse documento é seu comprovante de pagamento, só aceitaremos reclamações com a apresentação do mesmo. Dúvidas, favor contactar nossa central de cobranças"+' '+' '+com.sankhya.util.StringUtils.formataTelefone($F{TELPAR}) )]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="179" y="261" width="363" height="19"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle" markup="none">
+						<font fontName="Calibri" size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? $F{CIDADEUPEMP}+' '+' '+new SimpleDateFormat("EEEE', 'dd 'de' MMMM 'de' yyyy").format(new Date()) :
+    $F{NOMECID} + " - " + $F{UF}+' '+' '+new SimpleDateFormat("EEEE', 'dd 'de' MMMM 'de' yyyy").format(new Date()) )]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement key="line" x="272" y="297" width="270" height="1"/>
+				</line>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="272" y="299" width="270" height="15"/>
+					<textElement textAlignment="Center">
+						<font fontName="Calibri" size="10" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? $F{RAZAO SOCIAL} : $F{NOMEPARC})]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="92" y="5" width="443" height="15"/>
+					<textElement>
+						<font fontName="Calibri" size="10" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? $F{CODPARC}+" - "+$F{NOMEPARC} : $F{RAZAO SOCIAL})]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="85" y="27" width="450" height="15"/>
+					<textElement>
+						<font fontName="Calibri" size="10" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? $F{NOMEEND}+' '+' '+$F{NUMEND} : $F{ENDERECOEMP})]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="62" y="49" width="153" height="15"/>
+					<textElement>
+						<font fontName="Calibri" size="10" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? $F{NOMEBAI} : $F{EMPBAI})]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="278" y="49" width="166" height="15"/>
+					<textElement>
+						<font fontName="Calibri" size="10" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? $F{NOMECID} : $F{EMPCID})]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="507" y="49" width="28" height="15"/>
+					<textElement textAlignment="Center">
+						<font fontName="Calibri" size="10" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? $F{UF} : $F{EMPUF})]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="81" y="71" width="134" height="15"/>
+					<textElement>
+						<font fontName="Calibri" size="10" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? com.sankhya.util.StringUtils.formataCgcCpf($F{CGC_CPF}) :
+com.sankhya.util.StringUtils.formataCgcCpf($F{CGC}))]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="287" y="72" width="132" height="15"/>
+					<textElement>
+						<font fontName="Calibri" size="10" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[($F{RECDESP}.equals("R") ? $F{IDENTINSCESTAD} : $F{INSCESTAD} )]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="126" y="93" width="103" height="15"/>
+					<textElement textAlignment="Left">
+						<font fontName="Calibri" size="12" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.StringUtils.formatNumeric($F{Valor})]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="10" y="113" width="219" height="15"/>
+					<textElement textAlignment="Center">
+						<font fontName="Calibri" size="12" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA["************************************"]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement key="textField" x="229" y="93" width="306" height="37"/>
+					<textElement>
+						<font fontName="Calibri" size="12" isBold="true" isItalic="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.Extenso.getExtenso($F{Valor})+"******"]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="true">
+					<reportElement x="12" y="152" width="530" height="90"/>
+					<textElement/>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{HISTFIN}]]></textFieldExpression>
+				</textField>
+			</frame>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch"/>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

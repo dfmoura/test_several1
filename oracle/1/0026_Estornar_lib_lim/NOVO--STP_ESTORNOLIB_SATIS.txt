@@ -1,0 +1,102 @@
+CREATE OR REPLACE PROCEDURE          "STP_ESTORNOLIB_SATIS" (
+       P_CODUSU NUMBER,        -- Código do usuário logado
+       P_IDSESSAO VARCHAR2,    -- Identificador da execução. Serve para buscar informações dos parâmetros/campos da execução.
+       P_QTDLINHAS NUMBER,     -- Informa a quantidade de registros selecionados no momento da execução.
+       P_MENSAGEM OUT VARCHAR2 -- Caso seja passada uma mensagem aqui, ela será exibida como uma informação ao usuário.
+) AS
+       FIELD_NUNOTA NUMBER;
+       FIELD_TABELA  VARCHAR(300);
+       FIELD_EVENTO NUMBER;
+       FIELD_SEQUENCIA NUMBER;
+       FIELD_SEQCASCATA NUMBER;
+       FIELD_NUCLL NUMBER;
+       
+       V_USULIB NUMBER;
+       P_COUNT  NUMBER;
+       P_ESTORNO VARCHAR2(10);
+       P_STATUSNOTA VARCHAR2(10);
+       
+BEGIN
+
+       -- Os valores informados pelo formulário de parâmetros, podem ser obtidos com as funções:
+       --     ACT_INT_PARAM
+       --     ACT_DEC_PARAM
+       --     ACT_TXT_PARAM
+       --     ACT_DTA_PARAM
+       -- Estas funções recebem 2 argumentos:
+       --     ID DA SESSÃO - Identificador da execução (Obtido através de P_IDSESSAO))
+       --     NOME DO PARAMETRO - Determina qual parametro deve se deseja obter.
+
+
+       FOR I IN 1..P_QTDLINHAS -- Este loop permite obter o valor de campos dos registros envolvidos na execução.
+       LOOP                    -- A variável "I" representa o registro corrente.
+           -- Para obter o valor dos campos utilize uma das seguintes funções:
+           --     ACT_INT_FIELD (Retorna o valor de um campo tipo NUMÉRICO INTEIRO))
+           --     ACT_DEC_FIELD (Retorna o valor de um campo tipo NUMÉRICO DECIMAL))
+           --     ACT_TXT_FIELD (Retorna o valor de um campo tipo TEXTO),
+           --     ACT_DTA_FIELD (Retorna o valor de um campo tipo DATA)
+           -- Estas funções recebem 3 argumentos:
+           --     ID DA SESSÃO - Identificador da execução (Obtido através do parâmetro P_IDSESSAO))
+           --     NÚMERO DA LINHA - Relativo a qual linha selecionada.
+           --     NOME DO CAMPO - Determina qual campo deve ser obtido.
+           FIELD_NUNOTA := ACT_INT_FIELD(P_IDSESSAO, I, 'NUCHAVE');
+           FIELD_TABELA := ACT_TXT_FIELD(P_IDSESSAO, I, 'TABELA');
+           FIELD_EVENTO := ACT_INT_FIELD(P_IDSESSAO, I, 'EVENTO');
+           FIELD_SEQUENCIA:= ACT_INT_FIELD(P_IDSESSAO, I, 'SEQUENCIA');
+           FIELD_SEQCASCATA:= ACT_INT_FIELD(P_IDSESSAO, I, 'SEQCASCATA');
+           FIELD_NUCLL := ACT_INT_FIELD(P_IDSESSAO, I, 'NUCLL');
+           
+
+          
+                SELECT 
+                COUNT(*) INTO P_COUNT
+                FROM TGFVAR 
+                WHERE NUNOTAORIG = FIELD_NUNOTA;
+
+                --VALIDA SE A NOTA VINCULADA A LIBERAÇÃO SELECIONADA JÁ FOI FATURADA, CASO SIM, NÃO ESTORNA.
+                IF P_COUNT = 0 THEN
+
+                     SELECT COUNT(*) INTO P_COUNT 
+                     FROM TGFCAB CAB
+                     WHERE CAB.NUNOTA = FIELD_NUNOTA
+                     AND NVL(CAB.AD_LIBERADO,'N') = 'N';
+                     
+                        --VALIDA SE A NOTA VINCULADA A LIBERAÇÃO SELECIONADA FOI LIBERADA PARA LOGISTICA, CASO SIM, NÃO ESTORNA.
+                        IF P_COUNT > 0 THEN
+                                    
+                                   --ESTORNA A LIBERAÇÃO SELECIONADA
+                                   UPDATE TSILIB SET DHLIB = NULL, VLRLIBERADO = 0 WHERE NUCHAVE = FIELD_NUNOTA AND TABELA = FIELD_TABELA AND EVENTO=FIELD_EVENTO AND SEQUENCIA = FIELD_SEQUENCIA AND SEQCASCATA=FIELD_SEQCASCATA;
+                                   P_MENSAGEM := 'Estorno realizado com sucesso!';   
+                                  
+                                  
+                                  --VOLTA A NOTA DE ORIGEM PARA ABERTA
+                                  SELECT STATUSNOTA INTO P_STATUSNOTA FROM TGFCAB WHERE NUNOTA = FIELD_NUNOTA;
+                                  
+                                  IF P_STATUSNOTA = 'L' THEN
+                                          EXECUTE IMMEDIATE 'ALTER TRIGGER TRG_UPD_TGFCAB DISABLE';
+                                          UPDATE TGFCAB SET STATUSNOTA = 'A' WHERE NUNOTA = P_NUCHAVE;
+                                          COMMIT;
+                                          EXECUTE IMMEDIATE 'ALTER TRIGGER TRG_UPD_TGFCAB ENABLE';
+                                  END IF;
+                        
+                        ELSE
+                 
+                                P_MENSAGEM := 'Documento já liberado pela Logística, o estorno não pode ser realizado.';
+                        
+                        END IF;
+                     
+
+                 ELSE
+                 
+                    P_MENSAGEM := 'Nota de origem já faturada, o estorno não pode ser realizado.';
+
+                 END IF;
+
+
+
+       END LOOP;
+
+
+
+END;
+/

@@ -1,0 +1,28 @@
+Uma trigger no Oracle SQL é um tipo de procedimento armazenado que é automaticamente executado em resposta a determinados eventos que ocorrem em um banco de dados Oracle. Esses eventos podem ser operações como INSERT, UPDATE ou DELETE em uma tabela específica. As triggers são frequentemente usadas para impor regras de negócios, aplicar ações de auditoria, manter a integridade dos dados ou automatizar processos dentro do banco de dados.
+
+As triggers são definidas em uma tabela específica e são ativadas automaticamente sempre que o evento associado ocorre. Elas podem ser acionadas antes do evento (BEFORE), após o evento (AFTER) ou em vez do evento (INSTEAD OF). Uma vez que uma trigger é definida, ela fica armazenada no banco de dados e é automaticamente executada sempre que as condições especificadas são atendidas.
+
+A estrutura básica de uma trigger no Oracle SQL é a seguinte:
+
+```sql
+CREATE OR REPLACE TRIGGER nome_da_trigger
+{BEFORE | AFTER | INSTEAD OF} {INSERT | UPDATE | DELETE}
+ON nome_da_tabela
+[FOR EACH ROW]
+DECLARE
+    -- declarações de variáveis locais
+BEGIN
+    -- lógica da trigger
+END;
+/
+```
+
+- `nome_da_trigger`: é o nome atribuído à trigger.
+- `BEFORE`, `AFTER` ou `INSTEAD OF`: indica quando a trigger deve ser executada em relação ao evento que a aciona.
+- `INSERT`, `UPDATE` ou `DELETE`: especifica o tipo de evento que aciona a trigger.
+- `nome_da_tabela`: é a tabela na qual a trigger está definida.
+- `FOR EACH ROW` (opcional): indica que a trigger é disparada para cada linha afetada pelo evento.
+- `DECLARE`: opcionalmente, você pode declarar variáveis locais dentro da trigger.
+- `BEGIN` e `END`: delimitam o bloco de código PL/SQL que contém a lógica da trigger.
+
+Dentro do bloco BEGIN-END, você escreve a lógica que deseja executar quando a trigger é ativada. Por exemplo, você pode atualizar outras tabelas, inserir registros de auditoria, ou até mesmo lançar exceções para evitar a execução de operações que violam as regras de negócios.

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Detalhe_Titulos" language="groovy" pageWidth="300" pageHeight="802" columnWidth="300" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.210000000000001"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="PK_NUFIN" class="java.math.BigDecimal" isForPrompting="false">
+		<parameterDescription><![CDATA[Número único]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PK_NURENEG" class="java.math.BigDecimal" isForPrompting="false">
+		<parameterDescription><![CDATA[Número Renegociação]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT NURENEG,NUFIN, NUNOTA, DTNEG, DTVENC, VLRDESDOB
+FROM TGFFIN
+WHERE  ( NURENEG = $P{PK_NURENEG} AND RECDESP = 0) OR (NUFIN = $P{PK_NUFIN} AND NURENEG IS NULL)
+ORDER BY DTNEG]]>
+	</queryString>
+	<field name="NURENEG" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Renegociacao]]></fieldDescription>
+	</field>
+	<field name="NUFIN" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Titulo]]></fieldDescription>
+	</field>
+	<field name="NUNOTA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Documento]]></fieldDescription>
+	</field>
+	<field name="DTNEG" class="java.sql.Timestamp">
+		<fieldDescription><![CDATA[Dt. Negociação]]></fieldDescription>
+	</field>
+	<field name="VLRDESDOB" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Valor]]></fieldDescription>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="26" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="15" width="29" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Titulo]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="29" y="15" width="46" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Documento]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="75" y="15" width="70" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Dt. Negociação]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="25" width="203" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement x="0" y="0" width="163" height="12"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Detalhamento]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="145" y="15" width="58" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Valor]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="11" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="29" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUFIN}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="75" y="0" width="70" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTNEG}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="10" width="203" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<textField isBlankWhenNull="true">
+				<reportElement x="29" y="0" width="46" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUNOTA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="145" y="0" width="58" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRDESDOB}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>
