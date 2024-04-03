@@ -77,7 +77,10 @@ Satis - Análise de Meta / Custo por Vendedor e Equipe - 15) Concluímos a imple
 ```
 
 
+#### 1.1. 02/04/2024 18:00 as 19:30
+```markdown
 
-nufin orig da tgfcom = nu financeiro comissao.
-nUnotaorgig...
+Satis - Análise de Meta / Custo por Vendedor e Equipe - 16) Realizou-se uma revisão no comando SELECT visando excluir as naturezas '1010000', '1020000', '6010100' e '6010200'. Este ajuste tem como objetivo aprimorar a precisão e eficiência das consultas, garantindo a exclusão dessas naturezas específicas da seleção de dados, conforme requisitos técnicos estabelecidos.
 
+
+```
