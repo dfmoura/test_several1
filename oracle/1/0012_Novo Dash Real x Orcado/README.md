@@ -125,4 +125,20 @@ Satis - Novo Dash Metas - 1) Desenvolvimento de parametrização para a implemen
 #### 1.1. 02/04/2024 13:30 as 18:00
 ```markdown
 Satis - Novo Dash Metas - 2) Continuando com a atividade anterior, foi necessário um aprofundamento na implementação da parametrização para a criação da lista múltipla por marca. Isso envolveu uma configuração detalhada dos parâmetros relevantes, a integração com a estrutura existente do dashboard e a validação de sua funcionalidade em diferentes cenários de uso, com a efetiva conclusão da tarefa.
-`
+```
+
+#### 1.1. 03/04/2024 09:00 as 11:00
+```markdown
+Satis - Novo Dash Metas - Grafico Real x Custo Vendedor - 1) Começamos a criar o gráfico que compara o valor real com o custo, utilizando a consulta do componente principal do nivel de custos. Em seguida, fizemos atualizações na consulta para agrupar as informações por período mensal, vendedor, valor real e custo. Essas modificações permitirão uma análise mais detalhada e segmentada do desempenho em relação aos custos e valor real ao longo do tempo.
+```
+
+#### 1.1. 03/04/2024 11:00 as 12:30
+```markdown
+Satis - Novo Dash Metas - 1)Detectamos uma falha na cláusula WHERE que filtrava valores, onde faltava incluir um novo campo. Realizamos a correção adicionando a condição VLRREAL <> 0. A nova condição inserida ficou da seguinte forma: (:P_NTEMMETA = 'S' AND (QTDPREV <> 0 OR QTDREAL <> 0 OR VLRREAL <> 0)) OR :P_NTEMMETA = 'N'. Após essa correção, os dados foram apresentados corretamente.
+```
+
+
+#### 1.1. 03/04/2024 13:30 as 15:00
+```markdown
+Satis - Novo Dash Metas - Grafico Real x Custo Vendedor - 2) Em continuidade ao desenvolvimento, procedemos com a conclusão do gráfico, integrando o componente gráfico no espaço designado da interface. Além disso, implementamos o select previamente elaborado no gráfico para possibilitar a seleção de diferentes conjuntos de dados. Concluímos essa etapa efetuando as configurações básicas necessárias para a visualização e análise adequada do gráfico, garantindo assim sua funcionalidade e utilidade para os usuários finais.
+```
