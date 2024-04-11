@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Detalhe_Titulos" language="groovy" pageWidth="200" pageHeight="802" columnWidth="200" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
-	<property name="ireport.zoom" value="3.452271214393111"/>
-	<property name="ireport.x" value="0"/>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Detalhe_Titulos" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="3.452271214393105"/>
+	<property name="ireport.x" value="332"/>
 	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
 	<parameter name="PK_NUFIN" class="java.math.BigDecimal" isForPrompting="false">
 		<parameterDescription><![CDATA[Número único]]></parameterDescription>
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
@@ -42,36 +43,43 @@ ORDER BY DTNEG]]>
 		<band splitType="Stretch"/>
 	</pageHeader>
 	<columnHeader>
-		<band height="13" splitType="Stretch">
+		<band height="26" splitType="Stretch">
 			<staticText>
-				<reportElement x="40" y="2" width="29" height="10"/>
+				<reportElement x="0" y="15" width="29" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Titulo]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="69" y="2" width="30" height="10"/>
+				<reportElement x="29" y="15" width="46" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[N° Doc.]]></text>
+				<text><![CDATA[Documento]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="99" y="2" width="40" height="10"/>
+				<reportElement x="75" y="15" width="70" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Dt. Neg.]]></text>
+				<text><![CDATA[Dt. Negociação]]></text>
 			</staticText>
 			<line>
-				<reportElement x="40" y="12" width="143" height="1"/>
+				<reportElement x="0" y="25" width="203" height="1"/>
 				<graphicElement>
 					<pen lineWidth="0.5" lineStyle="Dashed"/>
 				</graphicElement>
 			</line>
 			<staticText>
-				<reportElement x="139" y="2" width="44" height="10"/>
+				<reportElement x="0" y="0" width="163" height="12"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Detalhamento]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="145" y="15" width="58" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7" isBold="true"/>
 				</textElement>
@@ -82,34 +90,34 @@ ORDER BY DTNEG]]>
 	<detail>
 		<band height="11" splitType="Stretch">
 			<textField>
-				<reportElement x="40" y="0" width="29" height="10"/>
+				<reportElement x="0" y="0" width="29" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUFIN}]]></textFieldExpression>
 			</textField>
 			<textField pattern="dd/MM/yyyy">
-				<reportElement x="99" y="0" width="40" height="10"/>
+				<reportElement x="75" y="0" width="70" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTNEG}]]></textFieldExpression>
 			</textField>
 			<line>
-				<reportElement x="40" y="10" width="143" height="1"/>
+				<reportElement x="0" y="10" width="203" height="1"/>
 				<graphicElement>
 					<pen lineWidth="0.5" lineStyle="Dashed"/>
 				</graphicElement>
 			</line>
 			<textField isBlankWhenNull="true">
-				<reportElement x="69" y="0" width="30" height="10"/>
+				<reportElement x="29" y="0" width="46" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUNOTA}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="139" y="0" width="44" height="10"/>
+				<reportElement x="145" y="0" width="58" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
