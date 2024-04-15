@@ -14,6 +14,41 @@ Alocação de itens com lote informado
         Criar evento com procedure na tabela de itens.
 
 
+ANTES DE GERAR UM PEDIDO NO SISTEMA A REGRA IRA VERIFICAR
+SE CA
+		
+		Exemplo:
+		Pedido 1
+		
+		Cursor
+		codprod | descrprod        | qtdtotal | lote_valido
+		1       | porcelanato a111 | 100      | porc5444
+
+
+	UPDATE TGFITE SET CONTROLE=P_LOTE_VALIDADO WHERE CODPROD = P_CODPROD AND NUNOTA = P_NUNOTA
+
+
+	Observações:
+	Filtrar um lote disponivel, ou seja, não vale esses que tem o CONTROLE = NULL
+	
+	Disponível é ESTOQUE - RESERVADO
+	
+	
+	A partir do momento que o pedido é confirmado ele fica reservado no sistema, tendo estoque ou não. 
+	Quando eu emito a nf do mesmo o estoque eh consumido e o reservado tb na quantidade da nota.
+
+		
+		SELECT 
+		CODPROD,
+		CONTROLE,
+		ROW_NUMBER() OVER (PARTITION BY CODPROD ORDER BY CONTROLE) AS SEQ_CONTROLE,
+		SUM(RESERVADO) AS RESERVADO,
+		SUM(ESTOQUE) AS ESTOQUE
+		FROM TGFEST
+		WHERE CONTROLE <> ' ' /*POIS TODO ESTOQUE TEM CONTROLE DE LOTE*/
+		GROUP BY CODPROD,CONTROLE
+		ORDER BY 1,3S
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -48,5 +83,5 @@ Um cliente deseja compar um tipo específico de porcelanato. Duas situações po
 
 #### 1.1. 11/04/2024 13:00 as 18:00
 ```markdown
-GM - Estrutura Gerencial por CR - 1)Criação de tabela no construtor de telas para armazenar a informações desta nova apresentação gerencial por CR.
+
 ```
