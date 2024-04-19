@@ -1,0 +1,135 @@
+CREATE OR REPLACE PROCEDURE "STP_VALIDA_MULT_LOTES_OGUNJA" (
+       P_TIPOEVENTO INT,    -- Identifica o tipo de evento
+       P_IDSESSAO VARCHAR2, -- Identificador da execução. Serve para buscar informações dos campos da execução.
+       P_CODUSU INT         -- Código do usuário logado
+) AS
+       BEFORE_INSERT INT;
+       AFTER_INSERT  INT;
+       BEFORE_DELETE INT;
+       AFTER_DELETE  INT;
+       BEFORE_UPDATE INT;
+       AFTER_UPDATE  INT;
+       BEFORE_COMMIT INT;
+       
+       P_STATUSNOTA     VARCHAR2(100);
+       P_TOP            NUMBER;
+       P_CAB_PERMITE    VARCHAR2(100);
+       P_NUNOTA         NUMBER;
+       P_SEQUENCIA      NUMBER;
+       P_CODPROD        NUMBER;
+       P_QTDNEG         NUMBER;
+       P_CONTROLE       VARCHAR2(4000);
+       P_CONTAR         NUMBER;
+       P_TOP_VALIDA     VARCHAR2(100);
+       P_COUNT          NUMBER;
+       P_CONTROLE_ORIG  VARCHAR2(4000);
+
+
+BEGIN
+       BEFORE_INSERT := 0;
+       AFTER_INSERT  := 1;
+       BEFORE_DELETE := 2;
+       AFTER_DELETE  := 3;
+       BEFORE_UPDATE := 4;
+       AFTER_UPDATE  := 5;
+       BEFORE_COMMIT := 10;
+
+
+/*******************************************************************************
+   É possível obter o valor dos campos através das Functions:
+   
+  EVP_GET_CAMPO_DTA(P_IDSESSAO, 'NOMECAMPO') -- PARA CAMPOS DE DATA
+  EVP_GET_CAMPO_INT(P_IDSESSAO, 'NOMECAMPO') -- PARA CAMPOS NUMÉRICOS INTEIROS
+  EVP_GET_CAMPO_DEC(P_IDSESSAO, 'NOMECAMPO') -- PARA CAMPOS NUMÉRICOS DECIMAIS
+  EVP_GET_CAMPO_TEXTO(P_IDSESSAO, 'NOMECAMPO')   -- PARA CAMPOS TEXTO
+  
+  O primeiro argumento é uma chave para esta execução. O segundo é o nome do campo.
+  
+  Para os eventos BEFORE UPDATE, BEFORE INSERT e AFTER DELETE todos os campos estarão disponíveis.
+  Para os demais, somente os campos que pertencem à PK
+  
+  * Os campos CLOB/TEXT serão enviados convertidos para VARCHAR(4000)
+  
+  Também é possível alterar o valor de um campo através das Stored procedures:
+  
+  EVP_SET_CAMPO_DTA(P_IDSESSAO,  'NOMECAMPO', VALOR) -- VALOR DEVE SER UMA DATA
+  EVP_SET_CAMPO_INT(P_IDSESSAO,  'NOMECAMPO', VALOR) -- VALOR DEVE SER UM NÚMERO INTEIRO
+  EVP_SET_CAMPO_DEC(P_IDSESSAO,  'NOMECAMPO', VALOR) -- VALOR DEVE SER UM NÚMERO DECIMAL
+  EVP_SET_CAMPO_TEXTO(P_IDSESSAO,  'NOMECAMPO', VALOR) -- VALOR DEVE SER UM TEXTO
+********************************************************************************/
+
+/*     IF P_TIPOEVENTO = BEFORE_INSERT THEN
+             --DESCOMENTE ESTE BLOCO PARA PROGRAMAR O "BEFORE INSERT"
+       END IF;*/
+/*     IF P_TIPOEVENTO = AFTER_INSERT THEN
+             --DESCOMENTE ESTE BLOCO PARA PROGRAMAR O "AFTER INSERT"
+       END IF;*/
+
+/*     IF P_TIPOEVENTO = BEFORE_DELETE THEN
+             --DESCOMENTE ESTE BLOCO PARA PROGRAMAR O "BEFORE DELETE"
+       END IF;*/
+/*     IF P_TIPOEVENTO = AFTER_DELETE THEN
+             --DESCOMENTE ESTE BLOCO PARA PROGRAMAR O "AFTER DELETE"
+       END IF;*/
+
+/*     IF P_TIPOEVENTO = BEFORE_UPDATE THEN
+             --DESCOMENTE ESTE BLOCO PARA PROGRAMAR O "BEFORE UPDATE"
+       END IF;*/
+/*     IF P_TIPOEVENTO = AFTER_UPDATE THEN
+             --DESCOMENTE ESTE BLOCO PARA PROGRAMAR O "AFTER UPDATE"
+       END IF;*/
+
+/*     IF P_TIPOEVENTO = BEFORE_COMMIT THEN
+             --DESCOMENTE ESTE BLOCO PARA PROGRAMAR O "BEFORE COMMIT"
+       END IF;*/
+
+IF P_TIPOEVENTO = BEFORE_UPDATE OR P_TIPOEVENTO = BEFORE_INSERT THEN
+
+
+     
+    P_NUNOTA := EVP_GET_CAMPO_INT(P_IDSESSAO, 'NUNOTA');
+    P_SEQUENCIA := EVP_GET_CAMPO_INT(P_IDSESSAO, 'SEQUENCIA');
+    P_CODPROD   := EVP_GET_CAMPO_INT(P_IDSESSAO, 'CODPROD');
+    P_CONTROLE  := EVP_GET_CAMPO_TEXTO(P_IDSESSAO, 'CONTROLE');
+    
+    SELECT CAB.CODTIPOPER, NVL(TOP.AD_VALMULTLOTE,'N'), NVL(CAB.AD_PERMITEMULTLOTE,'N')
+    INTO P_TOP, P_TOP_VALIDA, P_CAB_PERMITE
+    FROM TGFCAB CAB
+    INNER JOIN TGFTOP TOP ON TOP.CODTIPOPER = CAB.CODTIPOPER AND CAB.DHTIPOPER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+    WHERE CAB.NUNOTA = P_NUNOTA;
+
+
+    --SE A TOP ESTIVER CONFIGURADA PARA BLOQUEAR MULTIPLOS LOTES E A CAB ESTIVER CONFIGURADA PARA BLOQUEAR, ENTRA NO IF
+    IF P_TOP_VALIDA = 'S' AND P_CAB_PERMITE = 'N' THEN
+
+        SELECT COUNT(*) INTO P_COUNT
+        FROM TGFITE ITE 
+        WHERE ITE.NUNOTA = P_NUNOTA 
+        AND ITE.CODPROD = P_CODPROD
+        AND ITE.CONTROLE <> ' '
+        AND ITE.CONTROLE <> P_CONTROLE
+        AND ITE.SEQUENCIA <> P_SEQUENCIA;
+        
+        IF P_COUNT > 0 THEN
+        
+            SELECT LISTAGG(DISTINCT ITE.CONTROLE, ', ') INTO P_CONTROLE_ORIG
+            FROM TGFITE ITE 
+            WHERE ITE.NUNOTA = P_NUNOTA 
+            AND ITE.CODPROD = P_CODPROD
+            AND ITE.CONTROLE <> ' '
+            AND ITE.CONTROLE <> P_CONTROLE
+            AND ITE.SEQUENCIA <> P_SEQUENCIA;
+        
+            RAISE_APPLICATION_ERROR(-20001, '<br><b>ERRO: Esse pedido/nota não permite multiplos lotes para o mesmo produto. LOTE DO PEDIDO: '||P_CONTROLE_ORIG||' / LOTE INFORMADO: '||P_CONTROLE||'</b><br>');
+        
+        END IF;
+
+
+
+        
+    END IF;
+
+
+END IF;
+END;
+/
