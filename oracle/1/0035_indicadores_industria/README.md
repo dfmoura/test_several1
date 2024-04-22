@@ -1,112 +1,110 @@
 # Objetivos
 ```markdown
-Objetivo: VALIDACAO ESTOQUE PRODUTOS CONTROLADOS POR LOTE Externa
-Solução Proposta para Atendimento ao Escopo
 
-Análise o escopo e preparei um conjunto de soluções para atendê-lo, o tempo de execução é de 16 horas, segue os detalhes da solução proposta:
+"Estoque de embalagens (R$)
+Estoque de materia prima (R$)
+Estoque de devolvidos (R$)
+Estoque de acabado (R$)
 
-Alocação de itens com lote informado
->> Permitida com estoque disponível: Se o lote especificado possuir quantidade disponível suficiente, permitir a alocação do item no pedido.
+Último dia do mês, número travado, mostrar evolução nos meses. Retiro da tela ""Posição de estoque retroativa"". Olho apenas matriz
 
->> Indisponível: Caso o estoque do lote especificado não atenda à demanda, não permitir a alocação nesse lote, optando por reservar o item sem especificação do lote.
+Exemplo: Figura 1 do email"
+"Diferença produção (planejado x realizado)
 
-    Restringir a inclusão de múltiplos lotes do mesmo produto no mesmo pedido, ou seja, a inclusão do primeiro lote não será bloqueada, porém um segundo lote não será possível.
-        Criar evento com procedure na tabela de itens.
+Último dia do mês, número travado, mostrar evolução nos meses. % Quantidade realizada/ quantidade planejada. Retiro da tela ""Dash produção"".
 
+Exemplo: Figura 2 do email"
+"% Média frete (Entregas)
 
-ANTES DE GERAR UM PEDIDO NO SISTEMA A REGRA IRA VERIFICAR
-SE CA
-		
-		Exemplo:
-		Pedido 1
-		
-		Cursor
-		codprod | descrprod        | qtdtotal | lote_valido
-		1       | porcelanato a111 | 100      | porc5444
+Último dia do mês, número travado, mostrar evolução nos meses. % valor de frete/valor de nota. Retiro da tela ""ordens de carga"". Apenas matriz, apenas fretes contratados (excluir Araxá)
 
+Exemplo: Figura 5 do email"
+"% Média frete (Compras MP)
+% Média frete (Compras Embalagens)
 
-	UPDATE TGFITE SET CONTROLE=P_LOTE_VALIDADO WHERE CODPROD = P_CODPROD AND NUNOTA = P_NUNOTA
+Último dia do mês, número travado, mostrar evolução nos meses. % valor de frete/valor de nota. Retiro da tela ""portal de compras"".
 
-
-	Observações:
-	Filtrar um lote disponivel, ou seja, não vale esses que tem o CONTROLE = NULL
-	
-	Disponível é ESTOQUE - RESERVADO
-	
-	
-	A partir do momento que o pedido é confirmado ele fica reservado no sistema, tendo estoque ou não. 
-	Quando eu emito a nf do mesmo o estoque eh consumido e o reservado tb na quantidade da nota.
-
-		
-		SELECT 
-		CODPROD,
-		CONTROLE,
-		ROW_NUMBER() OVER (PARTITION BY CODPROD ORDER BY CONTROLE) AS SEQ_CONTROLE,
-		SUM(RESERVADO) AS RESERVADO,
-		SUM(ESTOQUE) AS ESTOQUE
-		FROM TGFEST
-		WHERE CONTROLE <> ' ' /*POIS TODO ESTOQUE TEM CONTROLE DE LOTE*/
-		GROUP BY CODPROD,CONTROLE
-		ORDER BY 1,3S
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-Alocação de Itens sem Lote informado
-1. Reserva até Confirmação: Manter o item reservado até a confirmação do pedido.
-2. Alocação Automática: Na confirmação do pedido, se a quantidade total do item for atendida por um único lote disponível, alocar todo o item nesse lote.
-3. Sem Lote Disponível: Se não existir lote que atenda totalmente a demanda, reservar a quantidade total sem alocação a um lote específico.		
+Exemplo: Figura 6 do email"
 
 
-    Fiz alguns testes e nativamente foi possível incluir um item com controle de lote sem informar o lote e ainda assim reservar o estoque do mesmo, portanto nativamente essa demanda será atendida.
-        O teste acima foi realizado com um produto cujo grupo não valida estoque.
 
-    Criar regra de negócio ou trigger que faça a alocação automática de um único lote por produto na confirmação do pedido, caso o lote atenda toda quantidade negociada no pedido.
+"Controle de justificativas para o realizado do periodo
 
-    Na confirmação do pedido, caso nenhum lote atenda totalmente a quantidade negociada no item, manter a reserva do mesmo, para tanto não será necessário realizar nenhuma ação personalizada.
+Criar tabela para registros das justificativas, contendo:
+Dt. Referencia, C.R, Categoria, Usuário Inclusão e Justificativa
 
+- Apresentar a justificativa/observação no dahs industriais ID 87, 88, 89, 90 e 91
+- Viabilizar a inclusão da justificativa atravez do próprio dash
+     - Com um clique sobre o gráfico do dash (nível principal), deve-se abrir uma tabela que apresente as justificativas do periodo
+     - O dash deve apresentar apenas as justificativas com a categoria igual a categoria do dash, ou seja, a categoria corresponde a um dashboard, sendo assim a justificativa a ser informada corresponde a análise e contexto que o dash apresenta
+     - Criar um botão de ação na tabela de justificativas para possibilitar incluir/alterar a justificativa
+          - Incluir a justificativa acompanhada do C.R, Dt. Referência, Categoria e Usuário de Inclusão"
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-Situação de Venda na Loja
-Um cliente deseja compar um tipo específico de porcelanato. Duas situações podem ocorrer ao verificar o estoque:
-1. Venda com lotes diversos: Se o estoque não for suficiente para atender o pedido com um único lote, o vendedor pode negociar a venda utilizando múltiplos lotes, caso o cliente concorde.
-2. Venda sob Encomenda: Preferencialmente, o produto será vendido sob encomenda, garantindo a alocação de um único lote para satisfazer integralmente o pedido.
-
-    Criar um botão de ação para liberar o pedido para ser alocado em lotes distintos (pode ter controle de acessos)
+ 
 
 
 ```
 
 ### 1. Log's Execução
 
-#### 1.1. 11/04/2024 8:00 as 12:00
+#### 1.1. 15/04/2024 14:00 as 18:30
 ```markdown
 
-Ogunja - Alocação de Itens sem Lote informado - Realização de procedure para Alocação de Itens com Lote Especificado, na qual criamos a condição de a quantidade disponível no lote especificado for suficiente para atender à demanda do pedido, a alocação do item é permitida.  E também, criamos caso o estoque do lote especificado não seja suficiente para atender à demanda do pedido, a alocação nesse lote é bloqueada, optando-se por reservar o item sem especificação do lote. Procedure criada: STP_ALOCA_MULT_LOTES_OGUNJA.
-
-```
-
-#### 1.2. 11/04/2024 13:30 as 18:00
-```markdown
-
-Ogunja - Alocação de itens com lote informado - Implementação de uma restrição para a inclusão de múltiplos lotes do mesmo produto em um único pedido, com a verificação de modo que a inclusão do primeiro lote não será bloqueada, porém a adição de um segundo lote será impedida. Este evento foi incorporado por meio de uma Procedure na Tabela de Itens, visando garantir a consistência e integridade dos dados durante o processo de alocação de lotes em pedidos.
+Satis - Indicadores Industriais - Desenvolvimento dos principais parâmetros do painel de controle, onde o primeiro parâmetro é o 'Estoque Tipo', que engloba o valor e a quantidade do estoque, definido da seguinte forma: Matéria-Prima: Grupo de Produtos Matéria-Prima (3010000); Embalagem: Grupo de Produtos Embalagens (3020000); Produto Acabado: Todos os Grupos, exceto a LINHA BIO (1020000) e codloca (102,103); Produto Devolvido: Todos os Grupos, exceto a LINHA BIO (1020000) e codlocal (104).
+O segundo parâmetro é o 'Frete Compras', que se refere à porcentagem encontrada de frete por nota fiscal para: Matéria-Prima de acordo com a natureza 2020101 e CR 402000000;
+Embalagens de acordo com as naturezas (2020601,2020602) e CR = 402000000.
 
 ```
 
 
-#### 1.2. 12/04/2024 08:00 as 12:00
+#### 1.1. 15/04/2024 20:00 as 23:40
 ```markdown
+Satis - Indicadores Industriais - Iniciamos agora a elaboracao do primeiro comando de select, no qual, a partir dos parâmetros fornecidos de data inicial e final, é recuperada a última data de cada mês dentro desse intervalo de datas. 
+```
 
-Ogunja - Alocação de itens com lote informado - Foi desenvolvida uma procedure que automatiza o processo de alocação de um único lote por produto durante a confirmação de pedidos. Esta procedimento garante que, ao confirmar um pedido, se um único lote for capaz de atender completamente à quantidade negociada para um determinado item, ele será automaticamente alocado. No caso de nenhum lote satisfazer integralmente a quantidade negociada para um item específico, a reserva desse item será mantida, sem a necessidade de intervenção personalizada por parte do usuário.Procedure criada: STP_VALIDA_MULT_LOTES_OGUNJA.
+#### 1.1. 16/04/2024 08:00 as 12:00
+```markdown
+Satis - Indicadores Industriais - A partir das últimas datas extraídas com base nos parâmetros do intervalo de datas, foi desenvolvido outro comando de select para iterar através de cada data e obter informações sobre o valor e a quantidade do estoque. Esses dados são então utilizados na apresentação gráfica, permitindo uma visualização dinâmica e detalhada da evolução do estoque ao longo do tempo. 
+```
+
+#### 1.1. 16/04/2024 13:00 as 18:30
+```markdown
+Satis - Indicadores Industriais - Após a conclusão do comando de select iniciado anteriormente, prosseguimos com a criação dos gráficos de valor e quantidade do estoque, conforme os respectivos resultados obtidos no select anterior, que identifica a posição da última data de cada mês dentro do intervalo especificado. Esses gráficos fornecem uma representação visual clara e detalhada da variação do estoque ao longo do tempo, permitindo uma análise abrangente das tendências e padrões de armazenamento. 
+```
+#### 1.1. 16/04/2024 21:00 as 23:30
+```markdown
+Satis - Indicadores Industriais - Na sequência, iniciamos a criação de um novo comando de seleção, desta vez com base na ordem de carga, com o propósito de recuperar informações sobre o frete em relação ao valor da nota referente às entregas realizadas pela empresa. Esse processo visa extrair dados relevantes sobre os custos de transporte associados a cada transação de carga, proporcionando uma análise detalhada da eficiência logística e dos gastos operacionais relacionados ao transporte de mercadorias. 
+```
+
+#### 1.1. 17/04/2024 08:00 as 11:30
+```markdown
+Satis - Indicadores Industriais - Continuando com o desenvolvimento da tarefa anterior, estamos atualmente em processo de elaboração do comando select com base na ordem de carga. Este estágio envolve a configuração detalhada do select para recuperar as informações relevantes sobre o frete em relação ao valor da nota referente às entregas da empresa. Neste momento, estamos refinando os parâmetros e otimizando o código para garantir uma recuperação precisa e eficiente dos dados necessários. Assim que concluído, este select será integrado ao fluxo de trabalho. 
+```
+
+#### 1.1. 17/04/2024 13:00 as 18:30
+```markdown
+Satis - Indicadores Industriais - Seguindo a continuidade da etapa anterior, estamos atualmente em meio ao processo de implementação do comando de seleção baseado na ordem de carga. Este estágio envolve uma análise minuciosa dos requisitos e parâmetros necessários para recuperar com precisão as informações relevantes sobre o frete em relação ao valor da nota referente às entregas realizadas pela empresa. Estamos dedicando recursos para otimizar o código e garantir sua eficiência operacional. 
+```
+
+#### 1.1. 17/04/2024 20:30 as 22:30
+```markdown
+Satis - Indicadores Industriais - Após uma revisão cuidadosa do comando de select, levando em consideração as especificações do select da tela de ordens de carga, finalizamos esta etapa com sucesso. O select foi refinado para recuperar com precisão as informações necessárias sobre o frete em relação ao valor da nota referente às entregas da empresa.  
+```
+#### 1.1. 18/04/2024 08:00 as 11:00
+```markdown
+Satis - Indicadores Industriais - Após a conclusão bem-sucedida da implementação do select no componente gráfico, avançamos para a próxima fase do projeto. Nesta etapa, iniciamos a criação de um novo comando de seleção voltado para os fretes de compras, com base nas categorias de matéria-prima e embalagens. Durante este processo, foram alinhados alguns aspectos com o usuário responsável para garantir a conformidade com os requisitos específicos. Com a finalização desta etapa, prosseguimos para a integração do novo select ao gráfico do dashboard.  
+```
+#### 1.1. 18/04/2024 13:00 as 16:00
+```markdown
+Satis - Indicadores Industriais - A seguir, desenvolvemos uma tabela que irá compor as 11 situações de meta estipuladas, contemplando diferentes aspectos do estoque e dos fretes. Esta tabela inclui métricas como o valor do estoque de matéria-prima, o valor do estoque de embalagens, o valor do estoque de produtos acabados, o valor do estoque devolvido, a quantidade de matéria-prima em estoque, a quantidade de embalagens em estoque, a quantidade de produtos acabados em estoque, a quantidade de produtos devolvidos em estoque, a média percentual do frete em relação às entregas, a média percentual do frete nas compras de matéria-prima e a média percentual do frete nas compras de embalagens.
+
+Com base neste cenário de metas criado, associamos os selects dos gráficos com esta nova tabela de metas. Em cada gráfico, adicionamos uma linha representando a meta estipulada, permitindo assim a comparação visual entre o desempenho real e as metas definidas.
 
 ```
 
-#### 1.2. 12/04/2024 13:00 as 18:30
+#### 1.1. 18/04/2024 16:00 as 18:30
 ```markdown
-
-Ogunja - Libera Alocação de itens Multiplos Lotes - Desenvolvemos uma procedure que aprimora significativamente a funcionalidade de vendas, permitindo a gestão eficiente de vendas com lotes diversos. Agora, quando o estoque não é suficiente para atender a um pedido com um único lote, os vendedores têm a flexibilidade de negociar a venda utilizando múltiplos lotes, contando com a concordância do cliente. Além disso, implementamos a funcionalidade de Venda sob Encomenda, proporcionando aos clientes a opção de adquirir produtos que não estão disponíveis em estoque imediato. Com essa configuração, garantimos a alocação de um único lote para satisfazer integralmente o pedido do cliente, reforçando nossa capacidade de atender às demandas de forma personalizada e eficaz. Como parte dessas melhorias, introduzimos um botão de ação intuitivo que permite aos usuários liberar o pedido para ser alocado em lotes distintos, simplificando ainda mais o processo de vendas e aumentando a eficiência operacional da nossa plataforma. Essas atualizações representam um avanço significativo em nossa capacidade de atender às necessidades variadas dos clientes e garantir uma experiência de compra satisfatória. Procedure criada: STP_LIB_MULT_LOTES_OGUNJA.
+Satis - Indicadores Industriais - Foi implementada uma tabela filha adicional à estrutura da tabela de metas, com a finalidade de registrar informações complementares. Esta nova tabela conta com campos específicos para armazenar a justificativa associada a cada tipo de meta, bem como o usuário responsável pela inclusão e a data correspondente. A finalidade primordial desta extensão é possibilitar o registro detalhado das razões subjacentes às metas estabelecidas, em consonância com o período de referência pertinente.
 
 ```
 
