@@ -1,0 +1,78 @@
+# Example of basic forms ABAP
+
+
+
+```
+se38
+
+REPORT Z_CRICACAO_VARIAVEIS.
+
+
+
+
+* SAO 3 TIPOS DE VARIAVEIS GLOBAIS
+
+* Declaração de Variaveis Globais
+DATA: V_COMPANHIA TYPE SCARR-CARRNAME.
+
+* Declaração de Variaveis Locais
+DATA: V_DATA TYPE D,
+      V_HORA TYPE T,
+      V_MEDIA_ALUNO TYPE I.
+
+
+CONSTANTS C_MEDIA_APROVACAO TYPE I VALUE '7'.
+
+
+* Variaveis de Sistema
+
+V_DATA = SY-DATUM.
+V_HORA = SY-UZEIT.
+
+
+* Declaracao Parameter
+
+PARAMETER P_ALUNO TYPE STRING.
+PARAMETERS: P_NOTA1 TYPE I,
+            P_NOTA2 TYPE I.
+
+
+
+* Calculo da media do aluno
+
+V_MEDIA_ALUNO =  ( P_NOTA1 + P_NOTA2 ) / 2.
+
+IF V_MEDIA_ALUNO >= 7 AND V_MEDIA_ALUNO < 10.
+
+  WRITE:/ 'Aluno Aprovado com Media = ', V_MEDIA_ALUNO COLOR COL_POSITIVE.
+
+ELSEIF V_MEDIA_ALUNO = 10.
+
+  WRITE:/ 'PARABENS, Aluno Aprovado com nota máxima! ', V_MEDIA_ALUNO COLOR COL_POSITIVE.
+
+ELSEIF V_MEDIA_ALUNO < 7.
+
+  WRITE:/ 'Aluno Reprovado com Media = ', V_MEDIA_ALUNO COLOR COL_NEGATIVE.
+ENDIF.
+
+* Declaracao PARAMETER + RADIOBUTTON
+
+PARAMETERS: P_TURMA1 RADIOBUTTON GROUP GRP1,
+            P_TURMA2 RADIOBUTTON GROUP GRP1,
+            P_TURMA3 RADIOBUTTON GROUP GRP1,
+            P_TURMA4 RADIOBUTTON GROUP GRP1,
+            P_TURMA5 RADIOBUTTON GROUP GRP1.
+
+
+* Impressão dos Valores
+
+WRITE:/ 'Aluno: ', P_ALUNO.
+WRITE:/ 'Data: ', V_DATA DD/MM/YYYY.
+WRITE:/ 'Hora: ', V_HORA ENVIRONMENT TIME FORMAT.
+
+WRITE:/ 'A media de aprovacao e ', C_MEDIA_APROVACAO.
+
+WRITE:/ 'A media do aluno foi: ', V_MEDIA_ALUNO.
+
+
+```
