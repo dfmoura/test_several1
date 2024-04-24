@@ -108,3 +108,16 @@ Satis - Indicadores Industriais - Foi implementada uma tabela filha adicional à
 
 ```
 
+
+
+#### 1.1. 19/04/2024 8:00 as 12:00
+```markdown
+Satis - Indicadores Industriais -Damos início ao processo de desenvolvimento com o objetivo de capacitar o usuário a realizar justificativas diante de desvios em relação às metas estabelecidas. Como parte desse esforço, incorporamos ao código a funcionalidade de permitir justificativas para as 11 situações de desvio de meta identificadas. Isso proporciona aos usuários uma abordagem sistemática para explicar e documentar as razões por trás de qualquer desvio, promovendo transparência e facilitando o processo de análise e tomada de decisão.
+
+```
+
+#### 1.1. 19/04/2024 13:00 as 18:00
+```markdown
+Satis - Indicadores Industriais - Configuramos o código para permitir que o usuário inclua apenas registros de justificativa, sem a capacidade de realizar edições posteriores. Essa configuração visa garantir a integridade dos dados, mantendo um histórico imutável das justificativas fornecidas. Além disso, dentro das configurações do código, estabelecemos que cada situação de meta corresponda a um argumento específico. Esse argumento atua como um índice de visualização, facilitando a identificação e diferenciação entre os diversos tipos de metas selecionadas pelo usuário.
+
+```
