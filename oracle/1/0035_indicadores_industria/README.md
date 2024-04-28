@@ -121,3 +121,30 @@ Satis - Indicadores Industriais -Damos início ao processo de desenvolvimento co
 Satis - Indicadores Industriais - Configuramos o código para permitir que o usuário inclua apenas registros de justificativa, sem a capacidade de realizar edições posteriores. Essa configuração visa garantir a integridade dos dados, mantendo um histórico imutável das justificativas fornecidas. Além disso, dentro das configurações do código, estabelecemos que cada situação de meta corresponda a um argumento específico. Esse argumento atua como um índice de visualização, facilitando a identificação e diferenciação entre os diversos tipos de metas selecionadas pelo usuário.
 
 ```
+
+
+#### 1.1. 22/04/2024 08:00 as 12:00
+```markdown
+Satis - Indicadores Industriais - Após a configuração do código para restringir o usuário a incluir apenas registros de justificativa, sem a capacidade de fazer edições posteriores, observamos uma melhoria significativa na integridade dos dados. Agora, cada entrada representa uma justificativa única e imutável, fornecendo um histórico claro e confiável das razões por trás das ações tomadas. Além disso, ao associar cada situação de meta a um argumento específico dentro das configurações do código, alcançamos uma organização mais refinada e uma melhor compreensão das diferentes metas selecionadas pelos usuários. Esses argumentos atuam como índices visuais distintos, facilitando a identificação e diferenciação entre as várias categorias de metas, tornando o processo de análise e acompanhamento mais eficiente e intuitivo.
+```
+
+#### 1.1. 22/04/2024 14:00 as 15:00
+```markdown
+Satis - Indicadores Industriais - Realizamos a reunião de apresentação e revisão dos indicadores industriais com Edson e Maicon. Decidimos revisar a apresentação dos gráficos, removendo os rótulos das colunas para uma visualização mais limpa e eficiente. Além disso, concordamos em aprimorar o filtro de dados no gráfico de Planejado x Realizado, adotando o mesmo modelo de seleção utilizado no painel de produção do dashboard como referência.
+```
+
+
+#### 1.1. 22/04/2024 16:00 as 18:30
+```markdown
+Satis - Indicadores Industriais - Efetuamos ajustes nos gráficos do painel, removendo os rótulos de valores das colunas para aprimorar a clareza visual e a usabilidade. Além disso, iniciamos o processo de substituição do filtro de dados atual no gráfico de Produção - Planejado x Realizado, adaptando-o para utilizar o mesmo mecanismo de select empregado no dash de produção. Este refinamento visa não apenas garantir consistência na interface, mas também facilitar a interação dos usuários com os dados apresentados.
+```
+
+#### 1.1. 23/04/2024 8:00 as 11:30
+```markdown
+Satis - Indicadores Industriais - Prosseguimos com o processo de adaptação do select do dash de produção para ser integrado ao gráfico de Produção - Planejado x Realizado do dash indicadores indutriais. Este trabalho visa garantir uma transição fluida e consistente entre os diferentes elementos do dashboard, proporcionando uma experiência de usuário mais intuitiva e eficiente. A implementação dessa integração está sendo realizada com cuidado para assegurar a precisão dos dados e a funcionalidade adequada do novo filtro de seleção.
+```
+
+#### 1.1. 23/04/2024 12:30 as 14:30
+```markdown
+Satis - Indicadores Industriais - Concluímos com sucesso a adaptação do filtro de seleção do painel de produção para o gráfico de Produção - Planejado x Realizado. Após meticulosa implementação e testes, garantimos a integridade dos dados e a funcionalidade perfeita do novo filtro. Este avanço fortalece a coerência e a eficácia do dashboard, proporcionando aos usuários uma experiência aprimorada na análise e no monitoramento dos indicadores industriais.
+```
