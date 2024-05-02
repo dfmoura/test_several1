@@ -1,0 +1,473 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_ANO_SAFRA" description="Ano Safra" metadata="singleList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="0">
+      <expression type="SQL"><![CDATA[SELECTF_ANO_SAFRA(DTREF) AS VALUE,F_ANO_SAFRA(DTREF) AS LABELFROM TGFMETWHERE CODMETA = 7GROUP BY F_ANO_SAFRA(DTREF)ORDER BY F_ANO_SAFRA(DTREF)]]></expression>
+    </parameter>
+    <parameter id="P_REG_COMP" description="Regime por Competência" metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="1"/>
+    <parameter id="P_TIPVERBA" description="Tipo Verba" metadata="singleList:Text" listType="text" required="false" keep-last="true" keep-date="false" order="2">
+      <item value="V" label="Vazio"/>
+      <item value="M" label="Marketing"/>
+      <item value="T" label="Trade"/>
+      <item value="M_T" label="Marketing e Trade"/>
+      <item value="M_T_V" label=" Marketing e Trade + Vazio"/>
+    </parameter>
+    <parameter id="P_REGIAO" description="Região" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="3">
+      <expression type="SQL"><![CDATA[SELECTCODREG AS VALUE,CODREG|| ' - '||NOMEREG AS LABELFROM TSIREGORDER BY 1]]></expression>
+    </parameter>
+    <parameter id="P_CODVENDRTV" description="Cód. Vend. RTV" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="4">
+      <expression type="SQL"><![CDATA[SELECTCODVEND AS VALUE,CODVEND|| ' - '||APELIDO AS LABELFROM TGFVENORDER BY 1]]></expression>
+    </parameter>
+    <parameter id="P_CODNAT" description="Cód. Natureza Analítica" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="8">
+      <expression type="SQL"><![CDATA[SELECT CAB.CODNAT AS VALUE,CAB.CODNAT||' - '||NAT.DESCRNAT AS LABELFROM TGFCAB CABINNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNATGROUP BY CAB.CODNAT,NAT.DESCRNATORDER BY 1]]></expression>
+    </parameter>
+  </prompt-parameters>
+  <level id="lvl_gkxojh" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="0"/>
+      <container orientacao="V" tamanhoRelativo="729">
+        <chart id="cht_gkxojj" type="column" nroColuna="12">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Realizado + Comprometido vs Budget - Mês a Mês</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTANO,MES,MES_ANO,ANO_SAFRA,SUM(VLRPREV) AS VLRPREV,SUM(VLRREAL) AS VLRREAL,SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDOFROM(SELECT	ANO,	MES,	MES_ANO,	ANO_SAFRA,	0 AS VLRPREV,	SUM(VLRREAL) AS VLRREAL,	SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDOFROM(	SELECT(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'YYYY') ELSE TO_CHAR(DTNEG,'YYYY') END) AS ANO,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM')  ELSE TO_CHAR(DTNEG,'MM') END) AS MES,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM-YYYY') ELSE TO_CHAR(DTNEG,'MM-YYYY') END) AS MES_ANO,ANO_SAFRA,0 AS VLRPREV,VLRREAL,VLRCOMPROMETIDOFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,TRIM(CAB.AD_TIPVERBA) AS AD_TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREALFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL)))GROUP BYANO,MES,MES_ANO,ANO_SAFRAUNION ALL SELECTTO_CHAR(DTREF,'YYYY') AS ANO,TO_CHAR(DTREF,'MM') AS MES,TO_CHAR(DTREF,'MM-YYYY') AS MES_ANO,ANO_SAFRA,SUM(PREVDESP) AS VLRPREV,0 AS VLRREAL,0 AS VLRCOMPROMETIDOFROM(SELECTMET.CODMETA,MET.DTREF,F_ANO_SAFRA(MET.DTREF) AS ANO_SAFRA,MET.CODPROJ,MET.PREVDESPFROM TGFMET METWHERE MET.CODMETA = 10AND SUBSTR(MET.CODPROJ, 1, 1) = '8'AND F_ANO_SAFRA(MET.DTREF) = :P_ANO_SAFRA)GROUP BYTO_CHAR(DTREF,'YYYY'),TO_CHAR(DTREF,'MM'),TO_CHAR(DTREF,'MM-YYYY'),ANO_SAFRA)GROUP BY ANO,MES,MES_ANO,ANO_SAFRAORDER BY 1,2]]></expression>
+          <metadata>
+            <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+            <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+            <field name="MES_ANO" label="Mes / Ano" type="S" visible="true" useFooter="false"/>
+            <field name="ANO_SAFRA" label="Ano Safra" type="S" visible="true" useFooter="false"/>
+            <field name="VLRPREV" label="Budget" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLRREAL" label="Realizado" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLRCOMPROMETIDO" label="Comprometido" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <horizontal-axis>
+            <category field="MES_ANO" rotation="0" dropLabel="false">
+              <initView value="first"/>
+            </category>
+          </horizontal-axis>
+          <series>
+            <set type="stacked">
+              <serie type="column">
+                <xField>MES_ANO</xField>
+                <yField>VLRREAL</yField>
+                <display><![CDATA[Real]]></display>
+                <color>0x33ff00</color>
+                <on-click navigate-to="lvl_gkxoxd">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                  <param id="A_TIPVALOR">REALIZADO</param>
+                </on-click>
+              </serie>
+              <serie type="column">
+                <xField>MES_ANO</xField>
+                <yField>VLRCOMPROMETIDO</yField>
+                <display><![CDATA[Comprometido]]></display>
+                <color>0xff</color>
+                <on-click navigate-to="lvl_gkxoxd">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                  <param id="A_TIPVALOR">COMPROMETIDO</param>
+                </on-click>
+              </serie>
+            </set>
+            <serie type="line" circle-intersection="true">
+              <xField>MES_ANO</xField>
+              <yField>VLRPREV</yField>
+              <display><![CDATA[Budget]]></display>
+              <color>0xff0000</color>
+            </serie>
+          </series>
+          <legend position="top" direction="h"/>
+        </chart>
+      </container>
+      <container orientacao="H" tamanhoRelativo="100">
+        <container orientacao="V" tamanhoRelativo="33">
+          <simple-value id="svl_gkxoxl">
+            <value-expression><![CDATA[<div style='text-align: center;'>  <button style='font-weight: bold; padding: 8px 20px; font-size: 14px; background-color: #008000; color: #ffffff; border: none; border-radius: 20px; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);'>Real + Comprometido x Budget</button></div>]]></value-expression>
+            <on-click navigate-to="lvl_gkxoxp"/>
+          </simple-value>
+        </container>
+        <container orientacao="H" tamanhoRelativo="33">
+          <simple-value id="svl_mdbxdc">
+            <value-expression><![CDATA[<div style='text-align: center;'>  <button style='font-weight: bold; padding: 8px 20px; font-size: 14px; background-color: #008000; color: #ffffff; border: none; border-radius: 20px; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);'>Participação Verba/Pilar/Projeto</button></div>]]></value-expression>
+            <on-click navigate-to="lvl_mdbxad"/>
+          </simple-value>
+        </container>
+        <container orientacao="V" tamanhoRelativo="33">
+          <simple-value id="svl_m37lgn">
+            <value-expression><![CDATA[<div style='text-align: center;'>  <button style='font-weight: bold; padding: 8px 20px; font-size: 14px; background-color: #008000; color: #ffffff; border: none; border-radius: 20px; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);'>Valores Investidos</button></div>]]></value-expression>
+            <on-click navigate-to="lvl_m37lfy"/>
+          </simple-value>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_gkxoxd" description="Detalhe">
+    <args>
+      <arg id="A_MES_ANO" type="text"/>
+      <arg id="A_TIPVALOR" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_gkxoxe" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,TRIM(CAB.AD_TIPVERBA) AS AD_TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREAL,(CASE WHEN VGF.PROVISAO = 'S' THEN 'COMPROMETIDO'WHEN VGF.PROVISAO = 'N' THEN 'REALIZADO' END) AS TIPVALORFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL)AND (	(:P_REG_COMP = 'N' AND TO_CHAR(COALESCE(VGF.DHBAIXA, VGF.DTVENC),'MM-YYYY') = :A_MES_ANO)	OR (:P_REG_COMP = 'S' AND TO_CHAR(VGF.DTNEG,'MM-YYYY') = :A_MES_ANO))AND (CASE WHEN VGF.PROVISAO = 'S' THEN 'COMPROMETIDO'WHEN VGF.PROVISAO = 'N' THEN 'REALIZADO' END) = :A_TIPVALOR]]></expression>
+        <metadata>
+          <field name="NUFIN" label="NUFIN" type="I" visible="true" useFooter="false"/>
+          <field name="DESDOBRAMENTO" label="DESDOBRAMENTO" type="S" visible="true" useFooter="false"/>
+          <field name="NUNOTA" label="NUNOTA" type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="NUMNOTA" type="I" visible="true" useFooter="false"/>
+          <field name="AD_TIPVERBA" label="AD_TIPVERBA" type="S" visible="true" useFooter="false"/>
+          <field name="AD_REGIAO" label="AD_REGIAO" type="I" visible="true" useFooter="false"/>
+          <field name="AD_CODVENDRTV" label="AD_CODVENDRTV" type="I" visible="true" useFooter="false"/>
+          <field name="AD_LINHAPROD1" label="AD_LINHAPROD1" type="I" visible="true" useFooter="false"/>
+          <field name="AD_LINHAPROD2" label="AD_LINHAPROD2" type="I" visible="true" useFooter="false"/>
+          <field name="AD_LINHAPROD3" label="AD_LINHAPROD3" type="I" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="CODNAT" type="I" visible="true" useFooter="false"/>
+          <field name="CODPROJ" label="CODPROJ" type="I" visible="true" useFooter="false"/>
+          <field name="CODCENCUS" label="CODCENCUS" type="I" visible="true" useFooter="false"/>
+          <field name="CODTIPOPER" label="CODTIPOPER" type="I" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="DTNEG" type="D" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="DTVENC" type="D" visible="true" useFooter="false"/>
+          <field name="DHBAIXA" label="DHBAIXA" type="D" visible="true" useFooter="false"/>
+          <field name="ANO_SAFRA" label="ANO_SAFRA" type="S" visible="true" useFooter="false"/>
+          <field name="PROVISAO" label="PROVISAO" type="S" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="VLRDESDOB" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRBAIXA" label="VLRBAIXA" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRCOMPROMETIDO" label="VLRCOMPROMETIDO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRREAL" label="VLRREAL" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="TIPVALOR" label="TIPVALOR" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_gkxoxp" description="1 - Comprometido x Meta">
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="115">
+        <chart id="cht_gkxoxr" type="gauge">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Real. + Compr. por Budget % </b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT((SUM(VLRREAL) + SUM(VLRCOMPROMETIDO)) / NULLIF(SUM(VLRPREV), 0)) * 100 AS PERCFROM(SELECTANO,MES,MES_ANO,ANO_SAFRA,SUM(VLRPREV) AS VLRPREV,SUM(VLRREAL) AS VLRREAL,SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDOFROM(SELECT	ANO,	MES,	MES_ANO,	ANO_SAFRA,	0 AS VLRPREV,	SUM(VLRREAL) AS VLRREAL,	SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDOFROM(	SELECT(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'YYYY') ELSE TO_CHAR(DTNEG,'YYYY') END) AS ANO,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM')  ELSE TO_CHAR(DTNEG,'MM') END) AS MES,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM-YYYY') ELSE TO_CHAR(DTNEG,'MM-YYYY') END) AS MES_ANO,ANO_SAFRA,0 AS VLRPREV,VLRREAL,VLRCOMPROMETIDOFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,TRIM(CAB.AD_TIPVERBA) AS AD_TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREALFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL)))GROUP BYANO,MES,MES_ANO,ANO_SAFRAUNION ALL SELECTTO_CHAR(DTREF,'YYYY') AS ANO,TO_CHAR(DTREF,'MM') AS MES,TO_CHAR(DTREF,'MM-YYYY') AS MES_ANO,ANO_SAFRA,SUM(PREVDESP) AS VLRPREV,0 AS VLRREAL,0 AS VLRCOMPROMETIDOFROM(SELECTMET.CODMETA,MET.DTREF,F_ANO_SAFRA(MET.DTREF) AS ANO_SAFRA,MET.CODPROJ,MET.PREVDESPFROM TGFMET METWHERE MET.CODMETA = 10AND SUBSTR(MET.CODPROJ, 1, 1) = '8'AND F_ANO_SAFRA(MET.DTREF) = :P_ANO_SAFRA)GROUP BYTO_CHAR(DTREF,'YYYY'),TO_CHAR(DTREF,'MM'),TO_CHAR(DTREF,'MM-YYYY'),ANO_SAFRA)GROUP BY ANO,MES,MES_ANO,ANO_SAFRA)]]></expression>
+          <metadata>
+            <field name="PERC" label="%" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <show-ticks>true</show-ticks>
+          <min-value>0</min-value>
+          <max-value>100</max-value>
+          <value-field>PERC</value-field>
+          <alert-colors values="0,50,80,100" colors="0xff00,0xffff00,0xff0000"/>
+          <action>
+            <on-click navigate-to="lvl_ojlvwm"/>
+          </action>
+        </chart>
+      </container>
+      <container orientacao="H" tamanhoRelativo="198">
+        <chart id="cht_ojlvxl" type="bar" nroColuna="10">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Real. + Compro. x Budget por PILAR</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT    F_NIVEL2_DESC(CODPROJ) AS CODPILAR,    F_IDENTIFICACAO(F_NIVEL2_DESC(CODPROJ)) AS IDENTIFICACAO,    SUM(VLRPREV) AS VLRPREV,    SUM(VLRREAL) AS VLRREAL,    SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDO,    SUM(VLRREAL) + SUM(VLRCOMPROMETIDO) AS VLR_REAL_COMPROFROM (    SELECT        ANO,        MES,        MES_ANO,        ANO_SAFRA,        CODPROJ,        0 AS VLRPREV,        SUM(VLRREAL) AS VLRREAL,        SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDO    FROM (        SELECT            (CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'YYYY') ELSE TO_CHAR(DTNEG,'YYYY') END) AS ANO,            (CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM')  ELSE TO_CHAR(DTNEG,'MM') END) AS MES,            (CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM-YYYY') ELSE TO_CHAR(DTNEG,'MM-YYYY') END) AS MES_ANO,            ANO_SAFRA,            CODPROJ,            0 AS VLRPREV,            VLRREAL,            VLRCOMPROMETIDO        FROM (            WITH                 FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),                CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)            SELECT                VGF.NUFIN,                FIN.DESDOBRAMENTO,                FIN.NUNOTA,                VGF.NUMNOTA,                CAB.AD_TIPVERBA,                CAB.AD_REGIAO,                CAB.AD_CODVENDRTV,                CAB.AD_LINHAPROD1,                CAB.AD_LINHAPROD2,                CAB.AD_LINHAPROD3,                VGF.CODNAT,                VGF.CODPROJ,                VGF.CODCENCUS,                CAB.CODTIPOPER,                VGF.DTNEG,                VGF.DTVENC,                VGF.DHBAIXA,                (CASE                 WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))                WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)                END) AS ANO_SAFRA,                VGF.PROVISAO,                FIN.VLRDESDOB,                VGF.VLRBAIXA * -1 AS VLRBAIXA,                CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END AS VLRCOMPROMETIDO,                CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END AS VLRREAL            FROM VGF_RESULTADO_PROV_SATIS VGF            LEFT JOIN FIN ON VGF.NUFIN = FIN.NUFIN            LEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTA            WHERE                VGF.RECDESP = -1                AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'                AND (                	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)                	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA)                )                                AND(                 ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)                OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')                OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')                OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))                OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL))                )                                                                                                AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)                                AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)                                AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL)        )    )    GROUP BY        ANO,        MES,        MES_ANO,        ANO_SAFRA,        CODPROJ    UNION ALL     SELECT        TO_CHAR(DTREF, 'YYYY') AS ANO,        TO_CHAR(DTREF, 'MM') AS MES,        TO_CHAR(DTREF, 'MM-YYYY') AS MES_ANO,        ANO_SAFRA,        CODPROJ,        SUM(PREVDESP) AS VLRPREV,        0 AS VLRREAL,        0 AS VLRCOMPROMETIDO    FROM (        SELECT            MET.CODMETA,            MET.DTREF,            F_ANO_SAFRA(MET.DTREF) AS ANO_SAFRA,            MET.CODPROJ,            MET.PREVDESP        FROM TGFMET MET        WHERE             MET.CODMETA = 10            AND SUBSTR(MET.CODPROJ, 1, 1) = '8'            AND F_ANO_SAFRA(MET.DTREF) = :P_ANO_SAFRA    )    GROUP BY        TO_CHAR(DTREF, 'YYYY'),        TO_CHAR(DTREF, 'MM'),        TO_CHAR(DTREF, 'MM-YYYY'),        ANO_SAFRA,        CODPROJ) GROUP BY F_NIVEL2_DESC(CODPROJ),F_IDENTIFICACAO(F_NIVEL2_DESC(CODPROJ))ORDER BY 1]]></expression>
+          <metadata>
+            <field name="CODPILAR" label="CODPILAR" type="I" visible="true" useFooter="false"/>
+            <field name="IDENTIFICACAO" label="Pilar" type="S" visible="true" useFooter="false"/>
+            <field name="VLRPREV" label="Budget" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLRREAL" label="Vlr. Real" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLRCOMPROMETIDO" label="VLRCOMPROMETIDO" type="I" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLR_REAL_COMPRO" label="Real + Comprometido" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <vertical-axis>
+            <category field="IDENTIFICACAO" rotation="0" dropLabel="false">
+              <initView value="first"/>
+            </category>
+          </vertical-axis>
+          <series>
+            <serie type="bar">
+              <xField>VLR_REAL_COMPRO</xField>
+              <yField>IDENTIFICACAO</yField>
+              <display><![CDATA[Real + Comprometido]]></display>
+              <color>0x339900</color>
+              <on-click navigate-to="lvl_ojlvzz">
+                <param id="A_PILAR">$CODPILAR</param>
+              </on-click>
+            </serie>
+            <serie type="bar">
+              <xField>VLRPREV</xField>
+              <yField>IDENTIFICACAO</yField>
+              <display><![CDATA[Budget]]></display>
+            </serie>
+          </series>
+          <legend position="top" direction="h"/>
+        </chart>
+      </container>
+      <container orientacao="H" tamanhoRelativo="172">
+        <chart id="cht_ojlv3k" type="bar" nroColuna="10">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Saldo Budget por Projeto (Top 10)</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT * FROM (SELECTA.CODPROJ,PRJ.IDENTIFICACAO,ABS(NVL(SUM(VLRPREV) - (SUM(VLRREAL)+SUM(VLRCOMPROMETIDO)),0)) AS SALDOFROM(SELECT	ANO,	MES,	MES_ANO,	ANO_SAFRA,	CODPROJ,	0 AS VLRPREV,	SUM(VLRREAL) AS VLRREAL,	SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDOFROM(	SELECT(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'YYYY') ELSE TO_CHAR(DTNEG,'YYYY') END) AS ANO,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM')  ELSE TO_CHAR(DTNEG,'MM') END) AS MES,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM-YYYY') ELSE TO_CHAR(DTNEG,'MM-YYYY') END) AS MES_ANO,ANO_SAFRA,CODPROJ,0 AS VLRPREV,VLRREAL,VLRCOMPROMETIDOFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREALFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL)))GROUP BYANO,MES,MES_ANO,ANO_SAFRA,CODPROJUNION ALL SELECTTO_CHAR(DTREF,'YYYY') AS ANO,TO_CHAR(DTREF,'MM') AS MES,TO_CHAR(DTREF,'MM-YYYY') AS MES_ANO,ANO_SAFRA,CODPROJ,SUM(PREVDESP) AS VLRPREV,0 AS VLRREAL,0 AS VLRCOMPROMETIDOFROM(SELECTMET.CODMETA,MET.DTREF,F_ANO_SAFRA(MET.DTREF) AS ANO_SAFRA,MET.CODPROJ,MET.PREVDESPFROM TGFMET METWHERE MET.CODMETA = 10AND SUBSTR(MET.CODPROJ, 1, 1) = '8'AND F_ANO_SAFRA(MET.DTREF) = :P_ANO_SAFRA)GROUP BYTO_CHAR(DTREF,'YYYY'),TO_CHAR(DTREF,'MM'),TO_CHAR(DTREF,'MM-YYYY'),ANO_SAFRA,CODPROJ) AINNER JOIN TCSPRJ PRJ ON A.CODPROJ = PRJ.CODPROJGROUP BY A.CODPROJ,PRJ.IDENTIFICACAO) WHERE ROWNUM <= 10ORDER BY 3 DESC]]></expression>
+          <metadata>
+            <field name="CODPROJ" label="CODPROJ" type="I" visible="true" useFooter="false"/>
+            <field name="IDENTIFICACAO" label="IDENTIFICACAO" type="S" visible="true" useFooter="false"/>
+            <field name="SALDO" label="Saldo" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <vertical-axis>
+            <category field="" rotation="0" dropLabel="false">
+              <initView value="first"/>
+            </category>
+          </vertical-axis>
+          <series>
+            <serie type="bar">
+              <xField>SALDO</xField>
+              <yField>IDENTIFICACAO</yField>
+              <display><![CDATA[Projeto]]></display>
+              <color>0x339900</color>
+            </serie>
+          </series>
+        </chart>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_ojlvwm" description="Det Velocimetro">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_ojlvwn" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECTSUM(VLRREAL) AS VLRREAL,SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDO,SUM(VLRPREV) AS VLRPREV,((SUM(VLRREAL) + SUM(VLRCOMPROMETIDO)) / NULLIF(SUM(VLRPREV), 0)) * 100 AS PERCFROM(SELECTANO,MES,MES_ANO,ANO_SAFRA,SUM(VLRPREV) AS VLRPREV,SUM(VLRREAL) AS VLRREAL,SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDOFROM(SELECT	ANO,	MES,	MES_ANO,	ANO_SAFRA,	0 AS VLRPREV,	SUM(VLRREAL) AS VLRREAL,	SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDOFROM(	SELECT(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'YYYY') ELSE TO_CHAR(DTNEG,'YYYY') END) AS ANO,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM')  ELSE TO_CHAR(DTNEG,'MM') END) AS MES,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM-YYYY') ELSE TO_CHAR(DTNEG,'MM-YYYY') END) AS MES_ANO,ANO_SAFRA,0 AS VLRPREV,VLRREAL,VLRCOMPROMETIDOFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,TRIM(CAB.AD_TIPVERBA) AS AD_TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREALFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL)))GROUP BYANO,MES,MES_ANO,ANO_SAFRAUNION ALL SELECTTO_CHAR(DTREF,'YYYY') AS ANO,TO_CHAR(DTREF,'MM') AS MES,TO_CHAR(DTREF,'MM-YYYY') AS MES_ANO,ANO_SAFRA,SUM(PREVDESP) AS VLRPREV,0 AS VLRREAL,0 AS VLRCOMPROMETIDOFROM(SELECTMET.CODMETA,MET.DTREF,F_ANO_SAFRA(MET.DTREF) AS ANO_SAFRA,MET.CODPROJ,MET.PREVDESPFROM TGFMET METWHERE MET.CODMETA = 10AND SUBSTR(MET.CODPROJ, 1, 1) = '8'AND F_ANO_SAFRA(MET.DTREF) = :P_ANO_SAFRA)GROUP BYTO_CHAR(DTREF,'YYYY'),TO_CHAR(DTREF,'MM'),TO_CHAR(DTREF,'MM-YYYY'),ANO_SAFRA)GROUP BY ANO,MES,MES_ANO,ANO_SAFRA)]]></expression>
+        <metadata>
+          <field name="VLRREAL" label="VLRREAL" type="I" visible="true" useFooter="false"/>
+          <field name="VLRCOMPROMETIDO" label="VLRCOMPROMETIDO" type="I" visible="true" useFooter="false"/>
+          <field name="VLRPREV" label="VLRPREV" type="I" visible="true" useFooter="false"/>
+          <field name="PERC" label="PERC" type="I" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_ojlvzz" description="Det Pilar">
+    <args>
+      <arg id="A_PILAR" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_ojlvz0" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[            WITH                 FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),                CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)            SELECT                VGF.NUFIN,                FIN.DESDOBRAMENTO,                FIN.NUNOTA,                VGF.NUMNOTA,                CAB.AD_TIPVERBA,                CAB.AD_REGIAO,                CAB.AD_CODVENDRTV,                CAB.AD_LINHAPROD1,                CAB.AD_LINHAPROD2,                CAB.AD_LINHAPROD3,                VGF.CODNAT,                VGF.CODPROJ,                F_NIVEL2_DESC(CODPROJ) AS CODPILAR,                F_IDENTIFICACAO(F_NIVEL2_DESC(CODPROJ)) AS DESCRPILAR,                VGF.CODCENCUS,                CAB.CODTIPOPER,                VGF.DTNEG,                VGF.DTVENC,                VGF.DHBAIXA,                (CASE                 WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))                WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)                END) AS ANO_SAFRA,                VGF.PROVISAO,                FIN.VLRDESDOB,                VGF.VLRBAIXA * -1 AS VLRBAIXA,                CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END AS VLRCOMPROMETIDO,                CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END AS VLRREAL            FROM VGF_RESULTADO_PROV_SATIS VGF            LEFT JOIN FIN ON VGF.NUFIN = FIN.NUFIN            LEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTA            WHERE                VGF.RECDESP = -1                AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'                AND (                	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)                	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA)                )                                AND(                 ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)                OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')                OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')                OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))                OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL))                )                                                AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)                                AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)                                AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL)                AND F_NIVEL2_DESC(CODPROJ) = :A_PILAR]]></expression>
+        <metadata>
+          <field name="NUFIN" label="NUFIN" type="I" visible="true" useFooter="false"/>
+          <field name="DESDOBRAMENTO" label="DESDOBRAMENTO" type="S" visible="true" useFooter="false"/>
+          <field name="NUNOTA" label="NUNOTA" type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="NUMNOTA" type="I" visible="true" useFooter="false"/>
+          <field name="AD_TIPVERBA" label="AD_TIPVERBA" type="S" visible="true" useFooter="false"/>
+          <field name="AD_REGIAO" label="AD_REGIAO" type="I" visible="true" useFooter="false"/>
+          <field name="AD_CODVENDRTV" label="AD_CODVENDRTV" type="I" visible="true" useFooter="false"/>
+          <field name="AD_LINHAPROD1" label="AD_LINHAPROD1" type="I" visible="true" useFooter="false"/>
+          <field name="AD_LINHAPROD2" label="AD_LINHAPROD2" type="I" visible="true" useFooter="false"/>
+          <field name="AD_LINHAPROD3" label="AD_LINHAPROD3" type="I" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="CODNAT" type="I" visible="true" useFooter="false"/>
+          <field name="CODPROJ" label="CODPROJ" type="I" visible="true" useFooter="false"/>
+          <field name="CODPILAR" label="CODPILAR" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRPILAR" label="DESCRPILAR" type="S" visible="true" useFooter="false"/>
+          <field name="CODCENCUS" label="CODCENCUS" type="I" visible="true" useFooter="false"/>
+          <field name="CODTIPOPER" label="CODTIPOPER" type="I" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="DTNEG" type="D" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="DTVENC" type="D" visible="true" useFooter="false"/>
+          <field name="DHBAIXA" label="DHBAIXA" type="D" visible="true" useFooter="false"/>
+          <field name="ANO_SAFRA" label="ANO_SAFRA" type="S" visible="true" useFooter="false"/>
+          <field name="PROVISAO" label="PROVISAO" type="S" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="VLRDESDOB" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRBAIXA" label="VLRBAIXA" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRCOMPROMETIDO" label="VLRCOMPROMETIDO" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRREAL" label="VLRREAL" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_mdbxad" description="2 - Participacao Verba">
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="33">
+        <chart id="cht_mdbxdl" type="donut">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Participação por Tipo Verba</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTTIPVERBA,SUM(VLR_REAL_COMPR) AS VLR_REAL_COMPRFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,COALESCE(F_DESCROPC('TGFCAB','AD_TIPVERBA',CAB.AD_TIPVERBA),'Vazio') AS TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREAL,(VGF.VLRDESDOB + VGF.VLRBAIXA)*-1 VLR_REAL_COMPRFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL))GROUP BY TIPVERBA]]></expression>
+          <metadata>
+            <field name="TIPVERBA" label="Tipo Verba" type="S" visible="true" useFooter="false"/>
+            <field name="VLR_REAL_COMPR" label="Real + Comprometido" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <series>
+            <serie type="donut">
+              <field>VLR_REAL_COMPR</field>
+              <nameField>TIPVERBA</nameField>
+              <tipoDonut>completo</tipoDonut>
+            </serie>
+          </series>
+        </chart>
+      </container>
+      <container orientacao="V" tamanhoRelativo="33">
+        <chart id="cht_mdbxfw" type="donut">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Participação por Pilar</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTF_NIVEL2_DESC(CODPROJ) AS CODPILAR,F_IDENTIFICACAO(F_NIVEL2_DESC(CODPROJ)) AS PILAR,SUM(VLR_REAL_COMPR) AS VLR_REAL_COMPRFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,COALESCE(F_DESCROPC('TGFCAB','AD_TIPVERBA',CAB.AD_TIPVERBA),'Vazio') AS TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREAL,(VGF.VLRDESDOB + VGF.VLRBAIXA)*-1 VLR_REAL_COMPRFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL))GROUP BY F_NIVEL2_DESC(CODPROJ),F_IDENTIFICACAO(F_NIVEL2_DESC(CODPROJ))]]></expression>
+          <metadata>
+            <field name="CODPILAR" label="CODPILAR" type="I" visible="true" useFooter="false"/>
+            <field name="PILAR" label="Pilar" type="S" visible="true" useFooter="false"/>
+            <field name="VLR_REAL_COMPR" label="Real + Comprometido" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <series>
+            <serie type="donut">
+              <field>VLR_REAL_COMPR</field>
+              <nameField>PILAR</nameField>
+              <tipoDonut>completo</tipoDonut>
+            </serie>
+          </series>
+        </chart>
+      </container>
+      <container orientacao="V" tamanhoRelativo="33">
+        <chart id="cht_mdbxgq" type="donut">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Participação por Projeto (Top 10)</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT    PILAR,    VLR_REAL_COMPRFROM(SELECTIDENTIFICACAO AS PILAR,SUM(VLR_REAL_COMPR) AS VLR_REAL_COMPRFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,COALESCE(F_DESCROPC('TGFCAB','AD_TIPVERBA',CAB.AD_TIPVERBA),'Vazio') AS TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,PRJ.IDENTIFICACAO,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREAL,(VGF.VLRDESDOB + VGF.VLRBAIXA)*-1 VLR_REAL_COMPRFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TCSPRJ PRJ ON VGF.CODPROJ = PRJ.CODPROJWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL))GROUP BY IDENTIFICACAO)WHERE ROWNUM <= 10ORDER BY 1]]></expression>
+          <metadata>
+            <field name="PILAR" label="Pilar" type="S" visible="true" useFooter="false"/>
+            <field name="VLR_REAL_COMPR" label="Real + Comprometido" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <series>
+            <serie type="donut">
+              <field>VLR_REAL_COMPR</field>
+              <nameField>PILAR</nameField>
+              <tipoDonut>completo</tipoDonut>
+            </serie>
+          </series>
+        </chart>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_m37lfy" description="3 - Valores Investidos">
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="33">
+        <chart id="cht_m37lga" type="bar" nroColuna="10">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Valores Investidos Por por REGIÃO</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTNOMEREG AS NOMEREG,SUM(VLR_REAL_COMPR) AS VLR_REAL_COMPRFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,REG.NOMEREG,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCABINNER JOIN TSIREG REG ON TGFCAB.AD_REGIAO = REG.CODREG)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,COALESCE(F_DESCROPC('TGFCAB','AD_TIPVERBA',CAB.AD_TIPVERBA),'Vazio') AS TIPVERBA,CAB.AD_REGIAO,CAB.NOMEREG,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,PRJ.IDENTIFICACAO,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREAL,(VGF.VLRDESDOB + VGF.VLRBAIXA)*-1 VLR_REAL_COMPRFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TCSPRJ PRJ ON VGF.CODPROJ = PRJ.CODPROJWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL))GROUP BY NOMEREGORDER BY 1]]></expression>
+          <metadata>
+            <field name="NOMEREG" label="Região" type="S" visible="true" useFooter="false"/>
+            <field name="VLR_REAL_COMPR" label="Vlr. Real + Compr." type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <vertical-axis>
+            <category field="" rotation="0" dropLabel="false">
+              <initView value="first"/>
+            </category>
+          </vertical-axis>
+          <series>
+            <serie type="bar">
+              <xField>VLR_REAL_COMPR</xField>
+              <yField>NOMEREG</yField>
+              <display><![CDATA[Real + Comprometido]]></display>
+              <color>0x339900</color>
+            </serie>
+          </series>
+        </chart>
+      </container>
+      <container orientacao="V" tamanhoRelativo="33">
+        <chart id="cht_m37lh1" type="bar" nroColuna="10">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Valores Investidos Por RTV (Top 10)</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT *FROM (SELECTAPELIDO AS VENDRTV,SUM(VLR_REAL_COMPR) AS VLR_REAL_COMPRFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,VEN.APELIDO,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCABINNER JOIN TGFVEN VEN ON TGFCAB.AD_CODVENDRTV = VEN.CODVEND)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,COALESCE(F_DESCROPC('TGFCAB','AD_TIPVERBA',CAB.AD_TIPVERBA),'Vazio') AS TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.APELIDO,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,PRJ.IDENTIFICACAO,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREAL,(VGF.VLRDESDOB + VGF.VLRBAIXA)*-1 VLR_REAL_COMPRFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TCSPRJ PRJ ON VGF.CODPROJ = PRJ.CODPROJWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL))GROUP BY APELIDO) WHERE ROWNUM <= 10ORDER BY 2 DESC]]></expression>
+          <metadata>
+            <field name="VENDRTV" label="Vend. RTV" type="S" visible="true" useFooter="false"/>
+            <field name="VLR_REAL_COMPR" label="Vlr. Real + Compr." type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <vertical-axis>
+            <category field="" rotation="0" dropLabel="false">
+              <initView value="first"/>
+            </category>
+          </vertical-axis>
+          <series>
+            <serie type="bar">
+              <xField>VLR_REAL_COMPR</xField>
+              <yField>VENDRTV</yField>
+              <display><![CDATA[Real + Comprometido]]></display>
+              <color>0x339900</color>
+            </serie>
+          </series>
+        </chart>
+      </container>
+      <container orientacao="V" tamanhoRelativo="33">
+        <chart id="cht_n0t5ps" type="bar" nroColuna="12">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Valores Investidos Por Linha de Produto</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTCOALESCE(TRIM(MARCA), 'VAZIO') AS MARCA,SUM(VLR) AS VLRFROM(SELECTMARCA AS MARCA,SUM(VLR_REAL_COMPR/3) AS VLRFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,MAR.MARCA,AD_LINHAPROD2,MAR1.MARCA AS MARCA1,AD_LINHAPROD3,MAR2.MARCA AS MARCA2 FROM TGFCABLEFT JOIN AD_VGFMARCA MAR ON TGFCAB.AD_LINHAPROD1 = MAR.SEQLEFT JOIN AD_VGFMARCA MAR1 ON TGFCAB.AD_LINHAPROD2 = MAR1.SEQLEFT JOIN AD_VGFMARCA MAR2 ON TGFCAB.AD_LINHAPROD3 = MAR2.SEQ)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,COALESCE(F_DESCROPC('TGFCAB','AD_TIPVERBA',CAB.AD_TIPVERBA),'Vazio') AS TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.MARCA,CAB.AD_LINHAPROD2,CAB.MARCA1,CAB.AD_LINHAPROD3,CAB.MARCA2,VGF.CODNAT,VGF.CODPROJ,PRJ.IDENTIFICACAO,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREAL,(VGF.VLRDESDOB + VGF.VLRBAIXA)*-1 VLR_REAL_COMPRFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TCSPRJ PRJ ON VGF.CODPROJ = PRJ.CODPROJWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL))GROUP BY MARCAUNION ALLSELECTMARCA1 AS MARCA,SUM(VLR_REAL_COMPR/3) AS VLRFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,MAR.MARCA,AD_LINHAPROD2,MAR1.MARCA AS MARCA1,AD_LINHAPROD3,MAR2.MARCA AS MARCA2 FROM TGFCABLEFT JOIN AD_VGFMARCA MAR ON TGFCAB.AD_LINHAPROD1 = MAR.SEQLEFT JOIN AD_VGFMARCA MAR1 ON TGFCAB.AD_LINHAPROD2 = MAR1.SEQLEFT JOIN AD_VGFMARCA MAR2 ON TGFCAB.AD_LINHAPROD3 = MAR2.SEQ)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,COALESCE(F_DESCROPC('TGFCAB','AD_TIPVERBA',CAB.AD_TIPVERBA),'Vazio') AS TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.MARCA,CAB.AD_LINHAPROD2,CAB.MARCA1,CAB.AD_LINHAPROD3,CAB.MARCA2,VGF.CODNAT,VGF.CODPROJ,PRJ.IDENTIFICACAO,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREAL,(VGF.VLRDESDOB + VGF.VLRBAIXA)*-1 VLR_REAL_COMPRFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TCSPRJ PRJ ON VGF.CODPROJ = PRJ.CODPROJWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL))GROUP BY MARCA1UNION ALLSELECTMARCA2 AS MARCA,SUM(VLR_REAL_COMPR/3) AS VLRFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,MAR.MARCA,AD_LINHAPROD2,MAR1.MARCA AS MARCA1,AD_LINHAPROD3,MAR2.MARCA AS MARCA2 FROM TGFCABLEFT JOIN AD_VGFMARCA MAR ON TGFCAB.AD_LINHAPROD1 = MAR.SEQLEFT JOIN AD_VGFMARCA MAR1 ON TGFCAB.AD_LINHAPROD2 = MAR1.SEQLEFT JOIN AD_VGFMARCA MAR2 ON TGFCAB.AD_LINHAPROD3 = MAR2.SEQ)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,COALESCE(F_DESCROPC('TGFCAB','AD_TIPVERBA',CAB.AD_TIPVERBA),'Vazio') AS TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.MARCA,CAB.AD_LINHAPROD2,CAB.MARCA1,CAB.AD_LINHAPROD3,CAB.MARCA2,VGF.CODNAT,VGF.CODPROJ,PRJ.IDENTIFICACAO,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREAL,(VGF.VLRDESDOB + VGF.VLRBAIXA)*-1 VLR_REAL_COMPRFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TCSPRJ PRJ ON VGF.CODPROJ = PRJ.CODPROJWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))AND( ((:P_TIPVERBA = 'V' OR :P_TIPVERBA IS NULL) AND CAB.AD_TIPVERBA IS NULL)OR (:P_TIPVERBA = 'M' AND CAB.AD_TIPVERBA = 'M')OR (:P_TIPVERBA = 'T' AND CAB.AD_TIPVERBA = 'T')OR (:P_TIPVERBA = 'M_T' AND CAB.AD_TIPVERBA IN ('M', 'T'))OR (:P_TIPVERBA = 'M_T_V' AND (CAB.AD_TIPVERBA IN ('M', 'T') OR TRIM(CAB.AD_TIPVERBA) IS NULL)))AND ((CAB.AD_REGIAO IN :P_REGIAO) OR TRIM(CAB.AD_REGIAO) IS NULL)AND ((CAB.AD_CODVENDRTV IN :P_CODVENDRTV) OR TRIM(CAB.AD_CODVENDRTV) IS NULL)AND ((VGF.CODNAT IN :P_CODNAT) OR TRIM(VGF.CODNAT) IS NULL))GROUP BY MARCA2)GROUP BY MARCAORDER BY 2 DESC]]></expression>
+          <metadata>
+            <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+            <field name="VLR" label="Valor" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <vertical-axis>
+            <category field="" rotation="0" dropLabel="false">
+              <initView value="first"/>
+            </category>
+          </vertical-axis>
+          <series>
+            <serie type="bar">
+              <xField>VLR</xField>
+              <yField>MARCA</yField>
+              <display><![CDATA[Real + Comprometido]]></display>
+              <color>0x339900</color>
+            </serie>
+          </series>
+        </chart>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_n0t5tr" description="TESTE">
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="33">
+        <chart id="cht_ojlvu8" type="gauge">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Real. + Compr. por Budget % </b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTANO,MES,MES_ANO,ANO_SAFRA,SUM(VLRPREV) AS VLRPREV,SUM(VLRREAL) AS VLRREAL,SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDO,((SUM(NULLIF(VLRREAL, 0)) + SUM(NULLIF(VLRCOMPROMETIDO, 0)))/ NULLIF(SUM(VLRPREV), 0) * 100) AS PERCFROM(SELECT	ANO,	MES,	MES_ANO,	ANO_SAFRA,	0 AS VLRPREV,	SUM(VLRREAL) AS VLRREAL,	SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDOFROM(	SELECT(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'YYYY') ELSE TO_CHAR(DTNEG,'YYYY') END) AS ANO,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM')  ELSE TO_CHAR(DTNEG,'MM') END) AS MES,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM-YYYY') ELSE TO_CHAR(DTNEG,'MM-YYYY') END) AS MES_ANO,ANO_SAFRA,0 AS VLRPREV,VLRREAL,VLRCOMPROMETIDOFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREALFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (CAB.AD_TIPVERBA IN :P_TIPVERBA)AND (CAB.AD_REGIAO IN :P_REGIAO)AND (CAB.AD_CODVENDRTV IN :P_CODVENDRTV)AND (CAB.AD_LINHAPROD1 = :P_LINHAPROD1 OR :P_LINHAPROD1 IS NULL)AND (CAB.AD_LINHAPROD2 = :P_LINHAPROD2 OR :P_LINHAPROD2 IS NULL)AND (CAB.AD_LINHAPROD3 = :P_LINHAPROD3 OR :P_LINHAPROD3 IS NULL)AND (VGF.CODNAT IN :P_CODNAT)AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))))GROUP BYANO,MES,MES_ANO,ANO_SAFRAUNION ALL SELECTTO_CHAR(DTREF,'YYYY') AS ANO,TO_CHAR(DTREF,'MM') AS MES,TO_CHAR(DTREF,'MM-YYYY') AS MES_ANO,ANO_SAFRA,SUM(PREVDESP) AS VLRPREV,0 AS VLRREAL,0 AS VLRCOMPROMETIDOFROM(SELECTMET.CODMETA,MET.DTREF,F_ANO_SAFRA(MET.DTREF) AS ANO_SAFRA,MET.CODPROJ,MET.PREVDESPFROM TGFMET METWHERE MET.CODMETA = 10AND SUBSTR(MET.CODPROJ, 1, 1) = '8'AND F_ANO_SAFRA(MET.DTREF) = :P_ANO_SAFRA)GROUP BYTO_CHAR(DTREF,'YYYY'),TO_CHAR(DTREF,'MM'),TO_CHAR(DTREF,'MM-YYYY'),ANO_SAFRA)GROUP BY ANO,MES,MES_ANO,ANO_SAFRAORDER BY 1,2]]></expression>
+          <metadata>
+            <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+            <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+            <field name="MES_ANO" label="MES_ANO" type="S" visible="true" useFooter="false"/>
+            <field name="ANO_SAFRA" label="ANO_SAFRA" type="S" visible="true" useFooter="false"/>
+            <field name="VLRPREV" label="VLRPREV" type="I" visible="true" useFooter="false"/>
+            <field name="VLRREAL" label="VLRREAL" type="I" visible="true" useFooter="false"/>
+            <field name="VLRCOMPROMETIDO" label="VLRCOMPROMETIDO" type="I" visible="true" useFooter="false"/>
+            <field name="PERC" label="%" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <show-ticks>true</show-ticks>
+          <min-value>0</min-value>
+          <max-value>100</max-value>
+          <value-field>PERC</value-field>
+          <alert-colors values="0,50,80,100" colors="0xff00,0xffff00,0xff0000"/>
+          <action/>
+        </chart>
+      </container>
+      <container orientacao="H" tamanhoRelativo="33">
+        <chart id="cht_ojlvva" type="bar" nroColuna="10">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Real. + Compro. x Budget por PILAR</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT    F_NIVEL2_DESC(CODPROJ) AS IDENTIFICACAO,    SUM(VLRPREV) AS VLRPREV,    SUM(VLRREAL) AS VLRREAL,    SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDO,    SUM(VLRREAL) + SUM(VLRCOMPROMETIDO) AS VLR_REAL_COMPROFROM (    SELECT        ANO,        MES,        MES_ANO,        ANO_SAFRA,        CODPROJ,        0 AS VLRPREV,        SUM(VLRREAL) AS VLRREAL,        SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDO    FROM (        SELECT            (CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'YYYY') ELSE TO_CHAR(DTNEG,'YYYY') END) AS ANO,            (CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM')  ELSE TO_CHAR(DTNEG,'MM') END) AS MES,            (CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM-YYYY') ELSE TO_CHAR(DTNEG,'MM-YYYY') END) AS MES_ANO,            ANO_SAFRA,            CODPROJ,            0 AS VLRPREV,            VLRREAL,            VLRCOMPROMETIDO        FROM (            WITH                 FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),                CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)            SELECT                VGF.NUFIN,                FIN.DESDOBRAMENTO,                FIN.NUNOTA,                VGF.NUMNOTA,                CAB.AD_TIPVERBA,                CAB.AD_REGIAO,                CAB.AD_CODVENDRTV,                CAB.AD_LINHAPROD1,                CAB.AD_LINHAPROD2,                CAB.AD_LINHAPROD3,                VGF.CODNAT,                VGF.CODPROJ,                VGF.CODCENCUS,                CAB.CODTIPOPER,                VGF.DTNEG,                VGF.DTVENC,                VGF.DHBAIXA,                (CASE                 WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))                WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)                END) AS ANO_SAFRA,                VGF.PROVISAO,                FIN.VLRDESDOB,                VGF.VLRBAIXA * -1 AS VLRBAIXA,                CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END AS VLRCOMPROMETIDO,                CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END AS VLRREAL            FROM VGF_RESULTADO_PROV_SATIS VGF            LEFT JOIN FIN ON VGF.NUFIN = FIN.NUFIN            LEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTA            WHERE                VGF.RECDESP = -1                AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'                AND (CAB.AD_TIPVERBA IN :P_TIPVERBA)                                AND (CAB.AD_REGIAO IN :P_REGIAO)                AND (CAB.AD_CODVENDRTV IN :P_CODVENDRTV)                                AND (CAB.AD_LINHAPROD1 = :P_LINHAPROD1 OR :P_LINHAPROD1 IS NULL)                AND (CAB.AD_LINHAPROD2 = :P_LINHAPROD2 OR :P_LINHAPROD2 IS NULL)                AND (CAB.AD_LINHAPROD3 = :P_LINHAPROD3 OR :P_LINHAPROD3 IS NULL)                                AND (VGF.CODNAT IN :P_CODNAT)                                AND (                	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)                	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA)                )        )    )    GROUP BY        ANO,        MES,        MES_ANO,        ANO_SAFRA,        CODPROJ    UNION ALL     SELECT        TO_CHAR(DTREF, 'YYYY') AS ANO,        TO_CHAR(DTREF, 'MM') AS MES,        TO_CHAR(DTREF, 'MM-YYYY') AS MES_ANO,        ANO_SAFRA,        CODPROJ,        SUM(PREVDESP) AS VLRPREV,        0 AS VLRREAL,        0 AS VLRCOMPROMETIDO    FROM (        SELECT            MET.CODMETA,            MET.DTREF,            F_ANO_SAFRA(MET.DTREF) AS ANO_SAFRA,            MET.CODPROJ,            MET.PREVDESP        FROM TGFMET MET        WHERE             MET.CODMETA = 10            AND SUBSTR(MET.CODPROJ, 1, 1) = '8'            AND F_ANO_SAFRA(MET.DTREF) = :P_ANO_SAFRA    )    GROUP BY        TO_CHAR(DTREF, 'YYYY'),        TO_CHAR(DTREF, 'MM'),        TO_CHAR(DTREF, 'MM-YYYY'),        ANO_SAFRA,        CODPROJ) GROUP BY F_NIVEL2_DESC(CODPROJ)ORDER BY 1,2]]></expression>
+          <metadata>
+            <field name="IDENTIFICACAO" label="IDENTIFICACAO" type="S" visible="true" useFooter="false"/>
+            <field name="VLRPREV" label="Budget" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLRREAL" label="Vlr. Real" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLRCOMPROMETIDO" label="VLRCOMPROMETIDO" type="I" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLR_REAL_COMPRO" label="Real + Comprometido" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <vertical-axis>
+            <category field="IDENTIFICACAO" rotation="0" dropLabel="false">
+              <initView value="first"/>
+            </category>
+          </vertical-axis>
+          <series>
+            <serie type="bar">
+              <xField>VLR_REAL_COMPRO</xField>
+              <yField>IDENTIFICACAO</yField>
+              <display><![CDATA[Real + Comprometido]]></display>
+              <color>0x339900</color>
+            </serie>
+            <serie type="bar">
+              <xField>VLRPREV</xField>
+              <yField>IDENTIFICACAO</yField>
+              <display><![CDATA[Budget]]></display>
+            </serie>
+          </series>
+        </chart>
+      </container>
+      <container orientacao="H" tamanhoRelativo="33">
+        <chart id="cht_ojlvvc" type="bar">
+          <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Saldo Budget por Projeto (Top 10)</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTA.CODPROJ,PRJ.IDENTIFICACAO,SUM(VLRPREV) - (SUM(VLRREAL) + SUM(VLRCOMPROMETIDO)) AS SALDOFROM(SELECT	ANO,	MES,	MES_ANO,	ANO_SAFRA,	CODPROJ,	0 AS VLRPREV,	SUM(VLRREAL) AS VLRREAL,	SUM(VLRCOMPROMETIDO) AS VLRCOMPROMETIDOFROM(	SELECT(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'YYYY') ELSE TO_CHAR(DTNEG,'YYYY') END) AS ANO,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM')  ELSE TO_CHAR(DTNEG,'MM') END) AS MES,(CASE WHEN :P_REG_COMP = 'N' THEN TO_CHAR(COALESCE(DHBAIXA, DTVENC),'MM-YYYY') ELSE TO_CHAR(DTNEG,'MM-YYYY') END) AS MES_ANO,ANO_SAFRA,CODPROJ,0 AS VLRPREV,VLRREAL,VLRCOMPROMETIDOFROM(WITH FIN AS (SELECT NUFIN, NUNOTA, DESDOBRAMENTO, VLRDESDOB FROM TGFFIN),CAB AS (SELECT NUNOTA, CODTIPOPER,AD_TIPVERBA,AD_REGIAO,AD_CODVENDRTV,AD_LINHAPROD1,AD_LINHAPROD2,AD_LINHAPROD3 FROM TGFCAB)SELECTVGF.NUFIN,FIN.DESDOBRAMENTO,FIN.NUNOTA,VGF.NUMNOTA,CAB.AD_TIPVERBA,CAB.AD_REGIAO,CAB.AD_CODVENDRTV,CAB.AD_LINHAPROD1,CAB.AD_LINHAPROD2,CAB.AD_LINHAPROD3,VGF.CODNAT,VGF.CODPROJ,VGF.CODCENCUS,CAB.CODTIPOPER,VGF.DTNEG,VGF.DTVENC,VGF.DHBAIXA,(CASE WHEN :P_REG_COMP = 'N' THEN COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC))WHEN :P_REG_COMP = 'S' THEN F_ANO_SAFRA(VGF.DTNEG)END) AS ANO_SAFRA,VGF.PROVISAO,FIN.VLRDESDOB,VGF.VLRBAIXA * -1 AS VLRBAIXA,(CASE WHEN VGF.PROVISAO = 'S' THEN  VGF.VLRDESDOB * -1 END) AS VLRCOMPROMETIDO,(CASE WHEN VGF.PROVISAO = 'N' THEN  VGF.VLRBAIXA * -1 END) AS VLRREALFROM VGF_RESULTADO_PROV_SATIS VGFLEFT JOIN FIN ON VGF.NUFIN = FIN.NUFINLEFT JOIN CAB ON FIN.NUNOTA = CAB.NUNOTAWHEREVGF.RECDESP = -1AND SUBSTR(VGF.CODPROJ, 1, 1) = '8'AND (CAB.AD_TIPVERBA IN :P_TIPVERBA)AND (CAB.AD_REGIAO IN :P_REGIAO)AND (CAB.AD_CODVENDRTV IN :P_CODVENDRTV)AND (CAB.AD_LINHAPROD1 = :P_LINHAPROD1 OR :P_LINHAPROD1 IS NULL)AND (CAB.AD_LINHAPROD2 = :P_LINHAPROD2 OR :P_LINHAPROD2 IS NULL)AND (CAB.AD_LINHAPROD3 = :P_LINHAPROD3 OR :P_LINHAPROD3 IS NULL)AND (VGF.CODNAT IN :P_CODNAT)AND (	(:P_REG_COMP = 'N' AND COALESCE(F_ANO_SAFRA(VGF.DHBAIXA), F_ANO_SAFRA(VGF.DTVENC)) = :P_ANO_SAFRA)	OR (:P_REG_COMP = 'S' AND F_ANO_SAFRA(VGF.DTNEG) = :P_ANO_SAFRA))))GROUP BYANO,MES,MES_ANO,ANO_SAFRA,CODPROJUNION ALL SELECTTO_CHAR(DTREF,'YYYY') AS ANO,TO_CHAR(DTREF,'MM') AS MES,TO_CHAR(DTREF,'MM-YYYY') AS MES_ANO,ANO_SAFRA,CODPROJ,SUM(PREVDESP) AS VLRPREV,0 AS VLRREAL,0 AS VLRCOMPROMETIDOFROM(SELECTMET.CODMETA,MET.DTREF,F_ANO_SAFRA(MET.DTREF) AS ANO_SAFRA,MET.CODPROJ,MET.PREVDESPFROM TGFMET METWHERE MET.CODMETA = 10AND SUBSTR(MET.CODPROJ, 1, 1) = '8'AND F_ANO_SAFRA(MET.DTREF) = :P_ANO_SAFRA)GROUP BYTO_CHAR(DTREF,'YYYY'),TO_CHAR(DTREF,'MM'),TO_CHAR(DTREF,'MM-YYYY'),ANO_SAFRA,CODPROJ) AINNER JOIN TCSPRJ PRJ ON A.CODPROJ = PRJ.CODPROJGROUP BY A.CODPROJ,PRJ.IDENTIFICACAOORDER BY 1,2]]></expression>
+          <metadata>
+            <field name="CODPROJ" label="CODPROJ" type="I" visible="true" useFooter="false"/>
+            <field name="IDENTIFICACAO" label="IDENTIFICACAO" type="S" visible="true" useFooter="false"/>
+            <field name="SALDO" label="SALDO" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <series>
+            <serie type="bar">
+              <xField>SALDO</xField>
+              <yField>IDENTIFICACAO</yField>
+              <display><![CDATA[Projeto]]></display>
+              <color>0x339900</color>
+            </serie>
+          </series>
+        </chart>
+      </container>
+    </container>
+  </level>
+</gadget>
