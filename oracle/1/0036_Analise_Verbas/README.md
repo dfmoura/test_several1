@@ -6,13 +6,30 @@
 
 ### 1. Log's Execução
 
+
+
+#### 1.1. 25/04/2024 08:00 as 12:00
+```markdown
+
+Satis - Analise de Verbas - Iniciamos o dia com a estruturação inicial do primeiro SELECT para movimentação em real. Agora, temos uma base sólida para começar a implementar a função F_ANO_SAFRA, crucial para derivar o ano da safra com base nas datas das movimentações. Além disso, estamos integrando o entendimento de valor comprometido e realizado com as provisões, garantindo uma análise abrangente e precisa das verbas. Também estamos avançando na adição de parâmetros que permitirão filtrar o regime de caixa ou regime por competência na estrutura da movimentação real. Essa flexibilidade será fundamental para atender às diversas necessidades de relatórios e análises dos usuários.
+
+
+```
+
+#### 1.1. 25/04/2024 13:30 as 18:00
+```markdown
+
+Satis - Analise de Verbas - Continuamos aprimorando a estrutura principal do SELECT para movimentação real. Uma das principais adições é a inclusão de novos campos, como AD_TIPVERBA, AD_REGIAO, AD_CODVENDRTV, AD_LINHAPROD1, AD_LINHAPROD2 e AD_LINHAPROD3. Esses campos são essenciais para o preenchimento e atualização das visões correspondentes, garantindo uma visão abrangente e detalhada das movimentações. Além disso, estamos delimitando a partir da raiz 8 de projetos para abranger o dashboard como um todo. Essa abordagem garantirá que todas as informações relevantes sejam consideradas e apresentadas de forma integrada no dashboard, proporcionando uma análise completa e coerente dos dados.
+
+```
+
+
+
 #### 1.1. 26/04/2024 08:00 as 12:00
 ```markdown
 
-Satis - Analise de Verbas - Concluída a estruturação inicial do primeiro SELECT de movimentação em real.  Implementação da função F_ANO_SAFRA para obtenção do ano da safra com base na data da movimentação.
-Integração do entendimento de valor comprometido e realizado com as provisões.
-Adição dos parâmetros para filtrar regime de caixa ou regime por competência na estrutura da movimentação real.
-
+Satis - Analise de Verbas - Concluída a estruturação inicial do primeiro SELECT de movimentação em real.  Implementação da função F_ANO_SAFRA para obtenção do ano da safra com base na data da movimentação. Integramos o entendimento de valor comprometido e realizado com as provisões.
+Adicionamos os parâmetros para filtrar regime de caixa ou regime por competência na estrutura da movimentação real.
 
 ```
 
