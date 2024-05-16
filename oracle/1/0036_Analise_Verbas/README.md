@@ -76,16 +76,23 @@ Satis - Analise de Verbas - Desenvolvimento do terceiro botão para acesso ao ú
 
 ```
 
-#### 1.1. 29/04/2024 13:00 as 18:30
+#### 1.1. 01/05/2024 13:00 as 18:30
 ```markdown
 Satis - Analise de Verbas - Realização de ajustes na tabela detalhe do gráfico principal. Correção no agrupamento para o gráfico de velocímetro. Implementação da função de identificação de pilar. Correção no cálculo do saldo do budget no gráfico de saldo por budget. Ajuste no primeiro gráfico para exibir campos nulos de ad_tipverba quando nada for marcado. Correção do detalhamento no dashboard principal para visualização tanto do realizado quanto do comprometido. Atualização do filtro padrão de where no realizado para todos os gráficos.
 
 ```
 
+#### 1.1. 02/05/2024 08:00 as 12:30
+```markdown
+Satis - Analise de Verbas - Concluídas as alterações na tabela detalhe do gráfico principal, incluindo correções no agrupamento para o gráfico de velocímetro e a implementação da função de identificação de pilar. O cálculo do saldo do budget no gráfico de saldo por budget foi corrigido, e o primeiro gráfico foi ajustado para exibir campos nulos de ad_tipverba quando nada estiver marcado. O detalhamento no dashboard principal foi corrigido para permitir a visualização tanto do realizado quanto do comprometido. Além disso, o filtro padrão de "where" foi atualizado no realizado para todos os gráficos. Após estas modificações, foi realizado um teste para garantir a integridade dos dados.
 
+```
 
+#### 1.1. 03/05/2024 08:00 as 12:30
+```markdown
+Satis - Analise de Verbas - Realização da implementação de um filtro de projetos, englobando o nível analítico, com aprimoramento do mecanismo de seleção em todos os componentes do painel de controle. Este filtro foi concebido para permitir uma segmentação precisa dos projetos, alinhada com os critérios analíticos definidos, garantindo uma experiência mais refinada e eficiente na análise e visualização de dados.
 
-
+```
 
 
 
