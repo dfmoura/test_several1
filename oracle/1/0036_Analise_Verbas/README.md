@@ -2,6 +2,9 @@
 ```markdown
 
 
+Para o ultimo gráfico de produto
+Tenho um valor que precisa ser rateado com base no preenchimento de três campos. Esse rateio deve ocorrer apenas quando um ou mais desses três campos estiverem preenchidos.
+
 ```
 
 ### 1. Log's Execução
@@ -85,24 +88,25 @@ Satis - Analise de Verbas - Realização de ajustes na tabela detalhe do gráfic
 
 #### 1.1. 02/05/2024 13:00 as 18:30
 ```markdown
-Satis - Analise de Verbas - 
 
-RETIRADO MULTILIST REGIAO:
-SELECT
-CODREG AS VALUE,
-CODREG|| ' - '||NOMEREG AS LABEL
-FROM TSIREG
-ORDER BY 1
-
-RETIRADO MULTILIST RTV:
-SELECT
-CODVEND AS VALUE,
-CODVEND|| ' - '||APELIDO AS LABEL
-FROM TGFVEN
-ORDER BY 1
+Para criar uma consulta SQL no Oracle que rateie um valor de acordo com o preenchimento de três campos somente quando um ou mais desses campos estiverem preenchidos, podemos usar uma abordagem que envolva a utilização de funções de janela e expressão de caso (CASE).
 
 
+CASE WHEN campo1 IS NOT NULL THEN valor_total / NULLIF(COUNT(campo1) OVER (PARTITION BY id) +
+                                                          COUNT(campo2) OVER (PARTITION BY id) +
+                                                          COUNT(campo3) OVER (PARTITION BY id), 0)
+         ELSE 0 END AS valor_campo1,
+    CASE WHEN campo2 IS NOT NULL THEN valor_total / NULLIF(COUNT(campo1) OVER (PARTITION BY id) +
+                                                          COUNT(campo2) OVER (PARTITION BY id) +
+                                                          COUNT(campo3) OVER (PARTITION BY id), 0)
+         ELSE 0 END AS valor_campo2,
+    CASE WHEN campo3 IS NOT NULL THEN valor_total / NULLIF(COUNT(campo1) OVER (PARTITION BY id) +
+                                                          COUNT(campo2) OVER (PARTITION BY id) +
+                                                          COUNT(campo3) OVER (PARTITION BY id), 0)
+         ELSE 0 END AS valor_campo3
 
+
+e fui consolidando o select ate ficar um agrupamento de marca e sum(valor).
 
 ```
 
