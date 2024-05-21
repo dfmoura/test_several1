@@ -6,8 +6,28 @@ Gerenciar entrega a partir do faturamento.
 	1) Criar campo em 'Local Estoque Padrão' na TGFTOP.
 	2) Desenvolver uma trigger que será acionada sempre que um registro for inserido ou atualizado na tabela TGFITE. A função desta trigger é assegurar que o campo referente ao local de registro na tabela TGFITE seja automaticamente preenchido com o valor padrão definido na tabela TOP.
 	3) DUPLICAR OS BOTÕES ‘CRIAR VIAGEM’ E ‘ATUALIZAR VIAGEM’ DA TGFCAB E DISPONIBILIZAR APENAS NO PORTAL DE VENDAS
-	4) CRIAR CAMPOS ADICIONAIS NA TGFVAR, SENDO: o	NOME DO PRODUTO / o	REFERENCIA DO PRODUTO / o	TOP DE DESTINO
+	
+		Atualização da viagem significa:
+			
+		o pedido selecionado pode ter ou não ter ordem de carga atrelada.
+		caso o pedido não tenha ordem de carga atrelada o sistema o sistema não atualizará.
+		
+		caso o pedido tenha ordem de carga o sistema poderá atualizar os campos Veiculo , Dt/Hora prevista para saída, Motorista, Situação da OC caso seus parametros respectivos forem informados.
+		
+		nesta atualização caso o usuario informe outra ordem de carga ja existente o sistema atualizará o campo ordem de carga na TGFCAB e os paramentro respectivos informados na TGFORD.
+		
+		com base no pedido(s) selecionado no portal de vendas os parametros que forem informados serão atualizados na TGFORD.
+			Veiculo , Dt/Hora prevista para saída, Motorista, Situação da OC
+
+
+po		
+			
+	
+	4) CRIAR CAMPOS ADICIONAIS NA TGFVAR, SENDO: o	NOME DO PRODUTO / o	REFERENCIA DO PRODUTO / o	T+OP DE DESTINO
 	5) CRIAR STATUS DO CABEÇALHO (TGFCAB) PARA APRESENTAR OS DETALHES DAS O.C QUE ATENDERAM O PEDIDO
+
+
+
 
 ```
 

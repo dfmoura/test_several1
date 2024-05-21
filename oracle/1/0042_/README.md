@@ -17,6 +17,7 @@ DASH ORÇAMENTO FINANCEIRO ( dash que vc criou a algum tempo)
 	- Gráfico velocimetro (painel principal) com o % de atendimento do orçamento
 		- Revisar o valor % apresentado
 
+		
 ```
 
 
