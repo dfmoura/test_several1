@@ -35,3 +35,8 @@ GM - Dash Gestão de Custos e Rentabilidade - Continuando no nível de composiç
 GM - Dash Gestão de Custos e Rentabilidade - Foi desenvolvido um mecanismo automatizado para gerar alertas automaticamente sempre que um produto faturado não estiver associado a um tipo de produto correspondente. A implementação foi realizada com sucesso na base de testes e aguardamos a liberação de acesso à tela 'Ações Agendadas' para replicar essa funcionalidade na base de produção.
 
 ```
+
+#### 1.1. 27/05/2024 08:00 as 09:00
+```
+GM - Dash Gestão de Custos e Rentabilidade - A procedure foi atualizada e implementada em produção para realizar notificações horárias em caso de detecção de produtos de faturamento cadastrados sem a especificação do tipo. Este procedimento é crucial para assegurar a integridade dos dados de faturamento, garantindo que todas as entradas possuam as classificações necessárias para o correto processamento e análise financeira.
+```
