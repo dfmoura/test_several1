@@ -38,6 +38,11 @@ SATIS - Consolidador de Dados - Efetuamos um backup utilizando a mesma estrutura
 ```
 
 
+#### 1.1. 29/05/2024 08:00 as 12:00
+```markdown
+SATIS - Consolidador de Dados - Conduzimos uma revisão detalhada de todo o processo para garantir a conformidade com os requisitos de negócio e a integridade dos dados. Verificamos a precisão das inserções e atualizações, bem como a correta propagação dos dados na tabela 'AD_CONSOLDADOS'. 
+
+
 ```
 #VERIFICAÇÃO#
 
