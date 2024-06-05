@@ -1,14 +1,16 @@
 # Objetivos
 ```markdown
 
-"Criar a view que consolida o resultado de vendas em um único lugar e ajustar os relatórios e dash de vendas para consumir os dados da view.
+"DASH COMPARATIVO DE METAS
+        - Criar visão agrupada
+                - Agrupa o resultado dos periodos 1 e 2 em uma única tabela
+                - Ordernar por vendedor e safra
+        -  Criar dois novos botões no nível principal para acessar essa tabela agrupada
+                - Um botão para apresentar a tabela agrupada por vendedor
+                - Outro botão para apresentar a tabela agrupada por marca
 
-1 - Criar uma segunda view de vendas que seja espelho a view atual (duplicar).
-2 - Criar uma tabela adicional que irá receber os dados de consolidação de vendas e deverá conter os mesmos campos que a atual view de vendas contém.
-3 - Criar uma ação agendada que execute a view de vendas dos últimos X dias (exemplo 60 dias) e atualize a tabela de consolidação de vendas.
-3.1 - A primeira execução da ação agendada deverá atualizar a tabela de consolidação com todo histórico de vendas (exemplo: ultimos 3 anos)
-4 - Alterar a view de vendas atual para simplesmente retornar os dados da tabela de consolidação.
-4.1 - Como a view de vendas atual que já está vinculada a vários indicadores passará a retornar os dados da tabela consolidada, esses mesmos indicadores já se estarão resolvidos, não requisitando alterações."
+        - Criar parâmetro que quando marcado deverá agrupar o resultado por coordenador, nesse caso será gerado apenas 1 registro para o coordenador (campo gerente do cadastro do vendedor), assim agrupando seus vendedores
+                - Esse agrupamento deve impactar os níveis que apresentem resultado por vendedor"
 
  
 
@@ -17,8 +19,11 @@
 
 ### 1. Log's Execução
 
-#### 1.1. 28/05/2024 20:00 as 22:30
+#### 1.1. 03/06/2024 13:00 as 18:00
+SATIS - ATUALIZAÇÃO - DASH COMPARATIVO DE METAS - Estamos em andamento com a atualização do "DASH COMPARATIVO DE METAS". Nesta etapa, estamos focados na criação de uma visão agrupada que combina os resultados dos períodos 1 e 2 em uma única tabela, ordenada por vendedor e safra. Além disso, estamos implementando dois novos botões no nível principal para facilitar o acesso a esta tabela agrupada: um botão apresentará a tabela por vendedor e outro por marca. Também estamos desenvolvendo um parâmetro adicional que, quando ativado, agrupará os resultados por coordenador, consolidando os dados em um único registro por coordenador (campo gerente no cadastro do vendedor), e refletindo esse agrupamento em todos os níveis que exibem resultados por vendedor.
+
 ```markdown
 
-SATIS - Consolidador de Dados - Foi desenvolvida uma tabela adicional denominada 'AD_CONSOLDADOS', que espelha os campos da visualização 'VGF_VENDAS_SATIS'. Também foi criada uma procedimento denominada 'STP_INS_DADOS_CONSOLIDADOR', responsável por limpar a tabela 'AD_CONSOLDADOS' e inserir os dados provenientes da visualização 'VGF_VENDAS_SATIS'. Uma rotina foi agendada para executar este procedimento a cada 23 horas (Tarefa 212 - Pendente de autorização de personalização). Adicionalmente, foi elaborada uma visualização para a tabela adicional 'AD_CONSOLDADOS'.
+
+
 ```
