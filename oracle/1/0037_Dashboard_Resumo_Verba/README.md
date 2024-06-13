@@ -1,7 +1,6 @@
 # Objetivos
 ```markdown
 
-
 ```
 
 ### 1. Log's Execução
@@ -20,3 +19,4 @@ Satis - Analise de Metas Comerciais - Prosseguiremos com a adaptação da estrut
 ```markdown
 Satis - Analise de Metas Comerciais - Concluimos a etapa anterior, e finalizamos a atividade de atualização da view de vendas e do comando SELECT para incluir informações de bonificação foi finalizada com sucesso. Realizamos testes abrangentes para garantir que a view de vendas e o comando SELECT estejam funcionando conforme o esperado.
 ```
+

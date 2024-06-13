@@ -112,15 +112,10 @@ e fui consolidando o select ate ficar um agrupamento de marca e sum(valor).
 
 
 
-
-
-
-
-
-
-
-
-
+#### 1.1. 10/06/2024 08:00 as 12:00
+```markdown
+Satis - Analise de Verbas - Foi criado um novo nível no dashboard que inclui um gráfico de pizza, destacando os cinco principais projetos por pilar. Este gráfico foi implementado para fornecer uma visualização clara e imediata dos projetos mais significativos em cada categoria, facilitando a identificação de áreas de destaque e necessidade de atenção. A criação deste novo nível envolveu a seleção criteriosa dos dados mais relevantes e a implementação de um mecanismo de filtragem que permite a atualização dinâmica dos gráficos conforme a seleção de diferentes pilares. O gráfico de pizza foi estilizado para ser visualmente atraente e informativo, utilizando cores distintas para cada segmento e exibindo valores percentuais e nomes dos projetos para uma compreensão rápida e eficiente. A implementação foi rigorosamente testada para garantir a precisão dos dados apresentados e a responsividade do gráfico em diversas condições de uso.
+```
 
 
 
