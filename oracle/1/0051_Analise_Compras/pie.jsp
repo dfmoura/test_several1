@@ -8,7 +8,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedidos Por Comprador</title>
+    <title>Pedidos Por COMPRADOR</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -53,18 +53,18 @@ ORDER BY 2 DESC
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         var ctx = document.getElementById('myPieChart').getContext('2d');
-        var data = {
-            labels: [
-                <c:forEach items="${pizza.rows}" var="row">
-                    "${row.COMPRADOR}", 
-                </c:forEach>
-            ],
+        var labels = [];
+        var data = [];
+
+        <c:forEach items="${pizza.rows}" var="row">
+            labels.push("${row.COMPRADOR}");
+            data.push(${row.QTD_PEDIDOS});
+        </c:forEach>
+
+        var chartData = {
+            labels: labels,
             datasets: [{
-                data: [
-                    <c:forEach items="${pizza.rows}" var="row">
-                        ${row.QTD_PEDIDOS}, 
-                    </c:forEach>
-                ],
+                data: data,
                 backgroundColor: [
                     '#FF6384',
                     '#36A2EB',
@@ -78,27 +78,26 @@ ORDER BY 2 DESC
 
         var myPieChart = new Chart(ctx, {
             type: 'pie',
-            data: data,
+            data: chartData,
             options: {
                 responsive: true,
                 title: {
                     display: true,
-                    text: 'Pedidos Por Comprador'
+                    text: 'Pedidos Por COMPRADOR'
                 },
                 onClick: function(event, elements) {
                     if (elements.length > 0) {
-                        var clickedIndex = elements[0]._index;
-                        var comprador = "${pizza.rows[clickedIndex].COMPRADOR}";
-                        abrir(comprador);
+                        var clickedIndex = elements[0].index;
+                        var COMPRADOR = chartData.labels[clickedIndex];
+                        abrir(COMPRADOR);
                     }
                 }
             }
         });
 
-        function abrir(comprador) {
-            const parametros = { A_COMPRADOR: comprador };
-            const level = 'lvl_exidt0';
-            openLevel(level, parametros);
+        function abrir(COMPRADOR) {
+            const params = {'A_COMPRADOR': COMPRADOR };
+            refreshDetails('lvl_fnlxtc', params);
         }
     });
 </script>
