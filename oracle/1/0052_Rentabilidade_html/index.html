@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gráfico de Barra Animado</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: Arial, sans-serif;
+    }
+    .chart-container {
+      width: 80%;
+      margin: 50px auto;
+    }
+    .bar {
+      width: 0;
+      height: 40px;
+      margin: 10px 0;
+      background-color: #007bff;
+      text-align: right;
+      line-height: 40px;
+      color: white;
+      transition: width 1s ease-in-out;
+    }
+    .bar:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="chart-container">
+      <h2 class="text-center">Gráfico de Barra Animado</h2>
+      <div class="bar" data-value="70%">70%</div>
+      <div class="bar" data-value="50%">50%</div>
+      <div class="bar" data-value="90%">90%</div>
+      <div class="bar" data-value="30%">30%</div>
+      <div class="bar" data-value="80%">80%</div>
+    </div>
+  </div>
+
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script>
+    $(document).ready(function(){
+      $('.bar').each(function(){
+        var value = $(this).attr('data-value');
+        $(this).animate({
+          width: value
+        }, 1000);
+      });
+    });
+  </script>
+</body>
+</html>

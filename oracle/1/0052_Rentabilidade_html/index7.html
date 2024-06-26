@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<style>
+    /* Estilos adicionais aqui */
+    body {
+        margin-top: 0; /* Remove o espaço no topo da página */
+    }
+    .card {
+        border-radius: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    .card:hover .card-body {
+
+        border-radius: 15px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        background-color: #130455; /* Azul */
+        color: #fff; /* Branco para o texto */
+        
+    }
+    .card-footer {
+        text-align: center; /* Centraliza o texto no rodapé */
+    }
+    .icon {
+        margin: 0 auto; /* Centraliza horizontalmente */
+        display: block;
+        width: 35px;
+        height: 35px;
+        background-color: transparent; 
+    }
+</style>
+</head>
+<body class="bg-light">
+<div class="container-fluid">
+
+    <!-- Parte Superior - 4 Cards -->
+    <div class="row mt-2">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://cdns.iconmonstr.com/wp-content/releases/preview/2013/240/iconmonstr-coin-2.png" alt="Ícone de Moeda" class="icon">
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>Faturamento</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://cdns.iconmonstr.com/wp-content/releases/preview/2013/240/iconmonstr-coin-2.png" alt="Ícone de Moeda" class="icon">
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>HL</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://cdns.iconmonstr.com/wp-content/releases/preview/2013/240/iconmonstr-coin-2.png" alt="Ícone de Moeda" class="icon">
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>Desconto</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://cdns.iconmonstr.com/wp-content/releases/preview/2013/240/iconmonstr-coin-2.png" alt="Ícone de Moeda" class="icon">
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>Devolução</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parte do Meio - 2 Cards -->
+    <div class="row mt-2">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        
+                        <img src="https://cdns.iconmonstr.com/wp-content/releases/preview/2013/240/iconmonstr-coin-7.png" alt="Ícone de Moeda" class="icon">
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>Despesa Operacional</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://cdns.iconmonstr.com/wp-content/releases/preview/2013/240/iconmonstr-coin-9.png" alt="Ícone de Moeda" class="icon">
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>Investimento</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parte Inferior - 2 Cards -->
+    <div class="row mt-2">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://cdns.iconmonstr.com/wp-content/releases/preview/2013/240/iconmonstr-checkout-3.png" alt="Ícone de Moeda" class="icon">
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>EBIT</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://cdns.iconmonstr.com/wp-content/releases/preview/2013/240/iconmonstr-checkout-4.png" alt="Ícone de Moeda" class="icon">
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>EBITDA</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
