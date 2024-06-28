@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<style>
+    /* Estilos adicionais aqui */
+    body {
+        background-color: rgba(255, 217, 0, 0.5); /* Amarelo com 50% de transparência */
+        margin-top: 10px; /* Remove o espaço no topo da página */
+    }
+    .card {
+        border-radius: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 85%; /* Reduz a altura em 15% */
+    }
+    .card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    .card:hover .card-body {
+        border-radius: 15px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        background-color: #130455; /* Azul */
+        color: #fff; /* Branco para o texto */
+    }
+    .card-footer {
+        text-align: center; /* Centraliza o texto no rodapé */
+    }
+    .icon {
+        margin: 0 auto; /* Centraliza horizontalmente */
+        display: block;
+        width: 25px;
+        height: 25px;
+        background-color: transparent; 
+    }
+    .card:hover .icon svg,
+    .card:hover .icon img {
+        filter: brightness(0) invert(1); /* Deixa o ícone branco ao passar o mouse */
+    }
+    .logo {
+        width: 100%;
+        max-width: 150px;
+    }
+    .card-body h1 {
+        font-size: 110%; /* Reduz o tamanho da fonte em 15% */
+    }
+    /* Redução do espaçamento entre as seções */
+    .custom-row {
+        margin-top: 0.5rem; /* Reduz o espaçamento superior */
+        margin-bottom: -2.5rem; /* Reduz o espaçamento inferior */
+    }
+
+    /* Estilos para o cabeçalho */
+    header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+        background-color: rgba(255, 217, 0, 0.5); /* Amarelo com 50% de transparência */ /* Cor de fundo do cabeçalho */
+        border-bottom: 0.5px solid #130455; /* Cor da borda inferior */
+    }
+    .logo-header {
+        max-width: 60px;
+    }
+    .titulo-header {
+        font-size: 24px;
+        text-align: center;
+        margin-bottom: 5px;
+    }
+
+</style>
+</head>
+<body class="bg-light">
+    <header>
+        <img src="https://guaranamineiro.vagas.solides.com.br/_next/image?url=https%3A%2F%2Fc5gwmsmjx1.execute-api.us-east-1.amazonaws.com%2Fprod%2Fdados_processo_seletivo%2Flogo_empresa%2F132790%2FLogo_G_Mineiro.png_name_20230516-30712-1vnv3a1.png&w=1920&q=75" class="logo-header" alt="Logo Guaraná Mineiro">
+        <h1 class="titulo-header">Dash de Rentabilidade</h1>
+    </header>    
+<div class="container-fluid">
+
+  <!-- Parte Superior - 6 Cards -->
+  <div class="row custom-row">
+    <div class="col-lg-2 col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="icon">
+                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                </div>
+                <h1>$15,000,000</h1>
+                <p>Faturamento</p>
+            </div>
+            <div class="card-footer text-muted">
+                Mês Anterior: $13,000,000
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="icon">
+                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                    
+                </div>
+                <h1>$15,000,000</h1>
+                <p>HL</p>
+            </div>
+            <div class="card-footer text-muted">
+                Mês Anterior: $13,000,000
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="icon">
+                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                    
+                </div>
+                <h1>$15,000,000</h1>
+                <p>Desconto</p>
+            </div>
+            <div class="card-footer text-muted">
+                Mês Anterior: $13,000,000
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="icon">
+                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                    
+                </div>
+                <h1>$15,000,000</h1>
+                <p>PA</p>
+            </div>
+            <div class="card-footer text-muted">
+                Mês Anterior: $13,000,000
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="icon">
+                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                    
+                </div>
+                <h1>$15,000,000</h1>
+                <p>Clientes</p>
+            </div>
+            <div class="card-footer text-muted">
+                Mês Anterior: $13,000,000
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <div class="icon">
+                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                    
+                </div>
+                <h1>$15,000,000</h1>
+                <p>Financeiro</p>
+            </div>
+            <div class="card-footer text-muted">
+                Mês Anterior: $13,000,000
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Parte do Meio 1 - 2 Cards -->
+    <div class="row custom-row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                        
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>Despesa Operacional</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                        
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>Investimento</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Parte do Meio 2 - 2 Cards -->
+    <div class="row custom-row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                        
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>Despesa Operacional</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                        
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>Investimento</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Parte Inferior - Somente Card -->
+    <div class="row parte-inferior">
+        <div class="col-lg-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="icon">
+                        <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
+                    </div>
+                    <h1>$15,000,000</h1>
+                    <p>Resultado</p>
+                </div>
+                <div class="card-footer text-muted">
+                    Mês Anterior: $13,000,000
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
