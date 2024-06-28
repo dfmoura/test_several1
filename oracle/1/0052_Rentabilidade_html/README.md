@@ -55,12 +55,7 @@ Redefinimos o select para trazer a informação de DE GASTO OPERACIONAL, INVESTI
 
 
 Realizamos um ponto de controle para apresentar as atualizações. Além disso, readequamos algumas tarefas:
-    Atualizar a apresentação da variação nos cards para percentuais (%).
-    Atualizar o cálculo de resultado com base em Faturamento Bruto - Impostos - Despesas Operacionais (DO) - Investimentos.
-    Incluir dois novos cards na parte superior do dashboard principal, sendo Impostos e Custo de Mercadoria Vendida (CMV).
-    Adicionar uma nova linha abaixo da parte superior do dashboard, incluindo mais dois cards para Margem de Contribuição Nominal e Margem de Contribuição Percentual.
-    Seguir com as atualizações conforme apresentado, referente ao nível inferior após clicar no card de faturamento, mantendo o estilo neutro do gráfico. Na tabela ao lado, incluir as colunas: Código do Produto, Produto, Preço Unitário Médio, CMV e Margem.
-    Na despesa operacional colocar no where do select para nao contemplar as naturezas de adiantamento, ou seja, toda natureza que começa com 9.
+
 
 retomamos o trabalho iniciando pela cofiguração do melhor layout para a readequação dos novos card's inseridos na parte superior, e na nova seção após a parte superior, testamos diversos layouts até encontrar um com um estilo mais agradavel e condizente com a formatação.
 
@@ -70,4 +65,23 @@ Curinga:
 F_DESCROPC('TGFCOT','SITUACAO',COT.SITUACAO)
 INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )
 
+
 ```
+
+Backlog:
+
+1) Atualizar a apresentação da variação nos cards para percentuais (%).
+2) Atualizar o cálculo de resultado com base em Faturamento Bruto - Impostos - Despesas Operacionais (DO) - Investimentos.
+3) Incluir dois novos cards na parte superior do dashboard principal, sendo Impostos e Custo de Mercadoria Vendida (CMV).
+4) Adicionar uma nova linha abaixo da parte superior do dashboard, incluindo mais dois cards para Margem de Contribuição Nominal e Margem de Contribuição Percentual.
+5) Seguir com as atualizações conforme apresentado, referente ao nível inferior após clicar no card de faturamento, mantendo o estilo neutro do gráfico. Na tabela ao lado, incluir as colunas: Código do Produto, Produto, Preço Unitário Médio, CMV e Margem.
+6) Na despesa operacional colocar no where do select para nao contemplar as naturezas de adiantamento, ou seja, toda natureza que começa com 9.
+7) Substituir no select da despesa operacional e investimento de vlrbaixa para vlrliq
+8) Aumentar o tamanho da seta
+
+
+
+
+Realizados:
+
+9) Alterar fonte do titulo para branco e cabaçalho com borda arredondada.

@@ -8,7 +8,7 @@
 <style>
     /* Estilos adicionais aqui */
     body {
-        background-color: rgba(255, 217, 0, 0.5); /* Amarelo com 50% de transparência */
+        
         margin-top: 10px; /* Remove o espaço no topo da página */
     }
     .card {
@@ -28,6 +28,8 @@
     }
     .card-footer {
         text-align: center; /* Centraliza o texto no rodapé */
+        height: 50px; /* Ajusta a altura */
+        font-size: 10px; /* Ajusta o tamanho da fonte */
     }
     .icon {
         margin: 0 auto; /* Centraliza horizontalmente */
@@ -44,46 +46,87 @@
         width: 100%;
         max-width: 150px;
     }
-    .card-body h1 {
-        font-size: 110%; /* Reduz o tamanho da fonte em 15% */
+    .arrow-up {
+        color: green;
+        font-size: 24px; /* Ajuste conforme necessário */
     }
+    .arrow-down {
+        color: red;
+        font-size: 24px; /* Ajuste conforme necessário */
+    }    
+
     /* Redução do espaçamento entre as seções */
     .custom-row {
-        margin-top: 0.5rem; /* Reduz o espaçamento superior */
+        margin-top: 1rem; /* Reduz o espaçamento superior */
         margin-bottom: -2.5rem; /* Reduz o espaçamento inferior */
     }
 
     /* Estilos para o cabeçalho */
     header {
-        display: flex;
-        align-items: center;
         justify-content: space-between;
         padding: 10px 20px;
-        background-color: rgba(255, 217, 0, 0.5); /* Amarelo com 50% de transparência */ /* Cor de fundo do cabeçalho */
-        border-bottom: 0.5px solid #130455; /* Cor da borda inferior */
+        background-color: rgba(19, 4, 85); /* com 50% de transparência */ /* Cor de fundo do cabeçalho */
+        border-bottom: 0.2px solid #130455; /* Cor da borda inferior */
+        border-radius: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .logo-header {
         max-width: 60px;
     }
-    .titulo-header {
-        font-size: 24px;
+    .titulo-header {       
+        font-size: 30px; /* Ajuste o tamanho da fonte conforme necessário */
         text-align: center;
-        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 6vh; /* Garante que o h1 esteja centralizado verticalmente dentro do header */
+        margin: 0; /* Remove qualquer margem padrão */
+        color: #fff;
+    }        
+
+    /* Estilos para as tags <p> e <h1> */
+    p {
+        font-size: 15px; /* Ajusta o tamanho da fonte de <p> */
+    }
+    h1 {
+        font-size: 25px; /* Ajusta o tamanho da fonte de <h1> */
+    }
+    .footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background-color: #f8f9fa; /* Ajuste conforme necessário */
+    border-top: 0.2px solid #130455; /* Ajuste conforme necessário */
     }
 
-</style>
+    .logo-footer {
+        max-width: 80px; /* Ajuste conforme necessário */
+    }
+    
+    </style>
+        <script>
+            function addArrow(value) {
+                if (value >= 1.0000) {
+                    return '<span class="arrow-up">&uarr;</span>';
+                } else {
+                    return '<span class="arrow-down">&darr;</span>';
+                } 
+            }
+        </script>    
+
 </head>
+
 <body class="bg-light">
     <header>
-        <img src="https://guaranamineiro.vagas.solides.com.br/_next/image?url=https%3A%2F%2Fc5gwmsmjx1.execute-api.us-east-1.amazonaws.com%2Fprod%2Fdados_processo_seletivo%2Flogo_empresa%2F132790%2FLogo_G_Mineiro.png_name_20230516-30712-1vnv3a1.png&w=1920&q=75" class="logo-header" alt="Logo Guaraná Mineiro">
-        <h1 class="titulo-header">Dash de Rentabilidade</h1>
+        <h1 class="titulo-header">Rentabilidade Financeira 2.0</h1>
     </header>    
 <div class="container-fluid">
 
   <!-- Parte Superior - 6 Cards -->
   <div class="row custom-row">
     <div class="col-lg-2 col-md-4 mb-4">
-        <div class="card shadow-sm">
+        <div class="card shadow-sm" title="Esta informação contempla o Total dos Produtos + IPI + ST - Desconto - Devoluções">
             <div class="card-body text-center">
                 <div class="icon">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Cash Icon" width="24" height="24">
@@ -263,6 +306,13 @@
     </div>
 
 </div>
+
+<footer class="footer">
+    <img src="a_agu.svg" alt="Logo A AGU" class="logo-footer">
+    <img src="a_ref.svg" alt="Logo A REF" class="logo-footer">
+    <img src="a_zap.svg" alt="Logo A ZAP" class="logo-footer">
+</footer>
+
 
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
