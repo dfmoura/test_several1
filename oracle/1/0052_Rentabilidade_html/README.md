@@ -49,15 +49,20 @@ GM - DASH RENTABILIDADE HTML5 - Conduzimos um ponto de controle para apresentar 
 
 ```
 
-
-efetuamos organização redefinição no filtro de intervalo de dados na questão do periodo anterior, pegar o mes anterior da data inicial e como data final utilizar a quantidade de dias oriundos da data final pela data inicial somados a data inicial do periodo anterior.
-Redefinimos o select para trazer a informação de DE GASTO OPERACIONAL, INVESTIMENTOS E RESULTADO, implementamos a estrutura no html seguindo o padrão dos card's realizandos anteriormente.
-
-
-Realizamos um ponto de controle para apresentar as atualizações. Além disso, readequamos algumas tarefas:
+#### 1.1. 28/06/2024 8:00 as 12:00
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Implementamos diversas melhorias visuais e funcionais no dashboard. Iniciamos alterando a cor da fonte do título para branco e aplicando bordas arredondadas ao cabeçalho dos cards, o que contribuiu para uma estética mais moderna e coesa. Atualizamos a apresentação das variações nos cards para exibir percentuais (%) de maneira clara e informativa, proporcionando uma análise mais precisa das mudanças nos dados. Refinamos também o cálculo do resultado, agora baseado em Faturamento Bruto menos Impostos, Despesas Operacionais e Investimentos, garantindo maior precisão nos indicadores financeiros.
+```
 
 
-retomamos o trabalho iniciando pela cofiguração do melhor layout para a readequação dos novos card's inseridos na parte superior, e na nova seção após a parte superior, testamos diversos layouts até encontrar um com um estilo mais agradavel e condizente com a formatação.
+#### 1.1. 28/06/2024 13:00 as 19:30
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Procedemos com a adição de dois novos cards na parte superior do dashboard principal, dedicados a Impostos e Custo de Mercadoria Vendida (CMV), ampliando assim a visão detalhada sobre os custos e impostos associados às operações. Introduzimos uma nova linha abaixo da seção superior do dashboard, incluindo cards para Margem de Contribuição Nominal e Margem de Contribuição Percentual, que são indicadores cruciais para a análise de rentabilidade. Aumentamos o tamanho das setas indicativas para melhorar a visibilidade das variações positivas e negativas nos dados. No filtro de despesas operacionais, refinamos a query para excluir naturezas que começam com 9, representando adiantamentos e simplificando a análise dos gastos efetivos. Continuamos aprimorando a seção inferior do dashboard, mantendo o estilo neutro do gráfico após clicar no card de faturamento e adicionando colunas essenciais na tabela ao lado, como Código do Produto, Produto, Preço Unitário Médio, CMV e Margem, para uma análise detalhada e precisa dos produtos comercializados. Essas atualizações refletem nosso compromisso contínuo com a melhoria da usabilidade e da apresentação dos dados no dashboard.
+
+
+```
+
+
 
 ```
 Curinga:
@@ -70,14 +75,12 @@ INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
 
 Backlog:
 
-1) Atualizar a apresentação da variação nos cards para percentuais (%).
-2) Atualizar o cálculo de resultado com base em Faturamento Bruto - Impostos - Despesas Operacionais (DO) - Investimentos.
-3) Incluir dois novos cards na parte superior do dashboard principal, sendo Impostos e Custo de Mercadoria Vendida (CMV).
-4) Adicionar uma nova linha abaixo da parte superior do dashboard, incluindo mais dois cards para Margem de Contribuição Nominal e Margem de Contribuição Percentual.
-5) Seguir com as atualizações conforme apresentado, referente ao nível inferior após clicar no card de faturamento, mantendo o estilo neutro do gráfico. Na tabela ao lado, incluir as colunas: Código do Produto, Produto, Preço Unitário Médio, CMV e Margem.
-6) Na despesa operacional colocar no where do select para nao contemplar as naturezas de adiantamento, ou seja, toda natureza que começa com 9.
+
+
 7) Substituir no select da despesa operacional e investimento de vlrbaixa para vlrliq
-8) Aumentar o tamanho da seta
+9) Seguir com atualização de card, margens, inv e resultado.
+10) Adicionar o FEM no calculo dos impostos (antigo gasto variavel cinza)
+11) Colocar o periodo anterior de analise dinamico, hoje esta somente com 1.
 
 
 
@@ -85,3 +88,10 @@ Backlog:
 Realizados:
 
 9) Alterar fonte do titulo para branco e cabaçalho com borda arredondada.
+1) Atualizar a apresentação da variação nos cards para percentuais (%).
+2) Atualizar o cálculo de resultado com base em Faturamento Bruto - Impostos - Despesas Operacionais (DO) - Investimentos.
+3) Incluir dois novos cards na parte superior do dashboard principal, sendo Impostos e Custo de Mercadoria Vendida (CMV).
+4) Adicionar uma nova linha abaixo da parte superior do dashboard, incluindo mais dois cards para Margem de Contribuição Nominal e Margem de Contribuição Percentual.
+8) Aumentar o tamanho da seta
+6) Na despesa operacional colocar no where do select para nao contemplar as naturezas de adiantamento, ou seja, toda natureza que começa com 9.
+5) Seguir com as atualizações conforme apresentado, referente ao nível inferior após clicar no card de faturamento, mantendo o estilo neutro do gráfico. Na tabela ao lado, incluir as colunas: Código do Produto, Produto, Preço Unitário Médio, CMV e Margem.
