@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Custom CSS -->
+  <style>
+    body {
+      background-color: #f8f9fa; /* Light background color */
+    }
+    .card {
+      margin-bottom: 20px;
+      border: none;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .card-header {
+      background-color: #ffffff; /* White background for card header */
+      border-bottom: 1px solid #dee2e6;
+    }
+    .table-hover tbody tr:hover {
+      background-color: rgba(0,0,0,.075); /* Slight shading on table row hover */
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Left Card -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title text-center">Faturamento por Tipo de Produto</h5>
+          </div>
+          <div class="card-body">
+            <!-- Doughnut Chart -->
+            <canvas id="doughnutChart" width="400" height="400"></canvas>
+          </div>
+          <div class="card-footer">
+            <p class="text-center"><strong>Total:</strong> <span id="totalRevenue"></span></p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title text-center">Produtos por Tipo</h5>
+          </div>
+          <div class="card-body">
+            <!-- Bubble Chart -->
+            <canvas id="bubbleChart" width="400" height="400"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- Right Card -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title text-center">Detalhamento por Produto</h5>
+          </div>
+          <div class="card-body">
+            <div style="overflow-y: auto; height: 400px;">
+              <!-- Scrollable Table -->
+              <table class="table table-hover">
+                <thead class="thead-light">
+                  <tr>
+                    <th>Cód. Produto</th>
+                    <th>Produto</th>
+                    <th>Preço Médio</th>
+                    <th>Vlr. Fatura</th>
+                    <th>Custo Médio</th>
+                    <th>% Margem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Table rows will be dynamically added using JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // Dummy data for charts and table
+    var doughnutData = {
+      labels: ["Tipo A", "Tipo B", "Tipo C", "Tipo D", "Tipo E", "Tipo F"],
+      datasets: [{
+        data: [3000, 4500, 2000, 1500, 3500, 1000],
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.5)',
+          'rgba(54, 162, 235, 0.5)',
+          'rgba(255, 206, 86, 0.5)',
+          'rgba(75, 192, 192, 0.5)',
+          'rgba(153, 102, 255, 0.5)',
+          'rgba(255, 159, 64, 0.5)'
+        ]
+      }]
+    };
+
+    var bubbleData = {
+      datasets: [{
+        label: 'Produtos',
+        data: [{
+          x: 10,
+          y: 20,
+          r: 5
+        }, {
+          x: 15,
+          y: 10,
+          r: 10
+        }, {
+          x: 8,
+          y: 12,
+          r: 8
+        }]
+      }]
+    };
+
+    // Initialize Doughnut Chart
+    var ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
+    var doughnutChart = new Chart(ctxDoughnut, {
+      type: 'doughnut',
+      data: doughnutData,
+      options: {
+        responsive: true,
+        tooltips: {
+          callbacks: {
+            label: function(tooltipItem, data) {
+              var dataset = data.datasets[tooltipItem.datasetIndex];
+              var total = dataset.data.reduce(function(previousValue, currentValue, currentIndex, array) {
+                return previousValue + currentValue;
+              });
+              var currentValue = dataset.data[tooltipItem.index];
+              var label = data.labels[tooltipItem.index] || '';
+              if (label) {
+                label += ': ';
+              }
+              label += currentValue.toFixed(2) + ' (' + ((currentValue / total) * 100).toFixed(2) + '%)';
+              return label;
+            }
+          }
+        }
+      }
+    });
+
+    // Initialize Bubble Chart
+    var ctxBubble = document.getElementById('bubbleChart').getContext('2d');
+    var bubbleChart = new Chart(ctxBubble, {
+      type: 'bubble',
+      data: bubbleData,
+      options: {
+        responsive: true,
+        tooltips: {
+          callbacks: {
+            label: function(tooltipItem, data) {
+              var datasetLabel = data.datasets[tooltipItem.datasetIndex].label || '';
+              var dataPoint = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+              return datasetLabel + ': (' + dataPoint.x + ', ' + dataPoint.y + ', ' + dataPoint.r + ')';
+            }
+          }
+        }
+      }
+    });
+
+    // Dummy data for table (to be dynamically added)
+    var tableData = [
+      { codigo: '001', produto: 'Produto A', precoMedio: '100', valorFatura: '500', custoMedio: '80', margem: '20%' },
+      { codigo: '002', produto: 'Produto B', precoMedio: '150', valorFatura: '750', custoMedio: '110', margem: '30%' },
+      { codigo: '003', produto: 'Produto C', precoMedio: '120', valorFatura: '600', custoMedio: '90', margem: '25%' }
+    ];
+
+    // Populate table rows
+    var tbody = document.querySelector('.table tbody');
+    tableData.forEach(function(item) {
+      var row = document.createElement('tr');
+      row.innerHTML = '<td>' + item.codigo + '</td><td>' + item.produto + '</td><td>' + item.precoMedio + '</td><td>' + item.valorFatura + '</td><td>' + item.custoMedio + '</td><td>' + item.margem + '</td>';
+      tbody.appendChild(row);
+    });
+
+    // Display total revenue in doughnut chart footer
+    var totalRevenue = tableData.reduce(function(acc, cur) {
+      return acc + parseFloat(cur.valorFatura);
+    }, 0);
+    document.getElementById('totalRevenue').innerText = totalRevenue.toFixed(2);
+  </script>
+</body>
+</html>

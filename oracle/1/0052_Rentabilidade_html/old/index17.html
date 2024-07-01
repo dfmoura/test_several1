@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Faturamento</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        .leaflet-popup-content-wrapper {
+            font-size: 14px;
+        }
+        .leaflet-popup-content p {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Inicializa o mapa
+        var map = L.map('map').setView([-18.9137, -48.2755], 8); // Coordenadas centralizadas em Minas Gerais
+
+        // Adiciona o tile layer do OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Dados de faturamento por cidade
+        var cidades = [
+            { nome: "Uberlândia/MG", coords: [-18.9128, -48.2755], faturamento: "R$ 1.200.000" },
+            { nome: "Araguari/MG", coords: [-18.6472, -48.1878], faturamento: "R$ 850.000" },
+            { nome: "Uberaba/MG", coords: [-19.7483, -47.9319], faturamento: "R$ 950.000" },
+            { nome: "Patos de Minas/MG", coords: [-18.5841, -46.5133], faturamento: "R$ 600.000" }
+        ];
+
+        // Adiciona marcadores para cada cidade
+        cidades.forEach(function(cidade) {
+            var marker = L.marker(cidade.coords).addTo(map);
+            marker.bindPopup(`<b>${cidade.nome}</b><br>Faturamento: ${cidade.faturamento}`);
+            
+            // Adiciona efeitos ao marcador
+            marker.on('mouseover', function() {
+                marker.openPopup();
+                marker.setIcon(L.icon({
+                    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                }));
+            });
+            marker.on('mouseout', function() {
+                marker.closePopup();
+                marker.setIcon(L.icon({
+                    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                }));
+            });
+        });
+    </script>
+</body>
+</html>

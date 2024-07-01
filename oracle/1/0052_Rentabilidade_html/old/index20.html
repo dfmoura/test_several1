@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Página de Dashboard</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background-color: #f8f9fa; /* cor de fundo leve */
+    }
+    .card {
+      background-color: transparent; /* cartões transparentes */
+      border: none;
+    }
+    .card-header {
+      background-color: transparent; /* cabeçalho transparente */
+      border-bottom: none;
+      font-weight: bold;
+      text-align: center;
+    }
+    .table-hover tbody tr:hover {
+      background-color: rgba(0,0,0,0.075); /* sombreamento ao passar o mouse na tabela */
+    }
+    /* Flexbox para alinhar os cards verticalmente */
+    .row-equal-height {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    .card-flex {
+      display: flex;
+      flex-direction: column;
+      height: 100%; /* Para ocupar a altura total do card */
+    }
+    .card-body-flex {
+      flex-grow: 1; /* Para que o corpo do card ocupe o espaço disponível */
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row row-equal-height">
+      <!-- Card Esquerdo -->
+      <div class="col-lg-6">
+        <div class="card card-flex">
+          <div class="card-header">
+            Faturamento por Tipo de Produto
+          </div>
+          <div class="card-body card-body-flex">
+            <canvas id="doughnutChart"></canvas>
+          </div>
+          <div class="card-footer">
+            <h5 class="text-center">Produtos por Tipo</h5>
+            <canvas id="bubbleChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- Card Direito -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            Detalhamento por Produto
+          </div>
+          <div class="card-body">
+            <div style="max-height: 400px; overflow-y: auto;">
+              <table class="table table-hover">
+                <thead class="thead-light sticky-top">
+                  <tr>
+                    <th scope="col">Cód. Produto</th>
+                    <th scope="col">Produto</th>
+                    <th scope="col">Preço Médio</th>
+                    <th scope="col">Vlr. Fatura</th>
+                    <th scope="col">Custo Médio</th>
+                    <th scope="col">% Margem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Linhas da Tabela serão preenchidas dinamicamente com JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // Dados para os gráficos de exemplo
+    var doughnutData = {
+      labels: ["Tipo 1", "Tipo 2", "Tipo 3", "Tipo 4", "Tipo 5", "Tipo 6"],
+      datasets: [{
+        data: [1200, 1700, 800, 600, 1100, 900],
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.6)',
+          'rgba(54, 162, 235, 0.6)',
+          'rgba(255, 206, 86, 0.6)',
+          'rgba(75, 192, 192, 0.6)',
+          'rgba(153, 102, 255, 0.6)',
+          'rgba(255, 159, 64, 0.6)'
+        ],
+        hoverBackgroundColor: [
+          'rgba(255, 99, 132, 0.8)',
+          'rgba(54, 162, 235, 0.8)',
+          'rgba(255, 206, 86, 0.8)',
+          'rgba(75, 192, 192, 0.8)',
+          'rgba(153, 102, 255, 0.8)',
+          'rgba(255, 159, 64, 0.8)'
+        ]
+      }]
+    };
+
+    var bubbleData = {
+      datasets: [{
+        label: 'Produtos',
+        data: [{
+          x: 10,
+          y: 20,
+          r: 10
+        }, {
+          x: 30,
+          y: 10,
+          r: 20
+        }, {
+          // Mais dados de exemplo
+        }],
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        hoverBackgroundColor: 'rgba(54, 162, 235, 0.8)'
+      }]
+    };
+
+    // Configuração do Doughnut Chart
+    var doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+    var doughnutChart = new Chart(doughnutCtx, {
+      type: 'doughnut',
+      data: doughnutData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        tooltips: {
+          callbacks: {
+            label: function(tooltipItem, data) {
+              var label = data.labels[tooltipItem.index];
+              var value = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+              return label + ': ' + value;
+            }
+          }
+        },
+        title: {
+          display: true,
+          text: 'Faturamento por Tipo Produto',
+          position: 'top',
+          fontSize: 14,
+          fontStyle: 'bold',
+          padding: 20
+        }
+      }
+    });
+
+    // Configuração do Bubble Chart
+    var bubbleCtx = document.getElementById('bubbleChart').getContext('2d');
+    var bubbleChart = new Chart(bubbleCtx, {
+      type: 'bubble',
+      data: bubbleData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        tooltips: {
+          callbacks: {
+            label: function(tooltipItem, data) {
+              var value = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+              return 'Produto: ' + value.x + ', Valor: ' + value.y;
+            }
+          }
+        },
+        title: {
+          display: true,
+          text: 'Produtos por Tipo',
+          position: 'top',
+          fontSize: 14,
+          fontStyle: 'bold',
+          padding: 20
+        },
+        scales: {
+          yAxes: [{
+            scaleLabel: {
+              display: true,
+              labelString: 'Valor'
+            }
+          }],
+          xAxes: [{
+            scaleLabel: {
+              display: true,
+              labelString: 'Produto'
+            }
+          }]
+        }
+      }
+    });
+
+    // Função para preencher a tabela com dados de exemplo
+    function fillTable() {
+      var tableBody = document.querySelector('tbody');
+      // Exemplo de preenchimento das linhas da tabela
+      for (var i = 1; i <= 30; i++) {
+        var newRow = '<tr>' +
+          '<td>Cód. ' + i + '</td>' +
+          '<td>Produto ' + i + '</td>' +
+          '<td>R$ ' + (Math.random() * 100).toFixed(2) + '</td>' +
+          '<td>R$ ' + (Math.random() * 1000).toFixed(2) + '</td>' +
+          '<td>R$ ' + (Math.random() * 50).toFixed(2) + '</td>' +
+          '<td>' + (Math.random() * 50).toFixed(2) + '%</td>' +
+          '</tr>';
+        tableBody.innerHTML += newRow;
+      }
+    }
+
+    // Chamada para preencher a tabela ao carregar a página
+    fillTable();
+  </script>
+</body>
+</html>
