@@ -153,43 +153,13 @@
     </div>
 
     <script>
-        // Função para atualizar o treemap com os novos dados
-        function updateTreemap(data) {
-            Highcharts.chart('treemapChart', {
-                chart: {
-                    type: 'treemap'
-                },
-                colorAxis: {
-                    minColor: '#f2f2f2', // Tonalidade mais clara
-                    maxColor: '#4CAF50', // Tonalidade mais escura
-                    minOpacity: 0.6, // Opacidade mínima
-                    maxOpacity: 0.9 // Opacidade máxima
-                },
-                series: [{
-                    type: 'treemap',
-                    data: data
-                }]
-            });
-        }
-
-        // Função para atualizar os dados ao clicar no doughnut chart
+        // Função para atualizar a query
         function ref_fat(TIPOPROD) {
-            const params = {'A_TPPROD': TIPOPROD };
-            refreshDetails('lvl_216fbu', params);
+            const params = {'A_TPPROD': TIPOPROD};
+            refreshDetails('html5_30a1tq', params); 
         }
 
-        // Função fictícia para simular a atualização dos detalhes
-        function refreshDetails(level, params) {
-            // Aqui você faria uma chamada AJAX para obter os dados atualizados
-            // Vou simular com dados estáticos para este exemplo
-            const treemapData = [
-                { name: 'Produto 1', value: Math.random() * 1000, colorValue: 1 },
-                { name: 'Produto 2', value: Math.random() * 1000, colorValue: 2 },
-                { name: 'Produto 3', value: Math.random() * 1000, colorValue: 3 }
-            ];
-            updateTreemap(treemapData);
-        }
-
+        // Doughnut chart configuration        
         document.addEventListener('DOMContentLoaded', function () {
             var ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
             var labels = [];
@@ -228,32 +198,49 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    onClick: function(event, elements) {
-                        if (elements.length > 0) {
-                            var clickedIndex = elements[0].index;
-                            var TIPOPROD = labels[clickedIndex];
-                            ref_fat(TIPOPROD);
-                        }
-                    },
                     plugins: {
                         legend: {
                             display: true,
                             position: 'bottom'
                         }
+                    },
+                    onClick: function (e, elements) {
+                        if (elements.length > 0) {
+                            var index = elements[0].index;
+                            var label = this.data.labels[index];
+                            ref_fat(label);
+                        }
                     }
                 }
             });
 
-            // Configuração inicial do treemap
-            var initialTreemapData = [];
+            // Treemap configuration
+            var treemapData = [];
+            
             <c:forEach items="${fat_pruduto.rows}" var="row">
-                initialTreemapData.push({
+                treemapData.push({
                     name: "${row.PRODUTO}",
                     value: ${row.VLRFAT},
                     colorValue: 1 // Defina um valor de cor conforme necessário
                 });
             </c:forEach>
-            updateTreemap(initialTreemapData); // Atualiza o treemap inicialmente
+
+            Highcharts.chart('treemapChart', {
+                chart: {
+                    type: 'treemap'
+                },
+                //title: { text: 'Tree map com Color Axis' },
+                colorAxis: {
+                    minColor: '#f2f2f2', // Tonalidade mais clara
+                    maxColor: '#4CAF50', // Tonalidade mais escura
+                    minOpacity: 0.6, // Opacidade mínima
+                    maxOpacity: 0.9 // Opacidade máxima
+                },
+                series: [{
+                    type: 'treemap',
+                    data: treemapData
+                }]
+            });
         });
     </script>
 </body>

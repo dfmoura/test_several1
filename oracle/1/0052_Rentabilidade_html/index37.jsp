@@ -12,8 +12,7 @@
     <title>Dashboard Example</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://code.highcharts.com/highcharts.js"></script>
-    <script src="https://code.highcharts.com/modules/treemap.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body {
             background-color: #f8f9fa;
@@ -26,7 +25,7 @@
         .top-section, .bottom-section {
             background-color: #ffffff;
             padding: 20px;
-            flex: 0.45; /* Reduced from 0.5 to 0.45 for 10% reduction */
+            flex: 0.45;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -65,8 +64,12 @@
             background-color: #f1f1f1;
         }
         #doughnutChart {
-            max-width: 80%; /* Reduce the size proportionally */
-            max-height: 80%; /* Reduce the size proportionally */
+            max-width: 80%;
+            max-height: 80%;
+        }
+        #treemapChart {
+            width: 100%;
+            height: 100%;
         }
     </style>
 
@@ -116,7 +119,6 @@
                 </div>
                 <div class="bottom-section">
                     <div class="chart-title">Faturamento por Produto</div>
-                    <!-- No need for canvas for treemap -->
                     <div id="treemapChart"></div>
                 </div>
             </div>
@@ -153,43 +155,13 @@
     </div>
 
     <script>
-        // Função para atualizar o treemap com os novos dados
-        function updateTreemap(data) {
-            Highcharts.chart('treemapChart', {
-                chart: {
-                    type: 'treemap'
-                },
-                colorAxis: {
-                    minColor: '#f2f2f2', // Tonalidade mais clara
-                    maxColor: '#4CAF50', // Tonalidade mais escura
-                    minOpacity: 0.6, // Opacidade mínima
-                    maxOpacity: 0.9 // Opacidade máxima
-                },
-                series: [{
-                    type: 'treemap',
-                    data: data
-                }]
-            });
-        }
-
-        // Função para atualizar os dados ao clicar no doughnut chart
+        // Função para atualizar a query
         function ref_fat(TIPOPROD) {
-            const params = {'A_TPPROD': TIPOPROD };
-            refreshDetails('lvl_216fbu', params);
+            const params = {'A_TPPROD': TIPOPROD};
+            refreshDetails('html5_30a1tq', params); 
         }
 
-        // Função fictícia para simular a atualização dos detalhes
-        function refreshDetails(level, params) {
-            // Aqui você faria uma chamada AJAX para obter os dados atualizados
-            // Vou simular com dados estáticos para este exemplo
-            const treemapData = [
-                { name: 'Produto 1', value: Math.random() * 1000, colorValue: 1 },
-                { name: 'Produto 2', value: Math.random() * 1000, colorValue: 2 },
-                { name: 'Produto 3', value: Math.random() * 1000, colorValue: 3 }
-            ];
-            updateTreemap(treemapData);
-        }
-
+        // Doughnut chart configuration        
         document.addEventListener('DOMContentLoaded', function () {
             var ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
             var labels = [];
@@ -228,32 +200,50 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    onClick: function(event, elements) {
-                        if (elements.length > 0) {
-                            var clickedIndex = elements[0].index;
-                            var TIPOPROD = labels[clickedIndex];
-                            ref_fat(TIPOPROD);
-                        }
-                    },
                     plugins: {
                         legend: {
                             display: true,
                             position: 'bottom'
                         }
+                    },
+                    onClick: function (e, elements) {
+                        if (elements.length > 0) {
+                            var index = elements[0].index;
+                            var label = this.data.labels[index];
+                            ref_fat(label);
+                        }
                     }
                 }
             });
 
-            // Configuração inicial do treemap
-            var initialTreemapData = [];
+            // Treemap configuration with Plotly
+            var treemapData = [];
+            var labels = [];
+            var parents = [];
+            var values = [];
+
             <c:forEach items="${fat_pruduto.rows}" var="row">
-                initialTreemapData.push({
-                    name: "${row.PRODUTO}",
-                    value: ${row.VLRFAT},
-                    colorValue: 1 // Defina um valor de cor conforme necessário
-                });
+                labels.push("${row.PRODUTO}");
+                parents.push(""); // Root element doesn't have a parent
+                values.push(${row.VLRFAT});
             </c:forEach>
-            updateTreemap(initialTreemapData); // Atualiza o treemap inicialmente
+
+            var data = [{
+                type: "treemap",
+                labels: labels,
+                parents: parents,
+                values: values,
+                textinfo: "label+value",
+                texttemplate: "%{label}<br>R$ %{value}"
+            }];
+
+            var layout = {
+                title: "",
+                width: 600,
+                height: 400
+            };
+
+            Plotly.newPlot('treemapChart', data, layout);
         });
     </script>
 </body>

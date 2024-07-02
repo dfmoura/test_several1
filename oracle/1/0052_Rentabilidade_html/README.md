@@ -59,8 +59,25 @@ GM - DASH RENTABILIDADE HTML5 - Implementamos diversas melhorias visuais e funci
 ```markdown
 GM - DASH RENTABILIDADE HTML5 - Procedemos com a adição de dois novos cards na parte superior do dashboard principal, dedicados a Impostos e Custo de Mercadoria Vendida (CMV), ampliando assim a visão detalhada sobre os custos e impostos associados às operações. Introduzimos uma nova linha abaixo da seção superior do dashboard, incluindo cards para Margem de Contribuição Nominal e Margem de Contribuição Percentual, que são indicadores cruciais para a análise de rentabilidade. Aumentamos o tamanho das setas indicativas para melhorar a visibilidade das variações positivas e negativas nos dados. No filtro de despesas operacionais, refinamos a query para excluir naturezas que começam com 9, representando adiantamentos e simplificando a análise dos gastos efetivos. Continuamos aprimorando a seção inferior do dashboard, mantendo o estilo neutro do gráfico após clicar no card de faturamento e adicionando colunas essenciais na tabela ao lado, como Código do Produto, Produto, Preço Unitário Médio, CMV e Margem, para uma análise detalhada e precisa dos produtos comercializados. Essas atualizações refletem nosso compromisso contínuo com a melhoria da usabilidade e da apresentação dos dados no dashboard.
 
-
 ```
+
+#### 1.1. 30/06/2024 20:00 as 23:00
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Prosseguimos com a atualização detalhada dos cards do dashboard, focando na análise e ajuste das margens de contribuição, investimentos e resultado. Implementamos refinamentos específicos para garantir que os indicadores financeiros estejam precisos e alinhados com as últimas atualizações de dados, assegurando assim que o dashboard continue a fornecer informações relevantes e atualizadas para a tomada de decisões estratégicas.
+```
+
+
+#### 1.1. 01/07/2024 8:00 as 12:00
+```markdown
+GM - DASH RENTABILIDADE HTML5 - iniciamos o desenvolvimento do esboço inicial do primeiro nível inferior ao card de faturamento, optando por substituir o gráfico de pizza pelo gráfico de donut. Configuramos o donut com cores suaves e aplicamos uma transparência de rgba 0.2, proporcionando uma estética agradável e clara. Integramos um conteúdo informativo dentro do donut para apresentar uma visão consolidada dos dados. Neste esboço inicial, planejamos inicialmente incluir um segundo gráfico abaixo e uma tabela ao lado; entretanto, decidimos simplificar este nível para conter apenas dois componentes gráficos: o donut à esquerda e o maptree à direita. Implementamos a interatividade necessária para que ao clicar em uma fatia do donut, as informações correspondentes fossem filtradas e exibidas no maptree.
+```
+
+#### 1.1. 01/07/2024 13:00 as 18:00
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Continuamos com a implementação e configuração do maptree, garantindo que estivesse configurado corretamente para exibição e interação. Ajustamos os detalhes visuais e funcionais para assegurar que o maptree respondesse adequadamente aos filtros aplicados pelo donut, proporcionando uma experiência de usuário fluida e informativa. Essas atualizações foram essenciais para enriquecer a análise de dados no dashboard, permitindo uma visualização detalhada e interativa das informações relacionadas ao desempenho de vendas e distribuição da empresa.
+```
+
+
 
 
 
@@ -78,9 +95,8 @@ Backlog:
 
 
 7) Substituir no select da despesa operacional e investimento de vlrbaixa para vlrliq
-9) Seguir com atualização de card, margens, inv e resultado.
-10) Adicionar o FEM no calculo dos impostos (antigo gasto variavel cinza)
-11) Colocar o periodo anterior de analise dinamico, hoje esta somente com 1.
+11) Adicionar o FEM no calculo dos impostos (antigo gasto variavel cinza)
+12) Colocar o periodo anterior de analise dinamico, hoje esta somente com 1.
 
 
 
@@ -95,3 +111,4 @@ Realizados:
 8) Aumentar o tamanho da seta
 6) Na despesa operacional colocar no where do select para nao contemplar as naturezas de adiantamento, ou seja, toda natureza que começa com 9.
 5) Seguir com as atualizações conforme apresentado, referente ao nível inferior após clicar no card de faturamento, mantendo o estilo neutro do gráfico. Na tabela ao lado, incluir as colunas: Código do Produto, Produto, Preço Unitário Médio, CMV e Margem.
+10) Seguir com atualização de card, margens, inv e resultado.

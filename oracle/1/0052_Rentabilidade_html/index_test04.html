@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tree Map Chart Example</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    padding: 20px;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    border-radius: 8px;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Tree Map Chart Example</h1>
+  <div id="treemap-container" style="width: 100%; height: 400px;"></div>
+</div>
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/treemap.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    Highcharts.chart('treemap-container', {
+      chart: {
+        type: 'treemap'
+      },
+      title: {
+        text: 'Sales by Category'
+      },
+      series: [{
+        type: 'treemap',
+        layoutAlgorithm: 'squarified',
+        data: [{
+          name: 'Electronics',
+          value: 120000,
+          colorValue: 1
+        }, {
+          name: 'Clothing',
+          value: 80000,
+          colorValue: 2
+        }, {
+          name: 'Sports',
+          value: 60000,
+          colorValue: 3
+        }, {
+          name: 'Books',
+          value: 40000,
+          colorValue: 4
+        }, {
+          name: 'Toys',
+          value: 20000,
+          colorValue: 5
+        }]
+      }]
+    });
+  });
+</script>
+</body>
+</html>

@@ -68,6 +68,15 @@
             max-width: 80%; /* Reduce the size proportionally */
             max-height: 80%; /* Reduce the size proportionally */
         }
+        .card {
+            width: 100%;
+            margin-top: 20px;
+        }
+        .card-body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
     </style>
 
 <snk:load/>
@@ -116,8 +125,14 @@
                 </div>
                 <div class="bottom-section">
                     <div class="chart-title">Faturamento por Produto</div>
-                    <!-- No need for canvas for treemap -->
                     <div id="treemapChart"></div>
+                    <!-- Novo card para exibir o argumento :A_TPPROD -->
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Tipo de Produto Selecionado</h5>
+                            <p id="selectedProductType" class="card-text">Nenhum</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-6 right-section">
@@ -174,14 +189,14 @@
 
         // Função para atualizar os dados ao clicar no doughnut chart
         function ref_fat(TIPOPROD) {
-            const params = {'A_TPPROD': TIPOPROD };
-            refreshDetails('lvl_216fbu', params);
+            document.getElementById('selectedProductType').innerText = TIPOPROD;
+            refreshDetails(TIPOPROD);
         }
 
-        // Função fictícia para simular a atualização dos detalhes
-        function refreshDetails(level, params) {
-            // Aqui você faria uma chamada AJAX para obter os dados atualizados
-            // Vou simular com dados estáticos para este exemplo
+        // Simulação da atualização dos detalhes (substitua pela lógica real)
+        function refreshDetails(TIPOPROD) {
+            // Aqui você faria uma chamada AJAX para buscar os dados atualizados
+            // Exemplo de dados atualizados para este exemplo
             const treemapData = [
                 { name: 'Produto 1', value: Math.random() * 1000, colorValue: 1 },
                 { name: 'Produto 2', value: Math.random() * 1000, colorValue: 2 },
