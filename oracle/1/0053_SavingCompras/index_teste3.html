@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabela Bonita</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    /* Estilos personalizados */
+    .table-hover tbody tr:hover {
+      background-color: #f5f5f5;
+    }
+    .table-rounded {
+      border-radius: 10px; /* Cantos arredondados */
+    }
+    .table-title {
+      background-color: #28a745; /* Fundo título */
+      color: #fff; /* Fonte branca */
+      border-radius: 10px 10px 0 0; /* Cantos arredondados apenas na parte superior */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 class="text-center py-4">Exemplo de Tabela Bonita</h2>
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover table-rounded">
+        <thead class="table-title">
+          <tr>
+            <th>Nome</th>
+            <th>Idade</th>
+            <th>Cidade</th>
+            <th>Profissão</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>João</td>
+            <td>25</td>
+            <td>São Paulo</td>
+            <td>Engenheiro</td>
+          </tr>
+          <tr>
+            <td>Maria</td>
+            <td>28</td>
+            <td>Rio de Janeiro</td>
+            <td>Advogada</td>
+          </tr>
+          <tr>
+            <td>Pedro</td>
+            <td>22</td>
+            <td>Porto Alegre</td>
+            <td>Estudante</td>
+          </tr>
+          <tr>
+            <td>Ana</td>
+            <td>30</td>
+            <td>Brasília</td>
+            <td>Médica</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Bootstrap JS and dependencies -->
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

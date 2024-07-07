@@ -51,6 +51,11 @@ SATIS - SAVING E EVOLUÇÃO COMPRAS - Durante a tarde, finalizamos a formataçã
 
 
 
+O INDEX 2 É A ESTRUTURA HTML
+O INDEX 3 É A ESTRUTURA JSP
+
+
+
 ```
 Curinga:
 

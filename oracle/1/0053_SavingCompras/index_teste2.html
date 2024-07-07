@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabela Bonita</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* Estilos adicionais */
+    .table-hover tbody tr:hover {
+      background-color: #f5f5f5; /* Cor de fundo ao passar o mouse */
+    }
+    .table-rounded {
+      border-radius: 10px; /* Cantos arredondados */
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h2>Tabela Bonita</h2>
+    <table class="table table-bordered table-hover table-rounded">
+      <thead class="thead-dark">
+        <tr>
+          <th>#</th>
+          <th>Nome</th>
+          <th>Email</th>
+          <th>Telefone</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>João Silva</td>
+          <td>joao@example.com</td>
+          <td>(11) 9999-8888</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Maria Santos</td>
+          <td>maria@example.com</td>
+          <td>(21) 8888-7777</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Carlos Oliveira</td>
+          <td>carlos@example.com</td>
+          <td>(31) 7777-6666</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Bootstrap JS and dependencies -->
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
