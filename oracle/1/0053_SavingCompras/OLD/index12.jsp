@@ -22,6 +22,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 20px;
+            height: 700px;
         }
 
         .table {
@@ -40,6 +41,7 @@
             box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
             text-align: center;
             padding: 10px;
+            font-size: 12px;
         }
 
         .table tbody tr {
@@ -52,10 +54,11 @@
         }
 
         .table tbody td {
-            font-size: 12px;
-            padding: 15px;
+            font-size: 10px;
+            padding: 8px;
             text-align: center;
             border-top: 1px solid #dee2e6;
+            white-space: nowrap; /* retirar quebra de linha */
         }
 
         .table tbody tr:nth-of-type(even) {
@@ -71,7 +74,8 @@
             border-top-right-radius: 10px;
             border-bottom-right-radius: 10px;
         }
-    </style>
+
+</style>
 
 <snk:load/>
 
@@ -117,15 +121,15 @@
     USU AS (SELECT CODUSU,NOMEUSU FROM TSIUSU)
     
     SELECT CAB.CODEMP,
-           CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL) AS PARCEIRO,
-           ITE.CODPROD||'-'||PRO.DESCRPROD AS PRODUTO,
-           PRO.CODGRUPOPROD||'-'|| GRU.DESCRGRUPOPROD AS GRUPO,
+           SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL),1,20) AS PARCEIRO,
+           SUBSTR(ITE.CODPROD||'-'||PRO.DESCRPROD,1,15) AS PRODUTO,
+           SUBSTR(PRO.CODGRUPOPROD||'-'|| GRU.DESCRGRUPOPROD,1,15) AS GRUPO,
            ITE.CODVOL AS UN,
            ITE.NUNOTA AS NUNOTA,
            CAB.TIPMOV AS TIPMOV,
-           CAB.DTNEG,
-           VEN.CODVEND||'-'||VEN.APELIDO AS COMPRADOR,
-           CAB.CODUSUINC||'-'||USU.NOMEUSU AS USUARIO_INC,
+           TO_CHAR(CAB.DTNEG,'DD-MM-YYYY') AS DTNEG,
+           SUBSTR(VEN.CODVEND||'-'||VEN.APELIDO,1,15) AS COMPRADOR,
+           SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,15) AS USUARIO_INC,
            ITE.QTDNEG,
            ITE.VLRTOT,
            ITE.VLRDESC,
@@ -188,6 +192,8 @@
             </thead>
             <tbody>
                 <c:forEach items="${compras_saving_detalhe.rows}" var="row">
+
+                    
                     <tr>
                         <td>${row.CODEMP}</td>
                         <td>${row.PARCEIRO}</td>
@@ -199,21 +205,46 @@
                         <td>${row.DTNEG}</td>
                         <td>${row.COMPRADOR}</td>
                         <td>${row.USUARIO_INC}</td>
-                        <td>${row.QTDNEG}</td>
-                        <td>${row.VLRTOT}</td>
-                        <td>${row.VLRDESC}</td>
-                        <td>${row.PRECO_COMPRA_UN}</td>
-                        <td>${row.PRECO_COMPRA_UN_LIQ}</td>
-                        <td>${row.PRECO_COMPRA_UN_LIQ_ANT_MED}</td>
-                        <td>${row.DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ}</td>
+                        <td><fmt:formatNumber value="${row.QTDNEG}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td><fmt:formatNumber value="${row.VLRTOT}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td><fmt:formatNumber value="${row.VLRDESC}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td><fmt:formatNumber value="${row.PRECO_COMPRA_UN}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td><fmt:formatNumber value="${row.PRECO_COMPRA_UN_LIQ}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td><fmt:formatNumber value="${row.PRECO_COMPRA_UN_LIQ_ANT_MED}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td><fmt:formatNumber value="${row.DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
                         <td>${row.SITUACAO_PRECO}</td>
-                        <td>${row.PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ}</td>
-                        <td>${row.SAVING}</td>
-                        <td>${row.SAVING_UN}</td>
-                        <td>${row.PERC_SAVING}</td>
+                        <td><fmt:formatNumber value="${row.PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td><fmt:formatNumber value="${row.SAVING}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td><fmt:formatNumber value="${row.SAVING_UN}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td><fmt:formatNumber value="${row.PERC_SAVING}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
                     </tr>
+
+
+                    <c:set var="totalQtdNeg" value="${totalQtdNeg + row.QTDNEG}" />
+                    <c:set var="totalVlrTot" value="${totalVlrTot + row.VLRTOT}" />
+                    <c:set var="totalVlrDesc" value="${totalVlrDesc + row.VLRDESC}" />
+                    <c:set var="totalSaving" value="${totalSaving + row.SAVING}" />                
+
                 </c:forEach>
             </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="10"><strong>Total:</strong></td>
+                    <td><fmt:formatNumber value="${totalQtdNeg}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
+                    <td><fmt:formatNumber value="${totalVlrTot}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
+                    <td><fmt:formatNumber value="${totalVlrDesc}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
+                    <td></td> <!-- Coluna de preço (UN) -->
+                    <td></td> <!-- Coluna de preço Liq. (UN) -->
+                    <td></td> <!-- Coluna de preço Liq. Ante. Méd. (UN) -->
+                    <td></td> <!-- Coluna de Dif. -->
+                    <td></td> <!-- Coluna de Situação Preço -->
+                    <td></td> <!-- Coluna de % Dif. -->
+                    <td><fmt:formatNumber value="${totalSaving}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
+                    <td></td> <!-- Coluna de Saving (UN) -->
+                    <td></td> <!-- Coluna de % Saving -->
+                </tr>
+            </tfoot>
+            
         </table>
     </div>
 </body>

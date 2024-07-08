@@ -111,6 +111,7 @@
 
         .button img {
             margin-right: 5px;
+            filter: brightness(0) invert(1); /* Torna a cor do ícone branca */
         }
     </style>
 
@@ -220,7 +221,7 @@
         TO_CHAR(DTNEG,'YYYY') AS ANO,
         TO_CHAR(DTNEG,'MM') AS MES,
         TO_CHAR(DTNEG,'MM-YYYY') AS MES_ANO,
-        SUM(GANHO_NEGOCIACAO) AS GANHO_NEGOCIACAO
+        ABS(SUM(GANHO_NEGOCIACAO)) AS GANHO_NEGOCIACAO
         FROM
         (
         SELECT 
@@ -305,14 +306,14 @@
                 <div id="chart-left"></div>
             </div>
             <div class="buttons-container">
-                <button class="button">
+                <button class="button" onclick="abrirSavProFor()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
+                    Prod. e Parc.
                 </button>
                 <!-- Repita o botão abaixo até ter 8 -->
-                <button class="button">
+                <button class="button" onclick="abrirSavProPerc()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
+                    % Produtos
                 </button>
                 <button class="button">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
@@ -342,7 +343,7 @@
         </div>
         <div class="side">
             <c:forEach items="${compras_ganho_negociacao.rows}" var="row">
-                <div class="card">
+                <div class="card" onclick="abrirGanhNeg()">
                     <div class="card-number">${row.GANHO_NEGOCIACAO}</div>
                     <div class="card-text">Ganho Negociação</div>
                 </div>
@@ -486,6 +487,22 @@
     function abrirSaving(){
     var params = '';
     var level = 'lvl_9s400g';
+    openLevel(level, params);
+    }
+    function abrirSavProFor(){
+    var params = '';
+    var level = 'lvl_acwo5md';
+    openLevel(level, params);
+    }
+    function abrirSavProPerc(){
+    var params = '';
+    var level = 'lvl_acwo5or';
+    openLevel(level, params);
+    }    
+    
+    function abrirGanhNeg(){
+    var params = '';
+    var level = 'lvl_adrfvrm';
     openLevel(level, params);
     }
 </script>

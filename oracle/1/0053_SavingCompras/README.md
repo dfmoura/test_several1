@@ -48,6 +48,24 @@ SATIS - SAVING E EVOLUÇÃO COMPRAS - Durante a tarde, finalizamos a formataçã
 ```
 
 
+#### 1.1. 05/07/2024 8:00 as 12:00
+```markdown
+SATIS - SAVING E EVOLUÇÃO COMPRAS - Nos concentramos na criação de cartões (cards) no dashboard principal que consolidam as informações de saving e os ganhos de negociação. Estes cards foram projetados para oferecer uma visão geral rápida e clara dos resultados financeiros obtidos. Cada card foi configurado para exibir os totais consolidados de saving e ganhos de negociação, proporcionando uma visualização imediata do desempenho geral. Além disso, implementamos níveis de detalhamento para cada número consolidado. Ao clicar em um card, os usuários podem acessar informações mais detalhadas, incluindo gráficos de evolução do saving por período e gráficos de evolução do saving por ganho de negociação. Esses gráficos foram desenvolvidos para mostrar as tendências ao longo do tempo, permitindo uma análise aprofundada dos dados e a identificação de padrões e oportunidades de melhoria.
+
+```
+
+
+#### 1.1. 05/07/2024 13:00 as 19:00
+```markdown
+SATIS - SAVING E EVOLUÇÃO COMPRAS - continuamos a aprimorar o dashboard, focando na criação de um nível inferior de detalhamento acessado a partir do botão 'Prod. e Parc.'. Este nível inferior foi desenvolvido para demonstrar os 10 produtos com maior saving e os 10 fornecedores com maior saving. Cada uma dessas listas foi elaborada com base em critérios rigorosos de análise de dados, garantindo que as informações apresentadas fossem precisas e relevantes. Implementamos tabelas e gráficos interativos que permitem aos usuários explorar esses dados de maneira dinâmica, facilitando a identificação de produtos e fornecedores que estão contribuindo significativamente para as economias da empresa. Além disso, configuramos filtros e opções de segmentação que permitem personalizar a visualização dos dados de acordo com diferentes parâmetros, como períodos específicos ou categorias de produtos. Essa funcionalidade adicional fornece uma camada extra de insight e suporte à tomada de decisões estratégicas.
+
+```
+
+
+
+
+
+
 
 
 

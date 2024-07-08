@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Horizontal Bar Chart with Plotly.js</title>
+  <!-- Incluir o Plotly.js -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <!-- Estilos opcionais -->
+  <style>
+    /* Estilização básica para o gráfico */
+    #chart {
+      max-width: 600px;
+      margin: 20px auto;
+    }
+  </style>
+</head>
+<body>
+  
+  <!-- Div onde o gráfico será renderizado -->
+  <div id="chart"></div>
+
+  <!-- Script para criar o gráfico -->
+  <script>
+    // Dados fictícios (nomes de produtos e vendas)
+    var data = [
+      { y: ['Produto A', 'Produto B', 'Produto C'], x: [45, 60, 30], type: 'bar', orientation: 'h',
+        marker: {
+          color: 'rgba(50,171,96,0.6)',  // Cor das barras
+          line: {
+            color: 'rgba(50,171,96,1.0)',  // Cor da borda das barras
+            width: 1  // Espessura da borda
+          }
+        }
+      }
+    ];
+
+    // Layout do gráfico
+    var layout = {
+      title: 'Vendas por Produto',
+      xaxis: { title: 'Vendas', automargin: true },
+      yaxis: { title: 'Produtos', automargin: true },
+      margin: { l: 100, r: 20, t: 50, b: 70 },
+      bargap: 0.4,  // Espaçamento entre as barras
+      bargroupgap: 0.2,  // Espaçamento entre grupos de barras
+      paper_bgcolor: 'rgba(245,246,249,1)',  // Cor do fundo do gráfico
+      plot_bgcolor: 'rgba(245,246,249,1)',  // Cor do fundo do plot
+      font: { family: 'Arial, sans-serif', size: 14, color: '#444' }  // Estilo da fonte
+    };
+
+    // Configurações de animação
+    var config = { responsive: true, displayModeBar: false };
+
+    // Renderizar o gráfico usando Plotly.js
+    Plotly.newPlot('chart', data, layout, config);
+  </script>
+</body>
+</html>

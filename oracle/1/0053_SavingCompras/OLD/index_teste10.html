@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfico de Barra Empilhada com Plotly.js</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        #chart {
+            width: 80%;
+            height: 80%;
+        }
+    </style>
+</head>
+<body>
+    <div id="chart"></div>
+
+    <script>
+        var trace1 = {
+            x: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+            y: [20, 14, 23, 25, 22],
+            name: 'Produto A',
+            type: 'bar'
+        };
+
+        var trace2 = {
+            x: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+            y: [14, 18, 22, 29, 25],
+            name: 'Produto B',
+            type: 'bar'
+        };
+
+        var trace3 = {
+            x: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+            y: [18, 16, 25, 30, 28],
+            name: 'Produto C',
+            type: 'bar'
+        };
+
+        var data = [trace1, trace2, trace3];
+
+        var layout = {
+            barmode: 'stack',
+            title: 'Vendas Mensais por Produto',
+            xaxis: { title: 'Mês' },
+            yaxis: { title: 'Vendas' }
+        };
+
+        Plotly.newPlot('chart', data, layout);
+    </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resizable Page with Plotly.js</title>
+    <!-- Importando Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Estilos CSS -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .chart-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        .chart {
+            flex: 1;
+            border: 1px solid #ccc;
+            margin: 10px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <div class="chart" id="products-chart"></div>
+        <div class="chart" id="suppliers-chart"></div>
+    </div>
+
+    <!-- Script JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dados fictícios para os gráficos
+            var productsData = [
+                { product: 'Product A', saving: 3500 },
+                { product: 'Product B', saving: 2800 },
+                { product: 'Product C', saving: 2100 },
+                { product: 'Product D', saving: 1800 },
+                { product: 'Product E', saving: 1200 }
+            ];
+
+            var suppliersData = [
+                { supplier: 'Supplier X', saving: 4500 },
+                { supplier: 'Supplier Y', saving: 3900 },
+                { supplier: 'Supplier Z', saving: 3200 },
+                { supplier: 'Supplier W', saving: 2800 },
+                { supplier: 'Supplier V', saving: 2200 }
+            ];
+
+            // Ordenando os dados por saving de forma decrescente
+            productsData.sort((a, b) => b.saving - a.saving);
+            suppliersData.sort((a, b) => b.saving - a.saving);
+
+            // Função para criar o gráfico de barras
+            function createBarChart(containerId, data, title) {
+                var labels = data.map(item => item.product || item.supplier);
+                var values = data.map(item => item.saving);
+
+                var trace = {
+                    x: values,
+                    y: labels,
+                    type: 'bar',
+                    orientation: 'h',
+                    marker: {
+                        color: '#28a745',
+                        width: 1
+                    }
+                };
+
+                var layout = {
+                    title: title,
+                    margin: { l: 100, r: 20, t: 40, b: 50 }
+                };
+
+                Plotly.newPlot(containerId, [trace], layout);
+            }
+
+            // Chamando a função para criar os gráficos
+            createBarChart('products-chart', productsData.reverse(), 'Produtos que tiveram maior saving');
+            createBarChart('suppliers-chart', suppliersData.reverse(), 'Fornecedores que tiveram maior saving');
+
+            // Adicionar evento de redimensionamento para os gráficos
+            window.addEventListener('resize', function() {
+                Plotly.Plots.resize('products-chart');
+                Plotly.Plots.resize('suppliers-chart');
+            });
+        });
+    </script>
+</body>
+</html>
