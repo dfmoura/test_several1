@@ -461,26 +461,26 @@ ORDER BY 1,2
             </div>
 
             <div class="chart-container">
-                <div class="chart-title">Evolução Saving</div>
+                <div class="chart-title">Saving e Ganho Evolução Compra</div>
                 <div id="chart-left"></div>
             </div>
             <div class="buttons-container">
                 <button class="button" onclick="abrirSavProFor()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    Prod. e Parc.
+                    Top 10 Saving
                 </button>
                 <!-- Repita o botão abaixo até ter 8 -->
                 <button class="button" onclick="abrirSavProPerc()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    % Produtos
+                    Comprador
+                </button>
+                <button class="button" onclick="abrirGanhEvo()">
+                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
+                    Top 10 Ganho
                 </button>
                 <button class="button">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
-                </button>
-                <button class="button">
-                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
+                    Customizar
                 </button>
             </div>
         </div>
@@ -492,26 +492,26 @@ ORDER BY 1,2
                 </div>
             </c:forEach>
             <div class="chart-container">
-                <div class="chart-title">Evolução Ganho Negociação</div>
+                <div class="chart-title">Ganho Negociação</div>
                 <div id="chart-right"></div>
             </div>
             <div class="buttons-container">
                 <button class="button">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
+                    Customizar
                 </button>
                 <!-- Repita o botão abaixo até ter 8 -->
                 <button class="button">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
+                    Customizar
                 </button>
                 <button class="button">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
+                    Customizar
                 </button>
                 <button class="button">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
+                    Customizar
                 </button>
             </div>
         </div>
@@ -519,11 +519,14 @@ ORDER BY 1,2
     <script>
         var mesAno = [];
         var saving = [];
+        var ganhoEvolucao = []; // NOVO ARRAY PARA A SERIE
+    
         <c:forEach items="${compras_saving_analitico.rows}" var="row">
             mesAno.push('${row.MES_ANO}');
             saving.push(${row.SAVING});
+            ganhoEvolucao.push(${row.GANHO_EVOLUCAO}); // Push the new series data
         </c:forEach>
-
+    
         var trace1 = {
             x: mesAno,
             y: saving,
@@ -535,16 +538,32 @@ ORDER BY 1,2
             line: {
                 color: '#28a745',
                 width: 2
-            }
+            },
+            name: 'Saving' // NOME SERIE
         };
-
+    
+        var trace2 = {
+            x: mesAno,
+            y: ganhoEvolucao,
+            mode: 'lines+markers',
+            marker: {
+                color: '#007bff', // COR
+                size: 8
+            },
+            line: {
+                color: '#007bff',
+                width: 2
+            },
+            name: 'Ganho de Evolução' // NOME SERIE
+        };
+    
         var layout = {
             title: '',
             xaxis: {
                 title: 'Mês/Ano'
             },
             yaxis: {
-                title: 'Saving'
+                title: 'Value'
             },
             margin: {
                 l: 50,
@@ -557,11 +576,17 @@ ORDER BY 1,2
             font: {
                 size: 12,
                 color: '#333'
+            },
+            legend: {
+                x: 1,
+                xanchor: 'right',
+                y: 1
             }
         };
-
-        Plotly.newPlot('chart-left', [trace1], layout);
+    
+        Plotly.newPlot('chart-left', [trace1, trace2], layout);
     </script>
+    
 
     <script>
         var mesAno = [];
@@ -632,6 +657,11 @@ ORDER BY 1,2
     var level = 'lvl_adrfvrm';
     openLevel(level, params);
     }
+    function abrirGanhEvo(){
+    var params = '';
+    var level = 'lvl_ae6nzzv';
+    openLevel(level, params);
+    }    
 </script>
 
 </body>

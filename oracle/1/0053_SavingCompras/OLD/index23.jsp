@@ -147,22 +147,118 @@
     </snk:query>
 
     <snk:query var="compras_saving_analitico">  
-        SELECT 
-        TO_CHAR(CAB.DTNEG,'YYYY') AS ANO,
-        TO_CHAR(CAB.DTNEG,'MM') AS MES,
-        TO_CHAR(CAB.DTNEG,'MM-YYYY') AS MES_ANO,
-        SUM(ITE.VLRDESC) AS SAVING
-        FROM TGFITE ITE
-        INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
-        WHERE CAB.TIPMOV = 'O'
-        AND CAB.STATUSNOTA = 'L'
-        AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-        AND ITE.VLRDESC IS NOT NULL
-        GROUP BY 
-        TO_CHAR(CAB.DTNEG,'YYYY'),
-        TO_CHAR(CAB.DTNEG,'MM'),
-        TO_CHAR(CAB.DTNEG,'MM-YYYY')
-        ORDER BY 1,2    
+
+    SELECT 
+    TO_CHAR(DTNEG,'YYYY') AS ANO,
+    TO_CHAR(DTNEG,'MM') AS MES,
+    TO_CHAR(DTNEG,'MM-YYYY') AS MES_ANO,
+    SUM(SAVING) AS SAVING,
+    SUM(GANHO_EVOLUCAO) AS GANHO_EVOLUCAO
+
+FROM (
+
+WITH
+ANT AS (
+SELECT
+    CODPROD,
+    DESCRICAO,
+    AVG(PRECO_COMPRA_UN_LIQ) AS PRECO_COMPRA_UN_LIQ_ANT_MED
+FROM
+(
+    SELECT
+        ITE.CODPROD,
+        PRO.DESCRPROD AS DESCRICAO,
+        ITE.CODVOL AS UN,
+        ITE.NUNOTA AS NUNOTA,
+        F_DESCROPC('TGFCAB','TIPMOV',CAB.TIPMOV) AS TIPMOV,
+        VEN.CODVEND||'-'||VEN.APELIDO AS COMPRADOR,
+        ITE.QTDNEG,
+        ITE.VLRTOT,
+        ITE.VLRDESC,
+        (ITE.VLRTOT) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA,
+        (ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
+
+        ITE.VLRDESC AS SAVING,
+        ((ITE.VLRTOT) / NULLIF(ITE.QTDNEG,0)) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)) AS SAVING_UN,
+        (ITE.VLRDESC / NULLIF(ITE.VLRTOT,0)) * 100 AS PERCENTUAL_SAVING
+      FROM TGFITE ITE
+      INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
+      INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
+      INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )
+      INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
+     WHERE CAB.TIPMOV = 'O'
+       AND CAB.STATUSNOTA = 'L'
+       AND CAB.DTNEG < :P_PERIODO.INI)
+GROUP BY CODPROD, DESCRICAO
+ORDER BY 2,3 DESC
+),
+USU AS (SELECT CODUSU,NOMEUSU FROM TSIUSU)
+
+SELECT 
+       CAB.CODEMP,
+       SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL),1,20) AS PARCEIRO,
+       SUBSTR(ITE.CODPROD||'-'||PRO.DESCRPROD,1,15) AS PRODUTO,
+       SUBSTR(PRO.CODGRUPOPROD||'-'|| GRU.DESCRGRUPOPROD,1,15) AS GRUPO,
+       ITE.CODVOL AS UN,
+       ITE.NUNOTA AS NUNOTA,
+       CAB.TIPMOV AS TIPMOV,
+       CAB.DTNEG,
+       SUBSTR(VEN.CODVEND||'-'||VEN.APELIDO,1,15) AS COMPRADOR,
+       SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,15) AS USUARIO_INC,
+       ITE.QTDNEG,
+       ITE.VLRTOT,
+       ITE.VLRDESC AS SAVING,
+       (ITE.VLRDESC / NULLIF(ITE.VLRTOT,0)) * 100 AS PERC_SAVING,
+       (ITE.VLRTOT) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA_UN,
+       (ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
+       NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0) AS PRECO_COMPRA_UN_LIQ_ANT_MED,
+       CASE WHEN (NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0 THEN
+       ABS(NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) ELSE 0 END GANHO_EVOLUCAO_UN,
+       CASE WHEN (NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0 THEN
+       ABS(NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) * ITE.QTDNEG ELSE 0 END GANHO_EVOLUCAO,
+       
+       CASE
+       WHEN NVL(PRECO_COMPRA_UN_LIQ_ANT_MED, 0) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) > 0 THEN 'REDUCAO'
+       WHEN NVL(PRECO_COMPRA_UN_LIQ_ANT_MED, 0) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0 AND NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0) <> 0 THEN 'AUMENTO'
+       WHEN NVL(PRECO_COMPRA_UN_LIQ_ANT_MED, 0) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0  AND NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0) = 0 THEN 'SEM ALTERACAO'
+       ELSE 'MANTEVE'
+       END AS SITUACAO_PRECO,
+       
+        (CASE WHEN NVL(PRECO_COMPRA_UN_LIQ_ANT_MED, 0) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0  AND NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0) = 0 THEN 0 ELSE
+       ABS(ABS(NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))/NULLIF(((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)),0))*100 END) AS PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ,
+       ITE.VLRDESC + 
+       CASE WHEN (NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0 THEN
+       ABS(NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) * ITE.QTDNEG ELSE 0 END           
+       
+       AS ECONOMIA_COMPRA
+       
+       
+  FROM TGFITE ITE
+  INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
+  INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
+  INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER))
+  INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
+  INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+  INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
+  LEFT JOIN ANT ON ITE.CODPROD = ANT.CODPROD
+  INNER JOIN USU ON CAB.CODUSUINC = USU.CODUSU
+ WHERE CAB.TIPMOV = 'O'
+   AND CAB.STATUSNOTA = 'L'
+   AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+   AND ITE.VLRDESC > 0
+)
+GROUP BY
+TO_CHAR(DTNEG,'YYYY'),
+TO_CHAR(DTNEG,'MM'),
+TO_CHAR(DTNEG,'MM-YYYY')
+
+ORDER BY 1,2
+
+
+
+
+
+
     </snk:query>
 
 
@@ -371,28 +467,12 @@
             <div class="buttons-container">
                 <button class="button" onclick="abrirSavProFor()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    Top 10
+                    Top 10 Saving
                 </button>
                 <!-- Repita o botão abaixo até ter 8 -->
                 <button class="button" onclick="abrirSavProPerc()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    Coprador
-                </button>
-                <button class="button">
-                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
-                </button>
-                <button class="button">
-                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
-                </button>
-                <button class="button">
-                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
-                </button>
-                <button class="button">
-                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
+                    Comprador
                 </button>
                 <button class="button">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
@@ -421,22 +501,6 @@
                     teste teste
                 </button>
                 <!-- Repita o botão abaixo até ter 8 -->
-                <button class="button">
-                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
-                </button>
-                <button class="button">
-                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
-                </button>
-                <button class="button">
-                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
-                </button>
-                <button class="button">
-                    <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    teste teste
-                </button>
                 <button class="button">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
                     teste teste
