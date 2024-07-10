@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Saving2" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
 	<property name="ireport.zoom" value="1.7715610000000017"/>
-	<property name="ireport.x" value="116"/>
-	<property name="ireport.y" value="4"/>
+	<property name="ireport.x" value="311"/>
+	<property name="ireport.y" value="0"/>
 	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false"/>
 	<parameter name="DTINI" class="java.sql.Timestamp">
 		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
@@ -26,42 +26,11 @@
 		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several1\\oracle\\1\\0053_SavingCompras\\OLD\\"]]></defaultValueExpression>
 	</parameter>
 	<queryString>
-		<![CDATA[WITH
-ANT AS (
-SELECT
-    CODPROD,
-    DESCRICAO,
-    AVG(PRECO_COMPRA_UN_LIQ) AS PRECO_COMPRA_UN_LIQ_ANT_MED
-FROM
-(
-    SELECT
-        ITE.CODPROD,
-        PRO.DESCRPROD AS DESCRICAO,
-        ITE.CODVOL AS UN,
-        ITE.NUNOTA AS NUNOTA,
-        F_DESCROPC('TGFCAB','TIPMOV',CAB.TIPMOV) AS TIPMOV,
-        VEN.CODVEND||'-'||VEN.APELIDO AS COMPRADOR,
-        ITE.QTDNEG,
-        ITE.VLRTOT,
-        ITE.VLRDESC,
-        (ITE.VLRTOT) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA,
-        (ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
-
-        ITE.VLRDESC AS SAVING,
-        ((ITE.VLRTOT) / NULLIF(ITE.QTDNEG,0)) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)) AS SAVING_UN,
-        (ITE.VLRDESC / NULLIF(ITE.VLRTOT,0)) * 100 AS PERCENTUAL_SAVING
-      FROM TGFITE ITE
-      INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
-      INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
-      INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )
-      INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
-     WHERE CAB.TIPMOV = 'O'
-       AND CAB.STATUSNOTA = 'L'
-       AND CAB.DTNEG < $P{DTINI})
-GROUP BY CODPROD, DESCRICAO
-ORDER BY 2,3 DESC
-),
-USU AS (SELECT CODUSU,NOMEUSU FROM TSIUSU)
+		<![CDATA[SELECT
+*
+FROM(
+WITH
+USU AS (SELECT CODUSU,NOMEUSU,AD_USUCOMPRADOR FROM TSIUSU)
 
 SELECT CAB.CODEMP,
        SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL), 1, 20) AS PARCEIRO,
@@ -75,24 +44,30 @@ SELECT CAB.CODEMP,
        SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,10) AS USUARIO_INC,
        ITE.QTDNEG,
        ITE.VLRTOT,
-ITE.VLRDESC AS SAVING,
+       ITE.VLRDESC AS SAVING,
        (ITE.VLRDESC / NULLIF(ITE.VLRTOT,0)) * 100 AS PERC_SAVING,
        (ITE.VLRTOT) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA_UN,
        (ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
-       NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0) AS PRECO_COMPRA_UN_LIQ_ANT_MED,
-       CASE WHEN (NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0 THEN
-       ABS(NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) ELSE 0 END GANHO_EVOLUCAO_UN,
-       CASE WHEN (NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0 THEN
-       ABS(NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) * ITE.QTDNEG ELSE 0 END GANHO_EVOLUCAO,
+       GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) AS PRECO_COMPRA_UN_LIQ_ANT_MED,
+       CASE
+       WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0
+       AND PRO.CODGRUPOPROD IN(3020000,3010000)
+       THEN
+       ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) ELSE 0 END GANHO_EVOLUCAO_UN,
+
+       CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0
+       AND PRO.CODGRUPOPROD IN(3020000,3010000)
+       THEN
+       ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) * ITE.QTDNEG ELSE 0 END GANHO_EVOLUCAO,
 
         CASE
-        WHEN NVL(PRECO_COMPRA_UN_LIQ_ANT_MED, 0) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) > 0 THEN 'REDUCAO'
-        WHEN NVL(PRECO_COMPRA_UN_LIQ_ANT_MED, 0) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0 AND NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0) <> 0 THEN 'AUMENTO'
-        WHEN NVL(PRECO_COMPRA_UN_LIQ_ANT_MED, 0) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0  AND NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0) = 0 THEN 'SEM ALTERACAO'
+        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) > 0 THEN 'REDUCAO'
+        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) <> 0 THEN 'AUMENTO'
+        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) = 0 THEN 'SEM ALTERACAO'
         ELSE 'MANTEVE'
         END AS SITUACAO_PRECO,
-            (CASE WHEN NVL(PRECO_COMPRA_UN_LIQ_ANT_MED, 0) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0  AND NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0) = 0 THEN 0 ELSE
-           ABS(ABS(NVL(PRECO_COMPRA_UN_LIQ_ANT_MED,0)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))/NULLIF(((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)),0))*100 END) AS PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ
+            (CASE WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) = 0 THEN 0 ELSE
+           ABS(ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))/NULLIF(((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)),0))*100 END) AS PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ
   FROM TGFITE ITE
   INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
   INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
@@ -100,14 +75,16 @@ ITE.VLRDESC AS SAVING,
   INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
   INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
   INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
-  LEFT JOIN ANT ON ITE.CODPROD = ANT.CODPROD
+
   INNER JOIN USU ON CAB.CODUSUINC = USU.CODUSU
  WHERE CAB.TIPMOV = 'O'
    AND CAB.STATUSNOTA = 'L'
+   AND USU.AD_USUCOMPRADOR = 'S'
    AND CAB.DTNEG BETWEEN $P{DTINI} AND $P{DTFIM}
    AND (CAB.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
    AND (ITE.CODPROD = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
-   AND ITE.VLRDESC > 0
+)
+WHERE (SAVING <> 0 OR GANHO_EVOLUCAO_UN <> 0)
 ORDER BY 4,17 DESC]]>
 	</queryString>
 	<field name="CODEMP" class="java.math.BigDecimal">
@@ -252,7 +229,7 @@ ORDER BY 4,17 DESC]]>
 				<text><![CDATA[Emp.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="13" y="0" width="72" height="20"/>
+				<reportElement x="12" y="0" width="73" height="20"/>
 				<textElement>
 					<font size="5" isBold="true"/>
 				</textElement>
@@ -357,14 +334,14 @@ ORDER BY 4,17 DESC]]>
 				<text><![CDATA[Ganho Evoluç. (UN)]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="679" y="0" width="41" height="20"/>
+				<reportElement x="679" y="0" width="54" height="20"/>
 				<textElement textAlignment="Center">
 					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Situação Preço]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="720" y="0" width="27" height="20"/>
+				<reportElement x="733" y="0" width="27" height="20"/>
 				<textElement textAlignment="Center">
 					<font size="5" isBold="true"/>
 				</textElement>
@@ -398,7 +375,7 @@ ORDER BY 4,17 DESC]]>
 				<text><![CDATA[Ganho Evoluç.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="747" y="1" width="45" height="20"/>
+				<reportElement x="760" y="1" width="40" height="20"/>
 				<textElement textAlignment="Center">
 					<font size="5" isBold="true"/>
 				</textElement>
@@ -416,7 +393,7 @@ ORDER BY 4,17 DESC]]>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODEMP}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="13" y="0" width="72" height="12"/>
+				<reportElement x="12" y="0" width="73" height="12"/>
 				<textElement verticalAlignment="Top">
 					<font size="5"/>
 				</textElement>
@@ -507,14 +484,14 @@ ORDER BY 4,17 DESC]]>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{GANHO_EVOLUCAO}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="679" y="0" width="41" height="12"/>
+				<reportElement x="679" y="0" width="54" height="12"/>
 				<textElement textAlignment="Center" verticalAlignment="Top">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{SITUACAO_PRECO}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="720" y="0" width="27" height="12"/>
+				<reportElement x="733" y="0" width="27" height="12"/>
 				<textElement textAlignment="Center" verticalAlignment="Top">
 					<font size="5"/>
 				</textElement>
@@ -556,7 +533,7 @@ ORDER BY 4,17 DESC]]>
 				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTNEG}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="747" y="0" width="45" height="12"/>
+				<reportElement x="760" y="0" width="40" height="12"/>
 				<textElement textAlignment="Center" verticalAlignment="Top">
 					<font size="5"/>
 				</textElement>
@@ -568,7 +545,7 @@ ORDER BY 4,17 DESC]]>
 		<band splitType="Stretch"/>
 	</columnFooter>
 	<pageFooter>
-		<band height="33" splitType="Stretch">
+		<band height="27" splitType="Stretch">
 			<textField>
 				<reportElement x="681" y="7" width="80" height="20"/>
 				<textElement textAlignment="Right">
@@ -584,7 +561,7 @@ ORDER BY 4,17 DESC]]>
 				<textFieldExpression class="java.lang.String"><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
-				<reportElement key="textField-3" x="58" y="10" width="56" height="14"/>
+				<reportElement key="textField-3" x="58" y="7" width="56" height="14"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -597,7 +574,7 @@ ORDER BY 4,17 DESC]]>
 				<textFieldExpression class="java.util.Date"><![CDATA[new Date()]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement key="staticText-3" x="5" y="10" width="53" height="14"/>
+				<reportElement key="staticText-3" x="5" y="7" width="53" height="14"/>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -684,7 +661,7 @@ ORDER BY 4,17 DESC]]>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TotalVlrSavingGeral}.add($V{TotalVlrGanEvolucao})]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="747" y="8" width="45" height="13"/>
+				<reportElement x="760" y="8" width="40" height="13"/>
 				<textElement textAlignment="Center">
 					<font size="5" isBold="true"/>
 				</textElement>
