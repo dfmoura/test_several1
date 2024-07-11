@@ -50,12 +50,14 @@
         FROM
         (
         WITH
-            USU AS (SELECT CODUSU,NOMEUSU FROM TSIUSU),
             BAS AS (
             SELECT ROWNUM,PRODUTO, SUM(SAVING) AS SAVING
             FROM (
-            SELECT ITE.CODPROD||'-'||PRO.DESCRPROD AS PRODUTO,
+
+            SELECT 
+                   ITE.CODPROD||'-'||PRO.DESCRPROD AS PRODUTO,
                    ITE.VLRDESC AS SAVING
+            
               FROM TGFITE ITE
               INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
               INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
@@ -63,12 +65,17 @@
               INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
               INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
               INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
-              INNER JOIN USU ON CAB.CODUSUINC = USU.CODUSU
+              INNER JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSU
              WHERE CAB.TIPMOV = 'O'
                AND CAB.STATUSNOTA = 'L'
-               AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+               AND USU.AD_USUCOMPRADOR = 'S'
                AND ITE.VLRDESC > 0
-        )GROUP BY ROWNUM,PRODUTO ORDER BY 3 DESC),
+               AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN 
+        
+        
+               )
+        
+        GROUP BY ROWNUM,PRODUTO ORDER BY 3 DESC),
         BAS2 AS ( SELECT ROWNUM AS A,PRODUTO, SAVING FROM BAS ORDER BY 3 DESC)
         SELECT PRODUTO, SAVING FROM BAS2 WHERE A <= 10
         UNION ALL
@@ -80,14 +87,18 @@
       
       <snk:query var="saving_fornecedor">
         SELECT
-        PARCEIRO,SUM(SAVING) SAVING
+        PARCEIRO,SAVING
         FROM
-        (WITH
-            USU AS (SELECT CODUSU,NOMEUSU FROM TSIUSU),
+        (
+        WITH
             BAS AS (
             SELECT ROWNUM,PARCEIRO, SUM(SAVING) AS SAVING
             FROM (
-            SELECT CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL) AS PARCEIRO, ITE.VLRDESC AS SAVING
+
+            SELECT 
+                   CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL) AS PARCEIRO,
+                   ITE.VLRDESC AS SAVING
+            
               FROM TGFITE ITE
               INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
               INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
@@ -95,19 +106,22 @@
               INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
               INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
               INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
-              INNER JOIN USU ON CAB.CODUSUINC = USU.CODUSU
+              INNER JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSU
              WHERE CAB.TIPMOV = 'O'
                AND CAB.STATUSNOTA = 'L'
-               AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+               AND USU.AD_USUCOMPRADOR = 'S'
                AND ITE.VLRDESC > 0
-        )GROUP BY ROWNUM,PARCEIRO ORDER BY 3 DESC),
-        BAS2 AS ( SELECT ROWNUM AS A,PARCEIRO, SAVING FROM BAS ORDER BY 3 DESC)
+               AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN 
         
+        
+               )
+        
+        GROUP BY ROWNUM,PARCEIRO ORDER BY 3 DESC),
+        BAS2 AS ( SELECT ROWNUM AS A,PARCEIRO, SAVING FROM BAS ORDER BY 3 DESC)
         SELECT PARCEIRO, SAVING FROM BAS2 WHERE A <= 10
         UNION ALL
         SELECT 'OUTROS' AS PARCEIRO, SUM(SAVING) AS SAVING FROM BAS2 WHERE A > 10
         )
-        GROUP BY PARCEIRO
         ORDER BY SAVING DESC
       
       </snk:query>
@@ -148,13 +162,13 @@
                     orientation: 'h',
                     marker: {
                         color: '#28a745',
-                        width: 1
+                        width: 0.5
                     }
                 };
 
                 var layout = {
                     
-                    margin: { l: 100, r: 20, t: 40, b: 50 }
+                    margin: { l: 180, r: 20, t: 40, b: 50 }
                 };
 
                 Plotly.newPlot(containerId, [trace], layout);
@@ -200,7 +214,7 @@
 
             var layout = {
                 
-                margin: { l: 100, r: 20, t: 40, b: 50 }
+                margin: { l: 180, r: 20, t: 40, b: 50 }
             };
 
             Plotly.newPlot(containerId, [trace], layout);

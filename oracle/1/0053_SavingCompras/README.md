@@ -60,9 +60,36 @@ SATIS - SAVING E EVOLUÇÃO COMPRAS - Nos concentramos na criação de cartões 
 SATIS - SAVING E EVOLUÇÃO COMPRAS - continuamos a aprimorar o dashboard, focando na criação de um nível inferior de detalhamento acessado a partir do botão 'Prod. e Parc.'. Este nível inferior foi desenvolvido para demonstrar os 10 produtos com maior saving e os 10 fornecedores com maior saving. Cada uma dessas listas foi elaborada com base em critérios rigorosos de análise de dados, garantindo que as informações apresentadas fossem precisas e relevantes. Implementamos tabelas e gráficos interativos que permitem aos usuários explorar esses dados de maneira dinâmica, facilitando a identificação de produtos e fornecedores que estão contribuindo significativamente para as economias da empresa. Além disso, configuramos filtros e opções de segmentação que permitem personalizar a visualização dos dados de acordo com diferentes parâmetros, como períodos específicos ou categorias de produtos. Essa funcionalidade adicional fornece uma camada extra de insight e suporte à tomada de decisões estratégicas.
 
 ```
+#### 1.1. 08/07/2024 8:00 as 12:00
+```markdown
+SATIS - SAVING E EVOLUÇÃO COMPRAS - re-desenhamos completamente a estrutura do layout principal do dashboard. Esta revisão foi realizada para melhorar a usabilidade e a acessibilidade das informações apresentadas, garantindo uma visualização mais clara e intuitiva dos dados. 
+```
+#### 1.1. 08/07/2024 13:00 as 19:00
+```markdown
+SATIS - SAVING E EVOLUÇÃO COMPRAS - continuamos esse trabalho, refinando os elementos visuais e funcionais do dashboard para otimizar a experiência do usuário. Implementamos dois selects principais: um dedicado ao acompanhamento do saving e evolução de preço, e outro focado no ganho por condição de pagamento. Esses selects foram projetados para permitir uma análise detalhada e comparativa, facilitando a identificação de padrões e tendências ao longo do tempo.
+```
 
 
+#### 1.1. 09/07/2024 8:00 as 12:00
+```markdown
+SATIS - SAVING E EVOLUÇÃO COMPRAS - desenvolvemos a lógica necessária para calcular a média do preço anterior de um produto com base na data do pedido e do produto. Esta funcionalidade foi implementada para fornecer uma referência histórica útil na análise de variações de preço ao longo do tempo. Além disso, começamos a integrar selects derivados dos principais em cada componente do dashboard, permitindo uma navegação mais fluida entre diferentes níveis de detalhamento e análise.
+```
 
+#### 1.1. 09/07/2024 13:00 as 19:00
+```markdown
+SATIS - SAVING E EVOLUÇÃO COMPRAS - criamos funções adicionais para acessar níveis inferiores a partir dos botões disponíveis no dashboard, aumentando a interatividade e a profundidade das análises disponíveis aos usuários. Adicionalmente, na tela principal, introduzimos um card consolidado para demonstrar o ganho por condição de pagamento, acompanhado por gráficos que ilustram a evolução deste ganho ao longo do tempo. Desenvolvemos gráficos de barra horizontal para detalhar o ganho por condição de pagamento por centro de resultado e parceiro, oferecendo uma análise segmentada e detalhada dos resultados financeiros. Complementamos a análise com um gráfico de pizza que visualiza o ganho por condição de pagamento agrupado por comprador, proporcionando uma visão individualizada do desempenho financeiro de cada comprador.
+
+```
+
+#### 1.1. 10/07/2024 8:00 as 12:00
+```markdown
+SATIS - SAVING E EVOLUÇÃO COMPRAS - dedicamo-nos à criação de funcionalidades específicas para melhorar a precisão e a eficiência das análises realizadas no dashboard. Desenvolvemos uma função para calcular a quantidade alternativa quando um produto apresenta um volume 'MI', garantindo que as recomendações de compra se ajustem às condições específicas de cada produto. Também implementamos gráficos na tela principal para demonstrar a evolução do saving e evolução de preço ao longo do tempo, proporcionando uma visão panorâmica das tendências gerais.
+```
+
+#### 1.1. 10/07/2024 13:00 as 19:00
+```markdown
+SATIS - SAVING E EVOLUÇÃO COMPRAS - Durante a tarde, continuamos a aprimorar a visualização dos dados com a criação de gráficos de barra horizontal para destacar o saving por produto e parceiro, além de gráficos de pizza para ilustrar a evolução de preço e saving por comprador. Esses gráficos foram desenvolvidos com o objetivo de oferecer insights visuais claros e acessíveis, facilitando a interpretação rápida e precisa dos dados. Finalizamos também a implementação de gráficos de barra horizontal para detalhar a evolução de preço por produto e parceiro, além de consolidar o saving e evolução de preço por centro de resultado. criamos uma tela adicional dedicada ao cálculo de juros e à verificação do valor médio anterior de produtos em relação a uma data atual. Isso foi projetado para apoiar decisões financeiras estratégicas, oferecendo ferramentas analíticas robustas diretamente integradas ao dashboard principal. Por fim, implementamos um gráfico de barras para destacar a posição do valor total de compras por comprador, permitindo uma avaliação clara da contribuição de cada comprador para os resultados gerais da empresa.
+```
 
 
 ATUALIZAR QTDNEG. COM FUNÇÃO. PARA UTILIZAR UNIDADE ALTERNATIVA.

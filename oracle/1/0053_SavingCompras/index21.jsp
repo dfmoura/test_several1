@@ -89,85 +89,70 @@
 <body>
 
     <snk:query var="ganho_negcociacao_detalhe">
-
-    SELECT
-    CODEMP,
-    PARCEIRO,
-    COMPRADOR,
-    NUNOTA,
-    TO_CHAR(DTNEG,'DD-MM-YYYY') AS DTNEG,
-    TO_CHAR(DTVENC,'DD-MM-YYYY') AS DTVENC,
-    TO_CHAR(DHBAIXA,'DD-MM-YYYY') AS DHBAIXA,
-    DESDOBRAMENTO,
-    VLRLIQ,
-    DIAS,
-    GANHO_NEGOCIACAO,
-    VLRLIQ_AJUSTADO
-    FROM
-    (
-    SELECT
-    CODEMP,
-    PARCEIRO,
-    COMPRADOR,
-    NUNOTA,
-    DTNEG,
-    DTVENC,
-    DHBAIXA,
-    DESDOBRAMENTO,
-    VLRLIQ,
-    DIAS,
+SELECT * FROM (
     
-    CASE 
+
+SELECT
+CODEMP,
+PARCEIRO,
+COMPRADOR,
+USUARIO_INC,
+NUNOTA,
+TO_CHAR(DTNEG,'DD-MM-YYYY') AS DTNEG,
+TO_CHAR(DTVENC,'DD-MM-YYYY') AS DTVENC,
+TO_CHAR(DHBAIXA,'DD-MM-YYYY') AS DHBAIXA,
+PARCELA,
+CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END AS DIAS,
+ABS(VLRLIQ) AS VLRLIQ,
+
+    ABS(CASE 
     WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) = 30 THEN 
         VLRLIQ * 0.01
     WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) > 30 THEN 
         VLRLIQ * 0.01 + VLRLIQ * 0.00033 * ((CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) - 30)
-    ELSE
+    ELSE 
         0
-    END AS GANHO_NEGOCIACAO,
-    
-    CASE 
+    END) AS GANHO_NEGOCIACAO,
+    ABS(CASE 
     WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) = 30 THEN 
         VLRLIQ * 1.01
     WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) > 30 THEN 
         VLRLIQ * 1.01 + VLRLIQ * 0.00033 * ((CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) - 30)
     ELSE 
         VLRLIQ
-    END AS VLRLIQ_AJUSTADO
-    FROM
-    (    
-    WITH COM AS (
-    SELECT NUNOTA,VEN.CODVEND||'-'||VEN.APELIDO AS COMPRADOR
-    FROM TGFCAB CAB INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
-    WHERE CAB.TIPMOV = 'O' AND CAB.STATUSNOTA = 'L' AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-    )
+    END) AS VLRLIQ_COM_JUROS
+FROM
+(
+
+SELECT 
+FIN.CODEMP,
+SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL), 1, 20) AS PARCEIRO,
+SUBSTR(VEN.CODVEND||'-'||VEN.APELIDO,1,10) AS COMPRADOR,
+SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,10) AS USUARIO_INC,
+FIN.NUNOTA,
+FIN.DTNEG,
+FIN.DTVENC,
+FIN.DHBAIXA,
+FIN.DESDOBRAMENTO AS PARCELA,
+(NVL(FIN.VLRDESDOB,0) + (CASE WHEN FIN.TIPMULTA = '1' THEN NVL(FIN.VLRMULTA,0) ELSE 0 END) + (CASE WHEN FIN.TIPJURO = '1' THEN NVL(FIN.VLRJURO,0) ELSE 0 END) + NVL(FIN.DESPCART,0) + NVL(FIN.VLRVENDOR,0) - NVL(FIN.VLRDESC,0) - (CASE WHEN FIN.IRFRETIDO = 'S' THEN NVL(FIN.VLRIRF,0) ELSE 0 END) - (CASE WHEN FIN.ISSRETIDO = 'S' THEN NVL(FIN.VLRISS,0) ELSE 0 END) - (CASE WHEN FIN.INSSRETIDO = 'S' THEN NVL(FIN.VLRINSS,0) ELSE 0 END) - NVL(FIN.CARTAODESC,0) + NVL((SELECT ROUND(SUM(I.VALOR * I.TIPIMP),2) FROM TGFIMF I WHERE I.NUFIN = FIN.NUFIN),0) + NVL(FIN.VLRMULTANEGOC,0) + NVL(FIN.VLRJURONEGOC,0) - NVL(FIN.VLRMULTALIB,0) - NVL(FIN.VLRJUROLIB,0) + NVL(FIN.VLRVARCAMBIAL,0)) * NVL(FIN.RECDESP,0) VLRLIQ,
+CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.DTVENC - FIN.DTNEG ELSE FIN.DHBAIXA - FIN.DTNEG END AS DIAS
+FROM TGFFIN FIN
+INNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTA
+INNER JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSU
+INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
+INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+WHERE FIN.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN 
+AND FIN.RECDESP = -1
+AND FIN.NUNOTA IS NOT NULL
+AND CAB.TIPMOV = 'O'
+AND CAB.STATUSNOTA = 'L'
+AND USU.AD_USUCOMPRADOR = 'S'
+)
+
     
+
+
     
-    SELECT
-    FIN.CODEMP,
-    FIN.CODPARC||'-'||SUBSTR(PAR.RAZAOSOCIAL,1,20) AS PARCEIRO,
-    COM.COMPRADOR,
-    FIN.NUNOTA,
-    FIN.DTNEG,
-    FIN.DTVENC,
-    FIN.DHBAIXA,
-    
-    FIN.DESDOBRAMENTO,
-    
-    ABS((NVL(FIN.VLRDESDOB,0) + (CASE WHEN FIN.TIPMULTA = '1' THEN NVL(FIN.VLRMULTA,0) ELSE 0 END) + (CASE WHEN FIN.TIPJURO = '1' THEN NVL(FIN.VLRJURO,0) ELSE 0 END) + NVL(FIN.DESPCART,0) + NVL(FIN.VLRVENDOR,0) - NVL(FIN.VLRDESC,0) - 
-    (CASE WHEN FIN.IRFRETIDO = 'S' THEN NVL(FIN.VLRIRF,0) ELSE 0 END) - (CASE WHEN FIN.ISSRETIDO = 'S' THEN NVL(FIN.VLRISS,0) ELSE 0 END) - (CASE WHEN FIN.INSSRETIDO = 'S' THEN NVL(FIN.VLRINSS,0) ELSE 0 END) - NVL(FIN.CARTAODESC,0) + 
-    NVL((SELECT ROUND(SUM(I.VALOR * I.TIPIMP),2) FROM TGFIMF I WHERE I.NUFIN = FIN.NUFIN),0) + NVL(FIN.VLRMULTANEGOC,0) + NVL(FIN.VLRJURONEGOC,0) - NVL(FIN.VLRMULTALIB,0) - NVL(FIN.VLRJUROLIB,0) + 
-    NVL(FIN.VLRVARCAMBIAL,0)) * NVL(FIN.RECDESP,0)) VLRLIQ,
-    
-    CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.DTVENC - FIN.DTNEG ELSE FIN.DHBAIXA - FIN.DTNEG END AS DIAS
-    FROM TGFFIN FIN
-    INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
-    LEFT JOIN COM ON FIN.NUNOTA = COM.NUNOTA
-    WHERE FIN.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-    AND FIN.RECDESP = -1
-    AND FIN.NUNOTA IS NOT NULL
-    )
-    ORDER BY 11 DESC
     )WHERE GANHO_NEGOCIACAO > 0
 
     </snk:query>
@@ -179,13 +164,14 @@
                     <th>Cód. Emp.</th>
                     <th>Parceiro</th>
                     <th>Comprador</th>
+                    <th>Usuário Inc.</th>
                     <th>NÚ. Único</th>
                     <th>Dt. Neg.</th>
                     <th>Dt. Venc.</th>
                     <th>Dt. Baixa.</th>
                     <th>Parcela</th>
-                    <th>Vlr. Liq.</th>
                     <th>Dias</th>
+                    <th>Vlr. Liq.</th>
                     <th>Ganho Negociação</th>
                     <th>Vlr. Liq. Ajustado</th>
                 </tr>
@@ -198,15 +184,16 @@
                         <td>${row.CODEMP}</td>
                         <td>${row.PARCEIRO}</td>
                         <td>${row.COMPRADOR}</td>
+                        <td>${row.USUARIO_INC}</td>
                         <td>${row.NUNOTA}</td>
                         <td>${row.DTNEG}</td>
                         <td>${row.DTVENC}</td>
                         <td>${row.DHBAIXA}</td>
-                        <td>${row.DESDOBRAMENTO}</td>
-                        <td><fmt:formatNumber value="${row.VLRLIQ}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td>${row.PARCELA}</td>
                         <td>${row.DIAS}</td>
+                        <td><fmt:formatNumber value="${row.VLRLIQ}" type="number" maxFractionDigits="2" groupingUsed="true"/></td>
                         <td><fmt:formatNumber value="${row.GANHO_NEGOCIACAO}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
-                        <td><fmt:formatNumber value="${row.VLRLIQ_AJUSTADO}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
+                        <td><fmt:formatNumber value="${row.VLRLIQ_COM_JUROS}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
                     </tr>
 
 
@@ -219,9 +206,8 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="8"><strong>Total:</strong></td>
+                    <td colspan="10"><strong>Total:</strong></td>
                     <td class="total-column"><fmt:formatNumber value="${totalVlrLiq}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
-                    <td class="total-column"></td> <!-- Coluna de Dias -->
                     <td class="total-column"><fmt:formatNumber value="${totalVlrGanNeg}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
                     <td class="total-column"><fmt:formatNumber value="${totalVlrLiqAjus}" type="currency" maxFractionDigits="2" groupingUsed="true"/></td>
                 </tr>

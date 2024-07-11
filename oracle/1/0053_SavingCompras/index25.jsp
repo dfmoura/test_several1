@@ -165,62 +165,83 @@
     SUM(GANHO_EVOLUCAO) AS GANHO_EVOLUCAO
 
 FROM (
+    
+SELECT
+*
+FROM(
+SELECT
+CODEMP,
+PARCEIRO,
+PRODUTO,
+CODPROD,
+GRUPO,
+CODGRUPOPROD,
+UN,
+NUNOTA,
+TIPMOV,
+DTNEG,
+COMPRADOR,
+USUARIO_INC,
+QTDNEG,
+VLRTOT,
+SAVING,
+       (SAVING / NULLIF(VLRTOT,0)) * 100 AS PERC_SAVING,
+       (VLRTOT) / NULLIF(QTDNEG,0) AS PRECO_COMPRA_UN,
+       (VLRTOT - SAVING) / NULLIF(QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
+       GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) AS PRECO_COMPRA_UN_LIQ_ANT_MED,
+       CASE
+       WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))>0
+       AND CODGRUPOPROD IN(3020000,3010000)
+       THEN
+       ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0))) ELSE 0 END GANHO_EVOLUCAO_UN,
 
+       CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))>0
+       AND CODGRUPOPROD IN(3020000,3010000)
+       THEN
+       ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0))) * QTDNEG ELSE 0 END GANHO_EVOLUCAO,
+
+        CASE
+        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) > 0 THEN 'REDUCAO'
+        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) <> 0 THEN 'AUMENTO'
+        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) = 0 THEN 'SEM ALTERACAO'
+        ELSE 'MANTEVE'
+        END AS SITUACAO_PRECO,
+            (CASE WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) = 0 THEN 0 ELSE
+           ABS(ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))/NULLIF(((VLRTOT - SAVING) / NULLIF(QTDNEG,0)),0))*100 END) AS PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ,
+
+       SAVING + 
+       
+       CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))>0
+       AND CODGRUPOPROD IN(3020000,3010000)
+       THEN ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0))) * QTDNEG ELSE 0 END
+       
+       AS ECONOMIA_COMPRA
+           
+
+FROM(
 WITH
 USU AS (SELECT CODUSU,NOMEUSU,AD_USUCOMPRADOR FROM TSIUSU)
-
-SELECT 
-       CAB.CODEMP,
-       SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL),1,20) AS PARCEIRO,
+SELECT CAB.CODEMP,
+       SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL), 1, 20) AS PARCEIRO,
        SUBSTR(ITE.CODPROD||'-'||PRO.DESCRPROD,1,15) AS PRODUTO,
+       PRO.CODPROD,
        SUBSTR(PRO.CODGRUPOPROD||'-'|| GRU.DESCRGRUPOPROD,1,15) AS GRUPO,
+       PRO.CODGRUPOPROD,
        ITE.CODVOL AS UN,
        ITE.NUNOTA AS NUNOTA,
        CAB.TIPMOV AS TIPMOV,
        CAB.DTNEG,
-       SUBSTR(VEN.CODVEND||'-'||VEN.APELIDO,1,15) AS COMPRADOR,
-       SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,15) AS USUARIO_INC,
-       ITE.QTDNEG,
+       SUBSTR(VEN.CODVEND||'-'||VEN.APELIDO,1,10) AS COMPRADOR,
+       SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,10) AS USUARIO_INC,
+       CASE WHEN ITE.CODVOL = 'MI'
+       THEN GET_QTDNEG_SATIS(ITE.NUNOTA,ITE.SEQUENCIA,ITE.CODPROD)
+       ELSE ITE.QTDNEG END AS QTDNEG,
        ITE.VLRTOT,
-       ITE.VLRDESC AS SAVING,
-       (ITE.VLRDESC / NULLIF(ITE.VLRTOT,0)) * 100 AS PERC_SAVING,
-       (ITE.VLRTOT) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA_UN,
-       (ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
-       GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) AS PRECO_COMPRA_UN_LIQ_ANT_MED,
-       CASE
-       WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0
-       AND PRO.CODGRUPOPROD IN(3020000,3010000)
-       THEN
-       ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) ELSE 0 END GANHO_EVOLUCAO_UN,
-
-       CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0
-       AND PRO.CODGRUPOPROD IN(3020000,3010000)
-       THEN
-       ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) * ITE.QTDNEG ELSE 0 END GANHO_EVOLUCAO,
-
-        CASE
-        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) > 0 THEN 'REDUCAO'
-        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) <> 0 THEN 'AUMENTO'
-        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) = 0 THEN 'SEM ALTERACAO'
-        ELSE 'MANTEVE'
-        END AS SITUACAO_PRECO,
-            (CASE WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) = 0 THEN 0 ELSE
-           ABS(ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))/NULLIF(((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)),0))*100 END) AS PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ,
-       
-       
-       ITE.VLRDESC + 
-       
-       CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0
-       AND PRO.CODGRUPOPROD IN(3020000,3010000)
-       THEN ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) * ITE.QTDNEG ELSE 0 END
-       
-       AS ECONOMIA_COMPRA
-       
-       
+       ITE.VLRDESC AS SAVING
   FROM TGFITE ITE
   INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
   INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
-  INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER))
+  INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )
   INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
   INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
   INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
@@ -229,7 +250,11 @@ SELECT
    AND CAB.STATUSNOTA = 'L'
    AND USU.AD_USUCOMPRADOR = 'S'
    AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-   
+)
+)
+WHERE (SAVING <> 0 OR GANHO_EVOLUCAO_UN <> 0)
+ORDER BY 4,17 DESC
+
 )
 GROUP BY
 TO_CHAR(DTNEG,'YYYY'),
@@ -373,69 +398,97 @@ ORDER BY 1,2
         SELECT 
 
         TO_CHAR(SUM(GANHO_EVOLUCAO), '999,999,999,999,990.00') AS GANHO_EVOLUCAO
-        FROM(WITH
-        USU AS (SELECT CODUSU,NOMEUSU,AD_USUCOMPRADOR FROM TSIUSU)
+        FROM(
+
+        SELECT
+        *
+        FROM(
+        SELECT
+        CODEMP,
+        PARCEIRO,
+        PRODUTO,
+        CODPROD,
+        GRUPO,
+        CODGRUPOPROD,
+        UN,
+        NUNOTA,
+        TIPMOV,
+        DTNEG,
+        COMPRADOR,
+        USUARIO_INC,
+        QTDNEG,
+        VLRTOT,
+        SAVING,
+               (SAVING / NULLIF(VLRTOT,0)) * 100 AS PERC_SAVING,
+               (VLRTOT) / NULLIF(QTDNEG,0) AS PRECO_COMPRA_UN,
+               (VLRTOT - SAVING) / NULLIF(QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
+               GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) AS PRECO_COMPRA_UN_LIQ_ANT_MED,
+               CASE
+               WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))>0
+               AND CODGRUPOPROD IN(3020000,3010000)
+               THEN
+               ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0))) ELSE 0 END GANHO_EVOLUCAO_UN,
         
-        SELECT 
-               CAB.CODEMP,
-               SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL),1,20) AS PARCEIRO,
+               CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))>0
+               AND CODGRUPOPROD IN(3020000,3010000)
+               THEN
+               ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0))) * QTDNEG ELSE 0 END GANHO_EVOLUCAO,
+        
+                CASE
+                WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) > 0 THEN 'REDUCAO'
+                WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) <> 0 THEN 'AUMENTO'
+                WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) = 0 THEN 'SEM ALTERACAO'
+                ELSE 'MANTEVE'
+                END AS SITUACAO_PRECO,
+                    (CASE WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) = 0 THEN 0 ELSE
+                   ABS(ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))/NULLIF(((VLRTOT - SAVING) / NULLIF(QTDNEG,0)),0))*100 END) AS PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ,
+        
+               SAVING + 
+               
+               CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))>0
+               AND CODGRUPOPROD IN(3020000,3010000)
+               THEN ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0))) * QTDNEG ELSE 0 END
+               
+               AS ECONOMIA_COMPRA
+                   
+        
+        FROM(
+        WITH
+        USU AS (SELECT CODUSU,NOMEUSU,AD_USUCOMPRADOR FROM TSIUSU)
+        SELECT CAB.CODEMP,
+               SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL), 1, 20) AS PARCEIRO,
                SUBSTR(ITE.CODPROD||'-'||PRO.DESCRPROD,1,15) AS PRODUTO,
+               PRO.CODPROD,
                SUBSTR(PRO.CODGRUPOPROD||'-'|| GRU.DESCRGRUPOPROD,1,15) AS GRUPO,
+               PRO.CODGRUPOPROD,
                ITE.CODVOL AS UN,
                ITE.NUNOTA AS NUNOTA,
                CAB.TIPMOV AS TIPMOV,
                CAB.DTNEG,
-               SUBSTR(VEN.CODVEND||'-'||VEN.APELIDO,1,15) AS COMPRADOR,
-               SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,15) AS USUARIO_INC,
-               ITE.QTDNEG,
+               SUBSTR(VEN.CODVEND||'-'||VEN.APELIDO,1,10) AS COMPRADOR,
+               SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,10) AS USUARIO_INC,
+               CASE WHEN ITE.CODVOL = 'MI'
+               THEN GET_QTDNEG_SATIS(ITE.NUNOTA,ITE.SEQUENCIA,ITE.CODPROD)
+               ELSE ITE.QTDNEG END AS QTDNEG,
                ITE.VLRTOT,
-               ITE.VLRDESC AS SAVING,
-               (ITE.VLRDESC / NULLIF(ITE.VLRTOT,0)) * 100 AS PERC_SAVING,
-               (ITE.VLRTOT) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA_UN,
-               (ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
-               GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) AS PRECO_COMPRA_UN_LIQ_ANT_MED,
-               CASE
-               WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0
-               AND PRO.CODGRUPOPROD IN(3020000,3010000)
-               THEN
-               ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) ELSE 0 END GANHO_EVOLUCAO_UN,
-        
-               CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0
-               AND PRO.CODGRUPOPROD IN(3020000,3010000)
-               THEN
-               ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) * ITE.QTDNEG ELSE 0 END GANHO_EVOLUCAO,
-        
-                CASE
-                WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) > 0 THEN 'REDUCAO'
-                WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) <> 0 THEN 'AUMENTO'
-                WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) = 0 THEN 'SEM ALTERACAO'
-                ELSE 'MANTEVE'
-                END AS SITUACAO_PRECO,
-                    (CASE WHEN GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) - ((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL) = 0 THEN 0 ELSE
-                   ABS(ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))/NULLIF(((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)),0))*100 END) AS PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ,
-               
-               
-               ITE.VLRDESC + 
-               
-               CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0)))>0
-               AND PRO.CODGRUPOPROD IN(3020000,3010000)
-               THEN ABS(GET_PRECMED_ANT_PROD_COMP_SAT(CAB.DTNEG,ITE.CODPROD,NULL)-((ITE.VLRTOT - ITE.VLRDESC) / NULLIF(ITE.QTDNEG,0))) * ITE.QTDNEG ELSE 0 END
-               
-               AS ECONOMIA_COMPRA
-           
-           
-        FROM TGFITE ITE
-        INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
-        INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
-        INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER))
-        INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
-        INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-        INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
-        INNER JOIN USU ON CAB.CODUSUINC = USU.CODUSU
-        WHERE CAB.TIPMOV = 'O'
-        AND CAB.STATUSNOTA = 'L'
-        AND USU.AD_USUCOMPRADOR = 'S'
-        AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+               ITE.VLRDESC AS SAVING
+          FROM TGFITE ITE
+          INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
+          INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
+          INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )
+          INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
+          INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+          INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
+          INNER JOIN USU ON CAB.CODUSUINC = USU.CODUSU
+         WHERE CAB.TIPMOV = 'O'
+           AND CAB.STATUSNOTA = 'L'
+           AND USU.AD_USUCOMPRADOR = 'S'
+           AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+        )
+        )
+        WHERE (SAVING <> 0 OR GANHO_EVOLUCAO_UN <> 0)
+        ORDER BY 4,17 DESC        
+
         )
 
     </snk:query>
@@ -460,7 +513,7 @@ ORDER BY 1,2
                     <div class="card1" onclick="abrirSaving()">
                         
                         <div class="card-number">${row.GANHO_EVOLUCAO}</div>
-                        <div class="card-text">Ganho de Evolução</div>
+                        <div class="card-text">Evolução de Preço</div>
                     </div>
                 </c:forEach>
 
@@ -469,7 +522,7 @@ ORDER BY 1,2
             </div>
 
             <div class="chart-container">
-                <div class="chart-title">Saving e Ganho Evolução Compra</div>
+                <div class="chart-title">Saving e Evolução Preço</div>
                 <div id="chart-left"></div>
             </div>
             <div class="buttons-container">
@@ -484,11 +537,11 @@ ORDER BY 1,2
                 </button>
                 <button class="button" onclick="abrirGanhEvo()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    Top 10 Ganho
+                    Top 10 Evo. Preço
                 </button>
-                <button class="button">
+                <button class="button" onclick="abrirCR()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    Customizar
+                    Top 10 CR
                 </button>
             </div>
         </div>
@@ -496,30 +549,30 @@ ORDER BY 1,2
             <c:forEach items="${compras_ganho_negociacao.rows}" var="row">
                 <div class="card" onclick="abrirGanhNeg()">
                     <div class="card-number">${row.GANHO_NEGOCIACAO}</div>
-                    <div class="card-text">Ganho Negociação</div>
+                    <div class="card-text">Ganho Por Condição de Pgto.</div>
                 </div>
             </c:forEach>
             <div class="chart-container">
-                <div class="chart-title">Ganho Negociação</div>
+                <div class="chart-title">Ganho Por Condição de Pgto.</div>
                 <div id="chart-right"></div>
             </div>
             <div class="buttons-container">
-                <button class="button">
+                <button class="button" onclick="abrirCrPar()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    Customizar
+                    Top 10 CR e Parc
                 </button>
                 <!-- Repita o botão abaixo até ter 8 -->
-                <button class="button">
+                <button class="button" onclick="abrirCondCom()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    Customizar
+                    Cond. Por Compr.
                 </button>
-                <button class="button">
+                <button class="button" onclick="abrirCalc()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    Customizar
+                    Cálculo
                 </button>
-                <button class="button">
+                <button class="button" onclick="abrNegoc()">
                     <img src="https://www.svgrepo.com/show/487171/cash.svg" alt="Icon" width="16" height="16">
-                    Customizar
+                    Negociação
                 </button>
             </div>
         </div>
@@ -562,16 +615,16 @@ ORDER BY 1,2
                 color: '#007bff',
                 width: 2
             },
-            name: 'Ganho de Evolução' // NOME SERIE
+            name: 'Evolução Preço' // NOME SERIE
         };
     
         var layout = {
             title: '',
             xaxis: {
-                title: 'Mês/Ano'
+                title: ''
             },
             yaxis: {
-                title: 'Value'
+                title: ''
             },
             margin: {
                 l: 50,
@@ -621,10 +674,10 @@ ORDER BY 1,2
         var layout = {
             title: '',
             xaxis: {
-                title: 'Mês/Ano'
+                title:''
             },
             yaxis: {
-                title: 'Ganho Negociação'
+                title:'' 
             },
             margin: {
                 l: 50,
@@ -669,7 +722,32 @@ ORDER BY 1,2
     var params = '';
     var level = 'lvl_ae6nzzv';
     openLevel(level, params);
+    }
+    function abrirCR(){
+    var params = '';
+    var level = 'lvl_ag3no3v';
+    openLevel(level, params);
+    }        
+    function abrirCrPar(){
+    var params = '';
+    var level = 'lvl_ag3no5g';
+    openLevel(level, params);
+    }        
+    function abrirCondCom(){
+    var params = '';
+    var level = 'lvl_ag3no6m';
+    openLevel(level, params);
+    }
+    function abrirCalc(){
+    var params = '';
+    var level = 'lvl_ag3no82';
+    openLevel(level, params);
     }    
+    function abrNegoc(){
+    var params = '';
+    var level = 'lvl_ag3npdx';
+    openLevel(level, params);
+    }     
 </script>
 
 </body>

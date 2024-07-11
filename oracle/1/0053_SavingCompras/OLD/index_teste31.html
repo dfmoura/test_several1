@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cores Aleatórias</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .color-box {
+            width: 100px;
+            height: 100px;
+            margin: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div id="colorContainer"></div>
+
+<script>
+    function generateRandomColor() {
+        const r = Math.floor(Math.random() * 256);
+        const g = Math.floor(Math.random() * 256);
+        const b = Math.floor(Math.random() * 256);
+        const a = (Math.random() * (1 - 0.5) + 0.5).toFixed(2); // Generate a random alpha value between 0.5 and 1
+        return `rgba(${r},${g},${b},${a})`;
+    }
+
+    function createColorBoxes() {
+        const colorContainer = document.getElementById('colorContainer');
+        for (let i = 0; i < 7; i++) {
+            const color = generateRandomColor();
+            const div = document.createElement('div');
+            div.className = 'color-box';
+            div.style.backgroundColor = color;
+            div.textContent = color;
+            colorContainer.appendChild(div);
+        }
+    }
+
+    createColorBoxes();
+</script>
+
+</body>
+</html>
