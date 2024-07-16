@@ -1,0 +1,124 @@
+<gadget>
+  <level id="lvl_agsohk4" description="Principal">
+    <args>
+      <arg id="A_NUNOTA" type="integer"/>
+      <arg id="A_NUFIN" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="229">
+        <container orientacao="V" tamanhoRelativo="346">
+          <grid id="grd_ainbo32" useNewGrid="S">
+            <expression type="sql" data-source="MGEDS"><![CDATA[WITH FIN AS (SELECTNUNOTA,SUM(VLRLIQ) AS VLRLIQ,SUM(VLRBAIXA) AS VLRBAIXA,MIN(CASE WHEN DHBAIXA IS NULL THEN DTVENC END) AS PROX_VENC,MAX(CODTIPTIT) AS CODTIPTITFROM(SELECT FIN.NUFIN,FIN.NUNOTA,FIN.CODTIPTIT,FIN.DTNEG,FIN.DTVENC,FIN.DHBAIXA,CASE WHEN FIN.DHBAIXA IS NULL THEN SYSDATE - FIN.DTVENC ELSE 0 END AS DIAS,FIN.DESDOBRAMENTO,FIN.RECDESP,(NVL(FIN.VLRDESDOB,0) + (CASE WHEN FIN.TIPMULTA = '1' THEN NVL(FIN.VLRMULTA,0) ELSE 0 END) + (CASE WHEN FIN.TIPJURO = '1' THEN NVL(FIN.VLRJURO,0) ELSE 0 END) + NVL(FIN.DESPCART,0) + NVL(FIN.VLRVENDOR,0) - NVL(FIN.VLRDESC,0) - (CASE WHEN FIN.IRFRETIDO = 'S' THEN NVL(FIN.VLRIRF,0) ELSE 0 END) - (CASE WHEN FIN.ISSRETIDO = 'S' THEN NVL(FIN.VLRISS,0) ELSE 0 END) - (CASE WHEN FIN.INSSRETIDO = 'S' THEN NVL(FIN.VLRINSS,0) ELSE 0 END) - NVL(FIN.CARTAODESC,0) + NVL((SELECT ROUND(SUM(I.VALOR * I.TIPIMP),2) FROM TGFIMF I WHERE I.NUFIN = FIN.NUFIN),0) + NVL(FIN.VLRMULTANEGOC,0) + NVL(FIN.VLRJURONEGOC,0) - NVL(FIN.VLRMULTALIB,0) - NVL(FIN.VLRJUROLIB,0) + NVL(FIN.VLRVARCAMBIAL,0)) * NVL(FIN.RECDESP,0) VLRLIQ,FIN.VLRBAIXAFROM TGFFIN FIN)GROUP BY NUNOTA)SELECT CAB.CODPARC,PAR.RAZAOSOCIAL,CAB.NUNOTA,FIN.CODTIPTIT||'-'||TIT.DESCRTIPTIT AS TITULO,CASE     WHEN FIN.CODTIPTIT IN (6, 14, 20, 21) AND (PAR.CODAGE IS NOT NULL OR PAR.CODCTABCO IS NOT NULL OR PAR.CHAVEPIX IS NOT NULL) THEN 1    WHEN FIN.CODTIPTIT IN (6, 14, 20, 21) AND (PAR.CODAGE IS NULL OR PAR.CODCTABCO IS NULL OR PAR.CHAVEPIX IS NULL) THEN 0    END AS CONTA_OU_PIX,    CASE         WHEN FIN.CODTIPTIT = 4 THEN            CASE                 WHEN EXISTS (SELECT 1 FROM TSIATA WHERE CODATA = CAB.NUNOTA AND DESCRICAO = 'BOLETO')                     THEN 1                    ELSE 0            END    END AS BOLETO,               CASE                 WHEN EXISTS (SELECT 1 FROM TSIATA WHERE CODATA = CAB.NUNOTA AND DESCRICAO = 'NOTA FISCAL')                     THEN 1                    ELSE 0    END AS NOTA,                CASE                 WHEN                 (EXISTS (SELECT 1 FROM TSIATA WHERE CODATA = CAB.NUNOTA AND DESCRICAO = 'BOLETO') OR                FIN.CODTIPTIT IN (6, 14, 20, 21) AND (PAR.CODAGE IS NOT NULL OR PAR.CODCTABCO IS NOT NULL OR PAR.CHAVEPIX IS NOT NULL))                AND                EXISTS (SELECT 1 FROM TSIATA WHERE CODATA = CAB.NUNOTA AND DESCRICAO = 'NOTA FISCAL')                THEN 1                ELSE 0    END AS LIBERAR_FISCAL,        CAB.DTNEG,CAB.DTPREVENT,CAB.DTPREVENT - SYSDATE AS DIAS,CAB.VLRNOTA,FIN.VLRLIQ,FIN.VLRBAIXA,FIN.PROX_VENC,FIN.PROX_VENC - SYSDATE AS DIAS_VENCFROM TGFCAB CABINNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER))INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCINNER JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSULEFT JOIN FIN ON CAB.NUNOTA = FIN.NUNOTAINNER JOIN TGFTIT TIT ON FIN.CODTIPTIT = TIT.CODTIPTITWHERE CAB.TIPMOV = 'O'AND CAB.STATUSNOTA = 'L'AND CAB.DTNEG BETWEEN '01-06-2024' AND '30-06-2024' /*:P_PERIODO.INI AND :P_PERIODO.FIN*/AND CAB.PENDENTE = 'S']]></expression>
+            <metadata>
+              <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+              <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+              <field name="NUNOTA" label="NÚ. Único" type="I" visible="true" useFooter="false"/>
+              <field name="TITULO" label="Título" type="S" visible="true" useFooter="false"/>
+              <field name="CONTA_OU_PIX" label="Conta ou Pix" type="F" visible="true" useFooter="false">
+                <formatter equalThan="1"><![CDATA[<span style="; background-color:#FFFFFF; src:iconDrawCheck; somente-icone:S">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                <formatter equalThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#FFFFFF; src:iconDeleteCross; somente-icone:S">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="BOLETO" label="Boleto" type="I" visible="true" useFooter="false">
+                <formatter equalThan="1"><![CDATA[<span style="; background-color:#FFFFFF; src:iconDrawCheck; somente-icone:S">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                <formatter equalThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#FFFFFF; src:iconDeleteCross; somente-icone:S">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="NOTA" label="NFe" type="I" visible="true" useFooter="false">
+                <formatter equalThan="1"><![CDATA[<span style="; background-color:#FFFFFF; src:iconDrawCheck; somente-icone:S">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                <formatter equalThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#FFFFFF; src:iconDeleteCross; somente-icone:S">$VALUE</span>]]></formatter>
+              </field>
+              <field name="LIBERAR_FISCAL" label="Liberado Fiscal?" type="F" visible="true" useFooter="null">
+                <formatter equalThan="1"><![CDATA[<span style="; background-color:#FFFFFF; src:iconDrawCheck; somente-icone:S">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                <formatter equalThan="0"><![CDATA[<span style="; background-color:#FFFFFF; src:iconDeleteCross; somente-icone:S">$VALUE</span>]]></formatter>
+              </field>
+              <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+              <field name="DTPREVENT" label="Dt. Prev. Ent." type="D" visible="true" useFooter="false"/>
+              <field name="DIAS" label="Dias Para Entrega" type="I" visible="true" useFooter="false">
+                <formatter lessEqualThan="5"><![CDATA[<span style="; src:iconAccept; somente-icone:S">$VALUE</span>]]></formatter>
+                <formatter greaterThan="5"><![CDATA[<span style="; src:iconDeleteCross; somente-icone:S">$VALUE</span>]]></formatter>
+              </field>
+              <field name="VLRNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="VLRLIQ" label="Vlr. Liq." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="PROX_VENC" label="Prox. Dt. Venc." type="D" visible="true" useFooter="false"/>
+              <field name="DIAS_VENC" label="Dias Para Venc." type="I" visible="true" useFooter="false">
+                <formatter greaterEqualThan="20"><![CDATA[<span style="; background-color:#FFFFFF; src:iconDrawCheck; somente-icone:S">$VALUE</span>]]></formatter>
+                <formatter greaterEqualThan="10"><![CDATA[<span style="; background-color:#FFFFFF; src:iconFlagYellow; somente-icone:S">$VALUE</span>]]></formatter>
+                <formatter lessEqualThan="9"><![CDATA[<span style="; background-color:#FFFFFF; src:iconDeleteCross; somente-icone:S">$VALUE</span>]]></formatter>
+              </field>
+            </metadata>
+            <on-click-launcher resource-id="br.com.sankhya.com.mov.CentralNotas">
+              <NUNOTA>$NUNOTA</NUNOTA>
+            </on-click-launcher>
+            <refresh-details ui-list="grd_ajh8mqe,grd_ainbo34">
+              <param id="A_NUNOTA">$NUNOTA</param>
+            </refresh-details>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="100">
+          <grid id="grd_ajh8mqe" useNewGrid="S">
+            <args>
+              <arg id="A_NUNOTA" type="integer"/>
+            </args>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECTDESCRICAO,ARQUIVOFROM TSIATAWHERE CODATA = :A_NUNOTA]]></expression>
+            <metadata>
+              <field name="DESCRICAO" label="Descrição" type="S" visible="true" useFooter="false"/>
+              <field name="ARQUIVO" label="Arquivo" type="S" visible="true" useFooter="false"/>
+            </metadata>
+          </grid>
+        </container>
+      </container>
+      <container orientacao="H" tamanhoRelativo="300">
+        <container orientacao="V" tamanhoRelativo="373">
+          <grid id="grd_ainbo34" useNewGrid="S">
+            <args>
+              <arg id="A_NUNOTA" type="integer"/>
+            </args>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECTNUFIN,TITULO,DTNEG,DTVENC,DHBAIXA,DIAS,DESDOBRAMENTO,RECDESP,VLRLIQ,VLRBAIXAFROM(SELECT FIN.NUFIN,FIN.NUNOTA,CASE    WHEN FIN.CODTIPTIT IN (6, 14, 20, 21) THEN         FIN.CODTIPTIT || '-' || TIT.DESCRTIPTIT || '-BANCO:' || PAR.CODBCO || '-' || PAR.NOMEAGE || '-' || PAR.CODAGE || '-' || PAR.CODCTABCO || '-PIX:' || PAR.CHAVEPIX    ELSE         FIN.CODTIPTIT || '-' || TIT.DESCRTIPTIT END AS TITULO,FIN.DTNEG,FIN.DTVENC,FIN.DHBAIXA,CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.DTVENC - SYSDATE ELSE 0 END AS DIAS,FIN.DESDOBRAMENTO,FIN.RECDESP,(NVL(FIN.VLRDESDOB,0) + (CASE WHEN FIN.TIPMULTA = '1' THEN NVL(FIN.VLRMULTA,0) ELSE 0 END) + (CASE WHEN FIN.TIPJURO = '1' THEN NVL(FIN.VLRJURO,0) ELSE 0 END) + NVL(FIN.DESPCART,0) + NVL(FIN.VLRVENDOR,0) - NVL(FIN.VLRDESC,0) - (CASE WHEN FIN.IRFRETIDO = 'S' THEN NVL(FIN.VLRIRF,0) ELSE 0 END) - (CASE WHEN FIN.ISSRETIDO = 'S' THEN NVL(FIN.VLRISS,0) ELSE 0 END) - (CASE WHEN FIN.INSSRETIDO = 'S' THEN NVL(FIN.VLRINSS,0) ELSE 0 END) - NVL(FIN.CARTAODESC,0) + NVL((SELECT ROUND(SUM(I.VALOR * I.TIPIMP),2) FROM TGFIMF I WHERE I.NUFIN = FIN.NUFIN),0) + NVL(FIN.VLRMULTANEGOC,0) + NVL(FIN.VLRJURONEGOC,0) - NVL(FIN.VLRMULTALIB,0) - NVL(FIN.VLRJUROLIB,0) + NVL(FIN.VLRVARCAMBIAL,0)) * NVL(FIN.RECDESP,0) VLRLIQ,FIN.VLRBAIXAFROM TGFFIN FININNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSUINNER JOIN TGFTIT TIT ON FIN.CODTIPTIT = TIT.CODTIPTITINNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARCWHERE FIN.NUNOTA = :A_NUNOTA)]]></expression>
+            <metadata>
+              <field name="NUFIN" label="NÚ. Único" type="I" visible="true" useFooter="false"/>
+              <field name="TITULO" label="Título" type="S" visible="true" useFooter="false"/>
+              <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+              <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+              <field name="DHBAIXA" label="Dt. Baixa" type="D" visible="true" useFooter="false"/>
+              <field name="DIAS" label="Dias Para Venc." type="F" visible="true" useFooter="false">
+                <formatter greaterEqualThan="20"><![CDATA[<span style="; background-color:#FFFFFF; src:iconDrawCheck; somente-icone:S">$VALUE</span>]]></formatter>
+                <formatter greaterEqualThan="10"><![CDATA[<span style="; background-color:#FFFFFF; src:iconFlagYellow; somente-icone:S">$VALUE</span>]]></formatter>
+                <formatter lessEqualThan="9"><![CDATA[<span style="; background-color:#FFFFFF; src:iconDeleteCross; somente-icone:S">$VALUE</span>]]></formatter>
+              </field>
+              <field name="DESDOBRAMENTO" label="Parcela" type="S" visible="true" useFooter="false"/>
+              <field name="RECDESP" label="Rec. ou Desp.?" type="I" visible="true" useFooter="false"/>
+              <field name="VLRLIQ" label="Vlr. Líq." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            </metadata>
+            <refresh-details ui-list="grd_ajh8mqf">
+              <param id="A_NUFIN">$NUFIN</param>
+            </refresh-details>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="100">
+          <grid id="grd_ajh8mqf" useNewGrid="S">
+            <args>
+              <arg id="A_NUFIN" type="integer"/>
+            </args>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT FIN.DTVENCFROM TGFFIN FINWHERE FIN.NUFIN = :A_NUFIN]]></expression>
+            <metadata>
+              <field name="DTVENC" label="DTVENC" type="D" visible="true" useFooter="false"/>
+            </metadata>
+          </grid>
+        </container>
+      </container>
+    </container>
+  </level>
+</gadget>
