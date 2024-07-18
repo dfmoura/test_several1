@@ -77,6 +77,16 @@ GM - DASH RENTABILIDADE HTML5 - iniciamos o desenvolvimento do esboço inicial d
 GM - DASH RENTABILIDADE HTML5 - Continuamos com a implementação e configuração do maptree, garantindo que estivesse configurado corretamente para exibição e interação. Ajustamos os detalhes visuais e funcionais para assegurar que o maptree respondesse adequadamente aos filtros aplicados pelo donut, proporcionando uma experiência de usuário fluida e informativa. Essas atualizações foram essenciais para enriquecer a análise de dados no dashboard, permitindo uma visualização detalhada e interativa das informações relacionadas ao desempenho de vendas e distribuição da empresa.
 ```
 
+#### 1.1. 17/07/2024 08:00 as 12:00
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Concentramos nossos esforços na geração de uma tabela detalhada, congelando seu cabeçalho para facilitar a visualização dos dados ao rolar a página. Implementamos um efeito visual ao passar o mouse sobre as linhas da tabela, proporcionando uma experiência de usuário mais interativa e intuitiva. Adicionamos uma linha de soma ao final da tabela, calculando os totais das colunas numéricas, e formatamos os valores numéricos para exibir milhares com duas casas decimais após a vírgula. Além disso, ajustamos a dimensão da tabela para ocupar todo o espaço disponível na seção da direita, garantindo uma visualização completa e otimizada dos dados.
+```
+
+#### 1.1. 17/07/2024 13:00 as 18:00
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Integramos o total do faturamento no centro do gráfico de donut, melhorando a clareza das informações apresentadas. No dashboard de faturamento analítico, ajustamos a query SQL incluindo o relacionamento 'SEQUENCIA = ITE.SEQUENCIA' para o valor do Cofins, corrigindo a exibição dos valores por produto no nível analítico. Adicionamos novas colunas na tabela de faturamento, incluindo Margem Nominal, Margem Percentual, Média de Impostos e Média de Custo de Mercadoria Vendida (CMV). Essas inclusões proporcionaram uma visão mais detalhada e completa dos dados financeiros, permitindo uma análise mais precisa e abrangente do desempenho dos produtos e suas margens.
+```
+
 
 
 
@@ -112,3 +122,15 @@ Realizados:
 6) Na despesa operacional colocar no where do select para nao contemplar as naturezas de adiantamento, ou seja, toda natureza que começa com 9.
 5) Seguir com as atualizações conforme apresentado, referente ao nível inferior após clicar no card de faturamento, mantendo o estilo neutro do gráfico. Na tabela ao lado, incluir as colunas: Código do Produto, Produto, Preço Unitário Médio, CMV e Margem.
 10) Seguir com atualização de card, margens, inv e resultado.
+1) gerar tabela.
+2) congelar cabeçalho.
+3) colocar efeito ao passar o mouse.
+4) colocar uma soma ao final da tabela.
+5) formatar o valor numerico em milhar e 2 casas depois da virgula.
+6) dimensionar a tabela para ocupar todo espaço da seção da direita.
+7) colocar o total do faturamento no centro do donut.
+8) no dash de faturamento analitico incluimos um relacionamento no select 'SEQUENCIA = ITE.SEQUENCIA' para o valor do cofins, assim corrigimos a apresentação do valor por produto no nivel analistico.
+10) incluimos a coluna de margem nominal na tabela do nivel de faturamento.
+11) incluimos a coluna de margem % na tabela do nivel de faturamento.
+12) incluimos a coluna de media impostos na tabela do nivel de faturamento.
+13) incluimos a coluna de media cmv na tabela do nivel de faturamento.
