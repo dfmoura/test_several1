@@ -63,6 +63,7 @@
             border: 1px solid #dddddd;
             text-align: left;
             padding: 8px;
+            border-radius: 8px; /* Bordas arredondadas */
         }
         .table-container th {
             background-color: #f2f2f2;
@@ -124,7 +125,7 @@
     ),0),2) AS VLRIMP
 
     , ROUND(AVG(NVL(CUS.CUSSEMICM,0) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)),2) AS CMV
-    , ROUND(SUM((
+    , ROUND(AVG((
     (ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
     - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6 AND SEQUENCIA = ITE.SEQUENCIA),0)
     - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7 AND SEQUENCIA = ITE.SEQUENCIA),0)
@@ -189,7 +190,7 @@
                     <thead>
                         <tr>
                             <th>Produto</th>
-                            <th>Vlr. UN.</th>
+                            <th>Preço Médio</th>
                             <th>Vlr. Fat.</th>
                             <th>Impostos</th>
                             <th>CMV</th>

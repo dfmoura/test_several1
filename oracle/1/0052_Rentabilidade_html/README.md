@@ -100,9 +100,22 @@ INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
 
 ```
 
+
+1) Divisão em quatro componentes por tela no nivel de faturamento.
+2) Cofigurar os filtros para que todo select ja contemple os filtros padrões (Período / Empresa
+
+ / Natureza / Centro de Resultado / Gerente / Vendedor Rota )
+
+
+
+
+
+
+
+
+
+
 Backlog:
-
-
 
 7) Substituir no select da despesa operacional e investimento de vlrbaixa para vlrliq
 11) Adicionar o FEM no calculo dos impostos (antigo gasto variavel cinza)
