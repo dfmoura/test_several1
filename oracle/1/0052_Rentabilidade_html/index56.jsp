@@ -604,9 +604,7 @@
 </c:forEach>
 
 <footer class="footer">
-    <img src="https://raw.githubusercontent.com/dfmoura/test_several1/39b227f7dce131ffe7867a50bd085336576b8955/oracle/1/0052_Rentabilidade_html/a_agu.svg" alt="Logo A AGU" class="logo-footer">
-    <img src="https://raw.githubusercontent.com/dfmoura/test_several1/39b227f7dce131ffe7867a50bd085336576b8955/oracle/1/0052_Rentabilidade_html/a_ref.svg" alt="Logo A REF" class="logo-footer">
-    <img src="https://raw.githubusercontent.com/dfmoura/test_several1/39b227f7dce131ffe7867a50bd085336576b8955/oracle/1/0052_Rentabilidade_html/a_zap.svg" alt="Logo A ZAP" class="logo-footer">
+    <img src="https://raw.githubusercontent.com/dfmoura/test_several1/39b227f7dce131ffe7867a50bd085336576b8955/oracle/1/0052_Rentabilidade_html/a_logo.svg" alt="Logo A" class="logo-footer">
 </footer>
 
 
