@@ -90,6 +90,17 @@ GM - DASH RENTABILIDADE HTML5 - Integramos o total do faturamento no centro do g
 
 
 
+#### 1.1. 18/07/2024 8:00 as 12:00
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Realizamos atualizações na formatação do HTML e CSS para dividir a tela em quatro partes distintas, otimizando a disposição dos componentes na tela do nível de faturamento. A parte superior esquerda foi destinada ao gráfico de donut, enquanto a parte inferior esquerda recebeu outro gráfico de donut. Na parte superior direita, posicionamos a tabela detalhada, e na parte inferior direita, incluímos um gráfico de colunas. Esta organização permite uma visualização clara e estruturada dos diferentes componentes analíticos, facilitando a análise integrada de dados.
+```
+
+#### 1.1. 18/07/2024 13:00 as 18:00
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Configuramos os filtros de maneira que todos os selects já contemplassem os filtros padrão: Período, Empresa, Natureza e Centro de Resultado, assegurando que as consultas fossem consistentes e abrangentes. Além disso, adicionamos a logo da empresa na interface, melhorando a identidade visual e profissionalismo da aplicação. Estas melhorias contribuíram significativamente para a usabilidade e funcionalidade do dashboard, proporcionando uma ferramenta mais eficiente e intuitiva para análise de faturamento.
+```
+
+
 
 ```
 Curinga:
@@ -101,15 +112,11 @@ INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
 ```
 
 
-1) Divisão em quatro componentes por tela no nivel de faturamento.
-2) Cofigurar os filtros para que todo select ja contemple os filtros padrões (Período / Empresa
-
- / Natureza / Centro de Resultado / Gerente / Vendedor Rota )
 
 
-
-
-
+Andamento:
+Cofigurado os filtros para que todo select ja contemple os filtros padrões/ Gerente / Vendedor / Rota = ok
+Atualizar Divisão dos quatro componentes no nivel de faturamento.
 
 
 
@@ -147,3 +154,6 @@ Realizados:
 11) incluimos a coluna de margem % na tabela do nivel de faturamento.
 12) incluimos a coluna de media impostos na tabela do nivel de faturamento.
 13) incluimos a coluna de media cmv na tabela do nivel de faturamento.
+1) Atualizamos a formatação do html e css para dividir a tela em quatro partes para receber os componentes no lado esquerdo parte superior grafico donut e parte inferior dunot, lado direito parte superior tabela e parte inferior grafico de colunas na tela do nivel de faturamento.
+2) Cofigurado os filtros para que todo select ja contemple os filtros padrões (Período / Empresa  / Natureza / Centro de Resultado)
+3) Adicionado logo.
