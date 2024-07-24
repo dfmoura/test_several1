@@ -232,7 +232,7 @@
     // Função para atualizar a query
     function ref_fat(TIPOPROD) {
         const params = {'A_TPPROD': TIPOPROD};
-        refreshDetails('html5_30a1tq', params); 
+        refreshDetails('html5_aw45d3q', params); 
     }
 
     // Configuração do gráfico de rosca

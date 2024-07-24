@@ -1,4 +1,10 @@
-<!DOCTYPE html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="UTF-8" isELIgnored="false" %>
+<%@ page import="java.util.*" %>
+<%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
+<%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -88,8 +94,81 @@
             cursor: pointer; /* Altera o cursor para indicar que é clicável */
         }
     </style>
+
+<snk:load/>
+
 </head>
 <body>
+
+
+
+
+    
+    <snk:query var="fat_produto">
+    
+        SELECT
+        ITE.CODPROD||' - '||PRO.DESCRPROD AS PRODUTO
+        , ROUND(AVG(ITE.VLRUNIT * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)), 2) AS VLR_UN
+        , ROUND(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END), 2) AS VLRFAT
+    
+        , ROUND(NVL(AVG(ITE.VLRSUBST + ITE.VLRIPI + 
+        (CASE 
+        WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF <> '    ' 
+        THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04
+        WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF = '    ' 
+        THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06
+        WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF <> 2 AND PAR.TIPPESSOA = 'J' 
+        THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04
+        WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF = 2
+        THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06
+        WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF IN (1,7,8,15,13)
+        THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.03
+        WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF NOT IN (2, 1, 7, 8, 15, 13)
+        THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.01
+        ELSE ITE.VLRICMS END)
+        + NVL((SELECT VALOR FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6),0)
+        + NVL((SELECT VALOR FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7),0)
+        ),0),2) AS VLRIMP
+    
+        , ROUND(AVG(NVL(CUS.CUSSEMICM,0) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)),2) AS CMV
+        , ROUND(AVG((
+        (ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+        - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6 AND SEQUENCIA = ITE.SEQUENCIA),0)
+        - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7 AND SEQUENCIA = ITE.SEQUENCIA),0)
+        - (NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+        ) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)),2) AS MAR_NON
+    
+        , ROUND(AVG((
+        (ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS) 
+        - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6 AND SEQUENCIA = ITE.SEQUENCIA),0)
+        - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7 AND SEQUENCIA = ITE.SEQUENCIA),0)
+        - (NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+        ) * 100 / 
+        NULLIF((ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)),2) AS MAR_PERC
+            
+        FROM TGFCAB CAB
+        INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+        INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+        INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+        LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND DTATUAL <= CAB.DTNEG)
+        INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+        INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
+        INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+        WHERE TOP.GOLSINAL = -1 
+        AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+        
+        AND TOP.TIPMOV IN ('V', 'D')
+        AND TOP.ATIVO = 'S'
+        AND (F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) = :A_TPPROD
+        GROUP BY ITE.CODPROD||' - '||PRO.DESCRPROD
+        ORDER BY 3 DESC
+    
+    </snk:query> 
+    
+
+
+
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-6">
@@ -120,44 +199,33 @@
                                 <th>Margem %</th>
                             </tr>
                         </thead>
+
                         <tbody>
-                            <tr>
-                                <td>Produto 1</td>
-                                <td>R$ 10,00</td>
-                                <td>R$ 50.000,00</td>
-                                <td>R$ 5.000,00</td>
-                                <td>R$ 30.000,00</td>
-                                <td>R$ 15.000,00</td>
-                                <td>30%</td>
-                            </tr>
-                            <tr>
-                                <td>Produto 2</td>
-                                <td>R$ 20,00</td>
-                                <td>R$ 30.000,00</td>
-                                <td>R$ 3.000,00</td>
-                                <td>R$ 15.000,00</td>
-                                <td>R$ 12.000,00</td>
-                                <td>40%</td>
-                            </tr>
-                            <tr>
-                                <td>Produto 3</td>
-                                <td>R$ 15,00</td>
-                                <td>R$ 70.000,00</td>
-                                <td>R$ 7.000,00</td>
-                                <td>R$ 40.000,00</td>
-                                <td>R$ 23.000,00</td>
-                                <td>33%</td>
-                            </tr>
+                            <c:set var="total" value="0" />
+                            <c:forEach items="${fat_produto.rows}" var="row">
+                                <tr>
+                                    <td>${row.PRODUTO}</td>
+                                    <td><fmt:formatNumber value="${row.VLR_UN}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <td><fmt:formatNumber value="${row.VLRFAT}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <td><fmt:formatNumber value="${row.VLRIMP}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <td><fmt:formatNumber value="${row.CMV}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <td><fmt:formatNumber value="${row.MAR_NON}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <td><fmt:formatNumber value="${row.MAR_PERC}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <c:set var="total" value="${total + row.VLRFAT}" />
+                                </tr>
+                            </c:forEach>
                             <tr>
                                 <td><b>Total</b></td>
                                 <td></td>
-                                <td><b>R$ 150.000,00</b></td>
+                                <td><b><fmt:formatNumber value="${total}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
                             </tr>
-                        </tbody>
+                        </tbody>                        
+
+
                     </table>
                 </div>
             </div>
@@ -170,6 +238,13 @@
 </div>
 
 <script>
+
+    // Função para atualizar a query
+    function ref_fat(TIPOPROD) {
+        const params = {'A_TPPROD': TIPOPROD};
+        refreshDetails('html5_30a1tq', params); 
+    }
+
     // Configuração dos gráficos de rosca
     document.addEventListener('DOMContentLoaded', function () {
         var ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');

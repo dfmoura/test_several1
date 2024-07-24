@@ -128,7 +128,7 @@
 
     function abrir_fat(){
         var params = '';
-        var level = 'lvl_216fbu';
+        var level = 'lvl_ax6oqih';
         openLevel(level, params);
     }
 

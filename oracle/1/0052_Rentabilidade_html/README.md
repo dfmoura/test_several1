@@ -88,8 +88,6 @@ GM - DASH RENTABILIDADE HTML5 - Integramos o total do faturamento no centro do g
 ```
 
 
-
-
 #### 1.1. 18/07/2024 8:00 as 12:00
 ```markdown
 GM - DASH RENTABILIDADE HTML5 - Realizamos atualizações na formatação do HTML e CSS para dividir a tela em quatro partes distintas, otimizando a disposição dos componentes na tela do nível de faturamento. A parte superior esquerda foi destinada ao gráfico de donut, enquanto a parte inferior esquerda recebeu outro gráfico de donut. Na parte superior direita, posicionamos a tabela detalhada, e na parte inferior direita, incluímos um gráfico de colunas. Esta organização permite uma visualização clara e estruturada dos diferentes componentes analíticos, facilitando a análise integrada de dados.
@@ -102,12 +100,11 @@ GM - DASH RENTABILIDADE HTML5 - Configuramos os filtros de maneira que todos os 
 
 
 
+
 ```
 Curinga:
-
 F_DESCROPC('TGFCOT','SITUACAO',COT.SITUACAO)
 INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )
-
 
 ```
 
@@ -115,15 +112,13 @@ INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
 
 
 Andamento:
-Cofigurado os filtros para que todo select ja contemple os filtros padrões/ Gerente / Vendedor / Rota = ok
-Atualizar Divisão dos quatro componentes no nivel de faturamento.
-
-
+Cofigurado os filtros para que todo select ja contemple os filtros padrões/ Gerente / Vendedor / Rota
+Atualizar o select e script js dos quatro componentes no nivel de faturamento.
+AO CLICAR NA COLUNA DA TABELA IR PARA UM PROXIMO NIVEL COM UM GRAFICO DE SUPERVISOR DE UM LADO E O DETALHAMENTO EM TABELA DO LADO.
 
 
 
 Backlog:
-
 7) Substituir no select da despesa operacional e investimento de vlrbaixa para vlrliq
 11) Adicionar o FEM no calculo dos impostos (antigo gasto variavel cinza)
 12) Colocar o periodo anterior de analise dinamico, hoje esta somente com 1.
