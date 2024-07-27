@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotas por Vendedor</title>
+    <style>
+        body {
+            background-color: white;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1 {
+            font-size: 25px;
+            margin-bottom: 20px;
+        }
+        #chart {
+            width: 90%;
+            height: 80%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Rotas por Vendedor</h1>
+    <div id="chart"></div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        var trace1 = {
+            x: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            y: [10, 15, 13, 17, 22, 19, 25, 30, 28, 26, 30, 35],
+            mode: 'lines+markers',
+            name: 'Vendedor 1',
+            line: {color: 'blue'}
+        };
+
+        var trace2 = {
+            x: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            y: [16, 18, 14, 20, 24, 23, 28, 32, 30, 29, 34, 37],
+            mode: 'lines+markers',
+            name: 'Vendedor 2',
+            line: {color: 'green'}
+        };
+
+        var data = [trace1, trace2];
+
+        var layout = {
+            title: '',
+            /*xaxis: {
+                title: 'Mês'
+            },
+            yaxis: {
+                title: 'Número de Rotas'
+            },*/
+            margin: {
+                l: 50,
+                r: 50,
+                b: 50,
+                t: 50,
+                pad: 4
+            }
+        };
+
+        Plotly.newPlot('chart', data, layout);
+    </script>
+</body>
+</html>

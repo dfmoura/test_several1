@@ -132,6 +132,13 @@
         AND TOP.TIPMOV IN ('V', 'D')
         AND TOP.ATIVO = 'S'
         AND VEN2.APELIDO = :A_GERENTE
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND CAB.CODNAT IN (:P_NATUREZA)
+        AND CAB.CODCENCUS IN (:P_CR)
+        AND CAB.CODVEND IN (:P_VENDEDOR)
+        AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+        
+        AND VEN.AD_ROTA IN (:P_ROTA)
         GROUP BY VEN1.APELIDO
         ORDER BY 2 DESC
     </snk:query>
@@ -152,6 +159,13 @@
         AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
         AND TOP.TIPMOV IN ('V', 'D')
         AND TOP.ATIVO = 'S'
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND CAB.CODNAT IN (:P_NATUREZA)
+        AND CAB.CODCENCUS IN (:P_CR)
+        AND CAB.CODVEND IN (:P_VENDEDOR)
+        AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND VEN.CODGER IN (:P_GERENTE)
+        AND VEN.AD_ROTA IN (:P_ROTA)
         GROUP BY DECODE(VEN1.APELIDO, '<SEM VENDEDOR>', 'NAO INFORMADO', VEN1.APELIDO)
         ORDER BY 1 DESC
     </snk:query> 
@@ -173,6 +187,12 @@
     AND TOP.TIPMOV IN ('V', 'D')
     AND TOP.ATIVO = 'S'
     AND VEN1.APELIDO = :A_GERENTE
+    AND CAB.CODEMP IN (:P_EMPRESA)
+    AND CAB.CODNAT IN (:P_NATUREZA)
+    AND CAB.CODCENCUS IN (:P_CR)
+    AND CAB.CODVEND IN (:P_VENDEDOR)
+    AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+    AND VEN.AD_ROTA IN (:P_ROTA)
     </snk:query>
 
 
@@ -235,6 +255,13 @@
         AND TOP.TIPMOV IN ('V', 'D')
         AND TOP.ATIVO = 'S'
         AND VEN1.APELIDO = :A_GERENTE
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND CAB.CODNAT IN (:P_NATUREZA)
+        AND CAB.CODCENCUS IN (:P_CR)
+        AND CAB.CODVEND IN (:P_VENDEDOR)
+        AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+
+        AND VEN.AD_ROTA IN (:P_ROTA)
         GROUP BY VEN2.APELIDO,ITE.CODPROD||' - '||PRO.DESCRPROD
         ORDER BY 1, 4 DESC
 
@@ -371,27 +398,15 @@
                             'rgba(0, 128, 0, 0.2)',      // Verde
                             'rgba(0, 0, 255, 0.2)',      // Azul
                             'rgba(255, 255, 0, 0.2)'    // Amarelo
-                        ],
-                        borderColor: [
-                            'rgba(255, 99, 132, 1)',
-                            'rgba(54, 162, 235, 1)',
-                            'rgba(255, 206, 86, 1)',
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(153, 102, 255, 1)',
-                            'rgba(255, 159, 64, 1)',
-                            'rgba(255, 0, 0, 1)',      // Vermelho
-                            'rgba(0, 128, 0, 1)',      // Verde
-                            'rgba(0, 0, 255, 1)',      // Azul
-                            'rgba(255, 255, 0, 1)'    // Amarelo
-                        ],
-                        borderWidth: 0
+                        ]
                     }]
                 },
                 options: {
                     responsive: true,
-                    //maintainAspectRatio: false,
+                    maintainAspectRatio: false,
+                    cutoutPercentage: 70,
                     legend: {
-                        display: false
+                        display: true
                     },
                     onClick: function(event, elements) {
                         if (elements.length > 0) {

@@ -132,6 +132,12 @@
         AND TOP.TIPMOV IN ('V', 'D')
         AND TOP.ATIVO = 'S'
         AND VEN1.APELIDO = :A_SUPERVISOR
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND CAB.CODNAT IN (:P_NATUREZA)
+        AND CAB.CODCENCUS IN (:P_CR)
+        AND CAB.CODVEND IN (:P_VENDEDOR)
+        AND VEN.CODGER IN (:P_GERENTE)
+        AND VEN.AD_ROTA IN (:P_ROTA)
         GROUP BY VEN.APELIDO
         ORDER BY 2 DESC
     </snk:query>
@@ -152,6 +158,13 @@
         AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
         AND TOP.TIPMOV IN ('V', 'D')
         AND TOP.ATIVO = 'S'
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND CAB.CODNAT IN (:P_NATUREZA)
+        AND CAB.CODCENCUS IN (:P_CR)
+        AND CAB.CODVEND IN (:P_VENDEDOR)
+        AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND VEN.CODGER IN (:P_GERENTE)
+        AND VEN.AD_ROTA IN (:P_ROTA)
         GROUP BY DECODE(VEN2.APELIDO, '<SEM VENDEDOR>', 'NAO INFORMADO', VEN2.APELIDO)
         ORDER BY 1
     </snk:query> 
@@ -174,6 +187,13 @@
     AND TOP.TIPMOV IN ('V', 'D')
     AND TOP.ATIVO = 'S'
     AND VEN2.APELIDO = :A_SUPERVISOR
+    AND CAB.CODEMP IN (:P_EMPRESA)
+    AND CAB.CODNAT IN (:P_NATUREZA)
+    AND CAB.CODCENCUS IN (:P_CR)
+    AND CAB.CODVEND IN (:P_VENDEDOR)
+    
+    AND VEN.CODGER IN (:P_GERENTE)
+    AND VEN.AD_ROTA IN (:P_ROTA)
     </snk:query>
 
 
@@ -208,6 +228,13 @@
         AND TOP.TIPMOV IN ('V', 'D')
         AND TOP.ATIVO = 'S'
         AND VEN2.APELIDO = :A_SUPERVISOR
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND CAB.CODNAT IN (:P_NATUREZA)
+        AND CAB.CODCENCUS IN (:P_CR)
+        AND CAB.CODVEND IN (:P_VENDEDOR)
+        
+        AND VEN.CODGER IN (:P_GERENTE)
+        AND VEN.AD_ROTA IN (:P_ROTA)
         GROUP BY VEN.APELIDO,ITE.CODPROD||' - '||PRO.DESCRPROD
         ORDER BY 1, 4 DESC
 
@@ -283,11 +310,17 @@
     <script>
 
             // Função para abrir o novo nível
-            function abrir_ven(){
-                var params = '';
-                var level = 'lvl_a0togpw';
+          
+
+
+
+            function abrir_rota(vendedor) {
+                vendedor = vendedor.replaceAll('"','');
+                var params = {A_VENDEDOR: vendedor};
+                var level = 'lvl_a2fl12b';
                 openLevel(level, params);
             }
+
 
 
         // Filtrar tabela com base na seleção do vendedor
@@ -334,7 +367,7 @@
                     datasets: [{
                         data: data,
                         backgroundColor: [
-                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(255, 99, 132, 0.2)', 
                             'rgba(54, 162, 235, 0.2)',
                             'rgba(255, 206, 86, 0.2)',
                             'rgba(75, 192, 192, 0.2)',
@@ -344,34 +377,23 @@
                             'rgba(0, 128, 0, 0.2)',      // Verde
                             'rgba(0, 0, 255, 0.2)',      // Azul
                             'rgba(255, 255, 0, 0.2)'    // Amarelo
-                        ],
-                        borderColor: [
-                            'rgba(255, 99, 132, 1)',
-                            'rgba(54, 162, 235, 1)',
-                            'rgba(255, 206, 86, 1)',
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(153, 102, 255, 1)',
-                            'rgba(255, 159, 64, 1)',
-                            'rgba(255, 0, 0, 1)',      // Vermelho
-                            'rgba(0, 128, 0, 1)',      // Verde
-                            'rgba(0, 0, 255, 1)',      // Azul
-                            'rgba(255, 255, 0, 1)'    // Amarelo
-                        ],
-                        borderWidth: 0
+                        ]
                     }]
                 },
                 options: {
                     responsive: true,
-                    //maintainAspectRatio: false,
+                    maintainAspectRatio: false,
+                    cutoutPercentage: 70,
                     legend: {
-                        display: false
+                        display: true
                         
                     },
                     onClick: function(event, elements) {
                         if (elements.length > 0) {
                             var index = elements[0].index;
                             var vendedor = doughnutChart.data.labels[index];
-                            //alert( vendedor ); 
+                            //abrir_rota(vendedor)
+                            //alert( vendedor );
                             //abrir_ven();                           
                         }
                     }

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tela de Devoluções</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px; /* Ajuste do gap para aumentar o espaçamento vertical */
+            width: 90%;
+            height: 90%;
+        }
+        .section {
+            display: flex;
+            flex-direction: column;
+            gap: 30px; /* Ajuste do gap para aumentar o espaçamento vertical */
+        }
+        .part {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+            height: calc(50% - 20px); /* Ajuste da altura para refletir o novo gap */
+            overflow: hidden; /* Impede que o conteúdo altere o tamanho da parte */
+            position: relative; /* Necessário para posicionar o título */
+        }
+        .part-title {
+            position: absolute;
+            top: 10px; /* Espaçamento do topo */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            background-color: #fff; /* Cor de fundo para legibilidade */
+            padding: 0 10px; /* Espaçamento horizontal */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="section">
+            <div class="part" id="left-top">
+                <div class="part-title">Parte Superior Esquerda</div>
+                <!-- Conteúdo da parte superior esquerda -->
+            </div>
+            <div class="part" id="left-bottom">
+                <div class="part-title">Parte Inferior Esquerda</div>
+                <!-- Conteúdo da parte inferior esquerda -->
+            </div>
+        </div>
+        <div class="section">
+            <div class="part" id="right-top">
+                <div class="part-title">Parte Superior Direita</div>
+                <!-- Conteúdo da parte superior direita -->
+            </div>
+            <div class="part" id="right-bottom">
+                <div class="part-title">Parte Inferior Direita</div>
+                <!-- Conteúdo da parte inferior direita -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript para adicionar funcionalidades adicionais, se necessário
+    </script>
+</body>
+</html>

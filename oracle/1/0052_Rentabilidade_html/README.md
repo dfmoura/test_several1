@@ -98,7 +98,52 @@ GM - DASH RENTABILIDADE HTML5 - Realizamos atualizações na formatação do HTM
 GM - DASH RENTABILIDADE HTML5 - Configuramos os filtros de maneira que todos os selects já contemplassem os filtros padrão: Período, Empresa, Natureza e Centro de Resultado, assegurando que as consultas fossem consistentes e abrangentes. Além disso, adicionamos a logo da empresa na interface, melhorando a identidade visual e profissionalismo da aplicação. Estas melhorias contribuíram significativamente para a usabilidade e funcionalidade do dashboard, proporcionando uma ferramenta mais eficiente e intuitiva para análise de faturamento.
 ```
 
+#### 1.1.Para o período de 19/07/24, das 8h às 12h, 
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Começamos configurando os filtros para que todos os selects contemplassem os filtros padrões, além de Gerente, Vendedor e Rota. Foram realizadas diversas tentativas até acertar a sintaxe e lógica correta nos selects e scripts JS dos quatro componentes no nível de faturamento. Este processo envolveu ajustes minuciosos e testes contínuos para garantir que cada filtro funcionasse perfeitamente com os dados esperados. Além disso, trabalhamos na criação de um evento que, ao clicar em uma coluna da tabela, levasse o usuário a um próximo nível contendo um gráfico de supervisor de um lado e o detalhamento em tabela do outro. Este evento foi testado exaustivamente para garantir uma navegação suave e precisa entre os níveis.
+```
 
+#### Durante o período de 19/07/24, das 13h às 18h, 
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Adicionamos um container no header do nível com botões indicados pelos gerentes apresentados no nível anterior no gráfico de colunas. Ao clicar nesses botões, o parâmetro :A_GERENTE era atualizado nos componentes gráfico de rosca e tabela com detalhamento. Implementar essa funcionalidade exigiu várias iterações e refinamentos para assegurar que o comportamento dinâmico estivesse correto e intuitivo para o usuário. Também inserimos um drop-down acima da tabela, permitindo filtrar os supervisores, o que envolveu ajustar as queries e a lógica de filtragem. Posteriormente, replicamos essa estrutura para criar outro nível de vendedores, acessado a partir de um clique no gráfico de rosca do nível de supervisores. Este novo nível manteve todas as funcionalidades da tela anterior, exigindo a atualização dos parâmetros e selects das consultas, com testes contínuos para garantir a consistência e funcionalidade da navegação.
+```
+
+#### Para o período de 22/07/24, das 8h às 12h, 
+```markdown
+GM - DASH RENTABILIDADE HTML5 - continuamos ajustando os filtros e parâmetros dos selects e scripts JS, focando em assegurar que as mudanças implementadas funcionassem corretamente em todas as situações possíveis. Testamos diversas combinações de filtros e cenários de dados para identificar e corrigir quaisquer inconsistências ou erros. Além disso, melhoramos a interação entre os gráficos de rosca e as tabelas, garantindo que as atualizações fossem refletidas em tempo real sem atrasos ou falhas.
+```
+
+#### Durante o período de 22/07/24, das 13h às 18h, 
+```markdown
+GM - DASH RENTABILIDADE HTML5 - prosseguimos com a implementação e teste das funcionalidades dinâmicas adicionadas anteriormente. Especificamente, trabalhamos para garantir que a atualização dos parâmetros :A_GERENTE e a filtragem por supervisores fossem intuitivas e sem problemas. Este trabalho envolveu revisões cuidadosas do código e testes de usabilidade para refinar a interface e a experiência do usuário. Também ajustamos a visualização dos gráficos e tabelas para melhorar a clareza e acessibilidade dos dados apresentados.
+```
+
+#### Para o período de 23/07/24, das 8h às 12h, 
+```markdown
+GM - DASH RENTABILIDADE HTML5 - finalizamos os ajustes nos eventos de clique e na navegação entre os níveis. Realizamos testes rigorosos para garantir que a transição entre diferentes níveis e a atualização dos dados fossem consistentes e precisas. Corrigimos quaisquer bugs encontrados durante o teste e otimizamos o desempenho dos scripts para uma experiência mais fluida.
+```
+
+#### Durante o período de 23/07/24, das 13h às 18h, 
+```markdown
+GM - DASH RENTABILIDADE HTML5 - concentramos nossos esforços em aprimorar a interface do usuário, garantindo que os novos botões, drop-downs e gráficos estivessem visualmente integrados e funcionalmente robustos. Fizemos refinamentos finais na aparência e comportamento dos componentes gráficos, assegurando que todas as funcionalidades fossem acessíveis e operacionais em diferentes dispositivos e navegadores.
+```
+
+#### Para o período de 24/07/24, das 8h às 12h, 
+```markdown
+GM - DASH RENTABILIDADE HTML5 - realizamos uma revisão final de todas as funcionalidades e a interface do dashboard. Executamos uma série de testes de regressão para assegurar que as novas funcionalidades não afetassem negativamente as existentes. Este processo envolveu verificar a integridade dos dados, a responsividade da interface e a precisão dos filtros e gráficos.
+```
+
+#### Durante o período de 24/07/24, das 13h às 18h, 
+```markdown
+GM - DASH RENTABILIDADE HTML5 - concluímos o projeto com a documentação detalhada de todas as atualizações e funcionalidades implementadas. Criamos guias de uso para os novos componentes e funcionalidades, facilitando a compreensão e utilização do dashboard pelos usuários finais. Também estabelecemos pontos de controle para futuras atualizações e melhorias, garantindo a continuidade do desenvolvimento e manutenção do sistema.
+```
+
+
+criado uma tela , nivel analitico de produtos, em html, css, js, auto redmencionavel com uma tabela bonita utilizando bootstrap, efeitos,  com as colunas Nro. Único, Dt. Negociação, Cód. Top., Cód. Parc., Parceiro, Preço Médio, Vlr. Fat.,
+criado evento em tela de faturamento1 que ao clicar em linha de colona de tabela de produtos sintetica o mesmo direciona o produto para um nivel analitico. Neste nivel analitico, criamo um evento que ao clicar na linha sera aberto a central de vendas para o respectivo número unico.
+criamos um grafico de linhas que demonstra as vendas por rota por vendedor.
+Adicionando os filtro padroes nos select's do index60,68,69,70,72. ok
+criar o layout para devolução
 
 
 ```
@@ -108,14 +153,56 @@ INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
 
 ```
 
+criar o layout para 7 telas, sendo impostos,custo,hl,desconto, margem nominal, despesas operacionais e resultado.
 
 
 
-Andamento:
-Cofigurado os filtros para que todo select ja contemple os filtros padrões/ Gerente / Vendedor / Rota
-Atualizar o select e script js dos quatro componentes no nivel de faturamento.
-AO CLICAR NA COLUNA DA TABELA IR PARA UM PROXIMO NIVEL COM UM GRAFICO DE SUPERVISOR DE UM LADO E O DETALHAMENTO EM TABELA DO LADO.
 
+
+
+
+em html, css, js e chart.js
+gerar um tela com 4 seções 2 na parte superior lado esquerdo e lado direito, e 2 na parte inferior lado esquerdo e lado direito.
+
+na primeira seção superior lado esquerdo, colocar um grafico de colunas verticais, colocar o titulo no html 'Impostos', utilizar dados aleatorios.Centralizar horizontalmente os componentes da seção e no top verticalmente.
+
+na segunda seção superior lado direito, colocar um grafico de rosca, colocar o titulo no html 'Impostos por Empresa', utilizar dados aleatorios. Centralizar horizontalmente os componentes da seção e no top verticalmente.
+
+na terceira seção inferior lado esquerdo, colocar um grafico de rosca, colocar o titulo no html 'Impostos por Grupo de Produtos', utilizar dados aleatorios. Centralizar horizontalmente os componentes da seção e no top verticalmente.
+
+na quarta seção inferior lado direito, colocar uma tabela bem bonita com efeitos ao passar o mouse e a primeira linha da tabela de titulo das colunas ficar congelada ao movimentar o scroll, colocar o titulo no html 'Detalhamento Impostos por Produto', utilizar dados aleatorios. Centralizar horizontalmente os componentes da seção e no top verticalmente.
+
+
+
+
+
+gerar uma tela devoluções em html css js e chart.js 
+dividida em 2 seções uma do lado direito e outra do lado esquerdo
+na seção do lado esquerdo superior fazer um grafico de rosca com um titulo no html 'Devolução por Motivo'
+na seção do lado esquerdo inferior fazer um dropdown de cidades e a cada cidade selecionada mostrar
+os bairros com quantidades de devolução em
+um grafico de barras verticais com um titulo no html 'Devoluções Por Cidade e Bairros'
+
+na seção do lado direito superior fazer um grafico de colunas com um titulo no html 'Top 10 por vendedor por motivo'
+na seção do lado direito inferior fazer uma tabela de produtos por motivo, bem bonita, com efeitos, fixar o cabeçalho da tabela ao rolar a tabela....
+
+para todas as seções dimencionar proporcionalmente seus repectivos componentes
+
+
+
+organizar novamente o dimensionamento do espaço deixando cada seção com o mesmo tamanho:
+
+lado superior esquerdo = com o grafico "Devolução por Motivo"
+lado inferior esquerdo = com o grafico "Devoluções Por Cidade e Bairros"
+
+
+ lado superior direito = com o grafico "Top 10 por vendedor por motivo"
+ lado inferior direito = com a tabela "Produtos por Motivo"
+
+usar Flexbox para criar uma estrutura de layout com duas colunas, onde cada coluna é dividida em duas seções
+
+de modo que cada seção tenha o mesmo tamanho
+e a estrutura interna nao ultrapasse o tamanho da seção
 
 
 Backlog:
@@ -152,3 +239,7 @@ Realizados:
 1) Atualizamos a formatação do html e css para dividir a tela em quatro partes para receber os componentes no lado esquerdo parte superior grafico donut e parte inferior dunot, lado direito parte superior tabela e parte inferior grafico de colunas na tela do nivel de faturamento.
 2) Cofigurado os filtros para que todo select ja contemple os filtros padrões (Período / Empresa  / Natureza / Centro de Resultado)
 3) Adicionado logo.
+Andamento:
+Cofigurado os filtros para que todo select ja contemple os filtros padrões/ Gerente / Vendedor / Rota
+Atualizado o select e script js dos quatro componentes no nivel de faturamento.
+Criado o evento AO CLICAR NA COLUNA DA TABELA IR PARA UM PROXIMO NIVEL COM UM GRAFICO DE SUPERVISOR DE UM LADO E O DETALHAMENTO EM TABELA DO LADO, alem disso criamos no header do nivel um container com botões indicados pelos gerentes aprensentado no nivel anterior no grafico de colunas. Adicionamos tambem um evento que ao clicar nestes botões são atualizados o paramentro :A_GERENTE nos componentes grafico de rosca e tabela com detalhamento. Adicionamos tambem em cima da tabela um drop-down que possibilita filtrar os supervisores na tabela.Em sequencia, criamos outro nivel de vendedores, replicando esta estrutura do nivel atual do nivel de supervisores, acessado a partir de click em grafico de rosca do nivel de supervisores, permanecendo todos as função da tela anterior, atualizamos os paramentro e select das consutas.
