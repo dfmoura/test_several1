@@ -1,5 +1,11 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="UTF-8" isELIgnored="false" %>
+<%@ page import="java.util.*" %>
+<%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
+<%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -104,25 +110,21 @@
     </style>
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
+
+    <snk:load/>
+
 </head>
 <body>
     <div class="container">
         <div class="section">
             <div class="part" id="left-top">
-                <div class="part-title">Devolução por Motivo</div>
+                <div class="part-title">Margem por Tipo Produto</div>
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">Devoluções por Cidade e Bairro</div>
-                <div class="dropdown-container">
-                    <select id="citySelect">
-                        <option value="city1">Cidade 1</option>
-                        <option value="city2">Cidade 2</option>
-                        <option value="city3">Cidade 3</option>
-                    </select>
-                </div>
+                <div class="part-title">Margem Por Cliente</div>
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
                 </div>
@@ -130,13 +132,13 @@
         </div>
         <div class="section">
             <div class="part" id="right-top">
-                <div class="part-title">Top 10 Dev. por Vendedor e por Motivo</div>
+                <div class="part-title">Margem Por Gerente</div>
                 <div class="chart-container">
                     <canvas id="barChartRight"></canvas>
                 </div>
             </div>
             <div class="part" id="right-bottom">
-                <div class="part-title">Devoluções por Produto e por Motivo</div>
+                <div class="part-title">Margem por Produto</div>
                 <div class="table-container">
                     <table id="dataTable">
                         <thead>
@@ -230,7 +232,7 @@
         const barChart = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: ['Bairro 1', 'Bairro 2', 'Bairro 3', 'Bairro 4'],
+                labels: ['Cliente 1', 'Cliente 2', 'Cliente 3', 'Cliente 4'],
                 datasets: [{
                     label: 'Quantidade',
                     data: [10, 20, 30, 40],
@@ -263,9 +265,9 @@
         const barChartRight = new Chart(ctxBarRight, {
             type: 'bar',
             data: {
-                labels: ['Vendedor A', 'Vendedor B', 'Vendedor C'],
+                labels: ['Gerente A', 'Gerente B', 'Gerente C'],
                 datasets: [{
-                    label: 'Top 10 por Vendedor',
+                    label: 'HL por Gerente',
                     data: [15, 25, 10],
                     backgroundColor: 'rgba(153, 102, 255, 0.2)',
                     borderColor: 'rgba(153, 102, 255, 1)',
@@ -301,22 +303,8 @@
             });
         });
 
-        // Atualizar o gráfico de barras com base na cidade selecionada
-        const citySelect = document.getElementById('citySelect');
-        const barChartUpdate = (city) => {
-            const data = {
-                'city1': [10, 20, 30, 40],
-                'city2': [15, 25, 35, 45],
-                'city3': [20, 30, 40, 50]
-            };
 
-            barChart.data.datasets[0].data = data[city];
-            barChart.update();
-        };
-
-        citySelect.addEventListener('change', (event) => {
-            barChartUpdate(event.target.value);
-        });
+        
     </script>
 </body>
 </html>

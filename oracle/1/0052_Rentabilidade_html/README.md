@@ -138,12 +138,49 @@ GM - DASH RENTABILIDADE HTML5 - realizamos uma revisão final de todas as funcio
 GM - DASH RENTABILIDADE HTML5 - concluímos o projeto com a documentação detalhada de todas as atualizações e funcionalidades implementadas. Criamos guias de uso para os novos componentes e funcionalidades, facilitando a compreensão e utilização do dashboard pelos usuários finais. Também estabelecemos pontos de controle para futuras atualizações e melhorias, garantindo a continuidade do desenvolvimento e manutenção do sistema.
 ```
 
+#### Para o período de 25/07/24, das 8h às 12h, 
+```markdown
+GM - DASH RENTABILIDADE HTML5 - desenvolvemos uma tela no nível analítico de produtos usando HTML, CSS e JavaScript, com responsividade garantida através do uso de Bootstrap. A tabela incluída apresenta uma interface visualmente atraente, com colunas detalhadas como "Nro. Único", "Dt. Negociação", "Cód. Top.", "Cód. Parc.", "Parceiro", "Preço Médio" e "Vlr. Fat.". Adicionamos efeitos interativos para melhorar a usabilidade, como realces ao passar o mouse e responsividade adaptativa para diferentes tamanhos de tela. O design foi minuciosamente ajustado para garantir que a tabela não apenas apresentasse os dados de forma clara e organizada, mas também se adaptasse adequadamente ao layout da página, mantendo uma estética consistente e funcional.
+```
+
+#### No período de 25/07/24, das 13h às 18h,
+```markdown
+GM - DASH RENTABILIDADE HTML5 - implementamos um evento na tela de faturamento que, ao clicar em uma linha da coluna da tabela de produtos sintética, direciona o usuário para o nível analítico correspondente ao produto selecionado. Neste novo nível, desenvolvemos um evento adicional que, ao clicar na linha da tabela, abre a central de vendas para o número único do produto, facilitando o acesso às informações detalhadas do produto. Também criamos um gráfico de linhas para visualizar as vendas por rota e por vendedor, integrando este gráfico ao dashboard com filtros padrão adicionados aos selects nos índices 60, 68, 69, 70 e 72, garantindo que as informações apresentadas fossem facilmente manipuláveis e atualizadas conforme as seleções do usuário.
+```
+
+#### Para o período de 26/07/24, das 8h às 12h, 
+```markdown
+GM - DASH RENTABILIDADE HTML5 - oncentramos esforços na criação e configuração do layout para a seção de devoluções. Desenvolvemos um design consistente e intuitivo que permite uma visualização clara dos dados de devolução, mantendo a harmonia com o estilo geral do dashboard. Este layout inclui tabelas e gráficos adaptados para refletir as informações de devolução de maneira eficaz e acessível, proporcionando uma experiência de usuário otimizada.
+```
+
+#### Durante o período de 26/07/24, das 13h às 18h,
+```markdown
+GM - DASH RENTABILIDADE HTML5 - finalizamos a elaboração do padrão de layout para os demais níveis do dashboard. Este trabalho envolveu definir e padronizar a estrutura e o estilo dos diferentes níveis, assegurando que todos seguissem uma estética uniforme e fossem funcionalmente coerentes. Implementamos os padrões definidos, ajustando os componentes gráficos e tabelas para garantir uma navegação fluida e uma apresentação visual consistente em todo o dashboard, permitindo uma integração harmoniosa entre todos os níveis e seções do sistema.
+
+```
+
+####
+```markdown
+```
+
+
+
+####
+```markdown
+```
+
+
+
+
+
+
 
 criado uma tela , nivel analitico de produtos, em html, css, js, auto redmencionavel com uma tabela bonita utilizando bootstrap, efeitos,  com as colunas Nro. Único, Dt. Negociação, Cód. Top., Cód. Parc., Parceiro, Preço Médio, Vlr. Fat.,
 criado evento em tela de faturamento1 que ao clicar em linha de colona de tabela de produtos sintetica o mesmo direciona o produto para um nivel analitico. Neste nivel analitico, criamo um evento que ao clicar na linha sera aberto a central de vendas para o respectivo número unico.
 criamos um grafico de linhas que demonstra as vendas por rota por vendedor.
 Adicionando os filtro padroes nos select's do index60,68,69,70,72. ok
 criar o layout para devolução
+elaboração de padrão de layout para os demais niveis.
 
 
 ```
@@ -154,6 +191,8 @@ INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
 ```
 
 criar o layout para 7 telas, sendo impostos,custo,hl,desconto, margem nominal, despesas operacionais e resultado.
+criar niveis de arquivo padrao com o novo layout e evento de click para abrir estes novo niveis (devolução, impostos, cmv, hl, desconto, margem, despesa operacional, investimento e resultado)
+Adaptar o select da tela de devolução.
 
 
 
@@ -185,24 +224,29 @@ um grafico de barras verticais com um titulo no html 'Devoluções Por Cidade e 
 
 na seção do lado direito superior fazer um grafico de colunas com um titulo no html 'Top 10 por vendedor por motivo'
 na seção do lado direito inferior fazer uma tabela de produtos por motivo, bem bonita, com efeitos, fixar o cabeçalho da tabela ao rolar a tabela....
-
 para todas as seções dimencionar proporcionalmente seus repectivos componentes
-
-
-
 organizar novamente o dimensionamento do espaço deixando cada seção com o mesmo tamanho:
-
 lado superior esquerdo = com o grafico "Devolução por Motivo"
 lado inferior esquerdo = com o grafico "Devoluções Por Cidade e Bairros"
-
-
- lado superior direito = com o grafico "Top 10 por vendedor por motivo"
- lado inferior direito = com a tabela "Produtos por Motivo"
-
+lado superior direito = com o grafico "Top 10 por vendedor por motivo"
+lado inferior direito = com a tabela "Produtos por Motivo"
 usar Flexbox para criar uma estrutura de layout com duas colunas, onde cada coluna é dividida em duas seções
-
 de modo que cada seção tenha o mesmo tamanho
 e a estrutura interna nao ultrapasse o tamanho da seção
+
+
+
+
+
+custo
+gerar uma tela em html css js
+com 2 seções com parte superior e parte inferior
+na parte superior outras 2 seções sendo:
+lado esquerdo com um card com borda fina discreta arredondada com um titulo em html '% Custo Médio por Grupo de Produto'  
+e lado direito um card com borda fina discreta arredondada com um titulo em html 'Produtos por grupo de proudto'  
+na parte inferior somente uma seção com um card com borda fina discreta arredondada com um titulo em html 'Detalhamento'  
+
+
 
 
 Backlog:

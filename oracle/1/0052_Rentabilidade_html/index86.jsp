@@ -1,5 +1,12 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="UTF-8" isELIgnored="false" %>
+<%@ page import="java.util.*" %>
+<%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
+<%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -104,23 +111,26 @@
     </style>
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
+
+    <snk:load/>
+
 </head>
 <body>
     <div class="container">
         <div class="section">
             <div class="part" id="left-top">
-                <div class="part-title">Devolução por Motivo</div>
+                <div class="part-title">Despesa Operacional por Empresa</div>
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">Devoluções por Cidade e Bairro</div>
+                <div class="part-title">Despesa Operacional por CR</div>
                 <div class="dropdown-container">
                     <select id="citySelect">
-                        <option value="city1">Cidade 1</option>
-                        <option value="city2">Cidade 2</option>
-                        <option value="city3">Cidade 3</option>
+                        <option value="Nat1">Nat 1</option>
+                        <option value="Nat2">Nat 2</option>
+                        <option value="Nat3">Nat 3</option>
                     </select>
                 </div>
                 <div class="chart-container">
@@ -130,46 +140,52 @@
         </div>
         <div class="section">
             <div class="part" id="right-top">
-                <div class="part-title">Top 10 Dev. por Vendedor e por Motivo</div>
+                <div class="part-title">Despesa Operacional por Natureza</div>
                 <div class="chart-container">
                     <canvas id="barChartRight"></canvas>
                 </div>
             </div>
             <div class="part" id="right-bottom">
-                <div class="part-title">Devoluções por Produto e por Motivo</div>
+                <div class="part-title">Detalhamento Despesa Operacional</div>
                 <div class="table-container">
                     <table id="dataTable">
                         <thead>
                             <tr>
-                                <th>Produto</th>
-                                <th>Motivo</th>
-                                <th>Quantidade</th>
+                                <th>NÚ. Único</th>
+                                <th>Natureza</th>
+                                <th>CR</th>
+                                <th>Valor</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td>Produto A</td>
-                                <td>Motivo 1</td>
+                                <td>1151</td>
+                                <td>Nat A</td>
+                                <td>CR 1</td>
                                 <td>10</td>
                             </tr>
                             <tr>
-                                <td>Produto B</td>
-                                <td>Motivo 2</td>
+                                <td>1152</td>
+                                <td>Nat B</td>
+                                <td>CR 2</td>
                                 <td>20</td>
                             </tr>
                             <tr>
-                                <td>Produto C</td>
-                                <td>Motivo 3</td>
+                                <td>1125</td>
+                                <td>Nat C</td>
+                                <td>CR 3</td>
                                 <td>30</td>
                             </tr>
                             <tr>
-                                <td>Produto D</td>
-                                <td>Motivo 4</td>
+                                <td>1138</td>
+                                <td>Nat D</td>
+                                <td>CR 4</td>
                                 <td>40</td>
                             </tr>
                             <tr>
-                                <td>Produto E</td>
-                                <td>Motivo 5</td>
+                                <td>1185</td>
+                                <td>Nat E</td>
+                                <td>CR 5</td>
                                 <td>50</td>
                             </tr>
                         </tbody>
@@ -230,7 +246,7 @@
         const barChart = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: ['Bairro 1', 'Bairro 2', 'Bairro 3', 'Bairro 4'],
+                labels: ['CR 1', 'CR 2', 'CR 3', 'CR 4'],
                 datasets: [{
                     label: 'Quantidade',
                     data: [10, 20, 30, 40],
@@ -263,7 +279,7 @@
         const barChartRight = new Chart(ctxBarRight, {
             type: 'bar',
             data: {
-                labels: ['Vendedor A', 'Vendedor B', 'Vendedor C'],
+                labels: ['Nat A', 'Nat B', 'Nat C'],
                 datasets: [{
                     label: 'Top 10 por Vendedor',
                     data: [15, 25, 10],
@@ -305,9 +321,9 @@
         const citySelect = document.getElementById('citySelect');
         const barChartUpdate = (city) => {
             const data = {
-                'city1': [10, 20, 30, 40],
-                'city2': [15, 25, 35, 45],
-                'city3': [20, 30, 40, 50]
+                'Nat1': [10, 20, 30, 40],
+                'Nat2': [15, 25, 35, 45],
+                'Nat3': [20, 30, 40, 50]
             };
 
             barChart.data.datasets[0].data = data[city];
