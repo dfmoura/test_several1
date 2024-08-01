@@ -10,7 +10,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tela de Devoluções</title>
+    <title>Tela de Despesa Operacional</title>
     <style>
         body {
             display: flex;
@@ -75,9 +75,9 @@
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
-            font-size: 10px;
+            font-size: 16px;
             width: 100%;
-            max-width: 200px; /* Limita a largura máxima do dropdown */
+            max-width: 300px; /* Limita a largura máxima do dropdown */
         }
         canvas {
             width: 100% !important;
@@ -113,38 +113,14 @@
     </style>
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
-
     <snk:load/>
 
 </head>
 <body>
 
-    <snk:query var="do_emp">
-        SELECT 
-        VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS CODEMP,
-        ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
-        FROM VGF_RESULTADO_GM VGF
-        INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
-        WHERE 
-        VGF.AD_TIPOCUSTO NOT LIKE 'N' 
-        AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
-        AND VGF.RECDESP = -1 
-        AND SUBSTR(VGF.codnat, 1, 1) <> '9'
-        AND VGF.DHBAIXA IS NOT NULL 
-        AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-        AND VGF.CODEMP IN (:P_EMPRESA) 
-        AND VGF.CODNAT IN (:P_NATUREZA) 
-        AND VGF.CODCENCUS IN (:P_CR)
-        GROUP BY VGF.CODEMP||'-'||EMP.NOMEFANTASIA
-    </snk:query>
-    
-    <snk:query var="do_nat">
-    SELECT NATUREZA,VLRDO 
-    FROM 
-    (
+<snk:query var="do_emp">
     SELECT 
-    VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS EMPRESA,
-    VGF.CODNAT||'-'||SUBSTR(VGF.DESCRNAT,1,10) AS NATUREZA,
+    VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS CODEMP,
     ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
     FROM VGF_RESULTADO_GM VGF
     INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
@@ -158,49 +134,15 @@
     AND VGF.CODEMP IN (:P_EMPRESA) 
     AND VGF.CODNAT IN (:P_NATUREZA) 
     AND VGF.CODCENCUS IN (:P_CR)
-    GROUP BY 
-    VGF.CODNAT||'-'||SUBSTR(VGF.DESCRNAT,1,10),
-    VGF.CODEMP||'-'||EMP.NOMEFANTASIA
-    ORDER BY 3 DESC)
-    WHERE ROWNUM < 11 AND EMPRESA = :A_EMPRESA
+    GROUP BY VGF.CODEMP||'-'||EMP.NOMEFANTASIA
 </snk:query>
 
 
-<snk:query var="do_nat_filtro">
-SELECT NATUREZA FROM (
-SELECT 
-VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS EMPRESA,
-VGF.CODNAT||'-'||VGF.DESCRNAT AS NATUREZA,
-VGF.CODCENCUS||'-'||VGF.DESCRCENCUS AS CR,
-ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
-FROM VGF_RESULTADO_GM VGF
-INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
-WHERE 
-VGF.AD_TIPOCUSTO NOT LIKE 'N' 
-AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
-AND VGF.RECDESP = -1 
-AND SUBSTR(VGF.codnat, 1, 1) <> '9'
-AND VGF.DHBAIXA IS NOT NULL 
-AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-AND VGF.CODEMP IN (:P_EMPRESA) 
-AND VGF.CODNAT IN (:P_NATUREZA) 
-AND VGF.CODCENCUS IN (:P_CR)
-AND VGF.CODEMP||'-'||EMP.NOMEFANTASIA = :A_EMPRESA
-GROUP BY 
-VGF.CODEMP||'-'||EMP.NOMEFANTASIA,
-VGF.CODNAT||'-'||VGF.DESCRNAT,
-VGF.CODCENCUS||'-'||VGF.DESCRCENCUS)
-GROUP BY NATUREZA
-ORDER BY 1
-</snk:query>
-
-
-<snk:query var="do_cr">
-    SELECT NATUREZA,CR,SUM(VLRDO) AS VLRDO FROM (
+<snk:query var="do_nat">
+    SELECT NATUREZA,VLRDO 
+    FROM (
         SELECT 
-        VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS EMPRESA,
         VGF.CODNAT||'-'||VGF.DESCRNAT AS NATUREZA,
-        VGF.CODCENCUS||'-'||VGF.DESCRCENCUS AS CR,
         ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
         FROM VGF_RESULTADO_GM VGF
         INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
@@ -211,64 +153,135 @@ ORDER BY 1
         AND SUBSTR(VGF.codnat, 1, 1) <> '9'
         AND VGF.DHBAIXA IS NOT NULL 
         AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-        
-        AND VGF.CODEMP IN (:P_EMPRESA) 
-        AND VGF.CODNAT IN (:P_NATUREZA) 
-        AND VGF.CODCENCUS IN (:P_CR)
+        AND CODEMP IN (:P_EMPRESA) 
+        AND CODNAT IN (:P_NATUREZA) 
+        AND CODCENCUS IN (:P_CR)
         AND VGF.CODEMP||'-'||EMP.NOMEFANTASIA = :A_EMPRESA
+        GROUP BY VGF.CODNAT||'-'||VGF.DESCRNAT
+        ORDER BY 2 DESC)
+    WHERE ROWNUM < 11
+
+</snk:query>
+
+<snk:query var="do_cli">
+    SELECT CLIENTE,VLRDO FROM(
+        WITH
+        DOP AS(
+        SELECT 1 AS COD, ROUND(SUM(VLRBAIXA),2) * -1 AS VLRDO
+        FROM VGF_RESULTADO_GM
+        WHERE 
+        AD_TIPOCUSTO NOT LIKE 'N' 
+        AND CODCENCUS NOT BETWEEN 2500000 AND 2599999  
+        AND RECDESP = -1 
+        AND SUBSTR(codnat, 1, 1) <> '9'
+        AND DHBAIXA IS NOT NULL 
+        AND (DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+        AND CODEMP IN (:P_EMPRESA) 
+        AND CODNAT IN (:P_NATUREZA) 
+        AND CODCENCUS IN (:P_CR)
+        ),
+        FAT AS (
+        SELECT
+        1 AS COD
+        , NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD
+        , DECODE(VEN1.APELIDO, '<SEM VENDEDOR>', 'NAO INFORMADO', VEN1.APELIDO) AS GERENTE
+        , SUBSTR(PAR.RAZAOSOCIAL, 1, 15) AS CLIENTE
+        , ROUND(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END), 2) AS VLRFAT
+        ,   ROUND(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) 
+                / SUM(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END)) 
+                  OVER (), 4)  AS PERC_PARTICIPACAO
+        FROM TGFCAB CAB
+        INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+        INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+        INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+        INNER JOIN TGFVEN VEN1 ON VEN.CODGER = VEN1.CODVEND
+        INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+        INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+        WHERE TOP.GOLSINAL = -1
+        AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND CAB.CODNAT IN (:P_NATUREZA)
+        AND CAB.CODCENCUS IN (:P_CR)
+        AND CAB.CODVEND IN (:P_VENDEDOR)
+        AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND VEN.CODGER IN (:P_GERENTE)
+        AND VEN.AD_ROTA IN (:P_ROTA)
+        AND TOP.TIPMOV IN ('V', 'D')
+        AND TOP.ATIVO = 'S'
+        GROUP BY NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO'),DECODE(VEN1.APELIDO, '<SEM VENDEDOR>', 'NAO INFORMADO', VEN1.APELIDO),SUBSTR(PAR.RAZAOSOCIAL, 1, 15)
+        )
+        SELECT FAT.TIPOPROD,FAT.CLIENTE,SUM(FAT.PERC_PARTICIPACAO*DOP.VLRDO) AS VLRDO
+        FROM FAT
+        INNER JOIN DOP ON FAT.COD = DOP.COD
+        GROUP BY FAT.TIPOPROD,FAT.CLIENTE ORDER BY 3 DESC) 
+        WHERE ROWNUM < 11
+
+</snk:query>    
+
+
+<snk:query var="do_produto">
+    SELECT PRODUTO,VLRDO FROM(
+        WITH
+        DOP AS(
+        SELECT 1 AS COD, ROUND(SUM(VLRBAIXA),2) * -1 AS VLRDO
+        FROM VGF_RESULTADO_GM
+        WHERE 
+        AD_TIPOCUSTO NOT LIKE 'N' 
+        AND CODCENCUS NOT BETWEEN 2500000 AND 2599999  
+        AND RECDESP = -1 
+        AND SUBSTR(codnat, 1, 1) <> '9'
+        AND DHBAIXA IS NOT NULL 
+        AND (DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+        AND CODEMP IN (:P_EMPRESA) 
+        AND CODNAT IN (:P_NATUREZA) 
+        AND CODCENCUS IN (:P_CR)
+        )
+        SELECT A.COD,A.PRODUTO,A.TIPOPROD,A.PERC_PARTICIPACAO*DOP.VLRDO AS VLRDO FROM(
+        SELECT
+        1 AS COD
+        , ITE.CODPROD||'-'||PRO.DESCRPROD AS PRODUTO
+        , NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD
+        , ROUND(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END), 2) AS VLRFAT
+        ,   ROUND(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) 
+                / SUM(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END)) 
+                  OVER (), 4)  AS PERC_PARTICIPACAO
+        FROM TGFCAB CAB
+        INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+        INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+        INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+        INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+        WHERE
+        
+        (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND CAB.CODNAT IN (:P_NATUREZA)
+        AND CAB.CODCENCUS IN (:P_CR)
+        AND CAB.CODVEND IN (:P_VENDEDOR)
+        AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND VEN.CODGER IN (:P_GERENTE)
+        AND VEN.AD_ROTA IN (:P_ROTA)
+        AND TOP.TIPMOV IN ('V', 'D')
+        AND TOP.ATIVO = 'S'
         GROUP BY 
-        VGF.CODEMP||'-'||EMP.NOMEFANTASIA,
-        VGF.CODNAT||'-'||VGF.DESCRNAT,
-        VGF.CODCENCUS||'-'||VGF.DESCRCENCUS)
-        GROUP BY NATUREZA,CR
-        ORDER BY 1,2
+        NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO'),
+        ITE.CODPROD||'-'||PRO.DESCRPROD) A
+        INNER JOIN DOP ON A.COD = DOP.COD)
+        
+        ORDER BY 2 DESC
 </snk:query>
 
 
-<snk:query var="do_detalhe">
-SELECT EMPRESA,NATUREZA,CR,VLRDO FROM (
-SELECT 
-VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS EMPRESA,
-VGF.CODNAT||'-'||VGF.DESCRNAT AS NATUREZA,
-VGF.CODCENCUS||'-'||VGF.DESCRCENCUS AS CR,
-ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
-FROM VGF_RESULTADO_GM VGF
-INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
-WHERE 
-VGF.AD_TIPOCUSTO NOT LIKE 'N' 
-AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
-AND VGF.RECDESP = -1 
-AND SUBSTR(VGF.codnat, 1, 1) <> '9'
-AND VGF.DHBAIXA IS NOT NULL 
-AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-AND VGF.CODEMP IN (:P_EMPRESA) 
-AND VGF.CODNAT IN (:P_NATUREZA) 
-AND VGF.CODCENCUS IN (:P_CR)
-AND VGF.CODEMP||'-'||EMP.NOMEFANTASIA = :A_EMPRESA
-GROUP BY 
-VGF.CODEMP||'-'||EMP.NOMEFANTASIA,
-VGF.CODNAT||'-'||VGF.DESCRNAT,
-VGF.CODCENCUS||'-'||VGF.DESCRCENCUS)
-ORDER BY 4 DESC
-</snk:query>
 
     <div class="container">
         <div class="section">
             <div class="part" id="left-top">
-                <div class="part-title">Despesa Operacional por Empresa</div>
+                <div class="part-title">Desp. Operac. por Empresa</div>
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">Despesa Operacional por CR</div>
-                <div class="dropdown-container">
-                    <select id="natSelect">
-                        <c:forEach items="${do_nat_filtro.rows}" var="row">
-                            <option value="${row.NATUREZA}">${row.NATUREZA}</option>
-                        </c:forEach>
-                    </select>
-                </div>
+                <div class="part-title">Desp. Operac. Por Natureza</div>
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
                 </div>
@@ -276,38 +289,32 @@ ORDER BY 4 DESC
         </div>
         <div class="section">
             <div class="part" id="right-top">
-                <div class="part-title">TOP 10 por Natureza</div>
+                <div class="part-title">Desp. Operac. Por Natureza / CR</div>
                 <div class="chart-container">
                     <canvas id="barChartRight"></canvas>
                 </div>
             </div>
             <div class="part" id="right-bottom">
-                <div class="part-title">Detalhamento Despesa Operacional</div>
+                <div class="part-title">Desp. Operac. Detalhamento</div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Empresa</th>
-                                <th>Natureza</th>
-                                <th>CR</th>
-                                <th>Vlr. D.O.</th>
+                                <th>Produto</th>
+                                <th>Vlr. DO</th>
                             </tr>
                         </thead>
                         <tbody>
                             <c:set var="total" value="0" />
-                            <c:forEach var="item" items="${do_detalhe.rows}">
+                            <c:forEach var="item" items="${do_produto.rows}">
                                 <tr>
-                                    <td>${item.EMPRESA}</td>
-                                    <td>${item.NATUREZA}</td>
-                                    <td>${item.CR}</td>
+                                    <td>${item.PRODUTO}</td>
                                     <td><fmt:formatNumber value="${item.VLRDO}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                                     <c:set var="total" value="${total + item.VLRDO}" />
                                 </tr>
                             </c:forEach>
                             <tr>
                                 <td><b>Total</b></td>
-                                <td></td>
-                                <td></td>
                                 <td><b><fmt:formatNumber value="${total}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
                         </tbody>
                     </table>
@@ -328,9 +335,7 @@ ORDER BY 4 DESC
    function ref_do(empresa) {
         const params = {'A_EMPRESA': empresa};
         refreshDetails('html5_a73fhk1', params); 
-    } 
-
-
+    }          
 
         // Obtendo os dados da query JSP para o gráfico de rosca
 
@@ -340,8 +345,8 @@ ORDER BY 4 DESC
             doEmpLabel.push('${row.CODEMP}');
             doEmpData.push('${row.VLRDO}');
         </c:forEach>
-
-        // Dados para o gráfico de rosca
+    
+        // Dados fictícios para o gráfico de rosca
         const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
         const doughnutChart = new Chart(ctxDoughnut, {
             type: 'doughnut',
@@ -382,38 +387,30 @@ ORDER BY 4 DESC
                         var index = elements[0].index;
                         var label = doEmpLabel[index];
                         ref_do(label);
-                        //alert(label);
+                        alert(label);
                     }
                 }
             }
         });
 
+        // Dados fictícios para o gráfico de barras verticais
 
-        // Função para atualizar o gráfico de barras com base na cidade selecionada
-        function updateBarChart(nature) {
-            var crLabels = [];
-            var vlrdoData = [];
-            <c:forEach items="${do_cr.rows}" var="row">
-                if ('${row.NATUREZA}' === nature) {
-                    crLabels.push('${row.CR}');
-                    vlrdoData.push('${row.VLRDO}');
-                }
-            </c:forEach>
+        var natDoLabels = [];
+        var natDoData = [];
 
-            barChart.data.labels = crLabels;
-            barChart.data.datasets[0].data = vlrdoData;
-            barChart.update();
-        }
+        <c:forEach items="${do_nat.rows}" var="row">
+            natDoLabels.push('${row.NATUREZA}');
+            natDoData.push('${row.VLRDO}');
+        </c:forEach> 
 
-        // Dados para o gráfico de barras verticais
         const ctxBar = document.getElementById('barChart').getContext('2d');
         const barChart = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: [],
+                labels: natDoLabels,
                 datasets: [{
-                    label: 'CR',
-                    data: [],
+                    label: 'DO por Natureza',
+                    data: natDoData,
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
@@ -438,27 +435,24 @@ ORDER BY 4 DESC
             }
         });
 
+        // Dados fictícios para o gráfico de colunas verticais
 
+        var doCliLabels = [];
+        var doCliData = [];
 
+        <c:forEach items="${do_cli.rows}" var="row">
+            doCliLabels.push('${row.CLIENTE}');
+            doCliData.push('${row.VLRDO}');
+        </c:forEach>         
 
-        // Dados para o gráfico de colunas verticais
-
-        var natDoLabels = [];
-        var natDoData = [];
-
-        <c:forEach items="${do_nat.rows}" var="row">
-            natDoLabels.push('${row.NATUREZA}');
-            natDoData.push('${row.VLRDO}');
-        </c:forEach> 
-        
         const ctxBarRight = document.getElementById('barChartRight').getContext('2d');
         const barChartRight = new Chart(ctxBarRight, {
             type: 'bar',
             data: {
-                labels: natDoLabels,
+                labels: doCliLabels,
                 datasets: [{
-                    label: 'Natureza',
-                    data: natDoData,
+                    label: 'DO por Cliente',
+                    data: doCliData,
                     backgroundColor: 'rgba(153, 102, 255, 0.2)',
                     borderColor: 'rgba(153, 102, 255, 1)',
                     borderWidth: 1
@@ -481,21 +475,6 @@ ORDER BY 4 DESC
                     }
                 }
             }
-        });
-
-
-        // Atualizar o gráfico de barras com base na cidade selecionada
-
-        // Listener para o dropdown
-        $('#natSelect').on('change', function() {
-            var selectednat = $(this).val();
-            updateBarChart(selectednat);
-        });
-
-        // Inicializa o gráfico de barras com a primeira cidade
-        $(document).ready(function() {
-            var firstnat = $('#natSelect').val();
-            updateBarChart(firstnat);
         });
     </script>
 </body>

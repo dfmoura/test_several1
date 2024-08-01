@@ -159,6 +159,41 @@ GM - DASH RENTABILIDADE HTML5 - finalizamos a elaboração do padrão de layout 
 
 ```
 
+#### Dia 29/07/24, das 8h às 12h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Iniciamos a criação do layout para sete novas telas, que abrangem as seguintes áreas: Impostos, Custo de Mercadoria Vendida (CMV), Hectolitros (HL), Descontos, Margem Nominal, Despesas Operacionais e Resultado. Cada tela foi projetada para seguir uma estrutura de layout padronizada, garantindo consistência visual e funcional em todo o dashboard. Além disso, implementamos eventos de clique que direcionam os usuários para esses novos níveis detalhados, facilitando a navegação entre as seções de devolução, impostos, CMV, HL, desconto, margem, despesa operacional, investimento e resultado. Esse trabalho envolveu a definição clara dos componentes e o design visual de cada tela, respeitando as diretrizes de usabilidade e acessibilidade.
+```
+
+
+
+#### Dia 29/07/24, das 13h às 19h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Prosseguimos com a criação de dashboards específicos, começando com o dashboard de Devoluções por Motivo. Para isso, adaptamos o layout padrão para incluir gráficos e tabelas que apresentam dados de devoluções segmentados por motivo, garantindo que a informação seja exibida de maneira clara e compreensível. Também trabalhamos na adaptação do select da tela de devolução, ajustando os critérios de filtro para assegurar que as consultas sejam precisas e relevem os dados mais importantes para essa análise específica. Esta fase envolveu uma série de testes e ajustes para confirmar que os dados estavam sendo apresentados corretamente e que o layout atendia aos requisitos do usuário.
+```
+
+#### Dia 30/07/24, das 8h às 12h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Continuamos o processo de adaptação dos selects, desta vez focando na tela de CMV. Ajustamos as consultas SQL e os filtros de data para garantir que os dados exibidos fossem precisos e pertinentes. Além disso, organizamos os componentes da tela para que a informação fosse facilmente acessível e visualmente equilibrada. Foram realizados ajustes finos nos gráficos e tabelas, garantindo que a visualização dos dados fosse clara e eficiente. A configuração de layouts, incluindo a definição de cores e fontes, foi cuidadosamente revisada para assegurar uma experiência de usuário agradável e funcional.
+```
+
+
+
+#### Dia 30/07/24, das 13h às 19h30
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Dando continuidade, adaptamos o select da tela de Impostos. Esse processo envolveu a revisão dos critérios de seleção de dados para incluir filtros adicionais e assegurar que as informações fossem representativas das realidades fiscais da empresa. Organizamos os componentes visuais dessa tela, assegurando que gráficos e tabelas fossem dispostos de maneira que facilitassem a análise dos dados de impostos. Implementamos também uma série de melhorias de layout e design, garantindo que a interface estivesse em linha com o padrão visual definido anteriormente.
+```
+
+#### Dia 31/07/24, das 8h às 12h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Na parte da manhã, focamos na adaptação do select da tela de HL (Hectolitros). Essa etapa foi crucial para garantir que os dados de produção e vendas fossem apresentados de forma clara e detalhada. Realizamos a organização dos quatro componentes principais da tela, ajustando gráficos e tabelas para fornecer uma visão abrangente e detalhada das informações de hectolitros. Além disso, garantimos que os filtros de data e outros critérios de seleção estivessem corretamente configurados para permitir uma análise precisa e eficaz.
+```
+
+
+
+#### Dia 31/07/24, das 13h às 19h30
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Finalmente, abordamos a adaptação do select da tela de Despesas Operacionais (DO). Esta tela exigiu uma revisão cuidadosa dos dados para assegurar que todas as despesas relevantes fossem capturadas e exibidas de forma clara. Organizamos os componentes da tela, incluindo gráficos e tabelas, para facilitar a navegação e a análise dos dados de despesas operacionais. Além disso, fizemos ajustes finais nos layouts de todas as telas, garantindo uma apresentação visual coesa e profissional. Este esforço incluiu a revisão de todos os componentes visuais e a confirmação de que cada tela estava em conformidade com os padrões de design estabelecidos, oferecendo uma experiência de usuário uniforme e intuitiva.
+```
 ####
 ```markdown
 ```
@@ -174,13 +209,6 @@ GM - DASH RENTABILIDADE HTML5 - finalizamos a elaboração do padrão de layout 
 
 
 
-
-criado uma tela , nivel analitico de produtos, em html, css, js, auto redmencionavel com uma tabela bonita utilizando bootstrap, efeitos,  com as colunas Nro. Único, Dt. Negociação, Cód. Top., Cód. Parc., Parceiro, Preço Médio, Vlr. Fat.,
-criado evento em tela de faturamento1 que ao clicar em linha de colona de tabela de produtos sintetica o mesmo direciona o produto para um nivel analitico. Neste nivel analitico, criamo um evento que ao clicar na linha sera aberto a central de vendas para o respectivo número unico.
-criamos um grafico de linhas que demonstra as vendas por rota por vendedor.
-Adicionando os filtro padroes nos select's do index60,68,69,70,72. ok
-criar o layout para devolução
-elaboração de padrão de layout para os demais niveis.
 
 
 ```
@@ -190,15 +218,63 @@ INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
 
 ```
 
-criar o layout para 7 telas, sendo impostos,custo,hl,desconto, margem nominal, despesas operacionais e resultado.
-criar niveis de arquivo padrao com o novo layout e evento de click para abrir estes novo niveis (devolução, impostos, cmv, hl, desconto, margem, despesa operacional, investimento e resultado)
-Adaptar o select da tela de devolução.
+
+
+
+Adaptar o select da tela de margem.
+Adaptar o select da tela de resultado.
+CORRIGIR TELA DE DEVOLUÇÕES
 
 
 
 
 
 
+
+Backlog:
+7) Substituir no select da despesa operacional e investimento de vlrbaixa para vlrliq
+11) Adicionar o FEM no calculo dos impostos (antigo gasto variavel cinza)
+12) Colocar o periodo anterior de analise dinamico, hoje esta somente com 1.
+
+
+
+
+Realizados:
+
+9) Alterar fonte do titulo para branco e cabaçalho com borda arredondada.
+1) Atualizar a apresentação da variação nos cards para percentuais (%).
+2) Atualizar o cálculo de resultado com base em Faturamento Bruto - Impostos - Despesas Operacionais (DO) - Investimentos.
+3) Incluir dois novos cards na parte superior do dashboard principal, sendo Impostos e Custo de Mercadoria Vendida (CMV).
+4) Adicionar uma nova linha abaixo da parte superior do dashboard, incluindo mais dois cards para Margem de Contribuição Nominal e Margem de Contribuição Percentual.
+8) Aumentar o tamanho da seta
+6) Na despesa operacional colocar no where do select para nao contemplar as naturezas de adiantamento, ou seja, toda natureza que começa com 9.
+5) Seguir com as atualizações conforme apresentado, referente ao nível inferior após clicar no card de faturamento, mantendo o estilo neutro do gráfico. Na tabela ao lado, incluir as colunas: Código do Produto, Produto, Preço Unitário Médio, CMV e Margem.
+10) Seguir com atualização de card, margens, inv e resultado.
+1) gerar tabela.
+2) congelar cabeçalho.
+3) colocar efeito ao passar o mouse.
+4) colocar uma soma ao final da tabela.
+5) formatar o valor numerico em milhar e 2 casas depois da virgula.
+6) dimensionar a tabela para ocupar todo espaço da seção da direita.
+7) colocar o total do faturamento no centro do donut.
+8) no dash de faturamento analitico incluimos um relacionamento no select 'SEQUENCIA = ITE.SEQUENCIA' para o valor do cofins, assim corrigimos a apresentação do valor por produto no nivel analistico.
+10) incluimos a coluna de margem nominal na tabela do nivel de faturamento.
+11) incluimos a coluna de margem % na tabela do nivel de faturamento.
+12) incluimos a coluna de media impostos na tabela do nivel de faturamento.
+13) incluimos a coluna de media cmv na tabela do nivel de faturamento.
+1) Atualizamos a formatação do html e css para dividir a tela em quatro partes para receber os componentes no lado esquerdo parte superior grafico donut e parte inferior dunot, lado direito parte superior tabela e parte inferior grafico de colunas na tela do nivel de faturamento.
+2) Cofigurado os filtros para que todo select ja contemple os filtros padrões (Período / Empresa  / Natureza / Centro de Resultado)
+3) Adicionado logo.
+Andamento:
+Cofigurado os filtros para que todo select ja contemple os filtros padrões/ Gerente / Vendedor / Rota
+Atualizado o select e script js dos quatro componentes no nivel de faturamento.
+Criado o evento AO CLICAR NA COLUNA DA TABELA IR PARA UM PROXIMO NIVEL COM UM GRAFICO DE SUPERVISOR DE UM LADO E O DETALHAMENTO EM TABELA DO LADO, alem disso criamos no header do nivel um container com botões indicados pelos gerentes aprensentado no nivel anterior no grafico de colunas. Adicionamos tambem um evento que ao clicar nestes botões são atualizados o paramentro :A_GERENTE nos componentes grafico de rosca e tabela com detalhamento. Adicionamos tambem em cima da tabela um drop-down que possibilita filtrar os supervisores na tabela.Em sequencia, criamos outro nivel de vendedores, replicando esta estrutura do nivel atual do nivel de supervisores, acessado a partir de click em grafico de rosca do nivel de supervisores, permanecendo todos as função da tela anterior, atualizamos os paramentro e select das consutas.
+criado uma tela , nivel analitico de produtos, em html, css, js, auto redmencionavel com uma tabela bonita utilizando bootstrap, efeitos,  com as colunas Nro. Único, Dt. Negociação, Cód. Top., Cód. Parc., Parceiro, Preço Médio, Vlr. Fat.,
+criado evento em tela de faturamento1 que ao clicar em linha de colona de tabela de produtos sintetica o mesmo direciona o produto para um nivel analitico. Neste nivel analitico, criamo um evento que ao clicar na linha sera aberto a central de vendas para o respectivo número unico.
+criamos um grafico de linhas que demonstra as vendas por rota por vendedor.
+Adicionando os filtro padroes nos select's do index60,68,69,70,72. ok
+criar o layout para devolução
+elaboração de padrão de layout para os demais niveis.
 
 em html, css, js e chart.js
 gerar um tela com 4 seções 2 na parte superior lado esquerdo e lado direito, e 2 na parte inferior lado esquerdo e lado direito.
@@ -246,44 +322,12 @@ lado esquerdo com um card com borda fina discreta arredondada com um titulo em h
 e lado direito um card com borda fina discreta arredondada com um titulo em html 'Produtos por grupo de proudto'  
 na parte inferior somente uma seção com um card com borda fina discreta arredondada com um titulo em html 'Detalhamento'  
 
-
-
-
-Backlog:
-7) Substituir no select da despesa operacional e investimento de vlrbaixa para vlrliq
-11) Adicionar o FEM no calculo dos impostos (antigo gasto variavel cinza)
-12) Colocar o periodo anterior de analise dinamico, hoje esta somente com 1.
-
-
-
-
-Realizados:
-
-9) Alterar fonte do titulo para branco e cabaçalho com borda arredondada.
-1) Atualizar a apresentação da variação nos cards para percentuais (%).
-2) Atualizar o cálculo de resultado com base em Faturamento Bruto - Impostos - Despesas Operacionais (DO) - Investimentos.
-3) Incluir dois novos cards na parte superior do dashboard principal, sendo Impostos e Custo de Mercadoria Vendida (CMV).
-4) Adicionar uma nova linha abaixo da parte superior do dashboard, incluindo mais dois cards para Margem de Contribuição Nominal e Margem de Contribuição Percentual.
-8) Aumentar o tamanho da seta
-6) Na despesa operacional colocar no where do select para nao contemplar as naturezas de adiantamento, ou seja, toda natureza que começa com 9.
-5) Seguir com as atualizações conforme apresentado, referente ao nível inferior após clicar no card de faturamento, mantendo o estilo neutro do gráfico. Na tabela ao lado, incluir as colunas: Código do Produto, Produto, Preço Unitário Médio, CMV e Margem.
-10) Seguir com atualização de card, margens, inv e resultado.
-1) gerar tabela.
-2) congelar cabeçalho.
-3) colocar efeito ao passar o mouse.
-4) colocar uma soma ao final da tabela.
-5) formatar o valor numerico em milhar e 2 casas depois da virgula.
-6) dimensionar a tabela para ocupar todo espaço da seção da direita.
-7) colocar o total do faturamento no centro do donut.
-8) no dash de faturamento analitico incluimos um relacionamento no select 'SEQUENCIA = ITE.SEQUENCIA' para o valor do cofins, assim corrigimos a apresentação do valor por produto no nivel analistico.
-10) incluimos a coluna de margem nominal na tabela do nivel de faturamento.
-11) incluimos a coluna de margem % na tabela do nivel de faturamento.
-12) incluimos a coluna de media impostos na tabela do nivel de faturamento.
-13) incluimos a coluna de media cmv na tabela do nivel de faturamento.
-1) Atualizamos a formatação do html e css para dividir a tela em quatro partes para receber os componentes no lado esquerdo parte superior grafico donut e parte inferior dunot, lado direito parte superior tabela e parte inferior grafico de colunas na tela do nivel de faturamento.
-2) Cofigurado os filtros para que todo select ja contemple os filtros padrões (Período / Empresa  / Natureza / Centro de Resultado)
-3) Adicionado logo.
-Andamento:
-Cofigurado os filtros para que todo select ja contemple os filtros padrões/ Gerente / Vendedor / Rota
-Atualizado o select e script js dos quatro componentes no nivel de faturamento.
-Criado o evento AO CLICAR NA COLUNA DA TABELA IR PARA UM PROXIMO NIVEL COM UM GRAFICO DE SUPERVISOR DE UM LADO E O DETALHAMENTO EM TABELA DO LADO, alem disso criamos no header do nivel um container com botões indicados pelos gerentes aprensentado no nivel anterior no grafico de colunas. Adicionamos tambem um evento que ao clicar nestes botões são atualizados o paramentro :A_GERENTE nos componentes grafico de rosca e tabela com detalhamento. Adicionamos tambem em cima da tabela um drop-down que possibilita filtrar os supervisores na tabela.Em sequencia, criamos outro nivel de vendedores, replicando esta estrutura do nivel atual do nivel de supervisores, acessado a partir de click em grafico de rosca do nivel de supervisores, permanecendo todos as função da tela anterior, atualizamos os paramentro e select das consutas.
+criar o layout para 7 telas, sendo impostos,custo,hl,desconto, margem nominal, despesas operacionais e resultado.
+criar niveis de arquivo padrao com o novo layout e evento de click para abrir estes novo niveis (devolução, impostos, cmv, hl, desconto, margem, despesa operacional, investimento e resultado)
+criação de dash de devoluções por motivo.
+Adaptado o select da tela de devolução.
+Adaptado o select da tela de cmv.
+Adaptado o select da tela de impostos.
+Adaptado o select da tela de hl.
+Adaptado o select da tela de do.
+ESTA ADAPTAÇÃO SIGNIFICA ENTRAR EM CADA TELA E ORGANIZAR OS 4 COMPONENTES DE CADA TELA

@@ -10,7 +10,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tela de Devoluções</title>
+    <title>Tela de HL</title>
     <style>
         body {
             display: flex;
@@ -85,10 +85,12 @@
         }
         /* Estilo para a tabela */
         .table-container {
-            width: 80%; /* Reduz a largura da tabela em 20% */
-            height: 85%;
-            display: flex;
-            flex-direction: column;
+            width: 100%; /* Largura da tabela ajustada para o contêiner */
+            height: 100%;
+            max-height: 200px; /* Define a altura máxima para o contêiner da tabela */
+            overflow-y: auto; /* Habilita a rolagem vertical */
+            overflow-x: hidden; /* Desabilita a rolagem horizontal */
+            padding-right: 10px; /* Espaço para evitar o corte do conteúdo na rolagem */
         }
         .table-container table {
             width: 100%;
@@ -103,7 +105,7 @@
             background-color: #f4f4f4;
             position: sticky;
             top: 0; /* Fixa o cabeçalho no topo ao rolar */
-            z-index: 1; /* Garante que o cabeçalho fique sobre o conteúdo */
+            z-index: 2; /* Garante que o cabeçalho fique sobre o conteúdo */
         }
         .table-container tr:hover {
             background-color: #f1f1f1;
@@ -115,6 +117,126 @@
 
 </head>
 <body>
+
+    <snk:query var="hl_tipo">
+    SELECT
+    NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD
+    , ROUND(SUM(FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END), 2) AS HL 
+    FROM TGFCAB CAB
+    INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+    INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+    INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+    INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+    WHERE TOP.GOLSINAL = -1
+    
+    AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+
+    AND CAB.CODEMP IN (:P_EMPRESA)
+    AND CAB.CODNAT IN (:P_NATUREZA)
+    AND CAB.CODCENCUS IN (:P_CR)
+    AND CAB.CODVEND IN (:P_VENDEDOR)
+    AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+    AND VEN.CODGER IN (:P_GERENTE)
+    AND VEN.AD_ROTA IN (:P_ROTA)
+
+    AND TOP.TIPMOV IN ('V', 'D')
+    AND TOP.ATIVO = 'S'
+    GROUP BY NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO')
+</snk:query>
+
+
+<snk:query var="hl_ger">
+    SELECT GERENTE, SUM(HL) AS HL FROM(
+        SELECT
+        DECODE(VEN1.APELIDO, '<SEM VENDEDOR>', 'NAO INFORMADO', VEN1.APELIDO) AS GERENTE
+        , NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD    
+        , ROUND(SUM(FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END), 2) AS HL 
+        FROM TGFCAB CAB
+        INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+        INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+        INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+        INNER JOIN TGFVEN VEN1 ON VEN.CODGER = VEN1.CODVEND
+        INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+        WHERE TOP.GOLSINAL = -1
+        
+        AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND CAB.CODNAT IN (:P_NATUREZA)
+        AND CAB.CODCENCUS IN (:P_CR)
+        AND CAB.CODVEND IN (:P_VENDEDOR)
+        AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND VEN.CODGER IN (:P_GERENTE)
+        AND VEN.AD_ROTA IN (:P_ROTA)
+        AND TOP.TIPMOV IN ('V', 'D')
+        AND TOP.ATIVO = 'S'
+        GROUP BY 
+        VEN1.APELIDO
+        , NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO')
+        ORDER BY 3 DESC) WHERE TIPOPROD = :A_TIPOPROD GROUP BY GERENTE ORDER BY 2 DESC
+</snk:query>
+
+<snk:query var="hl_cli">
+    SELECT CLIENTE,SUM(HL) HL FROM(
+    SELECT
+    SUBSTR(PAR.RAZAOSOCIAL, 1, 15) AS CLIENTE
+    , NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD    
+    , ROUND(SUM(FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END), 2) AS HL 
+    FROM TGFCAB CAB
+    INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+    INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+    INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+    INNER JOIN TGFVEN VEN1 ON VEN.CODGER = VEN1.CODVEND
+    INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+    INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+    WHERE TOP.GOLSINAL = -1    
+    AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+    AND CAB.CODEMP IN (:P_EMPRESA)
+    AND CAB.CODNAT IN (:P_NATUREZA)
+    AND CAB.CODCENCUS IN (:P_CR)
+    AND CAB.CODVEND IN (:P_VENDEDOR)
+    AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+    AND VEN.CODGER IN (:P_GERENTE)
+    AND VEN.AD_ROTA IN (:P_ROTA)
+    AND TOP.TIPMOV IN ('V', 'D')
+    AND TOP.ATIVO = 'S'
+    GROUP BY PAR.RAZAOSOCIAL, NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO')
+    ORDER BY 3 DESC) WHERE ROWNUM < 11 AND TIPOPROD = :A_TIPOPROD GROUP BY CLIENTE ORDER BY 2 DESC
+</snk:query>    
+
+
+<snk:query var="hl_produto">
+    SELECT PRODUTO,SUM(HL) HL FROM (
+        SELECT
+        ITE.CODPROD||'-'||PRO.DESCRPROD AS PRODUTO
+        , NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD    
+        , ROUND(SUM(FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END), 2) AS HL 
+        FROM TGFCAB CAB
+        INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+        INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+        INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+        INNER JOIN TGFVEN VEN1 ON VEN.CODGER = VEN1.CODVEND
+        INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+        INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+        WHERE TOP.GOLSINAL = -1
+        
+        AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+        
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND CAB.CODNAT IN (:P_NATUREZA)
+        AND CAB.CODCENCUS IN (:P_CR)
+        AND CAB.CODVEND IN (:P_VENDEDOR)
+        AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND VEN.CODGER IN (:P_GERENTE)
+        AND VEN.AD_ROTA IN (:P_ROTA)
+        
+        AND TOP.TIPMOV IN ('V', 'D')
+        AND TOP.ATIVO = 'S'
+        GROUP BY ITE.CODPROD||'-'||PRO.DESCRPROD, NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO')
+        ) WHERE TIPOPROD = :A_TIPOPROD GROUP BY PRODUTO ORDER BY 2 DESC
+</snk:query>
+
+
+
     <div class="container">
         <div class="section">
             <div class="part" id="left-top">
@@ -124,7 +246,7 @@
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">HL Por Cliente</div>
+                <div class="part-title">HL Por Gerente</div>
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
                 </div>
@@ -132,7 +254,7 @@
         </div>
         <div class="section">
             <div class="part" id="right-top">
-                <div class="part-title">HL Por Gerente</div>
+                <div class="part-title">HL Por Cliente</div>
                 <div class="chart-container">
                     <canvas id="barChartRight"></canvas>
                 </div>
@@ -140,40 +262,25 @@
             <div class="part" id="right-bottom">
                 <div class="part-title">HL por Produto</div>
                 <div class="table-container">
-                    <table id="dataTable">
+                    <table>
                         <thead>
                             <tr>
                                 <th>Produto</th>
-                                <th>Motivo</th>
-                                <th>Quantidade</th>
+                                <th>HL</th>
                             </tr>
                         </thead>
                         <tbody>
+                            <c:set var="total" value="0" />
+                            <c:forEach var="item" items="${hl_produto.rows}">
+                                <tr>
+                                    <td>${item.PRODUTO}</td>
+                                    <td><fmt:formatNumber value="${item.HL}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <c:set var="total" value="${total + item.HL}" />
+                                </tr>
+                            </c:forEach>
                             <tr>
-                                <td>Produto A</td>
-                                <td>Motivo 1</td>
-                                <td>10</td>
-                            </tr>
-                            <tr>
-                                <td>Produto B</td>
-                                <td>Motivo 2</td>
-                                <td>20</td>
-                            </tr>
-                            <tr>
-                                <td>Produto C</td>
-                                <td>Motivo 3</td>
-                                <td>30</td>
-                            </tr>
-                            <tr>
-                                <td>Produto D</td>
-                                <td>Motivo 4</td>
-                                <td>40</td>
-                            </tr>
-                            <tr>
-                                <td>Produto E</td>
-                                <td>Motivo 5</td>
-                                <td>50</td>
-                            </tr>
+                                <td><b>Total</b></td>
+                                <td><b><fmt:formatNumber value="${total}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
                         </tbody>
                     </table>
                 </div>
@@ -188,15 +295,31 @@
     <!-- Adicionando a biblioteca DataTables -->
     <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
     <script>
+
+   // Função para atualizar a query
+   function ref_hl(tipoprod) {
+        const params = {'A_TIPOPROD': tipoprod};
+        refreshDetails('html5_a73fhg9', params); 
+    }          
+
+        // Obtendo os dados da query JSP para o gráfico de rosca
+
+        var hlTipoLabel = [];
+        var hlTipoData = [];
+        <c:forEach items="${hl_tipo.rows}" var="row">
+            hlTipoLabel.push('${row.TIPOPROD}');
+            hlTipoData.push('${row.HL}');
+        </c:forEach>
+    
         // Dados fictícios para o gráfico de rosca
         const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
         const doughnutChart = new Chart(ctxDoughnut, {
             type: 'doughnut',
             data: {
-                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                labels: hlTipoLabel,
                 datasets: [{
-                    label: 'My Doughnut Chart',
-                    data: [12, 19, 3, 5, 2, 3],
+                    label: 'HL',
+                    data: hlTipoData,
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.2)',
                         'rgba(54, 162, 235, 0.2)',
@@ -223,19 +346,36 @@
                     legend: {
                         display: false // Remove a legenda
                     }
+                },
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        var index = elements[0].index;
+                        var label = hlTipoLabel[index];
+                        ref_hl(label);
+                        alert(label);
+                    }
                 }
             }
         });
 
         // Dados fictícios para o gráfico de barras verticais
+
+        var gerHlLabels = [];
+        var gerHlData = [];
+
+        <c:forEach items="${hl_ger.rows}" var="row">
+            gerHlLabels.push('${row.GERENTE}');
+            gerHlData.push('${row.HL}');
+        </c:forEach> 
+
         const ctxBar = document.getElementById('barChart').getContext('2d');
         const barChart = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: ['Cliente 1', 'Cliente 2', 'Cliente 3', 'Cliente 4'],
+                labels: gerHlLabels,
                 datasets: [{
-                    label: 'Quantidade',
-                    data: [10, 20, 30, 40],
+                    label: 'HL por Gerente',
+                    data: gerHlData,
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
@@ -261,14 +401,23 @@
         });
 
         // Dados fictícios para o gráfico de colunas verticais
+
+        var clienteLabels = [];
+        var clienteData = [];
+
+        <c:forEach items="${hl_cli.rows}" var="row">
+            clienteLabels.push('${row.CLIENTE}');
+            clienteData.push('${row.HL}');
+        </c:forEach>         
+
         const ctxBarRight = document.getElementById('barChartRight').getContext('2d');
         const barChartRight = new Chart(ctxBarRight, {
             type: 'bar',
             data: {
-                labels: ['Gerente A', 'Gerente B', 'Gerente C'],
+                labels: clienteLabels,
                 datasets: [{
-                    label: 'HL por Gerente',
-                    data: [15, 25, 10],
+                    label: 'HL por Cliente',
+                    data: clienteData,
                     backgroundColor: 'rgba(153, 102, 255, 0.2)',
                     borderColor: 'rgba(153, 102, 255, 1)',
                     borderWidth: 1
@@ -293,15 +442,7 @@
             }
         });
 
-        // Inicializando a DataTable
-        $(document).ready(function() {
-            $('#dataTable').DataTable({
-                responsive: true,
-                paging: true,
-                searching: true,
-                ordering: true
-            });
-        });
+
 
 
         
