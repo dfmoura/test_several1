@@ -18,20 +18,40 @@
 <snk:load/>
 </head>
 <body>
+  <%
+  // Código para depuração
+  String codGrupoProd = request.getParameter("A_CODGRUPOPROD");
+  if (codGrupoProd == null || codGrupoProd.isEmpty()) {
+    out.println("Nenhum código de grupo de produtos foi passado.");
+  } else {
+    out.println("Código do Grupo de Produtos: " + codGrupoProd);
+  }
+%>
+
+
+
 <snk:query var="produto">  
-  select
-  codprod,vlrtot
-  from(
-  select
-  ite.codprod,
-  sum(ite.vlrtot) as vlrtot
-  from tgfite ite
-  inner join tgfpro pro on ite.codprod = pro.codprod
-  where pro.codgrupoprod = :A_CODGRUPOPROD
-  group by ite.codprod
-  order by 2 desc
-  )where rownum < 15
+  
+select
+codprod,vlrtot
+from(
+with tes as (SELECT 1 AS COD,TO_NUMBER(REPLACE(TO_CHAR(:A_CODGRUPOPROD),'"',' ')) AS TEST FROM DUAL)
+select
+1 AS COD,
+ite.codprod,
+sum(ite.vlrtot) as vlrtot
+from tgfite ite
+inner join tgfpro pro on ite.codprod = pro.codprod
+inner join tes on 1 = tes.cod
+where pro.codgrupoprod = tes.TEST
+group by ite.codprod
+order by 3 desc
+)
+where rownum < 6
 </snk:query> 
+
+
+
 
 <div class="container">
   <canvas id="barChart"></canvas>

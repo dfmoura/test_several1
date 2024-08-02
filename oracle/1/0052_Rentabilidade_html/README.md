@@ -194,8 +194,16 @@ GM - DASH RENTABILIDADE HTML5 - Na parte da manhã, focamos na adaptação do se
 ```markdown
 GM - DASH RENTABILIDADE HTML5 - Finalmente, abordamos a adaptação do select da tela de Despesas Operacionais (DO). Esta tela exigiu uma revisão cuidadosa dos dados para assegurar que todas as despesas relevantes fossem capturadas e exibidas de forma clara. Organizamos os componentes da tela, incluindo gráficos e tabelas, para facilitar a navegação e a análise dos dados de despesas operacionais. Além disso, fizemos ajustes finais nos layouts de todas as telas, garantindo uma apresentação visual coesa e profissional. Este esforço incluiu a revisão de todos os componentes visuais e a confirmação de que cada tela estava em conformidade com os padrões de design estabelecidos, oferecendo uma experiência de usuário uniforme e intuitiva.
 ```
-####
+#### Dia 01/08/24, das 8h às 12h
 ```markdown
+GM - DASH RENTABILIDADE HTML5 - Durante a manhã, concentramos nossos esforços na redefinição do select da tela principal para alinhar com o select utilizado no dashboard de Faturamento Analítico. Essa decisão foi tomada para garantir consistência nos dados exibidos e facilitar a manutenção dos critérios de seleção. Revisamos minuciosamente todos os filtros aplicados, como data, empresa e natureza, para assegurar que o select capturasse todas as informações necessárias de forma precisa e sem redundâncias. Além disso, ajustamos os parâmetros para que fossem compatíveis com as diferentes consultas SQL, garantindo que os dados pudessem ser agregados e exibidos corretamente em ambos os dashboards.
+```
+
+
+
+#### Dia 01/08/24, das 13h às 19h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Na parte da tarde, após realizar várias verificações e testes, validamos o select da tela principal para garantir que ele estivesse de acordo com os requisitos estabelecidos. Esta etapa envolveu a execução de diversos cenários de testes para identificar possíveis discrepâncias ou erros nos dados apresentados. Além disso, implementamos ajustes finais no código SQL para otimizar o desempenho das consultas, assegurando que a recuperação de dados fosse eficiente e que a interface do usuário permanecesse responsiva. Por fim, realizamos uma revisão completa das configurações e funcionalidades, validando que todas as alterações estavam corretas e prontas para produção.
 ```
 
 
@@ -203,8 +211,6 @@ GM - DASH RENTABILIDADE HTML5 - Finalmente, abordamos a adaptação do select da
 ####
 ```markdown
 ```
-
-
 
 
 
@@ -221,7 +227,12 @@ INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
 
 
 
-Adaptar o select da tela de margem.
+MELHORAR O PRIMIRO NIVEL DE FATURAMENTO DEIXANDO O GRAFICO NO PADRAO DOS DEMAIS,
+ORGANIZAR O SELECT.
+
+
+
+Adaptar o select da tela de margem e correção do select principal.
 Adaptar o select da tela de resultado.
 CORRIGIR TELA DE DEVOLUÇÕES
 
@@ -331,3 +342,5 @@ Adaptado o select da tela de impostos.
 Adaptado o select da tela de hl.
 Adaptado o select da tela de do.
 ESTA ADAPTAÇÃO SIGNIFICA ENTRAR EM CADA TELA E ORGANIZAR OS 4 COMPONENTES DE CADA TELA
+REDEFINIDO PARA SELECT DA TELA PRINCIPAL SER O MESMO DO DASH FATURAMENTO ANALITICO.
+APOS VERIFICACOES DEIXAMOS O SELECT DESTA TELA DE ACORDO E VALIDADO.

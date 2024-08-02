@@ -1,3 +1,4 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="UTF-8" isELIgnored="false" %>
 <%@ page import="java.util.*" %>
@@ -36,11 +37,15 @@
 </div>
 
 <script>
+
+
 function abrir(grupo) {
+  grupo = encodeURIComponent(grupo);
   var params = { 'A_CODGRUPOPROD': grupo };
   var level = 'lvl_a0a22l';
   openLevel(level, params);
 }
+
 
 document.addEventListener('DOMContentLoaded', function() {
   // Obtenha os dados da consulta JSP
@@ -79,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
       onClick: function(evt, activeElements) {
         if (activeElements.length > 0) {
           const index = activeElements[0].index;
-          const grupo = labels[index];
+          const grupo = labels[index].replace(/"/g, '');
           abrir(grupo);
         }
       }
