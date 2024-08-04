@@ -18,15 +18,7 @@
 <snk:load/>
 </head>
 <body>
-  <%
-  // Código para depuração
-  String codGrupoProd = request.getParameter("A_CODGRUPOPROD");
-  if (codGrupoProd == null || codGrupoProd.isEmpty()) {
-    out.println("Nenhum código de grupo de produtos foi passado.");
-  } else {
-    out.println("Código do Grupo de Produtos: " + codGrupoProd);
-  }
-%>
+
 
 
 
@@ -35,7 +27,7 @@
 select
 codprod,vlrtot
 from(
-with tes as (SELECT 1 AS COD,TO_NUMBER(REPLACE(TO_CHAR(:A_CODGRUPOPROD),'"',' ')) AS TEST FROM DUAL)
+with tes as (SELECT 1 AS COD,TO_NUMBER(REPLACE(TO_CHAR(:grupo),'"',' ')) AS TEST FROM DUAL)
 select
 1 AS COD,
 ite.codprod,
@@ -43,7 +35,9 @@ sum(ite.vlrtot) as vlrtot
 from tgfite ite
 inner join tgfpro pro on ite.codprod = pro.codprod
 inner join tes on 1 = tes.cod
+inner join tgfcab cab on ite.nunota = cab.nunota
 where pro.codgrupoprod = tes.TEST
+and cab.dtneg between :P_PERIODO.INI AND :P_PERIODO.FIN
 group by ite.codprod
 order by 3 desc
 )
