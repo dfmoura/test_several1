@@ -214,7 +214,7 @@ GM - DASH RENTABILIDADE HTML5 - Na parte da tarde, após realizar várias verifi
 
 
 
-
+finalização de configuração para acessar nivel inferior a partir de click em fatia ou coluna de grafico filtrando a informação no nivel inferior.
 
 
 ```
@@ -229,6 +229,11 @@ INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
 
 MELHORAR O PRIMIRO NIVEL DE FATURAMENTO DEIXANDO O GRAFICO NO PADRAO DOS DEMAIS,
 ORGANIZAR O SELECT.
+    - borda no card
+    - sem legenda
+    - apresentar o % ao passar o mouse
+    - tabela mais moderna
+    
 
 
 

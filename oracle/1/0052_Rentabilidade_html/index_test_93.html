@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tela com 2 Seções</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    .section {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      background-color: #fff;
+      margin: 0 10px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 600px;
+      position: relative;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      text-align: center; /* Centraliza o título horizontalmente */
+      width: 100%; /* Garante que o título ocupe toda a largura da seção */
+    }
+    .chart-container, .table-container {
+      width: 100%;
+      flex-grow: 1;
+    }
+    .chart-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start; /* Alinha o gráfico ao topo */
+    }
+    .chart-container canvas {
+      max-width: 100%;
+    }
+    .table-container {
+      position: relative;
+      overflow-y: auto;
+      max-height: 450px; /* Define a altura máxima para a tabela */
+      margin-top: 20px; /* Espaço adicional entre o título e a tabela */
+    }
+    .table-container table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .table-container th, .table-container td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    .table-container thead th {
+      position: sticky;
+      top: 0;
+      background-color: #f2f2f2;
+      z-index: 1;
+    }
+    .overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      font-weight: bold;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="section">
+  <div class="title">Título do Gráfico</div>
+  <div class="chart-container">
+    <canvas id="doughnutChart"></canvas>
+    <div class="overlay-text">15.155.150</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="title">Título da Tabela</div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Coluna 1</th>
+          <th>Coluna 2</th>
+          <th>Coluna 3</th>
+          <th>Coluna 4</th>
+          <th>Coluna 5</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Dados 1</td>
+          <td>Dados 2</td>
+          <td>Dados 3</td>
+          <td>Dados 4</td>
+          <td>Dados 5</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const ctx = document.getElementById('doughnutChart').getContext('2d');
+  const doughnutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Categoria 1', 'Categoria 2', 'Categoria 3'],
+      datasets: [{
+        label: 'Exemplo de Dados',
+        data: [10, 20, 30],
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.4)',
+          'rgba(54, 162, 235, 0.4)',
+          'rgba(255, 206, 86, 0.4)',
+          'rgba(75, 192, 192, 0.4)',
+          'rgba(153, 102, 255, 0.4)',
+          'rgba(255, 159, 64, 0.4)'            
+        ],
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '50%',
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.label || '';
+              let value = context.raw || 0;
+              let total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+              let percentage = ((value / total) * 100).toFixed(2);
+              let formattedValue = new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+              return label + ': ' + formattedValue;
+            }
+          }
+        },        
+        legend: {
+          position: 'left',
+          align: 'center',
+        }
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
