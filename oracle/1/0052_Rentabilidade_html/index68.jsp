@@ -31,7 +31,12 @@
       align-items: center;
       min-height: 600px; /* Altura mínima aumentada */
       position: relative; /* Adicionado para posicionamento do overlay */      
+      transition: transform 0.3s ease, box-shadow 0.3s ease; /* Adiciona transição suave */
     }
+    .section:hover {
+      transform: translateY(-5px); /* Movimenta a seção para cima ao passar o mouse */
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adiciona uma sombra para efeito de profundidade */
+    }    
     .title {
       font-size: 20px;
       font-weight: bold;
@@ -47,6 +52,11 @@
     .chart-container canvas {
       max-width: 100%;
     }
+    .table-container {
+      position: relative;
+      overflow: auto;
+      max-height: 400px; /* Altura máxima adicionada */
+    }     
     .table-container table {
       width: 100%;
       border-collapse: collapse;
@@ -58,6 +68,9 @@
     }
     .table-container th {
       background-color: #f2f2f2;
+      position: sticky; /* Fixa o cabeçalho */
+      top: 0; /* Coloca no topo */
+      z-index: 1; /* Garante que fique acima do conteúdo scrollado */      
     }
     .overlay {
       position: absolute;
@@ -181,16 +194,16 @@
 </div>
 
 <div class="section">
-  <div class="title">Coloque o título</div>
+  <div class="title">Detalhamento por Produto</div>
   <div class="table-container">
     <table>
       <thead>
         <tr>
-          <th>Coluna 1</th>
-          <th>Coluna 2</th>
-          <th>Coluna 3</th>
-          <th>Coluna 4</th>
-          <th>Coluna 5</th>
+          <th>Supervisor</th>
+          <th>Produto</th>
+          <th>Preço Médio</th>
+          <th>Vlr. Fat.</th>
+          <th>Margem Nom.</th>
         </tr>
       </thead>
       <tbody>
@@ -208,6 +221,83 @@
           <td>Dados 9</td>
           <td>Dados 10</td>
         </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>                                
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        
+        <tr>
+          <td><b>Total</b></td>
+          <td></td>
+          <td>100.000</td>
+          <td>100.000</td><!--<fmt:formatNumber value="${total}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>-->
+          <td>100.000</td>        
       </tbody>
     </table>
   </div>

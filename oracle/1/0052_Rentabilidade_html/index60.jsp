@@ -576,7 +576,7 @@
             }
         });
 
-        // Dados fictícios para o gráfico de barras verticais (direito)
+        // Dados para o gráfico de barras verticais (direito)
         const ctxBarRight = document.getElementById('barChartRight').getContext('2d');
 
         const gerenteLabels = [

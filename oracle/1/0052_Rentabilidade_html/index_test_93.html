@@ -23,34 +23,29 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 600px;
-      position: relative;
+      min-height: 600px; /* Altura mínima aumentada */
+      position: relative; /* Adicionado para posicionamento do overlay */      
     }
     .title {
       font-size: 20px;
       font-weight: bold;
       margin-bottom: 20px;
-      text-align: center; /* Centraliza o título horizontalmente */
-      width: 100%; /* Garante que o título ocupe toda a largura da seção */
     }
     .chart-container, .table-container {
       width: 100%;
       flex-grow: 1;
-    }
-    .chart-container {
-      display: flex;
+      /*display: flex;*/
       justify-content: center;
-      align-items: flex-start; /* Alinha o gráfico ao topo */
+      align-items: center;
     }
     .chart-container canvas {
       max-width: 100%;
     }
     .table-container {
       position: relative;
-      overflow-y: auto;
-      max-height: 450px; /* Define a altura máxima para a tabela */
-      margin-top: 20px; /* Espaço adicional entre o título e a tabela */
-    }
+      overflow: auto;
+      max-height: 400px; /* Altura máxima adicionada */
+    }    
     .table-container table {
       width: 100%;
       border-collapse: collapse;
@@ -60,21 +55,21 @@
       padding: 8px;
       text-align: center;
     }
-    .table-container thead th {
-      position: sticky;
-      top: 0;
+    .table-container th {
       background-color: #f2f2f2;
-      z-index: 1;
+      position: sticky; /* Fixa o cabeçalho */
+      top: 0; /* Coloca no topo */
+      z-index: 1; /* Garante que fique acima do conteúdo scrollado */      
     }
     .overlay {
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 55%;
+      left: 65%;
       transform: translate(-50%, -50%);
-      font-size: 24px;
+      font-size: 34px;
       font-weight: bold;
-      pointer-events: none;
-    }
+      pointer-events: none; /* Permite interação com o gráfico */
+    } 
   </style>
 </head>
 <body>
@@ -83,7 +78,7 @@
   <div class="title">Título do Gráfico</div>
   <div class="chart-container">
     <canvas id="doughnutChart"></canvas>
-    <div class="overlay-text">15.155.150</div>
+    <div class="overlay">15.155.150</div>
   </div>
 </div>
 
@@ -115,6 +110,69 @@
           <td>Dados 9</td>
           <td>Dados 10</td>
         </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>
+        <tr>
+          <td>Dados 6</td>
+          <td>Dados 7</td>
+          <td>Dados 8</td>
+          <td>Dados 9</td>
+          <td>Dados 10</td>
+        </tr>                                                                        
       </tbody>
     </table>
   </div>
