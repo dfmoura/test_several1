@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Acomp_Meta_Mar" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Acomp_Meta_Cli" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
 	<property name="ireport.zoom" value="1.2100000000000006"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
@@ -75,7 +75,8 @@
 	</parameter>
 	<queryString>
 		<![CDATA[SELECT
-MARCA
+CODPARC
+, NOMEPARC AS PARCEIRO
 , SUM(QTDPREV) AS QTDPREV
 , SUM(QTDREAL) AS QTDREAL
 , SUM(QTDPREV * PRECOLT)  AS VLR_PREV
@@ -84,18 +85,18 @@ MARCA
 , CASE WHEN SUM(QTDPREV * PRECOLT) = 0 THEN 0 ELSE NVL(SUM(VLRREAL) * 100 / SUM(QTDPREV * PRECOLT),0) END AS PERC_VLR
 FROM
 (
+
 SELECT
 MET.DTREF
 , MET.CODVEND
 , VEN.APELIDO
 , MET.CODPARC
-, PAR.RAZAOSOCIAL
-, PAR.CGC_CPF
+, PAR.NOMEPARC
 , MET.MARCA
 , MET.QTDPREV
 , SUM(NVL(VGF.QTD,0)) AS QTDREAL
 , NVL(PRC.VLRVENDALT,0) AS PRECOLT
-, SUM(VGF.VLR) AS VLRREAL
+, SUM(VLR)  AS VLRREAL
 
 FROM TGMMET MET
   LEFT JOIN VGF_VENDAS_SATIS VGF ON MET.DTREF = TRUNC(VGF.DTMOV,'MM') AND MET.CODVEND = VGF.CODVEND AND MET.CODPARC = VGF.CODPARC AND MET.MARCA = VGF.MARCA AND VGF.BONIFICACAO = 'N'
@@ -111,6 +112,7 @@ WHERE
   MET.CODMETA = 4
   AND MET.DTREF >= $P{P_DTINI}
   AND MET.DTREF <= $P{P_DTFIN}
+
   AND (
     (MET.CODVEND IN ($P{P_CODVEND}, $P{P_CODVEND_1}, $P{P_CODVEND_2})
     OR ($P{P_CODVEND} IS NULL AND $P{P_CODVEND_1} IS NULL AND $P{P_CODVEND_2} IS NULL))
@@ -124,22 +126,29 @@ WHERE
 
 AND
 (
-(VGF.CODGER IN (SELECT VEN.CODVEND FROM TGFVEN VEN
-INNER JOIN TSIUSU USU ON VEN.CODVEND = USU.CODVEND
-WHERE USU.AD_COORD_COMERCIAL = 'S' AND USU.CODUSU = STP_GET_CODUSULOGADO))
+(
+VEN.CODGER IN (SELECT CODVEND FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO AND AD_GESTORVENDAS = 'S')
+)
+
 OR
 ((SELECT AD_GESTOR_META FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO) = 'S')
 )
 
-GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL,  NVL(PRC.VLRVENDALT,0),PAR.CGC_CPF
+
+GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.NOMEPARC, MET.MARCA, MET.QTDPREV, MET.QTDREAL,  NVL(PRC.VLRVENDALT,0)
+
 )
 
 GROUP BY
-MARCA
-ORDER BY MARCA]]>
+CODPARC
+, NOMEPARC
+ORDER BY NOMEPARC]]>
 	</queryString>
-	<field name="MARCA" class="java.lang.String">
-		<fieldDescription><![CDATA[Marca]]></fieldDescription>
+	<field name="CODPARC" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Parc.]]></fieldDescription>
+	</field>
+	<field name="PARCEIRO" class="java.lang.String">
+		<fieldDescription><![CDATA[Parceiro]]></fieldDescription>
 	</field>
 	<field name="QTDPREV" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Qtd. Prev.]]></fieldDescription>
@@ -214,7 +223,7 @@ ORDER BY MARCA]]>
 				<text><![CDATA[Vlr. Real]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="318" y="0" width="35" height="15"/>
+				<reportElement x="320" y="0" width="37" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
@@ -224,11 +233,18 @@ ORDER BY MARCA]]>
 				<reportElement x="0" y="16" width="550" height="1"/>
 			</line>
 			<staticText>
-				<reportElement x="2" y="0" width="61" height="15"/>
+				<reportElement x="2" y="0" width="36" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
-				<text><![CDATA[Marca]]></text>
+				<text><![CDATA[Cód.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="38" y="0" width="61" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Parceiro]]></text>
 			</staticText>
 			<staticText>
 				<reportElement x="459" y="0" width="35" height="15"/>
@@ -270,18 +286,25 @@ ORDER BY MARCA]]>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLR_REAL}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00" isBlankWhenNull="false">
-				<reportElement x="318" y="0" width="35" height="15"/>
+				<reportElement x="320" y="0" width="37" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="7"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="2" y="0" width="178" height="15"/>
+				<reportElement x="2" y="0" width="36" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="8"/>
 				</textElement>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{MARCA}]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPARC}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="38" y="0" width="178" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PARCEIRO}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00" isBlankWhenNull="false">
 				<reportElement x="459" y="0" width="35" height="15"/>
