@@ -79,7 +79,7 @@
             font-size: 20px;
             font-weight: bold;
             color: #333;
-            left: 52%; /* Move o overlay 10% para a direita */
+            left: 54%; /* Move o overlay 10% para a direita */
             transform: translateX(45%); /* Ajusta a posição do texto para centralizá-lo */
             /*text-align: center; Opcional, para centralizar o texto se ele tiver várias linhas */            
         }
@@ -154,7 +154,6 @@
         AND CAB.CODCENCUS IN (:P_CR)
         AND CAB.CODVEND IN (:P_VENDEDOR)
         AND VEN.AD_ROTA IN (:P_ROTA)
-
     </snk:query> 
 
     <snk:query var="fat_tipo">  
@@ -200,6 +199,7 @@
         (
         SELECT
         1 AS COD
+        , PRO.AD_TPPROD
         , NVL((F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),'NAO INFORMADO') AS TIPOPROD
         , SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS VLRFAT
         FROM TGFCAB CAB
@@ -218,7 +218,7 @@
         AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
         AND VEN.CODGER IN (:P_GERENTE)
         AND VEN.AD_ROTA IN (:P_ROTA)
-        GROUP BY NVL((F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),'NAO INFORMADO')
+        GROUP BY PRO.AD_TPPROD,NVL((F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),'NAO INFORMADO')
         ),
         FIN AS (
         SELECT 1 AS COD,ABS(SUM(VLRBAIXA)) AS VLRBAIXA
@@ -229,22 +229,22 @@
         AND DHBAIXA IS NOT NULL
         AND (DHBAIXA BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)
         AND RECDESP = -1)
-        SELECT BAS.TIPOPROD, (BAS.VLRFAT / SUM(BAS.VLRFAT) OVER ())*FIN.VLRBAIXA AS VLRCIP_PERC 
+        SELECT BAS.AD_TPPROD,BAS.TIPOPROD, (BAS.VLRFAT / SUM(BAS.VLRFAT) OVER ())*FIN.VLRBAIXA AS VLRCIP_PERC 
         FROM BAS
         INNER JOIN FIN ON BAS.COD = FIN.COD
     </snk:query> 
     
     
-    <snk:query var="fat_ger">
 
-
+<snk:query var="fat_ger">
     SELECT
-    CODGER,GERENTE,SUM(TOTALLIQ)VLRFAT
+    AD_TPPROD,CODGER,GERENTE,SUM(TOTALLIQ)VLRFAT
     FROM(
     
     SELECT
     CAB.CODEMP,
     CAB.NUNOTA,
+    PRO.AD_TPPROD,
     (F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD,
     VEN.CODGER,
     NVL(VENG.APELIDO,'NAO INFORMADO') AS GERENTE,
@@ -287,6 +287,7 @@
     INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
     WHERE TOP.GOLSINAL = -1
     AND (CAB.DTNEG BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)
+    
     AND TOP.TIPMOV IN ('V', 'D')
     AND TOP.ATIVO = 'S'
 
@@ -298,17 +299,92 @@
     GROUP BY 
     CAB.CODEMP, 
     CAB.NUNOTA, 
-    CAB.TIPMOV,(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),
+    CAB.TIPMOV,
+    PRO.AD_TPPROD,
+    (F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),
     VEN.CODGER,
     VENG.APELIDO
     )
-    WHERE (TIPOPROD = :A_TPPROD OR :A_TPPROD IS NULL)
-    GROUP BY CODGER,GERENTE
-    ORDER BY 3 DESC 
-
-
-    </snk:query>    
+    WHERE 
     
+    AD_TPPROD = :A_TPPROD
+    OR
+    ( AD_TPPROD = 4 AND :A_TPPROD IS NULL )
+    
+    
+    
+    GROUP BY AD_TPPROD,CODGER,GERENTE
+    ORDER BY 4 DESC 
+</snk:query>    
+    
+
+
+    <snk:query var="fat_produto">
+    SELECT
+    CODEMP,TIPOPROD,CODPROD,PRODUTO,CODGER,GERENTE,SUM(TOTALLIQ)TOTALLIQ
+    FROM(
+    
+    SELECT
+    CAB.CODEMP,
+    CAB.NUNOTA,
+    PRO.AD_TPPROD,
+    (F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD,
+    ITE.CODPROD,
+    PRO.DESCRPROD AS PRODUTO,
+    VEN.CODGER,
+    VENG.APELIDO AS GERENTE,
+    SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
+    SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
+    SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
+    SUM(ITE.VLRIPI) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRIPI,
+    SUM(ITE.VLRSUBST) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRSUBST,
+    SUM(ITE.VLRICMS) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS,
+    NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRPIS,
+    NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRCOFINS,
+    SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS CUSMEDSICM_TOT,
+    SUM((FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS HL,
+    (SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+        - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0)
+        - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0)
+        - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+    ) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS MARGEMNON,
+            (
+    (SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+        - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6)
+        - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7)
+        - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+    ) * 100 / NULLIF(SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)
+    ) PERCMARGEM,
+    CAB.TIPMOV
+    FROM TGFCAB CAB
+    INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+    INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+    INNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNAT
+    INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
+    INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+    INNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
+    INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+    LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
+    LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
+    INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+    LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND C.DTATUAL <= CAB.DTNEG)
+    LEFT JOIN TGFPAR PARM ON PARM.CODPARC = PAR.CODPARCMATRIZ
+    INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+    WHERE TOP.GOLSINAL = -1
+    AND (CAB.DTNEG BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)
+    AND TOP.TIPMOV IN ('V', 'D')
+    AND TOP.ATIVO = 'S'
+    AND CAB.CODNAT IN (:P_NATUREZA)
+    AND CAB.CODCENCUS IN (:P_CR)
+    AND CAB.CODVEND IN (:P_VENDEDOR)
+    AND VEN.AD_ROTA IN (:P_ROTA)
+
+    GROUP BY CAB.CODEMP, CAB.NUNOTA, CAB.TIPMOV,PRO.AD_TPPROD,(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),
+    ITE.CODPROD,PRO.DESCRPROD,VEN.CODGER,VENG.APELIDO
+    )
+    WHERE (AD_TPPROD = :A_TPPROD OR :A_TPPROD IS NULL)
+    GROUP BY CODEMP,TIPOPROD,CODPROD,PRODUTO,CODGER,GERENTE
+</snk:query>
 
     <div class="container">
         <div class="section">
@@ -339,85 +415,44 @@
                 </div>
             </div>
             <div class="part" id="right-bottom">
-                <div class="part-title">HL por Produto</div>
+                <div class="part-title">Detalhamento por Produto</div>
                 <div class="table-container">
                     <table id="table">
                         <thead>
                             <tr>
+                                <th>Cód. Emp.</th>
+                                <th>Tp. Produto</th>
+                                <th>Cód. Prod.</th>
                                 <th>Produto</th>
-                                <th>Motivo</th>
-                                <th>Quantidade</th>
+                                <th>Cód. Ger.</th>
+                                <th>Gerente</th>
+                                <th>Total Líq.</th>
                             </tr>
                         </thead>
                         <tbody>
+                            <c:set var="total" value="0" />
+                            <c:forEach items="${fat_produto.rows}" var="row">
+                                <tr>
+                                    <td>${row.CODEMP}</td>
+                                    <td>${row.TIPOPROD}</td>
+                                    <td onclick="abrir_det('${row.CODPROD}','${row.CODGER}')">${row.CODPROD}</td>
+                                    <td>${row.PRODUTO}</td>
+                                    <td>${row.CODGER}</td>
+                                    <td>${row.GERENTE}</td>
+                                    <td><fmt:formatNumber value="${row.TOTALLIQ}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <c:set var="total" value="${total + row.TOTALLIQ}" />
+                                </tr>
+                            </c:forEach>
                             <tr>
-                                <td>Produto A</td>
-                                <td>Motivo 1</td>
-                                <td>10</td>
+                                <td><b>Total</b></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td><b><fmt:formatNumber value="${total}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
                             </tr>
-                            <tr>
-                                <td>Produto B</td>
-                                <td>Motivo 2</td>
-                                <td>20</td>
-                            </tr>
-                            <tr>
-                                <td>Produto C</td>
-                                <td>Motivo 3</td>
-                                <td>30</td>
-                            </tr>
-                            <tr>
-                                <td>Produto D</td>
-                                <td>Motivo 4</td>
-                                <td>40</td>
-                            </tr>
-                            <tr>
-                                <td>Produto E</td>
-                                <td>Motivo 5</td>
-                                <td>50</td>
-                            </tr>
-                            <tr>
-                                <td>Produto E</td>
-                                <td>Motivo 5</td>
-                                <td>50</td>
-                            </tr>
-                            <tr>
-                                <td>Produto E</td>
-                                <td>Motivo 5</td>
-                                <td>50</td>
-                            </tr>
-                            <tr>
-                                <td>Produto E</td>
-                                <td>Motivo 5</td>
-                                <td>50</td>
-                            </tr>
-                            <tr>
-                                <td>Produto E</td>
-                                <td>Motivo 5</td>
-                                <td>50</td>
-                            </tr>                                                                                    
-                            <tr>
-                                <td>Produto E</td>
-                                <td>Motivo 5</td>
-                                <td>50</td>
-                            </tr>
-                            <tr>
-                                <td>Produto E</td>
-                                <td>Motivo 5</td>
-                                <td>50</td>
-                            </tr>                                                        
-                            <tr>
-                                <td>Produto E</td>
-                                <td>Motivo 5</td>
-                                <td>50</td>
-                            </tr>                            
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <th>Total</th>
-                                <th></th>
-                                <th>10000</th>
-                            </tr>
-                        </tfoot>                        
+                        </tbody>                   
                     </table>
                 </div>
             </div>
@@ -433,22 +468,45 @@
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script>
 
-
         // Função para atualizar a query
-        function ref_fat(TIPOPROD) {
-            const params = {'A_GERENTE': TIPOPROD};
-            refreshDetails('html5_ax6oqii', params); 
+
+        
+        function ref_fat1(TIPOPROD) {
+            const params1 = {'A_TPPROD': TIPOPROD};
+            refreshDetails('html5_ax6oqii', params1); 
+            
         }
 
 
 
         // Função para abrir o novo nível
-        function abrir(grupo) {
-            var params = { 'A_GERENTE': parseInt(grupo) };
-            var level = 'lvl_fcsg85';
+        function abrir(grupo,grupo1) {
+            var params = { 
+                'A_TPPROD' : parseInt(grupo),
+                'A_GERENTE': parseInt(grupo1)
+             };
+            var level = 'lvl_fcsg85';//Faturamento_1 - index 68
+            
             openLevel(level, params);
         }
 
+
+        function abrir_det(produto,gerente) {
+            var params = {'A_CODPROD': parseInt(produto),
+                        'A_GERENTE': parseInt(gerente)
+            };
+            var level = 'lvl_a129doi'; //Faturamento_3 - index70
+            openLevel(level, params);
+        }
+
+        function abrir_cip(grupo) {
+            var params = { 
+                'A_TPPROD' : parseInt(grupo)
+             };
+            var level = 'lvl_t4arq4';
+            
+            openLevel(level, params);
+        }        
 
         // Dados para o gráfico de rosca
         const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
@@ -456,8 +514,8 @@
         var fatTipoLabels = [];
         var fatTipoData = [];
         <c:forEach items="${fat_tipo.rows}" var="row">
-            fatTipoLabels.push('${row.TIPOPROD}');
-            fatTipoData.push('${row.VLRFAT}');
+            fatTipoLabels.push("${row.AD_TPPROD} - ${row.TIPOPROD}");
+            fatTipoData.push(${row.VLRFAT});
         </c:forEach>
 
         const doughnutChart = new Chart(ctxDoughnut, {
@@ -507,7 +565,14 @@
                         position: 'left',
                         align: 'center', // Alinhamento vertical da legenda
                     }                    
-                }
+                },
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        var index = elements[0].index;
+                        var label = fatTipoLabels[index].split('-')[0];
+                        ref_fat1(label);
+                    }
+                }   
             }
         });
 
@@ -521,7 +586,7 @@
 
         ];
         <c:forEach items="${cip_produto.rows}" var="row">
-            cipTipoLabels.push('${row.TIPOPROD}');
+            cipTipoLabels.push('${row.AD_TPPROD} - ${row.TIPOPROD}');
             cipTipoData.push('${row.VLRCIP_PERC}');
         </c:forEach>        
 
@@ -572,6 +637,14 @@
                         position: 'left',
                         align: 'center', // Alinhamento vertical da legenda
                     }                    
+                },
+                onClick: function(evt, activeElements) {
+                    if (activeElements.length > 0) {
+                        const index = activeElements[0].index;
+                        const grupo = cipTipoLabels[index].split('-')[0];
+                        //alert(grupo);
+                        abrir_cip(grupo);
+                    }
                 }
             }
         });
@@ -581,7 +654,7 @@
 
         const gerenteLabels = [
             <c:forEach items="${fat_ger.rows}" var="row">
-                "${row.CODGER}-${row.GERENTE}",
+                "${row.AD_TPPROD}-${row.CODGER}-${row.GERENTE}",
             </c:forEach>              
         ];
 
@@ -621,8 +694,8 @@
                     if (activeElements.length > 0) {
                         const index = activeElements[0].index;
                         const grupo = gerenteLabels[index].split('-')[0];
-                        alert(grupo);
-                        abrir(grupo);
+                        const grupo1 = gerenteLabels[index].split('-')[1];
+                        abrir(grupo,grupo1);
                     }
                 }
             }

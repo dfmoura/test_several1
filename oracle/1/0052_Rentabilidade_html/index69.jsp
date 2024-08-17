@@ -1,326 +1,368 @@
-<!DOCTYPE html>
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" isELIgnored="false" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="UTF-8" isELIgnored="false" %>
 <%@ page import="java.util.*" %>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
 <%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Example</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            background-color: #f8f9fa;
-            margin: 0;
-        }
-        .header-section {
-            background-color: #ffffff; /* Cor de fundo da seção superior */
-            color: white;
-            padding: 10px;
-            text-align: center;
-        }
-        .left-section, .right-section {
-            background-color: #ffffff;
-            padding: 20px;
-            height: calc(100vh - 60px); /* Ajusta a altura para compensar a altura da seção superior */
-            overflow-y: auto;
-        }
-        .chart-title {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        #doughnutChart {
-            max-width: 80%;
-            max-height: 80%;
-            position: relative;
-        }
-        .overlay-text {
-            position: absolute;
-            top: 47%;
-            left: 40%;
-            transform: translate(-50%, -50%);
-            font-size: 30px;
-            font-weight: bold;
-            color: #000;
-        }
-        .table-container {
-            flex-grow: 1;
-            width: 100%;
-            overflow-x: auto;
-        }
-        .table-scrollable {
-            width: 100%;
-            overflow-y: auto;
-            overflow-x: auto;
-            max-height: 400px; /* Ajuste conforme necessário */
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-        th, td {
-            border: 1px solid #dddddd;
-            text-align: left;
-            padding: 8px;
-            border-radius: 8px;
-        }
-        th {
-            background-color: #f2f2f2;
-            position: sticky;
-            top: 0;
-            z-index: 2; /* Certifique-se de que os cabeçalhos fiquem acima das linhas */
-        }
-        /* Efeito de hover */
-        tbody tr:hover {
-            background-color: #f0f0f0;
-            cursor: pointer;
-        }
-        .container {
-            display: flex;
-            flex-wrap: nowrap; /* Não permite quebra de linha */
-            overflow-x: auto;
-            padding: 10px;
-            gap: 10px;
-        }        
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tela com 2 Seções</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    .section {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      background-color: #fff;
+      margin: 0 10px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 600px; /* Altura mínima aumentada */
+      position: relative; /* Adicionado para posicionamento do overlay */      
+      transition: transform 0.3s ease, box-shadow 0.3s ease; /* Adiciona transição suave */
+    }
+    .section:hover {
+      transform: translateY(-5px); /* Movimenta a seção para cima ao passar o mouse */
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adiciona uma sombra para efeito de profundidade */
+    }    
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    .chart-container, .table-container {
+      width: 100%;
+      flex-grow: 1;
+      /*display: flex;*/
+      justify-content: center;
+      align-items: center;
+    }
+    .chart-container canvas {
+      max-width: 100%;
+    }
+    .table-container {
+      position: relative;
+      overflow: auto;
+      max-height: 400px; /* Altura máxima adicionada */
+    }     
+    .table-container table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .table-container th, .table-container td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    .table-container th {
+      background-color: #f2f2f2;
+      position: sticky; /* Fixa o cabeçalho */
+      top: 0; /* Coloca no topo */
+      z-index: 1; /* Garante que fique acima do conteúdo scrollado */      
+    }
+    .overlay {
+      position: absolute;
+      top: 55%;
+      left: 65%;
+      transform: translate(-50%, -50%);
+      font-size: 34px;
+      font-weight: bold;
+      pointer-events: none; /* Permite interação com o gráfico */
+    }    
+    /* Estilo do filtro */
+    .filter-container {
+        margin-bottom: 20px;
+        align-self: flex-start; /* Alinha o filtro à esquerda */
+    }    
+  </style>
 
-        .button {
-            background-color: #130455;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background-color 0.3s ease;
-        }
-        .button:hover {
-            background-color: #0056b3;
-        }
-        .button:active {
-            background-color: #00408a;
-        }
+<snk:load/>
 
-        /* Estilo do filtro */
-        .filter-container {
-            margin-bottom: 20px;
-        }
-    </style>
-    <snk:load/>
+
 </head>
+
 <body>
 
-    <snk:query var="fat_tipo">  
-        SELECT
-        VEN.APELIDO AS VENDEDOR,
-        ROUND(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END), 2) AS VLRFAT
-        FROM TGFCAB CAB
-        INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
-        INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-        INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-        INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-        INNER JOIN TGFVEN VEN1 ON VEN.AD_SUPERVISOR = VEN1.CODVEND
-        INNER JOIN TGFVEN VEN2 ON VEN.CODGER = VEN2.CODVEND
-        WHERE TOP.GOLSINAL = -1
-        AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
-        AND TOP.TIPMOV IN ('V', 'D')
-        AND TOP.ATIVO = 'S'
-        AND VEN1.APELIDO = :A_SUPERVISOR
-        AND CAB.CODEMP IN (:P_EMPRESA)
-        AND CAB.CODNAT IN (:P_NATUREZA)
-        AND CAB.CODCENCUS IN (:P_CR)
-        AND CAB.CODVEND IN (:P_VENDEDOR)
-        AND VEN.CODGER IN (:P_GERENTE)
-        AND VEN.AD_ROTA IN (:P_ROTA)
-        GROUP BY VEN.APELIDO
-        ORDER BY 2 DESC
-    </snk:query>
+  <snk:query var="fat_ger">
+
+  SELECT
+  SUM(TOTALLIQ) AS VLRFAT
+  FROM(
+  
+  SELECT
+  CAB.CODEMP,
+  CAB.NUNOTA,
+  PRO.AD_TPPROD,
+  (F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD,
+  ITE.CODPROD||'-'||PRO.DESCRPROD AS PRODUTO,
+  VEN.CODVEND,
+  VEN.AD_SUPERVISOR,
+  VEN.CODGER,
+  SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
+  SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
+  SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
+  SUM(ITE.VLRIPI) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRIPI,
+  SUM(ITE.VLRSUBST) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRSUBST,
+  SUM(ITE.VLRICMS) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS,
+  NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRPIS,
+  NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRCOFINS,
+  SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS CUSMEDSICM_TOT,
+  SUM((FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS HL,
+  (SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+      - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0)
+      - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0)
+      - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+  ) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS MARGEMNON,
+          (
+  (SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+      - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6)
+      - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7)
+      - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+  ) * 100 / NULLIF(SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)
+  ) PERCMARGEM,
+  CAB.TIPMOV
+  FROM TGFCAB CAB
+  INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+  INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+  INNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNAT
+  INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
+  INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+  INNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
+  INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+
+  INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+  LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND C.DTATUAL <= CAB.DTNEG)
+  LEFT JOIN TGFPAR PARM ON PARM.CODPARC = PAR.CODPARCMATRIZ
+  INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+  WHERE TOP.GOLSINAL = -1
+  AND (CAB.DTNEG BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)
+  AND TOP.TIPMOV IN ('V', 'D')
+  AND TOP.ATIVO = 'S'
+  
+
+  AND CAB.CODNAT IN (:P_NATUREZA)
+  AND CAB.CODCENCUS IN (:P_CR)
+  AND CAB.CODVEND IN (:P_VENDEDOR)
+  AND VEN.AD_ROTA IN (:P_ROTA)
+
+  GROUP BY CAB.CODEMP, CAB.NUNOTA, CAB.TIPMOV,PRO.AD_TPPROD,(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),ITE.CODPROD||'-'||PRO.DESCRPROD,VEN.CODVEND,VEN.AD_SUPERVISOR,VEN.CODGER
+  )
+  WHERE 
+  AD_SUPERVISOR = :A_SUPERVISOR
+  AND AD_TPPROD = :A_TPPROD
+      
 
 
+  </snk:query>   
 
-    <snk:query var="fat_sup">  	
-        SELECT
-        DECODE(VEN2.APELIDO, '<SEM VENDEDOR>', 'NAO INFORMADO', VEN2.APELIDO) AS SUPERVISOR   
-        FROM TGFCAB CAB
-        INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
-        INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-        INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-        INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-        INNER JOIN TGFVEN VEN1 ON VEN.CODGER = VEN1.CODVEND
-        INNER JOIN TGFVEN VEN2 ON VEN.AD_SUPERVISOR = VEN2.CODVEND
-        WHERE TOP.GOLSINAL = -1
-        AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
-        AND TOP.TIPMOV IN ('V', 'D')
-        AND TOP.ATIVO = 'S'
-        AND CAB.CODEMP IN (:P_EMPRESA)
-        AND CAB.CODNAT IN (:P_NATUREZA)
-        AND CAB.CODCENCUS IN (:P_CR)
-        AND CAB.CODVEND IN (:P_VENDEDOR)
-        AND VEN.AD_SUPERVISOR IN (:P_SUPERVISOR)
-        AND VEN.CODGER IN (:P_GERENTE)
-        AND VEN.AD_ROTA IN (:P_ROTA)
-        GROUP BY DECODE(VEN2.APELIDO, '<SEM VENDEDOR>', 'NAO INFORMADO', VEN2.APELIDO)
-        ORDER BY 1
-    </snk:query> 
-
-
-
-    <snk:query var="tot_ven">
-
+  <snk:query var="fat_tipo">  
     SELECT
+    PRO.AD_TPPROD,
+    VEN.CODVEND,
+    VEN.APELIDO AS VENDEDOR,
+    VEN.AD_SUPERVISOR,
+    VEN1.APELIDO AS SUPERVISOR,
+    VEN.CODGER,
+
+
     ROUND(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END), 2) AS VLRFAT
     FROM TGFCAB CAB
     INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
     INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
     INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
     INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-    INNER JOIN TGFVEN VEN1 ON VEN.CODGER = VEN1.CODVEND
-    INNER JOIN TGFVEN VEN2 ON VEN.AD_SUPERVISOR = VEN2.CODVEND
+    INNER JOIN TGFVEN VEN1 ON VEN.AD_SUPERVISOR = VEN1.CODVEND
+    INNER JOIN TGFVEN VEN2 ON VEN.CODGER = VEN2.CODVEND
     WHERE TOP.GOLSINAL = -1
     AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
     AND TOP.TIPMOV IN ('V', 'D')
     AND TOP.ATIVO = 'S'
-    AND VEN2.APELIDO = :A_SUPERVISOR
+
+
+    AND VEN.AD_SUPERVISOR = :A_SUPERVISOR
+    AND PRO.AD_TPPROD = :A_TPPROD
+           
+
+
     AND CAB.CODEMP IN (:P_EMPRESA)
     AND CAB.CODNAT IN (:P_NATUREZA)
     AND CAB.CODCENCUS IN (:P_CR)
     AND CAB.CODVEND IN (:P_VENDEDOR)
-    
-    AND VEN.CODGER IN (:P_GERENTE)
     AND VEN.AD_ROTA IN (:P_ROTA)
-    </snk:query>
+    GROUP BY PRO.AD_TPPROD,VEN.CODVEND,VEN.APELIDO,VEN.CODGER,VEN.AD_SUPERVISOR,VEN1.APELIDO
+    ORDER BY 5 DESC
+</snk:query>    
 
 
-    <snk:query var="fat_produto">
-      
-        SELECT
-        VEN.APELIDO AS VENDEDOR
-        , ITE.CODPROD||' - '||PRO.DESCRPROD AS PRODUTO
-        , ROUND(AVG(ITE.VLRUNIT * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)), 2) AS VLR_UN
-        , ROUND(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END), 2) AS VLRFAT
+<snk:query var="det_sup">
+SELECT
+CODEMP,CODVEND,VENDEDOR,AD_SUPERVISOR,SUPERVISOR,CODGER,GERENTE,TIPOPROD,CODPROD,PRODUTO,SUM(TOTALLIQ)TOTALLIQ
+FROM(
 
-        , ROUND(AVG((
-        (ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
-        - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6 AND SEQUENCIA = ITE.SEQUENCIA),0)
-        - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7 AND SEQUENCIA = ITE.SEQUENCIA),0)
-        - (NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
-        ) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)),2) AS MAR_NON
+SELECT
+CAB.CODEMP,
+CAB.NUNOTA,
+PRO.AD_TPPROD,
+(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD,
+ITE.CODPROD,
+PRO.DESCRPROD AS PRODUTO,
+VEN.CODGER,
+VENG.APELIDO AS GERENTE,
+VEN.AD_SUPERVISOR,
+VENS.APELIDO AS SUPERVISOR,
+VEN.CODVEND,
+VEN.APELIDO AS VENDEDOR,
+SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
+SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
+SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
+SUM(ITE.VLRIPI) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRIPI,
+SUM(ITE.VLRSUBST) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRSUBST,
+SUM(ITE.VLRICMS) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS,
+NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRPIS,
+NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRCOFINS,
+SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS CUSMEDSICM_TOT,
+SUM((FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS HL,
+(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+    - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0)
+    - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0)
+    - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS MARGEMNON,
+        (
+(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+    - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6)
+    - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7)
+    - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+) * 100 / NULLIF(SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)
+) PERCMARGEM,
+CAB.TIPMOV
+FROM TGFCAB CAB
+INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+INNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNAT
+INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
+INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+INNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
+INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
+LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
+INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND C.DTATUAL <= CAB.DTNEG)
+LEFT JOIN TGFPAR PARM ON PARM.CODPARC = PAR.CODPARCMATRIZ
+INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+WHERE TOP.GOLSINAL = -1
+AND (CAB.DTNEG BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)
+AND TOP.TIPMOV IN ('V', 'D')
+AND TOP.ATIVO = 'S'
+AND CAB.CODNAT IN (:P_NATUREZA)
+AND CAB.CODCENCUS IN (:P_CR)
+AND CAB.CODVEND IN (:P_VENDEDOR)
+AND VEN.AD_ROTA IN (:P_ROTA)
 
-        FROM TGFCAB CAB
-        INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
-        INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-        INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-        LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND DTATUAL <= CAB.DTNEG)
-        INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-        INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
-        INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-        INNER JOIN TGFVEN VEN1 ON VEN.CODGER = VEN1.CODVEND
-        INNER JOIN TGFVEN VEN2 ON VEN.AD_SUPERVISOR = VEN2.CODVEND
-        WHERE TOP.GOLSINAL = -1 
-        AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
-        
-        AND TOP.TIPMOV IN ('V', 'D')
-        AND TOP.ATIVO = 'S'
-        AND VEN2.APELIDO = :A_SUPERVISOR
-        AND CAB.CODEMP IN (:P_EMPRESA)
-        AND CAB.CODNAT IN (:P_NATUREZA)
-        AND CAB.CODCENCUS IN (:P_CR)
-        AND CAB.CODVEND IN (:P_VENDEDOR)
-        
-        AND VEN.CODGER IN (:P_GERENTE)
-        AND VEN.AD_ROTA IN (:P_ROTA)
-        GROUP BY VEN.APELIDO,ITE.CODPROD||' - '||PRO.DESCRPROD
-        ORDER BY 1, 4 DESC
-
-    
-    </snk:query> 
+GROUP BY CAB.CODEMP, CAB.NUNOTA, CAB.TIPMOV,PRO.AD_TPPROD,(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),
+ITE.CODPROD,PRO.DESCRPROD,VEN.CODVEND,VEN.APELIDO,VEN.CODGER,VENG.APELIDO,VEN.AD_SUPERVISOR,VENS.APELIDO
+)
+WHERE 
+AD_TPPROD = :A_TPPROD
+AND AD_SUPERVISOR = :A_SUPERVISOR
 
 
-    <div class="header-section">
-        <div class="container" id="button-container"></div>
-    </div>
+GROUP BY CODEMP,CODVEND,VENDEDOR,AD_SUPERVISOR,SUPERVISOR,CODGER,GERENTE,TIPOPROD,CODPROD,PRODUTO
 
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-6 left-section">
-                <div class="chart-title">Faturamento por Vendedor</div>
-                <canvas id="doughnutChart"></canvas>
-                <c:forEach items="${tot_ven.rows}" var="row">                    
-                    <div class="overlay-text"><fmt:formatNumber value="${row.VLRFAT}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
-                </c:forEach>
-            </div>
-            <div class="col-md-6 right-section">
-                <div class="chart-title">Detalhamento por Produto</div>
-
-                <!-- Filtro de Supervisor -->
-                <div class="filter-container">
-                    <label for="vendedorFilter">Filtro por Vendedor:</label>
-                    <select id="vendedorFilter" class="form-control">
-                        <option value="">Todos</option>
-                        <c:forEach items="${fat_tipo.rows}" var="row">
-                            <option value="${row.VENDEDOR}">${row.VENDEDOR}</option>
-                        </c:forEach>
-                    </select>
-                </div>
-
-
-                <div class="table-container table-scrollable">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Vendedor</th>
-                                <th>Produto</th>
-                                <th>Preço Médio</th>
-                                <th>Vlr. Fat.</th>
-                                <th>Margem Nom.</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productTableBody">
-                            <c:set var="total" value="0" />
-                            <c:forEach items="${fat_produto.rows}" var="row">
-                                <tr class="table-row" data-vendedor="${row.VENDEDOR}">
-                                    <td>${row.VENDEDOR}</td>
-                                    <td>${row.PRODUTO}</td>
-                                    <td><fmt:formatNumber value="${row.VLR_UN}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                                    <td><fmt:formatNumber value="${row.VLRFAT}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                                    <td><fmt:formatNumber value="${row.MAR_NON}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                                    <c:set var="total" value="${total + row.VLRFAT}" />
-                                </tr>
-                            </c:forEach>
-                            <tr>
-                                <td><b>Total</b></td>
-                                <td></td>
-                                <td></td>
-                                <td><b><fmt:formatNumber value="${total}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
-                                <td></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-
-            // Função para abrir o novo nível
-          
+</snk:query>
 
 
 
-            function abrir_rota(vendedor) {
-                vendedor = vendedor.replaceAll('"','');
-                var params = {A_VENDEDOR: vendedor};
-                var level = 'lvl_a2fl12b';
+<div class="section">
+  <div class="title">Faturamento por Vendedor</div>
+  <div class="chart-container">
+    <canvas id="doughnutChart"></canvas>
+    <c:forEach items="${fat_ger.rows}" var="row">                    
+        <div class="overlay"><fmt:formatNumber value="${row.VLRFAT}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
+    </c:forEach>    
+  </div>
+</div>
+
+<div class="section">
+  <div class="title">Detalhamento por Produto</div>
+  
+    <!-- Filtro de Vendedor -->
+    <div class="filter-container">
+      <label for="vendedorFilter">Filtro por Vendedor:</label>
+      <select id="vendedorFilter" class="form-control">
+          <option value="">Todos</option>
+          <c:forEach items="${fat_tipo.rows}" var="row">
+              <option value="${row.VENDEDOR}">${row.VENDEDOR}</option>
+          </c:forEach>
+      </select>
+  </div>
+  
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+            <th>Cód. Emp.</th>
+            <th>Cód. Vend.</th>
+            <th>Vendedor</th>
+            <th>Tp. Produto</th>
+            <th>Cód. Prod.</th>
+            <th>Produto</th>            
+            <th>Total Líq.</th>
+        </tr>
+    </thead>
+    <tbody id="productTableBody">
+        <c:set var="total" value="0" />
+        <c:forEach items="${det_sup.rows}" var="row">
+            <tr class="table-row" data-vendedor="${row.VENDEDOR}">
+                <td>${row.CODEMP}</td>
+                <td>${row.CODVEND}</td>
+                <td>${row.VENDEDOR}</td>
+                <td>${row.TIPOPROD}</td>
+                <td onclick="abrir_det('${row.CODPROD}','${row.CODVEND}')">${row.CODPROD}</td>
+                <td>${row.PRODUTO}</td>
+                <td><fmt:formatNumber value="${row.TOTALLIQ}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                <c:set var="total" value="${total + row.TOTALLIQ}" />
+            </tr>
+        </c:forEach>
+        <tr>
+            <td><b>Total</b></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td><b><fmt:formatNumber value="${total}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
+        </tr>
+    </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+
+
+
+        // Função para abrir o novo nível
+
+        function abrir_det(produto,codvend) {
+                var params = {'A_CODPROD': parseInt(produto),
+                              'A_VENDEDOR': parseInt(codvend)
+
+                };
+                var level = 'lvl_n992lt';
                 openLevel(level, params);
             }
-
 
 
         // Filtrar tabela com base na seleção do vendedor
@@ -338,101 +380,73 @@
         });
 
 
-            let selectedSupervisor = '';
-
-            // Função para atualizar a query
-            function ref_fat(SUPERVISOR1) {
-                selectedSupervisor = {'A_SUPERVISOR': SUPERVISOR1};
-                const level = 'html5_a0togp0';
-                refreshDetails(level, selectedSupervisor);
-            }
 
 
+  document.addEventListener('DOMContentLoaded', function() {
+  var ctx = document.getElementById('doughnutChart').getContext('2d');
 
-        // Configuração do gráfico de rosca
-        document.addEventListener('DOMContentLoaded', function () {
-            var ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
-            var labels = [];
-            var data = [];
-
+  var vendedorLabels = [
             <c:forEach items="${fat_tipo.rows}" var="row">
-                labels.push('${row.VENDEDOR}');
-                data.push('${row.VLRFAT}');
-            </c:forEach>        
-
-            var doughnutChart = new Chart(ctxDoughnut, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.2)', 
-                            'rgba(54, 162, 235, 0.2)',
-                            'rgba(255, 206, 86, 0.2)',
-                            'rgba(75, 192, 192, 0.2)',
-                            'rgba(153, 102, 255, 0.2)',
-                            'rgba(255, 159, 64, 0.2)',
-                            'rgba(255, 0, 0, 0.2)',      // Vermelho
-                            'rgba(0, 128, 0, 0.2)',      // Verde
-                            'rgba(0, 0, 255, 0.2)',      // Azul
-                            'rgba(255, 255, 0, 0.2)'    // Amarelo
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutoutPercentage: 70,
-                    legend: {
-                        display: true
-                        
-                    },
-                    onClick: function(event, elements) {
-                        if (elements.length > 0) {
-                            var index = elements[0].index;
-                            var vendedor = doughnutChart.data.labels[index];
-                            //abrir_rota(vendedor)
-                            //alert( vendedor );
-                            //abrir_ven();                           
-                        }
-                    }
-                }
-            });
-        });
-
-
-
-        // Função para gerar botões dinamicamente
-        function generateButtons(records) {
-            const container = document.getElementById('button-container');
-
-            records.forEach((record, index) => {
-                const button = document.createElement('button');
-                button.className = 'button';
-                button.textContent = record.SUPERVISOR; // Usar o valor da coluna SUPERVISOR
-                const supervisorValue = record.SUPERVISOR;
-                button.addEventListener('click', () => {
-                    //alert( record.SUPERVISOR );
-                    ref_fat(supervisorValue);
-
-                    
-                });
-                container.appendChild(button);
-            });
-        }
-
-        // Obtendo dados da query e gerando botões
-        const records = [
-            <c:forEach items="${fat_sup.rows}" var="row">
-                { SUPERVISOR: '${row.SUPERVISOR}' }<c:if test="${!empty row.SUPERVISOR}">,</c:if>
-            </c:forEach>
+            "${row.AD_TPPROD}-${row.CODVEND}-${row.VENDEDOR}",
+            </c:forEach>              
         ];
 
-        // Chamar a função para gerar os botões
-        generateButtons(records);
+  var vendedorData = [
+      <c:forEach items="${fat_tipo.rows}" var="row">
+          ${row.VLRFAT},
+      </c:forEach>        
+  ];
 
 
-    </script>
+  var doughnutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: vendedorLabels,
+      datasets: [{
+        label: 'Faturamento',
+        data: vendedorData,
+        backgroundColor: [
+        'rgba(255, 99, 132, 0.4)',
+        'rgba(54, 162, 235, 0.4)',
+        'rgba(255, 206, 86, 0.4)',
+        'rgba(75, 192, 192, 0.4)',
+        'rgba(153, 102, 255, 0.4)',
+        'rgba(255, 159, 64, 0.4)'            
+    ],
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '50%',
+      plugins: {
+        tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.label || '';
+                        let value = context.raw || 0;
+                        let formattedValue = new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+                        return label + ': ' + formattedValue;
+                    }
+                }
+            },        
+        legend: {
+            position: 'left',
+            align: 'center', // Alinhamento vertical da legenda
+        }
+      },
+      onClick: function(evt, activeElements) {
+        if (activeElements.length > 0) {
+            const index = activeElements[0].index;
+            const grupo = vendedorLabels[index].split('-')[0];
+            const grupo1 = vendedorLabels[index].split('-')[1];
+            //ref_sup(grupo,grupo1);
+        }
+      }
+    }
+  });
+});  
+</script>
+
 </body>
 </html>

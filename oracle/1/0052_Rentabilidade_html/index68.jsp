@@ -81,6 +81,11 @@
       font-weight: bold;
       pointer-events: none; /* Permite interação com o gráfico */
     }    
+    /* Estilo do filtro */
+    .filter-container {
+        margin-bottom: 20px;
+        align-self: flex-start; /* Alinha o filtro à esquerda */
+    }    
   </style>
 
 <snk:load/>
@@ -99,6 +104,7 @@
   SELECT
   CAB.CODEMP,
   CAB.NUNOTA,
+  PRO.AD_TPPROD,
   (F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD,
   ITE.CODPROD||'-'||PRO.DESCRPROD AS PRODUTO,
   VEN.CODGER,
@@ -142,15 +148,17 @@
   AND (CAB.DTNEG BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)
   AND TOP.TIPMOV IN ('V', 'D')
   AND TOP.ATIVO = 'S'
+  
 
   AND CAB.CODNAT IN (:P_NATUREZA)
   AND CAB.CODCENCUS IN (:P_CR)
   AND CAB.CODVEND IN (:P_VENDEDOR)
   AND VEN.AD_ROTA IN (:P_ROTA)
 
-  GROUP BY CAB.CODEMP, CAB.NUNOTA, CAB.TIPMOV,(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),ITE.CODPROD||'-'||PRO.DESCRPROD,VEN.CODGER
+  GROUP BY CAB.CODEMP, CAB.NUNOTA, CAB.TIPMOV,PRO.AD_TPPROD,(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),ITE.CODPROD||'-'||PRO.DESCRPROD,VEN.CODGER
   )
-  WHERE (CODGER = :A_GERENTE OR :A_GERENTE IS NULL)
+  WHERE (CODGER = :A_GERENTE)
+  AND AD_TPPROD = :A_TPPROD
       
 
 
@@ -158,6 +166,8 @@
 
   <snk:query var="fat_tipo">  
     SELECT
+    PRO.AD_TPPROD,
+    VEN.CODGER,
     VEN.AD_SUPERVISOR,
     VEN1.APELIDO AS SUPERVISOR,
     ROUND(SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END), 2) AS VLRFAT
@@ -172,15 +182,100 @@
     AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
     AND TOP.TIPMOV IN ('V', 'D')
     AND TOP.ATIVO = 'S'
+
+
+    AND PRO.AD_TPPROD = :A_TPPROD
     AND VEN.CODGER = :A_GERENTE
+     
+
+
     AND CAB.CODEMP IN (:P_EMPRESA)
     AND CAB.CODNAT IN (:P_NATUREZA)
     AND CAB.CODCENCUS IN (:P_CR)
     AND CAB.CODVEND IN (:P_VENDEDOR)
     AND VEN.AD_ROTA IN (:P_ROTA)
-    GROUP BY VEN.AD_SUPERVISOR,VEN1.APELIDO
-    ORDER BY 3 DESC
+    GROUP BY PRO.AD_TPPROD,VEN.CODGER,VEN.AD_SUPERVISOR,VEN1.APELIDO
+    ORDER BY 5 DESC
 </snk:query>    
+
+
+<snk:query var="det_sup">
+SELECT
+CODEMP,AD_SUPERVISOR,SUPERVISOR,CODGER,GERENTE,TIPOPROD,CODPROD,PRODUTO,SUM(TOTALLIQ)TOTALLIQ
+FROM(
+
+SELECT
+CAB.CODEMP,
+CAB.NUNOTA,
+PRO.AD_TPPROD,
+(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD,
+ITE.CODPROD,
+PRO.DESCRPROD AS PRODUTO,
+VEN.CODGER,
+VENG.APELIDO AS GERENTE,
+VEN.AD_SUPERVISOR,
+VENS.APELIDO AS SUPERVISOR,
+SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
+SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
+SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
+SUM(ITE.VLRIPI) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRIPI,
+SUM(ITE.VLRSUBST) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRSUBST,
+SUM(ITE.VLRICMS) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS,
+NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRPIS,
+NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRCOFINS,
+SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS CUSMEDSICM_TOT,
+SUM((FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS HL,
+(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+    - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0)
+    - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0)
+    - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS MARGEMNON,
+        (
+(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+    - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6)
+    - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7)
+    - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+) * 100 / NULLIF(SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)
+) PERCMARGEM,
+CAB.TIPMOV
+FROM TGFCAB CAB
+INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+INNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNAT
+INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
+INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+INNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
+INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
+LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
+INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND C.DTATUAL <= CAB.DTNEG)
+LEFT JOIN TGFPAR PARM ON PARM.CODPARC = PAR.CODPARCMATRIZ
+INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+WHERE TOP.GOLSINAL = -1
+AND (CAB.DTNEG BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)
+AND TOP.TIPMOV IN ('V', 'D')
+AND TOP.ATIVO = 'S'
+AND CAB.CODNAT IN (:P_NATUREZA)
+AND CAB.CODCENCUS IN (:P_CR)
+AND CAB.CODVEND IN (:P_VENDEDOR)
+AND VEN.AD_ROTA IN (:P_ROTA)
+
+GROUP BY CAB.CODEMP, CAB.NUNOTA, CAB.TIPMOV,PRO.AD_TPPROD,(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)),
+ITE.CODPROD,PRO.DESCRPROD,VEN.CODGER,VENG.APELIDO,VEN.AD_SUPERVISOR,VENS.APELIDO
+)
+WHERE 
+AD_TPPROD = :A_TPPROD
+AND 
+(
+(AD_SUPERVISOR = :A_SUPERVISOR)
+OR
+(CODGER = :A_GERENTE AND :A_SUPERVISOR IS NULL)
+)
+GROUP BY CODEMP,AD_SUPERVISOR,SUPERVISOR,CODGER,GERENTE,TIPOPROD,CODPROD,PRODUTO
+
+</snk:query>
+
 
 
 <div class="section">
@@ -195,121 +290,108 @@
 
 <div class="section">
   <div class="title">Detalhamento por Produto</div>
+  
+    <!-- Filtro de Supervisor -->
+    <div class="filter-container">
+      <label for="supervisorFilter">Filtro por Supervisor:</label>
+      <select id="supervisorFilter" class="form-control">
+          <option value="">Todos</option>
+          <c:forEach items="${fat_tipo.rows}" var="row">
+              <option value="${row.SUPERVISOR}">${row.SUPERVISOR}</option>
+          </c:forEach>
+      </select>
+  </div>
+  
   <div class="table-container">
     <table>
       <thead>
         <tr>
-          <th>Supervisor</th>
-          <th>Produto</th>
-          <th>Preço Médio</th>
-          <th>Vlr. Fat.</th>
-          <th>Margem Nom.</th>
+            <th>Cód. Emp.</th>
+            <th>Cód. Sup.</th>
+            <th>Supervisor</th>
+            <th>Tp. Produto</th>
+            <th>Cód. Prod.</th>
+            <th>Produto</th>            
+            <th>Total Líq.</th>
         </tr>
-      </thead>
-      <tbody>
+    </thead>
+    <tbody id="productTableBody">
+        <c:set var="total" value="0" />
+        <c:forEach items="${det_sup.rows}" var="row">
+            <tr class="table-row" data-supervisor="${row.SUPERVISOR}">
+                <td>${row.CODEMP}</td>
+                <td>${row.AD_SUPERVISOR}</td>
+                <td>${row.SUPERVISOR}</td>
+                <td>${row.TIPOPROD}</td>
+                <td onclick="abrir_det('${row.CODPROD}','${row.AD_SUPERVISOR}')">${row.CODPROD}</td>
+                <td>${row.PRODUTO}</td>
+                <td><fmt:formatNumber value="${row.TOTALLIQ}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                <c:set var="total" value="${total + row.TOTALLIQ}" />
+            </tr>
+        </c:forEach>
         <tr>
-          <td>Dados 1</td>
-          <td>Dados 2</td>
-          <td>Dados 3</td>
-          <td>Dados 4</td>
-          <td>Dados 5</td>
+            <td><b>Total</b></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td><b><fmt:formatNumber value="${total}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
         </tr>
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>                                
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>
-        <tr>
-          <td>Dados 6</td>
-          <td>Dados 7</td>
-          <td>Dados 8</td>
-          <td>Dados 9</td>
-          <td>Dados 10</td>
-        </tr>
-        
-        <tr>
-          <td><b>Total</b></td>
-          <td></td>
-          <td>100.000</td>
-          <td>100.000</td><!--<fmt:formatNumber value="${total}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>-->
-          <td>100.000</td>        
-      </tbody>
+    </tbody>
     </table>
   </div>
 </div>
 
 <script>
+
+
+        // Função para abrir o novo nível
+        function abrir(grupo,grupo1) {
+            var params = { 
+                'A_TPPROD' : parseInt(grupo),
+                'A_SUPERVISOR': parseInt(grupo1)
+             };
+            var level = 'lvl_a0togpw';
+            
+            openLevel(level, params);
+        }
+
+
+        function abrir_det(produto,supervisor) {
+                var params = {'A_CODPROD': parseInt(produto),
+                              'A_SUPERVISOR': parseInt(supervisor)
+
+                };
+                var level = 'lvl_n992o6';
+                openLevel(level, params);
+            }
+
+
+
+        // Filtrar tabela com base na seleção do supervisor
+        document.getElementById('supervisorFilter').addEventListener('change', function() {
+            var selectedSupervisor = this.value;
+            var rows = document.querySelectorAll('#productTableBody .table-row');
+
+            rows.forEach(function(row) {
+                if (selectedSupervisor === '' || row.dataset.supervisor === selectedSupervisor) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+
+
+
   document.addEventListener('DOMContentLoaded', function() {
   var ctx = document.getElementById('doughnutChart').getContext('2d');
 
   var supervisorLabels = [
             <c:forEach items="${fat_tipo.rows}" var="row">
-                "${row.AD_SUPERVISOR}-${row.SUPERVISOR}",
+                "${row.AD_TPPROD}-${row.AD_SUPERVISOR}-${row.SUPERVISOR}",
             </c:forEach>              
         ];
 
@@ -347,8 +429,6 @@
                     label: function(context) {
                         let label = context.label || '';
                         let value = context.raw || 0;
-                        let total = context.dataset.data.reduce((acc, val) => acc + val, 0);
-                        let percentage = ((value / total) * 100).toFixed(2);
                         let formattedValue = new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
                         return label + ': ' + formattedValue;
                     }
@@ -357,6 +437,14 @@
         legend: {
             position: 'left',
             align: 'center', // Alinhamento vertical da legenda
+        }
+      },
+      onClick: function(evt, activeElements) {
+        if (activeElements.length > 0) {
+            const index = activeElements[0].index;
+            const grupo = supervisorLabels[index].split('-')[0];
+            const grupo1 = supervisorLabels[index].split('-')[1];
+            abrir(grupo,grupo1);
         }
       }
     }

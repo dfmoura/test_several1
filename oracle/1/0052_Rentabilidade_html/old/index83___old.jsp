@@ -10,7 +10,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tela de Desconto</title>
+    <title>Tela de HL</title>
     <style>
         body {
             display: flex;
@@ -66,7 +66,6 @@
             justify-content: center; /* Centraliza horizontalmente o gráfico */
             align-items: center; /* Centraliza verticalmente o gráfico */
         }
-
         .chart-overlay {
             position: absolute;
             display: flex;
@@ -79,7 +78,7 @@
             transform: translateX(45%); /* Ajusta a posição do texto para centralizá-lo */
             /*text-align: center; Opcional, para centralizar o texto se ele tiver várias linhas */            
         }
-        
+       
         .dropdown-container {
             display: flex;
             justify-content: flex-start; /* Alinha o dropdown à esquerda */
@@ -105,7 +104,6 @@
             overflow-y: auto; /* Habilita a rolagem vertical */
             overflow-x: hidden; /* Desabilita a rolagem horizontal */
             padding-right: 10px; /* Espaço para evitar o corte do conteúdo na rolagem */
-            font-size: 12px;
         }
         .table-container table {
             width: 100%;
@@ -128,15 +126,17 @@
     </style>
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
+    
     <snk:load/>
 
 </head>
 <body>
 
-    <snk:query var="desco_total">
 
 
-    WITH DESCO AS
+    <snk:query var="hl_total">
+
+    WITH HL AS
     (
     
     SELECT
@@ -189,12 +189,12 @@
     AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
     AND TOP.TIPMOV IN ('V', 'D')
     AND TOP.ATIVO = 'S'
-
+    
     AND CAB.CODNAT IN (:P_NATUREZA)
     AND CAB.CODCENCUS IN (:P_CR)
     AND CAB.CODVEND IN (:P_VENDEDOR)
     AND VEN.AD_ROTA IN (:P_ROTA)
-
+    
     GROUP BY 
     CAB.CODEMP, 
     SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV, 
@@ -203,15 +203,90 @@
     PRO.AD_TPPROD,
     ITE.CODPROD
     )
-    SELECT SUM(VLRDESC) VLRDESC FROM DESCO 
+    SELECT SUM(HL) HL FROM HL 
     
-
-
     </snk:query>
 
 
-    <snk:query var="desc_tipo">
-        WITH DESCO AS
+
+<snk:query var="hl_tipo">
+
+WITH HL AS
+(
+
+SELECT
+CAB.CODEMP,
+SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
+CAB.NUNOTA,
+PRO.AD_TPPROD,
+NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD,
+ITE.CODPROD,
+SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
+SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
+SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
+SUM(ITE.VLRIPI) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRIPI,
+SUM(ITE.VLRSUBST) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRSUBST,
+SUM(ITE.VLRICMS) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS,
+
+SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRPIS,
+SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRCOFINS,
+
+SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS CUSMEDSICM_TOT,
+SUM((FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS HL,
+(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+- NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0)
+- NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0)
+- SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS MARGEMNON,
+    (
+(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+- (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6)
+- (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7)
+- SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+) * 100 / NULLIF(SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)
+) PERCMARGEM,
+CAB.TIPMOV
+FROM TGFCAB CAB
+INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+INNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNAT
+INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
+INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+INNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
+INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
+LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
+INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+LEFT JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND C.DTATUAL <= CAB.DTNEG)
+LEFT JOIN TGFPAR PARM ON PARM.CODPARC = PAR.CODPARCMATRIZ
+WHERE TOP.GOLSINAL = -1
+AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+AND TOP.TIPMOV IN ('V', 'D')
+AND TOP.ATIVO = 'S'
+
+AND CAB.CODNAT IN (:P_NATUREZA)
+AND CAB.CODCENCUS IN (:P_CR)
+AND CAB.CODVEND IN (:P_VENDEDOR)
+AND VEN.AD_ROTA IN (:P_ROTA)
+
+GROUP BY 
+CAB.CODEMP, 
+SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV, 
+CAB.NUNOTA, 
+CAB.TIPMOV,
+PRO.AD_TPPROD,
+ITE.CODPROD
+)
+SELECT AD_TPPROD,TIPOPROD,SUM(HL) HL FROM HL 
+GROUP BY AD_TPPROD,TIPOPROD
+
+</snk:query>
+
+
+<snk:query var="hl_ger">
+    
+        WITH HL AS
         (
         
         SELECT
@@ -221,6 +296,8 @@
         PRO.AD_TPPROD,
         NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD,
         ITE.CODPROD,
+        VEN.CODGER,
+        NVL(VENG.APELIDO,'NAO INFORMADO') AS GERENTE,
         SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
         SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
         SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
@@ -264,277 +341,197 @@
         AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
         AND TOP.TIPMOV IN ('V', 'D')
         AND TOP.ATIVO = 'S'
-
+        
         AND CAB.CODNAT IN (:P_NATUREZA)
         AND CAB.CODCENCUS IN (:P_CR)
         AND CAB.CODVEND IN (:P_VENDEDOR)
         AND VEN.AD_ROTA IN (:P_ROTA)
-
+        
         GROUP BY 
         CAB.CODEMP, 
         SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV, 
         CAB.NUNOTA, 
         CAB.TIPMOV,
         PRO.AD_TPPROD,
-        ITE.CODPROD
+        ITE.CODPROD,
+        VEN.CODGER,
+        VENG.APELIDO
         )
-        SELECT AD_TPPROD,TIPOPROD,SUM(VLRDESC) VLRDESC FROM DESCO GROUP BY AD_TPPROD,TIPOPROD
-        
+        SELECT AD_TPPROD,CODGER,GERENTE,SUM(HL) HL FROM HL
+        WHERE AD_TPPROD = :A_TPPROD OR ( AD_TPPROD = 4 AND :A_TPPROD IS NULL)
+        GROUP BY AD_TPPROD,CODGER,GERENTE
+        ORDER BY 4 DESC
+
+
 </snk:query>
 
-
-<snk:query var="desc_ger">
-
-WITH DESCO AS
-(
-
-SELECT
-CAB.CODEMP,
-SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
-CAB.NUNOTA,
-PRO.AD_TPPROD,
-NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD,
-ITE.CODPROD,
-VEN.CODGER,
-DECODE(VENG.APELIDO, '<SEM VENDEDOR>', 'NAO CADASTRADO', VENG.APELIDO) AS GERENTE,    
-SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
-SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
-SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
-SUM(ITE.VLRIPI) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRIPI,
-SUM(ITE.VLRSUBST) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRSUBST,
-SUM(ITE.VLRICMS) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS,
-
-SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRPIS,
-SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRCOFINS,
-
-SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS CUSMEDSICM_TOT,
-SUM((FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS HL,
-(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
-- NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0)
-- NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0)
-- SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
-) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS MARGEMNON,
+<snk:query var="hl_cli">
+    WITH HL AS
     (
-(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
-- (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6)
-- (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7)
-- SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
-) * 100 / NULLIF(SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)
-) PERCMARGEM,
-CAB.TIPMOV
-FROM TGFCAB CAB
-INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
-INNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNAT
-INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
-INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-INNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
-INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
-LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
-INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
-LEFT JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND C.DTATUAL <= CAB.DTNEG)
-LEFT JOIN TGFPAR PARM ON PARM.CODPARC = PAR.CODPARCMATRIZ
-WHERE TOP.GOLSINAL = -1
-AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-AND TOP.TIPMOV IN ('V', 'D')
-AND TOP.ATIVO = 'S'
-
-AND CAB.CODNAT IN (:P_NATUREZA)
-AND CAB.CODCENCUS IN (:P_CR)
-AND CAB.CODVEND IN (:P_VENDEDOR)
-AND VEN.AD_ROTA IN (:P_ROTA)
-
-GROUP BY 
-CAB.CODEMP, 
-SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV, 
-CAB.NUNOTA, 
-CAB.TIPMOV,
-PRO.AD_TPPROD,
-ITE.CODPROD,
-VEN.CODGER,
-VENG.APELIDO
-)
-SELECT AD_TPPROD,TIPOPROD,CODGER,GERENTE,SUM(VLRDESC) VLRDESC 
-FROM DESCO 
-WHERE AD_TPPROD = :A_TPPROD OR ( AD_TPPROD = 4 AND :A_TPPROD IS NULL)
-GROUP BY AD_TPPROD,TIPOPROD,CODGER,GERENTE
-ORDER BY 5 DESC
-</snk:query>
-
-
-
-<snk:query var="desc_cli">
-SELECT * FROM (
-WITH DESCO AS
-(
-SELECT
-CAB.CODEMP,
-SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
-CAB.NUNOTA,
-PRO.AD_TPPROD,
-NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD,
-ITE.CODPROD,
-VEN.CODGER,
-DECODE(VENG.APELIDO, '<SEM VENDEDOR>', 'NAO CADASTRADO', VENG.APELIDO) AS GERENTE,    
-CAB.CODPARC,
-SUBSTR(PAR.RAZAOSOCIAL,1,12) AS PARCEIRO,
-SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
-SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
-SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
-SUM(ITE.VLRIPI) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRIPI,
-SUM(ITE.VLRSUBST) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRSUBST,
-SUM(ITE.VLRICMS) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS,
-
-SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRPIS,
-SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRCOFINS,
-
-SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS CUSMEDSICM_TOT,
-SUM((FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS HL,
-(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
-- NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0)
-- NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0)
-- SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
-) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS MARGEMNON,
-    (
-(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
-- (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6)
-- (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7)
-- SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
-) * 100 / NULLIF(SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)
-) PERCMARGEM,
-CAB.TIPMOV
-FROM TGFCAB CAB
-INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
-INNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNAT
-INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
-INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-INNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
-INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
-LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
-INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
-LEFT JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND C.DTATUAL <= CAB.DTNEG)
-LEFT JOIN TGFPAR PARM ON PARM.CODPARC = PAR.CODPARCMATRIZ
-WHERE TOP.GOLSINAL = -1
-AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-AND TOP.TIPMOV IN ('V', 'D')
-AND TOP.ATIVO = 'S'
-
-AND CAB.CODNAT IN (:P_NATUREZA)
-AND CAB.CODCENCUS IN (:P_CR)
-AND CAB.CODVEND IN (:P_VENDEDOR)
-AND VEN.AD_ROTA IN (:P_ROTA)
-
-GROUP BY 
-CAB.CODEMP, 
-SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV, 
-CAB.NUNOTA, 
-CAB.TIPMOV,
-PRO.AD_TPPROD,
-ITE.CODPROD,
-VEN.CODGER,
-VENG.APELIDO,
-CAB.CODPARC,
-SUBSTR(PAR.RAZAOSOCIAL,1,12)
-)
-SELECT AD_TPPROD,TIPOPROD,CODPARC,PARCEIRO,SUM(VLRDESC) VLRDESC 
-FROM DESCO 
-WHERE AD_TPPROD = :A_TPPROD OR ( AD_TPPROD = 4 AND :A_TPPROD IS NULL)
-GROUP BY AD_TPPROD,TIPOPROD,CODPARC,PARCEIRO
-ORDER BY 5 DESC)
-WHERE ROWNUM <= 10
+    
+    SELECT
+    CAB.CODEMP,
+    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
+    CAB.NUNOTA,
+    PRO.AD_TPPROD,
+    NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD,
+    ITE.CODPROD,
+    VEN.CODGER,
+    NVL(VENG.APELIDO,'NAO INFORMADO') AS GERENTE,
+    CAB.CODPARC,
+    SUBSTR(PAR.RAZAOSOCIAL,1,11) PARCEIRO,
+    
+    SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
+    SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
+    SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
+    SUM(ITE.VLRIPI) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRIPI,
+    SUM(ITE.VLRSUBST) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRSUBST,
+    SUM(ITE.VLRICMS) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS,
+    
+    SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRPIS,
+    SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRCOFINS,
+    
+    SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS CUSMEDSICM_TOT,
+    SUM((FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS HL,
+    (SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+    - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0)
+    - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0)
+    - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+    ) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS MARGEMNON,
+        (
+    (SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+    - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6)
+    - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7)
+    - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+    ) * 100 / NULLIF(SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)
+    ) PERCMARGEM,
+    CAB.TIPMOV
+    FROM TGFCAB CAB
+    INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+    INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+    INNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNAT
+    INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
+    INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+    INNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
+    INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+    LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
+    LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
+    INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+    LEFT JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+    LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND C.DTATUAL <= CAB.DTNEG)
+    LEFT JOIN TGFPAR PARM ON PARM.CODPARC = PAR.CODPARCMATRIZ
+    WHERE TOP.GOLSINAL = -1
+    AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+    AND TOP.TIPMOV IN ('V', 'D')
+    AND TOP.ATIVO = 'S'
+    
+    AND CAB.CODNAT IN (:P_NATUREZA)
+    AND CAB.CODCENCUS IN (:P_CR)
+    AND CAB.CODVEND IN (:P_VENDEDOR)
+    AND VEN.AD_ROTA IN (:P_ROTA)
+    
+    GROUP BY 
+    CAB.CODEMP, 
+    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV, 
+    CAB.NUNOTA, 
+    CAB.TIPMOV,
+    PRO.AD_TPPROD,
+    ITE.CODPROD,
+    VEN.CODGER,
+    VENG.APELIDO,
+    CAB.CODPARC,
+    SUBSTR(PAR.RAZAOSOCIAL,1,11) 
+    )
+    SELECT AD_TPPROD,CODPARC,PARCEIRO,SUM(HL) HL FROM HL 
+    WHERE AD_TPPROD = :A_TPPROD OR ( AD_TPPROD = 4 AND :A_TPPROD IS NULL)
+    GROUP BY AD_TPPROD,CODPARC,PARCEIRO
+    ORDER BY 4 DESC
 </snk:query>    
 
 
-<snk:query var="desc_produto">
-
-WITH DESCO AS
-(
-
-SELECT
-CAB.CODEMP,
-SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
-CAB.NUNOTA,
-PRO.AD_TPPROD,
-NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD,
-ITE.CODPROD,
-PRO.DESCRPROD,
-VEN.CODGER,
-DECODE(VENG.APELIDO, '<SEM VENDEDOR>', 'NAO CADASTRADO', VENG.APELIDO) AS GERENTE,    
-CAB.CODPARC,
-SUBSTR(PAR.RAZAOSOCIAL,1,12) AS PARCEIRO,
-SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
-SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
-SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
-SUM(ITE.VLRIPI) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRIPI,
-SUM(ITE.VLRSUBST) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRSUBST,
-SUM(ITE.VLRICMS) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS,
-
-SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRPIS,
-SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRCOFINS,
-
-SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS CUSMEDSICM_TOT,
-SUM((FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS HL,
-(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
-- NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0)
-- NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0)
-- SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
-) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS MARGEMNON,
+<snk:query var="hl_produto">
+    WITH HL AS
     (
-(SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
-- (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6)
-- (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7)
-- SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
-) * 100 / NULLIF(SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)
-) PERCMARGEM,
-CAB.TIPMOV
-FROM TGFCAB CAB
-INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
-INNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNAT
-INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
-INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-INNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
-INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
-LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
-INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
-LEFT JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND C.DTATUAL <= CAB.DTNEG)
-LEFT JOIN TGFPAR PARM ON PARM.CODPARC = PAR.CODPARCMATRIZ
-WHERE TOP.GOLSINAL = -1
-AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-AND TOP.TIPMOV IN ('V', 'D')
-AND TOP.ATIVO = 'S'
-
-AND CAB.CODNAT IN (:P_NATUREZA)
-AND CAB.CODCENCUS IN (:P_CR)
-AND CAB.CODVEND IN (:P_VENDEDOR)
-AND VEN.AD_ROTA IN (:P_ROTA)
-
-GROUP BY 
-CAB.CODEMP, 
-SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV, 
-CAB.NUNOTA, 
-CAB.TIPMOV,
-PRO.AD_TPPROD,
-ITE.CODPROD,
-PRO.DESCRPROD,
-VEN.CODGER,
-VENG.APELIDO,
-CAB.CODPARC,
-SUBSTR(PAR.RAZAOSOCIAL,1,12)
-)
-SELECT AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,SUM(VLRDESC) VLRDESC 
-FROM DESCO 
-WHERE AD_TPPROD = :A_TPPROD OR ( AD_TPPROD = 4 AND :A_TPPROD IS NULL)
-GROUP BY AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD
-ORDER BY 5 DESC
-
+    SELECT
+    CAB.CODEMP,
+    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
+    CAB.NUNOTA,
+    PRO.AD_TPPROD,
+    NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD,
+    ITE.CODPROD,
+    PRO.DESCRPROD,
+    VEN.CODGER,
+    NVL(VENG.APELIDO,'NAO INFORMADO') AS GERENTE,
+    CAB.CODPARC,
+    SUBSTR(PAR.RAZAOSOCIAL,1,11) PARCEIRO,
+    
+    SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
+    SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
+    SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
+    SUM(ITE.VLRIPI) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRIPI,
+    SUM(ITE.VLRSUBST) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRSUBST,
+    SUM(ITE.VLRICMS) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS,
+    
+    SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRPIS,
+    SUM((SELECT VALOR FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7)  * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS VLRCOFINS,
+    
+    SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS CUSMEDSICM_TOT,
+    SUM((FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END)) AS HL,
+    (SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+    - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6),0)
+    - NVL((SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7),0)
+    - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+    ) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS MARGEMNON,
+        (
+    (SUM(ITE.VLRTOT - ITE.VLRDESC - ITE.VLRICMS)
+    - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 6)
+    - (SELECT SUM(VALOR) FROM TGFDIN WHERE NUNOTA = CAB.NUNOTA AND CODIMP = 7)
+    - SUM(NVL(CUS.CUSSEMICM,0) * ITE.QTDNEG)
+    ) * 100 / NULLIF(SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC),0)
+    ) PERCMARGEM,
+    CAB.TIPMOV
+    FROM TGFCAB CAB
+    INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+    INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+    INNER JOIN TGFNAT NAT ON CAB.CODNAT = NAT.CODNAT
+    INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
+    INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+    INNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
+    INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+    LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
+    LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
+    INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+    LEFT JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+    LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL) FROM TGFCUS C WHERE C.CODEMP = CAB.CODEMP AND C.CODPROD = ITE.CODPROD AND C.DTATUAL <= CAB.DTNEG)
+    LEFT JOIN TGFPAR PARM ON PARM.CODPARC = PAR.CODPARCMATRIZ
+    WHERE TOP.GOLSINAL = -1
+    AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+    AND TOP.TIPMOV IN ('V', 'D')
+    AND TOP.ATIVO = 'S'
+    
+    AND CAB.CODNAT IN (:P_NATUREZA)
+    AND CAB.CODCENCUS IN (:P_CR)
+    AND CAB.CODVEND IN (:P_VENDEDOR)
+    AND VEN.AD_ROTA IN (:P_ROTA)
+    
+    GROUP BY 
+    CAB.CODEMP, 
+    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV, 
+    CAB.NUNOTA, 
+    CAB.TIPMOV,
+    PRO.AD_TPPROD,
+    ITE.CODPROD,
+    PRO.DESCRPROD,
+    VEN.CODGER,
+    VENG.APELIDO,
+    CAB.CODPARC,
+    SUBSTR(PAR.RAZAOSOCIAL,1,11) 
+    )
+    SELECT AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,SUM(HL) HL 
+    FROM HL 
+    WHERE AD_TPPROD = :A_TPPROD OR ( AD_TPPROD = 4 AND :A_TPPROD IS NULL)
+    GROUP BY AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD
+    
 
 </snk:query>
 
@@ -543,30 +540,31 @@ ORDER BY 5 DESC
     <div class="container">
         <div class="section">
             <div class="part" id="left-top">
-                <div class="part-title">Desconto por Tipo Produto</div>
+                <div class="part-title">HL por Tipo Produto</div>
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
-                    <c:forEach items="${desco_total.rows}" var="row">
-                        <div class="chart-overlay"><fmt:formatNumber value="${row.VLRDESC}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
-                    </c:forEach>                    
+                    <c:forEach items="${hl_total.rows}" var="row">
+                        <div class="chart-overlay"><fmt:formatNumber value="${row.HL}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
+                    </c:forEach>
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">Desconto Por Gerente</div>
+                <div class="part-title">HL Por Gerente</div>
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
+
                 </div>
             </div>
         </div>
         <div class="section">
             <div class="part" id="right-top">
-                <div class="part-title">TOP 10 - Desconto Por Cliente</div>
+                <div class="part-title">HL Por Cliente</div>
                 <div class="chart-container">
                     <canvas id="barChartRight"></canvas>
                 </div>
             </div>
             <div class="part" id="right-bottom">
-                <div class="part-title">Desconto por Produto</div>
+                <div class="part-title">HL por Produto</div>
                 <div class="table-container">
                     <table>
                         <thead>
@@ -575,19 +573,19 @@ ORDER BY 5 DESC
                                 <th>Tp. Prod.</th>
                                 <th>Cód. Prod.</th>
                                 <th>Produto</th>
-                                <th>Vlr. Desconto</th>
+                                <th>HL</th>
                             </tr>
                         </thead>
                         <tbody>
                             <c:set var="total" value="0" />
-                            <c:forEach var="item" items="${desc_produto.rows}">
+                            <c:forEach var="item" items="${hl_produto.rows}">
                                 <tr>
                                     <td>${item.AD_TPPROD}</td>
                                     <td>${item.TIPOPROD}</td>
-                                    <td onclick="abrir_prod('${item.AD_TPPROD}','${item.CODPROD}')">${item.CODPROD}</td>
+                                    <td>${item.CODPROD}</td>
                                     <td>${item.DESCRPROD}</td>
-                                    <td><fmt:formatNumber value="${item.VLRDESC}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                                    <c:set var="total" value="${total + item.VLRDESC}" />
+                                    <td><fmt:formatNumber value="${item.HL}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <c:set var="total" value="${total + item.HL}" />
                                 </tr>
                             </c:forEach>
                             <tr>
@@ -607,75 +605,33 @@ ORDER BY 5 DESC
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Adicionando a biblioteca jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Adicionando a biblioteca DataTables -->
-    <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
+
     <script>
 
    // Função para atualizar a query
-   function ref_desc(tipoprod) {
-        const params = {'A_TPPROD': tipoprod};
-        refreshDetails('html5_a73fhib', params); 
+   function ref_hl(tipoprod) {
+        const params = {'A_TPPROD': parseInt(tipoprod)};
+        refreshDetails('html5_a73fhg9', params); 
     }          
 
-
-
-        // Função para abrir o novo nível
-
-        function abrir_ger(grupo,grupo1) {
-            var params = { 
-                'A_TPPROD' : parseInt(grupo),
-                'A_CODGER': parseInt(grupo1)
-             };
-            var level = 'lvl_w1rozi';
-            
-            openLevel(level, params);
-        }
-
-
-        function abrir_cli(grupo,grupo1) {
-            var params = { 
-                'A_TPPROD' : parseInt(grupo),
-                'A_CODPARC': parseInt(grupo1)
-             };
-            var level = 'lvl_w1rozi';
-            
-            openLevel(level, params);
-        }
-
-
-
-
-        function abrir_prod(grupo,grupo1) {
-            var params = { 
-                'A_TPPROD' : parseInt(grupo),
-                'A_CODPROD': parseInt(grupo1)
-             };
-            var level = 'lvl_w1rozi';
-            
-            openLevel(level, params);
-        }    
-
-
-
-
-    // Obtendo os dados da query JSP para o gráfico de rosca
+        // Obtendo os dados da query JSP para o gráfico de rosca
         const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
 
-        var descTipoLabel = [];
-        var descTipoData = [];
-        <c:forEach items="${desc_tipo.rows}" var="row">
-            descTipoLabel.push('${row.AD_TPPROD} - ${row.TIPOPROD}');
-            descTipoData.push(parseFloat(${row.VLRDESC}));
+        var hlTipoLabel = [];
+        var hlTipoData = [];
+        <c:forEach items="${hl_tipo.rows}" var="row">
+            hlTipoLabel.push('${row.AD_TPPROD} - ${row.TIPOPROD}');
+            hlTipoData.push(parseFloat(${row.HL}));
         </c:forEach>
     
         // Dados fictícios para o gráfico de rosca
         const doughnutChart = new Chart(ctxDoughnut, {
             type: 'doughnut',
             data: {
-                labels: descTipoLabel,
+                labels: ['Label 1', 'Label 2'],//hlTipoLabel,
                 datasets: [{
-                    label: 'Vlr. Desc.',
-                    data: descTipoData,
+                    label: 'HL',
+                    data: [10, 20], //hlTipoData,
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.2)',
                         'rgba(54, 162, 235, 0.2)',
@@ -707,33 +663,33 @@ ORDER BY 5 DESC
                 onClick: function(event, elements) {
                     if (elements.length > 0) {
                         var index = elements[0].index;
-                        var label = descTipoLabel[index].split('-')[0];
+                        var label = hlTipoLabel[index].split('-')[0];
                         
-                        ref_desc(label);
-                        
+                        ref_hl(label);
+                        //alert(label);
                     }
                 }
             }
         });
 
         // Dados fictícios para o gráfico de barras verticais
+        const ctxBar = document.getElementById('barChart').getContext('2d');
 
-        var gerDescLabels = [];
-        var gerDescData = [];
+        var gerHlLabels = [];
+        var gerHlData = [];
 
-        <c:forEach items="${desc_ger.rows}" var="row">
-            gerDescLabels.push('${row.AD_TPPROD} - ${row.CODGER} - ${row.GERENTE}');
-            gerDescData.push(parseFloat(${row.VLRDESC}));
+        <c:forEach items="${hl_ger.rows}" var="row">
+            gerHlLabels.push('${row.AD_TPPROD} - ${row.CODGER} - ${row.GERENTE}');
+            gerHlData.push(parseFloat(${row.HL}));
         </c:forEach> 
 
-        const ctxBar = document.getElementById('barChart').getContext('2d');
         const barChart = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: gerDescLabels,
+                labels: gerHlLabels,
                 datasets: [{
-                    label: 'Desconto por Gerente',
-                    data: gerDescData,
+                    label: 'HL por Gerente',
+                    data: gerHlData,
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
@@ -754,35 +710,27 @@ ORDER BY 5 DESC
                     y: {
                         beginAtZero: true
                     }
-                },
-                onClick: function(evt, activeElements) {
-                    if (activeElements.length > 0) {
-                        const index = activeElements[0].index;
-                        const grupo = gerDescLabels[index].split('-')[0];
-                        const grupo1 = gerDescLabels[index].split('-')[1];
-                        abrir_ger(grupo,grupo1);
-                    }
                 }
             }
         });
 
         // Dados fictícios para o gráfico de colunas verticais
+        const ctxBarRight = document.getElementById('barChartRight').getContext('2d');
 
         var clienteLabels = [];
         var clienteData = [];
 
-        <c:forEach items="${desc_cli.rows}" var="row">
+        <c:forEach items="${hl_cli.rows}" var="row">
             clienteLabels.push('${row.AD_TPPROD} - ${row.CODPARC} - ${row.PARCEIRO}');
-            clienteData.push(parseFloat(${row.VLRDESC}));
+            clienteData.push(parseFloat(${row.HL}));
         </c:forEach>         
 
-        const ctxBarRight = document.getElementById('barChartRight').getContext('2d');
         const barChartRight = new Chart(ctxBarRight, {
             type: 'bar',
             data: {
                 labels: clienteLabels,
                 datasets: [{
-                    label: 'Desconto por Cliente',
+                    label: 'HL por Cliente',
                     data: clienteData,
                     backgroundColor: 'rgba(153, 102, 255, 0.2)',
                     borderColor: 'rgba(153, 102, 255, 1)',
@@ -803,14 +751,6 @@ ORDER BY 5 DESC
                     },
                     y: {
                         beginAtZero: true
-                    }
-                },
-                onClick: function(evt, activeElements) {
-                    if (activeElements.length > 0) {
-                        const index = activeElements[0].index;
-                        const grupo = clienteLabels[index].split('-')[0];
-                        const grupo1 = clienteLabels[index].split('-')[1];
-                        abrir_cli(grupo,grupo1);
                     }
                 }
             }

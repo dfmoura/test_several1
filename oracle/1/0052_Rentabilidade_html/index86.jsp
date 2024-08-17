@@ -66,6 +66,18 @@
             justify-content: center; /* Centraliza horizontalmente o gráfico */
             align-items: center; /* Centraliza verticalmente o gráfico */
         }
+        .chart-overlay {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            left: 53%; /* Move o overlay 10% para a direita */
+            transform: translateX(45%); /* Ajusta a posição do texto para centralizá-lo */
+            /*text-align: center; Opcional, para centralizar o texto se ele tiver várias linhas */            
+        }        
         .dropdown-container {
             display: flex;
             justify-content: flex-start; /* Alinha o dropdown à esquerda */
@@ -91,6 +103,7 @@
             overflow-y: auto; /* Habilita a rolagem vertical */
             overflow-x: hidden; /* Desabilita a rolagem horizontal */
             padding-right: 10px; /* Espaço para evitar o corte do conteúdo na rolagem */
+            font-size: 12px;
         }
         .table-container table {
             width: 100%;
@@ -110,18 +123,40 @@
         .table-container tr:hover {
             background-color: #f1f1f1;
         }
+
     </style>
+
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
 
     <snk:load/>
 
 </head>
+
+
 <body>
+
+    <snk:query var="do_total">
+
+    SELECT 1 AS COD, NVL(ROUND(SUM(VLRBAIXA),2),0) * -1 AS VLRDO
+    FROM VGF_RESULTADO_GM
+    WHERE 
+    AD_TIPOCUSTO NOT LIKE 'N' 
+    AND CODCENCUS NOT BETWEEN 2500000 AND 2599999  
+    AND RECDESP = -1 AND SUBSTR(codnat, 1, 1) <> '9'
+    AND DHBAIXA IS NOT NULL 
+    AND CODEMP IN (:P_EMPRESA) 
+    AND CODNAT IN (:P_NATUREZA) 
+    AND CODCENCUS IN (:P_CR)
+    AND (DHBAIXA BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN) 
+
+    </snk:query>
+
 
     <snk:query var="do_emp">
         SELECT 
-        VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS CODEMP,
+        VGF.CODEMP,
+        SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
         ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
         FROM VGF_RESULTADO_GM VGF
         INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
@@ -135,7 +170,9 @@
         AND VGF.CODEMP IN (:P_EMPRESA) 
         AND VGF.CODNAT IN (:P_NATUREZA) 
         AND VGF.CODCENCUS IN (:P_CR)
-        GROUP BY VGF.CODEMP||'-'||EMP.NOMEFANTASIA
+        GROUP BY 
+        VGF.CODEMP,
+        SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV
     </snk:query>
     
     <snk:query var="do_nat">
@@ -143,7 +180,8 @@
     FROM 
     (
     SELECT 
-    VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS EMPRESA,
+    VGF.CODEMP,
+    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
     VGF.CODNAT||'-'||SUBSTR(VGF.DESCRNAT,1,10) AS NATUREZA,
     ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
     FROM VGF_RESULTADO_GM VGF
@@ -159,46 +197,51 @@
     AND VGF.CODNAT IN (:P_NATUREZA) 
     AND VGF.CODCENCUS IN (:P_CR)
     GROUP BY 
-    VGF.CODNAT||'-'||SUBSTR(VGF.DESCRNAT,1,10),
-    VGF.CODEMP||'-'||EMP.NOMEFANTASIA
-    ORDER BY 3 DESC)
-    WHERE ROWNUM < 11 AND EMPRESA = :A_EMPRESA
+    VGF.CODEMP,
+    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV,
+    VGF.CODNAT||'-'||SUBSTR(VGF.DESCRNAT,1,10)
+    ORDER BY 4 DESC)
+    WHERE ROWNUM < 11 AND 
+    CODEMP = :A_CODEMP OR ( CODEMP = 1 AND :A_CODEMP IS NULL)
 </snk:query>
 
 
 <snk:query var="do_nat_filtro">
-SELECT NATUREZA FROM (
-SELECT 
-VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS EMPRESA,
-VGF.CODNAT||'-'||VGF.DESCRNAT AS NATUREZA,
-VGF.CODCENCUS||'-'||VGF.DESCRCENCUS AS CR,
-ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
-FROM VGF_RESULTADO_GM VGF
-INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
-WHERE 
-VGF.AD_TIPOCUSTO NOT LIKE 'N' 
-AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
-AND VGF.RECDESP = -1 
-AND SUBSTR(VGF.codnat, 1, 1) <> '9'
-AND VGF.DHBAIXA IS NOT NULL 
-AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-AND VGF.CODEMP IN (:P_EMPRESA) 
-AND VGF.CODNAT IN (:P_NATUREZA) 
-AND VGF.CODCENCUS IN (:P_CR)
-AND VGF.CODEMP||'-'||EMP.NOMEFANTASIA = :A_EMPRESA
-GROUP BY 
-VGF.CODEMP||'-'||EMP.NOMEFANTASIA,
-VGF.CODNAT||'-'||VGF.DESCRNAT,
-VGF.CODCENCUS||'-'||VGF.DESCRCENCUS)
-GROUP BY NATUREZA
-ORDER BY 1
+    SELECT NATUREZA FROM (
+    SELECT 
+    VGF.CODEMP,
+    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
+    VGF.CODNAT||'-'||VGF.DESCRNAT AS NATUREZA,
+    VGF.CODCENCUS||'-'||VGF.DESCRCENCUS AS CR,
+    ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
+    FROM VGF_RESULTADO_GM VGF
+    INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
+    WHERE 
+    VGF.AD_TIPOCUSTO NOT LIKE 'N' 
+    AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
+    AND VGF.RECDESP = -1 
+    AND SUBSTR(VGF.codnat, 1, 1) <> '9'
+    AND VGF.DHBAIXA IS NOT NULL 
+    AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+     
+    AND VGF.CODNAT IN (:P_NATUREZA) 
+    AND VGF.CODCENCUS IN (:P_CR)
+    AND VGF.CODEMP = :A_CODEMP OR ( VGF.CODEMP = 1 AND :A_CODEMP IS NULL)
+    GROUP BY 
+    VGF.CODEMP,
+    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV,
+    VGF.CODNAT||'-'||VGF.DESCRNAT,
+    VGF.CODCENCUS||'-'||VGF.DESCRCENCUS)
+    GROUP BY NATUREZA
+    ORDER BY 1
 </snk:query>
 
 
 <snk:query var="do_cr">
-    SELECT NATUREZA,CR,SUM(VLRDO) AS VLRDO FROM (
+    SELECT CODEMP,NATUREZA,CR,SUM(VLRDO) AS VLRDO FROM (
         SELECT 
-        VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS EMPRESA,
+        VGF.CODEMP,
+        SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
         VGF.CODNAT||'-'||VGF.DESCRNAT AS NATUREZA,
         VGF.CODCENCUS||'-'||VGF.DESCRCENCUS AS CR,
         ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
@@ -215,20 +258,22 @@ ORDER BY 1
         AND VGF.CODEMP IN (:P_EMPRESA) 
         AND VGF.CODNAT IN (:P_NATUREZA) 
         AND VGF.CODCENCUS IN (:P_CR)
-        AND VGF.CODEMP||'-'||EMP.NOMEFANTASIA = :A_EMPRESA
+        AND VGF.CODEMP = :A_CODEMP OR ( VGF.CODEMP = 1 AND :A_CODEMP IS NULL)
         GROUP BY 
-        VGF.CODEMP||'-'||EMP.NOMEFANTASIA,
+        VGF.CODEMP,
+        SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV,
         VGF.CODNAT||'-'||VGF.DESCRNAT,
         VGF.CODCENCUS||'-'||VGF.DESCRCENCUS)
-        GROUP BY NATUREZA,CR
-        ORDER BY 1,2
+        GROUP BY CODEMP,NATUREZA,CR
+        ORDER BY 1,2,4 DESC
 </snk:query>
 
 
 <snk:query var="do_detalhe">
-SELECT EMPRESA,NATUREZA,CR,VLRDO FROM (
+SELECT CODEMP,EMPRESA,NATUREZA,CR,VLRDO FROM (
 SELECT 
-VGF.CODEMP||'-'||EMP.NOMEFANTASIA AS EMPRESA,
+VGF.CODEMP,
+SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
 VGF.CODNAT||'-'||VGF.DESCRNAT AS NATUREZA,
 VGF.CODCENCUS||'-'||VGF.DESCRCENCUS AS CR,
 ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
@@ -241,15 +286,16 @@ AND VGF.RECDESP = -1
 AND SUBSTR(VGF.codnat, 1, 1) <> '9'
 AND VGF.DHBAIXA IS NOT NULL 
 AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-AND VGF.CODEMP IN (:P_EMPRESA) 
+
 AND VGF.CODNAT IN (:P_NATUREZA) 
 AND VGF.CODCENCUS IN (:P_CR)
-AND VGF.CODEMP||'-'||EMP.NOMEFANTASIA = :A_EMPRESA
+AND VGF.CODEMP = :A_CODEMP OR ( VGF.CODEMP = 1 AND :A_CODEMP IS NULL)
 GROUP BY 
-VGF.CODEMP||'-'||EMP.NOMEFANTASIA,
+VGF.CODEMP,
+SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV,
 VGF.CODNAT||'-'||VGF.DESCRNAT,
 VGF.CODCENCUS||'-'||VGF.DESCRCENCUS)
-ORDER BY 4 DESC
+ORDER BY 5 DESC
 </snk:query>
 
     <div class="container">
@@ -258,6 +304,9 @@ ORDER BY 4 DESC
                 <div class="part-title">Despesa Operacional por Empresa</div>
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
+                    <c:forEach items="${do_total.rows}" var="row">
+                        <div class="chart-overlay"><fmt:formatNumber value="${row.VLRDO}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
+                    </c:forEach>                    
                 </div>
             </div>
             <div class="part" id="left-bottom">
@@ -287,6 +336,7 @@ ORDER BY 4 DESC
                     <table>
                         <thead>
                             <tr>
+                                <th>Cód. Emp.</th>
                                 <th>Empresa</th>
                                 <th>Natureza</th>
                                 <th>CR</th>
@@ -297,6 +347,7 @@ ORDER BY 4 DESC
                             <c:set var="total" value="0" />
                             <c:forEach var="item" items="${do_detalhe.rows}">
                                 <tr>
+                                    <td>${item.CODEMP}</td>
                                     <td>${item.EMPRESA}</td>
                                     <td>${item.NATUREZA}</td>
                                     <td>${item.CR}</td>
@@ -306,6 +357,7 @@ ORDER BY 4 DESC
                             </c:forEach>
                             <tr>
                                 <td><b>Total</b></td>
+                                <td></td>
                                 <td></td>
                                 <td></td>
                                 <td><b><fmt:formatNumber value="${total}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
@@ -326,7 +378,7 @@ ORDER BY 4 DESC
 
    // Função para atualizar a query
    function ref_do(empresa) {
-        const params = {'A_EMPRESA': empresa};
+        const params = {'A_CODEMP': empresa};
         refreshDetails('html5_a73fhk1', params); 
     } 
 
@@ -337,7 +389,7 @@ ORDER BY 4 DESC
         var doEmpLabel = [];
         var doEmpData = [];
         <c:forEach items="${do_emp.rows}" var="row">
-            doEmpLabel.push('${row.CODEMP}');
+            doEmpLabel.push('${row.CODEMP}-${row.EMPRESA}');
             doEmpData.push('${row.VLRDO}');
         </c:forEach>
 
@@ -374,13 +426,14 @@ ORDER BY 4 DESC
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: false // Remove a legenda
+                        position: 'left',
+                        align: 'center', // Alinhamento vertical da legenda
                     }
                 },
                 onClick: function(event, elements) {
                     if (elements.length > 0) {
                         var index = elements[0].index;
-                        var label = doEmpLabel[index];
+                        var label = doEmpLabel[index].split('-')[0];
                         ref_do(label);
                         //alert(label);
                     }
@@ -388,14 +441,13 @@ ORDER BY 4 DESC
             }
         });
 
-
         // Função para atualizar o gráfico de barras com base na cidade selecionada
         function updateBarChart(nature) {
             var crLabels = [];
             var vlrdoData = [];
             <c:forEach items="${do_cr.rows}" var="row">
                 if ('${row.NATUREZA}' === nature) {
-                    crLabels.push('${row.CR}');
+                    crLabels.push('${row.CODEMP}-${row.CR}');
                     vlrdoData.push('${row.VLRDO}');
                 }
             </c:forEach>
@@ -424,7 +476,7 @@ ORDER BY 4 DESC
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: false // Remove a legenda
+                        display: false
                     }
                 },
                 scales: {
@@ -447,7 +499,7 @@ ORDER BY 4 DESC
         var natDoData = [];
 
         <c:forEach items="${do_nat.rows}" var="row">
-            natDoLabels.push('${row.NATUREZA}');
+            natDoLabels.push('${row.CODEMP} - ${row.NATUREZA}');
             natDoData.push('${row.VLRDO}');
         </c:forEach> 
         

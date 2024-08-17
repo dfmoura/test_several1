@@ -208,6 +208,77 @@ GM - DASH RENTABILIDADE HTML5 - Na parte da tarde, após realizar várias verifi
 
 
 
+#### Dia 02/08/24, das 8h às 12h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Durante a manhã do dia 02/08/2024, iniciamos a adaptação do script para permitir o acesso a níveis inferiores a partir de interações do usuário, como cliques em fatias de gráficos ou colunas. Esta funcionalidade foi projetada para melhorar a navegação dentro do dashboard, permitindo uma análise mais detalhada e específica dos dados. Realizamos diversas tentativas para configurar corretamente os parâmetros de filtragem, garantindo que as informações exibidas no nível inferior fossem precisas e relevantes de acordo com o contexto do gráfico selecionado. Também ajustamos o comportamento dos eventos de clique para assegurar uma transição suave e coerente entre os níveis, evitando conflitos ou sobreposição de dados.
+```
+
+
+#### Dia 02/08/24, das 13h às 19h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Na tarde do mesmo dia, continuamos aprimorando a lógica de filtragem para garantir que as interações com os gráficos fossem intuitivas e eficazes. Ajustamos o script para que os parâmetros de filtro aplicados em um nível superior fossem corretamente transmitidos ao nível inferior, permitindo uma continuidade analítica sem a necessidade de redefinir filtros manualmente. Além disso, focamos na otimização do código, visando minimizar o tempo de carregamento das consultas e melhorar a performance geral do dashboard. Implementamos testes de usabilidade para verificar se os usuários poderiam navegar entre os níveis de forma fluida, sem perder o contexto das informações.
+```
+
+#### Dia 03/08/24, das 16h às 20h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - No dia 03/08/2024, dedicamos o período da tarde para adaptar o código a fim de atualizar o nível atual do dashboard e permitir o acesso a níveis inferiores na tela de faturamento. Esse processo envolveu a revisão das consultas SQL e a integração dos parâmetros de filtragem nas camadas subsequentes do sistema. Testamos exaustivamente a integração entre os diferentes níveis para garantir que as informações fossem atualizadas de forma precisa ao longo da navegação. Também implementamos melhorias na interface do usuário, facilitando a interação com os gráficos e a interpretação dos dados, especialmente em cenários complexos onde múltiplos filtros são aplicados simultaneamente.
+```
+
+#### Dia 07/08/24, das 8h às 12h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Na manhã do dia 07/08/2024, focamos na adaptação de um novo código que possibilita a atualização do nível atual e o acesso a níveis inferiores na tela de faturamento. Esse código foi desenvolvido com o objetivo de oferecer uma transição mais eficiente entre os diferentes níveis do dashboard, melhorando a experiência do usuário. Realizamos diversas iterações para testar a funcionalidade em diferentes cenários, garantindo que a lógica de filtragem e a exibição dos dados fossem consistentes. Além disso, ajustamos a interface para que as mudanças entre os níveis fossem visivelmente claras e seguissem um fluxo natural de navegação.
+```
+
+#### Dia 07/08/24, das 13h às 19h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Durante a tarde do dia 07/08/2024, trabalhamos na atualização do gráfico do arquivo 60, incluindo a configuração do argumento :A_TPPROD nos selects do nível, de modo a transmitir esse parâmetro para o nível inferior. Essa atualização foi essencial para assegurar que o filtro aplicado ao tipo de produto fosse mantido ao explorar níveis mais detalhados do dashboard. Testamos a configuração em diferentes gráficos e garantimos que o parâmetro fosse corretamente interpretado e aplicado. Com isso, conseguimos melhorar a precisão da análise, permitindo uma visualização mais segmentada dos dados, de acordo com o tipo de produto selecionado.
+```
+
+#### Dia 08/08/24, das 8h às 12h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Na manhã do dia 08/08/2024, focamos na criação de uma tabela detalhada por supervisor, que servirá como um componente chave no nível analítico. Essa tabela foi projetada para exibir informações cruciais sobre as operações de cada supervisor, incluindo indicadores de desempenho e dados financeiros. Implementamos o layout da tabela utilizando Bootstrap, garantindo um design responsivo e visualmente atraente. Também incluímos filtros para que os usuários possam segmentar os dados de acordo com suas necessidades específicas. Durante o desenvolvimento, realizamos diversas validações para garantir que os dados exibidos estivessem corretos e fossem facilmente interpretáveis.
+```
+
+#### Dia 08/08/24, das 13h às 19h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Na tarde do dia 08/08/2024, configuramos no script uma ação que permite que os filtros aplicados no nível atual sejam levados automaticamente para o nível inferior. Essa funcionalidade foi desenvolvida para preservar o contexto da análise ao navegar entre diferentes níveis do dashboard. Trabalhamos minuciosamente para integrar essa lógica aos diferentes componentes da tela, garantindo que todos os filtros relevantes fossem corretamente aplicados. Além disso, realizamos testes para validar que os dados apresentados nos níveis inferiores refletiam exatamente os critérios de filtragem definidos no nível superior, sem necessidade de ajuste manual.
+```
+
+#### Dia 09/08/24, das 8h às 12h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Na manhã do dia 09/08/2024, concentramos nossos esforços na criação de um evento que, ao clicar em uma fatia do gráfico principal, atualiza automaticamente os demais componentes do dashboard. Esta funcionalidade foi projetada para proporcionar uma análise dinâmica e interativa, permitindo que os usuários explorem diferentes aspectos dos dados com facilidade. Durante o desenvolvimento, ajustamos o select e o código dos componentes para garantir que a atualização fosse realizada de forma rápida e precisa. Adicionalmente, para gráficos que exibem o top 10, adicionamos a categoria "Outros" para capturar dados que não se enquadram nas principais categorias, oferecendo uma visão mais completa.
+```
+
+#### Dia 09/08/24, das 13h às 19h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - Na tarde do dia 09/08/2024, finalizamos as implementações ao adicionar e validar a nova categoria "Outros" nos gráficos top 10, atualizando os selects correspondentes. Este ajuste foi feito para garantir que nenhuma informação relevante fosse omitida, mesmo que os dados não se encaixem nas principais categorias. Testamos exaustivamente a interação entre os gráficos e outros componentes do dashboard para assegurar que a funcionalidade estivesse completamente integrada e operando como esperado. Por fim, realizamos uma revisão completa de todas as implementações realizadas até o momento, garantindo a consistência e a robustez das novas funcionalidades.
+```
+
+#### Dia 12/08/24, das 19h às 23h
+```markdown
+GM - DASH RENTABILIDADE HTML5 - No dia 12/08/2024, entre as 19h e 23h, realizamos a implementação final das funcionalidades planejadas para o dashboard, focando na criação de um evento que, ao clicar em uma fatia do gráfico principal, atualiza todos os demais componentes da tela em tempo real. Essa implementação foi crucial para garantir que o dashboard permanecesse interativo e responsivo às ações do usuário, permitindo uma análise rápida e eficiente dos dados. Além disso, ajustamos os selects para que os componentes que exibem as top 10 categorias adicionassem automaticamente a categoria "Outros", o que assegura uma visão abrangente dos dados, incluindo aqueles que não se enquadram nas principais categorias. Foram realizados testes extensivos para validar a precisão e a performance dessas novas funcionalidades, garantindo que o sistema atendesse plenamente às expectativas e necessidades dos usuários.
+```
+
+####
+```markdown
+```
+
+####
+```markdown
+```
+
+####
+```markdown
+```
+
+####
+```markdown
+```
+
+####
+```markdown
+```
+
 ####
 ```markdown
 ```
@@ -239,7 +310,7 @@ ORGANIZAR O SELECT.
 
 Adaptar o select da tela de margem e correção do select principal.
 Adaptar o select da tela de resultado.
-CORRIGIR TELA DE DEVOLUÇÕES
+
 
 
 
