@@ -995,21 +995,6 @@ GROUP BY CODEMP,CODTIPOPER,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         
 
         function copiar(texto) {

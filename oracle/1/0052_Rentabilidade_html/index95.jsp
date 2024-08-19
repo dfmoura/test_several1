@@ -110,6 +110,8 @@
     DECODE(VENG.APELIDO, '<SEM VENDEDOR>', 'NAO CADASTRADO', VENG.APELIDO) AS GERENTE,    
     CAB.CODPARC,
     SUBSTR(PAR.RAZAOSOCIAL,1,12) AS PARCEIRO,
+    SUM(ITE.QTDNEG) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS QTDNEG,
+    SUM(ITE.VLRDESC/NULLIF(ITE.QTDNEG,0)) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC_UN,
     SUM(ITE.VLRDESC) * (CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESC,
     SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE 0 END) AS VLRDEV,
     SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS TOTALLIQ,
@@ -173,7 +175,11 @@
     CAB.CODPARC,
     SUBSTR(PAR.RAZAOSOCIAL,1,12)
     )
-    SELECT CODEMP,EMPRESA,NUNOTA,DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE,CODPARC,PARCEIRO,SUM(VLRDESC) VLRDESC 
+    SELECT CODEMP,EMPRESA,NUNOTA,DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE,CODPARC,PARCEIRO,
+    SUM(QTDNEG) QTDNEG,
+    SUM(VLRDESC_UN) VLRDESC_UN,
+    SUM(VLRDESC) VLRDESC 
+
     FROM DESCO 
     WHERE 
             (AD_TPPROD = :A_TPPROD AND CODGER = :A_CODGER)
@@ -183,7 +189,7 @@
             (AD_TPPROD = :A_TPPROD AND CODPROD = :A_CODPROD)
 
     GROUP BY CODEMP,EMPRESA,NUNOTA,DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE,CODPARC,PARCEIRO
-    ORDER BY 13 DESC
+    ORDER BY 15 DESC
     
     
     
@@ -210,7 +216,9 @@
                     <th onclick="sortTable(9)">Gerente</th>
                     <th onclick="sortTable(10)">Cód. Parc.</th>
                     <th onclick="sortTable(11)">Parceiro</th>
-                    <th onclick="sortTable(12)">Vlr. Desc.</th>
+                    <th onclick="sortTable(12)">Qtd. Neg.</th>
+                    <th onclick="sortTable(13)">Vlr. Desc. (UN)</th>
+                    <th onclick="sortTable(14)">Vlr. Desc.</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
@@ -228,16 +236,16 @@
                         <td>${row.GERENTE}</td>
                         <td>${row.CODPARC}</td>
                         <td>${row.PARCEIRO}</td>
-                        <td style="text-align: center;">
-                            <fmt:formatNumber value="${row.VLRDESC}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-                        </td>
+                        <td style="text-align: center;"><fmt:formatNumber value="${row.QTDNEG}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                        <td style="text-align: center;"><fmt:formatNumber value="${row.VLRDESC_UN}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                        <td style="text-align: center;"><fmt:formatNumber value="${row.VLRDESC}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                     </tr>
                 </c:forEach>              
             </tbody>
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total</b></td>
-                    <td colspan="11"></td>
+                    <td colspan="13"></td>
                     <td style="text-align: center;" id="totalAmount"><b>R$ 0,00</b></td>
                 </tr>       
             </tfoot>
@@ -258,7 +266,7 @@
 
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cellValue = row.cells[12].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
+                const cellValue = row.cells[14].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
                 const value = parseFloat(cellValue);
                 total += isNaN(value) ? 0 : value;
             }

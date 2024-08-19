@@ -74,7 +74,7 @@
             font-size: 20px;
             font-weight: bold;
             color: #333;
-            left: 53%; /* Move o overlay 10% para a direita */
+            left: 56%; /* Move o overlay para a direita*/
             transform: translateX(45%); /* Ajusta a posição do texto para centralizá-lo */
             /*text-align: center; Opcional, para centralizar o texto se ele tiver várias linhas */            
         }        
@@ -144,6 +144,8 @@
     AD_TIPOCUSTO NOT LIKE 'N' 
     AND CODCENCUS NOT BETWEEN 2500000 AND 2599999  
     AND RECDESP = -1 AND SUBSTR(codnat, 1, 1) <> '9'
+    AND DESCRNAT NOT LIKE '%RECEI%'
+    AND DESCRNAT NOT LIKE '%ADIAN%'
     AND DHBAIXA IS NOT NULL 
     AND CODEMP IN (:P_EMPRESA) 
     AND CODNAT IN (:P_NATUREZA) 
@@ -165,6 +167,8 @@
         AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
         AND VGF.RECDESP = -1 
         AND SUBSTR(VGF.codnat, 1, 1) <> '9'
+        AND VGF.DESCRNAT NOT LIKE '%RECEI%'
+        AND VGF.DESCRNAT NOT LIKE '%ADIAN%'
         AND VGF.DHBAIXA IS NOT NULL 
         AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
         AND VGF.CODEMP IN (:P_EMPRESA) 
@@ -176,13 +180,14 @@
     </snk:query>
     
     <snk:query var="do_nat">
-    SELECT NATUREZA,VLRDO 
+    SELECT CODEMP,CODNAT,NATUREZA,VLRDO 
     FROM 
     (
     SELECT 
     VGF.CODEMP,
     SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
-    VGF.CODNAT||'-'||SUBSTR(VGF.DESCRNAT,1,10) AS NATUREZA,
+    VGF.CODNAT,
+    SUBSTR(VGF.DESCRNAT,1,10) AS NATUREZA,
     ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
     FROM VGF_RESULTADO_GM VGF
     INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
@@ -191,6 +196,8 @@
     AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
     AND VGF.RECDESP = -1 
     AND SUBSTR(VGF.codnat, 1, 1) <> '9'
+    AND VGF.DESCRNAT NOT LIKE '%RECEI%'
+    AND VGF.DESCRNAT NOT LIKE '%ADIAN%'
     AND VGF.DHBAIXA IS NOT NULL 
     AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
     AND VGF.CODEMP IN (:P_EMPRESA) 
@@ -199,51 +206,28 @@
     GROUP BY 
     VGF.CODEMP,
     SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV,
-    VGF.CODNAT||'-'||SUBSTR(VGF.DESCRNAT,1,10)
-    ORDER BY 4 DESC)
-    WHERE ROWNUM < 11 AND 
-    CODEMP = :A_CODEMP OR ( CODEMP = 1 AND :A_CODEMP IS NULL)
+    VGF.CODNAT,
+    SUBSTR(VGF.DESCRNAT,1,10)
+    ORDER BY 5 DESC)
+    WHERE ROWNUM < 11 AND
+
+    (( CODEMP = 1 AND :A_CODEMP IS NULL)
+    OR 
+    (CODEMP = :A_CODEMP))
 </snk:query>
 
-
-<snk:query var="do_nat_filtro">
-    SELECT NATUREZA FROM (
-    SELECT 
-    VGF.CODEMP,
-    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
-    VGF.CODNAT||'-'||VGF.DESCRNAT AS NATUREZA,
-    VGF.CODCENCUS||'-'||VGF.DESCRCENCUS AS CR,
-    ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
-    FROM VGF_RESULTADO_GM VGF
-    INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
-    WHERE 
-    VGF.AD_TIPOCUSTO NOT LIKE 'N' 
-    AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
-    AND VGF.RECDESP = -1 
-    AND SUBSTR(VGF.codnat, 1, 1) <> '9'
-    AND VGF.DHBAIXA IS NOT NULL 
-    AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-     
-    AND VGF.CODNAT IN (:P_NATUREZA) 
-    AND VGF.CODCENCUS IN (:P_CR)
-    AND VGF.CODEMP = :A_CODEMP OR ( VGF.CODEMP = 1 AND :A_CODEMP IS NULL)
-    GROUP BY 
-    VGF.CODEMP,
-    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV,
-    VGF.CODNAT||'-'||VGF.DESCRNAT,
-    VGF.CODCENCUS||'-'||VGF.DESCRCENCUS)
-    GROUP BY NATUREZA
-    ORDER BY 1
-</snk:query>
 
 
 <snk:query var="do_cr">
-    SELECT CODEMP,NATUREZA,CR,SUM(VLRDO) AS VLRDO FROM (
-        SELECT 
+
+        SELECT CODEMP,CODCENCUS,CR,SUM(VLRDO) AS VLRDO 
+        FROM (
+        SELECT DISTINCT
         VGF.CODEMP,
         SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
-        VGF.CODNAT||'-'||VGF.DESCRNAT AS NATUREZA,
-        VGF.CODCENCUS||'-'||VGF.DESCRCENCUS AS CR,
+        VGF.DHBAIXA,
+        VGF.CODCENCUS,
+        VGF.DESCRCENCUS AS CR,
         ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
         FROM VGF_RESULTADO_GM VGF
         INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
@@ -252,30 +236,39 @@
         AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
         AND VGF.RECDESP = -1 
         AND SUBSTR(VGF.codnat, 1, 1) <> '9'
+        AND VGF.DESCRNAT NOT LIKE '%RECEI%'
+        AND VGF.DESCRNAT NOT LIKE '%ADIAN%'
         AND VGF.DHBAIXA IS NOT NULL 
-        AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+
         
-        AND VGF.CODEMP IN (:P_EMPRESA) 
-        AND VGF.CODNAT IN (:P_NATUREZA) 
-        AND VGF.CODCENCUS IN (:P_CR)
-        AND VGF.CODEMP = :A_CODEMP OR ( VGF.CODEMP = 1 AND :A_CODEMP IS NULL)
         GROUP BY 
         VGF.CODEMP,
         SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV,
-        VGF.CODNAT||'-'||VGF.DESCRNAT,
-        VGF.CODCENCUS||'-'||VGF.DESCRCENCUS)
-        GROUP BY CODEMP,NATUREZA,CR
-        ORDER BY 1,2,4 DESC
+        VGF.DHBAIXA,
+        VGF.CODCENCUS,
+        VGF.DESCRCENCUS)
+
+        WHERE 
+        (DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN) 
+        AND 
+        ((CODEMP = 1 AND :A_CODEMP IS NULL)
+        OR 
+        (CODEMP = :A_CODEMP))
+
+        GROUP BY CODEMP,CODCENCUS,CR
+        ORDER BY 4 DESC
 </snk:query>
 
 
 <snk:query var="do_detalhe">
-SELECT CODEMP,EMPRESA,NATUREZA,CR,VLRDO FROM (
+SELECT CODEMP,EMPRESA,CODNAT,CODCENCUS,VLRDO FROM (
 SELECT 
 VGF.CODEMP,
 SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
-VGF.CODNAT||'-'||VGF.DESCRNAT AS NATUREZA,
-VGF.CODCENCUS||'-'||VGF.DESCRCENCUS AS CR,
+VGF.CODNAT,
+VGF.DESCRNAT AS NATUREZA,
+VGF.CODCENCUS,
+VGF.DESCRCENCUS AS CR,
 ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
 FROM VGF_RESULTADO_GM VGF
 INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
@@ -284,17 +277,24 @@ VGF.AD_TIPOCUSTO NOT LIKE 'N'
 AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
 AND VGF.RECDESP = -1 
 AND SUBSTR(VGF.codnat, 1, 1) <> '9'
+AND VGF.DESCRNAT NOT LIKE '%RECEI%'
+AND VGF.DESCRNAT NOT LIKE '%ADIAN%'
 AND VGF.DHBAIXA IS NOT NULL 
-AND (VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+AND VGF.DHBAIXA BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
 
-AND VGF.CODNAT IN (:P_NATUREZA) 
-AND VGF.CODCENCUS IN (:P_CR)
-AND VGF.CODEMP = :A_CODEMP OR ( VGF.CODEMP = 1 AND :A_CODEMP IS NULL)
 GROUP BY 
 VGF.CODEMP,
 SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV,
-VGF.CODNAT||'-'||VGF.DESCRNAT,
-VGF.CODCENCUS||'-'||VGF.DESCRCENCUS)
+VGF.CODNAT,
+VGF.DESCRNAT,
+VGF.CODCENCUS,
+VGF.DESCRCENCUS
+)
+WHERE 
+((CODEMP = 1 AND :A_CODEMP IS NULL)
+OR 
+(CODEMP = :A_CODEMP))
+
 ORDER BY 5 DESC
 </snk:query>
 
@@ -311,17 +311,13 @@ ORDER BY 5 DESC
             </div>
             <div class="part" id="left-bottom">
                 <div class="part-title">Despesa Operacional por CR</div>
-                <div class="dropdown-container">
-                    <select id="natSelect">
-                        <c:forEach items="${do_nat_filtro.rows}" var="row">
-                            <option value="${row.NATUREZA}">${row.NATUREZA}</option>
-                        </c:forEach>
-                    </select>
-                </div>
+
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
                 </div>
             </div>
+
+
         </div>
         <div class="section">
             <div class="part" id="right-top">
@@ -338,8 +334,8 @@ ORDER BY 5 DESC
                             <tr>
                                 <th>Cód. Emp.</th>
                                 <th>Empresa</th>
-                                <th>Natureza</th>
-                                <th>CR</th>
+                                <th>Cód. Nat.</th>
+                                <th>Cód. CR</th>
                                 <th>Vlr. D.O.</th>
                             </tr>
                         </thead>
@@ -347,10 +343,10 @@ ORDER BY 5 DESC
                             <c:set var="total" value="0" />
                             <c:forEach var="item" items="${do_detalhe.rows}">
                                 <tr>
-                                    <td>${item.CODEMP}</td>
+                                    <td onclick="abrir_emp('${item.CODEMP}')">${item.CODEMP}</td>
                                     <td>${item.EMPRESA}</td>
-                                    <td>${item.NATUREZA}</td>
-                                    <td>${item.CR}</td>
+                                    <td onclick="abrir_nat('${item.CODEMP}','${item.CODNAT}')">${item.CODNAT}</td>
+                                    <td onclick="abrir_cr('${item.CODEMP}','${item.CODCENCUS}')">${item.CODCENCUS}</td>
                                     <td><fmt:formatNumber value="${item.VLRDO}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                                     <c:set var="total" value="${total + item.VLRDO}" />
                                 </tr>
@@ -382,6 +378,35 @@ ORDER BY 5 DESC
         refreshDetails('html5_a73fhk1', params); 
     } 
 
+    
+        // Função para abrir o novo nível
+
+        function abrir_emp(grupo,grupo1) {
+            var params = { 
+                'A_CODEMP' : parseInt(grupo)
+             };
+            var level = 'lvl_105wuo';
+            openLevel(level, params);
+        }
+
+        function abrir_cr(grupo,grupo1) {
+            var params = { 
+                'A_CODEMP' : parseInt(grupo),
+                'A_CODCENCUS': parseInt(grupo1)
+             };
+            var level = 'lvl_105wuo';
+            openLevel(level, params);
+        }
+
+
+        function abrir_nat(grupo,grupo1) {
+            var params = { 
+                'A_CODEMP' : parseInt(grupo),
+                'A_CODNAT': parseInt(grupo1)
+             };
+            var level = 'lvl_105wuo';
+            openLevel(level, params);
+        }        
 
 
         // Obtendo os dados da query JSP para o gráfico de rosca
@@ -441,31 +466,25 @@ ORDER BY 5 DESC
             }
         });
 
-        // Função para atualizar o gráfico de barras com base na cidade selecionada
-        function updateBarChart(nature) {
-            var crLabels = [];
-            var vlrdoData = [];
-            <c:forEach items="${do_cr.rows}" var="row">
-                if ('${row.NATUREZA}' === nature) {
-                    crLabels.push('${row.CODEMP}-${row.CR}');
-                    vlrdoData.push('${row.VLRDO}');
-                }
-            </c:forEach>
-
-            barChart.data.labels = crLabels;
-            barChart.data.datasets[0].data = vlrdoData;
-            barChart.update();
-        }
 
         // Dados para o gráfico de barras verticais
         const ctxBar = document.getElementById('barChart').getContext('2d');
+
+        var doCRLabels = [];
+        var doCRData = [];
+
+        <c:forEach items="${do_cr.rows}" var="row">
+            doCRLabels.push('${row.CODEMP} - ${row.CODCENCUS} - ${row.CR}');
+            doCRData.push('${row.VLRDO}');
+        </c:forEach> 
+
         const barChart = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: [],
+                labels: doCRLabels,
                 datasets: [{
                     label: 'CR',
-                    data: [],
+                    data: doCRData,
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
@@ -486,9 +505,19 @@ ORDER BY 5 DESC
                     y: {
                         beginAtZero: true
                     }
+                },
+                onClick: function(evt, activeElements) {
+                    if (activeElements.length > 0) {
+                        var index = activeElements[0].index;
+                        var grupo = doCRLabels[index].split('-')[0];
+                        var grupo1 = doCRLabels[index].split('-')[1];
+                        
+                        abrir_cr(grupo,grupo1);
+                    }
                 }
             }
-        });
+        });        
+
 
 
 
@@ -499,7 +528,7 @@ ORDER BY 5 DESC
         var natDoData = [];
 
         <c:forEach items="${do_nat.rows}" var="row">
-            natDoLabels.push('${row.CODEMP} - ${row.NATUREZA}');
+            natDoLabels.push('${row.CODEMP} - ${row.CODNAT} - ${row.NATUREZA}');
             natDoData.push('${row.VLRDO}');
         </c:forEach> 
         
@@ -531,24 +560,20 @@ ORDER BY 5 DESC
                     y: {
                         beginAtZero: true
                     }
+                },
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        var index = elements[0].index;
+                        var label = natDoLabels[index].split('-')[0];
+                        var label1 = natDoLabels[index].split('-')[1];
+                        abrir_nat(label,label1);
+                        
+                    }
                 }
             }
         });
 
 
-        // Atualizar o gráfico de barras com base na cidade selecionada
-
-        // Listener para o dropdown
-        $('#natSelect').on('change', function() {
-            var selectednat = $(this).val();
-            updateBarChart(selectednat);
-        });
-
-        // Inicializa o gráfico de barras com a primeira cidade
-        $(document).ready(function() {
-            var firstnat = $('#natSelect').val();
-            updateBarChart(firstnat);
-        });
     </script>
 </body>
 </html>

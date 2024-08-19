@@ -92,45 +92,65 @@
 <snk:load/>
 </head>
 <body>
-    <snk:query var="fat_det">
+<snk:query var="fat_det">
 
-    SELECT DISTINCT 
-    I.CODEMP,
-    I.NUNOTA,
-    CAB.IDIPROC,
-    TO_CHAR(CAB.DTNEG,'DD-MM-YYYY') DTNEG,
-    P.AD_TPPROD,
-    NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', P.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD,
-    I.CODPROD,
-    P.DESCRPROD,
-    I.QTDNEG,
-    I.CODVOL,
-    	(SELECT ENTRADASEMICMS FROM TGFCUSITE WHERE NUNOTA=I.NUNOTA AND SEQUENCIA=I.SEQUENCIA AND CODPROD=I.CODPROD) AS CUSNOTA,
-    (SELECT CUSSEMICM
-     FROM TGFCUS
-    WHERE     TGFCUS.CODPROD = I.CODPROD
-          AND DTATUAL = (SELECT MAX (DTATUAL)
-                           FROM TGFCUS
-                          WHERE DTATUAL <= CAB.DTNEG)
-          AND TGFCUS.CODEMP = CAB.CODEMP) CUSTO
-    FROM TGFITE I
-         INNER JOIN TGFCAB CAB ON (CAB.NUNOTA = I.NUNOTA)
-         INNER JOIN TGFPRO P ON (P.CODPROD = I.CODPROD)
-   WHERE     CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-         AND I.ATUALESTOQUE = 1
-		 AND I.CODPROD = :A_CODPROD
-         
-         
-         
-		AND CAB.TIPMOV='F'
-ORDER BY CODPROD, I.NUNOTA
+
+
+SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,CR,SUM(VLRDO) AS VLRDO FROM (
+    SELECT 
+    VGF.CODEMP,
+    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
+    VGF.NUFIN,
+    VGF.DHBAIXA,
+    VGF.CODPARC,
+    VGF.NOMEPARC,
+    VGF.CODNAT,
+    VGF.DESCRNAT AS NATUREZA,
+    VGF.CODCENCUS,
+    VGF.DESCRCENCUS AS CR,
+    ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
+    FROM VGF_RESULTADO_GM VGF
+    INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
+    WHERE 
+    VGF.AD_TIPOCUSTO NOT LIKE 'N' 
+    AND VGF.CODCENCUS NOT BETWEEN 2500000 AND 2599999  
+    AND VGF.RECDESP = -1 
+    AND SUBSTR(VGF.codnat, 1, 1) <> '9'
+    AND VGF.DESCRNAT NOT LIKE '%RECEI%'
+    AND VGF.DESCRNAT NOT LIKE '%ADIAN%'
+    AND VGF.DHBAIXA IS NOT NULL 
+    
 
     
-    
+    GROUP BY 
+    VGF.CODEMP,
+    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV,
+    VGF.NUFIN,
+    VGF.DHBAIXA,
+    VGF.CODPARC,
+    VGF.NOMEPARC,        
+    VGF.CODNAT,
+    VGF.DESCRNAT,
+    VGF.CODCENCUS,
+    VGF.DESCRCENCUS)
+    WHERE
+
+    (DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
+    AND
+
+    (
+    (CODEMP = :A_CODEMP AND CODNAT = :A_CODNAT)
+    OR
+    (CODEMP = :A_CODEMP AND CODCENCUS = :A_CODCENCUS)
+    OR
+    (CODEMP = :A_CODEMP AND :A_CODCENCUS IS NULL AND :A_CODNAT IS NULL)
+    )
+    GROUP BY CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,CR
+    ORDER BY 11 DESC
 </snk:query>
 
 <div class="table-wrapper">
-    <h2>Detalhamento - Custo de Produção por Produto</h2>
+    <h2>Detalhamento Despesas Operacionais</h2>
     <div class="filter-container">
         <input type="text" id="tableFilter" placeholder="Digite para filtrar...">
     </div>
@@ -139,45 +159,51 @@ ORDER BY CODPROD, I.NUNOTA
             <thead>
                 <tr>
                     <th onclick="sortTable(0)">Cód. Emp.</th>
-                    <th onclick="sortTable(1)">NÚ. Único</th>
-                    <th onclick="sortTable(2)">OP</th>
-                    <th onclick="sortTable(3)">Dt. Neg.</th>
-                    <th onclick="sortTable(4)">Cód. Tp. Prod.</th>
-                    <th onclick="sortTable(5)">Tp. Prod.</th>
-                    <th onclick="sortTable(6)">Cód. Prod.</th>
-                    <th onclick="sortTable(7)">Produto</th>
-                    <th onclick="sortTable(8)">Qtd. Neg.</th>
-                    <th onclick="sortTable(9)">Cód. Vol.</th>
-                    <th onclick="sortTable(10)">Custo Nota</th>
-                    <th onclick="sortTable(11)">Custo Médio</th>
+                    <th onclick="sortTable(1)">Empresa</th>
+                    <th onclick="sortTable(2)">NÚ. Único</th>
+                    <th onclick="sortTable(3)">Dt. Baixa.</th>
+                    <th onclick="sortTable(4)">Cód. Parc.</th>
+                    <th onclick="sortTable(5)">Parceiro</th>
+                    <th onclick="sortTable(6)">Cód. Nat.</th>
+                    <th onclick="sortTable(7)">Natureza</th>
+                    <th onclick="sortTable(8)">Cód. CR</th>
+                    <th onclick="sortTable(9)">CR</th>
+                    <th onclick="sortTable(10)">Vlr. DO</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${fat_det.rows}">
                     <tr>
                         <td>${row.CODEMP}</td>
-                        <td>${row.NUNOTA}</td>
-                        <td onclick="abrir_op('${row.IDIPROC}'); copiar('${row.IDIPROC}');">${row.IDIPROC}</td>
-                        <td>${row.DTNEG}</td>
-                        <td>${row.AD_TPPROD}</td>
-                        <td>${row.TIPOPROD}</td>
-                        <td>${row.CODPROD}</td>
-                        <td>${row.DESCRPROD}</td>
-                        <td>${row.QTDNEG}</td>
-                        <td>${row.CODVOL}</td>
-                        <td style="text-align: center;"><fmt:formatNumber value="${row.CUSNOTA}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                        <td style="text-align: center;"><fmt:formatNumber value="${row.CUSTO}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                        <td>${row.EMPRESA}</td>
+                        <td onclick="abrir_mov('${row.NUFIN}')">${row.NUFIN}</td>
+                        <td>${row.DHBAIXA}</td>
+                        <td>${row.CODPARC}</td>
+                        <td>${row.NOMEPARC}</td>
+                        <td>${row.CODNAT}</td>
+                        <td>${row.NATUREZA}</td>
+                        <td>${row.CODCENCUS}</td>
+                        <td>${row.CR}</td>
+                        <td style="text-align: center;"><fmt:formatNumber value="${row.VLRDO}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                     </tr>
                 </c:forEach>              
             </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td><b>Total</b></td>
+                    <td colspan="9"></td>
+                    <td style="text-align: center;" id="totalAmount"><b>0,00</b></td>
+                    <td></td>
+                </tr>       
+            </tfoot>
         </table>
     </div>
 </div>
 
 <script>
-    function abrir_op(idiproc) {
-        var params = {'IDIPROC': idiproc};
-        var level = 'br.com.sankhya.prod.OrdensProducaoHTML';
+    function abrir_mov(nufin) {
+        var params = {'NUFIN': nufin};
+        var level = 'br.com.sankhya.fin.cad.movimentacaoFinanceira';
         openApp(level, params);
     }
 
@@ -187,13 +213,15 @@ ORDER BY CODPROD, I.NUNOTA
 
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cellValue = row.cells[11].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
+                const cellValue = row.cells[10].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
                 const value = parseFloat(cellValue);
                 total += isNaN(value) ? 0 : value;
             }
         });
 
-        document.getElementById('totalAmount').innerHTML = '<b>' + total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '</b>';
+        document.getElementById('totalAmount').innerHTML = '<b>' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>';
+
+        
     }
 
     document.getElementById('tableFilter').addEventListener('keyup', function () {
@@ -242,23 +270,6 @@ ORDER BY CODPROD, I.NUNOTA
     document.addEventListener('DOMContentLoaded', (event) => {
         updateTotal();
     });
-
-
-
-
-    function copiar(texto) {
-
-        const elementoTemporario = document.createElement('textarea');
-        elementoTemporario.value = texto;
-        document.body.appendChild(elementoTemporario);
-        elementoTemporario.select();
-        document.execCommand('copy');
-        document.body.removeChild(elementoTemporario);
-
-        //alert('Texto copiado: ' + texto);
-    }
-
-
 </script>
 </body>
 </html>
