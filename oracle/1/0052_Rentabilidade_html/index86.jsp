@@ -71,10 +71,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: #333;
-            left: 56%; /* Move o overlay para a direita*/
+            left: 58%; /* Move o overlay para a direita*/
             transform: translateX(45%); /* Ajusta a posição do texto para centralizá-lo */
             /*text-align: center; Opcional, para centralizar o texto se ele tiver várias linhas */            
         }        
@@ -219,7 +219,7 @@
 
 
 <snk:query var="do_cr">
-
+    SELECT * FROM (
         SELECT CODEMP,CODCENCUS,CR,SUM(VLRDO) AS VLRDO 
         FROM (
         SELECT DISTINCT
@@ -227,7 +227,7 @@
         SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
         VGF.DHBAIXA,
         VGF.CODCENCUS,
-        VGF.DESCRCENCUS AS CR,
+        SUBSTR(VGF.DESCRCENCUS,1,13) AS CR,
         ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
         FROM VGF_RESULTADO_GM VGF
         INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
@@ -239,7 +239,7 @@
         AND VGF.DESCRNAT NOT LIKE '%RECEI%'
         AND VGF.DESCRNAT NOT LIKE '%ADIAN%'
         AND VGF.DHBAIXA IS NOT NULL 
-
+        
         
         GROUP BY 
         VGF.CODEMP,
@@ -247,16 +247,17 @@
         VGF.DHBAIXA,
         VGF.CODCENCUS,
         VGF.DESCRCENCUS)
-
+        
         WHERE 
-        (DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN) 
+        (DHBAIXA BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
         AND 
         ((CODEMP = 1 AND :A_CODEMP IS NULL)
         OR 
         (CODEMP = :A_CODEMP))
-
+        
         GROUP BY CODEMP,CODCENCUS,CR
-        ORDER BY 4 DESC
+        ORDER BY 4 DESC)
+        WHERE ROWNUM <=10
 </snk:query>
 
 
@@ -310,7 +311,7 @@ ORDER BY 5 DESC
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">Despesa Operacional por CR</div>
+                <div class="part-title">TOP 10 - Despesa Operacional por CR</div>
 
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
@@ -321,7 +322,7 @@ ORDER BY 5 DESC
         </div>
         <div class="section">
             <div class="part" id="right-top">
-                <div class="part-title">TOP 10 por Natureza</div>
+                <div class="part-title">TOP 10 - Despesa Operacional por Natureza</div>
                 <div class="chart-container">
                     <canvas id="barChartRight"></canvas>
                 </div>

@@ -500,20 +500,20 @@ INNER JOIN INV_MA ON BAS.COD = INV_MA.COD
     <c:forEach items="${dias.rows}" var="row">
     <div class="container">
         <h1>Relatório Financeiro</h1>
-        <div class="data-item">Faturamento: <span>${row.VLRFAT}</span></div>
-        <div class="data-item">Impostos: <span> ${row.VLRIMP} </span></div>
-        <div class="data-item">CMV: <span> ${row.VLRCMV} </span></div>
-        <div class="data-item">Despesa Operacional: <span> ${row.VLRDO} </span></div>
-        <div class="data-item">Investimento: <span>${row.VLRINV}</span></div>
+        <div class="data-item">Faturamento: <span>R$ ${row.VLRFAT}</span></div>
+        <div class="data-item">Impostos: <span> -R$ ${row.VLRIMP} </span></div>
+        <div class="data-item">CMV: <span> -R$ ${row.VLRCMV} </span></div>
+        <div class="data-item">Despesa Operacional: <span> -R$ ${row.VLRDO} </span></div>
+        <div class="data-item">Investimento: <span> -R$ ${row.VLRINV}</span></div>
         <c:choose>
             <c:when test="${row.VLRRES >= 0}">
                 <div id="resultado" class="positivo">
-                    Resultado: <fmt:formatNumber value="${row.VLRRES}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+                    Resultado: <fmt:formatNumber value="${row.VLRRES}" type="currency" currencySymbol="R$" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
                 </div>
             </c:when>
             <c:otherwise>
                 <div id="resultado" class="negativo">
-                    Resultado: <fmt:formatNumber value="${row.VLRRES}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+                    Resultado: <fmt:formatNumber value="${row.VLRRES}" type="currency" currencySymbol="R$" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
                 </div>
             </c:otherwise>
         </c:choose>

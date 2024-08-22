@@ -44,7 +44,8 @@
             padding: 8px;
             border: 1px solid #ddd;
             text-align: left;
-            white-space: nowrap; /* Impede a quebra de linha nas células */            
+            white-space: nowrap; /* Impede a quebra de linha nas células */
+
         }
 
         th {
@@ -53,6 +54,8 @@
             position: sticky;
             top: 0;
             z-index: 1;
+            resize: horizontal;
+            overflow: auto;
         }
 
         th.sort-asc::after {
@@ -66,7 +69,7 @@
         tbody tr:hover {
            background-color: #f5f5f5; /* Cor de fundo ao passar o mouse */
             cursor: pointer; /* Muda o cursor para indicar interatividade */
-        }
+        }    
 
         input[type="text"] {
             width: 100%;
@@ -150,8 +153,8 @@
             AND VEN.AD_ROTA IN (:P_ROTA)
             
             AND ACF.CODHIST = :A_MOTIVO
-            AND ITE.CODPROD = :A_PRODUTO
-            
+            AND PAR.CODCID = :A_CIDADE
+            AND PAR.CODBAI = :A_BAIRRO
                 
             
             AND TOP.GOLSINAL = -1
@@ -181,7 +184,7 @@
 </snk:query>
 
 <div class="table-wrapper">
-    <h2>Detalhamento Motivo Devolução por Produto</h2>
+    <h2>Detalhamento Motivo Devolução por Bairro</h2>
     <div class="filter-container">
         <input type="text" id="tableFilter" placeholder="Digite para filtrar...">
     </div>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabela com HTML, CSS e JS</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f4f4f4;
+      cursor: pointer;
+    }
+
+    th:hover {
+      background-color: #eaeaea;
+    }
+
+    .sorted {
+      background-color: #c3e6cb;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Tabela de Exemplo</h2>
+
+  <table id="myTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">Nome</th>
+        <th onclick="sortTable(1)">Idade</th>
+        <th onclick="sortTable(2)">Cidade</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Ana</td>
+        <td>28</td>
+        <td>São Paulo</td>
+      </tr>
+      <tr>
+        <td>Bruno</td>
+        <td>23</td>
+        <td>Rio de Janeiro</td>
+      </tr>
+      <tr>
+        <td>Carla</td>
+        <td>32</td>
+        <td>Belo Horizonte</td>
+      </tr>
+      <tr>
+        <td>Daniel</td>
+        <td>45</td>
+        <td>Porto Alegre</td>
+      </tr>
+      <tr>
+        <td>Elisa</td>
+        <td>29</td>
+        <td>Curitiba</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <script>
+    function sortTable(n) {
+      const table = document.getElementById("myTable");
+      let switching = true;
+      let direction = "asc";
+      let rows, shouldSwitch, i, x, y, switchcount = 0;
+
+      while (switching) {
+        switching = false;
+        rows = table.rows;
+
+        for (i = 1; i < (rows.length - 1); i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName("TD")[n];
+          y = rows[i + 1].getElementsByTagName("TD")[n];
+
+          if (direction === "asc") {
+            if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          } else if (direction === "desc") {
+            if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+              shouldSwitch = true;
+              break;
+            }
+          }
+        }
+
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount++;
+        } else {
+          if (switchcount === 0 && direction === "asc") {
+            direction = "desc";
+            switching = true;
+          }
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>

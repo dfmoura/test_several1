@@ -254,7 +254,7 @@ GM - DASH RENTABILIDADE HTML5 - Na manhã do dia 09/08/2024, concentramos nossos
 GM - DASH RENTABILIDADE HTML5 - Na tarde do dia 09/08/2024, finalizamos as implementações ao adicionar e validar a nova categoria "Outros" nos gráficos top 10, atualizando os selects correspondentes. Este ajuste foi feito para garantir que nenhuma informação relevante fosse omitida, mesmo que os dados não se encaixem nas principais categorias. Testamos exaustivamente a interação entre os gráficos e outros componentes do dashboard para assegurar que a funcionalidade estivesse completamente integrada e operando como esperado. Por fim, realizamos uma revisão completa de todas as implementações realizadas até o momento, garantindo a consistência e a robustez das novas funcionalidades.
 ```
 
-#### Dia 12/08/24, das 19h às 23h
+#### Dia 11/08/24, das 19h às 23h
 ```markdown
 GM - DASH RENTABILIDADE HTML5 - No dia 12/08/2024, entre as 19h e 23h, realizamos a implementação final das funcionalidades planejadas para o dashboard, focando na criação de um evento que, ao clicar em uma fatia do gráfico principal, atualiza todos os demais componentes da tela em tempo real. Essa implementação foi crucial para garantir que o dashboard permanecesse interativo e responsivo às ações do usuário, permitindo uma análise rápida e eficiente dos dados. Além disso, ajustamos os selects para que os componentes que exibem as top 10 categorias adicionassem automaticamente a categoria "Outros", o que assegura uma visão abrangente dos dados, incluindo aqueles que não se enquadram nas principais categorias. Foram realizados testes extensivos para validar a precisão e a performance dessas novas funcionalidades, garantindo que o sistema atendesse plenamente às expectativas e necessidades dos usuários.
 ```
@@ -275,13 +275,75 @@ GM - DASH RENTABILIDADE HTML5 - No dia 12/08/2024, entre as 19h e 23h, realizamo
 ```markdown
 ```
 
-####
+#### Dia 12/08/2024, das 13h às 18h
 ```markdown
+GM - DASH RENTABILIDADE HTML5 - Na parte da tarde, continuamos aprimorando o detalhamento do nível de devolução. Foram realizados diversos testes para verificar o comportamento da ordenação por número único em diferentes cenários, incluindo grandes volumes de dados. Ajustes adicionais foram feitos na apresentação das informações na interface, visando melhorar a clareza visual e garantir que a ordenação permanecesse intacta mesmo com a aplicação de filtros adicionais. Finalizamos o dia validando a implementação com a equipe de controle de qualidade, garantindo que todos os requisitos fossem atendidos.
 ```
 
-####
+#### Dia 12/08/2024, das 8h às 12h
 ```markdown
+GM - DASH RENTABILIDADE HTML5 -  Durante o período da manhã, focamos na atualização do nível de detalhamento da tela de devolução. O principal objetivo foi otimizar a exibição dos dados, aplicando uma nova lógica de ordenação com base no número único de cada transação. Para garantir que essa ordenação fosse precisa e eficiente, revisamos o select responsável pelo carregamento dos dados, garantindo que os registros fossem organizados de maneira coerente e consistente em todas as consultas. Além disso, foram realizadas validações para assegurar que o comportamento do filtro atendesse às especificações solicitadas, com o menor impacto possível na performance.
 ```
+
+
+
+#### Dia 13/08/24, das 8h às 12h
+
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - No dia 13/08/2024, iniciamos o desenvolvimento da tela de detalhamento do CIP (Custo Indireto de Produção). Essa tela foi criada em um layout responsivo e com estrutura organizada para exibir informações contábeis detalhadas. Em seguida, desenvolvemos o nível de detalhamento dos lançamentos contábeis do CIP, permitindo que os usuários pudessem acessar informações granulares sobre cada lançamento associado ao custo indireto. No nível de imposto, ajustamos o select para corrigir inconsistências nos dados, além de aplicar melhorias no layout dos componentes para manter um padrão estético e funcional. Também foi corrigido o cálculo da soma total na tabela analítica de detalhamento, garantindo que valores negativos fossem adequadamente considerados no resultado final.
+```
+
+#### Dia 13/08/24, das 13h às 19h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Durante o turno da tarde, voltamos nossa atenção ao nível de faturamento no CIP. Retiramos a quebra de linhas na tabela de detalhamento, o que facilitou a visualização dos dados em uma única linha contínua. Também reorganizamos o código responsável pelo "replace" da string de total, otimizando o processo de cálculo e exibição desses valores. No nível de impostos, corrigimos o select dos componentes e ajustamos o layout para padronizar a interface. Além disso, criamos eventos nos três principais componentes (empresa, tipo de produto e produto) para que, ao serem clicados, direcionassem o usuário para uma tela de detalhamento compartilhada, ajustando apenas o "where" das queries conforme os filtros aplicados.
+```
+
+#### Dia 14/08/24, das 8h às 12h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - No dia 14, continuamos com os ajustes na tela de Hectolitro (HL). Ajustamos o select, garantindo que os dados fossem filtrados corretamente, além de aprimorar os itens no dashboard relacionados a esse indicador. Esse ajuste proporcionou uma melhor visualização do volume de produção por produto, refletindo com precisão os dados em tempo real.
+```
+
+
+#### Dia 14/08/24, das 13h às 19h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Na parte da tarde, focamos na tela de descontos, onde realizamos ajustes no select para otimizar a exibição de descontos por produto e cliente. Também aprimoramos a tela de CMV (Custo da Mercadoria Vendida), ajustando o select dos componentes e criando um nível de detalhamento que permite análises mais aprofundadas. O layout foi adaptado para garantir que as informações fossem apresentadas de forma clara e acessível.
+```
+
+#### Dia 15/08/24, das 8h às 12h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Dando continuidade ao processo de melhorias, no dia 15, voltamos ao nível de margem, onde configuramos o select dos componentes para garantir que os dados fossem filtrados e exibidos de acordo com as especificações. Implementamos o próximo nível de detalhamento, permitindo a visualização de margens em diferentes níveis hierárquicos, facilitando a análise por produto e categoria.
+```
+
+#### Dia 15/08/24, das 13h às 19h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - A parte da tarde foi dedicada à finalização do nível de investimentos. Atualizamos o card do dashboard existente, utilizando a coluna de realizado como base para o cálculo dos investimentos efetivamente executados. Também finalizamos a configuração dos componentes e selects relacionados à margem, despesa operacional e resultados, implementando o layout específico para apresentar os resultados de maneira clara e objetiva. Com isso, garantimos que os dashboards estivessem prontos para análise gerencial.
+```
+
+
+#### Dia 16/08/24, das 8h às 12h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - No dia 16, nossa prioridade foi garantir que todos os níveis de análise, incluindo faturamento, devolução, impostos, CMV, HL, desconto, margem, despesa operacional, investimento e resultado, estivessem adequadamente configurados e funcionando conforme o esperado. Realizamos testes detalhados para assegurar que todos os componentes reagissem corretamente aos filtros aplicados e que os dados fossem carregados de maneira consistente entre os diferentes níveis de análise.
+```
+
+#### Dia 16/08/24, das 13h às 19h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Encerramos o dia realizando ajustes finais nos níveis analíticos de cada dashboard. Implementamos melhorias nas tabelas de detalhamento, garantindo que os usuários pudessem acessar informações completas e detalhadas de cada produto e categoria, incluindo a central de vendas, com a possibilidade de acessar telas específicas do sistema para uma análise ainda mais aprofundada.
+```
+
+#### Dia 17/08/24, das 19h às 23h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Durante o turno da noite, realizamos as últimas implementações nos níveis de devoluções, impostos, CMV, HL, desconto, margem, despesa operacional, investimento e resultado. Todos esses níveis foram ajustados para garantir que as telas principais de cada indicador estivessem conectadas aos seus respectivos níveis de detalhamento, proporcionando uma navegação fluida e uma análise detalhada dos dados gerenciais da empresa.
+```
+
+#### Dia 18/08/24, das 19h às 23h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Finalizamos o projeto consolidando todos os níveis hierárquicos de análise, garantindo que a tela principal permitisse o acesso direto aos detalhes analíticos de cada indicador. As colunas de desconto unitário e quantidade foram adicionadas ao nível de detalhamento de descontos, complementando a análise. Com todas as melhorias implementadas, o dashboard foi testado em diferentes cenários para assegurar sua performance e precisão.
+```
+
+
+
+
+
 
 
 

@@ -81,7 +81,7 @@
             font-size: 20px;
             font-weight: bold;
             color: #333;
-            left: 65%; /* Move o overlay 10% para a direita */
+            left: 59%; /* Move o overlay 10% para a direita */
             transform: translateX(45%); /* Ajusta a posição do texto para centralizá-lo */
             /*text-align: center; Opcional, para centralizar o texto se ele tiver várias linhas */            
         }
@@ -142,67 +142,91 @@
 <body>
 
 
-    <snk:query var="motivo">
-        WITH 
-        ACF AS (
-            SELECT DISTINCT
-                ACF.NUNOTA,
-                ACF.CODHIST,
-                ACH.DESCRHIST
-            FROM TGFACF ACF
-            INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
-            WHERE ACF.CODHIST > 0
-        ),
-        BAS AS (
-            SELECT 
-                CAB.CODEMP,
-                EMP.NOMEFANTASIA,        
-                CAB.CODPARC,
-                PAR.RAZAOSOCIAL,
-                UPPER(CID.NOMECID) AS NOMECID,
-                BAI.NOMEBAI,
-                CAB.CODTIPOPER,
-                VEN.CODVEND||'-'||VEN.APELIDO AS VENDEDOR,
-                VENS.CODVEND||'-'||VENS.APELIDO AS SUPERVISOR,
-                VENG.CODVEND||'-'||VENG.APELIDO AS GERENTE,                        
-                CAB.DTNEG,
-                VAR.NUNOTA,
-                VAR.NUNOTAORIG,
-                CAB.TIPMOV AS TIPMOV,
-                ITE.CODPROD,
-                PRO.DESCRPROD,
-                ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC AS VLRDEVOL,
-                ACF.CODHIST,
-                ACF.DESCRHIST
-            FROM 
-                TGFVAR VAR
-                INNER JOIN TGFITE ITE ON VAR.NUNOTA = ITE.NUNOTA AND VAR.SEQUENCIA = ITE.SEQUENCIA
-                INNER JOIN TGFCAB CAB ON ITE.NUNOTA = CAB.NUNOTA
-                INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-                INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
-                INNER JOIN TSIBAI BAI ON PAR.CODBAI = BAI.CODBAI
-                INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-                INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-                INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
-                LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
-                INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-                LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
-                LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
-            WHERE 
-                CAB.TIPMOV IN ('D') 
-                AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-                AND TOP.GOLSINAL = -1
-                AND TOP.ATIVO = 'S'
-            ORDER BY 
-                CAB.CODPARC,
-                VAR.NUNOTA
-        ),
-        BAS2 AS (SELECT CODHIST,DESCRHIST,SUM(VLRDEVOL) as VLRDEVOL FROM BAS GROUP BY CODHIST,DESCRHIST ORDER BY 3 DESC),
-        BAS3 AS (SELECT ROWNUM AS A, CODHIST,DESCRHIST, VLRDEVOL FROM BAS2)
-        SELECT CODHIST,DESCRHIST,VLRDEVOL FROM BAS3 WHERE A < 8
-        UNION ALL
-        SELECT 9999 AS CODHIST,'OUTROS MOTIVOS' AS DESCRHIST, SUM(VLRDEVOL) AS VLRDEVOL FROM BAS3 WHERE A >= 8
-        </snk:query>
+<snk:query var="motivo">
+    WITH 
+    ACF AS (
+        SELECT DISTINCT
+            ACF.NUNOTA,
+            ACF.CODHIST,
+            SUBSTR(ACH.DESCRHIST, 1, 15) AS DESCRHIST
+        FROM TGFACF ACF
+        INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
+        WHERE ACF.CODHIST > 0
+    ),
+    BAS AS (
+        SELECT
+            VGF.CODCID,
+            VGF.NOMECID,
+            VGF.CODBAI,
+            VGF.NOMEBAI,
+            ABS(VGF.VLRDEV) AS VLRDEVOL,
+            ACF.CODHIST,
+            ACF.DESCRHIST,
+            VGF.CODPROD,
+            VGF.DESCRPROD,
+            VGF.CODVEND,
+            VGF.VENDEDOR
+        FROM TGFVAR VAR
+        INNER JOIN VGF_CONSOLIDADOR_NOTAS_GM VGF ON VAR.NUNOTA = VGF.NUNOTA AND VAR.SEQUENCIA = VGF.SEQUENCIA
+        LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
+        WHERE
+            VGF.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+            AND VGF.GOLSINAL = -1
+            AND VGF.TIPMOV IN ('D')
+            AND VGF.ATIVO = 'S'
+            AND VGF.VLRDEV <> 0
+            AND VGF.CODEMP IN (:P_EMPRESA)
+            AND VGF.CODNAT IN (:P_NATUREZA)
+            AND VGF.CODCENCUS IN (:P_CR)
+            AND VGF.CODVEND IN (:P_VENDEDOR)
+            AND VGF.AD_SUPERVISOR IN (:P_SUPERVISOR)
+            AND VGF.CODGER IN (:P_GERENTE)
+            AND VGF.AD_ROTA IN (:P_ROTA)
+            AND VGF.CODTIPOPER IN (:P_TOP)
+    ),
+    RAN_BAS AS (
+        SELECT
+            CODCID,
+            NOMECID,
+            CODBAI,
+            NOMEBAI,
+            CODHIST,
+            DESCRHIST,
+            CODPROD,
+            DESCRPROD,
+            CODVEND,
+            VENDEDOR,
+            VLRDEVOL,
+            SUM(VLRDEVOL) OVER (PARTITION BY CODHIST) AS TOTAL_VLRDEVOL
+        FROM BAS
+    ),
+    RAN_BAS1 AS (
+    SELECT
+        CODCID,
+        NOMECID,
+        CODBAI,
+        NOMEBAI,
+        CODHIST,
+        DESCRHIST,
+        CODPROD,
+        DESCRPROD,
+        CODVEND,
+        VENDEDOR,
+        VLRDEVOL,
+        TOTAL_VLRDEVOL,
+        DENSE_RANK() OVER (ORDER BY TOTAL_VLRDEVOL DESC) AS CODIGO_UNICO
+    FROM RAN_BAS)
+    
+    SELECT CODHIST, DESCRHIST, SUM(VLRDEVOL) AS VLRDEVOL 
+    FROM RAN_BAS1 
+    WHERE CODIGO_UNICO < 7 
+    GROUP BY CODHIST, DESCRHIST 
+    UNION ALL 
+    SELECT 9999 AS CODHIST, 'OUTROS MOTIVOS' AS DESCRHIST, SUM(VLRDEVOL) AS VLRDEVOL 
+    FROM RAN_BAS1 
+    WHERE CODIGO_UNICO >= 7
+    ORDER BY VLRDEVOL DESC
+</snk:query>
         
         
         <snk:query var="tot_motivo">
@@ -211,416 +235,467 @@
                 SELECT DISTINCT
                     ACF.NUNOTA,
                     ACF.CODHIST,
-                    ACH.DESCRHIST
+                    SUBSTR(ACH.DESCRHIST,1,15) DESCRHIST
                 FROM TGFACF ACF
                 INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
                 WHERE ACF.CODHIST > 0
             ),
             BAS AS (
-                SELECT 
-                    CAB.CODEMP,
-                    EMP.NOMEFANTASIA,        
-                    CAB.CODPARC,
-                    PAR.RAZAOSOCIAL,
-                    UPPER(CID.NOMECID) AS NOMECID,
-                    BAI.NOMEBAI,
-                    CAB.CODTIPOPER,
-                    VEN.CODVEND||'-'||VEN.APELIDO AS VENDEDOR,
-                    VENS.CODVEND||'-'||VENS.APELIDO AS SUPERVISOR,
-                    VENG.CODVEND||'-'||VENG.APELIDO AS GERENTE,                        
-                    CAB.DTNEG,
-                    VAR.NUNOTA,
-                    VAR.NUNOTAORIG,
-                    CAB.TIPMOV AS TIPMOV,
-                    ITE.CODPROD,
-                    PRO.DESCRPROD,
-                    ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC AS VLRDEVOL,
-                    ACF.CODHIST,
-                    ACF.DESCRHIST
-                FROM 
-                    TGFVAR VAR
-                    INNER JOIN TGFITE ITE ON VAR.NUNOTA = ITE.NUNOTA AND VAR.SEQUENCIA = ITE.SEQUENCIA
-                    INNER JOIN TGFCAB CAB ON ITE.NUNOTA = CAB.NUNOTA
-                    INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-                    INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
-                    INNER JOIN TSIBAI BAI ON PAR.CODBAI = BAI.CODBAI
-                    INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-                    INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-                    INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
-                    LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
-                    INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-                    LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
-                    LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
-                WHERE 
-                    CAB.TIPMOV IN ('D') 
-                    AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-                    AND TOP.GOLSINAL = -1
-                    AND TOP.ATIVO = 'S'
+                SELECT
+                VGF.VLRDEV AS VLRDEVOL,
+                ACF.CODHIST,
+                ACF.DESCRHIST
+                FROM TGFVAR VAR
+                INNER JOIN VGF_CONSOLIDADOR_NOTAS_GM VGF ON VAR.NUNOTA = VGF.NUNOTA AND VAR.SEQUENCIA = VGF.SEQUENCIA
+                LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
+                WHERE
+                VGF.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+                AND VGF.GOLSINAL = -1
+                AND VGF.TIPMOV IN ('D')
+                AND VGF.ATIVO = 'S'
+                AND VGF.VLRDEV <>0
+                AND VGF.CODEMP IN (:P_EMPRESA)
+                AND VGF.CODNAT IN (:P_NATUREZA)
+                AND VGF.CODCENCUS IN (:P_CR)
+                AND VGF.CODVEND IN (:P_VENDEDOR)
+                AND VGF.AD_SUPERVISOR IN (:P_SUPERVISOR)
+                AND VGF.CODGER IN (:P_GERENTE)
+                AND VGF.AD_ROTA IN (:P_ROTA)
+                AND VGF.CODTIPOPER IN (:P_TOP)
                 ORDER BY 
-                    CAB.CODPARC,
-                    VAR.NUNOTA
+                VGF.CODPARC,
+                VAR.NUNOTA                
             )
-            SELECT SUM(VLRDEVOL) AS VLRDEVOL FROM BAS
+            SELECT ABS(SUM(VLRDEVOL)) AS VLRDEVOL FROM BAS
         </snk:query>
         
 
-    <snk:query var="cidade">  
+<snk:query var="cidade">  
 
+WITH 
+ACF AS (
+    SELECT DISTINCT
+        ACF.NUNOTA,
+        ACF.CODHIST,
+        SUBSTR(ACH.DESCRHIST, 1, 15) AS DESCRHIST
+    FROM TGFACF ACF
+    INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
+    WHERE ACF.CODHIST > 0
+),
+BAS AS (
+    SELECT
+        VGF.CODCID,
+        VGF.NOMECID,
+        VGF.CODBAI,
+        VGF.NOMEBAI,
+        ABS(VGF.VLRDEV) AS VLRDEVOL,
+        ACF.CODHIST,
+        ACF.DESCRHIST,
+        VGF.CODPROD,
+        VGF.DESCRPROD,
+        VGF.CODVEND,
+        VGF.VENDEDOR
+    FROM TGFVAR VAR
+    INNER JOIN VGF_CONSOLIDADOR_NOTAS_GM VGF ON VAR.NUNOTA = VGF.NUNOTA AND VAR.SEQUENCIA = VGF.SEQUENCIA
+    LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
+    WHERE
+        VGF.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+        AND VGF.GOLSINAL = -1
+        AND VGF.TIPMOV IN ('D')
+        AND VGF.ATIVO = 'S'
+        AND VGF.VLRDEV <> 0
 
-    WITH 
-    ACF AS (
-        SELECT DISTINCT
-            ACF.NUNOTA,
-            ACF.CODHIST,
-            ACH.DESCRHIST
-        FROM TGFACF ACF
-        INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
-        WHERE ACF.CODHIST > 0
-    ),
-    BAS AS (
-        SELECT 
-            CAB.CODEMP,
-            EMP.NOMEFANTASIA,        
-            CAB.CODPARC,
-            PAR.RAZAOSOCIAL,
-            UPPER(CID.NOMECID) AS NOMECID,
-            BAI.NOMEBAI,
-            CAB.CODTIPOPER,
-            VEN.CODVEND||'-'||VEN.APELIDO AS VENDEDOR,
-            VENS.CODVEND||'-'||VENS.APELIDO AS SUPERVISOR,
-            VENG.CODVEND||'-'||VENG.APELIDO AS GERENTE,                        
-            CAB.DTNEG,
-            VAR.NUNOTA,
-            VAR.NUNOTAORIG,
-            CAB.TIPMOV AS TIPMOV,
-            ITE.CODPROD,
-            PRO.DESCRPROD,
-            ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC AS VLRDEVOL,
-            ACF.CODHIST,
-            ACF.DESCRHIST
-        FROM 
-            TGFVAR VAR
-            INNER JOIN TGFITE ITE ON VAR.NUNOTA = ITE.NUNOTA AND VAR.SEQUENCIA = ITE.SEQUENCIA
-            INNER JOIN TGFCAB CAB ON ITE.NUNOTA = CAB.NUNOTA
-            INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-            INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
-            INNER JOIN TSIBAI BAI ON PAR.CODBAI = BAI.CODBAI
-            INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-            INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-            INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
-            LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
-            INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-            LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
-            LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
-        WHERE 
-            CAB.TIPMOV IN ('D') 
-            AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-            AND TOP.GOLSINAL = -1
-            AND TOP.ATIVO = 'S'
-        ORDER BY 
-            CAB.CODPARC,
-            VAR.NUNOTA
-    ),
-    BAS2 AS (SELECT CODHIST,DESCRHIST,SUM(VLRDEVOL) as VLRDEVOL FROM BAS GROUP BY CODHIST,DESCRHIST ORDER BY 3 DESC),
-    BAS3 AS (SELECT ROWNUM AS A, CODHIST,DESCRHIST, VLRDEVOL FROM BAS2),
-    BAS4 AS (SELECT CODHIST FROM BAS3 WHERE A < 8),
-    BAS5 AS (SELECT 9999 AS CODHIST,'OUTROS MOTIVOS' AS DESCRHIST, SUM(VLRDEVOL) AS VLRDEVOL FROM BAS3 WHERE A >= 8)
-
-
-    SELECT BAS.NOMECID FROM BAS
-    LEFT JOIN BAS4 ON BAS.CODHIST = BAS4.CODHIST
-    LEFT JOIN BAS5 ON BAS.CODHIST = BAS5.CODHIST
-    WHERE 
-    (BAS4.CODHIST = 24 AND :A_CODHIST IS NULL)
-    OR    
-    (
-    ( BAS4.CODHIST = :A_CODHIST )
-    OR
-    (BAS.CODHIST NOT IN (SELECT CODHIST FROM BAS4) AND :A_CODHIST = 9999 )
-    )
-GROUP BY BAS.NOMECID
-ORDER BY 1
-    
-
-    </snk:query>
-    
-    
-    <snk:query var="bairro">      
-
-    WITH 
-    ACF AS (
-        SELECT DISTINCT
-            ACF.NUNOTA,
-            ACF.CODHIST,
-            ACH.DESCRHIST
-        FROM TGFACF ACF
-        INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
-        WHERE ACF.CODHIST > 0
-    ),
-    BAS AS (
-        SELECT 
-            CAB.CODEMP,
-            EMP.NOMEFANTASIA,        
-            CAB.CODPARC,
-            PAR.RAZAOSOCIAL,
-            PAR.CODCID,
-            UPPER(CID.NOMECID) AS NOMECID,
-            PAR.CODBAI,
-            BAI.NOMEBAI,
-            CAB.CODTIPOPER,
-            VEN.CODVEND||'-'||VEN.APELIDO AS VENDEDOR,
-            VENS.CODVEND||'-'||VENS.APELIDO AS SUPERVISOR,
-            VENG.CODVEND||'-'||VENG.APELIDO AS GERENTE,                        
-            CAB.DTNEG,
-            VAR.NUNOTA,
-            VAR.NUNOTAORIG,
-            CAB.TIPMOV AS TIPMOV,
-            ITE.CODPROD,
-            PRO.DESCRPROD,
-            ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC AS VLRDEVOL,
-            ACF.CODHIST,
-            ACF.DESCRHIST
-        FROM 
-            TGFVAR VAR
-            INNER JOIN TGFITE ITE ON VAR.NUNOTA = ITE.NUNOTA AND VAR.SEQUENCIA = ITE.SEQUENCIA
-            INNER JOIN TGFCAB CAB ON ITE.NUNOTA = CAB.NUNOTA
-            INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-            INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
-            INNER JOIN TSIBAI BAI ON PAR.CODBAI = BAI.CODBAI
-            INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-            INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-            INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
-            LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
-            INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-            LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
-            LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
-        WHERE 
-            CAB.TIPMOV IN ('D') 
-            AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-            AND TOP.GOLSINAL = -1
-            AND TOP.ATIVO = 'S'
-        ORDER BY 
-            CAB.CODPARC,
-            VAR.NUNOTA
-    ),
-    BAS2 AS (SELECT CODHIST,DESCRHIST,SUM(VLRDEVOL) as VLRDEVOL FROM BAS GROUP BY CODHIST,DESCRHIST ORDER BY 3 DESC),
-    BAS3 AS (SELECT ROWNUM AS A, CODHIST,DESCRHIST, VLRDEVOL FROM BAS2),
-    BAS4 AS (SELECT CODHIST FROM BAS3 WHERE A < 8),
-    BAS5 AS (SELECT 9999 AS CODHIST,'OUTROS MOTIVOS' AS DESCRHIST, SUM(VLRDEVOL) AS VLRDEVOL FROM BAS3 WHERE A >= 8)
-
-
-    SELECT 
-    BAS.CODHIST,SUBSTR(BAS.DESCRHIST, 1, 20) DESCRHIST,
-    BAS.CODCID,BAS.NOMECID,BAS.CODBAI,BAS.NOMEBAI,SUM(BAS.VLRDEVOL) VLRDEVOL 
+        AND VGF.CODEMP IN (:P_EMPRESA)
+        AND VGF.CODNAT IN (:P_NATUREZA)
+        AND VGF.CODCENCUS IN (:P_CR)
+        AND VGF.CODVEND IN (:P_VENDEDOR)
+        AND VGF.AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND VGF.CODGER IN (:P_GERENTE)
+        AND VGF.AD_ROTA IN (:P_ROTA)
+        AND VGF.CODTIPOPER IN (:P_TOP)
+        
+),
+RAN_BAS AS (
+    SELECT
+        CODCID,
+        NOMECID,
+        CODBAI,
+        NOMEBAI,
+        CODHIST,
+        DESCRHIST,
+        CODPROD,
+        DESCRPROD,
+        CODVEND,
+        VENDEDOR,
+        VLRDEVOL,
+        SUM(VLRDEVOL) OVER (PARTITION BY CODHIST) AS TOTAL_VLRDEVOL
     FROM BAS
-    LEFT JOIN BAS4 ON BAS.CODHIST = BAS4.CODHIST
-    LEFT JOIN BAS5 ON BAS.CODHIST = BAS5.CODHIST
+),
+RAN_BAS1 AS (
+SELECT
+    CODCID,
+    NOMECID,
+    CODBAI,
+    NOMEBAI,
+    CODHIST,
+    DESCRHIST,
+    CODPROD,
+    DESCRPROD,
+    CODVEND,
+    VENDEDOR,
+    VLRDEVOL,
+    TOTAL_VLRDEVOL,
+    DENSE_RANK() OVER (ORDER BY TOTAL_VLRDEVOL DESC) AS CODIGO_UNICO
+FROM RAN_BAS),
+
+BAS1 AS (
+SELECT CODHIST,NOMECID,CODIGO_UNICO 
+FROM RAN_BAS1 
+WHERE CODIGO_UNICO < 7 
+GROUP BY CODHIST,NOMECID,CODIGO_UNICO 
+UNION ALL 
+SELECT CODHIST,NOMECID,CODIGO_UNICO
+FROM RAN_BAS1 
+WHERE CODIGO_UNICO >= 7
+GROUP BY CODHIST,NOMECID,CODIGO_UNICO)
+
+SELECT NOMECID FROM BAS1 
+WHERE 
+(CODHIST = 24 AND :A_CODHIST IS NULL)
+OR
+(
+(CODHIST = :A_CODHIST )
+OR
+(CODHIST NOT IN (SELECT CODHIST FROM RAN_BAS1 WHERE CODIGO_UNICO < 7 GROUP BY CODHIST) AND :A_CODHIST = 9999 )
+)
+GROUP BY NOMECID
+ORDER BY 1
+
+</snk:query>
+    
+    
+<snk:query var="bairro">      
+
+WITH 
+ACF AS (
+    SELECT DISTINCT
+        ACF.NUNOTA,
+        ACF.CODHIST,
+        SUBSTR(ACH.DESCRHIST, 1, 15) AS DESCRHIST
+    FROM TGFACF ACF
+    INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
+    WHERE ACF.CODHIST > 0
+),
+BAS AS (
+    SELECT
+        VGF.CODCID,
+        VGF.NOMECID,
+        VGF.CODBAI,
+        VGF.NOMEBAI,
+        ABS(VGF.VLRDEV) AS VLRDEVOL,
+        ACF.CODHIST,
+        ACF.DESCRHIST,
+        VGF.CODPROD,
+        VGF.DESCRPROD,
+        VGF.CODVEND,
+        VGF.VENDEDOR
+    FROM TGFVAR VAR
+    INNER JOIN VGF_CONSOLIDADOR_NOTAS_GM VGF ON VAR.NUNOTA = VGF.NUNOTA AND VAR.SEQUENCIA = VGF.SEQUENCIA
+    LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
+    WHERE
+        VGF.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+        AND VGF.GOLSINAL = -1
+        AND VGF.TIPMOV IN ('D')
+        AND VGF.ATIVO = 'S'
+        AND VGF.VLRDEV <> 0
+
+        AND VGF.CODEMP IN (:P_EMPRESA)
+        AND VGF.CODNAT IN (:P_NATUREZA)
+        AND VGF.CODCENCUS IN (:P_CR)
+        AND VGF.CODVEND IN (:P_VENDEDOR)
+        AND VGF.AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND VGF.CODGER IN (:P_GERENTE)
+        AND VGF.AD_ROTA IN (:P_ROTA)
+        AND VGF.CODTIPOPER IN (:P_TOP)
+
+),
+RAN_BAS AS (
+    SELECT
+        CODCID,
+        NOMECID,
+        CODBAI,
+        NOMEBAI,
+        CODHIST,
+        DESCRHIST,
+        CODPROD,
+        DESCRPROD,
+        CODVEND,
+        VENDEDOR,
+        VLRDEVOL,
+        SUM(VLRDEVOL) OVER (PARTITION BY CODHIST) AS TOTAL_VLRDEVOL
+    FROM BAS
+),
+RAN_BAS1 AS (
+SELECT
+    CODCID,
+    NOMECID,
+    CODBAI,
+    NOMEBAI,
+    CODHIST,
+    DESCRHIST,
+    CODPROD,
+    DESCRPROD,
+    CODVEND,
+    VENDEDOR,
+    VLRDEVOL,
+    TOTAL_VLRDEVOL,
+    DENSE_RANK() OVER (ORDER BY TOTAL_VLRDEVOL DESC) AS CODIGO_UNICO
+FROM RAN_BAS),
+
+BAS1 AS (
+SELECT CODHIST,DESCRHIST,CODCID,NOMECID,CODBAI,NOMEBAI,CODIGO_UNICO,SUM(VLRDEVOL) VLRDEVOL
+FROM RAN_BAS1 
+WHERE CODIGO_UNICO < 7 
+GROUP BY CODHIST,DESCRHIST,CODCID,NOMECID,CODBAI,NOMEBAI,CODIGO_UNICO 
+
+UNION ALL 
+SELECT CODHIST,DESCRHIST,CODCID,NOMECID,CODBAI,NOMEBAI,CODIGO_UNICO,SUM(VLRDEVOL) VLRDEVOL
+FROM RAN_BAS1 
+WHERE CODIGO_UNICO >= 7
+GROUP BY CODHIST,DESCRHIST,CODCID,NOMECID,CODBAI,NOMEBAI,CODIGO_UNICO
+
+)
+
+SELECT 
+CODHIST,DESCRHIST,CODCID,NOMECID,CODBAI,NOMEBAI,SUM(VLRDEVOL) VLRDEVOL
+FROM BAS1 
+WHERE 
+
+(CODHIST = 24 AND :A_CODHIST IS NULL)
+OR
+(
+(CODHIST = :A_CODHIST )
+OR
+(CODHIST NOT IN (SELECT CODHIST FROM RAN_BAS1 WHERE CODIGO_UNICO < 7 GROUP BY CODHIST) AND :A_CODHIST = 9999 )
+)
+
+GROUP BY CODHIST,DESCRHIST,CODCID,NOMECID,CODBAI,NOMEBAI
+ORDER BY 7 DESC
+
+
+</snk:query>     
+
+<snk:query var="vendedor">
+    WITH 
+    ACF AS (
+        SELECT DISTINCT
+            ACF.NUNOTA,
+            ACF.CODHIST,
+            SUBSTR(ACH.DESCRHIST, 1, 15) AS DESCRHIST
+        FROM TGFACF ACF
+        INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
+        WHERE ACF.CODHIST > 0
+    ),
+    BAS AS (
+        SELECT
+            VGF.CODCID,
+            VGF.NOMECID,
+            VGF.CODBAI,
+            VGF.NOMEBAI,
+            ABS(VGF.VLRDEV) AS VLRDEVOL,
+            ACF.CODHIST,
+            ACF.DESCRHIST,
+            VGF.CODPROD,
+            VGF.DESCRPROD,
+            VGF.CODVEND,
+            VGF.VENDEDOR
+        FROM TGFVAR VAR
+        INNER JOIN VGF_CONSOLIDADOR_NOTAS_GM VGF ON VAR.NUNOTA = VGF.NUNOTA AND VAR.SEQUENCIA = VGF.SEQUENCIA
+        LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
+        WHERE
+            VGF.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+            AND VGF.GOLSINAL = -1
+            AND VGF.TIPMOV IN ('D')
+            AND VGF.ATIVO = 'S'
+            AND VGF.VLRDEV <> 0
+
+            AND VGF.CODEMP IN (:P_EMPRESA)
+            AND VGF.CODNAT IN (:P_NATUREZA)
+            AND VGF.CODCENCUS IN (:P_CR)
+            AND VGF.CODVEND IN (:P_VENDEDOR)
+            AND VGF.AD_SUPERVISOR IN (:P_SUPERVISOR)
+            AND VGF.CODGER IN (:P_GERENTE)
+            AND VGF.AD_ROTA IN (:P_ROTA)
+            AND VGF.CODTIPOPER IN (:P_TOP)
+
+    ),
+    RAN_BAS AS (
+        SELECT
+            CODCID,
+            NOMECID,
+            CODBAI,
+            NOMEBAI,
+            CODHIST,
+            DESCRHIST,
+            CODPROD,
+            DESCRPROD,
+            CODVEND,
+            VENDEDOR,
+            VLRDEVOL,
+            SUM(VLRDEVOL) OVER (PARTITION BY CODHIST) AS TOTAL_VLRDEVOL
+        FROM BAS
+    ),
+    RAN_BAS1 AS (
+    SELECT
+        CODCID,
+        NOMECID,
+        CODBAI,
+        NOMEBAI,
+        CODHIST,
+        DESCRHIST,
+        CODPROD,
+        DESCRPROD,
+        CODVEND,
+        VENDEDOR,
+        VLRDEVOL,
+        TOTAL_VLRDEVOL,
+        DENSE_RANK() OVER (ORDER BY TOTAL_VLRDEVOL DESC) AS CODIGO_UNICO
+    FROM RAN_BAS),
+    
+    BAS1 AS (
+    SELECT CODHIST,CODVEND,VENDEDOR,SUM(VLRDEVOL) VLRDEVOL
+    FROM RAN_BAS1 
+    WHERE CODIGO_UNICO < 7 
+    GROUP BY CODHIST,CODVEND,VENDEDOR
+    UNION ALL 
+    SELECT CODHIST,CODVEND,VENDEDOR,SUM(VLRDEVOL) VLRDEVOL
+    FROM RAN_BAS1 
+    WHERE CODIGO_UNICO >= 7
+    GROUP BY CODHIST,CODVEND,VENDEDOR),
+    
+    BAS2 AS ( 
+    SELECT CODHIST,CODVEND,VENDEDOR,SUM(VLRDEVOL) VLRDEVOL FROM BAS1 
     WHERE 
-    (BAS4.CODHIST = 24 AND :A_CODHIST IS NULL)
+    (CODHIST = 24 AND :A_CODHIST IS NULL)
     OR
     (
-    ( BAS4.CODHIST = :A_CODHIST )
+    (CODHIST = :A_CODHIST )
     OR
-    (BAS.CODHIST NOT IN (SELECT CODHIST FROM BAS4) AND :A_CODHIST = 9999 )
+    (CODHIST NOT IN (SELECT CODHIST FROM RAN_BAS1 WHERE CODIGO_UNICO < 7 GROUP BY CODHIST) AND :A_CODHIST = 9999 )
     )
-GROUP BY BAS.CODHIST,SUBSTR(BAS.DESCRHIST, 1, 20),
-BAS.CODCID,BAS.NOMECID,BAS.CODBAI,BAS.NOMEBAI
-ORDER BY 7 DESC
-    </snk:query>     
+    GROUP BY CODHIST,CODVEND,VENDEDOR ORDER BY 4 DESC)
+    SELECT * FROM BAS2 WHERE ROWNUM <= 10
+    
 
-    <snk:query var="vendedor">
-
-    SELECT * FROM(
-        WITH 
-           ACF AS (
-               SELECT DISTINCT
-                   ACF.NUNOTA,
-                   ACF.CODHIST,
-                   ACH.DESCRHIST
-               FROM TGFACF ACF
-               INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
-               WHERE ACF.CODHIST > 0
-           ),
-           BAS AS (
-               SELECT 
-                   CAB.CODEMP,
-                   EMP.NOMEFANTASIA,        
-                   CAB.CODPARC,
-                   PAR.RAZAOSOCIAL,
-                   UPPER(CID.NOMECID) AS NOMECID,
-                   BAI.NOMEBAI,
-                   CAB.CODTIPOPER,
-                   VEN.CODVEND,
-                   VEN.APELIDO AS VENDEDOR,
-                   VENS.CODVEND||'-'||VENS.APELIDO AS SUPERVISOR,
-                   VENG.CODVEND||'-'||VENG.APELIDO AS GERENTE,                        
-                   CAB.DTNEG,
-                   VAR.NUNOTA,
-                   VAR.NUNOTAORIG,
-                   CAB.TIPMOV AS TIPMOV,
-                   ITE.CODPROD,
-                   PRO.DESCRPROD,
-                   ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC AS VLRDEVOL,
-                   ACF.CODHIST,
-                   ACF.DESCRHIST
-               FROM 
-                   TGFVAR VAR
-                   INNER JOIN TGFITE ITE ON VAR.NUNOTA = ITE.NUNOTA AND VAR.SEQUENCIA = ITE.SEQUENCIA
-                   INNER JOIN TGFCAB CAB ON ITE.NUNOTA = CAB.NUNOTA
-                   INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-                   INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
-                   INNER JOIN TSIBAI BAI ON PAR.CODBAI = BAI.CODBAI
-                   INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-                   INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-                   INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
-                   LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
-                   INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-                   LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
-                   LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
-               WHERE 
-                   CAB.TIPMOV IN ('D') 
-                   AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-                   
-                   AND CAB.CODEMP IN (:P_EMPRESA)
-                   AND CAB.CODNAT IN (:P_NATUREZA)
-                   AND CAB.CODCENCUS IN (:P_CR)
-                   AND CAB.CODVEND IN (:P_VENDEDOR)
-                   AND VEN.AD_ROTA IN (:P_ROTA)                    
-                   AND TOP.GOLSINAL = -1
-                   AND TOP.ATIVO = 'S'
-                   
-                   AND TOP.GOLSINAL = -1
-                   AND TOP.ATIVO = 'S'
-               ORDER BY 
-                   CAB.CODPARC,
-                   VAR.NUNOTA
-           ),
-           BAS2 AS (SELECT CODHIST,DESCRHIST,SUM(VLRDEVOL) as VLRDEVOL FROM BAS GROUP BY CODHIST,DESCRHIST ORDER BY 3 DESC),
-           BAS3 AS (SELECT ROWNUM AS A, CODHIST,DESCRHIST, VLRDEVOL FROM BAS2),
-           BAS4 AS (SELECT CODHIST FROM BAS3 WHERE A < 8),
-           BAS5 AS (SELECT 9999 AS CODHIST,'OUTROS MOTIVOS' AS DESCRHIST, SUM(VLRDEVOL) AS VLRDEVOL FROM BAS3 WHERE A >= 8)
-       
-       
-           SELECT 
-           BAS.CODHIST,SUBSTR(BAS.DESCRHIST, 1, 20) DESCRHIST,
-           BAS.CODVEND,BAS.VENDEDOR,SUM(BAS.VLRDEVOL) VLRDEVOL FROM BAS
-           LEFT JOIN BAS4 ON BAS.CODHIST = BAS4.CODHIST
-           LEFT JOIN BAS5 ON BAS.CODHIST = BAS5.CODHIST
-           WHERE 
-           (BAS4.CODHIST = 24 AND :A_CODHIST IS NULL)
-           OR
-           (
-           ( BAS4.CODHIST = :A_CODHIST )
-           OR
-           (BAS.CODHIST NOT IN (SELECT CODHIST FROM BAS4) AND :A_CODHIST = 9999 )
-           )
-       GROUP BY BAS.CODHIST,SUBSTR(BAS.DESCRHIST, 1, 20),
-       BAS.CODVEND,BAS.VENDEDOR
-       ORDER BY 5 DESC)
-       WHERE ROWNUM <= 10    
-
-    </snk:query>
+</snk:query>
 
 
 
         <snk:query var="motivo_prod">
 
+        WITH 
+        ACF AS (
+            SELECT DISTINCT
+                ACF.NUNOTA,
+                ACF.CODHIST,
+                SUBSTR(ACH.DESCRHIST, 1, 15) AS DESCRHIST
+            FROM TGFACF ACF
+            INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
+            WHERE ACF.CODHIST > 0
+        ),
+        BAS AS (
+            SELECT
+                VGF.CODCID,
+                VGF.NOMECID,
+                VGF.CODBAI,
+                VGF.NOMEBAI,
+                ABS(VGF.VLRDEV) AS VLRDEVOL,
+                ACF.CODHIST,
+                ACF.DESCRHIST,
+                VGF.CODPROD,
+                VGF.DESCRPROD,
+                VGF.CODVEND,
+                VGF.VENDEDOR
+            FROM TGFVAR VAR
+            INNER JOIN VGF_CONSOLIDADOR_NOTAS_GM VGF ON VAR.NUNOTA = VGF.NUNOTA AND VAR.SEQUENCIA = VGF.SEQUENCIA
+            LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
+            WHERE
+                VGF.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+                AND VGF.GOLSINAL = -1
+                AND VGF.TIPMOV IN ('D')
+                AND VGF.ATIVO = 'S'
+                AND VGF.VLRDEV <> 0
 
+                AND VGF.CODEMP IN (:P_EMPRESA)
+                AND VGF.CODNAT IN (:P_NATUREZA)
+                AND VGF.CODCENCUS IN (:P_CR)
+                AND VGF.CODVEND IN (:P_VENDEDOR)
+                AND VGF.AD_SUPERVISOR IN (:P_SUPERVISOR)
+                AND VGF.CODGER IN (:P_GERENTE)
+                AND VGF.AD_ROTA IN (:P_ROTA)
+                AND VGF.CODTIPOPER IN (:P_TOP)
+
+        ),
+        RAN_BAS AS (
+            SELECT
+                CODCID,
+                NOMECID,
+                CODBAI,
+                NOMEBAI,
+                CODHIST,
+                DESCRHIST,
+                CODPROD,
+                DESCRPROD,
+                CODVEND,
+                VENDEDOR,
+                VLRDEVOL,
+                SUM(VLRDEVOL) OVER (PARTITION BY CODHIST) AS TOTAL_VLRDEVOL
+            FROM BAS
+        ),
+        RAN_BAS1 AS (
+        SELECT
+            CODCID,
+            NOMECID,
+            CODBAI,
+            NOMEBAI,
+            CODHIST,
+            DESCRHIST,
+            CODPROD,
+            DESCRPROD,
+            CODVEND,
+            VENDEDOR,
+            VLRDEVOL,
+            TOTAL_VLRDEVOL,
+            DENSE_RANK() OVER (ORDER BY TOTAL_VLRDEVOL DESC) AS CODIGO_UNICO
+        FROM RAN_BAS),
         
-            WITH 
-               ACF AS (
-                   SELECT DISTINCT
-                       ACF.NUNOTA,
-                       ACF.CODHIST,
-                       ACH.DESCRHIST
-                   FROM TGFACF ACF
-                   INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
-                   WHERE ACF.CODHIST > 0
-               ),
-               BAS AS (
-                   SELECT 
-                       CAB.CODEMP,
-                       EMP.NOMEFANTASIA,        
-                       CAB.CODPARC,
-                       PAR.RAZAOSOCIAL,
-                       UPPER(CID.NOMECID) AS NOMECID,
-                       BAI.NOMEBAI,
-                       CAB.CODTIPOPER,
-                       VEN.CODVEND,
-                       VEN.APELIDO AS VENDEDOR,
-                       VENS.CODVEND||'-'||VENS.APELIDO AS SUPERVISOR,
-                       VENG.CODVEND||'-'||VENG.APELIDO AS GERENTE,                        
-                       CAB.DTNEG,
-                       VAR.NUNOTA,
-                       VAR.NUNOTAORIG,
-                       CAB.TIPMOV AS TIPMOV,
-                       ITE.CODPROD,
-                       PRO.DESCRPROD,
-                       ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC AS VLRDEVOL,
-                       ACF.CODHIST,
-                       ACF.DESCRHIST
-                   FROM 
-                       TGFVAR VAR
-                       INNER JOIN TGFITE ITE ON VAR.NUNOTA = ITE.NUNOTA AND VAR.SEQUENCIA = ITE.SEQUENCIA
-                       INNER JOIN TGFCAB CAB ON ITE.NUNOTA = CAB.NUNOTA
-                       INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-                       INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
-                       INNER JOIN TSIBAI BAI ON PAR.CODBAI = BAI.CODBAI
-                       INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-                       INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-                       INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
-                       LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
-                       INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-                       LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
-                       LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
-                   WHERE 
-                       CAB.TIPMOV IN ('D') 
-                       AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-                       
-                       AND CAB.CODEMP IN (:P_EMPRESA)
-                       AND CAB.CODNAT IN (:P_NATUREZA)
-                       AND CAB.CODCENCUS IN (:P_CR)
-                       AND CAB.CODVEND IN (:P_VENDEDOR)
-                       AND VEN.AD_ROTA IN (:P_ROTA)                    
-                       AND TOP.GOLSINAL = -1
-                       AND TOP.ATIVO = 'S'
-                       
-                       
-                       
-                   ORDER BY 
-                       CAB.CODPARC,
-                       VAR.NUNOTA
-               ),
-               BAS2 AS (SELECT CODHIST,DESCRHIST,SUM(VLRDEVOL) as VLRDEVOL FROM BAS GROUP BY CODHIST,DESCRHIST ORDER BY 3 DESC),
-               BAS3 AS (SELECT ROWNUM AS A, CODHIST,DESCRHIST, VLRDEVOL FROM BAS2),
-               BAS4 AS (SELECT CODHIST FROM BAS3 WHERE A < 8),
-               BAS5 AS (SELECT 9999 AS CODHIST,'OUTROS MOTIVOS' AS DESCRHIST, SUM(VLRDEVOL) AS VLRDEVOL FROM BAS3 WHERE A >= 8)
-           
-           
-               SELECT 
-               BAS.CODHIST,
-               BAS.DESCRHIST,
-               BAS.CODPROD,
-               BAS.DESCRPROD,
-               
-               SUM(BAS.VLRDEVOL) VLRDEVOL 
-               
-               FROM BAS
-               LEFT JOIN BAS4 ON BAS.CODHIST = BAS4.CODHIST
-               LEFT JOIN BAS5 ON BAS.CODHIST = BAS5.CODHIST
-               WHERE 
-               (
-               BAS4.CODHIST = 24 AND :A_CODHIST IS NULL)
-               OR
-               (
-               ( BAS4.CODHIST = :A_CODHIST )
-               OR
-               (BAS.CODHIST NOT IN (SELECT CODHIST FROM BAS4) AND :A_CODHIST = 9999 )
-               )
-           GROUP BY BAS.CODHIST,BAS.DESCRHIST,
-           BAS.CODPROD, BAS.DESCRPROD
-           ORDER BY 1,3,5 DESC
-           
+        BAS1 AS (
+        SELECT CODHIST,DESCRHIST,CODPROD,DESCRPROD,SUM(VLRDEVOL) VLRDEVOL
+        FROM RAN_BAS1 
+        WHERE CODIGO_UNICO < 7 
+        GROUP BY CODHIST,DESCRHIST,CODPROD,DESCRPROD
+        UNION ALL 
+        SELECT CODHIST,DESCRHIST,CODPROD,DESCRPROD,SUM(VLRDEVOL) VLRDEVOL
+        FROM RAN_BAS1 
+        WHERE CODIGO_UNICO >= 7
+        GROUP BY CODHIST,DESCRHIST,CODPROD,DESCRPROD)
+        
+        
+        
+        SELECT CODHIST,DESCRHIST,CODPROD,DESCRPROD,SUM(VLRDEVOL) VLRDEVOL FROM BAS1 
+        WHERE 
+
+
+        (CODHIST = 24 AND :A_CODHIST IS NULL)
+        OR
+        (
+        (CODHIST = :A_CODHIST )
+        OR
+        (CODHIST NOT IN (SELECT CODHIST FROM RAN_BAS1 WHERE CODIGO_UNICO < 7 GROUP BY CODHIST) AND :A_CODHIST = 9999 )
+        )
+
+        GROUP BY CODHIST,DESCRHIST,CODPROD,DESCRPROD
+        ORDER BY 5 DESC           
                    
 
         </snk:query>
@@ -738,7 +813,7 @@ ORDER BY 7 DESC
             var params = {'A_MOTIVO': parseInt(motivo),
                         'A_VENDEDOR': parseInt(vendedor)
             };
-            var level = 'lvl_ster09';
+            var level = 'lvl_steru4';
             openLevel(level, params);
         }
 
@@ -747,7 +822,7 @@ ORDER BY 7 DESC
             var params = {'A_MOTIVO': parseInt(motivo),
                         'A_PRODUTO': parseInt(produto)
             };
-            var level = 'lvl_ster5r';
+            var level = 'lvl_steru4';
             openLevel(level, params);
         }        
 

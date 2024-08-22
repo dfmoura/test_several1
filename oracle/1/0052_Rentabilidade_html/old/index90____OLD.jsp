@@ -44,8 +44,7 @@
             padding: 8px;
             border: 1px solid #ddd;
             text-align: left;
-            white-space: nowrap; /* Impede a quebra de linha nas células */
-
+            white-space: nowrap; /* Impede a quebra de linha nas células */            
         }
 
         th {
@@ -69,7 +68,7 @@
         tbody tr:hover {
            background-color: #f5f5f5; /* Cor de fundo ao passar o mouse */
             cursor: pointer; /* Muda o cursor para indicar interatividade */
-        }    
+        }
 
         input[type="text"] {
             width: 100%;
@@ -96,43 +95,95 @@
 <body>
     <snk:query var="fat_det">
 
-    SELECT DISTINCT 
-    I.CODEMP,
-    I.NUNOTA,
-    CAB.IDIPROC,
-    TO_CHAR(CAB.DTNEG,'DD-MM-YYYY') DTNEG,
-    P.AD_TPPROD,
-    NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', P.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD,
-    I.CODPROD,
-    P.DESCRPROD,
-    I.QTDNEG,
-    I.CODVOL,
-    	(SELECT ENTRADASEMICMS FROM TGFCUSITE WHERE NUNOTA=I.NUNOTA AND SEQUENCIA=I.SEQUENCIA AND CODPROD=I.CODPROD) AS CUSNOTA,
-    (SELECT CUSSEMICM
-     FROM TGFCUS
-    WHERE     TGFCUS.CODPROD = I.CODPROD
-          AND DTATUAL = (SELECT MAX (DTATUAL)
-                           FROM TGFCUS
-                          WHERE DTATUAL <= CAB.DTNEG)
-          AND TGFCUS.CODEMP = CAB.CODEMP) CUSTO
-    FROM TGFITE I
-         INNER JOIN TGFCAB CAB ON (CAB.NUNOTA = I.NUNOTA)
-         INNER JOIN TGFPRO P ON (P.CODPROD = I.CODPROD)
-   WHERE     CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-         AND I.ATUALESTOQUE = 1
-		 AND I.CODPROD = :A_CODPROD
-         
-         
-         
-		AND CAB.TIPMOV='F'
-ORDER BY CODPROD, I.NUNOTA
-
+    WITH 
+    ACF AS (
+        SELECT DISTINCT
+            ACF.NUNOTA,
+            ACF.CODHIST,
+            ACH.DESCRHIST
+        FROM TGFACF ACF
+        INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
+        WHERE ACF.CODHIST > 0
+    ),
+    BAS AS (
+        SELECT 
+            CAB.CODEMP,
+            EMP.NOMEFANTASIA,        
+            CAB.CODPARC,
+            PAR.RAZAOSOCIAL,
+            PAR.CODCID,
+            UPPER(CID.NOMECID) AS NOMECID,
+            PAR.CODBAI,
+            BAI.NOMEBAI,
+            CAB.CODTIPOPER,
+            VEN.CODVEND||'-'||VEN.APELIDO AS VENDEDOR,
+            VENS.CODVEND||'-'||VENS.APELIDO AS SUPERVISOR,
+            VENG.CODVEND||'-'||VENG.APELIDO AS GERENTE,                        
+            CAB.DTNEG,
+            VAR.NUNOTA,
+            VAR.NUNOTAORIG,
+            CAB.TIPMOV AS TIPMOV,
+            ITE.CODPROD,
+            PRO.DESCRPROD,
+            ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC AS VLRDEVOL,
+            ACF.CODHIST,
+            ACF.DESCRHIST
+        FROM 
+            TGFVAR VAR
+            INNER JOIN TGFITE ITE ON VAR.NUNOTA = ITE.NUNOTA AND VAR.SEQUENCIA = ITE.SEQUENCIA
+            INNER JOIN TGFCAB CAB ON ITE.NUNOTA = CAB.NUNOTA
+            INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+            INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
+            INNER JOIN TSIBAI BAI ON PAR.CODBAI = BAI.CODBAI
+            INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+            INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+            INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
+            LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
+            INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
+            LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
+            LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
+        WHERE 
+            CAB.TIPMOV IN ('D') 
+            AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN
+            
+            AND CAB.CODEMP IN (:P_EMPRESA)
+            AND CAB.CODNAT IN (:P_NATUREZA)
+            AND CAB.CODCENCUS IN (:P_CR)
+            AND VEN.AD_ROTA IN (:P_ROTA)
+            
+            AND ACF.CODHIST = :A_MOTIVO
+            AND ITE.CODPROD = :A_PRODUTO
+            
+                
+            
+            AND TOP.GOLSINAL = -1
+            AND TOP.ATIVO = 'S'
+        ORDER BY 
+            CAB.CODPARC,
+            VAR.NUNOTA
+    )
     
+    SELECT    
+    BAS.CODEMP
+    , BAS.DESCRHIST
+    , BAS.CODPROD||' - '||BAS.DESCRPROD AS PRODUTO
+    , BAS.NUNOTA
+    , TO_CHAR(BAS.DTNEG,'DD-MM-YYYY') AS DTNEG
+    , BAS.CODTIPOPER
+    , BAS.CODPARC
+    , BAS.RAZAOSOCIAL
+    , BAS.CODCID
+    , BAS.NOMECID
+    , BAS.CODBAI
+    , BAS.NOMEBAI
+    , BAS.VLRDEVOL
+    FROM BAS
+    ORDER BY 12 DESC
     
 </snk:query>
 
 <div class="table-wrapper">
-    <h2>Detalhamento - Custo de Produção por Produto</h2>
+    <h2>Detalhamento Motivo Devolução por Produto</h2>
     <div class="filter-container">
         <input type="text" id="tableFilter" placeholder="Digite para filtrar...">
     </div>
@@ -141,45 +192,52 @@ ORDER BY CODPROD, I.NUNOTA
             <thead>
                 <tr>
                     <th onclick="sortTable(0)">Cód. Emp.</th>
-                    <th onclick="sortTable(1)">NÚ. Único</th>
-                    <th onclick="sortTable(2)">OP</th>
+                    <th onclick="sortTable(1)">Produto</th>
+                    <th onclick="sortTable(2)">NÚ. Único</th>
                     <th onclick="sortTable(3)">Dt. Neg.</th>
-                    <th onclick="sortTable(4)">Cód. Tp. Prod.</th>
-                    <th onclick="sortTable(5)">Tp. Prod.</th>
-                    <th onclick="sortTable(6)">Cód. Prod.</th>
-                    <th onclick="sortTable(7)">Produto</th>
-                    <th onclick="sortTable(8)">Qtd. Neg.</th>
-                    <th onclick="sortTable(9)">Cód. Vol.</th>
-                    <th onclick="sortTable(10)">Custo Nota</th>
-                    <th onclick="sortTable(11)">Custo Médio</th>
+                    <th onclick="sortTable(4)">Cód. TOP</th>
+                    <th onclick="sortTable(5)">Cód. Parc.</th>
+                    <th onclick="sortTable(6)">Parceiro</th>
+                    <th onclick="sortTable(7)">Cidade</th>
+                    <th onclick="sortTable(8)">Bairro</th>
+                    <th onclick="sortTable(9)">Motivo</th>
+                    <th onclick="sortTable(10)">Vlr. Devol.</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${fat_det.rows}">
                     <tr>
                         <td>${row.CODEMP}</td>
-                        <td>${row.NUNOTA}</td>
-                        <td onclick="abrir_op('${row.IDIPROC}'); copiar('${row.IDIPROC}');">${row.IDIPROC}</td>
+                        <td>${row.PRODUTO}</td>
+                        <td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
                         <td>${row.DTNEG}</td>
-                        <td>${row.AD_TPPROD}</td>
-                        <td>${row.TIPOPROD}</td>
-                        <td>${row.CODPROD}</td>
-                        <td>${row.DESCRPROD}</td>
-                        <td>${row.QTDNEG}</td>
-                        <td>${row.CODVOL}</td>
-                        <td style="text-align: center;"><fmt:formatNumber value="${row.CUSNOTA}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                        <td style="text-align: center;"><fmt:formatNumber value="${row.CUSTO}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                        <td>${row.CODTIPOPER}</td>
+                        <td>${row.CODPARC}</td>
+                        <td>${row.RAZAOSOCIAL}</td>
+                        <td>${row.NOMECID}</td>
+                        <td>${row.NOMEBAI}</td>
+                        <td>${row.DESCRHIST}</td>
+                        <td style="text-align: center;">
+                            <fmt:formatNumber value="${row.VLRDEVOL}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+                        </td>
                     </tr>
                 </c:forEach>              
             </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td><b>Total</b></td>
+                    <td colspan="9"></td>
+                    <td style="text-align: center;" id="totalAmount"><b>R$ 0,00</b></td>
+                </tr>       
+            </tfoot>
         </table>
     </div>
 </div>
 
 <script>
-    function abrir_op(idiproc) {
-        var params = {'IDIPROC': idiproc};
-        var level = 'br.com.sankhya.prod.OrdensProducaoHTML';
+    function abrir_portal(nunota) {
+        var params = {'NUNOTA': nunota};
+        var level = 'br.com.sankhya.com.mov.CentralNotas';
         openApp(level, params);
     }
 
@@ -189,7 +247,7 @@ ORDER BY CODPROD, I.NUNOTA
 
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cellValue = row.cells[11].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
+                const cellValue = row.cells[10].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
                 const value = parseFloat(cellValue);
                 total += isNaN(value) ? 0 : value;
             }
@@ -244,23 +302,6 @@ ORDER BY CODPROD, I.NUNOTA
     document.addEventListener('DOMContentLoaded', (event) => {
         updateTotal();
     });
-
-
-
-
-    function copiar(texto) {
-
-        const elementoTemporario = document.createElement('textarea');
-        elementoTemporario.value = texto;
-        document.body.appendChild(elementoTemporario);
-        elementoTemporario.select();
-        document.execCommand('copy');
-        document.body.removeChild(elementoTemporario);
-
-        //alert('Texto copiado: ' + texto);
-    }
-
-
 </script>
 </body>
 </html>

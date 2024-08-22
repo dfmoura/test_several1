@@ -54,6 +54,8 @@
             position: sticky;
             top: 0;
             z-index: 1;
+            resize: horizontal;
+            overflow: auto;
         }
 
         th.sort-asc::after {
@@ -94,95 +96,160 @@
 <body>
     <snk:query var="fat_det">
 
+
     WITH 
     ACF AS (
         SELECT DISTINCT
             ACF.NUNOTA,
             ACF.CODHIST,
-            ACH.DESCRHIST
+            SUBSTR(ACH.DESCRHIST, 1, 15) AS DESCRHIST
         FROM TGFACF ACF
         INNER JOIN TGFACH ACH ON ACF.CODHIST = ACH.CODHIST
         WHERE ACF.CODHIST > 0
     ),
     BAS AS (
-        SELECT 
-            CAB.CODEMP,
-            EMP.NOMEFANTASIA,        
-            CAB.CODPARC,
-            PAR.RAZAOSOCIAL,
-            PAR.CODCID,
-            UPPER(CID.NOMECID) AS NOMECID,
-            PAR.CODBAI,
-            BAI.NOMEBAI,
-            CAB.CODTIPOPER,
-            VEN.CODVEND||'-'||VEN.APELIDO AS VENDEDOR,
-            VENS.CODVEND||'-'||VENS.APELIDO AS SUPERVISOR,
-            VENG.CODVEND||'-'||VENG.APELIDO AS GERENTE,                        
-            CAB.DTNEG,
-            VAR.NUNOTA,
-            VAR.NUNOTAORIG,
-            CAB.TIPMOV AS TIPMOV,
-            ITE.CODPROD,
-            PRO.DESCRPROD,
-            ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC AS VLRDEVOL,
+        SELECT
+            VGF.CODEMP,
+            VGF.EMPRESA,
+            VGF.NUNOTA,
+            TO_CHAR(VGF.DTNEG,'DD-MM-YYYY') DTNEG,
+            VGF.CODTIPOPER,
+            VGF.DESCROPER,
+            VGF.CODPARC,
+            VGF.NOMEPARC,            
+            VGF.CODCID,
+            VGF.NOMECID,
+            VGF.CODBAI,
+            VGF.NOMEBAI,
             ACF.CODHIST,
-            ACF.DESCRHIST
-        FROM 
-            TGFVAR VAR
-            INNER JOIN TGFITE ITE ON VAR.NUNOTA = ITE.NUNOTA AND VAR.SEQUENCIA = ITE.SEQUENCIA
-            INNER JOIN TGFCAB CAB ON ITE.NUNOTA = CAB.NUNOTA
-            INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-            INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID
-            INNER JOIN TSIBAI BAI ON PAR.CODBAI = BAI.CODBAI
-            INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
-            INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-            INNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMP
-            LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
-            INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND
-            LEFT JOIN TGFVEN VENS ON VENS.CODVEND = VEN.AD_SUPERVISOR
-            LEFT JOIN TGFVEN VENG ON VENG.CODVEND = VEN.CODGER
-        WHERE 
-            CAB.TIPMOV IN ('D') 
-            AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN
-            
-            AND CAB.CODEMP IN (:P_EMPRESA)
-            AND CAB.CODNAT IN (:P_NATUREZA)
-            AND CAB.CODCENCUS IN (:P_CR)
-            AND VEN.AD_ROTA IN (:P_ROTA)
-            
-            AND ACF.CODHIST = :A_MOTIVO
-            AND PAR.CODCID = :A_CIDADE
-            AND PAR.CODBAI = :A_BAIRRO
-                
-            
-            AND TOP.GOLSINAL = -1
-            AND TOP.ATIVO = 'S'
-        ORDER BY 
-            CAB.CODPARC,
-            VAR.NUNOTA
-    )
+            ACF.DESCRHIST,
+            VGF.AD_TPPROD,
+            VGF.TIPOPROD,
+            VGF.CODPROD,
+            VGF.DESCRPROD,
+            VGF.CODVEND,
+            VGF.VENDEDOR,
+            VGF.AD_SUPERVISOR,
+            VGF.SUPERVISOR,
+            VGF.CODGER,
+            VGF.GERENTE,           
+            ABS(VGF.VLRDEV) AS VLRDEVOL
+        FROM TGFVAR VAR
+        INNER JOIN VGF_CONSOLIDADOR_NOTAS_GM VGF ON VAR.NUNOTA = VGF.NUNOTA AND VAR.SEQUENCIA = VGF.SEQUENCIA
+        LEFT JOIN ACF ON VAR.NUNOTAORIG = ACF.NUNOTA
+        WHERE
+            VGF.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+            AND VGF.GOLSINAL = -1
+            AND VGF.TIPMOV IN ('D')
+            AND VGF.ATIVO = 'S'
+            AND VGF.VLRDEV <> 0
+
+            AND VGF.CODEMP IN (:P_EMPRESA)
+            AND VGF.CODNAT IN (:P_NATUREZA)
+            AND VGF.CODCENCUS IN (:P_CR)
+            AND VGF.CODVEND IN (:P_VENDEDOR)
+            AND VGF.AD_SUPERVISOR IN (:P_SUPERVISOR)
+            AND VGF.CODGER IN (:P_GERENTE)
+            AND VGF.AD_ROTA IN (:P_ROTA)
+            AND VGF.CODTIPOPER IN (:P_TOP)
+            AND
+            (
+            (ACF.CODHIST = :A_MOTIVO AND VGF.CODCID = :A_CIDADE  AND VGF.CODBAI = :A_BAIRRO)
+            OR
+            (ACF.CODHIST = :A_MOTIVO AND VGF.CODVEND = :A_VENDEDOR)
+            OR
+            (ACF.CODHIST = :A_MOTIVO AND VGF.CODPROD = :A_PRODUTO)
+            )
+
+
+    ),
+    RAN_BAS AS (
+        SELECT
+            CODEMP,
+            EMPRESA,
+            NUNOTA,
+            DTNEG,
+            CODTIPOPER,
+            DESCROPER,
+            CODPARC,
+            NOMEPARC,            
+            CODCID,
+            NOMECID,
+            CODBAI,
+            NOMEBAI,
+            CODHIST,
+            DESCRHIST,
+            AD_TPPROD,
+            TIPOPROD,                
+            CODPROD,
+            DESCRPROD,
+            CODVEND,
+            VENDEDOR,
+            AD_SUPERVISOR,
+            SUPERVISOR,
+            CODGER,
+            GERENTE,
+            VLRDEVOL,
+            SUM(VLRDEVOL) OVER (PARTITION BY CODHIST) AS TOTAL_VLRDEVOL
+        FROM BAS
+    ),
+    RAN_BAS1 AS (
+    SELECT
+        CODEMP,
+        EMPRESA,
+        NUNOTA,
+        DTNEG,
+        CODTIPOPER,
+        DESCROPER,
+        CODPARC,
+        NOMEPARC,            
+        CODCID,
+        NOMECID,
+        CODBAI,
+        NOMEBAI,
+        CODHIST,
+        DESCRHIST,
+        AD_TPPROD,
+        TIPOPROD,                
+        CODPROD,
+        DESCRPROD,
+        CODVEND,
+        VENDEDOR,
+        AD_SUPERVISOR,
+        SUPERVISOR,
+        CODGER,
+        GERENTE,
+        VLRDEVOL,
+        TOTAL_VLRDEVOL,
+        DENSE_RANK() OVER (ORDER BY TOTAL_VLRDEVOL DESC) AS CODIGO_UNICO
+    FROM RAN_BAS),
     
-    SELECT    
-    BAS.CODEMP
-    , BAS.DESCRHIST
-    , BAS.CODPROD||' - '||BAS.DESCRPROD AS PRODUTO
-    , BAS.NUNOTA
-    , TO_CHAR(BAS.DTNEG,'DD-MM-YYYY') AS DTNEG
-    , BAS.CODTIPOPER
-    , BAS.CODPARC
-    , BAS.RAZAOSOCIAL
-    , BAS.CODCID
-    , BAS.NOMECID
-    , BAS.CODBAI
-    , BAS.NOMEBAI
-    , BAS.VLRDEVOL
-    FROM BAS
-    ORDER BY 12 DESC
+    BAS1 AS (
+    SELECT CODEMP, EMPRESA, NUNOTA,DTNEG, CODTIPOPER, DESCROPER, CODPARC, NOMEPARC, CODCID, NOMECID, CODBAI, NOMEBAI, CODHIST, DESCRHIST,AD_TPPROD,TIPOPROD, CODPROD, DESCRPROD, CODVEND, VENDEDOR, AD_SUPERVISOR, SUPERVISOR, CODGER, GERENTE,
+    SUM(VLRDEVOL) VLRDEVOL
+    FROM RAN_BAS1 
+    WHERE CODIGO_UNICO < 7 
+    GROUP BY CODEMP, EMPRESA, NUNOTA,DTNEG, CODTIPOPER, DESCROPER, CODPARC, NOMEPARC, CODCID, NOMECID, CODBAI, NOMEBAI, CODHIST, DESCRHIST,AD_TPPROD,TIPOPROD, CODPROD, DESCRPROD, CODVEND, VENDEDOR, AD_SUPERVISOR, SUPERVISOR, CODGER, GERENTE
+    UNION ALL 
+    SELECT CODEMP, EMPRESA, NUNOTA,DTNEG, CODTIPOPER, DESCROPER, CODPARC, NOMEPARC, CODCID, NOMECID, CODBAI, NOMEBAI, CODHIST, DESCRHIST,AD_TPPROD,TIPOPROD, CODPROD, DESCRPROD, CODVEND, VENDEDOR, AD_SUPERVISOR, SUPERVISOR, CODGER, GERENTE,
+    SUM(VLRDEVOL) VLRDEVOL
+    FROM RAN_BAS1 
+    WHERE CODIGO_UNICO >= 7
+    GROUP BY CODEMP, EMPRESA, NUNOTA,DTNEG, CODTIPOPER, DESCROPER, CODPARC, NOMEPARC, CODCID, NOMECID, CODBAI, NOMEBAI, CODHIST, DESCRHIST,AD_TPPROD,TIPOPROD, CODPROD, DESCRPROD, CODVEND, VENDEDOR, AD_SUPERVISOR, SUPERVISOR, CODGER, GERENTE)
+    
+    
+    
+    SELECT CODEMP, EMPRESA, NUNOTA,DTNEG, CODTIPOPER, DESCROPER, CODPARC, NOMEPARC, CODCID, NOMECID, CODBAI, NOMEBAI, CODHIST, DESCRHIST,AD_TPPROD,TIPOPROD, CODPROD, DESCRPROD, CODVEND, VENDEDOR, AD_SUPERVISOR, SUPERVISOR, CODGER, GERENTE,
+    SUM(VLRDEVOL) VLRDEVOL 
+    FROM BAS1 
+
+    GROUP BY CODEMP, EMPRESA, NUNOTA,DTNEG, CODTIPOPER, DESCROPER, CODPARC, NOMEPARC, CODCID, NOMECID, CODBAI, NOMEBAI, CODHIST, DESCRHIST,AD_TPPROD,TIPOPROD, CODPROD, DESCRPROD, CODVEND, VENDEDOR, AD_SUPERVISOR, SUPERVISOR, CODGER, GERENTE
+    ORDER BY 24 DESC           
     
 </snk:query>
 
 <div class="table-wrapper">
-    <h2>Detalhamento Motivo Devolução por Bairro</h2>
+    <h2>Detalhamento Motivo Devolução</h2>
     <div class="filter-container">
         <input type="text" id="tableFilter" placeholder="Digite para filtrar...">
     </div>
@@ -191,31 +258,60 @@
             <thead>
                 <tr>
                     <th onclick="sortTable(0)">Cód. Emp.</th>
-                    <th onclick="sortTable(1)">Produto</th>
+                    <th onclick="sortTable(1)">Empresa</th>
                     <th onclick="sortTable(2)">NÚ. Único</th>
                     <th onclick="sortTable(3)">Dt. Neg.</th>
-                    <th onclick="sortTable(4)">Cód. TOP</th>
-                    <th onclick="sortTable(5)">Cód. Parc.</th>
-                    <th onclick="sortTable(6)">Parceiro</th>
-                    <th onclick="sortTable(7)">Cidade</th>
-                    <th onclick="sortTable(8)">Bairro</th>
-                    <th onclick="sortTable(9)">Motivo</th>
-                    <th onclick="sortTable(10)">Vlr. Devol.</th>
+                    <th onclick="sortTable(4)">Cód. Top.</th>
+                    <th onclick="sortTable(5)">Top</th>
+                    <th onclick="sortTable(6)">Cód. Parc.</th>
+                    <th onclick="sortTable(7)">Parceiro</th>
+                    <th onclick="sortTable(8)">Cód. Cid.</th>
+                    <th onclick="sortTable(9)">Cidade</th>
+                    <th onclick="sortTable(10)">Cód. Bai.</th>
+                    <th onclick="sortTable(11)">Bairro</th>
+                    <th onclick="sortTable(12)">Cód. Mot.</th>
+                    <th onclick="sortTable(13)">Motivo</th>
+                    <th onclick="sortTable(14)">Cód. Tp. Prod.</th>
+                    <th onclick="sortTable(15)">Tp. Prod.</th>
+                    <th onclick="sortTable(16)">Cód. Prod.</th>
+                    <th onclick="sortTable(17)">Produto</th>
+                    <th onclick="sortTable(18)">Cód. Ven.</th>
+                    <th onclick="sortTable(19)">Vendedor</th>
+                    <th onclick="sortTable(20)">Cód. Sup.</th>
+                    <th onclick="sortTable(21)">Supervisor</th>
+                    <th onclick="sortTable(22)">Cód. Ger.</th>
+                    <th onclick="sortTable(23)">Gerente</th>
+                    <th onclick="sortTable(24)">Vlr. Devol.</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${fat_det.rows}">
                     <tr>
+                        
                         <td>${row.CODEMP}</td>
-                        <td>${row.PRODUTO}</td>
+                        <td>${row.EMPRESA}</td>
                         <td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
                         <td>${row.DTNEG}</td>
                         <td>${row.CODTIPOPER}</td>
+                        <td>${row.DESCROPER}</td>
                         <td>${row.CODPARC}</td>
-                        <td>${row.RAZAOSOCIAL}</td>
+                        <td>${row.NOMEPARC}</td>
+                        <td>${row.CODCID}</td>
                         <td>${row.NOMECID}</td>
+                        <td>${row.CODBAI}</td>
                         <td>${row.NOMEBAI}</td>
+                        <td>${row.CODHIST}</td>
                         <td>${row.DESCRHIST}</td>
+                        <td>${row.AD_TPPROD}</td>
+                        <td>${row.TIPOPROD}</td>          
+                        <td>${row.CODPROD}</td>
+                        <td>${row.DESCRPROD}</td>
+                        <td>${row.VENDEDOR}</td>
+                        <td>${row.AD_SUPERVISOR}</td>
+                        <td>${row.SUPERVISOR}</td>
+                        <td>${row.CODVEND}</td>
+                        <td>${row.CODGER}</td>
+                        <td>${row.GERENTE}</td>
                         <td style="text-align: center;">
                             <fmt:formatNumber value="${row.VLRDEVOL}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
                         </td>
@@ -225,7 +321,7 @@
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total</b></td>
-                    <td colspan="9"></td>
+                    <td colspan="23"></td>
                     <td style="text-align: center;" id="totalAmount"><b>R$ 0,00</b></td>
                 </tr>       
             </tfoot>
@@ -246,7 +342,7 @@
 
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cellValue = row.cells[10].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
+                const cellValue = row.cells[24].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
                 const value = parseFloat(cellValue);
                 total += isNaN(value) ? 0 : value;
             }
