@@ -346,6 +346,48 @@ GM - DASH RENTABILIDADE HTML5 - Finalizamos o projeto consolidando todos os nív
 
 
 
+#### Dia 19/08/2024, das 8h às 12h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Na manhã do dia 19, realizamos uma apresentação detalhada do andamento do projeto para a equipe, destacando as tarefas já concluídas e o progresso em relação aos objetivos estabelecidos. Durante a apresentação, discutimos as funcionalidades implementadas e os próximos passos a serem seguidos. Em seguida, iniciamos a execução das tarefas do back-log, priorizando as demandas mais urgentes para garantir a continuidade das entregas sem comprometer o cronograma. Foram definidos os responsáveis por cada tarefa e alinhadas as expectativas para o período da tarde.
+```
+
+#### Dia 19/08/2024, das 13h às 19h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Durante a tarde, continuamos o trabalho focado nas tarefas do back-log. Um dos principais focos foi a criação de uma view consolidada de notas fiscais, que serviria como base para atualização no nível principal do dashboard. Implementamos a view no sistema e validamos sua consistência e integração com os demais componentes. Além disso, foi iniciado o desenvolvimento de um consolidador, responsável por centralizar e processar os dados oriundos de diferentes fontes para serem apresentados de forma unificada no dashboard principal.
+```
+
+#### Dia 20/08/2024, das 8h às 12h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Na manhã do dia 20, avançamos com a atualização do nível 60, incorporando a nova view consolidada ao select desse nível. Essa atualização teve como objetivo otimizar o carregamento de dados e melhorar a performance, garantindo que as informações fossem exibidas de maneira mais eficiente e precisa. Após implementar a nova lógica, realizamos testes para assegurar que o nível 60 estivesse funcionando corretamente, com dados atualizados e sem inconsistências.
+```
+
+#### Dia 20/08/2024, das 13h às 19h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Durante a tarde, o foco foi a atualização dos níveis 68, 69, 70, 71, 72 e 73, onde também incorporamos a nova view consolidada nos selects desses níveis. Foram realizados ajustes finos nas consultas SQL para garantir que a view fosse utilizada de maneira otimizada e que o processamento dos dados fosse realizado sem comprometer o tempo de resposta do sistema. Em cada nível, foram realizados testes individuais para garantir a integridade dos dados apresentados e a correta integração entre os componentes gráficos e tabelas.
+```
+
+#### Dia 21/08/2024, das 8h às 12h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Na manhã do dia 21, seguimos com a atualização dos níveis 80 e 88, aplicando a nova view consolidada nos selects desses níveis. No nível 80, reestruturamos a lógica de agrupamento dos motivos apresentados no gráfico de pizza, consolidando os "Demais Motivos" em uma única fatia. Para isso, implementamos uma solução utilizando a função DENSE_RANK(), que permitiu agrupar os motivos menos frequentes em uma categoria genérica. No nível 88, ajustamos o select para garantir que os componentes do nível 80 acessassem as informações do nível 88, alterando apenas o where das consultas.
+```
+
+#### Dia 21/08/2024, das 13h às 19h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - No período da tarde do dia 21, concentramos nossos esforços na atualização dos níveis 81, 93, 82, 96 e 97. Aplicamos a nova view consolidada aos selects desses níveis, garantindo que os dados apresentados fossem consistentes e refletissem corretamente as alterações feitas no sistema. Durante o processo, também realizamos ajustes nos componentes gráficos e nas tabelas para assegurar que a exibição de informações fosse clara e precisa. Além disso, foram executados testes de funcionalidade para verificar a integridade dos dados e o comportamento esperado dos componentes.
+```
+
+
+#### Dia 21/08/2024, das 20h às 23:30h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Durante a noite do dia 21, o foco permaneceu na atualização dos níveis 83, 94 e 84. Implementamos as melhorias necessárias e consolidamos a nova view nos selects de cada nível, garantindo a uniformidade e consistência dos dados apresentados. A cada etapa, executamos testes rigorosos nos componentes e nas tabelas, verificando se o fluxo de navegação entre os diferentes níveis de detalhamento estava correto. Além disso, ajustamos as interações para assegurar que a transição entre os níveis continuasse fluida e sem interrupções.
+```
+
+
+#### Dia 22/08/2024, das 0h às 01:30h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Nas primeiras horas do dia 22, continuamos o trabalho com foco nos níveis 95, 85 e 98. Reaplicamos a mesma abordagem adotada anteriormente, consolidando a nova view nos selects e garantindo a integridade das informações. Testes finais foram realizados em cada componente, com atenção especial às interações entre os níveis. Com isso, concluímos a integração da nova estrutura de dados nesses níveis, assegurando que todas as camadas do sistema estivessem estáveis e funcionando conforme o esperado.
+```
+
 
 finalização de configuração para acessar nivel inferior a partir de click em fatia ou coluna de grafico filtrando a informação no nivel inferior.
 

@@ -262,7 +262,7 @@
 
 
 <snk:query var="do_detalhe">
-SELECT CODEMP,EMPRESA,CODNAT,CODCENCUS,VLRDO FROM (
+SELECT CODEMP,EMPRESA,CODNAT,NATUREZA,CODCENCUS,CR,VLRDO FROM (
 SELECT 
 VGF.CODEMP,
 SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
@@ -296,7 +296,7 @@ WHERE
 OR 
 (CODEMP = :A_CODEMP))
 
-ORDER BY 5 DESC
+ORDER BY 7 DESC
 </snk:query>
 
     <div class="container">
@@ -346,8 +346,8 @@ ORDER BY 5 DESC
                                 <tr>
                                     <td onclick="abrir_emp('${item.CODEMP}')">${item.CODEMP}</td>
                                     <td>${item.EMPRESA}</td>
-                                    <td onclick="abrir_nat('${item.CODEMP}','${item.CODNAT}')">${item.CODNAT}</td>
-                                    <td onclick="abrir_cr('${item.CODEMP}','${item.CODCENCUS}')">${item.CODCENCUS}</td>
+                                    <td onclick="abrir_nat('${item.CODEMP}','${item.CODNAT}')">${item.NATUREZA}</td>
+                                    <td onclick="abrir_cr('${item.CODEMP}','${item.CODCENCUS}')">${item.CR}</td>
                                     <td><fmt:formatNumber value="${item.VLRDO}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                                     <c:set var="total" value="${total + item.VLRDO}" />
                                 </tr>
