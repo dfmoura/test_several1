@@ -242,7 +242,7 @@ GROUP BY CODEMP,AD_SUPERVISOR,SUPERVISOR,CODGER,GERENTE,TIPOPROD,CODPROD,DESCRPR
                 'A_TPPROD' : parseInt(grupo),
                 'A_SUPERVISOR': parseInt(grupo1)
              };
-            var level = 'lvl_a0togpw';
+            var level = 'lvl_a0togpw'; //abre 69
             
             openLevel(level, params);
         }
@@ -253,7 +253,7 @@ GROUP BY CODEMP,AD_SUPERVISOR,SUPERVISOR,CODGER,GERENTE,TIPOPROD,CODPROD,DESCRPR
                               'A_SUPERVISOR': parseInt(supervisor)
 
                 };
-                var level = 'lvl_n992o6';
+                var level = 'lvl_n992o6'; //abre 73
                 openLevel(level, params);
             }
 

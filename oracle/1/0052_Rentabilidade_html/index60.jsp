@@ -385,7 +385,8 @@ group by CODEMP,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE
             
             openLevel(level, params);
         }
-
+        
+       
 
         function abrir_det(produto,gerente) {
             var params = {'A_CODPROD': parseInt(produto),

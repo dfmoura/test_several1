@@ -253,7 +253,7 @@ GROUP BY CODEMP,CODVEND,VENDEDOR,AD_SUPERVISOR,SUPERVISOR,CODGER,GERENTE,TIPOPRO
                               'A_VENDEDOR': parseInt(codvend)
 
                 };
-                var level = 'lvl_n992lt';
+                var level = 'lvl_n992o6'; // abre 73
                 openLevel(level, params);
             }
 

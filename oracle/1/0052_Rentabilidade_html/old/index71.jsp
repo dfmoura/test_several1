@@ -94,42 +94,43 @@
 <snk:load/>
 </head>
 <body>
-<snk:query var="fat_det">
-    WITH BAS AS(
-        SELECT
-        CODEMP,EMPRESA,NUNOTA,TO_CHAR(DTNEG,'DD-MM-YYYY')DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE,CODPARC,NOMEPARC,MARGEMNON,PERCMARGEM
-        FROM VGF_CONSOLIDADOR_NOTAS_GM 
-        WHERE 
-        GOLSINAL = -1
-        AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
-        AND TIPMOV IN ('V', 'D')
-        AND ATIVO = 'S'
-        AND CODEMP IN (:P_EMPRESA)
-        AND CODNAT IN (:P_NATUREZA)
-        AND CODCENCUS IN (:P_CR)
-        AND CODVEND IN (:P_VENDEDOR)
-        AND AD_SUPERVISOR IN (:P_SUPERVISOR)
-        AND CODGER IN (:P_GERENTE)
-        AND AD_ROTA IN (:P_ROTA)
-        AND CODTIPOPER IN (:P_TOP)
-        )
-        SELECT 
-        CODEMP,EMPRESA,NUNOTA,DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE,CODPARC,NOMEPARC,MARGEMNON,PERCMARGEM
-        FROM BAS
-        WHERE 
-                    
-        (AD_TPPROD = :A_TPPROD AND CODGER = :A_CODGER)
-        OR
-        (AD_TPPROD = :A_TPPROD AND CODPARC = :A_CODPARC)
-        OR
-        (AD_TPPROD = :A_TPPROD AND CODPROD = :A_CODPROD)
-        
-        ORDER BY 13 DESC
-        
+    <snk:query var="fat_det">
+
+    SELECT
+    CODEMP,
+    CODPROD||' - '||DESCRPROD AS PRODUTO,
+    NUNOTA,
+    TO_CHAR(DTNEG,'DD-MM-YYYY')DTNEG,
+    CODTIPOPER,
+    CODPARC,
+    NOMEPARC,
+    VLRUNIT VLR_UN,
+    TOTALLIQ VLRFAT
+    
+    FROM VGF_CONSOLIDADOR_NOTAS_GM
+    WHERE
+    DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+    AND GOLSINAL = -1
+    AND TIPMOV IN ('V', 'D')
+    AND ATIVO = 'S' 
+    AND CODEMP IN (:P_EMPRESA)
+    AND CODNAT IN (:P_NATUREZA)
+    AND CODCENCUS IN (:P_CR)
+    AND CODVEND IN (:P_VENDEDOR)
+    AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+    AND CODGER IN (:P_GERENTE)
+    AND AD_ROTA IN (:P_ROTA)
+    AND CODTIPOPER IN (:P_TOP)
+    
+    AND CODVEND = :A_VENDEDOR
+    AND CODPROD = :A_CODPROD
+    
+    ORDER BY 7 DESC
+    
 </snk:query>
 
 <div class="table-wrapper">
-    <h2>Detalhamento Margem Nominal e Percentual</h2>
+    <h2>Detalhamento Supervisor Por Produto</h2>
     <div class="filter-container">
         <input type="text" id="tableFilter" placeholder="Digite para filtrar...">
     </div>
@@ -137,48 +138,33 @@
         <table id="myTable">
             <thead>
                 <tr>
-                    <th onclick="sortTable(0)">Cód. Emp.</th>
-                    <th onclick="sortTable(1)">Empresa</th>
-                    <th onclick="sortTable(2)">NÚ. Único</th>
-                    <th onclick="sortTable(3)">Dt. Neg.</th>
-                    <th onclick="sortTable(4)">Cód. Tp. Prod.</th>
-                    <th onclick="sortTable(5)">Tp. Prod.</th>
-                    <th onclick="sortTable(6)">Cód. Prod.</th>
-                    <th onclick="sortTable(7)">Produto</th>
-                    <th onclick="sortTable(8)">Cód. Ger.</th>
-                    <th onclick="sortTable(9)">Gerente</th>
-                    <th onclick="sortTable(10)">Cód. Parc.</th>
-                    <th onclick="sortTable(11)">Parceiro</th>
-                    <th onclick="sortTable(12)">Margem Nom.</th>
-                    <th onclick="sortTable(13)">Margem %</th>
+                    <th onclick="sortTable(0)">Nro. Único</th>
+                    <th onclick="sortTable(1)">Dt. Negociação</th>
+                    <th onclick="sortTable(2)">Cód. Tip. Oper.</th>
+                    <th onclick="sortTable(3)">Cód. Parc.</th>
+                    <th onclick="sortTable(4)">Parceiro</th>
+                    <th onclick="sortTable(5)">Preço Médio</th>
+                    <th onclick="sortTable(6)">Vlr. Fat.</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${fat_det.rows}">
                     <tr>
-                        <td>${row.CODEMP}</td>
-                        <td>${row.EMPRESA}</td>
                         <td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
                         <td>${row.DTNEG}</td>
-                        <td>${row.AD_TPPROD}</td>
-                        <td>${row.TIPOPROD}</td>
-                        <td>${row.CODPROD}</td>
-                        <td>${row.DESCRPROD}</td>
-                        <td>${row.CODGER}</td>
-                        <td>${row.GERENTE}</td>
+                        <td>${row.CODTIPOPER}</td>
                         <td>${row.CODPARC}</td>
                         <td>${row.NOMEPARC}</td>
-                        <td style="text-align: center;"><fmt:formatNumber value="${row.MARGEMNON}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                        <td style="text-align: center;"><fmt:formatNumber value="${row.PERCMARGEM}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                        <td><fmt:formatNumber value="${row.VLR_UN}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                        <td><fmt:formatNumber value="${row.VLRFAT}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                     </tr>
                 </c:forEach>              
             </tbody>
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total</b></td>
-                    <td colspan="11"></td>
-                    <td style="text-align: center;" id="totalAmount"><b>0,00</b></td>
-                    <td></td>
+                    <td colspan="5"></td>
+                    <td style="text-align: center;" id="totalAmount"><b>R$ 0,00</b></td>
                 </tr>       
             </tfoot>
         </table>
@@ -198,15 +184,13 @@
 
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cellValue = row.cells[12].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
+                const cellValue = row.cells[6].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
                 const value = parseFloat(cellValue);
                 total += isNaN(value) ? 0 : value;
             }
         });
 
-        document.getElementById('totalAmount').innerHTML = '<b>' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>';
-
-        
+        document.getElementById('totalAmount').innerHTML = '<b>' + total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '</b>';
     }
 
     document.getElementById('tableFilter').addEventListener('keyup', function () {

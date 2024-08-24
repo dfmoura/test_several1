@@ -189,23 +189,23 @@ SELECT 5 AS COD,'VLRCOFINS' AS IMPOSTO, SUM(VLRCOFINS) AS VALOR FROM IMP
 
 <snk:query var="impostos_emp">  
     SELECT
-    CODEMP,
-    EMPRESA,
     COD,
-    IMPOSTO,
-    VALOR
+    CODTIPPARC,
+    DESCRTIPPARC,
+    SUM(VALOR) VALOR
     FROM
     (
     WITH IMP AS
     (
     SELECT
-    CODEMP,EMPRESA,VLRIPI,VLRSUBST,VLRICMS,VLRPIS,VLRCOFINS
+    CODEMP,EMPRESA,VLRIPI,VLRSUBST,VLRICMS,VLRPIS,VLRCOFINS,CODTIPPARC,DESCRTIPPARC
     FROM VGF_CONSOLIDADOR_NOTAS_GM 
     WHERE 
     GOLSINAL = -1
     AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
     AND TIPMOV IN ('V', 'D')
     AND ATIVO = 'S'
+    
     AND CODEMP IN (:P_EMPRESA)
     AND CODNAT IN (:P_NATUREZA)
     AND CODCENCUS IN (:P_CR)
@@ -214,18 +214,20 @@ SELECT 5 AS COD,'VLRCOFINS' AS IMPOSTO, SUM(VLRCOFINS) AS VALOR FROM IMP
     AND CODGER IN (:P_GERENTE)
     AND AD_ROTA IN (:P_ROTA)
     AND CODTIPOPER IN (:P_TOP)
+    
     )
-    SELECT CODEMP,EMPRESA,1 AS COD,'VLRSUBST' AS IMPOSTO, SUM(VLRSUBST) AS VALOR FROM IMP GROUP BY CODEMP,EMPRESA
+    SELECT CODTIPPARC,DESCRTIPPARC,1 AS COD,'VLRSUBST' AS IMPOSTO, SUM(VLRSUBST) AS VALOR FROM IMP GROUP BY CODTIPPARC,DESCRTIPPARC,CODEMP,EMPRESA
     UNION ALL
-    SELECT CODEMP,EMPRESA,2 AS COD,'VLRIPI' AS IMPOSTO, SUM(VLRIPI) AS VALOR FROM IMP GROUP BY CODEMP,EMPRESA
+    SELECT CODTIPPARC,DESCRTIPPARC,2 AS COD,'VLRIPI' AS IMPOSTO, SUM(VLRIPI) AS VALOR FROM IMP GROUP BY CODTIPPARC,DESCRTIPPARC,CODEMP,EMPRESA
     UNION ALL
-    SELECT CODEMP,EMPRESA,3 AS COD,'VLRICMS' AS IMPOSTO, SUM(VLRICMS) AS VALOR FROM IMP GROUP BY CODEMP,EMPRESA
+    SELECT CODTIPPARC,DESCRTIPPARC,3 AS COD,'VLRICMS' AS IMPOSTO, SUM(VLRICMS) AS VALOR FROM IMP GROUP BY CODTIPPARC,DESCRTIPPARC,CODEMP,EMPRESA
     UNION ALL
-    SELECT CODEMP,EMPRESA,4 AS COD,'PIS' AS IMPOSTO, SUM(VLRPIS) AS VALOR FROM IMP GROUP BY CODEMP,EMPRESA
+    SELECT CODTIPPARC,DESCRTIPPARC,4 AS COD,'PIS' AS IMPOSTO, SUM(VLRPIS) AS VALOR FROM IMP GROUP BY CODTIPPARC,DESCRTIPPARC,CODEMP,EMPRESA
     UNION ALL
-    SELECT CODEMP,EMPRESA,5 AS COD,'COFINS' AS IMPOSTO, SUM(VLRCOFINS) AS VALOR FROM IMP GROUP BY CODEMP,EMPRESA
+    SELECT CODTIPPARC,DESCRTIPPARC,5 AS COD,'COFINS' AS IMPOSTO, SUM(VLRCOFINS) AS VALOR FROM IMP GROUP BY CODTIPPARC,DESCRTIPPARC,CODEMP,EMPRESA
     )
-    WHERE COD = :A_IMPOSTOS OR ( COD = 3 AND :A_IMPOSTOS IS NULL)
+    WHERE COD = 3 
+    GROUP BY COD,CODTIPPARC, DESCRTIPPARC,
     ORDER BY VALOR DESC    
     
 </snk:query>  
@@ -237,7 +239,7 @@ SELECT * FROM(
 WITH IMP AS
 (
 SELECT
-CODEMP,EMPRESA,AD_TPPROD,TIPOPROD,VLRIPI,VLRSUBST,VLRICMS,VLRPIS,VLRCOFINS
+CODTIPPARC,DESCRTIPPARC,CODEMP,EMPRESA,AD_TPPROD,TIPOPROD,VLRIPI,VLRSUBST,VLRICMS,VLRPIS,VLRCOFINS
 FROM VGF_CONSOLIDADOR_NOTAS_GM 
 WHERE 
 GOLSINAL = -1
@@ -277,7 +279,7 @@ ORDER BY VALOR DESC
     WITH IMP AS
     (
     SELECT
-    CODEMP,EMPRESA,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,VLRIPI,VLRSUBST,VLRICMS,VLRPIS,VLRCOFINS
+    CODTIPPARC,DESCRTIPPARC,CODEMP,EMPRESA,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,VLRIPI,VLRSUBST,VLRICMS,VLRPIS,VLRCOFINS
     FROM VGF_CONSOLIDADOR_NOTAS_GM 
     WHERE 
     GOLSINAL = -1
@@ -317,14 +319,14 @@ ORDER BY VALOR DESC
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
                     <c:forEach items="${tot_impostos.rows}" var="row">
-                        <div class="chart-overlay" onclick="abrir_par()"><fmt:formatNumber value="${row.TOT_IMP}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
+                        <div class="chart-overlay"><fmt:formatNumber value="${row.TOT_IMP}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
                     </c:forEach>
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">Impostos por Empresa</div>
+                <div class="part-title">Impostos por Perfil Cliente</div>
                 <div class="chart-container">
-                    <canvas id="barChart"></canvas>
+                    <canvas id="doughnutChart1"></canvas>
                 </div>
             </div>
         </div>
@@ -420,12 +422,6 @@ ORDER BY VALOR DESC
             openLevel(level, params);
         }
 
-        function abrir_par(){
-            var params = '';
-            var level = 'lvl_7ko4mp';
-            openLevel(level, params);
-        }          
-
 
     // Obtendo os dados da query JSP para o gráfico de rosca
 
@@ -484,25 +480,40 @@ ORDER BY VALOR DESC
             }
         });
 
-        // Dados fictícios para o gráfico de barras verticais
-        var empresaLabels1 = [];
-        var vlrEmpData1 = [];
 
+    // Obtendo os dados da query JSP para o gráfico de rosca
+
+        var perimpostos = [];
+        var pervaloresImpostos = [];
         <c:forEach items="${impostos_emp.rows}" var="row">
-            empresaLabels1.push('${row.COD} - ${row.CODEMP} - ${row.EMPRESA}');
-            vlrEmpData1.push('${row.VALOR}');
-        </c:forEach> 
-
-        const ctxBar = document.getElementById('barChart').getContext('2d');
-        const barChart = new Chart(ctxBar, {
-            type: 'bar',
+            perimpostos.push('${row.COD} - ${row.CODTIPPARC} - ${row.DESCRTIPPARC}');
+            pervaloresImpostos.push('${row.VALOR}');
+        </c:forEach>
+        // Dados fictícios para o gráfico de rosca
+        const ctxDoughnut1 = document.getElementById('doughnutChart1').getContext('2d');
+        const doughnutChart1 = new Chart(ctxDoughnut1, {
+            type: 'doughnut',
             data: {
-                labels: empresaLabels1,
+                labels: perimpostos,
                 datasets: [{
-                    label: 'Imposto',
-                    data: vlrEmpData1,
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
+                    label: 'Impostos',
+                    data: pervaloresImpostos,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
                     borderWidth: 1
                 }]
             },
@@ -511,27 +522,25 @@ ORDER BY VALOR DESC
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: false // Remove a legenda
+                        position: 'left',
+                        align: 'center', // Alinhamento vertical da legenda
+
                     }
                 },
-                scales: {
-                    x: {
-                        beginAtZero: true
-                    },
-                    y: {
-                        beginAtZero: true
-                    }
-                },
-                onClick: function(evt, activeElements) {
-                    if (activeElements.length > 0) {
-                        const index = activeElements[0].index;
-                        const grupo = empresaLabels1[index].split('-')[0];
-                        const grupo1 = empresaLabels1[index].split('-')[1];
-                        abrir_emp(grupo,grupo1);
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        var index = elements[0].index;
+                        var label = perimpostos[index].split('-')[0];
+                        //ref_imp(label);
+                        //alert(label);
                     }
                 }
             }
         });
+        
+
+        
+
 
         // Dados fictícios para o gráfico de colunas verticais
         var tipoLabels = [];

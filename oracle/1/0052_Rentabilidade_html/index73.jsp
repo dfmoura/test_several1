@@ -9,164 +9,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Example</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Tabela com Filtros e Ordenação</title>
     <style>
         body {
-            margin: 20px;
+            font-family: Arial, sans-serif;
         }
-        .card {
-            border-radius: 15px;
+
+        .table-wrapper {
+            max-width: 1400px;
+            margin: 20px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .card-header {
-            border-top-left-radius: 0px;
-            border-top-right-radius: 0px;
+
+        .filter-container {
+            margin: 10px;
+            text-align: center;
         }
-        .card-body {
-            border-bottom-left-radius: 0px;
-            border-bottom-right-radius: 0px;
-        }
+
         .table-container {
-            flex-grow: 1;
-            width: 100%;
-            overflow-x: auto;
-        }
-        .table-scrollable {
-            width: 100%;
             overflow-y: auto;
-            overflow-x: auto;
-            max-height: 400px; /* Ajuste conforme necessário */
+            height: 550px;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 12px;
+            font-size: 10px;
         }
+
         th, td {
-            
-            text-align: left;
             padding: 8px;
-            border-radius: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+            white-space: nowrap; /* Impede a quebra de linha nas células */
+
         }
+
         th {
-            background-color: #130455;
-            color: white;
+            cursor: pointer;
+            background-color: #f2f2f2;
             position: sticky;
             top: 0;
-            z-index: 2; /* Certifique-se de que os cabeçalhos fiquem acima das linhas */
+            z-index: 1;
+            resize: horizontal;
+            overflow: auto;
         }
-        /* Efeito de hover */
+
+        th.sort-asc::after {
+            content: " ▲";
+        }
+
+        th.sort-desc::after {
+            content: " ▼";
+        }
+
         tbody tr:hover {
-            background-color: #f0f0f0;
-            cursor: pointer;
+           background-color: #f5f5f5; /* Cor de fundo ao passar o mouse */
+            cursor: pointer; /* Muda o cursor para indicar interatividade */
+        }    
+
+        input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 0;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .total-row td {
+            font-weight: bold;
         }
     </style>
-    <snk:load/>
+
+<snk:load/>
 </head>
-
 <body>
-<snk:query var="fat_det">
+    <snk:query var="fat_det">
+
+    SELECT
+    CODEMP,
+    CODPROD||' - '||DESCRPROD AS PRODUTO,
+    NUNOTA,
+    TO_CHAR(DTNEG,'DD-MM-YYYY')DTNEG,
+    CODTIPOPER,
+    CODPARC,
+    NOMEPARC,
+    VLRUNIT VLR_UN,
+    TOTALLIQ VLRFAT
     
-SELECT
-CODEMP,
-CODPROD||' - '||DESCRPROD AS PRODUTO,
-NUNOTA,
-DTNEG,
-CODTIPOPER,
-CODPARC,
-NOMEPARC,
-0 VLR_UN,
-SUM(TOTALLIQ)VLRFAT
-
-FROM VGF_CONSOLIDADOR_NOTAS_GM
-WHERE
-DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-AND GOLSINAL = -1
-AND TIPMOV IN ('V', 'D')
-AND ATIVO = 'S' 
-AND CODEMP IN (:P_EMPRESA)
-AND CODNAT IN (:P_NATUREZA)
-AND CODCENCUS IN (:P_CR)
-AND CODVEND IN (:P_VENDEDOR)
-AND AD_SUPERVISOR IN (:P_SUPERVISOR)
-AND CODGER IN (:P_GERENTE)
-AND AD_ROTA IN (:P_ROTA)
-AND CODTIPOPER IN (:P_TOP)
-
-AND AD_SUPERVISOR = :A_SUPERVISOR
-AND CODPROD = :A_CODPROD
-
-GROUP BY 
-CODEMP, 
-CODPROD||' - '||DESCRPROD,
-NUNOTA,
-DTNEG,
-CODTIPOPER,
-CODPARC,
-NOMEPARC
-ORDER BY 7 DESC
-
+    FROM VGF_CONSOLIDADOR_NOTAS_GM
+    WHERE
+    DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+    AND GOLSINAL = -1
+    AND TIPMOV IN ('V', 'D')
+    AND ATIVO = 'S' 
+    AND CODEMP IN (:P_EMPRESA)
+    AND CODNAT IN (:P_NATUREZA)
+    AND CODCENCUS IN (:P_CR)
+    AND CODVEND IN (:P_VENDEDOR)
+    AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+    AND CODGER IN (:P_GERENTE)
+    AND AD_ROTA IN (:P_ROTA)
+    AND CODTIPOPER IN (:P_TOP)
+    
+    AND
+    (
+    (AD_SUPERVISOR = :A_SUPERVISOR AND CODPROD = :A_CODPROD)
+    OR
+    (CODVEND = :A_VENDEDOR AND CODPROD = :A_CODPROD)
+    )
+    ORDER BY 7 DESC
+    
 </snk:query>
 
-    <div class="container-fluid">
-        <div class="card">
-            <div class="card-header">
-                <h3>Faturamento Detalhado</h3>
-            </div>
-            <div class="table-container table-scrollable">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Nro. Único</th>
-                            <th>Dt. Negociação</th>
-                            <th>Cód. Tip. Oper.</th>
-                            <th>Cód. Parc.</th>
-                            <th>Parceiro</th>
-                            <th>Preço Médio</th>
-                            <th>Vlr. Fat.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <c:set var="total" value="0" />
-                        <c:forEach items="${fat_det.rows}" var="row">
-                            <tr>
-                                <td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
-                                <td>${row.DTNEG}</td>
-                                <td>${row.CODTIPOPER}</td>
-                                <td>${row.CODPARC}</td>
-                                <td>${row.NOMEPARC}</td>
-                                <td><fmt:formatNumber value="${row.VLR_UN}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                                <td><fmt:formatNumber value="${row.VLRFAT}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                                <c:set var="total" value="${total + row.VLRFAT}" />
-                            </tr>
-                        </c:forEach>
-                        <tr>
-                            <td><b>Total</b></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td><b><fmt:formatNumber value="${total}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+<div class="table-wrapper">
+    <h2>Detalhamento Por Produto</h2>
+    <div class="filter-container">
+        <input type="text" id="tableFilter" placeholder="Digite para filtrar...">
     </div>
+    <div class="table-container">
+        <table id="myTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">Nro. Único</th>
+                    <th onclick="sortTable(1)">Dt. Negociação</th>
+                    <th onclick="sortTable(2)">Cód. Tip. Oper.</th>
+                    <th onclick="sortTable(3)">Cód. Parc.</th>
+                    <th onclick="sortTable(4)">Parceiro</th>
+                    <th onclick="sortTable(5)">Preço Médio</th>
+                    <th onclick="sortTable(6)">Vlr. Fat.</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <c:forEach var="row" items="${fat_det.rows}">
+                    <tr>
+                        <td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
+                        <td>${row.DTNEG}</td>
+                        <td>${row.CODTIPOPER}</td>
+                        <td>${row.CODPARC}</td>
+                        <td>${row.NOMEPARC}</td>
+                        <td><fmt:formatNumber value="${row.VLR_UN}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                        <td><fmt:formatNumber value="${row.VLRFAT}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                    </tr>
+                </c:forEach>              
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td><b>Total</b></td>
+                    <td colspan="5"></td>
+                    <td style="text-align: center;" id="totalAmount"><b>R$ 0,00</b></td>
+                </tr>       
+            </tfoot>
+        </table>
+    </div>
+</div>
 
-    <script>
-        function abrir_portal(nunota) {
-            var params = {'NUNOTA': nunota};
-            var level = 'br.com.sankhya.com.mov.CentralNotas';
-            openApp(level, params);
-        }
+<script>
+    function abrir_portal(nunota) {
+        var params = {'NUNOTA': nunota};
+        var level = 'br.com.sankhya.com.mov.CentralNotas';
+        openApp(level, params);
+    }
 
-    </script>
+    function updateTotal() {
+        const rows = document.querySelectorAll('#myTable tbody tr:not(.total-row)');
+        let total = 0;
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                const cellValue = row.cells[6].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
+                const value = parseFloat(cellValue);
+                total += isNaN(value) ? 0 : value;
+            }
+        });
+
+        document.getElementById('totalAmount').innerHTML = '<b>' + total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '</b>';
+    }
+
+    document.getElementById('tableFilter').addEventListener('keyup', function () {
+        const filter = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#myTable tbody tr:not(.total-row)');
+
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const match = Array.from(cells).some(cell => cell.textContent.toLowerCase().includes(filter));
+            row.style.display = match ? '' : 'none';
+        });
+
+        updateTotal(); // Atualiza o total após o filtro
+    });
+
+    function sortTable(n) {
+        const table = document.getElementById("myTable");
+        let rows = Array.from(table.querySelectorAll('tbody tr:not(.total-row)')); // Exclui a linha de total
+        const isAscending = table.querySelectorAll('th')[n].classList.toggle('sort-asc');
+
+        rows.sort((rowA, rowB) => {
+            const cellA = rowA.cells[n].textContent.trim().toLowerCase();
+            const cellB = rowB.cells[n].textContent.trim().toLowerCase();
+
+            if (!isNaN(cellA) && !isNaN(cellB)) {
+                return isAscending ? cellA - cellB : cellB - cellA;
+            }
+
+            return isAscending ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+        });
+
+        rows.forEach(row => table.querySelector('tbody').appendChild(row));
+
+        Array.from(table.querySelectorAll('th')).forEach((th, index) => {
+            th.classList.remove('sort-asc', 'sort-desc');
+            if (index === n) {
+                th.classList.add(isAscending ? 'sort-asc' : 'sort-desc');
+            }
+        });
+
+        // Atualiza o total após a ordenação
+        updateTotal();
+    }
+
+    // Calcula e exibe o total inicial após o carregamento da página
+    document.addEventListener('DOMContentLoaded', (event) => {
+        updateTotal();
+    });
+</script>
 </body>
 </html>
