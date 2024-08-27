@@ -97,7 +97,7 @@
         font-size: 15px; /* Ajusta o tamanho da fonte de <p> */
     }
     h1 {
-        font-size: 25px; /* Ajusta o tamanho da fonte de <h1> */
+        font-size: 23px; /* Ajusta o tamanho da fonte de <h1> */
     }
     .footer {
     display: flex;
@@ -169,6 +169,14 @@
         var level = 'lvl_a73fhjs';
         openLevel(level, params);
     }    
+
+    function abrir_mar_perc(){
+        var params = '';
+        var level = 'lvl_adcdpv5';
+        openLevel(level, params);
+    }    
+
+    
 
     function abrir_do(){
         var params = '';
@@ -679,7 +687,7 @@ INNER JOIN INV_MA ON BAS.COD = INV_MA.COD
             </div>
         </div>
         <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla (Faturamento - Impostos - CMV) / Faturamento " onclick="abrir_mar()">
+            <div class="card shadow-sm" title="Esta informação contempla (Faturamento - Impostos - CMV) / Faturamento " onclick="abrir_mar_perc()">
                 <div class="card-body text-center">
                     <div class="icon">
                         <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd"><path d="M21.19 7h2.81v15h-21v-5h-2.81v-15h21v5zm1.81 1h-19v13h19v-13zm-9.5 1c3.036 0 5.5 2.464 5.5 5.5s-2.464 5.5-5.5 5.5-5.5-2.464-5.5-5.5 2.464-5.5 5.5-5.5zm0 1c2.484 0 4.5 2.016 4.5 4.5s-2.016 4.5-4.5 4.5-4.5-2.016-4.5-4.5 2.016-4.5 4.5-4.5zm.5 8h-1v-.804c-.767-.16-1.478-.689-1.478-1.704h1.022c0 .591.326.886.978.886.817 0 1.327-.915-.167-1.439-.768-.27-1.68-.676-1.68-1.693 0-.796.573-1.297 1.325-1.448v-.798h1v.806c.704.161 1.313.673 1.313 1.598h-1.018c0-.788-.727-.776-.815-.776-.55 0-.787.291-.787.622 0 .247.134.497.957.768 1.056.344 1.663.845 1.663 1.746 0 .651-.376 1.288-1.313 1.448v.788zm6.19-11v-4h-19v13h1.81v-9h17.19z"/></svg>

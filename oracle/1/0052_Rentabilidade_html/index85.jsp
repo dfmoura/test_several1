@@ -247,7 +247,7 @@
 <snk:query var="mar_prod">
     WITH BAS AS(
         SELECT
-        AD_TPPROD,TIPOPROD,CODGER,GERENTE,CODPARC,NOMEPARC,CODPROD,DESCRPROD,MARGEMNON
+        AD_TPPROD,TIPOPROD,CODGER,GERENTE,CODPARC,NOMEPARC,CODPROD,DESCRPROD,HL,MARGEMNON
         FROM VGF_CONSOLIDADOR_NOTAS_GM 
         WHERE 
         GOLSINAL = -1
@@ -264,11 +264,11 @@
         AND CODTIPOPER IN (:P_TOP)
         )
         SELECT 
-        AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,SUM(MARGEMNON) MARGEMNON
+        AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,SUM(HL)HL,SUM(MARGEMNON) MARGEMNON
         FROM BAS
         WHERE AD_TPPROD = :A_TPPROD OR ( AD_TPPROD = 4 AND :A_TPPROD IS NULL)
         GROUP BY AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD
-        ORDER BY 5 DESC
+        ORDER BY 6 DESC
         
 </snk:query>
 
@@ -309,6 +309,7 @@
                                 <th>Tp. Prod.</th>
                                 <th>Cód. Prod.</th>
                                 <th>Produto</th>
+                                <th>HL</th>
                                 <th>Margem Nom.</th>
                             </tr>
                         </thead>
@@ -320,12 +321,14 @@
                                     <td>${item.TIPOPROD}</td>
                                     <td onclick="abrir_pro('${item.AD_TPPROD}','${item.CODPROD}')">${item.CODPROD}</td>
                                     <td>${item.DESCRPROD}</td>
+                                    <td>${item.HL}</td>
                                     <td><fmt:formatNumber value="${item.MARGEMNON}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                                     <c:set var="total" value="${total + item.MARGEMNON}" />
                                 </tr>
                             </c:forEach>
                             <tr>
                                 <td><b>Total</b></td>
+                                <td></td>
                                 <td></td>
                                 <td></td>
                                 <td></td>

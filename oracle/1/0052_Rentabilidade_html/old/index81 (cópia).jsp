@@ -317,7 +317,7 @@ ORDER BY VALOR DESC
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
                     <c:forEach items="${tot_impostos.rows}" var="row">
-                        <div class="chart-overlay" onclick="abrir_par()" title="Acessar por perfil de Cliente"><fmt:formatNumber value="${row.TOT_IMP}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
+                        <div class="chart-overlay" onclick="abrir_par()"><fmt:formatNumber value="${row.TOT_IMP}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
                     </c:forEach>
                 </div>
             </div>
@@ -354,7 +354,7 @@ ORDER BY VALOR DESC
                                 <tr>
                                     <td>${item.COD}</td>
                                     <td>${item.AD_TPPROD}</td>
-                                    <td onclick="abrir_prod('${item.CODPROD}')">${item.CODPROD}</td>
+                                    <td onclick="abrir_prod('${item.COD}','${item.CODPROD}')">${item.CODPROD}</td>
                                     <td>${item.DESCRPROD}</td>
                                     <td><fmt:formatNumber value="${item.VALOR}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                                     <c:set var="total" value="${total + item.VALOR}" />
@@ -390,30 +390,30 @@ ORDER BY VALOR DESC
 
 
         // Função para abrir o novo nível
-        function abrir_emp(grupo) {
+        function abrir_emp(grupo,grupo1) {
             var params = { 
-                
-                'A_CODEMP': parseInt(grupo)
+                'A_COD' : parseInt(grupo),
+                'A_CODEMP': parseInt(grupo1)
              };
             var level = 'lvl_vkan0l';
             
             openLevel(level, params);
         }
 
-        function abrir_tpprod(grupo) {
+        function abrir_tpprod(grupo,grupo1) {
             var params = { 
-                
-                'A_TPPROD': parseInt(grupo)
+                'A_COD' : parseInt(grupo),
+                'A_TPPROD': parseInt(grupo1)
              };
             var level = 'lvl_vkan0l';
             
             openLevel(level, params);
         }
 
-        function abrir_prod(grupo) {
+        function abrir_prod(grupo,grupo1) {
             var params = { 
-                
-                'A_CODPROD': parseInt(grupo)
+                'A_COD' : parseInt(grupo),
+                'A_CODPROD': parseInt(grupo1)
              };
             var level = 'lvl_vkan0l';
             
@@ -526,9 +526,8 @@ ORDER BY VALOR DESC
                     if (activeElements.length > 0) {
                         const index = activeElements[0].index;
                         const grupo = empresaLabels1[index].split('-')[0];
-                        const grupo2 = empresaLabels1[index].split('-')[1];
-                        
-                        abrir_emp(grupo2);
+                        const grupo1 = empresaLabels1[index].split('-')[1];
+                        abrir_emp(grupo,grupo1);
                     }
                 }
             }
@@ -574,9 +573,8 @@ ORDER BY VALOR DESC
                     if (activeElements.length > 0) {
                         const index = activeElements[0].index;
                         const grupo = tipoLabels[index].split('-')[0];
-                        const grupo2 = tipoLabels[index].split('-')[1];
-                        
-                        abrir_tpprod(grupo2);
+                        const grupo1 = tipoLabels[index].split('-')[1];
+                        abrir_tpprod(grupo,grupo1);
                     }
                 }
             }

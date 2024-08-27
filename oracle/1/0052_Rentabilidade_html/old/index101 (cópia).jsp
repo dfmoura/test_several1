@@ -491,15 +491,16 @@
 
                             // Função para atualizar a query
                             function ref_perfil(perfil) {
-                                const params = { 'A_PERFIL': parseInt(perfil) };
+                                const params = { 'A_PERFIL': perfil };
                                 refreshDetails('html5_8tt89f', params);
                             }
 
 
                             // Função para abrir o novo nível
-                            function abrir_perfil(grupo) {
+                            function abrir_perfil(grupo, grupo1) {
                                 var params = {
-                                    'A_PERFIL': parseInt(grupo)
+                                    'A_PERFIL': parseInt(grupo),
+                                    'A_COD': parseInt(grupo1)
                                 };
                                 var level = 'lvl_vkan0l';
 
@@ -577,8 +578,8 @@
                                         if (elements.length > 0) {
                                             var index = elements[0].index;
                                             var label = impostos[index].split('-')[0];
-                                            
-                                            abrir_perfil(label);
+                                            var label1 = impostos[index].split('-')[1];
+                                            abrir_perfil(label, label1);
                                             //alert(label);
                                         }
                                     }
@@ -688,7 +689,6 @@
                                             const index = activeElements[0].index;
                                             const grupo = tipoLabels[index].split('-')[0];
                                             const grupo1 = tipoLabels[index].split('-')[1];
-                                            alert(grupo);
                                             abrir_tpprod(grupo, grupo1);
                                         }
                                     }

@@ -116,25 +116,28 @@
         SELECT CODEMP, EMPRESA, CODTIPPARC, DESCRTIPPARC, CODPARC, NOMEPARC, AD_TPPROD, TIPOPROD, CODPROD, DESCRPROD, NUNOTA, DTNEG, VLRIPI, VLRSUBST, VLRICMS, VLRPIS, VLRCOFINS, IMPOSTOS
         FROM IMP
         WHERE 
+        
         (
-            (:A_CODEMP IS NULL AND :A_TPPROD IS NULL AND :A_CODPROD IS NULL AND CODEMP IS NOT NULL)
-            OR
-            (:A_TPPROD IS NULL AND :A_CODEMP IS NULL AND :A_CODPROD IS NULL AND AD_TPPROD IS NOT NULL)
-            OR
-            (:A_CODPROD IS NULL AND :A_CODEMP IS NULL AND :A_TPPROD IS NULL AND CODPROD IS NOT NULL)
-            OR
             (
-                CODTIPPARC = :A_PERFIL
-                AND 
-                (
-                    (:A_TPPROD IS NULL AND :A_CODPROD IS NULL)
-                    OR
-                    (AD_TPPROD = :A_TPPROD AND :A_CODPROD IS NULL)
-                    OR
-                    (CODPROD = :A_CODPROD AND :A_TPPROD IS NULL)
-                )
+            (CODEMP = :A_CODEMP AND :A_TPPROD IS NULL AND :A_CODPROD IS NULL)
+            OR
+            (AD_TPPROD = :A_TPPROD AND :A_CODEMP IS NULL AND :A_CODPROD IS NULL)
+            OR
+            (CODPROD = :A_CODPROD AND :A_CODEMP IS NULL AND :A_TPPROD IS NULL)
+            )
+            
+                   
+            OR 
+            (
+            (CODTIPPARC = :A_PERFIL AND :A_TPPROD IS NULL AND :A_CODPROD IS NULL)
+            OR
+            (CODTIPPARC = :A_PERFIL AND AD_TPPROD = :A_TPPROD AND :A_CODPROD IS NULL)
+            OR
+            (CODTIPPARC = :A_PERFIL AND :A_TPPROD IS NULL AND CODPROD = :A_CODPROD)
             )
         )
+
+
         ORDER BY IMPOSTOS DESC
     </snk:query>
 
@@ -190,17 +193,19 @@
                             <td style="text-align: center;"><fmt:formatNumber value="${row.IMPOSTOS}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2" /></td>
                         </tr>
                     </c:forEach>
-                    <!-- Linha de totais -->
-                    <tr class="total-row">
-                        <td colspan="12">Total:</td>
-                        <td id="totalIPI"></td>
-                        <td id="totalSubst"></td>
-                        <td id="totalICMS"></td>
-                        <td id="totalPIS"></td>
-                        <td id="totalCOFINS"></td>
-                        <td id="totalImpostos"></td>
-                    </tr>
                 </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td><b>Total</b></td>
+                        <td colspan="11"></td>
+                        <td style="text-align: center;" id="totalIPI"><b>R$ 0,00</b></td>
+                        <td style="text-align: center;" id="totalSubst"><b>R$ 0,00</b></td>
+                        <td style="text-align: center;" id="totalICMS"><b>R$ 0,00</b></td>
+                        <td style="text-align: center;" id="totalPIS"><b>R$ 0,00</b></td>
+                        <td style="text-align: center;" id="totalCOFINS"><b>R$ 0,00</b></td>
+                        <td style="text-align: center;" id="totalImpostos"><b>R$ 0,00</b></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
@@ -214,9 +219,10 @@
         }
 
 
+
         document.getElementById('tableFilter').addEventListener('keyup', function () {
             const searchValue = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#myTable tbody tr:not(.total-row)');
+            const rows = document.querySelectorAll('#myTable tbody tr');
             rows.forEach(row => {
                 const rowText = row.textContent.toLowerCase();
                 row.style.display = rowText.includes(searchValue) ? '' : 'none';
@@ -226,14 +232,14 @@
 
         function sortTable(columnIndex) {
             const table = document.getElementById("myTable");
-            const rows = Array.from(document.querySelectorAll('#myTable tbody tr:not(.total-row)'));
+            const rows = Array.from(table.rows).slice(1);
             const isAsc = table.rows[0].cells[columnIndex].classList.toggle('sort-asc', !table.rows[0].cells[columnIndex].classList.contains('sort-asc'));
             rows.sort((rowA, rowB) => {
                 const cellA = rowA.cells[columnIndex].textContent.trim();
                 const cellB = rowB.cells[columnIndex].textContent.trim();
                 return isAsc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
             });
-            rows.forEach(row => document.querySelector('#tableBody').appendChild(row));
+            rows.forEach(row => table.appendChild(row));
             updateTotal(); // Atualiza os totais após ordenação
         }
 
@@ -265,12 +271,12 @@
                 }
             });
 
-            document.getElementById('totalIPI').textContent = totalIPI.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('totalSubst').textContent = totalSubst.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('totalICMS').textContent = totalICMS.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('totalPIS').textContent = totalPIS.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('totalCOFINS').textContent = totalCOFINS.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('totalImpostos').textContent = totalImpostos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('totalIPI').innerHTML = totalIPI.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('totalSubst').innerHTML = totalSubst.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('totalICMS').innerHTML = totalICMS.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('totalPIS').innerHTML = totalPIS.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('totalCOFINS').innerHTML = totalCOFINS.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('totalImpostos').innerHTML = totalImpostos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
         document.addEventListener('DOMContentLoaded', (event) => {

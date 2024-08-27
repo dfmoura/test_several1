@@ -97,7 +97,7 @@
 <snk:query var="fat_det">
     WITH BAS AS(
         SELECT
-        CODEMP,EMPRESA,NUNOTA,TO_CHAR(DTNEG,'DD-MM-YYYY')DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE,CODPARC,NOMEPARC,MARGEMNON,PERCMARGEM
+        CODEMP,EMPRESA,NUNOTA,TO_CHAR(DTNEG,'DD-MM-YYYY')DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE,CODPARC,NOMEPARC,HL,MARGEMNON,PERCMARGEM
         FROM VGF_CONSOLIDADOR_NOTAS_GM 
         WHERE 
         GOLSINAL = -1
@@ -114,7 +114,7 @@
         AND CODTIPOPER IN (:P_TOP)
         )
         SELECT 
-        CODEMP,EMPRESA,NUNOTA,DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE,CODPARC,NOMEPARC,MARGEMNON,PERCMARGEM
+        CODEMP,EMPRESA,NUNOTA,DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE,CODPARC,NOMEPARC,HL,MARGEMNON,PERCMARGEM
         FROM BAS
         WHERE 
                     
@@ -124,7 +124,7 @@
         OR
         (AD_TPPROD = :A_TPPROD AND CODPROD = :A_CODPROD)
         
-        ORDER BY 13 DESC
+        ORDER BY 14 DESC
         
 </snk:query>
 
@@ -149,8 +149,9 @@
                     <th onclick="sortTable(9)">Gerente</th>
                     <th onclick="sortTable(10)">Cód. Parc.</th>
                     <th onclick="sortTable(11)">Parceiro</th>
-                    <th onclick="sortTable(12)">Margem Nom.</th>
-                    <th onclick="sortTable(13)">Margem %</th>
+                    <th onclick="sortTable(12)">HL</th>
+                    <th onclick="sortTable(13)">Margem Nom.</th>
+                    <th onclick="sortTable(14)">Margem %</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
@@ -168,6 +169,7 @@
                         <td>${row.GERENTE}</td>
                         <td>${row.CODPARC}</td>
                         <td>${row.NOMEPARC}</td>
+                        <td style="text-align: center;"><fmt:formatNumber value="${row.HL}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                         <td style="text-align: center;"><fmt:formatNumber value="${row.MARGEMNON}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                         <td style="text-align: center;"><fmt:formatNumber value="${row.PERCMARGEM}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                     </tr>
@@ -176,7 +178,7 @@
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total</b></td>
-                    <td colspan="11"></td>
+                    <td colspan="12"></td>
                     <td style="text-align: center;" id="totalAmount"><b>0,00</b></td>
                     <td></td>
                 </tr>       
@@ -198,7 +200,7 @@
 
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cellValue = row.cells[12].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
+                const cellValue = row.cells[13].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
                 const value = parseFloat(cellValue);
                 total += isNaN(value) ? 0 : value;
             }
