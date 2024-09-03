@@ -389,6 +389,40 @@ GM - DASH RENTABILIDADE HTML5 - Nas primeiras horas do dia 22, continuamos o tra
 ```
 
 
+
+
+#### Dia 22/08/2024, das 8h às 11h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Durante o período da manhã do dia 22 de agosto, realizamos uma revisão detalhada e correção de todos os gráficos de rosca no dashboard. Ajustamos a legenda para o lado esquerdo e garantimos que o valor fosse exibido no centro do gráfico, otimizando a clareza visual dos dados apresentados. Em seguida, adaptamos o evento onClick dos gráficos para incorporar uma nova função criada para corrigir bugs anteriores. Isso envolveu a atualização da lógica de filtragem e interação, assegurando que as ações disparadas pelos cliques nos gráficos fossem corretamente refletidas nos componentes associados.
+```
+
+#### Dia 22/08/2024, das 14h às 17h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Na parte da tarde, focamos na criação de níveis inferiores de detalhamento para os componentes que ainda não possuíam essa funcionalidade. Para cada nível, criamos eventos que carregam automaticamente as informações nos componentes ao abrir o nível, evitando que qualquer informação apareça vazia. Isso garantiu uma navegação mais fluida e completa através dos dados. Além disso, iniciamos o desenvolvimento do consolidador de dados, com a estimativa de tempo a ser fornecida pelo Raphael. Unificamos o detalhamento do nível de Devolução e replicamos o padrão de detalhamento para os níveis de detalhamento do card de Faturamento, ajustando o layout conforme necessário.
+```
+
+#### Dia 26/08/2024, das 8h às 12h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Na manhã do dia 26 de agosto, revisamos o cálculo da "Quantidade x Valor Unitário" no card de Desconto, assegurando a precisão dos valores apresentados. Também ajustamos o formato da data no detalhamento da Despesa Operacional para melhorar a legibilidade e consistência das informações. O layout do card de Resultados foi reformulado para oferecer uma apresentação mais clara e intuitiva dos dados financeiros. Essas alterações visaram aprimorar a usabilidade e a precisão dos dados exibidos.
+```
+
+#### Dia 26/08/2024, das 13:30h às 18h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - No período da tarde, realizamos uma análise detalhada das discrepâncias encontradas no card de HL. Verificamos a diferença de valor apresentada na Margem de Produto (4º quadrante) e no detalhamento, ajustando os cálculos para garantir que a margem nominal estivesse corretamente agrupada e refletida. Transformamos o gráfico de Despesa Operacional por CR e Natureza em um gráfico TOP 10 para melhorar a visualização dos principais itens. No card de Investimentos, ajustamos a coluna 'baixado' para deduzir corretamente do card de Despesa Operacional, considerando somente os valores distintos de 'N'.
+```
+
+#### Dia 27/08/2024, das 8h às 12h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - No dia 27 de agosto, substituímos os códigos de natureza e CR pelas descrições correspondentes na tela inicial da Despesa Operacional, visando uma apresentação mais compreensível dos dados. Identificamos e corrigimos um problema no detalhamento do nível de Faturamento, onde os preços médios estavam zerados devido à falta de um campo no consolidador; inserimos valores padrão até que a regularização fosse completa. Além disso, revisamos os relatórios de Margem, garantindo que o valor nominal e percentual fossem exibidos corretamente em ambos os relatórios.
+```
+
+#### Dia 27/08/2024, das 13h às 18h
+```markdown 
+GM - DASH RENTABILIDADE HTML5 - Durante a tarde do dia 27 de agosto, abordamos um erro no card de Investimentos relacionado ao consolidador de dados. Corrigimos o problema que estava impedindo o acesso ao card e validamos a correta execução das atualizações. Também trabalhamos na atualização da base legada, incluindo a inserção dos dados faltantes antes de junho de 2024, garantindo que a base de dados estivesse completa e atualizada para análises mais precisas. Essas ações foram essenciais para manter a integridade e a utilidade do dashboard.
+```
+
+
+
 finalização de configuração para acessar nivel inferior a partir de click em fatia ou coluna de grafico filtrando a informação no nivel inferior.
 
 

@@ -224,7 +224,8 @@
         AND DHBAIXA IS NOT NULL
         AND (DHBAIXA BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)
         AND RECDESP = -1)
-        SELECT BAS.AD_TPPROD,BAS.TIPOPROD, (BAS.VLRFAT / SUM(BAS.VLRFAT) OVER ())*FIN.VLRBAIXA AS VLRCIP_PERC 
+        SELECT BAS.AD_TPPROD,BAS.TIPOPROD, (BAS.VLRFAT / SUM(BAS.VLRFAT) OVER ())*FIN.VLRBAIXA AS VLRCIP_PERC ,
+        ROUND((BAS.VLRFAT / SUM(BAS.VLRFAT) OVER ())*100,2) PER 
         FROM BAS
         INNER JOIN FIN ON BAS.COD = FIN.COD
     </snk:query> 
@@ -483,7 +484,7 @@ group by CODEMP,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE
 
         ];
         <c:forEach items="${cip_produto.rows}" var="row">
-            cipTipoLabels.push('${row.AD_TPPROD} - ${row.TIPOPROD}');
+            cipTipoLabels.push('${row.AD_TPPROD} - ${row.TIPOPROD} - ${row.PER} %');
             cipTipoData.push(${row.VLRCIP_PERC});
         </c:forEach>        
 
@@ -524,12 +525,10 @@ group by CODEMP,TIPOPROD,CODPROD,DESCRPROD,CODGER,GERENTE
                                 let label = context.label || '';
                                 let value = context.raw || 0;
                                 let total = context.dataset.data.reduce((acc, val) => acc + val, 0);
-                                let percentage = ((value / total) * 100).toFixed(2);                                
+                                let percentage = ((value / total) * 100).toFixed(2);
                                 let formattedValue = new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-                                return label + ': ' + formattedValue + ' (' + percentage + '%)';
-
-
-                            }
+                                return label + ': ' + formattedValue;
+                    }
                         }
                     },
                     legend: {

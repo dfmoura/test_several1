@@ -139,7 +139,7 @@
     <snk:query var="compras_saving">  
         WITH
         USU AS (SELECT CODUSU,NOMEUSU,AD_USUCOMPRADOR FROM TSIUSU)    
-        SELECT SUM(ITE.VLRDESC) AS SAVING
+        SELECT TO_CHAR(SUM(ITE.VLRDESC), '999,999,999,999,990.00') AS SAVING
         FROM TGFITE ITE
         INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
         INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
@@ -273,7 +273,7 @@ ORDER BY 1,2
 
     <snk:query var="compras_ganho_negociacao">
 
-    SELECT abs(SUM(GANHO_NEGOCIACAO)) AS GANHO_NEGOCIACAO
+    SELECT TO_CHAR(ABS(SUM(GANHO_NEGOCIACAO)), '999,999,999,999,990.00') AS GANHO_NEGOCIACAO
     FROM
     (
     SELECT
@@ -397,7 +397,7 @@ ORDER BY 1,2
     <snk:query var="compras_ganho_evolução">
         SELECT 
 
-        abs(SUM(GANHO_EVOLUCAO)) AS GANHO_EVOLUCAO
+        TO_CHAR(SUM(GANHO_EVOLUCAO), '999,999,999,999,990.00') AS GANHO_EVOLUCAO
         FROM(
 
         SELECT
@@ -504,9 +504,7 @@ ORDER BY 1,2
 
                 <c:forEach items="${compras_saving.rows}" var="row">
                     <div class="card1" onclick="abrirSaving()">
-                        <div class="card-number">
-                            <fmt:formatNumber value="${row.SAVING}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-                        </div>
+                        <div class="card-number">${row.SAVING}</div>
                         <div class="card-text">Saving</div>
                     </div>
                 </c:forEach>
@@ -514,8 +512,7 @@ ORDER BY 1,2
                 <c:forEach items="${compras_ganho_evolução.rows}" var="row">
                     <div class="card1" onclick="abrirSaving()">
                         
-                        <div class="card-number">
-                        <fmt:formatNumber value="${row.GANHO_EVOLUCAO}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></div>
+                        <div class="card-number">${row.GANHO_EVOLUCAO}</div>
                         <div class="card-text">Evolução de Preço</div>
                     </div>
                 </c:forEach>
@@ -548,40 +545,13 @@ ORDER BY 1,2
                 </button>
             </div>
         </div>
-
-
-
         <div class="side">
-
-
-            <div class="card-container">
-
-
-                <c:forEach items="${compras_ganho_negociacao.rows}" var="row">
-                    <div class="card1" onclick="abrirGanhNeg()">
-                        <div class="card-number">
-                            <fmt:formatNumber value="${row.GANHO_NEGOCIACAO}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-
-                        </div>
-                        <div class="card-text">Ganho Por Condição de Pgto.</div>
-                    </div>
-                </c:forEach>
-
-                
-                    <div class="card1" onclick="abrirTotEcon()">
-                        
-                        <div id="totalNumber" class="card-number">00000000</div>
-                        <div class="card-text">Total Economia</div>
-                    </div>
-                
-
-
-
-            </div>
-
-
-
-
+            <c:forEach items="${compras_ganho_negociacao.rows}" var="row">
+                <div class="card" onclick="abrirGanhNeg()">
+                    <div class="card-number">${row.GANHO_NEGOCIACAO}</div>
+                    <div class="card-text">Ganho Por Condição de Pgto.</div>
+                </div>
+            </c:forEach>
             <div class="chart-container">
                 <div class="chart-title">Ganho Por Condição de Pgto.</div>
                 <div id="chart-right"></div>
@@ -615,7 +585,7 @@ ORDER BY 1,2
         <c:forEach items="${compras_saving_analitico.rows}" var="row">
             mesAno.push('${row.MES_ANO}');
             saving.push(${row.SAVING});
-            ganhoEvolucao.push(${row.GANHO_EVOLUCAO}); // 
+            ganhoEvolucao.push(${row.GANHO_EVOLUCAO}); // Push the new series data
         </c:forEach>
     
         var trace1 = {
@@ -723,44 +693,10 @@ ORDER BY 1,2
             }
         };
         Plotly.newPlot('chart-right', [trace1], layout);
+    </script>
 
 
-
-
-
-    // Calcular o total
-    var total = calcularTotal(saving, ganhoEvolucao, ganhoNeg);
-
-    
-    // Formatar o total com milhar e 2 casas decimais
-    var totalFormatado = total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-
-    // Atualizar o conteúdo da div com o total calculado
-    document.getElementById('totalNumber').textContent = totalFormatado;
-
-    function calcularTotal(saving, ganhoEvolucao, ganhoNeg) {
-        var soma = 0;
-        for (var i = 0; i < saving.length; i++) {
-            soma += saving[i];
-        }
-        for (var j = 0; j < ganhoEvolucao.length; j++) {
-            soma += ganhoEvolucao[j];
-        }
-        for (var k = 0; k < ganhoNeg.length; k++) {
-            soma += ganhoNeg[k];
-        }
-        return soma;
-    }
-
-
-
-    function abrirTotEcon(){
-    var params = '';
-    var level = 'lvl_amq9551';
-    openLevel(level, params);
-    }
-
+<script>
     function abrirSaving(){
     var params = '';
     var level = 'lvl_9s400g';

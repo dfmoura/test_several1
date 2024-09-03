@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT Oracle Integration</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>ChatGPT Oracle Integration</h1>
+        <div id="chat-container">
+            <div id="messages"></div>
+            <input type="text" id="question" placeholder="Digite sua pergunta...">
+            <button id="send">Enviar</button>
+        </div>
+    </div>
+    <script>
+        document.getElementById('send').addEventListener('click', function() {
+            const question = document.getElementById('question').value;
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question: question })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const messagesDiv = document.getElementById('messages');
+                const newMessage = document.createElement('div');
+                newMessage.textContent = `Resposta: ${data.response}`;
+                messagesDiv.appendChild(newMessage);
+                document.getElementById('question').value = '';  // Limpa a pergunta após o envio
+            })
+            .catch(error => console.error('Erro:', error));
+        });
+    </script>
+</body>
+</html>

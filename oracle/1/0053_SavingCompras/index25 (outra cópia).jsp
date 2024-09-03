@@ -139,7 +139,7 @@
     <snk:query var="compras_saving">  
         WITH
         USU AS (SELECT CODUSU,NOMEUSU,AD_USUCOMPRADOR FROM TSIUSU)    
-        SELECT SUM(ITE.VLRDESC) AS SAVING
+        SELECT TO_CHAR(SUM(ITE.VLRDESC), '999,999,999,999,990.00') AS SAVING
         FROM TGFITE ITE
         INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
         INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
@@ -273,7 +273,7 @@ ORDER BY 1,2
 
     <snk:query var="compras_ganho_negociacao">
 
-    SELECT abs(SUM(GANHO_NEGOCIACAO)) AS GANHO_NEGOCIACAO
+    SELECT TO_CHAR(ABS(SUM(GANHO_NEGOCIACAO)), '999,999,999,999,990.00') AS GANHO_NEGOCIACAO
     FROM
     (
     SELECT
@@ -397,7 +397,7 @@ ORDER BY 1,2
     <snk:query var="compras_ganho_evolução">
         SELECT 
 
-        abs(SUM(GANHO_EVOLUCAO)) AS GANHO_EVOLUCAO
+        TO_CHAR(SUM(GANHO_EVOLUCAO), '999,999,999,999,990.00') AS GANHO_EVOLUCAO
         FROM(
 
         SELECT
@@ -504,9 +504,7 @@ ORDER BY 1,2
 
                 <c:forEach items="${compras_saving.rows}" var="row">
                     <div class="card1" onclick="abrirSaving()">
-                        <div class="card-number">
-                            <fmt:formatNumber value="${row.SAVING}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-                        </div>
+                        <div class="card-number">${row.SAVING}</div>
                         <div class="card-text">Saving</div>
                     </div>
                 </c:forEach>
@@ -514,8 +512,7 @@ ORDER BY 1,2
                 <c:forEach items="${compras_ganho_evolução.rows}" var="row">
                     <div class="card1" onclick="abrirSaving()">
                         
-                        <div class="card-number">
-                        <fmt:formatNumber value="${row.GANHO_EVOLUCAO}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></div>
+                        <div class="card-number">${row.GANHO_EVOLUCAO}</div>
                         <div class="card-text">Evolução de Preço</div>
                     </div>
                 </c:forEach>
@@ -559,10 +556,7 @@ ORDER BY 1,2
 
                 <c:forEach items="${compras_ganho_negociacao.rows}" var="row">
                     <div class="card1" onclick="abrirGanhNeg()">
-                        <div class="card-number">
-                            <fmt:formatNumber value="${row.GANHO_NEGOCIACAO}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-
-                        </div>
+                        <div class="card-number">${row.GANHO_NEGOCIACAO}</div>
                         <div class="card-text">Ganho Por Condição de Pgto.</div>
                     </div>
                 </c:forEach>

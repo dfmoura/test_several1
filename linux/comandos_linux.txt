@@ -1,0 +1,34 @@
+a) criar um arquivo: touch comandos_linux.txt
+b) echo "Texto inicial" > nome_do_arquivo.txt
+c) cat > nome_do_arquivo.txt
+d) nano nome_do_arquivo.txt (abre o txt)
+e) history (lista os comando digitados no terminal)
+f) ls -l (tail 6 or head 6)
+g) ctrl + O (grava o que digita no nano)
+h) mv /home/diogo/comandos_linux.txt /home/diogo/Documentos/ (move um arquivo)
+i) criando variaveis pelo shell, faca linha a linha:
+     a=1
+     b=2
+     echo $b
+     echo $(($a + $b))
+     x= $(($a + $b))
+     x=$(($a + $b))
+     echo $x
+j) alterar a permissao do arquivo e acessar
+ls
+ls -l hello.sh
+ls
+nano hello.sh
+./hello.sh
+ls
+chmod +x hello.sh
+./hello.sh
+chmod u+x hello.sh
+ls -l hello.sh
+./hello.sh
+nano hello.sh
+./hello.sh
+k) mostra os arquivos:
+cat animals.txt
+cat hello.sh
+
