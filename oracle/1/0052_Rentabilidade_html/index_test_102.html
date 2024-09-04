@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfico de Rosca</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        .chart-container {
+            display: flex;
+            align-items: center;
+            width: 80%;
+            max-width: 900px;
+            position: relative;
+        }
+
+        #myDoughnutChart {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        #chartCenterText {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30px;
+            font-weight: bold;
+            color: #000;
+            pointer-events: none;
+        }
+
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            margin-right: 20px;
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chart-container">
+
+        <canvas id="myDoughnutChart"></canvas>
+        <div id="chartCenterText"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('myDoughnutChart').getContext('2d');
+
+        const data = [
+            Math.floor(Math.random() * 100) + 1,
+            Math.floor(Math.random() * 100) + 1,
+            Math.floor(Math.random() * 100) + 1,
+            Math.floor(Math.random() * 100) + 1
+        ];
+
+        const backgroundColors = ['#ff6384', '#36a2eb', '#ffcd56', '#4bc0c0'];
+
+        const myDoughnutChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Reddddddddddddddd', 'Blue', 'Yellow', 'Green'],
+                datasets: [{
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    hoverBackgroundColor: backgroundColors
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'left',
+                        align: 'center' // Alinhamento vertical da legenda
+                    },                        
+                    tooltip: {
+                        callbacks: {
+                            label: function (tooltipItem) {
+                                return `${tooltipItem.label}: ${tooltipItem.raw}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Criando manualmente a legenda na esquerda
+        const legendContainer = document.getElementById('legend');
+        myDoughnutChart.data.labels.forEach((label, index) => {
+            const legendItem = document.createElement('li');
+            legendItem.style.color = backgroundColors[index];
+            legendItem.textContent = `${label}: ${data[index]}`;
+            legendContainer.appendChild(legendItem);
+        });
+
+        // Calculando e exibindo o total no centro do gráfico
+        const total = data.reduce((a, b) => a + b, 0);
+        document.getElementById('chartCenterText').innerText = total;
+    </script>
+</body>
+
+</html>

@@ -159,7 +159,8 @@
     <snk:query var="fat_tipo">  
         SELECT 
         AD_TPPROD,
-        TIPOPROD,
+        RPAD(TIPOPROD, 20, ' ') AS TIPOPROD,
+        
         SUM(TOTALLIQ) VLRFAT
         FROM VGF_CONSOLIDADOR_NOTAS_GM
         WHERE

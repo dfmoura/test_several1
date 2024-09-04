@@ -16,7 +16,7 @@
         }
 
         .table-wrapper {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 20px auto;
             border-radius: 8px;
             overflow: hidden;

@@ -554,7 +554,7 @@
                                         <div class="card-text">Ganho Por Condição de Pgto.</div>
                                     </div>
                                 </c:forEach>
-                                <div class="card">
+                                <div class="card" onclick="abrirDetTotEcon()">
                                     <div id="totalNumber" class="card-number"></div>
                                     <div class="card-text">Total Economia</div>
                                 </div>
@@ -623,6 +623,14 @@
                                 };
                                 Plotly.newPlot('chart', [trace1], layout);
                             });
+
+
+                            function abrirDetTotEcon(){
+                                var params = '';
+                                var level = 'lvl_aoft9ge';
+                                openLevel(level, params);
+                            }
+
 
                         </script>
                     </body>

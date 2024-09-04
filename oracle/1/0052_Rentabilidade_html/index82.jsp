@@ -201,6 +201,7 @@
     (CODEMP = :A_CODEMP)
     
     GROUP BY CODEMP,EMPRESA,CODTIPOPER,DESCROPER
+    order by 5 desc
 
 </snk:query>
 

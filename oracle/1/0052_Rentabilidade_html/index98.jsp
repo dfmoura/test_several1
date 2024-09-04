@@ -188,11 +188,7 @@
 </div>
 
 <script>
-    function abrir_portal(nunota) {
-        var params = {'NUNOTA': nunota};
-        var level = 'br.com.sankhya.com.mov.CentralNotas';
-        openApp(level, params);
-    }
+<td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
 
     function updateTotal() {
         const rows = document.querySelectorAll('#myTable tbody tr:not(.total-row)');
