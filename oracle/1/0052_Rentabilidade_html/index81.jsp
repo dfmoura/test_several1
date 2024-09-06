@@ -393,6 +393,7 @@ ORDER BY VALOR DESC
         function abrir_emp(grupo) {
             var params = { 
                 
+                
                 'A_CODEMP': parseInt(grupo)
              };
             var level = 'lvl_vkan0l';

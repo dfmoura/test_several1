@@ -187,6 +187,26 @@
     </div>
 </div>
 
+<!-- Botão de exportação para Excel -->
+<div id="exportOverlay" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+    <button onclick="exportToExcel()" style="
+        background-color: #4CAF50; 
+        color: white; 
+        border: none; 
+        padding: 10px 20px; 
+        text-align: center; 
+        text-decoration: none; 
+        display: inline-block; 
+        font-size: 16px; 
+        margin: 4px 2px; 
+        cursor: pointer; 
+        border-radius: 5px;
+    ">
+        XLS
+    </button>
+</div>
+
+
 <script>
 <td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
 
@@ -254,5 +274,17 @@
         updateTotal();
     });
 </script>
+
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+<script>
+    function exportToExcel() {
+        var table = document.getElementById('myTable');
+        var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet1" });
+        XLSX.writeFile(wb, 'dados.xlsx');
+    }
+</script>
+
 </body>
 </html>

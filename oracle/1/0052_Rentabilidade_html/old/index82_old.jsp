@@ -286,9 +286,9 @@ AND CODTIPOPER IN (:P_TOP)
 SELECT SUM(CUSMEDSICM_TOT) CUSMEDSICM_TOT 
 FROM CUS
 WHERE
-(CODEMP = 1 AND :A_CODEMP IS NULL)
+(CODEMP = 1 AND :A_CODEMP IS NULL AND CODTIPOPER = 1100 AND :A_TOP IS NULL)
 or
-(CODEMP = :A_CODEMP)
+(CODEMP = :A_CODEMP AND CODTIPOPER = :A_TOP)
 
 </snk:query>
 
@@ -312,13 +312,13 @@ or
     AND AD_ROTA IN (:P_ROTA)
     AND CODTIPOPER IN (:P_TOP)
     )
-    SELECT CODEMP,AD_TPPROD,TIPOPROD,SUM(CUSMEDSICM_TOT) CUSMEDSICM_TOT 
+    SELECT CODEMP,CODTIPOPER,AD_TPPROD,TIPOPROD,SUM(CUSMEDSICM_TOT) CUSMEDSICM_TOT 
     FROM CUS
     WHERE
-    (CODEMP = 1 AND :A_CODEMP IS NULL)
+    (CODEMP = 1 AND :A_CODEMP IS NULL AND CODTIPOPER = 1100 AND :A_TOP IS NULL)
     or
-    (CODEMP = :A_CODEMP)
-    GROUP BY CODEMP,AD_TPPROD,TIPOPROD   
+    (CODEMP = :A_CODEMP AND CODTIPOPER = :A_TOP)
+    GROUP BY CODEMP,CODTIPOPER,AD_TPPROD,TIPOPROD   
 </snk:query>   
 
 
@@ -345,9 +345,9 @@ or
     SELECT CODEMP,CODTIPOPER,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,SUM(CUSMEDSICM_TOT) CUSMEDSICM_TOT 
     FROM CUS 
     WHERE
-    (CODEMP = 1 AND :A_CODEMP IS NULL)
+    (CODEMP = 1 AND :A_CODEMP IS NULL AND CODTIPOPER = 1100 AND :A_TOP IS NULL AND AD_TPPROD = 4 AND :A_TPPROD IS NULL)
     or
-    (CODEMP = :A_CODEMP)
+    (CODEMP = :A_CODEMP AND CODTIPOPER = :A_TOP AND AD_TPPROD = :A_TPPROD)
     GROUP BY CODEMP,CODTIPOPER,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD
 </snk:query> 
 
@@ -412,7 +412,7 @@ or
                                         <td>${item.CODTIPOPER}</td>
                                         <td>${item.AD_TPPROD}</td>
                                         <td>${item.TIPOPROD}</td>
-                                        <td onclick="abrir_prod('${item.CODEMP}','${item.CODPROD}')">${item.CODPROD}</td>                                        
+                                        <td onclick="abrir_prod('${item.CODEMP}','${item.CODTIPOPER}','${item.CODPROD}')">${item.CODPROD}</td>                                        
                                         <td>${item.DESCRPROD}</td>
                                         <td><fmt:formatNumber value="${item.CUSMEDSICM_TOT}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                                         <c:set var="total" value="${total + item.CUSMEDSICM_TOT}" />
@@ -441,37 +441,44 @@ or
         const params = {'A_CODEMP': codemp};
         refreshDetails('html5_a73fhga', params); 
     }       
- 
+
+
+    function ref_cus_top(codemp,top) {
+        const params = {'A_CODEMP': codemp,
+                        'A_TOP':top
+        };
+        refreshDetails('html5_a73fhga', params); 
+    }       
+
+
+   function ref_cus_prod(codemp,top,tipoprod) {
+        const params = {'A_CODEMP': codemp,
+                        'A_TOP':top,
+                        'A_TPPROD': tipoprod
+        };
+        refreshDetails('html5_a73fhga', params); 
+    }       
+
+   
    
 
    // Função para abrir tela
 
 
-   function abrir_prod(grupo,grupo1) {
-            var params = { 'A_CODEMP' : parseInt(grupo),
-                           'A_CODPROD' : parseInt(grupo1)
+   function abrir_prod(grupo,grupo1,grupo2) {
+            var params = { 
+                'A_CODEMP' : parseInt(grupo),
+                'A_TOP' : parseInt(grupo1),
+                'A_CODPROD': parseInt(grupo2)
              };
-            var level = 'lvl_ye79i5';            
+            var level = 'lvl_ye79i5';
+            
             openLevel(level, params);
         }       
 
 
-        function abrir_top(grupo,grupo1) {
-            var params = { 'A_CODEMP' : parseInt(grupo),
-                           'A_TOP' : parseInt(grupo1)
-             };
-            var level = 'lvl_ye79i5';            
-            openLevel(level, params);
-        }
+    
 
-
-        function abrir_tpprod(grupo,grupo1) {
-            var params = { 'A_CODEMP' : parseInt(grupo),
-                           'A_TPPROD' : parseInt(grupo1)
-             };
-            var level = 'lvl_ye79i5';            
-            openLevel(level, params);
-        }
 
 
         // Obtendo os dados da query JSP para o gráfico de rosca - TPPROD
@@ -480,7 +487,7 @@ or
         var custoTipoLabel = [];
         var custoTipoData = [];
         <c:forEach items="${custo_tipo.rows}" var="row">
-            custoTipoLabel.push('${row.CODEMP} - ${row.AD_TPPROD} - ${row.TIPOPROD}');
+            custoTipoLabel.push('${row.CODEMP} - ${row.CODTIPOPER} - ${row.AD_TPPROD} - ${row.TIPOPROD}');
             custoTipoData.push(parseFloat(${row.CUSMEDSICM_TOT}));
         </c:forEach>
     
@@ -515,7 +522,8 @@ or
                         var index = elements[0].index;
                         var label = custoTipoLabel[index].split('-')[0];
                         var label1 = custoTipoLabel[index].split('-')[1];
-                        abrir_tpprod(label,label1);
+                        var label2 = custoTipoLabel[index].split('-')[2];
+                        ref_cus_prod(label,label1,label2);
                         
                     }
                 }
@@ -565,7 +573,7 @@ or
                         var index = elements[0].index;
                         var label = custoTopLabel[index].split('-')[0];
                         var label1 = custoTopLabel[index].split('-')[1];
-                        abrir_top(label,label1);
+                        ref_cus_top(label,label1);
                         
                     }
                 }

@@ -117,7 +117,12 @@ AND CODTIPOPER IN (:P_TOP)
 )
 SELECT CODEMP,EMPRESA,NUNOTA,CODTIPOPER,TIPMOV,DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODPARC,PARCEIRO,SUM(QTDNEG) QTDNEG,SUM(CUSMEDSICM_TOT) CUSMEDSICM_TOT 
 FROM CUS 
-WHERE (CODEMP = :A_CODEMP AND CODTIPOPER = :A_TOP AND CODPROD = :A_CODPROD)
+WHERE 
+(CODEMP = :A_CODEMP AND CODPROD = :A_CODPROD)
+OR
+(CODEMP = :A_CODEMP AND CODTIPOPER = :A_TOP)
+OR
+(CODEMP = :A_CODEMP AND AD_TPPROD = :A_TPPROD)
 GROUP BY CODEMP,EMPRESA,NUNOTA,CODTIPOPER,TIPMOV,DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODPARC,PARCEIRO    
 
 </snk:query>
@@ -177,6 +182,27 @@ GROUP BY CODEMP,EMPRESA,NUNOTA,CODTIPOPER,TIPMOV,DTNEG,AD_TPPROD,TIPOPROD,CODPRO
         </table>
     </div>
 </div>
+
+<!-- Botão de exportação para Excel -->
+<div id="exportOverlay" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+    <button onclick="exportToExcel()" style="
+        background-color: #4CAF50; 
+        color: white; 
+        border: none; 
+        padding: 10px 20px; 
+        text-align: center; 
+        text-decoration: none; 
+        display: inline-block; 
+        font-size: 16px; 
+        margin: 4px 2px; 
+        cursor: pointer; 
+        border-radius: 5px;
+    ">
+        XLS
+    </button>
+</div>
+
+
 
 <script>
     function abrir_portal(nunota) {
@@ -253,6 +279,18 @@ GROUP BY CODEMP,EMPRESA,NUNOTA,CODTIPOPER,TIPMOV,DTNEG,AD_TPPROD,TIPOPROD,CODPRO
     document.addEventListener('DOMContentLoaded', (event) => {
         updateTotal();
     });
+
 </script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+<script>
+    function exportToExcel() {
+        var table = document.getElementById('myTable');
+        var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet1" });
+        XLSX.writeFile(wb, 'dados.xlsx');
+    }
+</script>
+
+
 </body>
 </html>

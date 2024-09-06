@@ -94,45 +94,41 @@
 <snk:load/>
 </head>
 <body>
-    <snk:query var="fat_det">
+<snk:query var="fat_det">
 
-    SELECT DISTINCT 
-    I.CODEMP,
-    I.NUNOTA,
-    CAB.IDIPROC,
-    TO_CHAR(CAB.DTNEG,'DD-MM-YYYY') DTNEG,
-    P.AD_TPPROD,
-    NVL(F_DESCROPC('TGFPRO', 'AD_TPPROD', P.AD_TPPROD),'NAO INFORMADO') AS TIPOPROD,
-    I.CODPROD,
-    P.DESCRPROD,
-    I.QTDNEG,
-    I.CODVOL,
-    	(SELECT ENTRADASEMICMS FROM TGFCUSITE WHERE NUNOTA=I.NUNOTA AND SEQUENCIA=I.SEQUENCIA AND CODPROD=I.CODPROD) AS CUSNOTA,
-    (SELECT CUSSEMICM
-     FROM TGFCUS
-    WHERE     TGFCUS.CODPROD = I.CODPROD
-          AND DTATUAL = (SELECT MAX (DTATUAL)
-                           FROM TGFCUS
-                          WHERE DTATUAL <= CAB.DTNEG)
-          AND TGFCUS.CODEMP = CAB.CODEMP) CUSTO
-    FROM TGFITE I
-         INNER JOIN TGFCAB CAB ON (CAB.NUNOTA = I.NUNOTA)
-         INNER JOIN TGFPRO P ON (P.CODPROD = I.CODPROD)
-   WHERE     CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-         AND I.ATUALESTOQUE = 1
-		 AND I.CODPROD = :A_CODPROD
-         
-         
-         
-		AND CAB.TIPMOV='F'
-ORDER BY CODPROD, I.NUNOTA
+WITH CUS AS
+(
+SELECT
+CODEMP,EMPRESA,NUNOTA,CODTIPOPER,TIPMOV,TO_CHAR(DTNEG,'DD-MM-YYYY')DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODPARC,NOMEPARC AS PARCEIRO,QTDNEG,CUSMEDSICM_TOT
+FROM VGF_CONSOLIDADOR_NOTAS_GM 
+WHERE 
+GOLSINAL = -1
+AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+AND TIPMOV IN ('V', 'D')
+AND ATIVO = 'S'
+AND CODEMP IN (:P_EMPRESA)
+AND CODNAT IN (:P_NATUREZA)
+AND CODCENCUS IN (:P_CR)
+AND CODVEND IN (:P_VENDEDOR)
+AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+AND CODGER IN (:P_GERENTE)
+AND AD_ROTA IN (:P_ROTA)
+AND CODTIPOPER IN (:P_TOP)
+)
+SELECT CODEMP,EMPRESA,NUNOTA,CODTIPOPER,TIPMOV,DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODPARC,PARCEIRO,SUM(QTDNEG) QTDNEG,SUM(CUSMEDSICM_TOT) CUSMEDSICM_TOT 
+FROM CUS 
+WHERE 
+(CODEMP = :A_CODEMP AND CODPROD = :A_CODPROD)
+OR
+(CODEMP = :A_CODEMP AND CODTIPOPER = :A_TOP)
+OR
+(CODEMP = :A_CODEMP AND AD_TPPROD = :A_TPPROD)
+GROUP BY CODEMP,EMPRESA,NUNOTA,CODTIPOPER,TIPMOV,DTNEG,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,CODPARC,PARCEIRO    
 
-    
-    
 </snk:query>
 
 <div class="table-wrapper">
-    <h2>Detalhamento - Custo de Produção por Produto</h2>
+    <h2>Detalhamento - Custo Médio dos Produtos Faturados</h2>
     <div class="filter-container">
         <input type="text" id="tableFilter" placeholder="Digite para filtrar...">
     </div>
@@ -141,67 +137,65 @@ ORDER BY CODPROD, I.NUNOTA
             <thead>
                 <tr>
                     <th onclick="sortTable(0)">Cód. Emp.</th>
-                    <th onclick="sortTable(1)">NÚ. Único</th>
-                    <th onclick="sortTable(2)">OP</th>
-                    <th onclick="sortTable(3)">Dt. Neg.</th>
-                    <th onclick="sortTable(4)">Cód. Tp. Prod.</th>
-                    <th onclick="sortTable(5)">Tp. Prod.</th>
-                    <th onclick="sortTable(6)">Cód. Prod.</th>
-                    <th onclick="sortTable(7)">Produto</th>
-                    <th onclick="sortTable(8)">Qtd. Neg.</th>
-                    <th onclick="sortTable(9)">Cód. Vol.</th>
-                    <th onclick="sortTable(10)">Custo Nota</th>
-                    <th onclick="sortTable(11)">Custo Médio</th>
+                    <th onclick="sortTable(1)">Empresa</th>
+                    <th onclick="sortTable(2)">NÚ. Único</th>
+                    <th onclick="sortTable(3)">TOP</th>
+                    <th onclick="sortTable(4)">Tip. Mov.</th>
+                    <th onclick="sortTable(5)">Dt. Neg.</th>
+                    <th onclick="sortTable(6)">Cód. Tp. Prod.</th>
+                    <th onclick="sortTable(7)">Tp. Prod.</th>
+                    <th onclick="sortTable(8)">Cód. Prod.</th>
+                    <th onclick="sortTable(9)">Produto</th>
+                    <th onclick="sortTable(10)">Cód. Parc.</th>
+                    <th onclick="sortTable(11)">Parceiro</th>
+                    <th onclick="sortTable(12)">Qtde.</th>
+                    <th onclick="sortTable(13)">Custo Médio</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${fat_det.rows}">
                     <tr>
                         <td>${row.CODEMP}</td>
-                        <td>${row.NUNOTA}</td>
-                        <td onclick="abrir_op('${row.IDIPROC}'); copiar('${row.IDIPROC}');">${row.IDIPROC}</td>
+                        <td>${row.EMPRESA}</td>
+                        <td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
+                        <td>${row.CODTIPOPER}</td>
+                        <td>${row.TIPMOV}</td>
                         <td>${row.DTNEG}</td>
                         <td>${row.AD_TPPROD}</td>
                         <td>${row.TIPOPROD}</td>
-                        <td>${row.CODPROD}</td>
+                        <td onclick="abrir_op('${row.CODPROD}')">${row.CODPROD}</td>
                         <td>${row.DESCRPROD}</td>
+                        <td>${row.CODPARC}</td>
+                        <td>${row.PARCEIRO}</td>
                         <td>${row.QTDNEG}</td>
-                        <td>${row.CODVOL}</td>
-                        <td style="text-align: center;"><fmt:formatNumber value="${row.CUSNOTA}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                        <td style="text-align: center;"><fmt:formatNumber value="${row.CUSTO}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                        <td style="text-align: center;"><fmt:formatNumber value="${row.CUSMEDSICM_TOT}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
                     </tr>
                 </c:forEach>              
             </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td><b>Total</b></td>
+                    <td colspan="12"></td>
+                    <td style="text-align: center;" id="totalAmount"><b>R$ 0,00</b></td>
+                </tr>       
+            </tfoot>
         </table>
     </div>
 </div>
 
-<!-- Botão de exportação para Excel -->
-<div id="exportOverlay" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
-    <button onclick="exportToExcel()" style="
-        background-color: #4CAF50; 
-        color: white; 
-        border: none; 
-        padding: 10px 20px; 
-        text-align: center; 
-        text-decoration: none; 
-        display: inline-block; 
-        font-size: 16px; 
-        margin: 4px 2px; 
-        cursor: pointer; 
-        border-radius: 5px;
-    ">
-        XLS
-    </button>
-</div>
-
-
 <script>
-    function abrir_op(idiproc) {
-        var params = {'IDIPROC': idiproc};
-        var level = 'br.com.sankhya.prod.OrdensProducaoHTML';
+    function abrir_portal(nunota) {
+        var params = {'NUNOTA': nunota};
+        var level = 'br.com.sankhya.com.mov.CentralNotas';
         openApp(level, params);
     }
+
+
+    function abrir_op(codprod) {
+        var params = {'A_CODPROD': parseInt(codprod)};
+        var level = 'lvl_yv0h4l';
+        openLevel(level, params);
+    }    
 
     function updateTotal() {
         const rows = document.querySelectorAll('#myTable tbody tr:not(.total-row)');
@@ -209,7 +203,7 @@ ORDER BY CODPROD, I.NUNOTA
 
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cellValue = row.cells[11].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
+                const cellValue = row.cells[13].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
                 const value = parseFloat(cellValue);
                 total += isNaN(value) ? 0 : value;
             }
@@ -264,36 +258,6 @@ ORDER BY CODPROD, I.NUNOTA
     document.addEventListener('DOMContentLoaded', (event) => {
         updateTotal();
     });
-
-
-
-
-    function copiar(texto) {
-
-        const elementoTemporario = document.createElement('textarea');
-        elementoTemporario.value = texto;
-        document.body.appendChild(elementoTemporario);
-        elementoTemporario.select();
-        document.execCommand('copy');
-        document.body.removeChild(elementoTemporario);
-
-        //alert('Texto copiado: ' + texto);
-    }
-
-
 </script>
-
-
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
-<script>
-    function exportToExcel() {
-        var table = document.getElementById('myTable');
-        var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet1" });
-        XLSX.writeFile(wb, 'dados.xlsx');
-    }
-</script>
-
-
 </body>
 </html>

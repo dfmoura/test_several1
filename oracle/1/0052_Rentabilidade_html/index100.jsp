@@ -16,7 +16,7 @@
         }
 
         .table-wrapper {
-            max-width: 1600px;
+            max-width: 100%;
             margin: 20px auto;
             border-radius: 8px;
             overflow: hidden;
@@ -89,6 +89,22 @@
         .total-row td {
             font-weight: bold;
         }
+
+        @media (max-width: 768px) {
+            table {
+                font-size: 8px; /* Reduz o tamanho da fonte em telas menores */
+            }
+
+            th, td {
+                padding: 6px;
+            }
+
+            .table-container {
+                height: auto; /* Ajusta a altura da tabela em telas menores */
+            }
+        }
+
+
     </style>
 
 <snk:load/>
@@ -144,6 +160,8 @@ SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,C
     AND
 
     (
+    (:A_CODEMP IS NULL)
+    OR
     (CODEMP = :A_CODEMP AND CODNAT = :A_CODNAT)
     OR
     (CODEMP = :A_CODEMP AND CODCENCUS = :A_CODCENCUS)
@@ -203,6 +221,26 @@ SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,C
             </tfoot>
         </table>
     </div>
+</div>
+
+
+<!-- Botão de exportação para Excel -->
+<div id="exportOverlay" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+    <button onclick="exportToExcel()" style="
+        background-color: #4CAF50; 
+        color: white; 
+        border: none; 
+        padding: 10px 20px; 
+        text-align: center; 
+        text-decoration: none; 
+        display: inline-block; 
+        font-size: 16px; 
+        margin: 4px 2px; 
+        cursor: pointer; 
+        border-radius: 5px;
+    ">
+        XLS
+    </button>
 </div>
 
 <script>
@@ -276,5 +314,17 @@ SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,C
         updateTotal();
     });
 </script>
+
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+<script>
+    function exportToExcel() {
+        var table = document.getElementById('myTable');
+        var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet1" });
+        XLSX.writeFile(wb, 'dados.xlsx');
+    }
+</script>
+
 </body>
 </html>

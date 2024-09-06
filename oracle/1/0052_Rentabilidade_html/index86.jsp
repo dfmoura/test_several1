@@ -318,7 +318,7 @@ ORDER BY 7 DESC
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
                     <c:forEach items="${do_total.rows}" var="row">
-                        <div class="chart-overlay"><fmt:formatNumber value="${row.VLRDO}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
+                        <div class="chart-overlay" onclick="abrir_emp_tot()"><fmt:formatNumber value="${row.VLRDO}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
                     </c:forEach>                    
                 </div>
             </div>
@@ -393,6 +393,14 @@ ORDER BY 7 DESC
 
     
         // Função para abrir o novo nível
+
+
+        function abrir_emp_tot() {
+            var params = ''
+            var level = 'lvl_105wuo';
+            openLevel(level, params);
+        }
+
 
         function abrir_emp(grupo,grupo1) {
             var params = { 

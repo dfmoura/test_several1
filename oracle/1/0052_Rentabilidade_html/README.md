@@ -422,6 +422,14 @@ GM - DASH RENTABILIDADE HTML5 - Durante a tarde do dia 27 de agosto, abordamos u
 ```
 
 
+GM - DASH RENTABILIDADE HTML5 - No dia 05/09/2024, das 8h às 12h, foi realizada a implementação de um novo evento na tela de Devolução de Operações (DO), adicionando a funcionalidade de clique no centro do gráfico de rosca. Essa interação redireciona o usuário para o detalhamento do valor total representado no gráfico, facilitando o acesso a informações mais detalhadas diretamente a partir do componente visual. Além disso, foi implementado um botão sobreposto que permite a exportação dos dados de detalhamento diretamente para um arquivo Excel, agilizando o processo de extração de relatórios. Esses ajustes foram aplicados em 10 telas de detalhamento.
+
+GM - DASH RENTABILIDADE HTML5 - No período da tarde, das 13h às 19h do dia 05/09/2024, foi informado que a impressão nativa das telas do dashboard podem ser melhor visualizadas em formato paisagem. Ainda no mesmo período, foi atualizado o comportamento do nível inferior do CMV (Custo de Mercadorias Vendidas), ajustando o código para que os componentes dependentes se comportem corretamente quando há interação com a fatia principal do gráfico de rosca. Este ajuste permite que, ao clicar em um dos componentes principais, os demais se adaptem automaticamente para refletir as informações correlacionadas, criando uma navegação mais dinâmica e intuitiva. Além disso, foram ativados eventos de "onclick" nos gráficos secundários, que agora redirecionam o usuário para o detalhamento específico do componente clicado.
+
+Por fim, no detalhamento de Despesa Operacional, foi ampliado o componente do nível de detalhamento, proporcionando uma visão mais granular e analítica das despesas envolvidas. Também foram corrigidos problemas no detalhamento de Impostos, onde anteriormente os dados nao estavam sendo apresentados, corrigimos o select e tudo voltou a funcionar normalmente.
+
+
+
 
 finalização de configuração para acessar nivel inferior a partir de click em fatia ou coluna de grafico filtrando a informação no nivel inferior.
 

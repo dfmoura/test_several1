@@ -31,4 +31,82 @@ nano hello.sh
 k) mostra os arquivos:
 cat animals.txt
 cat hello.sh
+l) pesquisar uma string em arquivos de uma pasta:
+grep -rl "type: 'doughnut'" /home/diogo/Documentos/test_several1/oracle/1/0052_Rentabilidade_html/*.jsp | wc -l
+
+grep -rl "<table id="myTable">" /home/diogo/Documentos/test_several1/oracle/1/0052_Rentabilidade_html/*.jsp | wc -l
+
+m) Esse alias lista os arquivos em um diretório e filtra os resultados para encontrar arquivos que contenham um determinado termo.
+alias lsgrep='ls | grep'
+
+lsgrep arquivo.txt
+
+
+
+n) Criar diversos arquivo em uma pasta com um nome fixo e uma sequencia dinamica com um for....
+for i in {1..6}; do touch "teste_agora_$i.txt"; done
+
+o) peguei as 6 primeiras linhas de um arquivo e distribui cada linha para um arquivo respectivo de 1 a 6 (cada arquivo tem um nome XXXXX e no final um numero de 1 a 6 para cada arquivo)
+
+i=1
+while IFS= read -r linha; do
+    echo "$linha" >> "teste_agora_$i.txt"
+    i=$((i+1))
+    if [ $i -gt 6 ]; then
+        i=1
+    fi
+done < novo_test.txt
+
+
+p) limpar varios arquivos de uma pasta
+for i in {1..6}; do > "teste_agora_$i.txt"; done
+
+q) compando para destacar pesquisa em arquivo:
+alias grepgrep='grep --color=auto | grep'
+ grepgrep 'Ada' novo_test.txt
+
+
+u)  echo -e "\033[31;1mColorindo_o_codigo"
+Colorindo_o_codigo
+
+Código Alteração
+1 Negrito
+4 Sublinhado
+31 Fonte vermelha
+34 Fonte azul
+43 Fundo amarelo
+44 Fundo azul
+
+
+v) $0: recebe o nome do script;
+ $n: n-ésimo argumento da linha de comando (definido por numeral);
+ $*, $@: todos os argumentos da linha de comando;
+ $#: número de argumentos;
+ $?: status do último comando executado (status <> 0 indica erro);
+ $$: número de processo (PID) do Shell que executa o script.
+
+u) paginar uma busca ls
+
+ls -l /etc | more
+
+v) criar e executar um script:
+
+vi script1.sh
+
+digite no tela:
+
+#!/bin/bash
+NOME="Diogo Ferreira Moura"
+IDADE="40"
+DIRETORIO="$HOME"
+
+echo "Seu nome : $NOME"
+echo "Sua idade : $IDADE"
+echo "Seu diretorio Home: $HOME"
+
+
+salve com :wq
+
+execute o chmod +x script1.sh
+execute o arquivo com ./script1.sh
 

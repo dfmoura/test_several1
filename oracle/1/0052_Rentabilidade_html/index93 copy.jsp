@@ -117,11 +117,11 @@
         FROM IMP
         WHERE 
         (
-            (CODEMP = :A_CODEMP)
+            (CODEMP = :A_CODEMP AND AD_TPPROD = :A_TPPROD)
             OR
-            (AD_TPPROD = :A_TPPROD)
+            (:A_TPPROD IS NULL AND :A_CODEMP IS NULL AND :A_CODPROD IS NULL AND AD_TPPROD IS NOT NULL)
             OR
-            (CODPROD = :A_CODPROD)
+            (:A_CODPROD IS NULL AND :A_CODEMP IS NULL AND :A_TPPROD IS NULL AND CODPROD IS NOT NULL)
             OR
             (
                 CODTIPPARC = :A_PERFIL
