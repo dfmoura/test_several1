@@ -53,7 +53,7 @@
             top: 10px; /* Espaçamento do topo */
             left: 50%;
             transform: translateX(-50%);
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
             color: #333;
             background-color: #fff; /* Cor de fundo para legibilidade */
@@ -104,7 +104,6 @@
             overflow-x: hidden; /* Desabilita a rolagem horizontal */
             padding-right: 10px; /* Espaço para evitar o corte do conteúdo na rolagem */
             font-size: 12px;
-            margin-top: 30px; /* Adiciona um espaçamento superior para afastar a tabela do título */
         }
         .table-container table {
             width: 100%;
@@ -124,45 +123,11 @@
         .table-container tr:hover {
             background-color: #f1f1f1;
         }
-        /* Botão de download do PDF */
-        #download-pdf-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            z-index: 1000; /* Certifica-se que o botão fique acima de outros elementos */
-        }
-        #download-pdf-btn:hover {
-            background-color: #0056b3;
-        }
-
-        /* Definir dimensões fixas para evitar distorção */
-        @media print {
-            .container {
-                width: 100%;
-                height: auto;
-            }
-        }
 
     </style>
 
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
-
-
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
-    <!-- Biblioteca html2pdf.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
-
-
-
 
     <snk:load/>
 
@@ -349,7 +314,7 @@ ORDER BY 7 DESC
     <div class="container">
         <div class="section">
             <div class="part" id="left-top">
-                <div class="part-title">Desp. Oper. por Empresa</div>
+                <div class="part-title">Despesa Operacional por Empresa</div>
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
                     <c:forEach items="${do_total.rows}" var="row">
@@ -358,7 +323,7 @@ ORDER BY 7 DESC
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">TOP 10 - Desp. Oper. por CR</div>
+                <div class="part-title">TOP 10 - Despesa Operacional por CR</div>
 
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
@@ -369,7 +334,7 @@ ORDER BY 7 DESC
         </div>
         <div class="section">
             <div class="part" id="right-top">
-                <div class="part-title">TOP 10 - Desp. Oper. por Natureza</div>
+                <div class="part-title">TOP 10 - Despesa Operacional por Natureza</div>
                 <div class="chart-container">
                     <canvas id="barChartRight"></canvas>
                 </div>
@@ -380,7 +345,7 @@ ORDER BY 7 DESC
                     <table>
                         <thead>
                             <tr>
-                                <th>Emp.</th>
+                                <th>Cód. Emp.</th>
                                 <th>Empresa</th>
                                 <th>Cód. Nat.</th>
                                 <th>Cód. CR</th>
@@ -411,10 +376,6 @@ ORDER BY 7 DESC
             </div>
         </div>
     </div>
-
-        <!-- Botão de download do PDF 
-    <button id="download-pdf-btn">PDF</button>
-        -->
 
     <!-- Adicionando a biblioteca Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -635,26 +596,5 @@ ORDER BY 7 DESC
 
 
     </script>
-
-
-    <!-- Script para gerar o PDF -->
-    <script>
-        document.getElementById('download-pdf-btn').addEventListener('click', function () {
-            const element = document.querySelector('.container'); // Seleciona o container principal
-            const opt = {
-                margin: 0.5, // Defina margens menores
-                filename: 'tela_devolucoes.pdf',
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { 
-                    scale: 3,  // Aumenta a escala para evitar distorção
-                    useCORS: true  // Garante a renderização correta de imagens de outras origens
-                },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' } // Define paisagem (landscape)
-            };
-            html2pdf().from(element).set(opt).save();
-        });
-    </script>
-
-
 </body>
 </html>
