@@ -124,24 +124,24 @@
         .table-container tr:hover {
             background-color: #f1f1f1;
         }
-        /* Botão de download do PDF */
-        #download-pdf-btn {
+
+        #download {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
             padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
             border-radius: 5px;
-            font-size: 16px;
             cursor: pointer;
-            z-index: 1000; /* Certifica-se que o botão fique acima de outros elementos */
-        }
-        #download-pdf-btn:hover {
-            background-color: #0056b3;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000; /* Certifica-se de que o botão esteja acima de outros elementos */
         }
 
+        #download:hover {
+            background-color: #45a049;
+        }        
         /* Definir dimensões fixas para evitar distorção */
         @media print {
             .container {
@@ -412,9 +412,9 @@ ORDER BY 7 DESC
         </div>
     </div>
 
-        <!-- Botão de download do PDF 
-    <button id="download-pdf-btn">PDF</button>
-        -->
+    <button id="download">Capturar e Salvar como PDF</button>
+    
+
 
     <!-- Adicionando a biblioteca Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -636,24 +636,50 @@ ORDER BY 7 DESC
 
     </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.2/jspdf.min.js"></script>
 
-    <!-- Script para gerar o PDF -->
-    <script>
-        document.getElementById('download-pdf-btn').addEventListener('click', function () {
-            const element = document.querySelector('.container'); // Seleciona o container principal
-            const opt = {
-                margin: 0.5, // Defina margens menores
-                filename: 'tela_devolucoes.pdf',
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { 
-                    scale: 3,  // Aumenta a escala para evitar distorção
-                    useCORS: true  // Garante a renderização correta de imagens de outras origens
-                },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' } // Define paisagem (landscape)
-            };
-            html2pdf().from(element).set(opt).save();
+<script>
+    document.getElementById("download").addEventListener("click", function() {
+
+            // Esconde o botão antes da captura
+            var button = document.getElementById("download");
+            button.style.display = "none";
+
+        html2canvas(document.body, {
+            onrendered: function(canvas) {
+                var imgData = canvas.toDataURL('image/png');
+                var pdf = new jsPDF('l', 'mm', 'a4');
+
+                // Definir as dimensões da imagem dentro do PDF
+                var imgWidth = 297; // Largura A4
+                var pageHeight = 210; // Altura A4
+                var imgHeight = canvas.height * imgWidth / canvas.width;
+                var heightLeft = imgHeight;
+
+                var position = 0;
+
+                // Adicionar a imagem ao PDF
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                // Adicionar páginas se a altura da imagem exceder uma página
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                // Salvar o PDF
+                pdf.save('captura_tela.pdf');
+
+                // Exibe o botão novamente após a captura
+                button.style.display = "block";                
+            }
         });
-    </script>
+    });
+</script>
 
 
 </body>

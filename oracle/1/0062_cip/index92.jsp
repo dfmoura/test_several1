@@ -44,7 +44,24 @@
             padding: 8px;
             border: 1px solid #ddd;
             text-align: left;
-            white-space: nowrap; /* Impede a quebra de linha nas células */
+            white-space: nowrap;
+            overflow: hidden; /* Esconde conteúdo extra */
+            text-overflow: ellipsis; /* Adiciona "..." quando o conteúdo é muito longo */
+            resize: horizontal; /* Permite o redimensionamento manual da coluna */
+            max-width: 200px; /* Largura máxima da coluna (ajustável) */
+        }
+
+        /* Definindo colunas específicas para limite de 35 caracteres */
+        th.parceiro, td.parceiro {
+            max-width: 200px; /* Aproximadamente 35 caracteres dependendo da fonte */
+        }
+
+        th.movimento, td.movimento {
+            max-width: 200px;
+        }
+
+        th.historicoOrigem, td.historicoOrigem {
+            max-width: 200px;
         }
 
         th {
@@ -105,54 +122,357 @@
 
 <snk:query var="fat_det">
 
-SELECT 
-TO_CHAR(LAN.REFERENCIA,'MM-YYYY') AS MES_ANO,
-LAN.CODEMP,
-TO_CHAR(LAN.REFERENCIA,'DD-MM-YYYY') AS  REFERENCIA,
-LAN.NUMLOTE,
-LAN.NUMLANC,
-LAN.TIPLANC,
+
+
+SELECT
+CAB.CODEMP,
 LAN.CODCTACTB,
-LAN.CODCONPAR,
-LAN.CODCENCUS,
-CRI.DESCRCENCUS,
-TO_CHAR(LAN.DTMOV,'DD-MM-YYYY') AS DTMOV,
-LAN.CODHISTCTB,
-LAN.COMPLHIST,
-LAN.NUMDOC,
-TO_CHAR(LAN.VENCIMENTO,'DD-MM-YYYY') AS VENCIMENTO,
-LAN.LIBERADO,
-LAN.CODUSU,
-LAN.CODPROJ,
-LAN.PARTLALUR_A,
-LAN.SEQUENCIA,
-PLA.DESCRCTA, 
-PLA.CTACTB, 
-PLA.DESCRCTA, 
+PLA.CTACTB,
+PLA.DESCRCTA,
+CAB.NUNOTA AS NUMERO_UNICO, 
+CAB.NUMNOTA AS NUMNOTA, 
+TO_CHAR(CAB.DTNEG,'DD-MM-YYYY') AS DTNEG,
+TO_CHAR(CAB.DTENTSAI,'DD-MM-YYYY') AS DTENTSAI,
+NULL AS DHBAIXA,
+CAB.CODPARC AS PARCEIRO,
+PAR.NOMEPARC AS NOMEPARC,
+CAB.CODTIPOPER AS OPERACAO,
+TOP.DESCROPER AS DESCROPER,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'DEBITO' ELSE 'CREDITO' END AS TIPLANC,
+LAN.NUMLOTE, 
+LAN.NUMLANC, 
 CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC *(-1)) ELSE LAN.VLRLANC END AS "VLRLANC",
+CAB.OBSERVACAO AS HISTORICOORIGEM,
+LAN.COMPLHIST AS HISTORICOLAN,
+'ORIGEM PORTAL' AS RECEITADESPESA,
+CAB.CODNAT AS CODNATUREZA,
+NAT.DESCRNAT AS NATUREZA,
+CASE CAB.TIPMOV
+WHEN 'C' THEN 'COMPRAS - PORTAL DE COMPRAS'
+WHEN 'E' THEN 'DEV. COMPRAS - PORTAL DE COMPRAS'
+WHEN 'V' THEN 'VENDA - PORTAL DE VENDAS'
+WHEN 'D' THEN 'DEV. VENDA - PORTAL DE VENDAS'
+WHEN 'Q' THEN 'REQUISICAO - PORTAL DE MOV. INTERNA'
+WHEN 'L' THEN 'DEV. REQUISICAO - PORTAL DE MOV. INTERNA'
+WHEN 'F' THEN 'PRODUÇÃO - MÓDULO DE PRODUÇÃO'
+WHEN 'T' THEN 'TRANSFERENCIA'
+ELSE 'ORIGEM NAO ESPERADA = '|| CAB.TIPMOV
+END AS ORIGEM, 
+CAB.TIPMOV AS MOVIMENTO,
 CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
+
+
+
 FROM TCBLAN LAN
-INNER JOIN TCBPLA PLA ON LAN.CODCTACTB = PLA.CODCTACTB
+INNER JOIN TCBPLA PLA ON (PLA.CODCTACTB = LAN.CODCTACTB)
+INNER JOIN TCBINT IT ON (IT.CODEMP=LAN.CODEMP AND IT.REFERENCIA=LAN.REFERENCIA AND IT.NUMLANC=LAN.NUMLANC AND IT.TIPLANC=LAN.TIPLANC AND IT.NUMLOTE=LAN.NUMLOTE AND IT.SEQUENCIA = LAN.SEQUENCIA)
+INNER JOIN TGFCAB CAB ON (CAB.NUNOTA = IT.NUNICO AND IT.ORIGEM = 'E')
+INNER JOIN TGFPAR PAR ON (PAR.CODPARC = CAB.CODPARC)
+INNER JOIN TGFNAT NAT ON (NAT.CODNAT = CAB.CODNAT)
+INNER JOIN TGFTOP TOP ON (TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = CAB.DHTIPOPER)
 LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
 WHERE
-(PLA.CTACTB  LIKE '3.1.04.005%' OR
-PLA.CTACTB  LIKE '3.1.04.006%'  OR
-PLA.CTACTB  LIKE '3.1.04.009%'  OR
-PLA.CTACTB  LIKE '3.1.04.010%') AND
-(LAN.DTMOV BETWEEN ADD_MONTHS (:P_PERIODO.FIN, -12) AND :P_PERIODO.FIN) AND
-NUMLOTE<>999 AND
-( 
-(    
+(PLA.CTACTB  LIKE '%3.01.03.01%' OR PLA.CTACTB  LIKE '%3.01.03.02%') 
 
+AND LAN.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+AND
+( 
+(
+(    
 (TO_CHAR(LAN.REFERENCIA,'MM') = :A_MES) AND 
 (TO_CHAR(LAN.REFERENCIA,'YYYY') = :A_ANO)
-) AND
+) 
+AND
+(:A_CODCTACTB IS NULL OR LAN.CODCTACTB = :A_CODCTACTB)
+)
+OR
+(:A_CODCTACTB IS NULL AND :A_MES IS NULL AND :A_ANO IS NULL)
+)
 
-(:A_CODCTACTB IS NULL OR LAN.CODCTACTB = :A_CODCTACTB)) AND
-PLA.CTACTB <> '3.1.04.010.0001'
 
-ORDER BY LAN.REFERENCIA
-    
+UNION ALL
+
+SELECT  FIN.CODEMP,
+LAN.CODCTACTB,
+PLA.CTACTB,
+PLA.DESCRCTA,
+FIN.NUFIN AS NUMERO_UNICO, 
+FIN.NUMNOTA AS NUMNOTA, 
+TO_CHAR(FIN.DTNEG,'DD-MM-YYYY') AS DTNEG,
+TO_CHAR(FIN.DTENTSAI,'DD-MM-YYYY') AS DTENTSAI,
+TO_CHAR(FIN.DHBAIXA,'DD-MM-YYYY') AS DHBAIXA,
+FIN.CODPARC AS PARCEIRO,
+PAR.NOMEPARC AS NOMEPARC,
+FIN.CODTIPOPER AS OPERACAO,
+TOP.DESCROPER AS DESCROPER,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'DEBITO' ELSE 'CREDITO' END AS TIPLANC,
+LAN.NUMLOTE, 
+LAN.NUMLANC, 
+CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC *(-1)) ELSE LAN.VLRLANC END AS "VLRLANC",
+FIN.HISTORICO AS HISTORICOORIGEM,
+LAN.COMPLHIST AS HISTORICOLAN,
+CASE WHEN FIN.RECDESP = 1 THEN 'RECEITA' ELSE 'DESPESA' END AS RECEITADESPESA,
+FIN.CODNAT AS CODNATUREZA,
+NAT.DESCRNAT AS NATUREZA,
+'LANÇAMENTO FINANCEIRO' AS ORIGEM, 
+'FINANCEIRO' AS MOVIMENTO,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
+
+
+FROM TCBLAN LAN
+INNER JOIN TCBPLA PLA ON (PLA.CODCTACTB = LAN.CODCTACTB)
+INNER JOIN TCBINT IT ON (IT.CODEMP=LAN.CODEMP AND IT.REFERENCIA=LAN.REFERENCIA AND IT.NUMLANC=LAN.NUMLANC AND IT.TIPLANC=LAN.TIPLANC AND IT.NUMLOTE=LAN.NUMLOTE AND IT.SEQUENCIA = LAN.SEQUENCIA)
+INNER JOIN TGFFIN FIN ON (FIN.NUFIN = IT.NUNICO AND IT.ORIGEM = 'F')
+INNER JOIN TGFPAR PAR ON (PAR.CODPARC = FIN.CODPARC)
+INNER JOIN TGFNAT NAT ON (NAT.CODNAT = FIN.CODNAT)
+INNER JOIN TGFTOP TOP ON (TOP.CODTIPOPER = FIN.CODTIPOPER AND TOP.DHALTER = FIN.DHTIPOPER)
+LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
+WHERE     	
+(PLA.CTACTB  LIKE '%3.01.03.01%' OR PLA.CTACTB  LIKE '%3.01.03.02%') 
+
+AND LAN.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+AND
+( 
+(
+(    
+(TO_CHAR(LAN.REFERENCIA,'MM') = :A_MES) AND 
+(TO_CHAR(LAN.REFERENCIA,'YYYY') = :A_ANO)
+) 
+AND
+(:A_CODCTACTB IS NULL OR LAN.CODCTACTB = :A_CODCTACTB)
+)
+OR
+(:A_CODCTACTB IS NULL AND :A_MES IS NULL AND :A_ANO IS NULL)
+)
+
+
+UNION ALL
+
+SELECT  FIN.CODEMP,
+LAN.CODCTACTB,
+PLA.CTACTB,
+PLA.DESCRCTA,
+FIN.NUFIN AS NUMERO_UNICO, 
+FIN.NUMNOTA AS NUMNOTA, 
+TO_CHAR(FIN.DTNEG,'DD-MM-YYYY') AS DTNEG,
+TO_CHAR(FIN.DTENTSAI,'DD-MM-YYYY') AS DTENTSAI,
+TO_CHAR(FIN.DHBAIXA,'DD-MM-YYYY') AS DHBAIXA,
+FIN.CODPARC AS PARCEIRO,
+PAR.NOMEPARC AS NOMEPARC,
+FIN.CODTIPOPERBAIXA AS OPERACAO,
+TOP.DESCROPER AS DESCROPER,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'DEBITO' ELSE 'CREDITO' END AS TIPLANC,
+LAN.NUMLOTE, 
+LAN.NUMLANC, 
+CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC *(-1)) ELSE LAN.VLRLANC END AS "VLRLANC",
+FIN.HISTORICO AS HISTORICOORIGEM,
+LAN.COMPLHIST AS HISTORICOLAN,
+CASE WHEN FIN.RECDESP = 1 THEN 'RECEITA' ELSE 'DESPESA' END AS RECEITADESPESA,
+FIN.CODNAT AS CODNATUREZA,
+NAT.DESCRNAT AS NATUREZA,
+'BAIXA DE TITULO' AS ORIGEM, 
+'BAIXA' AS MOVIMENTO,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
+
+
+FROM TCBLAN LAN
+INNER JOIN TCBPLA PLA ON (PLA.CODCTACTB = LAN.CODCTACTB)
+INNER JOIN TCBINT IT ON (IT.CODEMP=LAN.CODEMP AND IT.REFERENCIA=LAN.REFERENCIA AND IT.NUMLANC=LAN.NUMLANC AND IT.TIPLANC=LAN.TIPLANC AND IT.NUMLOTE=LAN.NUMLOTE AND IT.SEQUENCIA = LAN.SEQUENCIA)
+INNER JOIN TGFFIN FIN ON (FIN.NUFIN = IT.NUNICO AND IT.ORIGEM = 'B')
+INNER JOIN TGFPAR PAR ON (PAR.CODPARC = FIN.CODPARC)
+INNER JOIN TGFNAT NAT ON (NAT.CODNAT = FIN.CODNAT)
+INNER JOIN TGFTOP TOP ON (TOP.CODTIPOPER = FIN.CODTIPOPERBAIXA AND TOP.DHALTER = FIN.DHTIPOPERBAIXA)
+LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
+WHERE
+(PLA.CTACTB  LIKE '%3.01.03.01%' OR PLA.CTACTB  LIKE '%3.01.03.02%') 
+
+AND LAN.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+AND
+( 
+(
+(    
+(TO_CHAR(LAN.REFERENCIA,'MM') = :A_MES) AND 
+(TO_CHAR(LAN.REFERENCIA,'YYYY') = :A_ANO)
+) 
+AND
+(:A_CODCTACTB IS NULL OR LAN.CODCTACTB = :A_CODCTACTB)
+)
+OR
+(:A_CODCTACTB IS NULL AND :A_MES IS NULL AND :A_ANO IS NULL)
+)
+
+
+UNION ALL
+
+SELECT  FIN.CODEMP,
+LAN.CODCTACTB,
+PLA.CTACTB,
+PLA.DESCRCTA,
+FIN.NUFIN AS NUMERO_UNICO, 
+FIN.NUMNOTA AS NUMNOTA, 
+TO_CHAR(FIN.DTNEG,'DD-MM-YYYY') AS DTNEG,
+TO_CHAR(FIN.DTENTSAI,'DD-MM-YYYY') AS DTENTSAI,
+TO_CHAR(FIN.DHBAIXA,'DD-MM-YYYY') AS DHBAIXA,
+FIN.CODPARC AS PARCEIRO,
+PAR.NOMEPARC AS NOMEPARC,
+FIN.CODTIPOPER AS OPERACAO,
+TOP.DESCROPER AS DESCROPER,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'DEBITO' ELSE 'CREDITO' END AS TIPLANC,
+LAN.NUMLOTE, 
+LAN.NUMLANC, 
+CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC *(-1)) ELSE LAN.VLRLANC END AS "VLRLANC",
+FIN.HISTORICO AS HISTORICOORIGEM,
+LAN.COMPLHIST AS HISTORICOLAN,
+CASE WHEN FIN.RECDESP = 1 THEN 'RECEITA' ELSE 'DESPESA' END AS RECEITADESPESA,
+FIN.CODNAT AS CODNATUREZA,
+NAT.DESCRNAT AS NATUREZA,
+'RENEGOCIACAO' AS ORIGEM, 
+'RENEGOCIACAO' AS MOVIMENTO,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
+
+
+FROM TCBLAN LAN
+INNER JOIN TCBPLA PLA ON (PLA.CODCTACTB = LAN.CODCTACTB)
+INNER JOIN TCBINT IT ON (IT.CODEMP=LAN.CODEMP AND IT.REFERENCIA=LAN.REFERENCIA AND IT.NUMLANC=LAN.NUMLANC AND IT.TIPLANC=LAN.TIPLANC AND IT.NUMLOTE=LAN.NUMLOTE AND IT.SEQUENCIA = LAN.SEQUENCIA)
+INNER JOIN TGFFIN FIN ON (FIN.NUFIN = IT.NUNICO AND IT.ORIGEM = 'R')
+INNER JOIN TGFPAR PAR ON (PAR.CODPARC = FIN.CODPARC)
+INNER JOIN TGFNAT NAT ON (NAT.CODNAT = FIN.CODNAT)
+INNER JOIN TGFTOP TOP ON (TOP.CODTIPOPER = FIN.CODTIPOPER AND TOP.DHALTER = FIN.DHTIPOPER)
+LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
+
+WHERE
+(PLA.CTACTB  LIKE '%3.01.03.01%' OR PLA.CTACTB  LIKE '%3.01.03.02%') 
+AND LAN.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+AND
+( 
+(
+(    
+(TO_CHAR(LAN.REFERENCIA,'MM') = :A_MES) AND 
+(TO_CHAR(LAN.REFERENCIA,'YYYY') = :A_ANO)
+) 
+AND
+(:A_CODCTACTB IS NULL OR LAN.CODCTACTB = :A_CODCTACTB)
+)
+OR
+(:A_CODCTACTB IS NULL AND :A_MES IS NULL AND :A_ANO IS NULL)
+)
+
+
+UNION ALL
+
+SELECT  0 AS CODEMP,
+LAN.CODCTACTB,
+PLA.CTACTB,
+PLA.DESCRCTA,
+MBC.NUBCO AS NUMERO_UNICO, 
+MBC.NUMDOC AS NUMNOTA, 
+TO_CHAR(MBC.DTLANC,'DD-MM-YYYY') AS DTNEG,
+TO_CHAR(MBC.DTLANC,'DD-MM-YYYY') AS DTENTSAI,
+TO_CHAR(MBC.DTLANC,'DD-MM-YYYY') AS DHBAIXA,
+0 AS PARCEIRO,
+CTA.DESCRICAO AS NOMEPARC,
+MBC.CODTIPOPER AS OPERACAO,
+TOP.DESCROPER AS DESCROPER,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'DEBITO' ELSE 'CREDITO' END AS TIPLANC,
+LAN.NUMLOTE, 
+LAN.NUMLANC, 
+CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC *(-1)) ELSE LAN.VLRLANC END AS "VLRLANC",
+MBC.HISTORICO AS HISTORICOORIGEM,
+LAN.COMPLHIST AS HISTORICOLAN,
+CASE WHEN MBC.RECDESP = 1 THEN 'RECEITA' ELSE 'DESPESA' END AS RECEITADESPESA,
+0 AS CODNATUREZA,
+'MOV. BANCARIO' AS NATUREZA,
+'MOV. BANCARIO' AS ORIGEM, 
+'MOV. BANCARIO' AS MOVIMENTO,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
+
+
+FROM TCBLAN LAN
+INNER JOIN TCBPLA PLA ON (PLA.CODCTACTB = LAN.CODCTACTB)
+INNER JOIN TCBINT IT ON (IT.CODEMP=LAN.CODEMP AND IT.REFERENCIA=LAN.REFERENCIA AND IT.NUMLANC=LAN.NUMLANC AND IT.TIPLANC=LAN.TIPLANC AND IT.NUMLOTE=LAN.NUMLOTE AND IT.SEQUENCIA = LAN.SEQUENCIA)
+INNER JOIN TGFMBC MBC ON (MBC.NUBCO = IT.NUNICO AND IT.ORIGEM = 'M')
+INNER JOIN TGFTOP TOP ON (TOP.CODTIPOPER = MBC.CODTIPOPER AND TOP.DHALTER = MBC.DHTIPOPER)
+INNER JOIN TSICTA CTA ON (CTA.CODCTABCOINT = MBC.CODCTABCOINT)
+LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
+
+WHERE
+(PLA.CTACTB  LIKE '%3.01.03.01%' OR PLA.CTACTB  LIKE '%3.01.03.02%') 
+AND LAN.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+AND
+( 
+(
+(    
+(TO_CHAR(LAN.REFERENCIA,'MM') = :A_MES) AND 
+(TO_CHAR(LAN.REFERENCIA,'YYYY') = :A_ANO)
+) 
+AND
+(:A_CODCTACTB IS NULL OR LAN.CODCTACTB = :A_CODCTACTB)
+)
+OR
+(:A_CODCTACTB IS NULL AND :A_MES IS NULL AND :A_ANO IS NULL)
+)
+
+UNION ALL
+
+SELECT  LAN.CODEMP,
+LAN.CODCTACTB,
+PLA.CTACTB,
+PLA.DESCRCTA,
+0 AS NUMERO_UNICO, 
+0 AS NUMNOTA, 
+TO_CHAR(LAN.DTMOV,'DD-MM-YYYY') AS DTNEG,
+TO_CHAR(LAN.DTMOV,'DD-MM-YYYY') AS DTENTSAI,
+NULL AS DHBAIXA,
+0 AS PARCEIRO,
+'SEM PARCEIRO - LANCAMENTO MANUAL' AS NOMEPARC,
+0 AS OPERACAO,
+'SEM OPERAÇÃO - LANÇAMENTO MANUAL' AS DESCROPER,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'DEBITO' ELSE 'CREDITO' END AS TIPLANC,
+LAN.NUMLOTE, 
+LAN.NUMLANC, 
+CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC *(-1)) ELSE LAN.VLRLANC END AS "VLRLANC",
+'SEM HISTORICO ORIGEM - LCT MANUAL' AS HISTORICOORIGEM,
+LAN.COMPLHIST AS HISTORICOLAN,
+'LCTO MANUAL' AS RECEITADESPESA,
+0 AS CODNATUREZA,
+'SEM NATUREZA - LCTO MANUAL' AS NATUREZA,
+'SEM ORIGEM - LCTO MANUAL' AS ORIGEM, 
+'MANUAL' AS MOVIMENTO,
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
+
+
+FROM TCBLAN LAN
+INNER JOIN TCBPLA PLA ON (PLA.CODCTACTB = LAN.CODCTACTB)
+LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
+WHERE
+(PLA.CTACTB  LIKE '%3.01.03.01%' OR PLA.CTACTB  LIKE '%3.01.03.02%') 
+AND LAN.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+AND
+( 
+(
+(    
+(TO_CHAR(LAN.REFERENCIA,'MM') = :A_MES) AND 
+(TO_CHAR(LAN.REFERENCIA,'YYYY') = :A_ANO)
+) 
+AND
+(:A_CODCTACTB IS NULL OR LAN.CODCTACTB = :A_CODCTACTB)
+)
+OR
+(:A_CODCTACTB IS NULL AND :A_MES IS NULL AND :A_ANO IS NULL)
+)
+
+AND NOT EXISTS (SELECT 1 FROM TCBINT IT
+WHERE IT.CODEMP=LAN.CODEMP 
+AND IT.REFERENCIA=LAN.REFERENCIA 
+AND IT.NUMLANC=LAN.NUMLANC 
+AND IT.TIPLANC=LAN.TIPLANC 
+AND IT.NUMLOTE=LAN.NUMLOTE)
+
+ORDER BY 1, 5, 13, 10 DESC
+
+
+
+
     
     
 </snk:query>
@@ -167,55 +487,57 @@ ORDER BY LAN.REFERENCIA
             <thead>
                 <tr>
                     <th onclick="sortTable(0)">Cód. Emp.</th>
-                    <th onclick="sortTable(1)">Mês / Ano</th>
-                    <th onclick="sortTable(2)">Ref.</th>
-                    <th onclick="sortTable(3)">Nro. Lote</th>
-                    <th onclick="sortTable(4)">Nro. Lanç.</th>
-                    <th onclick="sortTable(5)">Tp. Lanç.</th>
-                    <th onclick="sortTable(6)">Cód. CTA CTB</th>
-                    <th onclick="sortTable(7)">Cód. Con. Par.</th>
-                    <th onclick="sortTable(8)">Cód. CR</th>
-                    <th onclick="sortTable(9)">Descr. CR</th>
-                    <th onclick="sortTable(10)">Dt. Mov.</th>
-                    <th onclick="sortTable(11)">Cód. Hist.</th>
-                    <th onclick="sortTable(12)">Compl. Hist.</th>
-                    <th onclick="sortTable(13)">Nro. Doc.</th>
-                    <th onclick="sortTable(14)">Dt. Venc.</th>
-                    <th onclick="sortTable(15)">Liberado</th>
-                    <th onclick="sortTable(16)">Cód. Usu.</th>
-                    <th onclick="sortTable(17)">Cód. Proj.</th>
-                    <th onclick="sortTable(18)">Part. Lalur.</th>
-                    <th onclick="sortTable(19)">Seq.</th>
-                    <th onclick="sortTable(20)">CTACTB</th>
-                    <th onclick="sortTable(21)">Descr. CTA</th>
-                    <th onclick="sortTable(22)">Vlr. Lanç.</th>
+                    <th onclick="sortTable(1)">Cód. Cta.Ctb.</th>
+                    <th onclick="sortTable(2)">Cta.Ctb.</th>
+                    <th onclick="sortTable(3)">Descr.Cta.</th>
+                    <th onclick="sortTable(4)">NU. Unico</th>
+                    <th onclick="sortTable(5)">NU. Nota</th>
+                    <th onclick="sortTable(6)">Dt. Neg.</th>
+                    <th onclick="sortTable(7)">Dt. Ent. Sai.</th>
+                    <th onclick="sortTable(8)">Dt. Baixa</th>
+                    <th onclick="sortTable(9)">Cód. Parc.</th>
+                    <th onclick="sortTable(10)">Parceiro</th>
+                    <th onclick="sortTable(11)">Cód. TOP</th>
+                    <th onclick="sortTable(12)">Descr. TOP</th>
+                    <th onclick="sortTable(13)">Tp. Lanc.</th>
+                    <th onclick="sortTable(14)">NU. Lote</th>
+                    <th onclick="sortTable(15)">Num. Lanc.</th>
+                    <th onclick="sortTable(16)">Movimento</th>
+                    <th onclick="sortTable(17)">Hist. Origem</th>
+                    <th onclick="sortTable(18)">Hist. Lanc.</th>
+                    <th onclick="sortTable(19)">Rec./Desp.</th>
+                    <th onclick="sortTable(20)">Cód. Nat.</th>
+                    <th onclick="sortTable(21)">Natureza</th>
+                    <th onclick="sortTable(22)">Origem</th>
+                    <th onclick="sortTable(23)">Vlr. Lanc.</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${fat_det.rows}">
                     <tr class="${row.VLRLANC < 0 ? 'negative' : 'positive'}">
                         <td>${row.CODEMP}</td>
-                        <td>${row.MES_ANO}</td>
-                        <td onclick="abrir_ctb()">${row.REFERENCIA}</td>
-                        <td>${row.NUMLOTE}</td>
-                        <td>${row.NUMLANC}</td>
-                        <td>${row.TIPLANC}</td>
                         <td>${row.CODCTACTB}</td>
-                        <td>${row.CODCONPAR}</td>
-                        <td>${row.CODCENCUS}</td>
-                        <td>${row.DESCRCENCUS}</td>
-                        <td>${row.DTMOV}</td>
-                        <td>${row.CODHISTCTB}</td>
-                        <td>${row.COMPLHIST}</td>
-                        <td>${row.NUMDOC}</td>
-                        <td>${row.VENCIMENTO}</td>
-                        <td>${row.LIBERADO}</td>
-                        <td>${row.CODUSU}</td>
-                        <td>${row.CODPROJ}</td>
-                        <td>${row.PARTLALUR_A}</td>
-                        <td>${row.SEQUENCIA}</td>
                         <td>${row.CTACTB}</td>
                         <td>${row.DESCRCTA}</td>
+                        <td>${row.NUMERO_UNICO}</td>
+                        <td>${row.NUMNOTA}</td>
+                        <td>${row.DTNEG}</td>
+                        <td>${row.DTENTSAI}</td>
+                        <td>${row.DHBAIXA}</td>
+                        <td>${row.PARCEIRO}</td>
+                        <td>${row.NOMEPARC}</td>
+                        <td>${row.OPERACAO}</td>
+                        <td>${row.DESCROPER}</td>
+                        <td>${row.TPLANC}</td>
+                        <td>${row.NUMLOTE}</td>
+                        <td>${row.NUMLANC}</td>
+                        <td>${row.HISTORICOORIGEM}</td>
+                        <td>${row.HISTORICOLAN}</td>
+                        <td>${row.RECEITADESPESA}</td>
+                        <td>${row.CODNATUREZA}</td>
+                        <td>${row.NATUREZA}</td>
+                        <td>${row.ORIGEM}</td>
+                        <td>${row.MOVIMENTO}</td>
                         <td style="text-align: center;">
                             <fmt:formatNumber value="${row.VLRLANC}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
                         </td>
@@ -225,7 +547,7 @@ ORDER BY LAN.REFERENCIA
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total</b></td>
-                    <td colspan="21"></td>
+                    <td colspan="22"></td>
                     <td style="text-align: center;" id="totalAmount"><b>R$ 0,00</b></td>
                 </tr>       
             </tfoot>
@@ -267,7 +589,7 @@ ORDER BY LAN.REFERENCIA
 
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cellValue = row.cells[22].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); 
+                const cellValue = row.cells[23].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); 
                 const value = parseFloat(cellValue);
                 total += isNaN(value) ? 0 : value;
             }

@@ -16,7 +16,7 @@
         }
 
         .table-wrapper {
-            max-width: 100%;
+            max-width: 1400px;
             margin: 20px auto;
             border-radius: 8px;
             overflow: hidden;
@@ -45,33 +45,17 @@
             border: 1px solid #ddd;
             text-align: left;
             white-space: nowrap; /* Impede a quebra de linha nas células */
-            overflow: hidden; /* Para ocultar o texto que excede o limite */
-
         }
 
         th {
-            
+            cursor: pointer;
             background-color: #f2f2f2;
             position: sticky;
             top: 0;
             z-index: 1;
             resize: horizontal;
-            overflow: hidden;
-            min-width: 100px; /* Define uma largura mínima para permitir o resize */
+            overflow: auto;
         }
-
-        td {
-            width: auto; /* Ajuste de largura automática */
-        }       
-
-        /* Limitar o conteúdo da coluna 'Histórico' a 40 caracteres */
-        td.historico {
-            max-width: 200px; /* Define uma largura máxima para a coluna */
-            text-overflow: ellipsis; /* Adiciona '...' para o texto longo */
-            overflow: hidden; /* Esconde o excesso de texto */
-            white-space: nowrap; /* Evita quebra de linha */
-        }        
-
 
         th.sort-asc::after {
             content: " ▲";
@@ -84,7 +68,7 @@
         tbody tr:hover {
            background-color: #f5f5f5; /* Cor de fundo ao passar o mouse */
             cursor: pointer; /* Muda o cursor para indicar interatividade */
-        }    
+        }        
 
         input[type="text"] {
             width: 100%;
@@ -105,92 +89,75 @@
             font-weight: bold;
         }
 
-        @media (max-width: 768px) {
-            table {
-                font-size: 8px; /* Reduz o tamanho da fonte em telas menores */
-            }
-
-            th, td {
-                padding: 6px;
-            }
-
-            .table-container {
-                height: auto; /* Ajusta a altura da tabela em telas menores */
-            }
+        .negative {
+            color: blue;
         }
 
-
+        .positive {
+            color: red;
+        }        
     </style>
 
 <snk:load/>
 </head>
 <body>
+
+
 <snk:query var="fat_det">
 
-
-
-SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,CR,HISTORICO,SUM(VLRDO) AS VLRDO FROM (
-    SELECT 
-    VGF.CODEMP,
-    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV AS EMPRESA,
-    VGF.NUFIN,
-    TO_CHAR(VGF.DHBAIXA,'DD-MM-YYYY') DHBAIXA,
-    VGF.CODPARC,
-    VGF.NOMEPARC,
-    VGF.CODNAT,
-    VGF.DESCRNAT AS NATUREZA,
-    VGF.CODCENCUS,
-    VGF.DESCRCENCUS AS CR,
-    VGF.HISTORICO,
-    ROUND(SUM(VGF.VLRBAIXA),2) * -1 AS VLRDO
-    FROM VGF_RESULTADO_GM VGF
-    INNER JOIN TSIEMP EMP ON VGF.CODEMP = EMP.CODEMP
-    WHERE 
-    VGF.AD_TIPOCUSTO NOT LIKE 'N' 
+SELECT 
+TO_CHAR(LAN.REFERENCIA,'MM-YYYY') AS MES_ANO,
+LAN.CODEMP,
+TO_CHAR(LAN.REFERENCIA,'DD-MM-YYYY') AS  REFERENCIA,
+LAN.NUMLOTE,
+LAN.NUMLANC,
+LAN.TIPLANC,
+LAN.CODCTACTB,
+LAN.CODCONPAR,
+LAN.CODCENCUS,
+CRI.DESCRCENCUS,
+TO_CHAR(LAN.DTMOV,'DD-MM-YYYY') AS DTMOV,
+LAN.CODHISTCTB,
+LAN.COMPLHIST,
+LAN.NUMDOC,
+TO_CHAR(LAN.VENCIMENTO,'DD-MM-YYYY') AS VENCIMENTO,
+LAN.LIBERADO,
+LAN.CODUSU,
+LAN.CODPROJ,
+LAN.PARTLALUR_A,
+LAN.SEQUENCIA,
+PLA.DESCRCTA, 
+PLA.CTACTB, 
+PLA.DESCRCTA, 
+CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC *(-1)) ELSE LAN.VLRLANC END AS "VLRLANC",
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
+FROM TCBLAN LAN
+INNER JOIN TCBPLA PLA ON LAN.CODCTACTB = PLA.CODCTACTB
+LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
+WHERE
+(CTACTB  LIKE '%3.01.03.01%' OR CTACTB  LIKE '%3.01.03.02%') 
+AND LAN.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+AND
+( 
+(
+(    
+(TO_CHAR(LAN.REFERENCIA,'MM') = :A_MES) AND 
+(TO_CHAR(LAN.REFERENCIA,'YYYY') = :A_ANO)
+) 
+AND
+(:A_CODCTACTB IS NULL OR LAN.CODCTACTB = :A_CODCTACTB)
+)
+OR
+(:A_CODCTACTB IS NULL AND :A_MES IS NULL AND :A_ANO IS NULL)
+)
+ORDER BY LAN.REFERENCIA
     
-    AND VGF.RECDESP = -1 
-    AND (VGF.AD_DASH_RENTABILIDADE IS NULL OR VGF.AD_DASH_RENTABILIDADE = 'N')
-    AND VGF.CODNAT <> 9070000
-    AND SUBSTR(VGF.codnat, 1, 1) <> '9'
-    AND VGF.DHBAIXA IS NOT NULL 
-    AND VGF.ANALITICO = 'S'
-    AND VGF.ATIVO = 'S'
     
     
-
-    
-    GROUP BY 
-    VGF.CODEMP,
-    SUBSTR(EMP.RAZAOSOCIAL,1,11)||'-'||EMP.RAZAOABREV,
-    VGF.NUFIN,
-    TO_CHAR(VGF.DHBAIXA,'DD-MM-YYYY'),
-    VGF.CODPARC,
-    VGF.NOMEPARC,        
-    VGF.CODNAT,
-    VGF.DESCRNAT,
-    VGF.CODCENCUS,
-    VGF.DESCRCENCUS,
-    VGF.HISTORICO)
-    WHERE
-
-    (DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)
-    AND
-
-    (
-    (:A_CODEMP IS NULL)
-    OR
-    (CODEMP = :A_CODEMP AND CODNAT = :A_CODNAT)
-    OR
-    (CODEMP = :A_CODEMP AND CODCENCUS = :A_CODCENCUS)
-    OR
-    (CODEMP = :A_CODEMP AND :A_CODCENCUS IS NULL AND :A_CODNAT IS NULL)
-    )
-    GROUP BY CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,CR,HISTORICO
-    ORDER BY 12 DESC
 </snk:query>
 
 <div class="table-wrapper">
-    <h2>Detalhamento Despesas Operacionais</h2>
+    <h2>Detalhamento dos Lançamentos</h2>
     <div class="filter-container">
         <input type="text" id="tableFilter" placeholder="Digite para filtrar...">
     </div>
@@ -199,49 +166,71 @@ SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,C
             <thead>
                 <tr>
                     <th onclick="sortTable(0)">Cód. Emp.</th>
-                    <th onclick="sortTable(1)">Empresa</th>
-                    <th onclick="sortTable(2)">NÚ. Único</th>
-                    <th onclick="sortTable(3)">Dt. Baixa.</th>
-                    <th onclick="sortTable(4)">Cód. Parc.</th>
-                    <th onclick="sortTable(5)">Parceiro</th>
-                    <th onclick="sortTable(6)">Cód. Nat.</th>
-                    <th onclick="sortTable(7)">Natureza</th>
+                    <th onclick="sortTable(1)">Mês / Ano</th>
+                    <th onclick="sortTable(2)">Ref.</th>
+                    <th onclick="sortTable(3)">Nro. Lote</th>
+                    <th onclick="sortTable(4)">Nro. Lanç.</th>
+                    <th onclick="sortTable(5)">Tp. Lanç.</th>
+                    <th onclick="sortTable(6)">Cód. CTA CTB</th>
+                    <th onclick="sortTable(7)">Cód. Con. Par.</th>
                     <th onclick="sortTable(8)">Cód. CR</th>
-                    <th onclick="sortTable(9)">CR</th>
-                    <th onclick="sortTable(9)">HISTORICO</th>
-                    <th onclick="sortTable(10)">Vlr. DO</th>
+                    <th onclick="sortTable(9)">Descr. CR</th>
+                    <th onclick="sortTable(10)">Dt. Mov.</th>
+                    <th onclick="sortTable(11)">Cód. Hist.</th>
+                    <th onclick="sortTable(12)">Compl. Hist.</th>
+                    <th onclick="sortTable(13)">Nro. Doc.</th>
+                    <th onclick="sortTable(14)">Dt. Venc.</th>
+                    <th onclick="sortTable(15)">Liberado</th>
+                    <th onclick="sortTable(16)">Cód. Usu.</th>
+                    <th onclick="sortTable(17)">Cód. Proj.</th>
+                    <th onclick="sortTable(18)">Part. Lalur.</th>
+                    <th onclick="sortTable(19)">Seq.</th>
+                    <th onclick="sortTable(20)">CTACTB</th>
+                    <th onclick="sortTable(21)">Descr. CTA</th>
+                    <th onclick="sortTable(22)">Vlr. Lanç.</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${fat_det.rows}">
-                    <tr>
+                    <tr class="${row.VLRLANC < 0 ? 'negative' : 'positive'}">
                         <td>${row.CODEMP}</td>
-                        <td>${row.EMPRESA}</td>
-                        <td onclick="abrir_mov('${row.NUFIN}')">${row.NUFIN}</td>
-                        <td>${row.DHBAIXA}</td>
-                        <td>${row.CODPARC}</td>
-                        <td>${row.NOMEPARC}</td>
-                        <td>${row.CODNAT}</td>
-                        <td>${row.NATUREZA}</td>
+                        <td>${row.MES_ANO}</td>
+                        <td onclick="abrir_ctb()">${row.REFERENCIA}</td>
+                        <td>${row.NUMLOTE}</td>
+                        <td>${row.NUMLANC}</td>
+                        <td>${row.TIPLANC}</td>
+                        <td>${row.CODCTACTB}</td>
+                        <td>${row.CODCONPAR}</td>
                         <td>${row.CODCENCUS}</td>
-                        <td>${row.CR}</td>
-                        <td class="historico">${row.HISTORICO}</td>
-                        <td style="text-align: center;"><fmt:formatNumber value="${row.VLRDO}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                        <td>${row.DESCRCENCUS}</td>
+                        <td>${row.DTMOV}</td>
+                        <td>${row.CODHISTCTB}</td>
+                        <td>${row.COMPLHIST}</td>
+                        <td>${row.NUMDOC}</td>
+                        <td>${row.VENCIMENTO}</td>
+                        <td>${row.LIBERADO}</td>
+                        <td>${row.CODUSU}</td>
+                        <td>${row.CODPROJ}</td>
+                        <td>${row.PARTLALUR_A}</td>
+                        <td>${row.SEQUENCIA}</td>
+                        <td>${row.CTACTB}</td>
+                        <td>${row.DESCRCTA}</td>
+                        <td style="text-align: center;">
+                            <fmt:formatNumber value="${row.VLRLANC}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+                        </td>
                     </tr>
                 </c:forEach>              
             </tbody>
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total</b></td>
-                    <td colspan="10"></td>
-                    <td style="text-align: center;" id="totalAmount"><b>0,00</b></td>
-                    <td></td>
+                    <td colspan="21"></td>
+                    <td style="text-align: center;" id="totalAmount"><b>R$ 0,00</b></td>
                 </tr>       
             </tfoot>
         </table>
     </div>
 </div>
-
 
 <!-- Botão de exportação para Excel -->
 <div id="exportOverlay" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
@@ -262,10 +251,12 @@ SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,C
     </button>
 </div>
 
+
+
 <script>
-    function abrir_mov(nufin) {
-        var params = {'NUFIN': nufin};
-        var level = 'br.com.sankhya.fin.cad.movimentacaoFinanceira';
+    function abrir_ctb() {
+        var params = '';
+        var level = 'br.com.sankhya.mgecontab.mov.lancamentos.contabeis';
         openApp(level, params);
     }
 
@@ -275,15 +266,14 @@ SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,C
 
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cellValue = row.cells[11].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); // Remove simbolos e converte ',' para '.'
+                const cellValue = row.cells[22].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); 
                 const value = parseFloat(cellValue);
                 total += isNaN(value) ? 0 : value;
             }
         });
 
-        document.getElementById('totalAmount').innerHTML = '<b>' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>';
-
         
+        document.getElementById('totalAmount').innerHTML = '<b>' + total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '</b>';
     }
 
     document.getElementById('tableFilter').addEventListener('keyup', function () {
@@ -332,7 +322,6 @@ SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,C
     document.addEventListener('DOMContentLoaded', (event) => {
         updateTotal();
     });
-</script>
 
 </script>
 
@@ -344,6 +333,7 @@ SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,C
         XLSX.writeFile(wb, 'dados.xlsx');
     }
 </script>
+
 
 </body>
 </html>
