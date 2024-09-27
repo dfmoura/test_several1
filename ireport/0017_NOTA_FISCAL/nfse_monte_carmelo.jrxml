@@ -1,0 +1,1016 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="nfse_uberlandia" pageWidth="595" pageHeight="842" columnWidth="535" leftMargin="30" rightMargin="30" topMargin="24" bottomMargin="10">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.6500000000000763"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="635"/>
+	<property name="ireport.definition"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[".\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="NUNOTA" class="java.math.BigDecimal" isForPrompting="false">
+		<parameterDescription><![CDATA[Nro Único da Nota]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<parameterDescription><![CDATA[Diretório de Modelos]]></parameterDescription>
+		<defaultValueExpression><![CDATA["./"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="JDBC_CONNECTION" class="java.sql.Connection" isForPrompting="false"/>
+	<parameter name="NO_WATERMARK" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="PK_NUNOTA" class="java.math.BigDecimal" isForPrompting="false"/>
+	<parameter name="QRCODE" class="java.lang.Object"/>
+	<queryString>
+		<![CDATA[SELECT
+CAB.NUNOTA,
+CAB.NUMNFSE,
+CAB.NUMNOTA,
+CAB.VLRNOTA,
+NVL(CAB.VLRDESCTOTITEM,0) AS VLRDESCTOTITEM,
+(CAB.VLRNOTA + CAB.VLRDESCTOTITEM) AS VLRBRUTO,
+(SELECT CASE WHEN VALORNOVO = 1 THEN 'COOPERADO' ELSE 'NÃO COOPERADO' END FROM AD_AUDITCOOP WHERE CODPARC = CAB.CODPARC AND DTINC = (SELECT MAX(A.DTINC) FROM AD_AUDITCOOP A WHERE A.CODPARC = CAB.CODPARC AND A.DTINC <= CAB.DTNEG)) AS COOPERADO,
+'Série: '||CAB.SERIENOTA AS SERIENOTA,
+CASE WHEN NVL(CAB.VLRISS,0) > 0 THEN '2.0' ELSE '0' END AS ALIQUOTAISS,
+CASE WHEN NVL(CAB.VLRISS,0) > 0 THEN 'Tributação por Faturamento (Variável)' ELSE 'Isento/Imune' END AS TIPTRIB,
+TO_CHAR (CAB.DTNEG,'MM/YYYY') AS MES,
+CASE WHEN CAB.ISSRETIDO='S' THEN CAB.VLRISS ELSE 0 END AS "VLRISSRETIDO",
+CAB.ISSRETIDO,
+CASE WHEN CAB.OBSERVACAO IS NULL THEN ' ' ELSE CAB.OBSERVACAO END AS "OBSERVACAO",
+CAB.AD_OBSNFSE,
+CASE WHEN CAB.AD_OBSNFSEDIGITADA IS NOT NULL THEN CAB.AD_OBSNFSEDIGITADA || ' - ' ELSE '' END AS AD_OBSNFSEDIGITADA,
+CAB.VLRIRF,
+CASE WHEN CAB.VLRPIS IS NULL THEN 0 ELSE CAB.VLRPIS END AS "VLRPIS",
+CASE WHEN CAB.VLRCOFINS IS NULL THEN 0 ELSE CAB.VLRCOFINS END AS "VLRCOFINS",
+CAB.VLRINSS,
+'Valor Aproximado de Impostos: Federais R$ ' || CAB.VLRNOTA * 0.0677 || ' Estaduais R$ ' || CAB.VLRNOTA * 0.071 || ' Municipais R$ ' || CAB.VLRNOTA * 0.0306 AS TRIBUTOS,
+NVL((SELECT SUM(VLRTOT) FROM TGFITE WHERE NVL(VLRISS,0) >0 AND NUNOTA=$P{NUNOTA}),0) AS VLRTRIB,
+NVL((SELECT SUM(VLRTOT) FROM TGFITE WHERE NVL(VLRISS,0) =0 AND NUNOTA=$P{NUNOTA}),0) AS VLRNTRIB,
+EMP.CODEMP,
+EMP.EMAIL,
+EMP.TELEFONE,
+EMP.NOMEFANTASIA,
+EMP.RAZAOSOCIAL,
+EMP.INSCMUN,
+EMP.INSCESTAD,
+PAR.NOMEPARC AS "PARNOMEFANTASIA",
+PAR.RAZAOSOCIAL AS "PARRAZAOSOCIAL",
+PAR.TELEFONE AS "PARTELEFONE",
+PAR.EMAIL AS "PAREMAIL",
+PAR.INSCMUN AS "PARINSCMUN",
+PAR.CGC_CPF,
+PAR.IDENTINSCESTAD,
+NFSE.CODVERIFNFSE,
+EMP.CGC AS CNPJ_PRESTADOR,
+CAB.VLRISS,
+SYSDATE AS DTATUAL,
+CASE WHEN CAB.ISSRETIDO='S' THEN (CAB.VLRNOTA+CAB.VLRISS)
+ELSE CAB.VLRNOTA END AS "VALORSERVICO",
+
+ENDEMP.TIPO || ' ' || ENDEMP.NOMEEND || ' ' || EMP.NUMEND || ' - ' || BAIEMP.NOMEBAI  || ' - ' ||
+    CASE
+        WHEN EMP.CEP IS NOT NULL THEN
+            'CEP ' || SUBSTR(EMP.CEP, 1,5) || '-' || SUBSTR(EMP.CEP, 6,8)
+        ELSE ''
+    END AS ENDER_PRESTADOR,
+ENDPAR.TIPO || ' ' || ENDPAR.NOMEEND || ' ' || PAR.NUMEND || ' - ' || BAIPAR.NOMEBAI  || ' - ' ||
+    CASE
+        WHEN PAR.CEP IS NOT NULL THEN
+            'CEP ' || SUBSTR(PAR.CEP, 1,5) || '-' || SUBSTR(PAR.CEP, 6,8)
+        ELSE ''
+    END AS ENDER_TOMADOR,
+CIDEMP.NOMECID AS CIDADE_PRESTADOR,
+UFSEMP.UF AS UF_PRESTADOR,
+CASE WHEN CAB.CODCID=0 THEN 'Boa Vista/RR' ELSE (SELECT C.NOMECID || '/' || U.UF  FROM TSICID C, TSIUFS U WHERE C.UF=CODUF AND C.CODCID=CAB.CODCID) END  AS  LOCALPRESTACAO,
+CIDPAR.NOMECID AS CIDADE_TOMADOR,
+UFSPAR.UF AS UF_TOMADOR,
+CAB.OBSERVACAO AS OBS_NOTA,
+NFSE.CODVERIFNFSE,
+NFSE.DHEMISSNFSE,
+NFSE.XMLRPS,
+CAB.AD_DISCRSERV,
+EMP.SIMPLES,
+CASE WHEN OBS.CODOBSPADRAO=0 THEN ' ' ELSE OBS.OBSERVACAO END AS OBSPADRAO,
+ROUND(CAB.BASEISS * ((SELECT MAX(P.AD_ALIQIBPT) FROM TGFITE I, TGFPRO P WHERE P.CODPROD=I.CODPROD AND I.NUNOTA=$P{NUNOTA})/100),2) AS VLRIBPT,
+(SELECT MAX(P.AD_ALIQIBPT) FROM TGFITE I, TGFPRO P WHERE P.CODPROD=I.CODPROD AND I.NUNOTA=$P{NUNOTA}) AS ALIQIBPT,
+(SELECT P.AD_DESCRCNAE FROM TGFITE I, TGFPRO P WHERE P.CODPROD=I.CODPROD AND I.SEQUENCIA=(SELECT MAX(X.SEQUENCIA) FROM TGFITE X WHERE X.NUNOTA =I.NUNOTA) AND I.NUNOTA=$P{NUNOTA}) AS DESCRCNAE,
+(SELECT OPCAO FROM TDDOPC WHERE NUCAMPO=20002 AND VALOR=T.CODNATOPERISS) AS NATOPERISS,
+TO_CHAR((SELECT MIN(FIN.DTVENC) FROM TGFFIN FIN WHERE FIN.NUNOTA = $P{NUNOTA}),'DD/MM/YYYY') AS DTVENC,
+TO_CHAR (CAB.DTNEG,'DD/MM/YYYY') AS DTNEG,
+TPV.DESCRTIPVENDA
+FROM TGFCAB CAB
+INNER JOIN TGFNFSE NFSE ON (NFSE.NUNOTA = CAB.NUNOTA)
+INNER JOIN TSIEMP EMP ON (EMP.CODEMP = CAB.CODEMP)
+INNER JOIN TSIBAI BAIEMP ON (BAIEMP.CODBAI = EMP.CODBAI)
+INNER JOIN TSICID CIDEMP ON (CIDEMP.CODCID = EMP.CODCID)
+INNER JOIN TSIUFS UFSEMP ON (UFSEMP.CODUF = CIDEMP.UF)
+INNER JOIN TGFPAR PAR ON (PAR.CODPARC = CAB.CODPARC)
+INNER JOIN TSICID CIDPAR ON (CIDPAR.CODCID = PAR.CODCID)
+INNER JOIN TSIUFS UFSPAR ON (UFSPAR.CODUF = CIDPAR.UF)
+INNER JOIN TSIEND ENDEMP ON (ENDEMP.CODEND = EMP.CODEND)
+INNER JOIN TSIEND ENDPAR ON (ENDPAR.CODEND = PAR.CODEND)
+INNER JOIN TSIBAI BAIPAR ON (BAIPAR.CODBAI = PAR.CODBAI)
+INNER JOIN TGFOBS OBS ON (OBS.CODOBSPADRAO = CAB.CODOBSPADRAO)
+INNER JOIN TGFTOP T ON (CAB.CODTIPOPER = T.CODTIPOPER AND CAB.DHTIPOPER=T.DHALTER)
+LEFT JOIN TGFTPV TPV ON TPV.CODTIPVENDA = CAB.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDA
+WHERE
+CAB.NUNOTA = $P{NUNOTA}]]>
+	</queryString>
+	<field name="NUNOTA" class="java.math.BigDecimal"/>
+	<field name="NUMNFSE" class="java.lang.String"/>
+	<field name="CODEMP" class="java.math.BigDecimal"/>
+	<field name="CODVERIFNFSE" class="java.lang.String"/>
+	<field name="CNPJ_PRESTADOR" class="java.lang.String"/>
+	<field name="ENDER_PRESTADOR" class="java.lang.String"/>
+	<field name="CIDADE_PRESTADOR" class="java.lang.String"/>
+	<field name="UF_PRESTADOR" class="java.lang.String"/>
+	<field name="CIDADE_TOMADOR" class="java.lang.String"/>
+	<field name="UF_TOMADOR" class="java.lang.String"/>
+	<field name="OBS_NOTA" class="java.lang.String"/>
+	<field name="DHEMISSNFSE" class="java.sql.Timestamp"/>
+	<field name="XMLRPS" class="java.sql.Clob"/>
+	<field name="SIMPLES" class="java.lang.String"/>
+	<field name="TELEFONE" class="java.lang.String"/>
+	<field name="EMAIL" class="java.lang.String"/>
+	<field name="NOMEFANTASIA" class="java.lang.String"/>
+	<field name="PARNOMEFANTASIA" class="java.lang.String"/>
+	<field name="PARTELEFONE" class="java.lang.String"/>
+	<field name="PAREMAIL" class="java.lang.String"/>
+	<field name="INSCMUN" class="java.lang.String"/>
+	<field name="VLRNOTA" class="java.math.BigDecimal"/>
+	<field name="VLRISSRETIDO" class="java.math.BigDecimal"/>
+	<field name="ISSRETIDO" class="java.lang.String"/>
+	<field name="OBSERVACAO" class="java.lang.String"/>
+	<field name="RAZAOSOCIAL" class="java.lang.String"/>
+	<field name="PARRAZAOSOCIAL" class="java.lang.String"/>
+	<field name="ENDER_TOMADOR" class="java.lang.String"/>
+	<field name="CGC_CPF" class="java.lang.String"/>
+	<field name="VALORSERVICO" class="java.math.BigDecimal"/>
+	<field name="VLRISS" class="java.math.BigDecimal"/>
+	<field name="VLRIRF" class="java.math.BigDecimal"/>
+	<field name="VLRPIS" class="java.math.BigDecimal"/>
+	<field name="VLRCOFINS" class="java.math.BigDecimal"/>
+	<field name="VLRINSS" class="java.math.BigDecimal"/>
+	<field name="PARINSCMUN" class="java.lang.String"/>
+	<field name="LOCALPRESTACAO" class="java.lang.String"/>
+	<field name="OBSPADRAO" class="java.lang.String"/>
+	<field name="VLRIBPT" class="java.math.BigDecimal"/>
+	<field name="ALIQIBPT" class="java.math.BigDecimal"/>
+	<field name="DESCRCNAE" class="java.lang.String"/>
+	<field name="NATOPERISS" class="java.lang.String"/>
+	<field name="INSCESTAD" class="java.lang.String"/>
+	<field name="IDENTINSCESTAD" class="java.lang.String"/>
+	<field name="VLRNTRIB" class="java.math.BigDecimal"/>
+	<field name="VLRTRIB" class="java.math.BigDecimal"/>
+	<field name="AD_DISCRSERV" class="java.lang.String"/>
+	<field name="DTATUAL" class="java.sql.Timestamp"/>
+	<field name="MES" class="java.lang.String"/>
+	<field name="TRIBUTOS" class="java.lang.String"/>
+	<field name="SERIENOTA" class="java.lang.String"/>
+	<field name="ALIQUOTAISS" class="java.lang.String"/>
+	<field name="TIPTRIB" class="java.lang.String"/>
+	<field name="NUMNOTA" class="java.lang.String"/>
+	<field name="DTVENC" class="java.lang.String"/>
+	<field name="DTNEG" class="java.lang.String"/>
+	<field name="DESCRTIPVENDA" class="java.lang.String"/>
+	<field name="COOPERADO" class="java.lang.String"/>
+	<field name="AD_OBSNFSE" class="java.lang.String"/>
+	<field name="AD_OBSNFSEDIGITADA" class="java.lang.String"/>
+	<field name="VLRDESCTOTITEM" class="java.math.BigDecimal"/>
+	<field name="VLRBRUTO" class="java.math.BigDecimal"/>
+	<variable name="V_XMLRPS" class="java.lang.Object">
+		<variableExpression><![CDATA[new org.jdom.input.SAXBuilder().build($F{XMLRPS}.getCharacterStream()).getRootElement()]]></variableExpression>
+	</variable>
+	<variable name="V_VALORPIS" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[new BigDecimal(
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+(org.jdom.Element)$V{V_XMLRPS},
+".//ValorPIS"
+)
+)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="V_VALORCONFINS" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[new BigDecimal(
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+(org.jdom.Element)$V{V_XMLRPS},
+".//ValorCOFINS"
+)
+)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="V_VALORINSS" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[new BigDecimal(
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+(org.jdom.Element)$V{V_XMLRPS},
+".//ValorINSS"
+)
+)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="V_VALORIR" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[new BigDecimal(
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+(org.jdom.Element)$V{V_XMLRPS},
+".//ValorIR"
+)
+)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="V_VALORCSLL" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[new BigDecimal(
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+(org.jdom.Element)$V{V_XMLRPS},
+".//ValorCSLL"
+)
+)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="QRCODE" class="java.lang.String">
+		<variableExpression><![CDATA["https://montecarmelo.simplissweb.com.br/contrib/Account/Login"]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Prevent"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="445" splitType="Stretch">
+			<rectangle>
+				<reportElement key="rect-Header" x="0" y="0" width="534" height="77"/>
+			</rectangle>
+			<image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement positionType="Float" x="309" y="1" width="102" height="76"/>
+				<imageExpression class="java.awt.Image"><![CDATA[com.google.zxing.client.j2se.MatrixToImageWriter.toBufferedImage(
+new com.google.zxing.qrcode.QRCodeWriter().encode(
+$V{QRCODE},
+com.google.zxing.BarcodeFormat.QR_CODE, 300, 300))]]></imageExpression>
+			</image>
+			<rectangle>
+				<reportElement key="rect-Prestador" mode="Opaque" x="0" y="144" width="534" height="68"/>
+			</rectangle>
+			<rectangle>
+				<reportElement key="rect-Prestador" mode="Opaque" x="0" y="77" width="534" height="67"/>
+			</rectangle>
+			<textField evaluationTime="Report" isBlankWhenNull="false">
+				<reportElement key="txtNuNota" mode="Transparent" x="407" y="12" width="127" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.StringUtils.replicate("0", 9 - $F{NUMNFSE}.toString().length()) + $F{NUMNFSE}.toString()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-4" x="92" y="2" width="224" height="12"/>
+				<textElement>
+					<font fontName="SansSerif" size="9" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Prefeitura Municipal de]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement key="txtCodVer" mode="Transparent" x="407" y="36" width="127" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODVERIFNFSE}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy HH.mm.ss" isBlankWhenNull="true">
+				<reportElement key="txtDhEmissao" mode="Transparent" x="407" y="62" width="125" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DHEMISSNFSE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-2" mode="Transparent" x="407" y="0" width="121" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Número da NFS-e]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="lbRazaoSocPrestServ" x="92" y="90" width="47" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Razão Social:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="92" y="100" width="23" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="SansSerif" size="7"/>
+				</textElement>
+				<text><![CDATA[CNPJ:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-9" x="92" y="122" width="38" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="SansSerif" size="7"/>
+				</textElement>
+				<text><![CDATA[Endereço:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-7" x="130" y="122" width="374" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="SansSerif" size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ENDER_PRESTADOR} + " - " + $F{CIDADE_PRESTADOR} + " - " + $F{UF_PRESTADOR}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement key="textField-13" x="135" y="167" width="397" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new com.sankhya.util.StringFormat().format($F{CGC_CPF}, "##.###.###/####-####") + " - Inscrição Municipal: " + ( $F{INSCMUN} != null && $F{INSCMUN} != "" ? $F{PARINSCMUN} : " " ) + " - Incrição Estadual: " + $F{IDENTINSCESTAD}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-14" x="130" y="189" width="336" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ENDER_TOMADOR} + " - " + $F{CIDADE_TOMADOR} + " - " + $F{UF_TOMADOR}]]></textFieldExpression>
+			</textField>
+			<image onErrorType="Blank">
+				<reportElement key="image-1" x="5" y="2" width="85" height="69"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO}+"logo-prefeitura.jpg"]]></imageExpression>
+			</image>
+			<image onErrorType="Blank">
+				<reportElement key="logo-prest_servicos" x="1" y="78" width="88" height="61"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO}+"logo-sk.gif"]]></imageExpression>
+			</image>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-5" x="115" y="100" width="413" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="SansSerif" size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new com.sankhya.util.StringFormat().format($F{CNPJ_PRESTADOR}, "##.###.###/####-####") + " - Inscrição Municipal: " + ( $F{INSCMUN} != null && $F{INSCMUN} != "" ? $F{INSCMUN} : " " ) + " - Incrição Estadual: " + $F{INSCESTAD}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="txtRazaoSocialTomador" x="140" y="90" width="388" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="SansSerif" size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOSOCIAL}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="405" y="49" width="129" height="1"/>
+			</line>
+			<staticText>
+				<reportElement key="staticText-2" mode="Transparent" x="407" y="50" width="123" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Data/Hora de Emissão]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-2" mode="Transparent" x="407" y="24" width="124" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Código Autenticidade]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="92" y="111" width="27" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="SansSerif" size="7"/>
+				</textElement>
+				<text><![CDATA[E-mail:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-10" x="119" y="111" width="155" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="SansSerif" size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{EMAIL}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-9" x="92" y="189" width="38" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Endereço:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="lbRazaoSocPrestServ" x="92" y="156" width="38" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Nome:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="92" y="167" width="43" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[CPF/CNPJ:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="92" y="178" width="27" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[E-mail:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-10" x="119" y="178" width="216" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PAREMAIL}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="404" y="0" width="1" height="77"/>
+			</line>
+			<staticText>
+				<reportElement key="staticText-4" x="92" y="16" width="224" height="12"/>
+				<textElement>
+					<font fontName="SansSerif" size="9" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Monte Carmelo]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-4" x="92" y="30" width="224" height="12"/>
+				<textElement>
+					<font fontName="SansSerif" size="9" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Secretaria Municipal de Fazenda]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-4" x="92" y="46" width="224" height="12"/>
+				<textElement>
+					<font fontName="SansSerif" size="8" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Nota Fiscal de Serviços Eletrônica - NFS-e]]></text>
+			</staticText>
+			<line>
+				<reportElement x="404" y="24" width="130" height="1"/>
+			</line>
+			<staticText>
+				<reportElement key="staticText-4" x="92" y="59" width="65" height="12"/>
+				<textElement>
+					<font fontName="SansSerif" size="9" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Competência:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-4" x="92" y="80" width="203" height="10"/>
+				<textElement>
+					<font fontName="SansSerif" size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Prestador de Serviços]]></text>
+			</staticText>
+			<textField pattern="MM/yyyy" isBlankWhenNull="true">
+				<reportElement key="txtDhEmissao" mode="Transparent" x="157" y="59" width="125" height="12"/>
+				<textElement verticalAlignment="Top">
+					<font fontName="SansSerif" size="9" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DHEMISSNFSE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-4" x="92" y="144" width="134" height="10"/>
+				<textElement>
+					<font fontName="SansSerif" size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Tomador de Serviços]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="1" y="212" width="531" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Discriminação dos Serviços]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-12" x="119" y="156" width="373" height="11"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PARRAZAOSOCIAL}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement key="textField-10" mode="Transparent" x="1" y="224" width="531" height="221" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box leftPadding="2"/>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{OBS_NOTA}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="534" y="212" width="1" height="233"/>
+			</line>
+			<line>
+				<reportElement x="-1" y="212" width="1" height="233"/>
+			</line>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="341" splitType="Stretch">
+			<rectangle>
+				<reportElement key="rectangle-14" mode="Transparent" x="0" y="62" width="534" height="29"/>
+			</rectangle>
+			<rectangle>
+				<reportElement key="rectangle-14" mode="Transparent" x="0" y="42" width="534" height="20"/>
+			</rectangle>
+			<rectangle>
+				<reportElement key="rect-Prestador" mode="Transparent" x="0" y="287" width="534" height="54"/>
+			</rectangle>
+			<rectangle>
+				<reportElement key="rectangle-14" mode="Transparent" x="0" y="42" width="89" height="20"/>
+			</rectangle>
+			<rectangle>
+				<reportElement key="rectangle-20" mode="Transparent" x="0" y="13" width="534" height="29"/>
+			</rectangle>
+			<rectangle>
+				<reportElement key="rect-Prestador" mode="Opaque" x="0" y="138" width="534" height="124"/>
+			</rectangle>
+			<rectangle>
+				<reportElement key="rect-Prestador" mode="Opaque" x="0" y="91" width="534" height="30"/>
+			</rectangle>
+			<rectangle>
+				<reportElement key="rect-NuNota" mode="Opaque" x="0" y="121" width="534" height="17" forecolor="#000000" backcolor="#FFFFFF"/>
+			</rectangle>
+			<staticText>
+				<reportElement key="lbNuNota" mode="Transparent" x="1" y="142" width="534" height="11" forecolor="#000000" backcolor="#CCCCCC"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Outras Informações]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-9" x="1" y="13" width="533" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Código do CNAE - Código e Descrição do item Lista de Serviço]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="1" y="153" width="441" height="9"/>
+				<box leftPadding="2"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="6"/>
+				</textElement>
+				<text><![CDATA[- NFS-e instituída pelo Decreto N° 2544 de 11 de Agosto de 2022(Para todas as notas emitidas).]]></text>
+			</staticText>
+			<line>
+				<reportElement x="-14" y="283" width="560" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.75" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<rectangle>
+				<reportElement key="rect-Prestador" mode="Transparent" x="309" y="287" width="225" height="54"/>
+			</rectangle>
+			<staticText>
+				<reportElement key="staticText-7" x="317" y="287" width="94" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Nº da NFS-e]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="317" y="322" width="94" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Código Autenticidade]]></text>
+			</staticText>
+			<textField evaluationTime="Report" isBlankWhenNull="false">
+				<reportElement key="txtNuNota" mode="Transparent" x="317" y="295" width="94" height="9" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.StringUtils.replicate("0", 9 - $F{NUMNFSE}.toString().length()) + $F{NUMNFSE}.toString()]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="txtCodVer" mode="Transparent" x="317" y="331" width="94" height="9" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODVERIFNFSE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-7" x="4" y="318" width="288" height="22"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[        ____/____/_______        ________________________________________________
+                   Data                                      Identificação e assinatura do recebedor]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="3" y="290" width="289" height="31"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Recebi(emos) de\n" + new com.sankhya.util.StringFormat().format($F{CNPJ_PRESTADOR}, "##.###.###/####-####") + "- " + $F{RAZAOSOCIAL} + " os serviços constantes da NFS-e indicada ao lado."]]></textFieldExpression>
+			</textField>
+			<textField pattern="MM/yyyy" isBlankWhenNull="true">
+				<reportElement key="txtDhEmissao" mode="Transparent" x="317" y="313" width="94" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DHEMISSNFSE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-7" x="317" y="304" width="94" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Competência]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="418" y="296" width="116" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Número de Controle do Município]]></text>
+			</staticText>
+			<line>
+				<reportElement x="418" y="287" width="1" height="54"/>
+			</line>
+			<staticText>
+				<reportElement key="staticText-31" x="10" y="42" width="70" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Retenções de Impostos (R$)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="115" y="43" width="49" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PIS(0,00%)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="197" y="43" width="68" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[COFINS(0,00%)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="288" y="43" width="68" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[INSS(0,00%)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="374" y="42" width="68" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[IR(0,00%)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="453" y="42" width="68" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CSLL(0,00%)]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-24" x="115" y="51" width="46" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRPIS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-24" x="197" y="51" width="68" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRCOFINS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-24" x="288" y="52" width="68" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRINSS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-24" x="374" y="52" width="68" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRIRF}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement key="textField-24" x="453" y="51" width="68" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["0,00"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-31" x="6" y="62" width="87" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Valor Deduções]]></text>
+			</staticText>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement key="textField-25" x="6" y="73" width="87" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["0,00"]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement key="textField-26" x="219" y="73" width="87" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["0,00"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-31" x="219" y="62" width="87" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Desconto Condicionado]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="110" y="62" width="87" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Desconto Incondicionado]]></text>
+			</staticText>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement key="textField-24" x="320" y="73" width="87" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["0,00"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-31" x="320" y="63" width="87" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Outras Retenções]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="426" y="63" width="87" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ISSQN Retido]]></text>
+			</staticText>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement key="textField-24" x="428" y="73" width="85" height="11"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["0,00"]]></textFieldExpression>
+			</textField>
+			<rectangle>
+				<reportElement key="rectangle-20" mode="Transparent" x="0" y="91" width="89" height="30"/>
+			</rectangle>
+			<staticText>
+				<reportElement key="staticText-31" x="17" y="92" width="57" height="29"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CÁLCULO DO ISSQN]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="93" y="110" width="209" height="9"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="6"/>
+				</textElement>
+				<text><![CDATA[* Total Deduções = ( Valor Deduções + Desconto Incondicionado )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="476" y="91" width="57" height="17"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ISSQN]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="92" y="92" width="72" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Valor Serviços]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="184" y="92" width="87" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total Deduções]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="282" y="92" width="78" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Base de Cálculo]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="373" y="92" width="87" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Alíquota(%)]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-27" x="92" y="101" width="72" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="6" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRBRUTO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement key="textField-25" x="374" y="101" width="86" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="6" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ALIQUOTAISS}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-31" x="169" y="101" width="11" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[-]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="271" y="101" width="11" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[=]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="361" y="101" width="11" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[*]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="460" y="101" width="11" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[=]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="172" y="121" width="134" height="17"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[VALOR LÍQUIDO DA NOTA:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="1" y="173" width="441" height="9"/>
+				<box leftPadding="2"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="6"/>
+				</textElement>
+				<text><![CDATA[- Exigibilidade ISSQN: Isenção - Local da prestação do serviço: Monte Carmelo - MG - Local da incidência do ISSQN: Monte Carmelo - MG.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="1" y="199" width="441" height="9"/>
+				<box leftPadding="2"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="6"/>
+				</textElement>
+				<text><![CDATA[- Prestador regime especial da tributação: Não se enquadra.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="3" y="264" width="441" height="9"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Verifique a autenticidade da NFS-e através do link]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="3" y="272" width="441" height="9"/>
+				<textElement verticalAlignment="Top">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[https://montecarmelomg.ereceuta.net.br, na área pública - consulta autenticidade de NFS-e]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="377" y="264" width="155" height="9"/>
+				<textElement textAlignment="Right" verticalAlignment="Bottom">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Identificador único de NFS-e]]></text>
+			</staticText>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-24" x="295" y="121" width="99" height="17"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRNOTA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1" y="208" width="443" height="10"/>
+				<box leftPadding="1"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["- NFS-e gerada a partir do RPS nº: " +$F{NUMNOTA} + ", série: 1, tipo: 1 - Recibo Provisório de Serviços, emitido em " + $F{DTNEG}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-31" x="161" y="0" width="104" height="13"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Valor Total dos Serviços: ]]></text>
+			</staticText>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-24" x="265" y="0" width="90" height="13"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRBRUTO}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="-1" y="0" width="1" height="13"/>
+			</line>
+			<line>
+				<reportElement x="534" y="0" width="1" height="13"/>
+			</line>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" mode="Transparent" x="0" y="26" width="533" height="16" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box leftPadding="2"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="7" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[(br.com.sankhya.jasperfuncs.Funcoes.pdes(      $P{REPORT_CONNECTION},"rtrim(xmlagg(xmlelement(e,PRO.CNAE,';').extract('//text()')),';')","TGFPRO PRO, TGFITE ITE","PRO.CODPROD=ITE.CODPROD AND ITE.SEQUENCIA= (SELECT MAX(X.SEQUENCIA) FROM TGFITE X WHERE X.NUNOTA =ITE.NUNOTA) AND ITE.NUNOTA ="+$F{NUNOTA}))
++ " - " +
+$F{DESCRCNAE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1" y="182" width="443" height="17"/>
+				<box leftPadding="1"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["- Cumprimento a lei Federal 12.741/12 e Decreto 8.264/14 (Lei da Transparência Fiscal). Valores aproximados dos tributos - Federais: R$" + new java.text.DecimalFormat("#,##0.00;(#,##0.00)").format($F{VALORSERVICO}.multiply(new BigDecimal("0.1345")).doubleValue())
++ " (13,45%); Estaduais: R$0,00(0,00%); Municipais: R$"+ $F{VLRISS}
++ " ("+$F{ALIQUOTAISS}+"%) -Fonte: IBPT -Versão: 17.1.A - Chave:W7m9E1."]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="1" y="163" width="443" height="10"/>
+				<box leftPadding="1"/>
+				<textElement verticalAlignment="Bottom">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["- Data de vencimento do ISSQN desta NFS-e " + $F{DTVENC} + "."]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-25" mode="Transparent" x="476" y="106" width="54" height="13" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRISS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="111" y="73" width="86" height="11"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRDESCTOTITEM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="184" y="101" width="87" height="9"/>
+				<textElement textAlignment="Center">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRDESCTOTITEM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-27" x="283" y="101" width="78" height="9"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="6" isBold="false" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VALORSERVICO}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>
