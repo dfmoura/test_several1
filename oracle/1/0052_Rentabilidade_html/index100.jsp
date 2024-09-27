@@ -334,8 +334,6 @@ SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,C
     });
 </script>
 
-</script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
 <script>
     function exportToExcel() {
@@ -344,6 +342,5 @@ SELECT CODEMP,EMPRESA,NUFIN,DHBAIXA,CODPARC,NOMEPARC,CODNAT,NATUREZA,CODCENCUS,C
         XLSX.writeFile(wb, 'dados.xlsx');
     }
 </script>
-
 </body>
 </html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treemap com Plotly.js</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>Treemap Gráfico</h1>
+    <div id="treemap" style="width: 100%; height: 600px;"></div>
+
+    <script>
+        // Exemplo de dados para o Treemap
+        var data = [{
+            type: "treemap",
+            labels: ["Brasil", "Estados Unidos", "China", "São Paulo", "Rio de Janeiro", "Califórnia", "Nova York", "Pequim", "Xangai"],
+            parents: ["", "", "", "Brasil", "Brasil", "Estados Unidos", "Estados Unidos", "China", "China"],
+            values: [10, 20, 30, 7, 3, 10, 10, 15, 15],
+            textinfo: "label+value+percent parent+percent entry",
+            marker: { 
+                colors: ["green", "blue", "red", "lightgreen", "lightblue", "yellow", "orange", "pink", "purple"]
+            }
+        }];
+
+        // Layout opcional
+        var layout = {
+            title: 'Distribuição por Região',
+            font: { size: 16 }
+        };
+
+        // Renderizando o gráfico
+        Plotly.newPlot('treemap', data, layout);
+    </script>
+</body>
+</html>
