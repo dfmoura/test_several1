@@ -102,6 +102,7 @@
 
     <div class="overlay-button">
         <button type="button" class="btn btn-primary" onclick="abrir()">Relatorio</button>
+		
     </div>
 
     <snk:query var="compras_saving_detalhe">
@@ -155,7 +156,9 @@
            AND CODGRUPOPROD IN(3020000,3010000)
            THEN ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0))) * QTDNEG ELSE 0 END
            
-           AS ECONOMIA_COMPRA
+           AS ECONOMIA_COMPRA,
+		   :P_PERIODO.INI AS INI,
+		   :P_PERIODO.FIN AS FIN
                
     
     FROM(
@@ -292,7 +295,7 @@
 	    function abrir() {
         var params = '';
         var level = 'br.com.sankhya.menu.adicional.rfe.285.1';
-        openApp(level, params);
+		openApp(level, params);
     }
 	</script>
 </body>

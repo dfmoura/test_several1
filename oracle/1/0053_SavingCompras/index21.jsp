@@ -81,12 +81,30 @@
         text-align: center;
     }        
 
+	.overlay-button {
+		position: fixed;
+		top: 10px;
+		left: 10px;
+		z-index: 9999; /* Para garantir que ele esteja acima de outros elementos */
+	}
+
+	.overlay-button button {
+		padding: 10px 20px;
+		font-size: 14px;
+	}
+
 </style>
 
 <snk:load/>
 
 </head>
 <body>
+
+    <div class="overlay-button">
+        <button type="button" class="btn btn-primary" onclick="abrir()">Relatorio</button>
+		
+    </div>
+
 
     <snk:query var="ganho_negcociacao_detalhe">
 SELECT * FROM (
@@ -215,5 +233,14 @@ AND USU.AD_USUCOMPRADOR = 'S'
             
         </table>
     </div>
+	
+	<script>
+	    function abrir() {
+        var params = '';
+        var level = 'br.com.sankhya.menu.adicional.rfe.286.1';
+		openApp(level, params);
+    }
+	</script>
+	
 </body>
 </html>
