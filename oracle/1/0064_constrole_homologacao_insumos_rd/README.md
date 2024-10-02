@@ -59,3 +59,13 @@ Após o setor de Compras receber o e-mail do setor de Qualidade informando a apr
   - O responsável pela homologação do fornecedor (definido na tela de Usuários).
 
 Além disso, o campo **Cód. Produto** na tela de Solicitação de Homologação e o campo **Cód. Homologado** na tela de Cadastro de Insumos devem ser atualizados com o novo código gerado pelo Compras.
+
+
+
+
+2) 
+
+toda vez que inserir ou ataulizar a tabela AD_CADMATERIA o campo CODUSU ira puxar o usuario atual STP_GET_CODUSULOGADO e
+tambem na tabela relacionada AD_CONTINSUMO ira atulizar o campo DTAENTRADA com o sysdate e 
+mulitiplicar QUANTIDADE x DENSIDADE que vai armazenar este resultado em um paramentro chamada GRAMAS e por sua vez este resultado
+sera tambem atualizado ou inserido no campo GRAMAS
