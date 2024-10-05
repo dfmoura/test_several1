@@ -69,6 +69,24 @@ Foi desenvolvido um Gatilho para Conversão de Gramas que realiza automaticament
 Durante o desenvolvimento do gatilho, foram realizadas diversas validações para assegurar que as informações coletadas e os cálculos de conversão de gramas fossem consistentes e integrados adequadamente ao sistema. O mecanismo permite o rastreamento completo das operações, registrando automaticamente a autoria e o histórico de alterações em cada inclusão ou modificação de dados, contribuindo para maior segurança e transparência no fluxo de trabalho. Além disso, o gatilho foi projetado para otimizar o desempenho e reduzir o tempo de processamento nas tarefas relacionadas à conversão de insumos.
 
 
+01/10/2024 - 8h às 12h Iniciamos a implementação de uma trigger responsável por bloquear alterações nas tabelas AD_CONTINSUMO e AD_CADMATERIA após o preenchimento dos campos de cadastro e controle. Esta trigger, denominada TGF_NAO_UPDATE_AD_CONTINSUMO, garante que, uma vez completado o cadastro, os dados dessas tabelas não poderão ser modificados, promovendo maior integridade e segurança nas informações relacionadas a insumos e materiais cadastrados no sistema.
+
+01/10/2024 - 13h às 18h Foi desenvolvida uma procedure específica, denominada STP_ORDER_PARA_SOLICIT_SATIS, com a função de enviar um e-mail solicitando a análise de um item. Após o envio deste e-mail, a opção de solicitação de homologação será automaticamente marcada. Além disso, ajustamos o layout do e-mail, incorporando todas as informações necessárias para que o destinatário possa realizar a análise de maneira clara e objetiva, garantindo um fluxo mais eficiente no processo de homologação.
+
+02/10/2024 - 8h às 12h Implementamos uma nova trigger chamada TRG_BEFORE_INS_AD_INSHOMOLOG. Esta funcionalidade foi desenvolvida para replicar automaticamente o código homologado de insumos. Ao salvar um item no módulo "Insumo Homologação", caso o campo "Cód. Homologado" já tenha um valor no cadastro de insumos, este será replicado para o campo "Cód. Produto" da tela de homologação. Isso agiliza o processo e evita inconsistências nos cadastros de insumos homologados e seus respectivos produtos.
+
+02/10/2024 - 13h às 18h Satis - Id 149 - Desenvolvemos e aplicamos uma nova trigger denominada TRG_CHECK_APROVADO. Esta trigger valida o preenchimento do campo "Aprovado" apenas se o status do insumo estiver como "Concluído". Além disso, todos os campos de homologação e observações devem estar completos. Caso o "Cód. Produto" de insumo homologado esteja vazio, será gerada uma solicitação de cadastro via e-mail para o departamento de compras. Quando todas as condições forem atendidas, a data final será automaticamente preenchida e o produto será homologado no controle de insumo.
+
+03/10/2024 - 8h às 12h Satis - Id 149 - Adequamos a tabela TGFPRO, adicionando o campo [TIPO_CADASTRO], que é um campo de texto de preenchimento padrão, com o atributo de somente leitura. Além disso, criamos dois novos campos, AD_CODCADINSU e AD_CODCONT_EMAIL, que deverão ser preenchidos obrigatoriamente ao iniciar um novo cadastro. Esta melhoria visa padronizar o processo de cadastro de insumos, assegurando que todas as informações relevantes estejam disponíveis no momento da criação do registro.
+
+03/10/2024 - 13h às 18h Satis - Id 149 - Foi desenvolvida uma variação da tela de cadastro de produtos, intitulada [Produtos - Insumos Homologados]. Nessa nova tela, o campo [TIPO_CADASTRO] foi configurado para ser exibido no painel principal, com o valor padrão 'Insumo Homologado'. Além disso, criamos um filtro que exibe apenas os registros cujo campo [TIPO_CADASTRO] tenha esse valor. Essas configurações visam facilitar a visualização e o gerenciamento dos insumos homologados, tornando o processo de homologação mais eficiente e organizado.
+
+04/10/2024 - 8h às 12h Satis - Id 149 - Atualizamos o layout do e-mail enviado ao departamento de compras, buscando todas as informações do cadastro de insumo e controle necessárias para compor o corpo do e-mail de forma clara e detalhada. Essa melhoria garante que o departamento de compras receba todas as informações essenciais para a análise e cadastro de novos produtos, promovendo uma comunicação mais eficiente entre as áreas envolvidas no processo.
+
+04/10/2024 - 13h às 18h Satis - Id 149 - Concluímos a verificação da rotina de cadastro de produto após o recebimento do e-mail pelo departamento de compras. O processo de cadastro segue com o preenchimento obrigatório dos campos: Descrição, Cód. Insumo, Cód. Controle, Grupo, Unidade Padrão, Usado Como, NCM, Cód. Sit. Trib. IPI Entrada e Cód. Sit. Trib. IPI Saída. Este controle assegura que todas as informações necessárias estejam devidamente preenchidas, promovendo a integridade e conformidade dos dados cadastrados no sistema.
+
+
+
 10:01
 CRIAMOS A TRIGGER PARA 
 DEPOIS DE INSERIDO A INFORMACAO NO CAMPO CODINSUMO E INSNHOMOLOG
