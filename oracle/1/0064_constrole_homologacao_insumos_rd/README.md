@@ -86,6 +86,21 @@ Durante o desenvolvimento do gatilho, foram realizadas diversas validações par
 04/10/2024 - 13h às 18h Satis - Id 149 - Concluímos a verificação da rotina de cadastro de produto após o recebimento do e-mail pelo departamento de compras. O processo de cadastro segue com o preenchimento obrigatório dos campos: Descrição, Cód. Insumo, Cód. Controle, Grupo, Unidade Padrão, Usado Como, NCM, Cód. Sit. Trib. IPI Entrada e Cód. Sit. Trib. IPI Saída. Este controle assegura que todas as informações necessárias estejam devidamente preenchidas, promovendo a integridade e conformidade dos dados cadastrados no sistema.
 
 
+Período: 07/10/2024 (8h às 12h e 13h às 18h)
+No dia 7 de outubro de 2024, realizamos a continuidade da configuração da trigger associada ao processo de cadastro de produtos. Essa configuração é crucial, pois, ao finalizarmos o cadastro, a rotina automatizada envia notificações por e-mail para os validadores fiscal, lote e homologação do produto junto ao fornecedor. Além disso, estruturamos a rotina para garantir que o código do produto recém-cadastrado seja atualizado na aba 'Insumos Homologados' da tela de Solicitação de Homologação. Adicionalmente, o campo de data de finalização na aba 'Insumos Homologados' foi ajustado para refletir a data atual.
+
+
+Parágrafo 1: 07/10/2024, das 8h às 12h
+No dia 07 de outubro de 2024, das 8h às 12h, Satis - Id 149 - Iniciamos a configuração da trigger relacionada ao cadastro de produtos. Essa trigger foi implementada para garantir que, ao finalizar o cadastro de um produto, e-mails sejam enviados automaticamente aos validadores fiscais, de lote e de homologação do produto junto ao fornecedor. Organizamos meticulosamente toda essa rotina de envio de e-mails, além de incluir um mecanismo que atualiza o código do produto cadastrado na aba "Insumos Homologados" da tela de Solicitação de Homologação. Essa atualização também abrange o campo "Cód. Homologado" na tela de Cadastro de Insumos, onde a data atual será registrada na data de término da aba "Insumos Homologados".
+
+Parágrafo 2: 07/10/2024, das 13h às 18h
+No período da tarde, das 13h às 18h, Satis - Id 149 - Continuamos os ajustes necessários para otimizar a operação das triggers implementadas. A principal atividade foi a revisão da lógica de envio de e-mails, assegurando que todas as partes interessadas recebam as notificações pertinentes no momento certo. Adicionalmente, realizamos testes para validar a consistência dos dados durante o cadastro, assegurando que as informações enviadas estejam corretas e que os validadores possam agir com eficiência. A refinamento do processo de envio é crucial para manter a integridade do fluxo de trabalho e facilitar a homologação do produto.
+
+Parágrafo 3: 08/10/2024, das 8h às 12h
+No dia 08 de outubro de 2024, das 8h às 12h, Satis - Id 149 - Realizamos uma atualização significativa para unificar a tabela de "Insumos Homologados". Essa unificação exigiu a reprogramação dos eventos previamente criados, garantindo que todas as interações e dependências entre os dados fossem mantidas de forma coerente. Durante esse período, também implementamos uma nova funcionalidade que, ao cadastrar um produto, a opção de status "Aprovado" seja automaticamente marcada como "Aprovado (aguardando homologação do produto junto ao fornecedor)". Essa mudança visa otimizar o fluxo de aprovação, garantindo que as etapas de validação sejam mais claras e bem definidas.
+
+Parágrafo 4: 08/10/2024, das 13h às 18h
+No período da tarde, das 13h às 18h, Satis - Id 149 - Finalizamos a integração da nova lógica de homologação. Uma vez que o produto é homologado junto ao fornecedor, a tela "Forn. Homologado" é atualizada automaticamente para refletir o status "Aprovado". Além disso, a data atual é registrada no campo "data fim" da aba "Insumos Homologados" na tela de Solicitação de Homologação. Também implementamos uma atualização na aba "Controle" da tela "Cadastro de Insumos", onde o campo "Homologado" será ajustado para "S" (Sim). Essa implementação não apenas melhora a eficiência do processo, mas também proporciona um rastreamento mais preciso do status de homologação dos insumos.
 
 10:01
 CRIAMOS A TRIGGER PARA 
@@ -264,6 +279,13 @@ ao salvar
 1) os dados deste código de produto será informado em:
 - campo CODPRH da tabela AD_INSHOMOLOG
 - campo CODINSUMO da tabela AD_CADMATERIA
+
+ao inserir ou atualizar na tabela TGFPRO quando o campo AD_TIPOCADASTRO = 'Insumo Homologado'
+os campo abaixo devem estar preenchidos com o conteudo recebido por email:
+AD_CODCADINSU
+AD_CODCONT_EMAIL
+AD_CODANALISE
+
 2) o insumo tem que ficar homologado na tabela AD_CONTINSUMO campo HOMOLOG = 'S'
 3) a anlise aprovada na tabela AD_ANALISEINS campo  APROVADO = 1
 4) email para analise Fiscal
@@ -285,3 +307,41 @@ AD_CADASTRADOR_INSUM_HOMOL
 AD_VALIDADOR_LOTE_INSUMO
 AD_VALIDADOR_FISCAL_INSUMO
 AD_HOMOLOG_FORNECEDOR
+
+
+
+
+-----
+colocar os campos da tabela AD_ANALISEINS na tabela AD_INSHOMOLOG
+DTAINICIAL - Data - Dta.Inicial
+DTAFIM - Data - Dta.Final
+APROVADO - Texto - Aprovada --- Aprovada,Reprovada,Aprovado (Aguardando Cadastro)
+MOTIVO - Texto - Motivo
+STATUS - Texto - Status Análise --- Aguardando Envio,Aguardando Análise,Concluído
+pois nao sera utilizado mais a tabela AD_ANALISEINS
+------
+
+Organizar os campos na tela solicitacao de homologacao
+continuando a separacao em 2 guias, observao e analise Insumos
+
+------
+CRIAR A TRIGGER ABAIXO
+
+------
+para produtos que ja estao cadastrados 
+quando for selecionar Aprovada na guia analise de insumo
+verificar se possui ou nao homologacao produto fornecedor
+nao possuir mudar aprovado (aguardando homologacao produto fornecedor)
+e enviar o email
+------
+
+TRG_UPDATE_DTAFIM
+AD_INSHOMOLOG
+
+
+TRG_UPDATE_HOMOLOG
+AD_PRODHOMOL
+
+
+TRG_UPDATE_CADASTRO_HOMOL
+TGFPRO
