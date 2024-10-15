@@ -61,6 +61,16 @@ Após o setor de Compras receber o e-mail do setor de Qualidade informando a apr
 Além disso, o campo **Cód. Produto** na tela de Solicitação de Homologação e o campo **Cód. Homologado** na tela de Cadastro de Insumos devem ser atualizados com o novo código gerado pelo Compras.
 
 
+<<<<<<< HEAD
+
+
+2) 
+
+toda vez que inserir ou ataulizar a tabela AD_CADMATERIA o campo CODUSU ira puxar o usuario atual STP_GET_CODUSULOGADO e
+tambem na tabela relacionada AD_CONTINSUMO ira atulizar o campo DTAENTRADA com o sysdate e 
+mulitiplicar QUANTIDADE x DENSIDADE que vai armazenar este resultado em um paramentro chamada GRAMAS e por sua vez este resultado
+sera tambem atualizado ou inserido no campo GRAMAS
+=======
 30-09-2024 08:00 às 12:00
 Foi desenvolvido um Gatilho para Conversão de Gramas que realiza automaticamente a conversão de peso em gramas com base nos valores inseridos nos campos de Densidade e Quantidade. Este gatilho tem como objetivo padronizar o processo de cálculo, garantindo maior precisão e agilidade nas operações de controle de insumos. Além da conversão, o sistema implementado armazena automaticamente os seguintes dados operacionais: o código do usuário responsável pela inclusão do insumo no sistema, a data de entrada, o código do último usuário que efetuou alguma modificação no registro, e a data exata da última alteração.
 
@@ -107,8 +117,11 @@ CRIAMOS A TRIGGER PARA
 DEPOIS DE INSERIDO A INFORMACAO NO CAMPO CODINSUMO E INSNHOMOLOG
 DA TABELA AD_CADMATERIA OS CAMPOS NAO PODEM SER ALTERADOS.
 ENVIAMOS O EMAIL DE SOLICITACAO
-PROTEJEMOS OS CAMPOS DE CONTROLE JA PREENCHIDO PARA NAO PODER SEREM ALTERADOS
+PROTEJEMOS OS CAMPOS DE CONTROLE JA PREENCHIDO PARA NAO PODER SEREM ALTERADOS    ddfad
 
+<<<<<<< HEAD
+>>>>>>> b622cb9f0ef31dd24b94323d2c6e95128f8599d6
+=======
 
 
 ATUALIZAMOS O EMAIL DE ORDEM PARA CRIAR SOLICITACAO DE ANALISE DO insumo
@@ -345,3 +358,4 @@ AD_PRODHOMOL
 
 TRG_UPDATE_CADASTRO_HOMOL
 TGFPRO
+>>>>>>> e54e2cd6f923b63a9ff5ac638acc047f12f474f1
