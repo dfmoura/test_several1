@@ -67,7 +67,7 @@ where NOV.NROUNICO = $P{PK_NROUNICO}]]>
 				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "Logo.bmp"]]></imageExpression>
 			</image>
 			<staticText>
-				<reportElement x="86" y="25" width="393" height="36"/>
+				<reportElement x="76" y="25" width="403" height="36"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="16" isBold="true"/>
 				</textElement>
@@ -158,7 +158,7 @@ where NOV.NROUNICO = $P{PK_NROUNICO}]]>
 			</staticText>
 			<textField isBlankWhenNull="true">
 				<reportElement x="0" y="104" width="555" height="60"/>
-				<textElement>
+				<textElement textAlignment="Justified">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{OBJ_GERAL}]]></textFieldExpression>
@@ -172,7 +172,7 @@ where NOV.NROUNICO = $P{PK_NROUNICO}]]>
 			</staticText>
 			<textField isBlankWhenNull="true">
 				<reportElement x="0" y="184" width="555" height="112"/>
-				<textElement>
+				<textElement textAlignment="Justified">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{OBJ_ESPECIFICO}]]></textFieldExpression>

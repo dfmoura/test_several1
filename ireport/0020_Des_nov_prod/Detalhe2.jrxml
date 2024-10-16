@@ -90,7 +90,7 @@ where APO.NROUNICO = $P{PK_NROUNICO}]]>
 	</columnHeader>
 	<detail>
 		<band height="35" splitType="Stretch">
-			<textField>
+			<textField isStretchWithOverflow="true">
 				<reportElement x="0" y="2" width="103" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Top">
 					<font size="8"/>
@@ -98,7 +98,7 @@ where APO.NROUNICO = $P{PK_NROUNICO}]]>
 				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTAAPONT}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true">
-				<reportElement x="103" y="2" width="451" height="20"/>
+				<reportElement mode="Transparent" x="103" y="2" width="451" height="20"/>
 				<textElement textAlignment="Justified" verticalAlignment="Top">
 					<font size="8"/>
 				</textElement>
