@@ -47,6 +47,9 @@
 		<parameterDescription><![CDATA[Nro. Único]]></parameterDescription>
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
 	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several1\\ireport\\0020_Des_nov_prod\\"]]></defaultValueExpression>
+	</parameter>
 	<queryString>
 		<![CDATA[SELECT
 APO.DTAAPONT,
@@ -61,6 +64,8 @@ where APO.NROUNICO = $P{PK_NROUNICO}]]>
 	<field name="DESCRICAO" class="java.lang.String">
 		<fieldDescription><![CDATA[Descrição]]></fieldDescription>
 	</field>
+	<field name="CODAPONTAMENTO" class="java.math.BigDecimal"/>
+	<field name="NROUNICO" class="java.math.BigDecimal"/>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
@@ -89,7 +94,7 @@ where APO.NROUNICO = $P{PK_NROUNICO}]]>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="35" splitType="Stretch">
+		<band height="104" splitType="Stretch">
 			<textField isStretchWithOverflow="true">
 				<reportElement x="0" y="2" width="103" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Top">
@@ -105,11 +110,19 @@ where APO.NROUNICO = $P{PK_NROUNICO}]]>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
 			</textField>
 			<line>
-				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="0" y="30" width="554" height="1" isPrintWhenDetailOverflows="true"/>
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="0" y="103" width="554" height="1" isPrintWhenDetailOverflows="true"/>
 				<graphicElement>
 					<pen lineWidth="0.5"/>
 				</graphicElement>
 			</line>
+			<subreport>
+				<reportElement x="0" y="22" width="554" height="81"/>
+				<subreportParameter name="PK_NROUNICO">
+					<subreportParameterExpression><![CDATA[$P{PK_NROUNICO}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Anexo.jasper"]]></subreportExpression>
+			</subreport>
 		</band>
 	</detail>
 	<columnFooter>

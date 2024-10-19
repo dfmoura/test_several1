@@ -44,7 +44,30 @@
         </table>
     </div>
 
+    <!-- Modal para edição da descrição -->
+    <div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Editar Descrição</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="descricaoEditada" class="form-control" placeholder="Digite a nova descrição" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnAtualizar">Atualizar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let codigoAtual = null; // Variável global para armazenar o código do registro que está sendo editado
+
         // Função para carregar os dados da tabela
         function carregarDados() {
             JX.consultar('SELECT * FROM AD_DADOSTESTE').then(function (data) {
@@ -61,6 +84,14 @@
                     codigoCell.textContent = item.CODIGO;      // Supondo que a propriedade se chama 'CODIGO'
                     descricaoCell.textContent = item.DESCRICAO; // Supondo que a propriedade se chama 'DESCRICAO'
 
+                    // Botão de edição
+                    const btnEditar = document.createElement('button');
+                    btnEditar.textContent = 'Editar';
+                    btnEditar.classList.add('btn', 'btn-warning', 'mr-2');
+                    btnEditar.addEventListener('click', function () {
+                        abrirModalEdicao(item.CODIGO, item.DESCRICAO); // Chama a função para abrir o modal de edição
+                    });
+
                     // Botão de exclusão
                     const btnExcluir = document.createElement('button');
                     btnExcluir.textContent = 'Excluir';
@@ -69,6 +100,7 @@
                         excluirRegistro(item.CODIGO); // Chama a função de exclusão passando o código do item
                     });
 
+                    acoesCell.appendChild(btnEditar);
                     acoesCell.appendChild(btnExcluir);
 
                     row.appendChild(codigoCell);
@@ -91,6 +123,38 @@
                 console.error('Erro ao excluir o registro:', error);
             });
         }
+
+        // Função para abrir o modal de edição com os dados do registro
+        function abrirModalEdicao(codigo, descricao) {
+            codigoAtual = codigo; // Armazena o código do registro atual
+            document.getElementById('descricaoEditada').value = descricao; // Preenche o campo com a descrição atual
+            $('#editModal').modal('show'); // Abre o modal
+        }
+
+        // Função para atualizar o registro
+        function atualizarRegistro() {
+            const novaDescricao = document.getElementById('descricaoEditada').value;
+
+            if (novaDescricao.trim() === '') {
+                alert('Por favor, insira uma descrição válida.');
+                return;
+            }
+
+            const dados = { DESCRICAO: novaDescricao };
+            const chavesPrimarias = { CODIGO: codigoAtual }; // Define a chave primária para o registro
+
+            // Atualiza o registro no banco de dados
+            JX.novoSalvar(dados, 'AD_DADOSTESTE', chavesPrimarias).then(function () {
+                console.log(`Registro com código ${codigoAtual} atualizado com sucesso.`);
+                $('#editModal').modal('hide'); // Fecha o modal após a atualização
+                carregarDados(); // Recarrega os dados da tabela após a atualização
+            }).catch(function (error) {
+                console.error('Erro ao atualizar o registro:', error);
+            });
+        }
+
+        // Evento para o botão de atualizar no modal
+        document.getElementById('btnAtualizar').addEventListener('click', atualizarRegistro);
 
         // Carrega os dados ao iniciar a página
         carregarDados();
@@ -115,6 +179,10 @@
         });
     </script>
 
+    <!-- Bootstrap Modal e jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 
 </html>

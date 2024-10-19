@@ -9,31 +9,25 @@
 	</parameter>
 	<queryString>
 		<![CDATA[SELECT
-F_DESCROPC('AD_NOVOSPRODUTOSCHECK','STATUS',CHE.STATUS) STATUS,
-DTINI,
-DTPREVISAOTERMINO,
-DTTERMINO,
-RESPONSAVEL,
-CHE.ATIVIDADE AS ATIVIDADE,
-PRJ.DESCRICAO AS DESCRICAO
-from AD_NOVOSPRODUTOSCHECK CHE
-inner join AD_NOVOSPRODUTOS NOV on CHE.NROUNICO = NOV.NROUNICO
-inner join AD_ATIVIDADESPRJ PRJ on CHE.ATIVIDADE = PRJ.ATIVIDADE
-where CHE.NROUNICO = $P{PK_NROUNICO}]]>
+ATI.ATIVIDADE,
+USU.NOMEUSU RESPONSAVEL,
+CRO.DTAPREVISTA,
+CRO.DTACONCLUSAO
+FROM AD_CRONOGRAMANOVPROD CRO
+INNER JOIN AD_ATIVIDADESCRONONOVPROD ATI ON CRO.ATIVIDADE = ATI.CODIGO
+LEFT JOIN TSIUSU USU ON CRO.CODUSU = USU.CODUSU
+where CRO.NROUNICO = $P{PK_NROUNICO}]]>
 	</queryString>
-	<field name="ATIVIDADE" class="java.math.BigDecimal">
+	<field name="ATIVIDADE" class="java.lang.String">
 		<fieldDescription><![CDATA[Atividade]]></fieldDescription>
-	</field>
-	<field name="DESCRICAO" class="java.lang.String">
-		<fieldDescription><![CDATA[Descrição]]></fieldDescription>
 	</field>
 	<field name="RESPONSAVEL" class="java.lang.String">
 		<fieldDescription><![CDATA[Responsável]]></fieldDescription>
 	</field>
-	<field name="DTPREVISAOTERMINO" class="java.util.Date">
+	<field name="DTAPREVISTA" class="java.util.Date">
 		<fieldDescription><![CDATA[Data. Prevista]]></fieldDescription>
 	</field>
-	<field name="DTTERMINO" class="java.util.Date">
+	<field name="DTACONCLUSAO" class="java.util.Date">
 		<fieldDescription><![CDATA[Data de Conclusão]]></fieldDescription>
 	</field>
 	<background>
@@ -88,30 +82,30 @@ where CHE.NROUNICO = $P{PK_NROUNICO}]]>
 			<textField>
 				<reportElement x="4" y="0" width="298" height="15"/>
 				<textElement verticalAlignment="Middle">
-					<font size="6" isBold="false"/>
+					<font size="10" isBold="false"/>
 				</textElement>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{ATIVIDADE}+ " " + $F{DESCRICAO}]]></textFieldExpression>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ATIVIDADE}]]></textFieldExpression>
 			</textField>
 			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
 				<reportElement x="379" y="0" width="76" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="8" isBold="false"/>
+					<font size="10" isBold="false"/>
 				</textElement>
-				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTPREVISAOTERMINO}]]></textFieldExpression>
+				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTAPREVISTA}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
 				<reportElement x="302" y="0" width="77" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="8" isBold="false"/>
+					<font size="10" isBold="false"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{RESPONSAVEL}]]></textFieldExpression>
 			</textField>
 			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
 				<reportElement x="455" y="0" width="100" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="8" isBold="false"/>
+					<font size="10" isBold="false"/>
 				</textElement>
-				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTTERMINO}]]></textFieldExpression>
+				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTACONCLUSAO}]]></textFieldExpression>
 			</textField>
 			<line>
 				<reportElement x="0" y="15" width="555" height="1"/>
