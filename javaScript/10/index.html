@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+    <script>
+
+        var idadeAluno = 40;
+        var nomeAluno='Diogo';
+        var casado= true;
+        idadeAluno = 30;
+        const pi = 3.14;
+        var habilidades = ['HTML','CSS','JS'];
+        //alert(idadeAluno);
+        console.log(nomeAluno);
+        console.log(casado);
+
+        if(true){
+            let cabelo = 'Loiro';
+            console.log(cabelo);
+        }
+        console.log(habilidades);
+        console.log(habilidades[0]);
+
+        var pessoa = {
+            idadeAluno : 40,
+            nomeAluno: 'Diogo',
+            casado: true
+        };
+        console.log(pessoa.nomeAluno);
+
+        var x=10,y=5;
+        console.log(x+y);
+        x++;
+        y--;
+        console.log(x+y);
+        x*=2;
+        y/=2;
+        console.log(x+y);
+        x%=2;
+        y+=2;
+        console.log(x+y);
+
+        if(x==y){
+            console.log('x eh igual a y');
+        }
+        var z = '10';
+        if(x===z){
+            console.log('x eh igual a z');
+        }        
+
+        if(x<y){
+            console.log('x eh menor a y');
+        }else{
+            console.log('x eh maior a y');
+        }     
+
+        if(x==y){
+            console.log('x eh igual a y');
+        }else if (x>y){
+            console.log('x eh maior a y');
+        }else {
+            console.log('x eh menor a y');
+        }
+
+        var farol = 'amarssdfaelo';
+
+        switch(farol){
+            case 'verde':
+                console.log('Siga');
+                break;
+            case 'amarelo':
+                console.log('Atencao');
+                break;
+            case 'vermelhor':
+                console.log('Pare');
+                break;
+            default:
+                console.log('Semafaro estragado');
+        }
+
+        var sexo = "M";
+        sexo = sexo == "F" ? "Feminino" : "Masculino";
+        console.log(sexo);
+
+        var idade = 16;
+        console.log(idade > 18 ? "Pode ir." : "Não pode ir");
+
+
+    </script>
+</body>
+</html>
