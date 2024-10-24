@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Det_Formulacao" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.9487171000000034"/>
+	<property name="ireport.x" value="106"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="PK_CODFORMULACAO" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[WITH BAS AS(
+SELECT
+DET.CODIGO,
+DET.CODCAD,
+CAD.INSNHOMOLOG COMPONENTE,
+DET.CODCONT,
+DET.PERC_100G,
+NVL(BOR.QUANTIDADE * BOR.DENSIDADE * DET.PERC_100G,0) AS FATOR,
+BOR.QUANTIDADE,
+BOR.DENSIDADE,
+DET.GARANTIAS
+FROM AD_DETALHFORMULACOES DET
+INNER JOIN AD_FORMULLABOR BOR ON DET.CODFORMULACAO = BOR.CODFORMULACAO
+LEFT JOIN AD_CONTINSUMO CONT ON DET.CODCAD = CONT.CODCAD AND DET.CODCONT = CONT.CODCONT
+LEFT JOIN AD_CADMATERIA CAD ON CONT.CODCAD = CAD.CODCAD
+WHERE
+TRUNC(CONT.DTVAL) >= TRUNC(SYSDATE)
+AND CONT.VOLUME> 0
+AND CONT.HOMOLOG='S'
+AND CONT.CODCAD = DET.CODCAD AND CONT.CODCONT = DET.CODCONT
+AND BOR.CODFORMULACAO = $P{PK_CODFORMULACAO}
+)
+SELECT 1 CODIGO,1 CODCAD, 'AGUA' AS COMPONENTE, NULL AS GARANTIAS,NULL DENSIDADE, 1-SUM(PERC_100G) AS PERC_100G,QUANTIDADE * DENSIDADE * (1-SUM(PERC_100G)) AS FATOR FROM BAS GROUP BY QUANTIDADE,DENSIDADE
+UNION ALL
+SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
+	</queryString>
+	<field name="CODIGO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód.]]></fieldDescription>
+	</field>
+	<field name="CODCAD" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Cad.]]></fieldDescription>
+	</field>
+	<field name="COMPONENTE" class="java.lang.String">
+		<fieldDescription><![CDATA[Componente]]></fieldDescription>
+	</field>
+	<field name="GARANTIAS" class="java.lang.String">
+		<fieldDescription><![CDATA[Garantias]]></fieldDescription>
+	</field>
+	<field name="DENSIDADE" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Densidade]]></fieldDescription>
+	</field>
+	<field name="PERC_100G" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[% para 100 g]]></fieldDescription>
+	</field>
+	<field name="FATOR" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Fator]]></fieldDescription>
+	</field>
+	<variable name="SumPERC" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{PERC_100G}]]></variableExpression>
+	</variable>
+	<variable name="SumFATOR" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{FATOR}]]></variableExpression>
+	</variable>
+	<variable name="MaxDENS" class="java.math.BigDecimal" calculation="Highest">
+		<variableExpression><![CDATA[$F{DENSIDADE}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="33" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="3" width="555" height="10"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle>
+				<reportElement x="0" y="13" width="555" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement x="0" y="13" width="26" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="26" y="13" width="52" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Cad.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="78" y="13" width="202" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Componente]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="281" y="13" width="87" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Garantias]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="368" y="13" width="92" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[% para 100 g]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="460" y="13" width="92" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Fator]]></text>
+			</staticText>
+			<line>
+				<reportElement x="460" y="13" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="367" y="13" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="280" y="13" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="77" y="13" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="26" y="13" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="367" y="3" width="1" height="10"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement x="369" y="3" width="183" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[quantidades (g)]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="0" width="555" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<textField>
+				<reportElement x="0" y="0" width="26" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODIGO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="26" y="0" width="52" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODCAD}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="78" y="0" width="203" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{COMPONENTE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="281" y="0" width="87" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{GARANTIAS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="368" y="0" width="92" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC_100G}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="460" y="0" width="92" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{FATOR}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="460" y="0" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="367" y="0" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="280" y="0" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="77" y="0" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="26" y="0" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="40" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="0" width="555" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<textField>
+				<reportElement x="368" y="0" width="92" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SumPERC}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="461" y="0" width="91" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SumFATOR}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="367" y="0" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="460" y="0" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement x="0" y="0" width="367" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAL (Kg)]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="0" y="20" width="555" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement x="1" y="20" width="367" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAL (L)]]></text>
+			</staticText>
+			<line>
+				<reportElement x="460" y="20" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="367" y="20" width="1" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<textField>
+				<reportElement x="368" y="20" width="92" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{SumPERC} != null && $V{MaxDENS} != null && $V{MaxDENS}.compareTo(BigDecimal.ZERO) != 0)
+    ? $V{SumPERC}.divide($V{MaxDENS}, java.math.RoundingMode.HALF_UP)
+    : BigDecimal.ZERO]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="461" y="20" width="91" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{SumFATOR} != null && $V{MaxDENS} != null && $V{MaxDENS}.compareTo(BigDecimal.ZERO) != 0)
+    ? $V{SumFATOR}.divide($V{MaxDENS}, java.math.RoundingMode.HALF_UP)
+    : BigDecimal.ZERO]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

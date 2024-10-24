@@ -3,7 +3,11 @@
 	<property name="ireport.zoom" value="1.0"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
-	<parameter name="PK_NROUNICO" class="java.math.BigDecimal" isForPrompting="false">
+	<parameter name="PK_NROUNICO" class="java.math.BigDecimal">
+		<parameterDescription><![CDATA[Nro. Único]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PK_APONTAMENTO" class="java.math.BigDecimal">
 		<parameterDescription><![CDATA[Nro. Único]]></parameterDescription>
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
 	</parameter>
@@ -13,9 +17,10 @@ NROUNICO,
 CODAPONTAMENTO,
 ANEXO
 from AD_ANEXOAPONT
-where NROUNICO = $P{PK_NROUNICO}]]>
+where NROUNICO = $P{PK_NROUNICO}
+AND CODAPONTAMENTO = $P{PK_APONTAMENTO}]]>
 	</queryString>
-	<field name="ANEXO" class="java.lang.Object"/>
+	<field name="ANEXO" class="java.lang.String"/>
 	<field name="CODAPONTAMENTO" class="java.math.BigDecimal"/>
 	<field name="NROUNICO" class="java.math.BigDecimal"/>
 	<background>
@@ -32,11 +37,11 @@ where NROUNICO = $P{PK_NROUNICO}]]>
 	</columnHeader>
 	<detail>
 		<band height="125" splitType="Stretch">
-			<textField>
+			<image>
 				<reportElement x="0" y="0" width="555" height="125"/>
-				<textElement/>
-				<textFieldExpression class="java.lang.String"><![CDATA[""+$F{ANEXO}]]></textFieldExpression>
-			</textField>
+				<imageExpression class="java.net.URL"><![CDATA[new java.net.URL("https://static.vecteezy.com/system/resources/thumbnails/011/024/337/small/realistic-digital-lens-flare-light-effect-free-png.png")
+]]></imageExpression>
+			</image>
 		</band>
 	</detail>
 	<columnFooter>

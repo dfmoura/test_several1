@@ -359,3 +359,162 @@ AD_PRODHOMOL
 TRG_UPDATE_CADASTRO_HOMOL
 TGFPRO
 >>>>>>> e54e2cd6f923b63a9ff5ac638acc047f12f474f1
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+Cadastro de formulações
+
+Atividades realizadas em 18-10-2024 (13h às 18h):
+Foi realizada a organização do campo de volume na tabela AD_CONTINSUMO, visando aprimorar o cálculo de densidade e quantidade. A regra implementada especifica que, quando o campo ESTADO for "líquido", a densidade e o volume serão calculados automaticamente com base nas informações fornecidas. No caso de insumos sólidos, a densidade foi padronizada como 1, e o volume será equivalente à quantidade especificada.
+
+Atividades realizadas em 21-10-2024 (08h às 12h):
+Foi criada a tabela AD_FORMULLABOR, destinada ao cadastro de formulações, com os seguintes campos: CODFORMULACAO, CODPROD, PRODSEMCAD, QUANTIDADE, DENSIDADE, VOLUME, DTAFABR, VISCOSIDADE, PH, ESTADO, e CODUSU. Essa tabela servirá como base para o controle e acompanhamento das formulações laboratoriais no sistema.
+
+Atividades realizadas em 21-10-2024 (13h às 18h):
+Foi iniciada a criação de uma tabela detalhada para armazenar os insumos utilizados em cada formulação, sendo esse o módulo "detalhe da formulação". Também foi dado andamento à rotina de cálculo do fator de insumos ao salvar os dados da tabela de detalhes. Essa rotina ajustará o total disponível na tabela AD_CONTINSUMO, verificando a validade dos produtos e assegurando que a quantidade disponível não seja inferior à solicitada na formulação.
+
+
+
+
+
+
+select
+case 
+when BOR.estado = 1 then BOR.quantidade*BOR.densidade
+when BOR.estado = 2 then BOR.quantidade end 
+*
+PERC_100G
+as FATOR
+from AD_FORMULLABOR BOR
+INNER JOIN AD_DETALHFORMULACOES DET ON BOR.CODFORMULACAO = DET.CODFORMULACAO
+
+
+--#type.sql#
+--SELECT CGC_CPF FROM TGFPAR WHERE CODPARC=TGFCAB.CODPARC
+
+
+
+SELECT
+
+COUNT(*)
+FROM AD_CONTINSUMO
+WHERE DTVAL > SYSDATE
+AND CODCAD = AD_CONTINSUMO.CODCAD
+AND CODCONT = AD_CONTINSUMO.CODCONT
+
+--#type.sql#
+--SELECT CGC_CPF FROM TGFPAR WHERE CODPARC=TGFCAB.CODPARC
+
+
+
+SELECT
+NULLIF(BOR.QUANTIDADE * BOR.DENSIDADE * DET.PERC_100G,0) AS FATOR,
+NULLIF(DISPONIVEL/(BOR.QUANTIDADE * BOR.DENSIDADE),0) AS PERC_100G_IDEAL
+
+FROM AD_DETALHFORMULACOES DET
+INNER JOIN AD_FORMULLABOR BOR ON DET.CODFORMULACAO = BOR.CODFORMULACAO
+LEFT JOIN AD_CONTINSUMO CONT ON DET.CODCAD = CONT.CODCAD AND DET.CODCONT = CONT.CODCONT
+WHERE 
+CONT.DTVAL >= SYSDATE 
+AND CONT.DISPONIVEL > 0
+AND CONT.CODCAD = DET.CODCAD AND CONT.CODCONT = DET.CODCONT
+
+
+
+SELECT * 
+FROM AD_CONTINSUMO
+WHERE DTVAL >= SYSDATE
+
+
+
+
+PARA O SQL ORACLE
+FAZER UMA TRIGGER NA TABELA AD_PRODHOMOLH
+
+DEPOIS DO UPDATE OR INSERT NA TABELA AD_PRODHOMOLH
+ATUALIZAR O CAMPO 
+CODUSU = STP_GET_CODUSULOGADO;
+
+PARA O REGISTRO ATUAL
+
+
+
+
+SELECT 
+CONT.CODCAD,
+CAD.INSNHOMOLOG,
+CONT.CODCONT,
+SUM(CONT.DISPONIVEL -
+NVL(BOR.QUANTIDADE * BOR.DENSIDADE * DET.PERC_100G,0)) AS DISPONIVEL
+
+
+
+FROM AD_CONTINSUMO CONT
+INNER JOIN AD_CADMATERIA CAD ON CONT.CODCAD = CAD.CODCAD
+LEFT JOIN AD_DETALHFORMULACOES DET ON CONT.CODCAD = DET.CODCAD AND CONT.CODCONT = DET.CODCONT
+LEFT JOIN AD_FORMULLABOR BOR ON DET.CODFORMULACAO = BOR.CODFORMULACAO
+WHERE TRUNC(CONT.DTVAL) >= TRUNC(SYSDATE) AND CONT.DISPONIVEL > 0
+--AND CONT.CODCAD = 33 --DET.CODCAD
+--AND CONT.CODCONT = 1--DET.CODCONT
+GROUP BY
+CONT.CODCAD,
+CAD.INSNHOMOLOG,
+CONT.CODCONT
+
+
+
+
+
+
+
+
+
+PARA O SQL ORACLE 
+FAZER UMA TRIGGER TRG_AFTER_INSERT_DETFORM
+NA TABELA AD_DETALHFORMULACOES
+AO INSERIR OU ATUALIZAR 
+
+QUERO ARMAZENAR O DADOS DOS CAMPOS CODCAD,CODCONT E PERC_100G QUE EH UM CAMPO DECIMAL
+
+
+E FAZER UM RAISE COM ESTE CAMPOS ARMAZENADOS
+
+
+
+    SELECT 
+        --CONT.DISPONIVEL
+
+        SUM(CONT.DISPONIVEL -
+        NVL((BOR.QUANTIDADE * BOR.DENSIDADE * DET.PERC_100G),0)) A
+    --INTO v_DISPONIVEL_NOVO
+    FROM AD_CONTINSUMO CONT
+    INNER JOIN AD_CADMATERIA CAD ON CONT.CODCAD = CAD.CODCAD
+    LEFT JOIN AD_DETALHFORMULACOES DET ON CONT.CODCAD = DET.CODCAD AND CONT.CODCONT = DET.CODCONT
+    LEFT JOIN AD_FORMULLABOR BOR ON DET.CODFORMULACAO = BOR.CODFORMULACAO
+    WHERE TRUNC(CONT.DTVAL) >= TRUNC(SYSDATE) 
+      AND CONT.DISPONIVEL > 0
+      AND CONT.HOMOLOG='S'
+      AND CONT.CODCAD = 37--v_codcad
+      AND CONT.CODCONT = 4--v_codcont
+      --AND DET.CODFORMULACAO = v_CODFORMULACAO
+     --AND DET.CODIGO = v_CODIGO;
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

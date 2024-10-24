@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Form_laborat" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PK_CODFORMULACAO" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several1\\ireport\\0021_Form_Laboratorio\\"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+BOR.CODFORMULACAO,
+BOR.CODPROD,
+PRO.DESCRPROD,
+BOR.PRODSEMCAD,
+BOR.QUANTIDADE,
+BOR.DENSIDADE,
+BOR.DTAFABR,
+BOR.VISCOSIDADE,
+BOR.PH,
+F_DESCROPC('AD_FORMULLABOR','ESTADO',BOR.ESTADO) AS ESTADO,
+USU.NOMEUSU,
+BOR.TESTE,
+BOR.OBS
+FROM AD_FORMULLABOR BOR
+LEFT JOIN TGFPRO PRO ON BOR.CODPROD = PRO.CODPROD
+INNER JOIN TSIUSU USU ON BOR.CODUSU = USU.CODUSU
+WHERE
+BOR.CODFORMULACAO = $P{PK_CODFORMULACAO}]]>
+	</queryString>
+	<field name="CODFORMULACAO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Formulação]]></fieldDescription>
+	</field>
+	<field name="DTAFABR" class="java.util.Date">
+		<fieldDescription><![CDATA[Data Fabr.]]></fieldDescription>
+	</field>
+	<field name="PRODSEMCAD" class="java.lang.String">
+		<fieldDescription><![CDATA[Produto]]></fieldDescription>
+	</field>
+	<field name="DENSIDADE" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Densidade]]></fieldDescription>
+	</field>
+	<field name="QUANTIDADE" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Quantidade]]></fieldDescription>
+	</field>
+	<field name="VISCOSIDADE" class="java.lang.String">
+		<fieldDescription><![CDATA[Viscosidade]]></fieldDescription>
+	</field>
+	<field name="PH" class="java.lang.String">
+		<fieldDescription><![CDATA[pH]]></fieldDescription>
+	</field>
+	<field name="ESTADO" class="java.lang.String">
+		<fieldDescription><![CDATA[Estado]]></fieldDescription>
+	</field>
+	<field name="NOMEUSU" class="java.lang.String">
+		<fieldDescription><![CDATA[Emissão]]></fieldDescription>
+	</field>
+	<field name="TESTE" class="java.lang.String">
+		<fieldDescription><![CDATA[Teste para substituição de matéria prima?Indique:]]></fieldDescription>
+	</field>
+	<field name="OBS" class="java.lang.String">
+		<fieldDescription><![CDATA[Observações sobre a formula:]]></fieldDescription>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="78" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="0" width="555" height="78"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement x="76" y="25" width="403" height="36"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="22" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Formulações de Laboratório]]></text>
+			</staticText>
+			<image hAlign="Center" vAlign="Middle">
+				<reportElement key="image-1" x="0" y="5" width="76" height="66"/>
+				<box>
+					<topPen lineWidth="0.0"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "Logo.bmp"]]></imageExpression>
+			</image>
+			<line>
+				<reportElement x="479" y="0" width="1" height="78"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement x="480" y="0" width="75" height="78"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Versão
+3.0
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="479" y="48" width="76" height="30"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[30/05/2023]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="204" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="0" width="555" height="111"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement x="10" y="10" width="88" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Formulação]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="98" y="10" width="112" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODFORMULACAO}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="347" y="30" width="61" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Data Fabr.]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="408" y="30" width="132" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTAFABR}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="10" y="30" width="88" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Produto]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="98" y="30" width="222" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PRODSEMCAD}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="10" y="50" width="88" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Quantidade(ml)]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="98" y="50" width="54" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QUANTIDADE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="152" y="49" width="61" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Densidade]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="213" y="49" width="59" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DENSIDADE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="476" y="50" width="64" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PH}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="411" y="50" width="65" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[pH]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="70" width="88" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Estado]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="98" y="70" width="115" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ESTADO}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="347" y="11" width="61" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Emissão]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="408" y="11" width="132" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEUSU}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="10" y="91" width="262" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Teste para substituição de matéria prima?Indique:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="272" y="91" width="268" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{TESTE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="347" y="50" width="64" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{VISCOSIDADE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="272" y="50" width="75" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Viscosidade]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="30" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="49" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="69" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="90" width="555" height="1"/>
+			</line>
+			<subreport>
+				<reportElement key="Det_Formulacao" x="0" y="111" width="555" height="93"/>
+				<subreportParameter name="PDIR_MODELO"/>
+				<subreportParameter name="PK_CODFORMULACAO">
+					<subreportParameterExpression><![CDATA[$P{PK_CODFORMULACAO}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Form_laborat.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="99" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="0" width="555" height="99"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<textField>
+				<reportElement x="0" y="26" width="555" height="73"/>
+				<textElement textAlignment="Justified">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{OBS}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="6" width="180" height="20"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Observações sobre a formula:]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>
