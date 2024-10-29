@@ -179,14 +179,14 @@ BOR.CODFORMULACAO = $P{PK_CODFORMULACAO}]]>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QUANTIDADE}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="152" y="49" width="61" height="20"/>
+				<reportElement x="152" y="49" width="90" height="20"/>
 				<textElement verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
-				<text><![CDATA[Densidade]]></text>
+				<text><![CDATA[Densidade(g/ml)]]></text>
 			</staticText>
 			<textField>
-				<reportElement x="213" y="49" width="59" height="20"/>
+				<reportElement x="242" y="49" width="78" height="20"/>
 				<textElement verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DENSIDADE}]]></textFieldExpression>
 			</textField>
@@ -196,7 +196,7 @@ BOR.CODFORMULACAO = $P{PK_CODFORMULACAO}]]>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{PH}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="411" y="50" width="65" height="20"/>
+				<reportElement x="454" y="50" width="22" height="20"/>
 				<textElement verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>
@@ -239,12 +239,12 @@ BOR.CODFORMULACAO = $P{PK_CODFORMULACAO}]]>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{TESTE}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="347" y="50" width="64" height="20"/>
+				<reportElement x="387" y="50" width="67" height="20"/>
 				<textElement verticalAlignment="Middle"/>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{VISCOSIDADE}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="272" y="50" width="75" height="20"/>
+				<reportElement x="320" y="50" width="67" height="20"/>
 				<textElement verticalAlignment="Middle">
 					<font isBold="true"/>
 				</textElement>

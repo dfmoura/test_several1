@@ -50,6 +50,10 @@
 	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
 	</parameter>
+	<parameter name="PK_CODAPONTAMENTO" class="java.math.BigDecimal" isForPrompting="false">
+		<parameterDescription><![CDATA[Cód. Apontamento]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
 	<queryString>
 		<![CDATA[SELECT
 APO.DTAAPONT,
@@ -96,27 +100,34 @@ where APO.NROUNICO = $P{PK_NROUNICO}]]>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="24" splitType="Stretch">
+		<band height="22" splitType="Stretch">
 			<textField isStretchWithOverflow="true" pattern="dd/MM/yyyy">
-				<reportElement x="0" y="2" width="103" height="20"/>
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="0" y="2" width="103" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Top">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTAAPONT}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true">
-				<reportElement mode="Transparent" x="103" y="2" width="451" height="20"/>
+				<reportElement stretchType="RelativeToTallestObject" mode="Transparent" x="103" y="2" width="451" height="20"/>
 				<textElement textAlignment="Justified" verticalAlignment="Top">
 					<font size="8"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
 			</textField>
-			<line>
-				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="0" y="23" width="554" height="1" isPrintWhenDetailOverflows="true"/>
-				<graphicElement>
-					<pen lineWidth="0.5"/>
-				</graphicElement>
-			</line>
+		</band>
+		<band height="42">
+			<subreport>
+				<reportElement key="Detalhe3" x="0" y="0" width="555" height="30"/>
+				<subreportParameter name="PK_NROUNICO">
+					<subreportParameterExpression><![CDATA[$F{NROUNICO}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="PK_CODAPONTAMENTO">
+					<subreportParameterExpression><![CDATA[$F{CODAPONTAMENTO}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Detalhe3.jasper"]]></subreportExpression>
+			</subreport>
 		</band>
 	</detail>
 	<columnFooter>

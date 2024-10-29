@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Det_Formulacao" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
-	<property name="ireport.zoom" value="1.9487171000000034"/>
-	<property name="ireport.x" value="106"/>
+	<property name="ireport.zoom" value="1.1000000000000019"/>
+	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<parameter name="PK_CODFORMULACAO" class="java.math.BigDecimal" isForPrompting="false">
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
@@ -13,8 +13,8 @@ DET.CODIGO,
 DET.CODCAD,
 CAD.INSNHOMOLOG COMPONENTE,
 DET.CODCONT,
-DET.PERC_100G,
-NVL(BOR.QUANTIDADE * BOR.DENSIDADE * DET.PERC_100G,0) AS FATOR,
+(DET.PERC_100G) PERC_100G,
+NVL(BOR.QUANTIDADE * BOR.DENSIDADE * (DET.PERC_100G),0) AS FATOR,
 BOR.QUANTIDADE,
 BOR.DENSIDADE,
 DET.GARANTIAS
@@ -29,7 +29,7 @@ AND CONT.HOMOLOG='S'
 AND CONT.CODCAD = DET.CODCAD AND CONT.CODCONT = DET.CODCONT
 AND BOR.CODFORMULACAO = $P{PK_CODFORMULACAO}
 )
-SELECT 1 CODIGO,1 CODCAD, 'AGUA' AS COMPONENTE, NULL AS GARANTIAS,NULL DENSIDADE, 1-SUM(PERC_100G) AS PERC_100G,QUANTIDADE * DENSIDADE * (1-SUM(PERC_100G)) AS FATOR FROM BAS GROUP BY QUANTIDADE,DENSIDADE
+SELECT 1 CODIGO,1 CODCAD, 'AGUA' AS COMPONENTE, NULL AS GARANTIAS,NULL DENSIDADE, 100-SUM(PERC_100G) AS PERC_100G,QUANTIDADE * DENSIDADE * (100-SUM(PERC_100G)) AS FATOR FROM BAS GROUP BY QUANTIDADE,DENSIDADE
 UNION ALL
 SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
 	</queryString>
@@ -201,12 +201,12 @@ SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
 				<textElement verticalAlignment="Middle"/>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{GARANTIAS}]]></textFieldExpression>
 			</textField>
-			<textField>
+			<textField pattern="#,##0.00">
 				<reportElement x="368" y="0" width="92" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC_100G}]]></textFieldExpression>
 			</textField>
-			<textField>
+			<textField pattern="#,##0.00">
 				<reportElement x="460" y="0" width="92" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{FATOR}]]></textFieldExpression>
@@ -257,12 +257,13 @@ SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
 					<pen lineWidth="0.5"/>
 				</graphicElement>
 			</rectangle>
-			<textField>
+			<textField pattern="#,##0.00">
 				<reportElement x="368" y="0" width="92" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SumPERC}]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SumPERC}
+]]></textFieldExpression>
 			</textField>
-			<textField>
+			<textField pattern="#,##0.00">
 				<reportElement x="461" y="0" width="91" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SumFATOR}]]></textFieldExpression>
@@ -311,14 +312,14 @@ SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
 					<pen lineWidth="0.5"/>
 				</graphicElement>
 			</line>
-			<textField>
+			<textField pattern="#,##0.00">
 				<reportElement x="368" y="20" width="92" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{SumPERC} != null && $V{MaxDENS} != null && $V{MaxDENS}.compareTo(BigDecimal.ZERO) != 0)
     ? $V{SumPERC}.divide($V{MaxDENS}, java.math.RoundingMode.HALF_UP)
     : BigDecimal.ZERO]]></textFieldExpression>
 			</textField>
-			<textField>
+			<textField pattern="#,##0.00">
 				<reportElement x="461" y="20" width="91" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{SumFATOR} != null && $V{MaxDENS} != null && $V{MaxDENS}.compareTo(BigDecimal.ZERO) != 0)

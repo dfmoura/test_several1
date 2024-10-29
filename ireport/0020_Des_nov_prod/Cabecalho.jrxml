@@ -219,19 +219,7 @@ where NOV.NROUNICO = $P{PK_NROUNICO}]]>
 				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Detalhe2.jasper"]]></subreportExpression>
 			</subreport>
 		</band>
-		<band height="31">
-			<subreport>
-				<reportElement key="Detalhe3" x="0" y="1" width="555" height="30"/>
-				<subreportParameter name="PK_NROUNICO">
-					<subreportParameterExpression><![CDATA[$F{NROUNICO}]]></subreportParameterExpression>
-				</subreportParameter>
-				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
-				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Detalhe3.jasper"]]></subreportExpression>
-			</subreport>
-			<break>
-				<reportElement x="0" y="0" width="100" height="1"/>
-			</break>
-		</band>
+		<band/>
 	</detail>
 	<columnFooter>
 		<band splitType="Stretch"/>

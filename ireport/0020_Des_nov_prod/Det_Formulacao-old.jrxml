@@ -6,33 +6,50 @@
 	<parameter name="PK_CODFORMULACAO" class="java.math.BigDecimal" isForPrompting="false">
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
 	</parameter>
+	<parameter name="PK_NROUNICO" class="java.math.BigDecimal" isForPrompting="false">
+		<parameterDescription><![CDATA[Nro. Único]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
 	<queryString>
-		<![CDATA[WITH BAS AS(
-SELECT
-DET.CODIGO,
+		<![CDATA[SELECT * FROM (
+
+WITH BAS AS(
+
+SELECT DISTINCT
+LAB.NROUNICO,
+LAB.CODIGO,
+BOR.CODFORMULACAO,
+DET.CODIGO CODDET,
 DET.CODCAD,
 CAD.INSNHOMOLOG COMPONENTE,
 DET.CODCONT,
-(DET.PERC_100G) PERC_100G,
-NVL(BOR.QUANTIDADE * BOR.DENSIDADE * (DET.PERC_100G),0) AS FATOR,
+DET.PERC_100G,
+NVL(BOR.QUANTIDADE * BOR.DENSIDADE * DET.PERC_100G,0) AS FATOR,
 BOR.QUANTIDADE,
 BOR.DENSIDADE,
-DET.GARANTIAS
-FROM AD_DETALHFORMULACOES DET
-INNER JOIN AD_FORMULLABOR BOR ON DET.CODFORMULACAO = BOR.CODFORMULACAO
+DET.GARANTIAS,
+F_DESCROPC('AD_FORMULLABOR','ESTADO',BOR.ESTADO) AS ESTADO,
+USU.NOMEUSU,
+CAD.GARANTIA
+from AD_NOVOSPRODUTOS NOV
+LEFT JOIN AD_FORMULACOESLAB LAB ON NOV.NROUNICO = LAB.NROUNICO
+LEFT JOIN AD_FORMULLABOR BOR ON LAB.CODFORMULACAO = BOR.CODFORMULACAO
+LEFT JOIN AD_DETALHFORMULACOES DET ON BOR.CODFORMULACAO = DET.CODFORMULACAO
 LEFT JOIN AD_CONTINSUMO CONT ON DET.CODCAD = CONT.CODCAD AND DET.CODCONT = CONT.CODCONT
 LEFT JOIN AD_CADMATERIA CAD ON CONT.CODCAD = CAD.CODCAD
+INNER JOIN TSIUSU USU ON BOR.CODUSU = USU.CODUSU
+LEFT JOIN TGFPRO PRO ON BOR.CODPROD = PRO.CODPROD
 WHERE
-TRUNC(CONT.DTVAL) >= TRUNC(SYSDATE)
-AND CONT.VOLUME> 0
-AND CONT.HOMOLOG='S'
-AND CONT.CODCAD = DET.CODCAD AND CONT.CODCONT = DET.CODCONT
+LAB.NROUNICO = $P{PK_NROUNICO}
 AND BOR.CODFORMULACAO = $P{PK_CODFORMULACAO}
-)
-SELECT 1 CODIGO,1 CODCAD, 'AGUA' AS COMPONENTE, NULL AS GARANTIAS,NULL DENSIDADE, 100-SUM(PERC_100G) AS PERC_100G,QUANTIDADE * DENSIDADE * (100-SUM(PERC_100G)) AS FATOR FROM BAS GROUP BY QUANTIDADE,DENSIDADE
+),
+BAS2 AS (SELECT NROUNICO,CODIGO,CODFORMULACAO,CODDET,CODCAD,COMPONENTE,GARANTIAS,QUANTIDADE,DENSIDADE,PERC_100G,FATOR,GARANTIA FROM BAS )
+SELECT * FROM BAS2
 UNION ALL
-SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
+SELECT 3 NROUNICO,9999 CODIGO,9999 CODFORMULACAO,9999 CODDET,9999 CODCAD, 'AGUA' AS COMPONENTE, NULL AS GARANTIAS,MAX(QUANTIDADE)QUANTIDADE,MAX(DENSIDADE)DENSIDADE, 1-SUM(PERC_100G) AS PERC_100G,MAX(QUANTIDADE) * MAX(DENSIDADE) * (1-SUM(PERC_100G)) AS FATOR,GARANTIA FROM BAS2
+) ORDER BY 4 DESC]]>
 	</queryString>
+	<field name="CODFORMULACAO" class="java.math.BigDecimal"/>
 	<field name="CODIGO" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Cód.]]></fieldDescription>
 	</field>
@@ -42,8 +59,11 @@ SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
 	<field name="COMPONENTE" class="java.lang.String">
 		<fieldDescription><![CDATA[Componente]]></fieldDescription>
 	</field>
-	<field name="GARANTIAS" class="java.lang.String">
+	<field name="GARANTIA" class="java.lang.String">
 		<fieldDescription><![CDATA[Garantias]]></fieldDescription>
+	</field>
+	<field name="QUANTIDADE" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Quantidade]]></fieldDescription>
 	</field>
 	<field name="DENSIDADE" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Densidade]]></fieldDescription>
@@ -199,14 +219,14 @@ SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
 			<textField isBlankWhenNull="true">
 				<reportElement x="281" y="0" width="87" height="20"/>
 				<textElement verticalAlignment="Middle"/>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{GARANTIAS}]]></textFieldExpression>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{GARANTIA}]]></textFieldExpression>
 			</textField>
-			<textField pattern="#,##0.00">
+			<textField>
 				<reportElement x="368" y="0" width="92" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC_100G}]]></textFieldExpression>
 			</textField>
-			<textField pattern="#,##0.00">
+			<textField>
 				<reportElement x="460" y="0" width="92" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{FATOR}]]></textFieldExpression>
@@ -257,13 +277,12 @@ SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
 					<pen lineWidth="0.5"/>
 				</graphicElement>
 			</rectangle>
-			<textField pattern="#,##0.00">
+			<textField>
 				<reportElement x="368" y="0" width="92" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SumPERC}
-]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SumPERC}]]></textFieldExpression>
 			</textField>
-			<textField pattern="#,##0.00">
+			<textField>
 				<reportElement x="461" y="0" width="91" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SumFATOR}]]></textFieldExpression>
@@ -312,14 +331,14 @@ SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
 					<pen lineWidth="0.5"/>
 				</graphicElement>
 			</line>
-			<textField pattern="#,##0.00">
+			<textField>
 				<reportElement x="368" y="20" width="92" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{SumPERC} != null && $V{MaxDENS} != null && $V{MaxDENS}.compareTo(BigDecimal.ZERO) != 0)
     ? $V{SumPERC}.divide($V{MaxDENS}, java.math.RoundingMode.HALF_UP)
     : BigDecimal.ZERO]]></textFieldExpression>
 			</textField>
-			<textField pattern="#,##0.00">
+			<textField>
 				<reportElement x="461" y="20" width="91" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[($V{SumFATOR} != null && $V{MaxDENS} != null && $V{MaxDENS}.compareTo(BigDecimal.ZERO) != 0)
