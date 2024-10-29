@@ -37,11 +37,10 @@ AND CODAPONTAMENTO = $P{PK_APONTAMENTO}]]>
 	</columnHeader>
 	<detail>
 		<band height="125" splitType="Stretch">
-			<textField>
-				<reportElement x="0" y="0" width="555" height="125"/>
-				<textElement/>
-				<textFieldExpression class="java.lang.String"><![CDATA[""+$F{ANEXO}]]></textFieldExpression>
-			</textField>
+			<image>
+				<reportElement x="0" y="0" width="525" height="111"/>
+				<imageExpression class="java.io.InputStream"><![CDATA[$F{ANEXO}]]></imageExpression>
+			</image>
 		</band>
 	</detail>
 	<columnFooter>
