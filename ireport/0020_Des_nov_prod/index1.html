@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projetos e Custos</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-image: url('https://raw.githubusercontent.com/dfmoura/test_several1/main/ireport/0020_Des_nov_prod/inova.jpeg');
+            background-size: cover;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .filter {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        select, input {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+        }
+        th, td {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        tr:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        .total {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Projetos e Custos</h1>
+    
+    <div class="filter">
+        <select id="projectFilter" onchange="filterProjects()">
+            <option value="">Todos os Projetos</option>
+            <option value="Projeto A">Projeto A</option>
+            <option value="Projeto B">Projeto B</option>
+            <option value="Projeto C">Projeto C</option>
+        </select>
+        
+        <input type="date" id="startDate" onchange="filterProjects()">
+        <input type="date" id="endDate" onchange="filterProjects()">
+    </div>
+
+    <table id="projectsTable">
+        <thead>
+            <tr>
+                <th>Projeto</th>
+                <th>Custo (R$)</th>
+                <th>Data</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr data-project="Projeto A" data-date="2024-10-01">
+                <td>Projeto A</td>
+                <td>1500</td>
+                <td>2024-10-01</td>
+            </tr>
+            <tr data-project="Projeto B" data-date="2024-10-05">
+                <td>Projeto B</td>
+                <td>2000</td>
+                <td>2024-10-05</td>
+            </tr>
+            <tr data-project="Projeto C" data-date="2024-10-10">
+                <td>Projeto C</td>
+                <td>2500</td>
+                <td>2024-10-10</td>
+            </tr>
+            <tr data-project="Projeto A" data-date="2024-10-15">
+                <td>Projeto A</td>
+                <td>1800</td>
+                <td>2024-10-15</td>
+            </tr>
+            <tr data-project="Projeto B" data-date="2024-10-20">
+                <td>Projeto B</td>
+                <td>3000</td>
+                <td>2024-10-20</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="total" id="totalCost">Custo Total: R$ 0</div>
+
+    <script>
+        function filterProjects() {
+            const projectFilter = document.getElementById('projectFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const rows = document.querySelectorAll('#projectsTable tbody tr');
+            let total = 0;
+
+            rows.forEach(row => {
+                const project = row.getAttribute('data-project');
+                const date = row.getAttribute('data-date');
+                const cost = parseFloat(row.cells[1].innerText);
+
+                const projectMatch = !projectFilter || project === projectFilter;
+                const dateMatch = (!startDate || date >= startDate) && (!endDate || date <= endDate);
+
+                if (projectMatch && dateMatch) {
+                    row.style.display = '';
+                    total += cost;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('totalCost').innerText = `Custo Total: R$ ${total.toFixed(2)}`;
+        }
+    </script>
+
+</body>
+</html>
