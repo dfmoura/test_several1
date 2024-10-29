@@ -20,7 +20,7 @@ from AD_ANEXOAPONT
 where NROUNICO = $P{PK_NROUNICO}
 AND CODAPONTAMENTO = $P{PK_APONTAMENTO}]]>
 	</queryString>
-	<field name="ANEXO" class="java.io.InputStream"/>
+	<field name="ANEXO" class="oracle.jdbc.OracleBlob"/>
 	<field name="CODAPONTAMENTO" class="java.math.BigDecimal"/>
 	<field name="NROUNICO" class="java.math.BigDecimal"/>
 	<background>
