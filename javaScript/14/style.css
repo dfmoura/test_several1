@@ -1,0 +1,131 @@
+/* Estilos gerais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+header {
+    background-color: #6f4c3e; /* Cor de fundo marrom */
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+    position: relative;
+}
+
+footer {
+    background-color: #6f4c3e; /* Cor de fundo marrom */
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+/* Estilos do contêiner de login */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100vh - 100px); /* Calcula a altura total menos cabeçalho e rodapé */
+}
+
+.login-box {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 300px; /* Largura fixa para o formulário de login */
+}
+
+.login-box h2 {
+    margin-bottom: 20px;
+    color: #6f4c3e; /* Cor do texto */
+}
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+    border-color: #6f4c3e; /* Cor de foco */
+    outline: none;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #6f4c3e; /* Cor do botão */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #5b3e32; /* Cor do botão ao passar o mouse */
+}
+
+.error {
+    color: red;
+    margin-top: 10px;
+}
+
+/* Estilos para a página principal (index.html) */
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    padding: 20px;
+}
+
+.card {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin: 10px;
+    padding: 20px;
+    width: calc(30% - 40px); /* 3 cards por linha, menos margens */
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: scale(1.05); /* Efeito de aumento ao passar o mouse */
+}
+
+.card h2 {
+    margin-bottom: 10px;
+    color: #6f4c3e; /* Cor do texto */
+}
+
+.card p {
+    font-size: 1.5em; /* Aumenta o tamanho da fonte para o valor principal */
+    font-weight: bold; /* Aumenta a ênfase no valor */
+    margin: 5px 0;
+    color: #4CAF50; /* Verde para o valor principal */
+}
+
+.card small {
+    font-size: 0.9em; /* Tamanho menor para a descrição */
+    color: #666; /* Cor mais clara para a descrição */
+}
+
+.card .error {
+    color: red; /* Estilo para mensagens de erro nos cards */
+}

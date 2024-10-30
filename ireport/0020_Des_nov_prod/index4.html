@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projetos e Custos</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: url('https://github.com/dfmoura/test_several1/blob/main/ireport/0020_Des_nov_prod/inova.jpeg?raw=true') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            display: flex;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            margin: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .filter {
+            padding: 20px;
+            width: 250px;
+            border-right: 1px solid #fff;
+        }
+        .filter h2 {
+            margin-top: 0;
+        }
+        select {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            width: 100%;
+        }
+        .projects-table {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #fff;
+        }
+        th {
+            background-color: #444;
+        }
+        .total {
+            font-size: 1.5em;
+            margin-top: 20px;
+        }
+        @media (max-width: 600px) {
+            .filter {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #fff;
+            }
+            .projects-table {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .total {
+                font-size: 1.2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="filter">
+            <h2>Filtrar Projetos</h2>
+            <label for="projectFilter">Projetos:</label>
+            <select id="projectFilter" multiple>
+                <option value="Todos">Todos os Projetos</option>
+                <option value="Projeto A">Projeto A</option>
+                <option value="Projeto B">Projeto B</option>
+                <option value="Projeto C">Projeto C</option>
+            </select>
+            <button onclick="filterProjects()">Filtrar</button>
+        </div>
+        <div class="projects-table">
+            <h1>Projetos e Custos</h1>
+            <table id="projectsTable">
+                <thead>
+                    <tr>
+                        <th>Projeto</th>
+                        <th>Custo (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Projeto A</td>
+                        <td>1000</td>
+                    </tr>
+                    <tr>
+                        <td>Projeto B</td>
+                        <td>2000</td>
+                    </tr>
+                    <tr>
+                        <td>Projeto C</td>
+                        <td>1500</td>
+                    </tr>
+                    <tr>
+                        <td>Projeto A</td>
+                        <td>1200</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="total" id="totalCost">Total: R$ 0</div>
+        </div>
+    </div>
+
+    <script>
+        function filterProjects() {
+            const projectFilter = Array.from(document.getElementById('projectFilter').selectedOptions).map(option => option.value);
+
+            const rows = Array.from(document.querySelectorAll('#projectsTable tbody tr'));
+            let total = 0;
+
+            rows.forEach(row => {
+                const projectName = row.cells[0].textContent;
+                const projectCost = parseFloat(row.cells[1].textContent);
+                const showRow = projectFilter.includes("Todos") || projectFilter.includes(projectName);
+                
+                if (showRow) {
+                    row.style.display = '';
+                    total += projectCost;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('totalCost').textContent = 'Total: R$ ' + total;
+        }
+    </script>
+</body>
+</html>
