@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exemplo de Tela Responsiva</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.10.1/main.min.css" />
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Menu</h2>
+            <ul>
+                <li><a href="#" id="calendar-link">Calendário</a></li>
+                <li><a href="#" id="register-link">Registro Agenda</a></li>
+            </ul>
+        </aside>
+        <main class="content">
+            <div id="calendar" class="hidden"></div>
+            <div id="register" class="hidden">
+                <h2>Registro Agenda</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>CODCAL</th>
+                            <th>COD_DESENV_PROJ</th>
+                            <th>CODIGO</th>
+                            <th>DESCRICAO</th>
+                            <th>DTAINICIO</th>
+                            <th>DTAFIM</th>
+                            <th>OBS</th>
+                            <th>CONCLUIDO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Exemplo de dados. A tabela deve ser populada dinamicamente -->
+                        <tr>
+                            <td>1</td>
+                            <td>101</td>
+                            <td>ABC123</td>
+                            <td>Desenvolvimento do projeto X</td>
+                            <td>2024-01-01</td>
+                            <td>2024-01-10</td>
+                            <td>Observações</td>
+                            <td><input type="checkbox" checked /></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.10.1/main.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

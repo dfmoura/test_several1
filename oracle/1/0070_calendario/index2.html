@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales/pt-br.js'></script>
+    <style>
+        /* Define o calendário para ocupar toda a largura da tela em dispositivos móveis e desktops */
+        #calendar {
+            width: 100%;
+            max-width: 1200px;
+            height: calc(100vh - 40px); /* Ajusta a altura para caber em várias telas */
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Ajusta o tamanho da fonte e layout do calendário para telas menores */
+        @media (max-width: 768px) {
+            #calendar {
+                font-size: 12px; /* Reduz o tamanho da fonte para dispositivos menores */
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="calendar"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                locale: 'pt-br',
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                editable: true,
+                selectable: true,
+                events: [],
+
+                // Adaptação para diferentes tamanhos de tela
+                windowResize: function(view) {
+                    if (window.innerWidth < 768) {
+                        calendar.changeView('timeGridDay'); // Modo diário para telas pequenas
+                    } else if (window.innerWidth < 992) {
+                        calendar.changeView('timeGridWeek'); // Modo semanal para telas médias
+                    } else {
+                        calendar.changeView('dayGridMonth'); // Modo mensal para telas maiores
+                    }
+                },
+
+                eventContent: function(info) {
+                    // Renderiza apenas o título do evento, sem data/hora
+                    return { html: `<div>${info.event.title}</div>` };
+                },
+
+                dateClick: function (info) {
+                    // Aqui, você pode abrir um modal para adicionar um novo evento
+                    console.log("Data clicada:", info.dateStr);
+                },
+
+                eventClick: function (info) {
+                    // Aqui, você pode abrir um modal para editar o evento existente
+                    console.log("Evento clicado:", info.event.title);
+                }
+            });
+
+            calendar.render();
+        });
+    </script>
+</body>
+</html>
