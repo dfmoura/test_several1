@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+
+
+    </style>
+</head>
+<body>
+
+    
+    <script>
+        for(i = 0;i<5;i++){
+            document.write(i+"<br>");
+        }
+        
+        document.write("<br><br>");
+
+        let numeros = [8,9,10];
+        numeros.tipo = "Inteiros";
+        for(let i in numeros){
+            document.write("Posicao: "+ i + "<br>");
+        }
+
+        document.write("<br><br>");        
+
+
+        for(let i of numeros){
+            document.write("Valor: "+i+"<br>");
+        }
+
+        document.write("<br><br>");        
+        
+        
+        n=0;
+        x=0;
+        while(n<3){
+            n++;
+            x+= n;
+            document.write("Valor n: "+n+" Valor de x: "+x+"<br>");
+        }
+
+
+        document.write("<br><br>");     
+
+
+        i=0;
+        do{
+            document.write("Valor: "+i+"<br>");
+            i++;
+        }while (i<5);
+
+        document.write("<br><br>");     
+
+        i=0;
+        do {
+        document.write("Valor: " + i + "<br>");
+        i++;
+        }while (i <= 1);
+
+
+        document.write("<br><br>");     
+        document.write("<br><br>");     
+
+        var carros = [
+            {id:1,modelo:'Corsa',marca:'Chevrolet',preco:15000},
+            {id:2,modelo:'Punto',marca:'Fiat',preco:10000},
+            {id:3,modelo:'Gol',marca:'Volkswagen',preco:12000},
+            {id:4,modelo:'Saveiro',marca:'Volkswagen',preco:20000}
+        ]
+
+        
+        let total = 0;
+        for (carro of carros){
+            //if (carro.modelo === 'Corsa' || carro.marca ==='Volkswagen' ) {
+            total += carro.preco;
+            //}
+        }
+        document.write(total);
+
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales/pt-br.js'></script>
+    <style>
+        body {
+            display: flex; /* Usar flexbox para layout */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            height: 100vh; /* Garantir que o corpo ocupe toda a altura da tela */
+        }
+
+        /* Estilo da sidebar */
+        .sidebar {
+            width: 250px; /* Largura da sidebar */
+            background-color: #343a40; /* Cor de fundo */
+            color: #ffffff; /* Cor do texto */
+            padding: 20px; /* Espaçamento interno */
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2); /* Sombra para a sidebar */
+        }
+
+        .sidebar h2 {
+            font-size: 24px; /* Tamanho do título */
+            margin-bottom: 20px; /* Margem abaixo do título */
+        }
+
+        .sidebar a {
+            display: block; /* Cada link ocupa toda a largura */
+            color: #ffffff; /* Cor do link */
+            text-decoration: none; /* Remove sublinhado */
+            padding: 10px; /* Espaçamento interno do link */
+            border-radius: 4px; /* Bordas arredondadas */
+            transition: background-color 0.3s; /* Transição suave para o hover */
+        }
+
+        .sidebar a:hover {
+            background-color: #495057; /* Cor de fundo ao passar o mouse */
+        }
+
+        /* Estilo do calendário */
+        #calendar {
+            flex-grow: 1; /* Faz o calendário ocupar o espaço restante */
+            margin: 20px; /* Margem em torno do calendário */
+            background-color: #fff; /* Cor de fundo do calendário */
+            border-radius: 8px; /* Bordas arredondadas */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra para o calendário */
+        }
+
+        /* Ajusta o tamanho da fonte e layout do calendário para telas menores */
+        @media (max-width: 768px) {
+            #calendar {
+                font-size: 12px; /* Reduz o tamanho da fonte para dispositivos menores */
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <a href="#calendario" id="linkCalendario">Calendário</a>
+        <a href="#apontamentos" id="linkApontamentos">Apontamentos</a>
+    </div>
+
+    <div id="calendar"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                locale: 'pt-br',
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                editable: true,
+                selectable: true,
+                events: [],
+
+                // Adaptação para diferentes tamanhos de tela
+                windowResize: function(view) {
+                    if (window.innerWidth < 768) {
+                        calendar.changeView('timeGridDay'); // Modo diário para telas pequenas
+                    } else if (window.innerWidth < 992) {
+                        calendar.changeView('timeGridWeek'); // Modo semanal para telas médias
+                    } else {
+                        calendar.changeView('dayGridMonth'); // Modo mensal para telas maiores
+                    }
+                },
+
+                eventContent: function(info) {
+                    return { html: `<div>${info.event.title}</div>` };
+                },
+
+                dateClick: function (info) {
+                    console.log("Data clicada:", info.dateStr);
+                },
+
+                eventClick: function (info) {
+                    console.log("Evento clicado:", info.event.title);
+                }
+            });
+
+            calendar.render();
+
+            // Navegação para a tabela de apontamentos
+            document.getElementById('linkApontamentos').addEventListener('click', function() {
+                alert('Aqui você pode adicionar sua lógica para exibir os apontamentos!'); // Alerta para teste
+                // Aqui você pode redirecionar ou carregar a tabela de apontamentos
+            });
+        });
+    </script>
+</body>
+</html>
