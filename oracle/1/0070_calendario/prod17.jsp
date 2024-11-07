@@ -1,41 +1,3 @@
-
-com esta bibliotecas
-
-<script src="jx.js"></script> <!-- Homologação e Debug -->
-<script src="jx.min.js"></script> <!-- Produção -->
-<script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js"></script>
-
-
-adaptar no CODIGO PRINCIPAL  abaixo para consultar o banco de dados
-utilizando este padrao e as bibliotecas citadas acima:
-consultar(query): Realiza consultas SQL. Retorna uma promessa com os resultados da consulta.
-/* Consulta ao banco com resposta formatada em JS */
-JX.consultar ('SELECT * FROM TGFMAR').then (console.log);
-
-
-utilizar este select para popular as informacoes de DESCRICAO
-
-select
-cal.codigo AS codcal,
-cal.cod_desenv_proj,
-nov.codigo AS codigo,
-nov.descricao AS descricao,
-to_char(cal.dtainicio,'YYYY-MM-DD')dtainicio,
-to_char(cal.dtafim,'YYYY-MM-DD')dtafim,
-cal.obs,
-case when cal.concluido = 'S' then 'Sim' else 'Nao' end concluido
-from AD_CALENDINOV cal
-INNER JOIN AD_NOVOSPRODUTOS nov ON cal.cod_desenv_proj = nov.nrounico
-
-
-
-
-
-
-CODIGO PRINCIPAL:
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="UTF-8" isELIgnored="false" %>
 <%@ page import="java.util.*" %>
@@ -50,6 +12,10 @@ CODIGO PRINCIPAL:
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css' rel='stylesheet' />
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales/pt-br.js'></script>
+    <script src="jx.js"></script> <!-- Homologação e Debug -->
+    <script src="jx.min.js"></script> <!-- Produção -->
+    <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js"></script>
     <title>Calendário Responsivo</title>
     <style>
         body {
@@ -69,7 +35,7 @@ CODIGO PRINCIPAL:
             overflow: hidden;
         }
     </style>
-      <snk:load/>
+    <snk:load/>
 </head>
 <body>
     <div id="calendar"></div>
@@ -91,7 +57,35 @@ CODIGO PRINCIPAL:
                 events: []
             });
 
-            calendar.render();
+            // Realizar a consulta ao banco de dados usando JX
+            JX.consultar(`
+                SELECT
+                    cal.codigo AS codcal,
+                    cal.cod_desenv_proj,
+                    nov.codigo AS codigo,
+                    nov.descricao AS descricao,
+                    to_char(cal.dtainicio, 'YYYY-MM-DD') AS dtainicio,
+                    to_char(cal.dtafim, 'YYYY-MM-DD') AS dtafim,
+                    cal.obs,
+                    CASE WHEN cal.concluido = 'S' THEN 'Sim' ELSE 'Nao' END AS concluido
+                FROM AD_CALENDINOV cal
+                INNER JOIN AD_NOVOSPRODUTOS nov ON cal.cod_desenv_proj = nov.nrounico
+            `).then(function(result) {
+                // A consulta retornou os resultados; vamos formatá-los para o formato de evento do FullCalendar
+                const events = result.map(item => ({
+                    title: item.descricao,  // Usando a descrição como título do evento
+                    start: item.dtainicio,  // Data de início do evento
+                    end: item.dtafim,       // Data de fim do evento
+                    description: item.obs,  // Descrição do evento
+                    status: item.concluido  // Status de conclusão do evento
+                }));
+
+                // Adicionar os eventos ao calendário
+                calendar.addEventSource(events);
+                calendar.render();
+            }).catch(function(error) {
+                console.error("Erro ao consultar o banco de dados:", error);
+            });
         });
     </script>
 </body>

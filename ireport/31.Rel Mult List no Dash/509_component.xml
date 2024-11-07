@@ -1,0 +1,17 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="USARGRUPOMAIOR" description="USARGRUPOMAIOR" metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="0"/>
+    <parameter id="GRUPOMAIOR" description="Grupo Maior" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="1">
+      <expression type="SQL"><![CDATA[selectcodgrupoprod as value,codgrupoprod||' - '||descrgrupoprod as labelfrom tgfgruwhere codgrupoprod >= 3000000]]></expression>
+    </parameter>
+    <parameter id="USARGRUPOMENOR" description="USARGRUPOMENOR" metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="2"/>
+    <parameter id="GRUPOMENOR" description="Grupo Menor" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="3">
+      <expression type="SQL"><![CDATA[selectcodgrupoprod as value,codgrupoprod||' - '||descrgrupoprod as labelfrom tgfgruwhere codgrupoprod < 3000000]]></expression>
+    </parameter>
+  </prompt-parameters>
+  <level id="lvl_bad1kr" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <ireportcomponent id="ireport_bad1ks" report="292" ignorePagination="false"/>
+    </container>
+  </level>
+</gadget>

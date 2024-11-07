@@ -4,7 +4,12 @@
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<queryString>
-		<![CDATA[select gru.codgrupoprod,count(*) total
+		<![CDATA[select gru.codgrupoprod,count(*) total,
+case
+when total > 30 then '[51,51,255]'
+when total <= 30 then '[255,0,51]'
+end
+cor
 from tgfpro pro
 inner join tgfgru gru on pro.codgrupoprod = gru.codgrupoprod
 group by gru.codgrupoprod
@@ -12,6 +17,7 @@ order by 2 desc]]>
 	</queryString>
 	<field name="codgrupoprod" class="java.math.BigDecimal"/>
 	<field name="total" class="java.math.BigDecimal"/>
+	<field name="cor" class="java.lang.String"/>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
@@ -43,22 +49,20 @@ order by 2 desc]]>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{codgrupoprod}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="117" y="0" width="128" height="20"/>
+				<reportElement x="117" y="0" width="128" height="20" forecolor="#000000"/>
 				<textElement/>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{total}]]></textFieldExpression>
 			</textField>
 			<staticText>
 				<reportElement x="445" y="0" width="100" height="20">
-					<printWhenExpression><![CDATA[$F{total}.compareTo(new java.math.BigDecimal(70)) > 0
-]]></printWhenExpression>
+					<printWhenExpression><![CDATA[$F{total}.compareTo(new java.math.BigDecimal(70)) > 0]]></printWhenExpression>
 				</reportElement>
 				<textElement/>
 				<text><![CDATA[ok]]></text>
 			</staticText>
 			<line>
 				<reportElement x="320" y="6" width="100" height="1">
-					<printWhenExpression><![CDATA[$F{total}.compareTo(new java.math.BigDecimal(70)) > 0
-]]></printWhenExpression>
+					<printWhenExpression><![CDATA[$F{total}.compareTo(new java.math.BigDecimal(70)) > 0]]></printWhenExpression>
 				</reportElement>
 				<graphicElement>
 					<pen lineWidth="2.0" lineColor="#0033CC"/>
@@ -66,8 +70,7 @@ order by 2 desc]]>
 			</line>
 			<line>
 				<reportElement x="320" y="19" width="100" height="1">
-					<printWhenExpression><![CDATA[$F{total}.compareTo(new java.math.BigDecimal(70)) <= 0
-]]></printWhenExpression>
+					<printWhenExpression><![CDATA[$F{total}.compareTo(new java.math.BigDecimal(70)) <= 0]]></printWhenExpression>
 				</reportElement>
 				<graphicElement>
 					<pen lineWidth="2.0" lineColor="#FF0000"/>
