@@ -10,97 +10,106 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tabela de Dados</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js">
+  <script src="jx.js"></script> <!-- Homologação e Debug -->
+  <script src="jx.min.js"></script> <!-- Produção -->
+  <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
   
   <style>
-    /* Estilo básico para a tabela */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    table, th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-    }
-    th {
-      background-color: #f2f2f2;
-      text-align: left;
-    }
-    tr:hover {
-      background-color: #f5f5f5;
-    }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        #calendar {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
   </style>
   <snk:load/>
 </head>
 <body>
-  
-  <h1>Dados do Projeto</h1>
-  <table id="tabelaDados">
-    <thead>
-      <tr>
-        <th>Código Calendário</th>
-        <th>Código Projeto</th>
-        <th>Código Produto</th>
-        <th>Descrição</th>
-        <th>Data Início</th>
-        <th>Data Fim</th>
-        <th>Observação</th>
-        <th>Concluído</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Os dados serão inseridos aqui via JavaScript -->
-    </tbody>
-  </table>
+    <!-- Container do calendário -->
+    <div id="calendar"></div>
 
-  <script>
-    // Função para carregar os dados e preencher a tabela
-    function carregarDados() {
-      // Query SQL fornecida
-      const query = `
+    <!-- Incluindo os scripts do FullCalendar -->
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+
+    <!-- Script para carregar os dados e inicializar o calendário -->
+    <!-- <script src="app.js"></script> -->
+</body>
+
+
+<script>
+// Função para formatar a data no formato necessário para o FullCalendar
+function formatDate(date) {
+    return moment(date).format('YYYY-MM-DD');
+}
+
+// Função para consultar os dados do banco e popular o calendário
+function loadCalendarData() {
+    const query = `
         SELECT 
-          cal.codigo AS codcal,
-          cal.cod_desenv_proj,
-          nov.codigo,
-          nov.descricao,
-          cal.dtainicio,
-          cal.dtafim,
-          cal.obs,
-          cal.concluido
+            cal.dtainicio,
+            cal.dtafim,
+            cal.cod_desenv_proj || '|' || nov.codigo || '|' || nov.descricao AS descricao,
+            CASE WHEN cal.concluido = 'S' THEN 'Sim' ELSE 'Nao' END AS concluido
         FROM AD_CALENDINOV cal
         INNER JOIN AD_NOVOSPRODUTOS nov ON cal.cod_desenv_proj = nov.nrounico
-      `;
+    `;
 
-      // Realiza a consulta usando SankhyaJX e preenche a tabela
-      JX.consultar(query).then((resultados) => {
-        console.log("Resultados da consulta:", resultados); // Verificar os dados retornados
-        const tabelaBody = document.getElementById("tabelaDados").getElementsByTagName("tbody")[0];
-        tabelaBody.innerHTML = ""; // Limpa o conteúdo atual
-
-        resultados.forEach((linha) => {
-          console.log("Linha individual:", linha); // Verificar cada linha
-          const novaLinha = document.createElement("tr");
-          novaLinha.innerHTML = `
-            <td>${linha.codcal}</td>
-            <td>${linha.cod_desenv_proj}</td>
-            <td>${linha.codigo}</td>
-            <td>${linha.descricao}</td>
-            <td>${linha.dtainicio}</td>
-            <td>${linha.dtafim}</td>
-            <td>${linha.obs}</td>
-            <td>${linha.concluido}</td>
-          `;
-          tabelaBody.appendChild(novaLinha);
+    // Usando a função consultar da biblioteca SankhyaJX
+    JX.consultar(query).then(function(results) {
+        // Processar os resultados e criar os eventos
+        const events = results.map(function(row) {
+            return {
+                title: row.descricao, // Título do evento
+                start: formatDate(row.dtainicio), // Data de início
+                end: formatDate(row.dtafim), // Data de fim
+                description: row.descricao, // Descrição
+                concluded: row.concluido // Status de conclusão
+            };
         });
-      }).catch((erro) => {
-        console.error("Erro ao consultar dados:", erro);
-      });
-    }
 
-    // Chama a função ao carregar a página
-    document.addEventListener("DOMContentLoaded", carregarDados);
-  </script>
-</body>
+        // Inicializar o calendário com os eventos
+        initializeCalendar(events);
+    }).catch(function(error) {
+        console.error("Erro ao consultar os dados:", error);
+    });
+}
+
+// Função para inicializar o calendário FullCalendar
+function initializeCalendar(events) {
+    const calendarEl = document.getElementById('calendar');
+
+    // Inicializando o FullCalendar
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth', // Visão inicial do calendário
+        locale: 'pt-br', // Localização em português
+        events: events, // Passando os eventos para o calendário
+        eventClick: function(info) {
+            // Exibir detalhes ao clicar no evento
+            alert("Evento: " + info.event.title + "\nDescrição: " + info.event.extendedProps.description);
+        }
+    });
+
+    // Renderizando o calendário
+    calendar.render();
+}
+
+// Carregar os dados do calendário
+loadCalendarData();
+</script>
+
+
 </html>

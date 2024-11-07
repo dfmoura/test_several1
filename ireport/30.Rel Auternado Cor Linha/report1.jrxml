@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report1" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<queryString>
+		<![CDATA[select gru.codgrupoprod,count(*) total
+from tgfpro pro
+inner join tgfgru gru on pro.codgrupoprod = gru.codgrupoprod
+group by gru.codgrupoprod
+order by 2 desc]]>
+	</queryString>
+	<field name="codgrupoprod" class="java.math.BigDecimal"/>
+	<field name="total" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="79" splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="35" splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="20" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="96" height="20"/>
+				<textElement/>
+				<text><![CDATA[codgrupoprod]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="117" y="0" width="128" height="20"/>
+				<textElement/>
+				<text><![CDATA[total]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="33" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="96" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{codgrupoprod}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="117" y="0" width="128" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{total}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="445" y="0" width="100" height="20">
+					<printWhenExpression><![CDATA[$F{total}.compareTo(new java.math.BigDecimal(70)) > 0
+]]></printWhenExpression>
+				</reportElement>
+				<textElement/>
+				<text><![CDATA[ok]]></text>
+			</staticText>
+			<line>
+				<reportElement x="320" y="6" width="100" height="1">
+					<printWhenExpression><![CDATA[$F{total}.compareTo(new java.math.BigDecimal(70)) > 0
+]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="2.0" lineColor="#0033CC"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="320" y="19" width="100" height="1">
+					<printWhenExpression><![CDATA[$F{total}.compareTo(new java.math.BigDecimal(70)) <= 0
+]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="2.0" lineColor="#FF0000"/>
+				</graphicElement>
+			</line>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="45" splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="54" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="42" splitType="Stretch"/>
+	</summary>
+</jasperReport>
