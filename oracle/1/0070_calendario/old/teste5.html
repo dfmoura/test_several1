@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seleção de Cor - Pickr</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css" />
+    <style>
+        #corDisplay {
+            width: 200px;
+            height: 200px;
+            margin-top: 20px;
+            border: 2px solid #000;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Escolha uma cor com Pickr.js</h1>
+    <div id="pickr"></div>
+    <div id="corDisplay"></div>
+    <div id="hexColor"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+    <script>
+        const corDisplay = document.getElementById('corDisplay');
+        const hexColor = document.getElementById('hexColor');
+
+        // Inicializa o Pickr
+        const pickr = Pickr.create({
+            el: '#pickr',
+            theme: 'classic', // Tema clássico
+            swatches: [
+                '#ff0000', '#00ff00', '#0000ff',
+                '#f7b731', '#f85f73', '#7bed9f',
+            ],
+            components: {
+                preview: true,
+                opacity: true,
+                hue: true,
+                interaction: {
+                    hex: true,
+                    rgba: true,
+                    input: true
+                }
+            }
+        });
+
+        // Atualiza a cor de fundo e o código hexadecimal ao selecionar uma cor
+        pickr.on('change', (color) => {
+            const hex = color.toHEXA().toString(); // Pega a cor em formato HEX
+            corDisplay.style.backgroundColor = hex;
+            hexColor.textContent = `Cor selecionada: ${hex}`;
+        });
+    </script>
+
+</body>
+</html>

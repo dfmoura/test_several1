@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FullCalendar com Texto Riscado</title>
+    
+    <!-- Link para o FullCalendar CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.2.0/fullcalendar.min.css" rel="stylesheet">
+    
+    <!-- Estilo customizado para o texto riscado -->
+    <style>
+        /* Aplica o estilo de texto riscado a todos os eventos com a classe 'rasurado' */
+        .fc-event.rasurado {
+            text-decoration: line-through;
+            background-color: #f44336; /* Cor de fundo para os eventos riscado */
+            color: #fff; /* Cor do texto para contraste */
+        }
+
+        /* Estilo para os eventos no calendário */
+        .fc-event {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Contêiner para o calendário -->
+    <div id="calendar"></div>
+
+    <!-- Link para o FullCalendar JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.2.0/fullcalendar.min.js"></script>
+
+    <!-- Script para inicializar o FullCalendar e adicionar eventos -->
+    <script>
+        $(document).ready(function() {
+            $('#calendar').fullCalendar({
+                events: [
+                    {
+                        title: 'Evento A',
+                        start: '2024-11-10',
+                        className: 'rasurado'  // Aplica a classe para o evento ser riscado
+                    },
+                    {
+                        title: 'Evento B',
+                        start: '2024-11-12',
+                    },
+                    {
+                        title: 'Evento C',
+                        start: '2024-11-14',
+                        className: 'rasurado'  // Aplica a classe para o evento ser riscado
+                    }
+                ]
+            });
+        });
+    </script>
+</body>
+</html>

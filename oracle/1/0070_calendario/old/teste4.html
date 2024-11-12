@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seletor de Cor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        #corDisplay {
+            width: 200px;
+            height: 200px;
+            margin-top: 20px;
+            border: 2px solid #000;
+        }
+
+        .output {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Escolha uma cor</h1>
+    <input type="color" id="seletorCor" value="#ff0000">
+    
+    <div id="corDisplay"></div>
+
+    <div class="output">
+        Cor selecionada: <span id="hexColor">#ff0000</span>
+    </div>
+
+    <script>
+        // Obtendo os elementos HTML
+        const seletorCor = document.getElementById('seletorCor');
+        const corDisplay = document.getElementById('corDisplay');
+        const hexColor = document.getElementById('hexColor');
+
+        // Função para atualizar a cor exibida
+        seletorCor.addEventListener('input', function() {
+            const corSelecionada = seletorCor.value;
+            corDisplay.style.backgroundColor = corSelecionada;
+            hexColor.textContent = corSelecionada;
+        });
+    </script>
+
+</body>
+</html>

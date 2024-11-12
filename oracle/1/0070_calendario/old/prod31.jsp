@@ -22,47 +22,66 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            display: flex;
-            align-items: center;
-            background-color: #2C3E50;
+            background-color: #76828E;
             color: #fff;
-            padding: 10px 20px;
+            padding: 15px;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 40%;
             cursor: pointer;
             z-index: 1000;
             box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
             transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .overlay-btn:hover {
-            background-color: #1A252F;
+            background-color: #82a0be;
         }
 
         .overlay-btn img {
-            width: 20px;
-            height: 20px;
+            width: 30px;
+            height: 30px;
             margin-right: 8px;
+            align-items: center;
         }
 
-        /* Estilo da página e calendário */
+        /* Estilo da página */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             margin: 0;
             padding: 0;
         }
-        
+
+        /* Estilo do container principal */
+        .main-container {
+            display: flex;
+            margin: 20px;
+            justify-content: space-between;
+        }
+
+        /* Estilo do container da esquerda (Botão) */
+        .left-container {
+            width: 10%; /* 10% do espaço */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Estilo do container da direita (Calendário) */
+        .right-container {
+            width: 90%; /* 90% do espaço */
+        }
+
+        /* Estilo do calendário */
         #calendar {
             width: 100%;
             height: calc(100vh - 100px);
-            max-width: 1200px;
-            margin: 20px auto;
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
         }
     </style>
 </head>
@@ -70,68 +89,21 @@
 <body>
 
     <!-- Botão Overlay para adicionar novo registro -->
-    <button class="overlay-btn" data-toggle="modal" data-target="#addRecordModal">
+    <button class="overlay-btn" data-toggle="modal" data-target="#addRecordModal" title="Inserir Evento" onclick="abrir_evento()">
         <img src="https://raw.githubusercontent.com/dfmoura/test_several1/main/oracle/1/0070_calendario/add-circle-svgrepo-com.svg" alt="Add Icon">
-        Adicionar Novo Registro
     </button>
 
-    <div class="container mt-5">
-        <div id="calendar"></div> <!-- Calendário será exibido aqui -->
-    </div>
+    <!-- Container Principal com o Calendário e o Botão -->
+    <div class="container mt-5 main-container">
+        <!-- Container Esquerdo para o botão -->
+        <div class="left-container">
+            <!-- Botão que leva ao próximo nível -->
+            <button class="btn btn-primary" onclick="abrir_evento()">Próximo Nível</button>
+        </div>
 
-    <!-- Modal para inserção de dados -->
-    <div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addRecordModalLabel">Adicionar Novo Registro</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="addRecordForm">
-                        <!-- Campos de entrada -->
-                        <div class="form-group">
-                            <label for="COD_DESENV_PROJ">Projeto</label>
-                            <select class="form-control" id="COD_DESENV_PROJ" required>
-                                <!-- Populado via JavaScript -->
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="OBS">Observação</label>
-                            <textarea class="form-control" id="OBS" rows="2"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="CONCLUIDO">Concluído</label>
-                            <select class="form-control" id="CONCLUIDO">
-                                <option value="S">Sim</option>
-                                <option value="N">Não</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="DTAINICIO">Data de Início</label>
-                            <input type="date" class="form-control" id="DTAINICIO" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="DTAFIM">Data de Fim</label>
-                            <input type="date" class="form-control" id="DTAFIM">
-                        </div>
-                        <div class="form-group">
-                            <label for="HRINI">Hora de Início</label>
-                            <input type="time" class="form-control" id="HRINI">
-                        </div>
-                        <div class="form-group">
-                            <label for="HRFIM">Hora de Fim</label>
-                            <input type="time" class="form-control" id="HRFIM">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="saveRecord()">Salvar</button>
-                </div>
-            </div>
+        <!-- Container Direito para o Calendário -->
+        <div class="right-container">
+            <div id="calendar"></div> <!-- Calendário será exibido aqui -->
         </div>
     </div>
 
@@ -163,9 +135,11 @@
                             to_char(cal.dtafim,'YYYY-MM-DD')||'T' || TO_CHAR(LPAD(SUBSTR(TO_CHAR(cal.HRFIM), 1, LENGTH(TO_CHAR(cal.HRFIM)) - 2), 2, '0')) || ':' || 
                             SUBSTR(TO_CHAR(cal.HRFIM), -2) || ':00' END AS DTAFIM,
                             cal.obs,
-                            CASE WHEN cal.concluido = 'S' THEN 'Sim' ELSE 'Nao' END AS concluido
+                            CASE WHEN cal.concluido = 'S' THEN 'Sim' ELSE 'Nao' END AS concluido,
+                            cal.usuario
                         FROM AD_CALENDINOV cal
                         INNER JOIN AD_NOVOSPRODUTOS nov ON cal.cod_desenv_proj = nov.nrounico
+
                     `).then(function (data) {
                         const events = data.map(item => ({
                             title: item.DESCRICAO,
@@ -203,25 +177,45 @@
             });
         }
 
-        // Função para salvar o novo registro
+        // Função para abrir o evento
+        function abrir_evento(){
+            var params = '';
+            var level = 'lvl_cfk8k0';
+            openLevel(level, params);
+        }
+
+        // Função para salvar o novo registro na tabela AD_CALENDINOV
         function saveRecord() {
+            // Coletando dados do formulário
             const dados = {
-                COD_DESENV_PROJ: document.getElementById("COD_DESENV_PROJ").value,
-                OBS: document.getElementById("OBS").value,
-                CONCLUIDO: document.getElementById("CONCLUIDO").value,
-                DTAINICIO: document.getElementById("DTAINICIO").value,
-                DTAFIM: document.getElementById("DTAFIM").value,
-                HRINI: document.getElementById("HRINI").value,
-                HRFIM: document.getElementById("HRFIM").value,
-                USUARIO: 'Usuário Atual'
+                COD_DESENV_PROJ: document.getElementById("COD_DESENV_PROJ").value,  // Número do projeto (Number)
+                OBS: document.getElementById("OBS").value,                           // Observação (CLOB)
+                CONCLUIDO: document.getElementById("CONCLUIDO").value,               // Status (VARCHAR2)
+                DTAINICIO: document.getElementById("DTAINICIO").value,               // Data de início (DATE)
+                DTAFIM: document.getElementById("DTAFIM").value,                     // Data de fim (DATE)
+                HRINI: document.getElementById("HRINI").value ?                      // Hora de início (Number)
+                        parseInt(document.getElementById("HRINI").value.replace(':', '')) : null,
+                HRFIM: document.getElementById("HRFIM").value ?                      // Hora de fim (Number)
+                        parseInt(document.getElementById("HRFIM").value.replace(':', '')) : null
+                //USUARIO: getCurrentUserId()                                          // Código do usuário (Number)
             };
 
-            JX.salvar(dados, 'AD_CALENDINOV', [{}]).then(response => {
-                console.log('Registro salvo com sucesso:', response);
-                $('#addRecordModal').modal('hide');
-            }).catch(error => {
-                console.error('Erro ao salvar o registro:', error);
-            });
+            // Inserindo o registro na tabela sem especificar chave primária
+            JX.salvar(dados, 'AD_CALENDINOV', null)
+                .then(response => {
+                    console.log('Registro salvo com sucesso:', response);
+                    $('#addRecordModal').modal('hide');
+                    // Atualizar o calendário ou recarregar os eventos para exibir o novo registro
+                })
+                .catch(error => {
+                    console.error('Erro ao salvar o registro:', error);
+                });
+        }
+
+        // Função auxiliar para obter o ID do usuário atual (deve ser implementada conforme o contexto da aplicação)
+        function getCurrentUserId() {
+            // Retorna o ID do usuário logado (exemplo)
+            return 12345; // Exemplo de ID de usuário
         }
     </script>
 

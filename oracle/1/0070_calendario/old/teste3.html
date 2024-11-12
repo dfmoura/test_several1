@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FullCalendar com Dica de Tela Bonita</title>
+
+  <!-- Incluindo o CSS do FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css" rel="stylesheet">
+
+  <!-- Estilos personalizados -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f4f7fb;
+      color: #333;
+    }
+
+    #calendar {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .tooltip {
+      display: none;
+      position: absolute;
+      background-color: #333;
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0;
+    }
+
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: #333;
+      transform: rotate(45deg);
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+    }
+
+    .tooltip .date {
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    .tooltip .description {
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Elemento onde o calendário será renderizado -->
+  <div id="calendar"></div>
+
+  <!-- Dica de tela (tooltip) -->
+  <div id="tooltip" class="tooltip"></div>
+
+  <!-- Incluindo o FullCalendar JS -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+
+  <script>
+    // Função para formatar a data
+    function formatDate(date) {
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      return new Date(date).toLocaleDateString('pt-BR', options);
+    }
+
+    // Inicializando o FullCalendar
+    document.addEventListener('DOMContentLoaded', function() {
+      var calendarEl = document.getElementById('calendar');
+      var tooltip = document.getElementById('tooltip');
+
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        events: [
+          {
+            title: 'Reunião de Trabalho',
+            start: '2024-11-15',
+            description: 'Reunião importante sobre o projeto X.',
+            color: '#ff9f00'
+          },
+          {
+            title: 'Almoço com Cliente',
+            start: '2024-11-18',
+            description: 'Almoço para discutir novos negócios.',
+            color: '#ff3e96'
+          },
+          {
+            title: 'Conferência de Tecnologia',
+            start: '2024-11-20',
+            description: 'Palestras sobre as novas tendências tecnológicas.',
+            color: '#56ccf2'
+          }
+        ],
+        eventMouseEnter: function(info) {
+          var eventDate = formatDate(info.event.start); // Formata a data do evento
+          var description = info.event.extendedProps.description;
+
+          // Exibe o conteúdo no tooltip
+          tooltip.innerHTML = `
+            <div class="date">${eventDate}</div>
+            <div class="description">${description}</div>
+          `;
+          
+          tooltip.style.display = 'block';
+          tooltip.style.opacity = 1;
+          tooltip.style.transform = 'translateY(10px)';
+          tooltip.style.left = info.jsEvent.pageX + 10 + 'px';
+          tooltip.style.top = info.jsEvent.pageY + 10 + 'px';
+        },
+        eventMouseLeave: function() {
+          tooltip.style.opacity = 0;
+          tooltip.style.transform = 'translateY(0)';
+          setTimeout(function() {
+            tooltip.style.display = 'none';
+          }, 200); // Espera a animação de opacidade terminar
+        }
+      });
+
+      // Renderizando o calendário
+      calendar.render();
+    });
+  </script>
+
+</body>
+</html>
