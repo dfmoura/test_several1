@@ -20,6 +20,12 @@
         .row-spacing {
             margin-bottom: 15px;
         }
+        .table td {
+        white-space: nowrap; /* Impede a quebra de linha */
+        overflow: hidden; /* Esconde o conteúdo que ultrapassa o limite */
+        text-overflow: ellipsis; /* Adiciona reticências (...) ao conteúdo muito longo */
+        max-width: 150px; /* Defina um valor adequado para a largura máxima da coluna */
+        }          
     </style>
     <snk:load />
 </head>
