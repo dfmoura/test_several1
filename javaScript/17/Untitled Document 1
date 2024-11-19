@@ -1,0 +1,39 @@
+
+ Desafio
+
+No desenvolvimento de sistemas e páginas Web, é comum que um designer realize a prototipação das telas e o programador receba o material do designer para programar as páginas de acordo com o documento recebido.
+
+Nesse contexto, imagine que você esteja no início da carreira de desenvolvedor Web, mais especificamente na parte de desenvolvimento front end, começando a estudar HTML, CSS e JavaScript, e receba a seguinte demanda:
+
+1. html
+1.1 head
+1.1.1 title
+1.1.1.1 livraria on-line
+1.1.2 meta
+1.1.2.1 attribute: "name"
+1.1.2.1.1 author
+1.1.2.2 attribute: "content"
+1.1.2.2.1 professor sagah
+1.1.3 meta
+1.1.3.1 attribute: "name"
+1.1.3.1.1 keywords
+1.1.3.2 attribute: "content"
+1.1.3.2.1 livros, e-books, audiobooks
+1.2 body
+1.2.1 h1
+1.2.1.1 livros favoritos
+1.2.2 p
+1.2.2.1 a
+1.2.2.1.1 attribute: "href"
+1.2.2.1.1.1 www.livraria-online.com/biblioteca
+1.2.2.1.2 ver todos os livros
+1.2.3 ul
+1.2.3.1 li
+1.2.3.1.1 codigo limpo
+1.2.3.2 li
+1.2.3.2.1 business model generation
+1.2.3.3 li
+1.2.3.3.1 value proposition design
+
+
+De acordo com a árvore DOM recebida, seu Desafio é criar e apresentar o código em HTML para estruturar a página Web em questão.

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        var carros = [
+            "Uno",
+            "Fiesta",
+            "Ferrari",
+            "Fusca"
+        ];
+        console.log(carros);
+        console.log(carros[0]);
+        console.log("Tamanho: " + carros.length);
+        console.log("Ordenado: " + carros.sort());
+        console.log("Inverter: " + carros.reverse());
+        console.log("Unir: " + carros.join("*"));
+        console.log(carros.pop());
+        console.log("Unir: " + carros.join("|"));
+        console.log(carros.shift());
+        console.log("Unir: " + carros.join("|"));
+        console.log(carros.unshift("Uno"));
+        console.log("Unir: " + carros.join("|"));
+        console.log(carros.indexOf("Fusca"));
+        console.log("Unir: " + carros.join("|"));        
+
+
+        for (i = 0; i < carros.length; i++){
+            console.log("Posicao: " + i + " | Valor: " + carros[i]);
+        }
+
+        for (let i in carros){
+            console.log("Posicao: " + i + " | Valor: " + carros[i]);
+        }
+
+        var d = new Date();
+        console.log(d);
+
+        obj_data = new Date();
+        console.log(obj_data);
+        obj_data.getDate();
+        console.log(obj_data.getDate());
+        console.log(obj_data.getDay());
+        console.log(obj_data.getHours());
+        console.log(obj_data.getMinutes());
+        console.log(obj_data.getSeconds());
+        console.log(obj_data.getMilliseconds());
+        console.log(obj_data.getYear());
+        console.log(obj_data.getFullYear());
+
+        var semana = [
+            "Domingo",
+            "Segunda-feira",
+            "Terca-feira",
+            "Quarta-feira",
+            "Quinta-feira",
+            "Sexta-feira",
+            "Sabado"
+        ];
+
+        console.log("Hoje eh: "+semana[obj_data.getDay()]);
+
+        var mes = [
+            "Janeiro",
+            "Fevereiro",
+            "Marco",
+            "Abril",
+            "Maio",
+            "Junho",
+            "Julho",
+            "Agosto",
+            "Setembro",
+            "Outubro",
+            "Novembro",
+            "Dezembro"
+        ]
+
+        console.log("Hoje eh o mes de: "+mes[obj_data.getMonth()]);
+
+
+
+        var nomes=new Array(); 
+        nomes[0] ="Ana"; 
+        nomes[1] ="Pedro"; 
+        nomes[2] ="Jorge";
+
+        console.log(nomes);            
+
+        var pessoas = ["Pedro", "Marcos", "Alberto", "Betânia"];
+        
+
+    </script>
+    
+</body>
+</html>

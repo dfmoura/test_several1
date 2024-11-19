@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+
+</head>
+
+
+
+
+<body onload="alert('Seja bem vindo!');">
+
+    <b>Uso do evento onClick()</b><br><br>
+
+    <input type="button" name="Button1" value="Clique aqui" onClick="alert('Voce clicou no botao')"> <br><br>
+
+    <b>Uso do evento onMouseOver()</b><br><br>
+    <a href="http://www.uniube.br" onMouseOver="alert('Voce moveu o mouse sobre o texto do link');">Posicione o mouse
+        aqui para ver o evento onMouseOver</a><br>
+
+    <b>Uso do evento onMouseOut()</b><br><br>
+    <a href="http://www.uniube.br" onMouseOut="alert('Voce moveu o mouse fora do texto do link');">Posicione o mouse
+        aqui para ver o evento onMouseOut</a><br><br>
+
+    <b>Uso do evento onMouseDown()</b><br><br>
+    <input type="button" name="Button2" value="Clique aqui" onClick="alert('Voce clicou em um botao do mouse')">
+    <br><br>
+
+    <b>Uso do evento onMouseUp() - Mantenha o botao pressionado por alguns segundos</b><br><br>
+    <input type="button" name="Button3" value="Clique aqui" onClick="alert('Voce soltou o botao do mouse')"> <br><br>
+
+    <b>Uso do evento onFocus()</b><br><br>
+    <input type="text" name="txtNome" onblur="alert('Digite seu nome completo');">
+    
+    <div id="resultado"></div>
+
+    <script>
+        function teste(n) {
+            var texto = "";
+            var i = 1;
+            while (i <= n) {
+                texto += i + ';';
+                i++;
+            } return texto;
+        }
+
+        var resultado = teste(5); // Altere o valor conforme necessário
+        document.getElementById("resultado").innerText = resultado;    
+    </script>
+
+
+</body>
+
+</html>

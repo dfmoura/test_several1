@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script type="text/javascript">
+        function ola() {
+            alert("Bem-vindo ao teste!");
+        }
+
+        function calcularRetangulo(b, h) {
+            var area = b * h;
+            var perimetro = (b + h) * 2;
+            alert("Area: " + area + "\nPerimetro: " + perimetro);
+        }
+
+
+        function calcularRetangulo1(b, h) {
+            return b * h;
+        }
+
+
+        function calculoRetangulo1(b, h) {
+            var area = b * h;
+            var perimetro = (b + h) * 2;
+            return [area, perimetro];
+        }
+
+        function calculoRetangulo2(b, h) {
+            var area = b * h;
+            var perimetro = (b + h) * 2;
+            return {
+                'area': area,
+                'perimetro': perimetro
+            };
+        }
+
+
+        function testeEscopo() {
+            soma = 2 + 6;
+            alert("A soma eh: " + soma);
+        };
+
+        testeEscopo();
+
+        try {
+            alert("O dobro da soma eh: " + 2 * soma);
+        } catch (e) {
+            alert(e.message)
+        };
+
+
+        let paragrafo = document.createElement("p");
+        paragrafo.textContent = "Este é um novo parágrafo."; // Adiciona texto ao parágrafo
+        document.body.appendChild(paragrafo);
+
+
+    </script>
+    <title>Document</title>
+</head>
+
+<body>
+
+    <button type="button" onclick="ola()">Executar funcao</button>
+    <button type="button" onclick="calcularRetangulo(5,10)">Executar funcao</button>
+    <button type="button" onclick="alert(calcularRetangulo1(5,10))">Executar funcao</button>
+    <button type="button"
+        onclick="var resultados = calculoRetangulo1(5,10); alert('Area: '+resultados[0]); alert('Perimetro: '+ resultados[1])">Executar
+        funcao</button>
+    <button type="button"
+        onclick="var resultados = calculoRetangulo2(8,4); alert('Area: '+resultados['area']); alert('Perimetro: '+ resultados['perimetro'])">Executar
+        funcao</button>
+
+
+</body>
+
+</html>

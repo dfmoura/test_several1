@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Título da Página na Aba</title>
+    <script>
+        var capturado = "";
+        function capturar() {
+            capturado = document.getElementById('valor').value;
+            document.getElementById('valorDigitado').innerHTML = capturado;
+        }
+    </script>
+</head>
+
+<body>
+    <h1>Título da Página</h1>
+    <input type="text" id=valor>
+    <input type="submit" onclick="capturar()" value="Clique aqui!">
+    <p id="valorDigitado"></p>
+</body>
+
+</html>
