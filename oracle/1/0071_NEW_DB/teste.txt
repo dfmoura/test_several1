@@ -1,0 +1,209 @@
+Para criar um projeto simples de banco de dados Oracle para movimentação bancária, vamos seguir os seguintes passos:
+
+### 1. **Criação do ERD (Diagrama de Entidade-Relacionamento)**
+
+Vamos imaginar um ERD básico com as seguintes entidades:
+- **Cliente**: Armazena informações do cliente.
+- **Conta**: Armazena dados sobre as contas bancárias.
+- **Transação**: Registra as movimentações de débito e crédito nas contas.
+- **Agência**: Dados da agência bancária.
+
+Abaixo está uma descrição das tabelas e seus atributos:
+
+1. **Cliente**:
+   - ID_Cliente (PK)
+   - Nome
+   - CPF
+   - Endereço
+
+2. **Agência**:
+   - ID_Agência (PK)
+   - Nome_Agência
+   - Endereço_Agência
+
+3. **Conta**:
+   - ID_Conta (PK)
+   - Saldo
+   - Tipo_Conta (Corrente/Poupança)
+   - ID_Cliente (FK)
+   - ID_Agência (FK)
+
+4. **Transação**:
+   - ID_Transação (PK)
+   - Tipo (Débito/Crédito)
+   - Valor
+   - Data_Transação
+   - ID_Conta (FK)
+
+### 2. **Criar as Tabelas**
+
+Abaixo estão os comandos SQL para criar as tabelas, incluindo os tipos de dados e constraints.
+
+```sql
+-- Criação da tabela Cliente
+CREATE TABLE Cliente (
+    ID_Cliente INT PRIMARY KEY,
+    Nome VARCHAR2(100),
+    CPF VARCHAR2(11) UNIQUE,
+    Endereço VARCHAR2(200)
+);
+
+-- Criação da tabela Agência
+CREATE TABLE Agência (
+    ID_Agência INT PRIMARY KEY,
+    Nome_Agência VARCHAR2(100),
+    Endereço_Agência VARCHAR2(200)
+);
+
+-- Criação da tabela Conta
+CREATE TABLE Conta (
+    ID_Conta INT PRIMARY KEY,
+    Saldo DECIMAL(10, 2) DEFAULT 0,
+    Tipo_Conta VARCHAR2(10) CHECK (Tipo_Conta IN ('Corrente', 'Poupança')),
+    ID_Cliente INT,
+    ID_Agência INT,
+    CONSTRAINT FK_Cliente FOREIGN KEY (ID_Cliente) REFERENCES Cliente(ID_Cliente),
+    CONSTRAINT FK_Agência FOREIGN KEY (ID_Agência) REFERENCES Agência(ID_Agência)
+);
+
+-- Criação da tabela Transação
+CREATE TABLE Transação (
+    ID_Transação INT PRIMARY KEY,
+    Tipo VARCHAR2(10) CHECK (Tipo IN ('Débito', 'Crédito')),
+    Valor DECIMAL(10, 2),
+    Data_Transação DATE DEFAULT SYSDATE,
+    ID_Conta INT,
+    CONSTRAINT FK_Conta FOREIGN KEY (ID_Conta) REFERENCES Conta(ID_Conta)
+);
+```
+
+### 3. **Adicionar Constraints**
+
+Já adicionamos algumas constraints nas tabelas, como:
+- **Chaves primárias (PRIMARY KEY)**.
+- **Chaves estrangeiras (FOREIGN KEY)**.
+- **Verificação de valores (CHECK)**.
+
+### 4. **Criar Views**
+
+As views podem ser úteis para simplificar consultas complexas. Exemplo de uma view para mostrar as transações por cliente:
+
+```sql
+CREATE VIEW Vw_Transações_Cliente AS
+SELECT c.Nome, t.Tipo, t.Valor, t.Data_Transação
+FROM Cliente c
+JOIN Conta co ON c.ID_Cliente = co.ID_Cliente
+JOIN Transação t ON co.ID_Conta = t.ID_Conta;
+```
+
+### 5. **Criar Sequências**
+
+As sequências são úteis para gerar valores únicos para as chaves primárias. Aqui estão exemplos de sequências para as tabelas `Cliente`, `Conta` e `Transação`.
+
+```sql
+-- Sequência para Cliente
+CREATE SEQUENCE seq_cliente
+START WITH 1
+INCREMENT BY 1;
+
+-- Sequência para Conta
+CREATE SEQUENCE seq_conta
+START WITH 1
+INCREMENT BY 1;
+
+-- Sequência para Transação
+CREATE SEQUENCE seq_transacao
+START WITH 1
+INCREMENT BY 1;
+```
+
+### 6. **Adicionar Dados às Tabelas**
+
+Agora, vamos adicionar alguns dados de exemplo nas tabelas.
+
+```sql
+-- Inserir dados na tabela Cliente
+INSERT INTO Cliente (ID_Cliente, Nome, CPF, Endereço)
+VALUES (seq_cliente.NEXTVAL, 'João Silva', '12345678901', 'Rua A, 123');
+
+-- Inserir dados na tabela Agência
+INSERT INTO Agência (ID_Agência, Nome_Agência, Endereço_Agência)
+VALUES (1, 'Agência Centro', 'Rua B, 456');
+
+-- Inserir dados na tabela Conta
+INSERT INTO Conta (ID_Conta, Saldo, Tipo_Conta, ID_Cliente, ID_Agência)
+VALUES (seq_conta.NEXTVAL, 1000.00, 'Corrente', 1, 1);
+
+-- Inserir dados na tabela Transação
+INSERT INTO Transação (ID_Transação, Tipo, Valor, ID_Conta)
+VALUES (seq_transacao.NEXTVAL, 'Débito', 200.00, 1);
+
+INSERT INTO Transação (ID_Transação, Tipo, Valor, ID_Conta)
+VALUES (seq_transacao.NEXTVAL, 'Crédito', 300.00, 1);
+```
+
+### 7. **Criar Índices**
+
+Índices são importantes para melhorar o desempenho das consultas.
+
+```sql
+-- Criar índice para o CPF da tabela Cliente
+CREATE INDEX idx_cliente_cpf ON Cliente(CPF);
+
+-- Criar índice para o tipo de transação
+CREATE INDEX idx_transacao_tipo ON Transação(Tipo);
+```
+
+### 8. **Criar Sinônimos**
+
+Sinônimos são úteis para simplificar o acesso às tabelas e objetos.
+
+```sql
+-- Criar sinônimo para a tabela Cliente
+CREATE SYNONYM Cliente_Syn FOR Cliente;
+
+-- Criar sinônimo para a tabela Transação
+CREATE SYNONYM Transacao_Syn FOR Transação;
+```
+
+### 9. **Testar o Banco de Dados**
+
+Agora vamos testar as consultas para garantir que tudo está funcionando.
+
+```sql
+-- Consultar as transações de um cliente específico
+SELECT * FROM Vw_Transações_Cliente WHERE Nome = 'João Silva';
+
+-- Consultar saldo de uma conta
+SELECT Saldo FROM Conta WHERE ID_Conta = 1;
+
+-- Consultar todas as transações de uma conta
+SELECT * FROM Transação WHERE ID_Conta = 1;
+```
+
+### 10. **Projeto Final**
+
+Aqui está o resumo do que foi feito:
+
+1. **Tabelas**:
+   - Cliente, Conta, Transação e Agência.
+   - Chaves primárias, estrangeiras e constraints de integridade.
+
+2. **Views**:
+   - `Vw_Transações_Cliente` para visualizar transações de clientes.
+
+3. **Sequências**:
+   - `seq_cliente`, `seq_conta`, `seq_transacao` para auto-incremento de IDs.
+
+4. **Índices**:
+   - Índices nas colunas CPF (Cliente) e Tipo (Transação).
+
+5. **Sinônimos**:
+   - `Cliente_Syn` e `Transacao_Syn` para facilitar o acesso.
+
+6. **Testes**:
+   - Consultas SQL para verificar o funcionamento das tabelas e relacionamentos.
+
+### Conclusão
+
+Com isso, o banco de dados Oracle para movimentação bancária foi criado com sucesso, incluindo tabelas, dados, índices, sequências, views, sinônimos e testes básicos de funcionamento.

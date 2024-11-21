@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exibir Indicador Café</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .value {
+      font-size: 24px;
+      font-weight: bold;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <h1>Indicador do Café</h1>
+  <p>Valor do Café: <span class="value" id="cafeValor">Carregando...</span></p>
+
+  <script>
+    // Função para realizar o scraping
+    async function fetchCafeData() {
+      const response = await fetch('https://www.cepea.esalq.usp.br/br/indicador/cafe.aspx');
+      const html = await response.text();
+
+      // Criar um documento DOM temporário para manipulação do HTML
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+
+      // Usando o XPath fornecido para pegar o valor
+      const cafeValue = doc.evaluate('/html/body/div/div[3]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/table/tbody/tr[1]/td[2]', doc, null, XPathResult.STRING_TYPE, null).stringValue;
+
+      // Exibir o valor na página
+      document.getElementById('cafeValor').textContent = cafeValue;
+    }
+
+    // Chama a função de scraping quando a página carrega
+    fetchCafeData();
+  </script>
+</body>
+</html>
