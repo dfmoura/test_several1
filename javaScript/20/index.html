@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cachoeira Simulada</title>
+  <style>
+    .cachoeira {
+  width: 300px;
+  height: 400px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cachoeira::before,
+.cachoeira::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 50px;
+  background: #0099ff;
+  border-radius: 50%;
+  animation: cair 2s infinite linear;
+}
+
+.cachoeira::before {
+  left: 10px;
+  animation-delay: 0.2s;
+}
+
+.cachoeira::after {
+  right: 10px;
+  animation-delay: 0.4s;
+}
+
+@keyframes cair {
+  0% {
+    top: -50px;
+  }
+  100% {
+    top: 400px;
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="cachoeira"></div>
+  <script>
+    const cachoeira = document.querySelector('.cachoeira');
+
+for (let i = 0; i < 10; i++) {
+  const gota = document.createElement('div');
+  gota.classList.add('gota');
+  gota.style.left = `${Math.random() * 280}px`;
+  gota.style.animationDelay = `${Math.random() * 2}s`;
+  cachoeira.appendChild(gota);
+}
+
+.gota {
+  /* Estilos para as gotas individuais */
+  width: 3px;
+  height: 30px;
+  background: #0099ff;
+  border-radius: 50%;
+  position: absolute;
+  animation: cair 2s infinite linear;
+}
+  </script>
+</body>
+</html>

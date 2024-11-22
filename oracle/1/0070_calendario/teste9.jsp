@@ -68,7 +68,7 @@
         function obterCodigoGrupo() {
             // Aqui você pode pegar o valor do localStorage ou da URL
             // Exemplo usando localStorage (defina o valor anteriormente com openLevel)
-            const codGrupo = localStorage.getItem('A_CODCAL');
+            const codGrupo = localStorage.getItem('A_CODGRUPO');
             
             if (codGrupo) {
                 return codGrupo;

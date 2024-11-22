@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa com Coordenadas</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            height: 100vh;
+        }
+
+        #coordenadas {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="coordenadas">Coordenadas: []</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.polylineDecorator/dist/leaflet.polylineDecorator.js"></script>
+<script>
+    // Variável para armazenar as coordenadas
+    let coordenadas = [];
+
+    // Função para inicializar o mapa com a localização atual
+    function inicializarMapa(latitude, longitude) {
+        const map = L.map('map').setView([latitude, longitude], 13); // Define o centro inicial e o zoom do mapa
+
+        // Adicionar o tile layer (imagem de fundo do mapa)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Adicionar marcador na localização inicial (posição atual)
+        L.marker([latitude, longitude]).addTo(map);
+
+        // Atualizar o painel com a coordenada inicial
+        coordenadas.push([latitude, longitude]);
+        document.getElementById('coordenadas').textContent = 'Coordenadas: ' + JSON.stringify(coordenadas);
+
+        // Função para lidar com o clique no mapa
+        map.on('click', function(e) {
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
+
+            // Armazenar coordenada
+            coordenadas.push([lat, lon]);
+
+            // Atualizar o painel com as coordenadas
+            document.getElementById('coordenadas').textContent = 'Coordenadas: ' + JSON.stringify(coordenadas);
+
+            // Adicionar marcador no mapa
+            L.marker([lat, lon]).addTo(map);
+
+            // Conectar os pontos com uma linha
+            if (coordenadas.length > 1) {
+                const polyline = L.polyline(coordenadas, {color: 'blue'}).addTo(map);
+            }
+        });
+    }
+
+    // Verificar se o navegador suporta geolocalização e pegar a localização do usuário
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            // Inicializar o mapa com a localização atual
+            inicializarMapa(lat, lon);
+        }, function(error) {
+            alert("Erro ao obter a localização. Usando uma posição padrão.");
+            // Se não conseguir pegar a localização, usa uma posição padrão
+            inicializarMapa(51.505, -0.09);  // Posição padrão em Londres
+        });
+    } else {
+        alert("Geolocalização não suportada pelo navegador.");
+        // Se a geolocalização não for suportada, usa uma posição padrão
+        inicializarMapa(51.505, -0.09);  // Posição padrão em Londres
+    }
+</script>
+
+</body>
+</html>

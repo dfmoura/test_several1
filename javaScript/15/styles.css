@@ -111,6 +111,39 @@ header button:hover {
     color: #5D4037;
 }
 
+.card-footer {
+    margin-top: 1em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+    color: #757575;
+    border-top: 1px solid #E0E0E0;
+    padding-top: 0.5em;
+}
+
+.card-footer .date {
+    font-style: italic;
+}
+
+.card-footer .variation {
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.card-footer .variation.positive {
+    color: #2E7D32; /* Verde para variações positivas */
+    background-color: #E8F5E9;
+}
+
+.card-footer .variation.negative {
+    color: #C62828; /* Vermelho para variações negativas */
+    background-color: #FFEBEE;
+}
+
+
+
 @media (max-width: 600px) {
     .dashboard-content {
         flex-direction: column;

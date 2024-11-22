@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Interativo</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        /* Configuração do layout da página */
+        body {
+            display: flex;
+            margin: 0;
+            height: 100vh;
+        }
+
+        #map {
+            width: 75%;
+            height: 100%;
+        }
+
+        #coord-table {
+            width: 25%;
+            height: 100%;
+            background-color: #f4f4f4;
+            padding: 10px;
+            overflow-y: auto;
+            border-left: 2px solid #ddd;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        /* Estilo para a posição da tabela */
+        .coord-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Mapa -->
+    <div id="map"></div>
+
+    <!-- Tabela com as coordenadas -->
+    <div id="coord-table">
+        <h3>Coordenadas</h3>
+        <table id="coord-list">
+            <thead>
+                <tr>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- As coordenadas serão inseridas aqui -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        // Inicializando o mapa
+        var map = L.map('map').setView([0, 0], 2); // Inicia com uma visão global
+
+        // Adicionando o mapa base
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Função para pegar a localização atual
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var lat = position.coords.latitude;
+                    var lon = position.coords.longitude;
+                    map.setView([lat, lon], 13); // Centraliza o mapa na localização atual
+                    addPointToMap(lat, lon); // Adiciona o primeiro ponto
+                });
+            } else {
+                alert("Geolocalização não é suportada neste navegador.");
+            }
+        }
+
+        // Array para armazenar as coordenadas
+        var coordinates = [];
+        var polyline = L.polyline([], {color: 'blue'}).addTo(map);
+
+        // Função para adicionar um ponto ao mapa e ao array
+        function addPointToMap(lat, lon) {
+            var point = [lat, lon];
+            coordinates.push(point);
+            polyline.addLatLng(point); // Conecta os pontos com uma linha
+
+            // Atualiza a tabela com as coordenadas
+            var table = document.getElementById('coord-list').getElementsByTagName('tbody')[0];
+            var newRow = table.insertRow();
+            var cell1 = newRow.insertCell(0);
+            var cell2 = newRow.insertCell(1);
+            cell1.textContent = lat.toFixed(6);
+            cell2.textContent = lon.toFixed(6);
+        }
+
+        // Evento de clique no mapa
+        map.on('click', function(event) {
+            addPointToMap(event.latlng.lat, event.latlng.lng);
+        });
+
+        // Chama a função para pegar a localização atual
+        getCurrentLocation();
+    </script>
+
+</body>
+</html>

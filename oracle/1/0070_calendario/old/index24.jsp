@@ -312,6 +312,8 @@
                 });
             }
         });
+        
+
 
         // Função para gerar uma cor aleatória em formato hexadecimal
         function gerarCorAleatoria() {
@@ -349,6 +351,7 @@
             document.getElementById('CORFONTE').style.color = corFonte;
         }
 
+
         // Função para resetar o formulário
         function resetForm() {
             codigoAtual = null;
@@ -360,6 +363,9 @@
         document.getElementById('btnCancelar').addEventListener('click', function () {
             resetForm(); // Reseta o formulário
         });
+
+
+
 
         
         // Carregar os dados ao iniciar a página

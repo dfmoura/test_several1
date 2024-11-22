@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa com Coordenadas</title>
+  <!-- Adicionando o Bootstrap para layout e o Leaflet para o mapa -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    /* Estilo para o mapa */
+    #mapa {
+      height: 500px;
+    }
+    /* Ajuste de margem para tabela */
+    .table {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="row">
+      <!-- Mapa no canto direito -->
+      <div class="col-md-8">
+        <div id="mapa"></div>
+      </div>
+
+      <!-- Tabela de coordenadas no lado esquerdo -->
+      <div class="col-md-4">
+        <h3>Coordenadas Selecionadas</h3>
+        <table class="table table-bordered">
+          <tbody>
+            <tr>
+              <td><strong>Latitude:</strong></td>
+              <td><span id="latitude">-</span></td>
+            </tr>
+            <tr>
+              <td><strong>Longitude:</strong></td>
+              <td><span id="longitude">-</span></td>
+            </tr>
+            <tr>
+              <td><strong>Altitude:</strong></td>
+              <td><span id="altitude">-</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Adicionando scripts do Bootstrap e Leaflet -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <script>
+    // Inicializa o mapa no Leaflet
+    var map = L.map('mapa').setView([51.505, -0.09], 13); // Coordenadas iniciais (lat, lon)
+
+    // Adiciona o tileLayer do OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Evento de clique no mapa para capturar coordenadas
+    map.on('click', function(e) {
+      var lat = e.latlng.lat;
+      var lon = e.latlng.lng;
+      
+      // Atualizar as coordenadas na tabela
+      document.getElementById("latitude").textContent = lat.toFixed(6);
+      document.getElementById("longitude").textContent = lon.toFixed(6);
+
+      // Caso você tenha algum mecanismo para calcular a altitude, ele seria adicionado aqui
+      // Por exemplo, se a API fornecesse altitude, você atualizaria da mesma maneira:
+      document.getElementById("altitude").textContent = "-"; // Coloque a lógica de altitude aqui, se disponível
+    });
+  </script>
+</body>
+</html>

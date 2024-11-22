@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa com Rota e Traçado Contínuo</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            height: 100vh;
+        }
+
+        #map {
+            width: 75%;
+            height: 100%;
+        }
+
+        #coord-table {
+            width: 25%;
+            height: 100%;
+            background-color: #f4f4f4;
+            padding: 10px;
+            overflow-y: auto;
+            border-left: 2px solid #ddd;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Mapa -->
+    <div id="map"></div>
+
+    <!-- Tabela com as coordenadas -->
+    <div id="coord-table">
+        <h3>Coordenadas</h3>
+        <table id="coord-list">
+            <thead>
+                <tr>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Coordenadas aparecerão aqui -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        // Inicializando o mapa
+        var map = L.map('map').setView([0, 0], 2);
+
+        // Adicionando o mapa base
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Array para armazenar os pontos clicados
+        var coordinates = [];
+
+        // Polilinha para conectar os pontos clicados
+        var polyline = L.polyline([], { color: 'blue', weight: 4 }).addTo(map);
+
+        // Obter localização atual do usuário
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    var lat = position.coords.latitude;
+                    var lon = position.coords.longitude;
+                    map.setView([lat, lon], 13);
+                    addPointToMap(lat, lon); // Adiciona o ponto inicial no mapa
+                });
+            } else {
+                alert("Geolocalização não é suportada pelo navegador.");
+            }
+        }
+
+        // Adicionando um ponto no mapa
+        function addPointToMap(lat, lon) {
+            var point = [lat, lon];
+            coordinates.push(point);
+
+            L.marker(point).addTo(map); // Adiciona um marcador no mapa
+
+            // Adiciona o ponto à polilinha para conectar os pontos
+            polyline.addLatLng(point);
+
+            // Atualiza a tabela com as coordenadas
+            var table = document.getElementById('coord-list').getElementsByTagName('tbody')[0];
+            var newRow = table.insertRow();
+            var cell1 = newRow.insertCell(0);
+            var cell2 = newRow.insertCell(1);
+            cell1.textContent = lat.toFixed(6);
+            cell2.textContent = lon.toFixed(6);
+
+            // Se houver ao menos dois pontos, traça a rota entre os últimos dois
+            if (coordinates.length > 1) {
+                drawSegment(coordinates[coordinates.length - 2], coordinates[coordinates.length - 1]);
+            }
+        }
+
+        // Função para traçar o segmento entre dois pontos com OSRM API
+        function drawSegment(start, end) {
+            var osrmURL = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
+
+            fetch(osrmURL)
+                .then(response => response.json())
+                .then(data => {
+                    var route = data.routes[0];
+                    var geojson = route.geometry;
+
+                    // Adiciona o segmento da rota ao mapa
+                    L.geoJSON(geojson, {
+                        style: { color: 'green', weight: 4 }
+                    }).addTo(map);
+                })
+                .catch(error => {
+                    console.error("Erro ao traçar o segmento:", error);
+                });
+        }
+
+        // Evento de clique no mapa
+        map.on('click', function (event) {
+            addPointToMap(event.latlng.lat, event.latlng.lng);
+        });
+
+        // Inicializa o mapa com a localização atual
+        getCurrentLocation();
+    </script>
+
+</body>
+</html>
