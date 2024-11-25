@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscar Endereço no Mapa</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            height: 90vh;
+        }
+
+        #search {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+            max-width: 300px;
+        }
+
+        #search input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #search button {
+            width: 100%;
+            padding: 7px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #search button:hover {
+            background-color: #0056b3;
+        }
+
+        #info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<div id="search">
+    <label for="endereco">Digite o endereço:</label>
+    <input type="text" id="endereco" placeholder="Ex: Avenida Paulista, São Paulo">
+    <button onclick="buscarEndereco()">Buscar</button>
+</div>
+
+<div id="map"></div>
+
+<div id="info">
+    <p><strong>Coordenadas:</strong> <span id="coords">[Nenhuma]</span></p>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    // Inicializar o mapa
+    const map = L.map('map').setView([-23.55052, -46.633308], 13); // Posição inicial em São Paulo
+
+    // Adicionar camada de fundo do mapa
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Adicionar marcador variável
+    let marcador;
+
+    // Função para buscar o endereço e localizar no mapa
+    async function buscarEndereco() {
+        const endereco = document.getElementById('endereco').value;
+
+        if (!endereco) {
+            alert("Por favor, insira um endereço.");
+            return;
+        }
+
+        try {
+            // Chamar a API de geocodificação
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(endereco)}&format=json&addressdetails=1`);
+            const data = await response.json();
+
+            if (data.length === 0) {
+                alert("Endereço não encontrado. Tente novamente.");
+                return;
+            }
+
+            // Obter as coordenadas do primeiro resultado
+            const { lat, lon, display_name } = data[0];
+
+            // Atualizar o mapa e o marcador
+            const coordenadas = [parseFloat(lat), parseFloat(lon)];
+            map.setView(coordenadas, 15);
+
+            if (marcador) {
+                map.removeLayer(marcador); // Remover marcador anterior, se existir
+            }
+
+            marcador = L.marker(coordenadas).addTo(map).bindPopup(display_name).openPopup();
+
+            // Atualizar painel com as coordenadas
+            document.getElementById('coords').textContent = `[${lat}, ${lon}]`;
+        } catch (error) {
+            console.error("Erro ao buscar o endereço:", error);
+            alert("Erro ao buscar o endereço. Verifique sua conexão ou tente novamente.");
+        }
+    }
+</script>
+
+</body>
+</html>

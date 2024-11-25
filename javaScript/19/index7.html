@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa com Linha Reta e Distâncias</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            height: 100vh;
+        }
+
+        #map {
+            width: 75%;
+            height: 100%;
+        }
+
+        #coord-table {
+            width: 25%;
+            height: 100%;
+            background-color: #f4f4f4;
+            padding: 10px;
+            overflow-y: auto;
+            border-left: 2px solid #ddd;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Mapa -->
+    <div id="map"></div>
+
+    <!-- Tabela com as coordenadas -->
+    <div id="coord-table">
+        <h3>Coordenadas</h3>
+        <table id="coord-list">
+            <thead>
+                <tr>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Metros</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Coordenadas aparecerão aqui -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        // Inicializando o mapa
+        var map = L.map('map').setView([0, 0], 2);
+
+        // Adicionando o mapa base
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Array para armazenar os pontos clicados
+        var coordinates = [];
+
+        // Polilinha para conectar os pontos clicados
+        var polyline = L.polyline([], { color: 'blue', weight: 4 }).addTo(map);
+
+        // Distância acumulada
+        var totalDistance = 0;
+
+        // Função para calcular a distância entre dois pontos (em metros)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Raio da Terra em metros
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c; // Distância em metros
+        }
+
+        // Obter localização atual do usuário
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    var lat = position.coords.latitude;
+                    var lon = position.coords.longitude;
+                    map.setView([lat, lon], 13);
+                    addPointToMap(lat, lon); // Adiciona o ponto inicial no mapa
+                });
+            } else {
+                alert("Geolocalização não é suportada pelo navegador.");
+            }
+        }
+
+        // Adicionando um ponto no mapa
+        function addPointToMap(lat, lon) {
+            var point = [lat, lon];
+            coordinates.push(point);
+
+            L.marker(point).addTo(map); // Adiciona um marcador no mapa
+
+            // Adiciona o ponto à polilinha para conectar os pontos
+            polyline.addLatLng(point);
+
+            // Calcula a distância se houver ao menos dois pontos
+            if (coordinates.length > 1) {
+                const prevPoint = coordinates[coordinates.length - 2];
+                const segmentDistance = calculateDistance(prevPoint[0], prevPoint[1], lat, lon);
+                totalDistance += segmentDistance; // Atualiza a distância acumulada
+            }
+
+            // Atualiza a tabela com as coordenadas e a distância acumulada
+            updateTable(lat, lon, totalDistance);
+        }
+
+        // Atualiza a tabela com as coordenadas e a distância acumulada
+        function updateTable(lat, lon, distance) {
+            var table = document.getElementById('coord-list').getElementsByTagName('tbody')[0];
+            var newRow = table.insertRow();
+            var cell1 = newRow.insertCell(0);
+            var cell2 = newRow.insertCell(1);
+            var cell3 = newRow.insertCell(2);
+            cell1.textContent = lat.toFixed(6);
+            cell2.textContent = lon.toFixed(6);
+            cell3.textContent = distance.toFixed(2) + " m";
+        }
+
+        // Evento de clique no mapa
+        map.on('click', function (event) {
+            addPointToMap(event.latlng.lat, event.latlng.lng);
+        });
+
+        // Inicializa o mapa com a localização atual
+        getCurrentLocation();
+    </script>
+
+</body>
+</html>
