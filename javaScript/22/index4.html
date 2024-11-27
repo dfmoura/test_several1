@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Localização Atual</title>
+    <style>
+        #ar-text {
+            width: 300px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <h1>Localização Atual</h1>
+
+    <!-- Botões de controle -->
+    <button id="start-btn">Iniciar Captura</button>
+    <button id="pause-btn" disabled>Pausar Captura</button>
+    <button id="stop-btn" disabled>Parar Captura</button>
+
+    <!-- Elemento de texto para exibir a posição atual -->
+    <input type="text" id="ar-text" value="AR Content at Lat: , Long: " readonly>
+
+    <!-- Elemento para exibir conteúdo AR na posição atual -->
+    <a-scene embedded arjs>
+        <a-marker preset="hiro">
+            <a-entity id="gps-entity" gps-entity-place=""></a-entity>
+        </a-marker>
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <!-- Tabela para exibir histórico de coordenadas -->
+    <h2>Histórico de Coordenadas</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+            </tr>
+        </thead>
+        <tbody id="coordinates-table-body">
+            <!-- As coordenadas serão adicionadas aqui dinamicamente -->
+        </tbody>
+    </table>
+
+    <script>
+        let coordinatesHistory = [];
+        let intervalId = null;
+        let isPaused = false;
+
+        // Função para obter localização atual
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, handleError);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        // Função para mostrar a posição atual
+        function showPosition(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            // Atualizar a posição do elemento de texto
+            const arText = document.getElementById("ar-text");
+            arText.setAttribute("value", "AR Content at Lat: " + latitude + ", Long: " + longitude);
+
+            // Atualizar a posição do elemento de GPS
+            const gpsEntity = document.getElementById("gps-entity");
+            gpsEntity.setAttribute("gps-entity-place", "latitude: " + latitude + "; longitude: " + longitude);
+
+            // Adicionar coordenadas ao histórico
+            addCoordinatesToHistory(latitude, longitude);
+
+            // Atualizar tabela de coordenadas
+            updateCoordinatesTable();
+        }
+
+        // Função para lidar com erros de geolocalização
+        function handleError(error) {
+            console.error("Erro ao obter localização: ", error.message);
+        }
+
+        // Adicionar coordenadas ao histórico
+        function addCoordinatesToHistory(latitude, longitude) {
+            coordinatesHistory.push({ latitude, longitude });
+        }
+
+        // Atualizar tabela de coordenadas
+        function updateCoordinatesTable() {
+            const tableBody = document.getElementById("coordinates-table-body");
+            tableBody.innerHTML = ""; // Limpar tabela
+
+            coordinatesHistory.forEach((coords, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${coords.latitude.toFixed(6)}</td>
+                    <td>${coords.longitude.toFixed(6)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Função para iniciar captura periódica
+        function startCapture() {
+            if (!intervalId) {
+                isPaused = false;
+                intervalId = setInterval(() => {
+                    if (!isPaused) {
+                        getLocation();
+                    }
+                }, 3000);
+                toggleButtons(true, false, true);
+            }
+        }
+
+        // Função para pausar captura
+        function pauseCapture() {
+            isPaused = !isPaused;
+            document.getElementById("pause-btn").textContent = isPaused ? "Continuar Captura" : "Pausar Captura";
+        }
+
+        // Função para parar captura
+        function stopCapture() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+                toggleButtons(false, true, false);
+            }
+        }
+
+        // Função para alternar estado dos botões
+        function toggleButtons(startEnabled, pauseEnabled, stopEnabled) {
+            document.getElementById("start-btn").disabled = !startEnabled;
+            document.getElementById("pause-btn").disabled = !pauseEnabled;
+            document.getElementById("stop-btn").disabled = !stopEnabled;
+        }
+
+        // Adicionar eventos aos botões
+        document.getElementById("start-btn").addEventListener("click", startCapture);
+        document.getElementById("pause-btn").addEventListener("click", pauseCapture);
+        document.getElementById("stop-btn").addEventListener("click", stopCapture);
+    </script>
+</body>
+</html>

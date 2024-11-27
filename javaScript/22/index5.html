@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Localização Atual</title>
+    <style>
+        #ar-text {
+            width: 300px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <h1>Localização Atual</h1>
+
+    <!-- Botões de controle -->
+    <button id="start-btn">Iniciar Captura</button>
+    <button id="pause-btn" disabled>Pausar</button>
+    <button id="stop-btn" disabled>Parar</button>
+
+    <!-- Elemento de texto para exibir a posição atual -->
+    <input type="text" id="ar-text" value="AR Content at Lat: , Long: " readonly>
+
+    <!-- Elemento para exibir conteúdo AR na posição atual -->
+    <a-scene embedded arjs>
+        <a-marker preset="hiro">
+            <a-entity id="gps-entity" gps-entity-place=""></a-entity>
+        </a-marker>
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <!-- Tabela para exibir histórico de coordenadas -->
+    <h2>Histórico de Coordenadas</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+            </tr>
+        </thead>
+        <tbody id="coordinates-table-body">
+            <!-- As coordenadas serão adicionadas aqui dinamicamente -->
+        </tbody>
+    </table>
+
+    <script>
+        let coordinatesHistory = [];
+        let captureInterval = null;
+        let isPaused = false;
+
+        // Função para obter a localização atual do dispositivo
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        // Função para mostrar a posição atual
+        function showPosition(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            // Verificar se as coordenadas já existem
+            if (!coordinatesHistory.some(coord => coord.latitude === latitude && coord.longitude === longitude)) {
+                // Atualizar a posição do elemento de texto
+                const arText = document.getElementById("ar-text");
+                arText.setAttribute("value", `AR Content at Lat: ${latitude}, Long: ${longitude}`);
+
+                // Atualizar a posição do elemento de GPS
+                const gpsEntity = document.getElementById("gps-entity");
+                gpsEntity.setAttribute("gps-entity-place", `latitude: ${latitude}; longitude: ${longitude}`);
+
+                // Adicionar as coordenadas ao histórico
+                addCoordinatesToHistory(latitude, longitude);
+
+                // Atualizar a tabela com as coordenadas
+                updateCoordinatesTable();
+            }
+        }
+
+        // Função para adicionar coordenadas ao histórico
+        function addCoordinatesToHistory(latitude, longitude) {
+            coordinatesHistory.push({ latitude, longitude });
+        }
+
+        // Função para atualizar a tabela de coordenadas
+        function updateCoordinatesTable() {
+            const tableBody = document.getElementById("coordinates-table-body");
+            tableBody.innerHTML = ""; // Limpar tabela
+
+            coordinatesHistory.forEach((coords, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${coords.latitude.toFixed(6)}</td>
+                    <td>${coords.longitude.toFixed(6)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Função para iniciar a captura
+        function startCapture() {
+            if (!captureInterval) {
+                captureInterval = setInterval(() => {
+                    if (!isPaused) {
+                        getLocation();
+                    }
+                }, 1000);
+                toggleButtons('start');
+            }
+        }
+
+        // Função para pausar a captura
+        function pauseCapture() {
+            isPaused = true;
+            toggleButtons('pause');
+        }
+
+        // Função para parar a captura
+        function stopCapture() {
+            clearInterval(captureInterval);
+            captureInterval = null;
+            isPaused = false;
+            toggleButtons('stop');
+        }
+
+        // Função para alternar o estado dos botões
+        function toggleButtons(action) {
+            const startBtn = document.getElementById("start-btn");
+            const pauseBtn = document.getElementById("pause-btn");
+            const stopBtn = document.getElementById("stop-btn");
+
+            switch (action) {
+                case 'start':
+                    startBtn.disabled = true;
+                    pauseBtn.disabled = false;
+                    stopBtn.disabled = false;
+                    break;
+                case 'pause':
+                    startBtn.disabled = true;
+                    pauseBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    break;
+                case 'stop':
+                    startBtn.disabled = false;
+                    pauseBtn.disabled = true;
+                    stopBtn.disabled = true;
+                    break;
+            }
+        }
+
+        // Associar eventos aos botões
+        document.getElementById("start-btn").addEventListener("click", startCapture);
+        document.getElementById("pause-btn").addEventListener("click", pauseCapture);
+        document.getElementById("stop-btn").addEventListener("click", stopCapture);
+    </script>
+</body>
+</html>
