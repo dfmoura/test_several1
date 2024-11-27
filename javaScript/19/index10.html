@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa com Captura Automática de Coordenadas</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        /* Reset de estilo para garantir que tudo tenha uma aparência consistente */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-wrap: wrap;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #map {
+            flex: 1;
+            height: 100vh;
+        }
+
+        #control-panel {
+            width: 100%;
+            max-width: 300px;
+            background-color: #f4f4f4;
+            padding: 10px;
+            overflow-y: auto;
+            border-left: 2px solid #ddd;
+            box-sizing: border-box;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        button {
+            width: 100%;
+            margin: 5px 0;
+            padding: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        @media (min-width: 768px) {
+            #control-panel {
+                width: 300px; /* Control panel width for larger screens */
+            }
+
+            #map {
+                width: calc(100% - 300px); /* Leave space for the control panel */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Mapa -->
+    <div id="map"></div>
+
+    <!-- Painel de Controle -->
+    <div id="control-panel">
+        <h3>Controles</h3>
+        <button id="start-button">Iniciar Captura</button>
+        <button id="pause-button" disabled>Pausar</button>
+        <button id="stop-button" disabled>Parar Captura</button>
+        <h3>Coordenadas</h3>
+        <table id="coord-list">
+            <thead>
+                <tr>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Metros</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Coordenadas aparecerão aqui -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        // Inicializando o mapa
+        var map = L.map('map').setView([0, 0], 2);
+
+        // Adicionando o mapa base
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Array para armazenar os pontos clicados
+        var coordinates = [];
+
+        // Polilinha para conectar os pontos clicados
+        var polyline = L.polyline([], { color: 'blue', weight: 4 }).addTo(map);
+
+        // Variáveis de controle
+        var totalDistance = 0;
+        var captureInterval = null; // Armazena o intervalo de captura
+        var isPaused = false; // Estado de pausa
+
+        // Função para calcular a distância entre dois pontos (em metros)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Raio da Terra em metros
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c; // Distância em metros
+        }
+
+        // Adicionando um ponto no mapa
+        function addPointToMap(lat, lon) {
+            var point = [lat, lon];
+            coordinates.push(point);
+
+            L.marker(point).addTo(map); // Adiciona um marcador no mapa
+
+            // Adiciona o ponto à polilinha para conectar os pontos
+            polyline.addLatLng(point);
+
+            // Calcula a distância se houver ao menos dois pontos
+            if (coordinates.length > 1) {
+                const prevPoint = coordinates[coordinates.length - 2];
+                const segmentDistance = calculateDistance(prevPoint[0], prevPoint[1], lat, lon);
+                totalDistance += segmentDistance; // Atualiza a distância acumulada
+            }
+
+            // Atualiza a tabela com as coordenadas e a distância acumulada
+            updateTable(lat, lon, totalDistance);
+        }
+
+        // Atualiza a tabela com as coordenadas e a distância acumulada
+        function updateTable(lat, lon, distance) {
+            var table = document.getElementById('coord-list').getElementsByTagName('tbody')[0];
+            var newRow = table.insertRow();
+            var cell1 = newRow.insertCell(0);
+            var cell2 = newRow.insertCell(1);
+            var cell3 = newRow.insertCell(2);
+            cell1.textContent = lat.toFixed(6);
+            cell2.textContent = lon.toFixed(6);
+            cell3.textContent = distance.toFixed(2) + " m";
+        }
+
+        // Captura contínua de coordenadas
+        function startCapture() {
+            if (navigator.geolocation) {
+                captureInterval = setInterval(() => {
+                    if (!isPaused) { // Captura apenas se não estiver pausado
+                        navigator.geolocation.getCurrentPosition(function (position) {
+                            const lat = position.coords.latitude;
+                            const lon = position.coords.longitude;
+                            addPointToMap(lat, lon);
+                        });
+                    }
+                }, 1000); // Executa a cada 1 segundo
+            } else {
+                alert("Geolocalização não é suportada pelo navegador.");
+            }
+        }
+
+        // Parar a captura de coordenadas
+        function stopCapture() {
+            if (captureInterval) {
+                clearInterval(captureInterval);
+                captureInterval = null;
+            }
+        }
+
+        // Alternar entre pausar e continuar
+        function togglePause() {
+            isPaused = !isPaused;
+            const pauseButton = document.getElementById('pause-button');
+            pauseButton.textContent = isPaused ? "Continuar" : "Pausar";
+        }
+
+        // Botões de controle
+        document.getElementById('start-button').addEventListener('click', function () {
+            this.disabled = true; // Desabilita o botão Iniciar
+            document.getElementById('stop-button').disabled = false; // Habilita o botão Parar
+            document.getElementById('pause-button').disabled = false; // Habilita o botão Pausar
+            startCapture();
+        });
+
+        document.getElementById('pause-button').addEventListener('click', togglePause);
+
+        document.getElementById('stop-button').addEventListener('click', function () {
+            this.disabled = true; // Desabilita o botão Parar
+            document.getElementById('start-button').disabled = false; // Habilita o botão Iniciar
+            document.getElementById('pause-button').disabled = true; // Desabilita o botão Pausar
+            document.getElementById('pause-button').textContent = "Pausar"; // Reseta o texto do botão Pausar
+            isPaused = false; // Reseta o estado de pausa
+            stopCapture();
+        });
+
+        // Obter localização inicial
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                map.setView([lat, lon], 13);
+            });
+        } else {
+            alert("Geolocalização não é suportada pelo navegador.");
+        }
+
+    </script>
+
+</body>
+</html>

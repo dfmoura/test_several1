@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Localização Atual</title>
+    <style>
+        #ar-text {
+            width: 300px; /* Definir a largura desejada */
+        }
+    </style>
+</head>
+<body>
+    <h1>Localização Atual</h1>
+
+    <!-- Botão para exibir as coordenadas -->
+    <button id="get-location-btn">Mostrar Localização</button>
+
+    <!-- Elemento de texto para exibir a posição atual -->
+    <input type="text" id="ar-text" value="AR Content at Lat: , Long: " readonly>
+
+    <!-- Elemento para exibir conteúdo AR na posição atual -->
+    <a-scene embedded arjs>
+        <a-marker preset="hiro">
+            <a-entity id="gps-entity" gps-entity-place=""></a-entity>
+        </a-marker>
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <!-- Adicionar DataFrame com as informações de localização -->
+    <div id="location-info"></div>
+
+    <!-- Adicionar DataFrame com o link do Google Maps -->
+    <div id="map-link"></div>
+
+    <script>
+        // Função para obter a localização atual do dispositivo
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        // Função para mostrar a posição atual
+        function showPosition(position) {
+            var latitude = position.coords.latitude;
+            var longitude = position.coords.longitude;
+
+            // Atualizar a posição do elemento de texto
+            var arText = document.getElementById("ar-text");
+            arText.setAttribute("value", "AR Content at Lat: " + latitude + ", Long: " + longitude);
+
+            // Atualizar a posição do elemento de GPS
+            var gpsEntity = document.getElementById("gps-entity");
+            gpsEntity.setAttribute("gps-entity-place", "latitude: " + latitude + "; longitude: " + longitude);
+
+            // Chamar a função para obter informações de localização
+            getLocationInfo(latitude, longitude);
+
+            // Criar o link do Google Maps
+            var mapLinkDiv = document.getElementById("map-link");
+            var googleMapsLink = "https://www.google.com/maps?q=" + latitude + "," + longitude;
+            var mapLinkHTML = "<p><a href='" + googleMapsLink + "' target='_blank'>Ver no Google Maps</a></p>";
+
+            // Adicionar o link ao HTML
+            mapLinkDiv.innerHTML = mapLinkHTML;
+        }
+
+        // Função para obter informações de localização
+        function getLocationInfo(latitude, longitude) {
+            var url = "https://nominatim.openstreetmap.org/reverse?lat=" + latitude + "&lon=" + longitude + "&format=json";
+
+            fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                var locationInfoDiv = document.getElementById("location-info");
+                var country = data.address.country ? data.address.country : "Unknown";
+                var state = data.address.state ? data.address.state : "Unknown";
+                var city = data.address.city ? data.address.city : "Unknown";
+                var suburb = data.address.suburb ? data.address.suburb : "Unknown";
+                var road = data.address.road ? data.address.road : "Unknown";
+                var locationHTML = "<p>Country: " + country + "</p>" +
+                                   "<p>State: " + state + "</p>" +
+                                   "<p>City: " + city + "</p>" +
+                                   "<p>Suburb: " + suburb + "</p>" +
+                                   "<p>Road: " + road + "</p>";
+
+                // Adicionar as informações de localização ao HTML
+                locationInfoDiv.innerHTML = locationHTML;
+            })
+            .catch(error => {
+                console.error('Error fetching location data:', error);
+            });
+        }
+
+        // Adicionar evento ao botão
+        document.getElementById("get-location-btn").addEventListener("click", getLocation);
+    </script>
+</body>
+</html>
