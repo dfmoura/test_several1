@@ -5,120 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Localização Atual</title>
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            display: flex;
-            height: 100vh;
-        }
-
-        #map-container {
-            flex: 8;
-            position: relative;
-        }
-
-        #map {
-            width: 100%;
-            height: 100%;
-        }
-
-        #controls-container {
-            flex: 2;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            background-color: #f4f4f4;
-            border-left: 1px solid #ddd;
-        }
-
-        #controls {
-            margin-bottom: 20px;
-        }
-
-        button {
-            display: block;
-            margin-bottom: 10px;
-            padding: 10px;
-            font-size: 16px;
-        }
-
         #ar-text {
-            width: 100%;
-            margin-bottom: 20px;
-            padding: 10px;
-            font-size: 16px;
+            width: 300px;
         }
-
         table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 20px;
         }
-
         th, td {
             border: 1px solid #ddd;
             text-align: left;
             padding: 8px;
         }
-
         th {
-            background-color: #eaeaea;
-        }
-
-        h2 {
-            margin-top: 0;
+            background-color: #f4f4f4;
         }
     </style>
 </head>
 <body>
-    <!-- Container do mapa -->
-    <div id="map-container">
-        <div id="map"></div>
-    </div>
+    <h1>Localização Atual</h1>
 
-    <!-- Container dos controles e tabela -->
-    <div id="controls-container">
-        <div id="controls">
-            <button id="start-btn">Iniciar Captura</button>
-            <button id="pause-btn" disabled>Pausar</button>
-            <button id="stop-btn" disabled>Parar</button>
-            <input type="text" id="ar-text" value="AR Content at Lat: , Long: " readonly>
-        </div>
+    <!-- Botões de controle -->
+    <button id="start-btn">Iniciar Captura</button>
+    <button id="pause-btn" disabled>Pausar</button>
+    <button id="stop-btn" disabled>Parar</button>
+    <!-- Botão para exibir no mapa -->
+    <button id="map-btn">Exibir no Mapa</button>
 
-        <!-- Tabela para exibir histórico de coordenadas -->
-        <h2>Histórico de Coordenadas</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Latitude</th>
-                    <th>Longitude</th>
-                </tr>
-            </thead>
-            <tbody id="coordinates-table-body">
-                <!-- Coordenadas adicionadas dinamicamente -->
-            </tbody>
-        </table>
-    </div>
+
+    <!-- Elemento de texto para exibir a posição atual -->
+    <input type="text" id="ar-text" value="AR Content at Lat: , Long: " readonly>
+
+    <!-- Elemento para exibir conteúdo AR na posição atual -->
+    <a-scene embedded arjs>
+        <a-marker preset="hiro">
+            <a-entity id="gps-entity" gps-entity-place=""></a-entity>
+        </a-marker>
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <!-- Tabela para exibir histórico de coordenadas -->
+    <h2>Histórico de Coordenadas</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+            </tr>
+        </thead>
+        <tbody id="coordinates-table-body">
+            <!-- As coordenadas serão adicionadas aqui dinamicamente -->
+        </tbody>
+    </table>
 
     <script>
         let coordinatesHistory = [];
         let captureInterval = null;
         let isPaused = false;
-        let map, marker;
 
-        // Inicializa o mapa
-        function initMap() {
-            map = L.map('map').setView([0, 0], 13); // Mapa centrado no início
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-            }).addTo(map);
-
-            marker = L.marker([0, 0]).addTo(map);
-        }
-
-        // Obtém a localização atual
+        // Função para obter a localização atual do dispositivo
         function getLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(showPosition);
@@ -127,27 +74,38 @@
             }
         }
 
-        // Mostra a posição no mapa e na tabela
+        // Função para mostrar a posição atual
         function showPosition(position) {
             const latitude = position.coords.latitude;
             const longitude = position.coords.longitude;
 
-            // Atualizar o texto e o mapa
-            document.getElementById("ar-text").value = `AR Content at Lat: ${latitude}, Long: ${longitude}`;
-            marker.setLatLng([latitude, longitude]);
-            map.setView([latitude, longitude], 13);
-
-            // Adicionar ao histórico se for novo
+            // Verificar se as coordenadas já existem
             if (!coordinatesHistory.some(coord => coord.latitude === latitude && coord.longitude === longitude)) {
-                coordinatesHistory.push({ latitude, longitude });
+                // Atualizar a posição do elemento de texto
+                const arText = document.getElementById("ar-text");
+                arText.setAttribute("value", `AR Content at Lat: ${latitude}, Long: ${longitude}`);
+
+                // Atualizar a posição do elemento de GPS
+                const gpsEntity = document.getElementById("gps-entity");
+                gpsEntity.setAttribute("gps-entity-place", `latitude: ${latitude}; longitude: ${longitude}`);
+
+                // Adicionar as coordenadas ao histórico
+                addCoordinatesToHistory(latitude, longitude);
+
+                // Atualizar a tabela com as coordenadas
                 updateCoordinatesTable();
             }
         }
 
-        // Atualiza a tabela de histórico
+        // Função para adicionar coordenadas ao histórico
+        function addCoordinatesToHistory(latitude, longitude) {
+            coordinatesHistory.push({ latitude, longitude });
+        }
+
+        // Função para atualizar a tabela de coordenadas
         function updateCoordinatesTable() {
             const tableBody = document.getElementById("coordinates-table-body");
-            tableBody.innerHTML = ""; // Limpa a tabela
+            tableBody.innerHTML = ""; // Limpar tabela
 
             coordinatesHistory.forEach((coords, index) => {
                 const row = document.createElement("tr");
@@ -160,16 +118,9 @@
             });
         }
 
-        // Inicia a captura e limpa os dados
+        // Função para iniciar a captura
         function startCapture() {
             if (!captureInterval) {
-                // Limpar histórico e tabela
-                coordinatesHistory = [];
-                updateCoordinatesTable();
-                document.getElementById("ar-text").value = "AR Content at Lat: , Long: ";
-                marker.setLatLng([0, 0]);
-                map.setView([0, 0], 13);
-
                 captureInterval = setInterval(() => {
                     if (!isPaused) {
                         getLocation();
@@ -179,13 +130,13 @@
             }
         }
 
-        // Pausa a captura
+        // Função para pausar a captura
         function pauseCapture() {
             isPaused = true;
             toggleButtons('pause');
         }
 
-        // Para a captura
+        // Função para parar a captura
         function stopCapture() {
             clearInterval(captureInterval);
             captureInterval = null;
@@ -193,24 +144,45 @@
             toggleButtons('stop');
         }
 
-        // Alterna os estados dos botões
+        // Função para alternar o estado dos botões
         function toggleButtons(action) {
-            document.getElementById("start-btn").disabled = action !== 'stop';
-            document.getElementById("pause-btn").disabled = action === 'stop';
-            document.getElementById("stop-btn").disabled = action === 'stop';
+            const startBtn = document.getElementById("start-btn");
+            const pauseBtn = document.getElementById("pause-btn");
+            const stopBtn = document.getElementById("stop-btn");
+
+            switch (action) {
+                case 'start':
+                    startBtn.disabled = true;
+                    pauseBtn.disabled = false;
+                    stopBtn.disabled = false;
+                    break;
+                case 'pause':
+                    startBtn.disabled = true;
+                    pauseBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    break;
+                case 'stop':
+                    startBtn.disabled = false;
+                    pauseBtn.disabled = true;
+                    stopBtn.disabled = true;
+                    break;
+            }
         }
 
-        // Adiciona eventos aos botões
+        // Associar eventos aos botões
         document.getElementById("start-btn").addEventListener("click", startCapture);
         document.getElementById("pause-btn").addEventListener("click", pauseCapture);
         document.getElementById("stop-btn").addEventListener("click", stopCapture);
 
-        // Inicializa o mapa ao carregar a página
-        window.onload = initMap;
-    </script>
 
-    <!-- Importação da biblioteca Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+        document.getElementById("map-btn").addEventListener("click", () => {
+            const mapData = JSON.stringify(coordinatesHistory);
+            localStorage.setItem("mapCoordinates", mapData); // Armazena os dados no localStorage
+            window.location.href = "mapa.html"; // Redireciona para a página do mapa
+        });
+
+        
+    </script>
 </body>
 </html>

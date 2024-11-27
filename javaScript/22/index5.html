@@ -30,6 +30,9 @@
     <button id="start-btn">Iniciar Captura</button>
     <button id="pause-btn" disabled>Pausar</button>
     <button id="stop-btn" disabled>Parar</button>
+    <!-- Botão para exibir no mapa -->
+    <button id="map-btn">Exibir no Mapa</button>
+
 
     <!-- Elemento de texto para exibir a posição atual -->
     <input type="text" id="ar-text" value="AR Content at Lat: , Long: " readonly>
@@ -170,6 +173,16 @@
         document.getElementById("start-btn").addEventListener("click", startCapture);
         document.getElementById("pause-btn").addEventListener("click", pauseCapture);
         document.getElementById("stop-btn").addEventListener("click", stopCapture);
+
+
+
+        document.getElementById("map-btn").addEventListener("click", () => {
+            const mapData = JSON.stringify(coordinatesHistory);
+            localStorage.setItem("mapCoordinates", mapData); // Armazena os dados no localStorage
+            window.location.href = "mapa.html"; // Redireciona para a página do mapa
+        });
+
+        
     </script>
 </body>
 </html>
