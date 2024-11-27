@@ -27,11 +27,23 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Adiciona marcadores para cada coordenada
-        coordinates.forEach(coord => {
-            L.marker([coord.latitude, coord.longitude])
+        // Array para armazenar os pontos das coordenadas
+        const latLngs = [];
+
+        // Adiciona marcadores e conecta com linhas
+        coordinates.forEach((coord, index) => {
+            const latLng = [coord.latitude, coord.longitude];
+            latLngs.push(latLng); // Adiciona as coordenadas à lista
+
+            // Cria o marcador
+            L.marker(latLng)
                 .addTo(map)
                 .bindPopup(`Latitude: ${coord.latitude}, Longitude: ${coord.longitude}`);
+
+            // Se não for o primeiro ponto, conecta com a linha
+            if (index > 0) {
+                L.polyline([latLngs[index - 1], latLng], { color: 'blue', weight: 3 }).addTo(map);
+            }
         });
 
         // Ajusta a visualização para incluir todos os marcadores
