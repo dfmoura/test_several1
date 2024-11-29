@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exemplo de Tabs com sk-tab</title>
+    
+    <!-- Inclusão dos arquivos CSS da Sankhya -->
+    <link rel="stylesheet" href="https://webrush.dev.sankhya.com.br/master/dist/css/sankhya.css">
+
+    <style>
+        /* Estilos personalizados */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .tab-content {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Exemplo de Tabs com sk-tab</h1>
+        
+        <!-- Início do componente de tabs -->
+        <sk-tab>
+            <!-- Cabeçalhos das Abas -->
+            <sk-tab-head>
+                <sk-tab-head-item>Tab 1</sk-tab-head-item>
+                <sk-tab-head-item>Tab 2</sk-tab-head-item>
+                <sk-tab-head-item>Tab 3</sk-tab-head-item>
+            </sk-tab-head>
+
+            <!-- Conteúdo das Abas -->
+            <sk-tab-body>
+                <sk-tab-body-item>
+                    <div class="tab-content">
+                        <h2>Conteúdo da Aba 1</h2>
+                        <p>Este é o conteúdo da primeira aba.</p>
+                    </div>
+                </sk-tab-body-item>
+                <sk-tab-body-item>
+                    <div class="tab-content">
+                        <h2>Conteúdo da Aba 2</h2>
+                        <p>Este é o conteúdo da segunda aba.</p>
+                    </div>
+                </sk-tab-body-item>
+                <sk-tab-body-item>
+                    <div class="tab-content">
+                        <h2>Conteúdo da Aba 3</h2>
+                        <p>Este é o conteúdo da terceira aba.</p>
+                    </div>
+                </sk-tab-body-item>
+            </sk-tab-body>
+        </sk-tab>
+    </div>
+
+    <!-- Inclusão dos scripts da Sankhya -->
+    <script src="https://webrush.dev.sankhya.com.br/master/dist/js/sankhya.js"></script>
+</body>
+</html>

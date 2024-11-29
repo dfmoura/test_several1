@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Array de Caracteres Aleatórios (ASCII) - Cascata</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: black; /* Fundo preto */
+            color: white; /* Cor do texto padrão na página */
+        }
+        #arrayContainer {
+            margin: 20px auto;
+            padding: 10px;
+            display: inline-block;
+            background-color: #000000; /* Fundo preto para o contêiner */
+            white-space: nowrap; /* Evitar quebra de linha */
+        }
+        .character {
+            display: inline-block;
+            margin: 5px;
+            padding: 10px;
+            background-color: #000000; /* Fundo preto */
+            font-size: 18px;
+            font-weight: bold;
+            color: #27790e; /* Cor da fonte do array */
+            opacity: 0; /* Inicialmente invisível */
+            animation: aparecerCascata 0.5s forwards; /* Animação */
+        }
+
+        /* Animação para a cascata */
+        @keyframes aparecerCascata {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Array de Caracteres Aleatórios (ASCII) - Cascata</h1>
+    <div id="arrayContainer"></div>
+    <script>
+        // Função para gerar um caractere aleatório do intervalo de códigos ASCII imprimíveis (32 a 126)
+        function gerarCaractereAleatorio() {
+            const codigoASCII = Math.floor(Math.random() * (126 - 32 + 1)) + 32; // Entre 32 e 126
+            return String.fromCharCode(codigoASCII);
+        }
+
+        // Função para atualizar o array de caracteres
+        function atualizarArray() {
+            // Limpa o conteúdo do arrayContainer antes de adicionar novos caracteres
+            const arrayContainer = document.getElementById('arrayContainer');
+            arrayContainer.innerHTML = '';
+
+            // Cria um array de 10 caracteres aleatórios
+            const arrayDeCaracteres = Array.from({ length: 15 }, gerarCaractereAleatorio);
+
+            // Adiciona os caracteres na página com animação
+            arrayDeCaracteres.forEach((caracter, index) => {
+                const charElement = document.createElement('div');
+                charElement.className = 'character';
+                charElement.textContent = caracter;
+
+                // Define um atraso para cada caractere, criando o efeito de cascata
+                charElement.style.animationDelay = `${index * 0.2}s`;
+
+                arrayContainer.appendChild(charElement);
+            });
+        }
+
+        // Atualiza o array a cada 3 segundos
+        setInterval(atualizarArray, 3000);
+
+        // Chama a função de atualização para gerar os caracteres ao carregar a página
+        atualizarArray();
+    </script>
+</body>
+</html>

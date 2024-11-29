@@ -1,0 +1,152 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Login Page */
+body.login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #3E2723;
+    color: #FFF;
+}
+
+.login-container {
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    padding: 2em;
+    background-color: #5D4037;
+    border-radius: 8px;
+}
+
+.login-container h1 {
+    margin-bottom: 1em;
+    color: #FFCCBC;
+}
+
+.login-container input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 5px;
+}
+
+.login-container button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    background-color: #FF7043;
+    color: #FFF;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.login-container button:hover {
+    background-color: #FF5722;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Dashboard Page */
+body.dashboard-page {
+    font-family: Arial, sans-serif;
+    background-color: #FAFAFA;
+    color: #3E2723;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1em;
+    background-color: #5D4037;
+    color: #FFF;
+}
+
+header h2 {
+    margin: 0;
+}
+
+header button {
+    padding: 8px 16px;
+    border: none;
+    background-color: #FF7043;
+    color: #FFF;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+header button:hover {
+    background-color: #FF5722;
+}
+
+.dashboard-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 2em;
+    justify-content: center;
+}
+
+.card {
+    background-color: #FFF;
+    padding: 1.5em;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 300px;
+    text-align: center;
+}
+
+.card h3 {
+    color: #5D4037;
+}
+
+.card-footer {
+    margin-top: 1em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+    color: #757575;
+    border-top: 1px solid #E0E0E0;
+    padding-top: 0.5em;
+}
+
+.card-footer .date {
+    font-style: italic;
+}
+
+.card-footer .variation {
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.card-footer .variation.positive {
+    color: #2E7D32; /* Verde para variações positivas */
+    background-color: #E8F5E9;
+}
+
+.card-footer .variation.negative {
+    color: #C62828; /* Vermelho para variações negativas */
+    background-color: #FFEBEE;
+}
+
+
+
+@media (max-width: 600px) {
+    .dashboard-content {
+        flex-direction: column;
+        padding: 1em;
+    }
+}

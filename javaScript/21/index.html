@@ -1,108 +1,87 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Interativo</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <title>Gerar Boleto</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
+            margin: 20px;
+            background-color: #f4f4f4;
         }
-
-        #map {
-            height: 100vh;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
         }
-
-        #info {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-            font-size: 14px;
-            max-width: 300px;
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
         }
-
-        #info h2 {
-            margin-top: 0;
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 15px;
             font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
         }
-
-        #info p {
-            margin: 5px 0;
+        button:hover {
+            background-color: #218838;
         }
     </style>
 </head>
 <body>
+    <h1>Gerar Boleto</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Cliente</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>João Silva</td>
+                <td>Serviço A</td>
+                <td>R$ 150,00</td>
+                <td><button onclick="gerarBoleto('João Silva', 'Serviço A', 150)">Gerar Boleto</button></td>
+            </tr>
+            <tr>
+                <td>Maria Oliveira</td>
+                <td>Serviço B</td>
+                <td>R$ 200,00</td>
+                <td><button onclick="gerarBoleto('Maria Oliveira', 'Serviço B', 200)">Gerar Boleto</button></td>
+            </tr>
+        </tbody>
+    </table>
 
-<div id="map"></div>
-<div id="info">
-    <h2>Informações do Ponto</h2>
-    <p><strong>Coordenadas:</strong> <span id="coords">[Clique no mapa]</span></p>
-    <p><strong>Endereço:</strong> <span id="address">[Clique no mapa]</span></p>
-</div>
+    <script>
+        function gerarBoleto(cliente, descricao, valor) {
+            alert(`Boleto registrado para:\n\nCliente: ${cliente}\nDescrição: ${descricao}\nValor: R$ ${valor.toFixed(2)}`);
+            
+            // Simular integração com API de geração de boletos
+            console.log("Simulando geração do boleto...");
+            console.log({
+                cliente,
+                descricao,
+                valor
+            });
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script>
-    // Inicializar o mapa
-    function inicializarMapa(latitude, longitude) {
-        const map = L.map('map').setView([latitude, longitude], 13);
-
-        // Adicionar camada de fundo do mapa
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        // Atualizar painel com coordenadas e endereço ao clicar no mapa
-        map.on('click', async function(e) {
-            const lat = e.latlng.lat.toFixed(6);
-            const lon = e.latlng.lng.toFixed(6);
-
-            // Atualizar as coordenadas
-            document.getElementById('coords').textContent = `[${lat}, ${lon}]`;
-
-            // Obter o endereço
-            const endereco = await obterEndereco(lat, lon);
-            document.getElementById('address').textContent = endereco;
-
-            // Adicionar marcador no mapa
-            L.marker([lat, lon]).addTo(map).bindPopup(endereco).openPopup();
-        });
-    }
-
-    // Obter endereço a partir de coordenadas usando a API Nominatim
-    async function obterEndereco(lat, lon) {
-        try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-            const data = await response.json();
-            return data.display_name || "Endereço não encontrado.";
-        } catch (error) {
-            console.error("Erro ao obter o endereço:", error);
-            return "Erro ao obter o endereço.";
+            // Em produção, utilize APIs de instituições financeiras para realizar a geração do boleto.
         }
-    }
-
-    // Verificar se o navegador suporta geolocalização e inicializar o mapa
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            inicializarMapa(lat, lon);
-        }, function() {
-            alert("Erro ao obter a localização. Usando posição padrão.");
-            inicializarMapa(-23.55052, -46.633308); // São Paulo
-        });
-    } else {
-        alert("Geolocalização não suportada pelo navegador. Usando posição padrão.");
-        inicializarMapa(-23.55052, -46.633308); // São Paulo
-    }
-</script>
-
+    </script>
 </body>
 </html>

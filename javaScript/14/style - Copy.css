@@ -1,0 +1,170 @@
+/* Estilos gerais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+header {
+    background-color: #6f4c3e; /* Cor de fundo marrom */
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+    position: relative;
+}
+
+footer {
+    background-color: #6f4c3e; /* Cor de fundo marrom */
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+/* Estilos do contêiner de login */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100vh - 100px); /* Calcula a altura total menos cabeçalho e rodapé */
+}
+
+.login-box {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 300px; /* Largura fixa para o formulário de login */
+}
+
+.login-box h2 {
+    margin-bottom: 20px;
+    color: #6f4c3e; /* Cor do texto */
+}
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+    border-color: #6f4c3e; /* Cor de foco */
+    outline: none;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #6f4c3e; /* Cor do botão */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #5b3e32; /* Cor do botão ao passar o mouse */
+}
+
+.error {
+    color: red;
+    margin-top: 10px;
+}
+
+/* Estilos para a página principal (index.html) */
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    padding: 20px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Sombra mais suave */
+    margin: 15px; /* Margem aumentada */
+    padding: 20px;
+    width: calc(30% - 30px); /* Ajuste para 3 cards por linha */
+    transition: transform 0.3s, box-shadow 0.3s; /* Transições para o efeito hover */
+}
+
+.card:hover {
+    transform: translateY(-5px); /* Elevação ao passar o mouse */
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3); /* Sombra ao passar o mouse */
+}
+
+.card h2 {
+    margin-bottom: 10px;
+    color: #6f4c3e; /* Cor do texto */
+    font-size: 1.1em; /* Tamanho da fonte do título */
+    font-weight: bold; /* Negrito no título */
+}
+
+.card p {
+    font-size: 3em; /* Tamanho da fonte para o valor principal */
+    font-weight: bold; /* Aumenta a ênfase no valor */
+    margin: 10px 0; /* Espaço em volta do valor */
+    color: #4CAF50; /* Verde para o valor principal */
+}
+
+.card small {
+    font-size: 0.8em; /* Tamanho menor para a descrição */
+    color: #666; /* Cor mais clara para a descrição */
+    line-height: 1.2; /* Melhora o espaçamento entre as linhas */
+}
+
+.card .error {
+    color: red; /* Estilo para mensagens de erro nos cards */
+    font-size: 1.2em;
+}
+
+
+
+/* Estilos para a tela de carregamento */
+.loading-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9); /* Fundo branco com transparência */
+    z-index: 1000; /* Certifica-se que a tela de carregamento está acima de tudo */
+}
+
+.loader {
+    border: 10px solid #f3f3f3; /* Cor da borda */
+    border-top: 10px solid #3498db; /* Cor da parte de cima */
+    border-radius: 50%; /* Círculo */
+    width: 50px; /* Largura do círculo */
+    height: 50px; /* Altura do círculo */
+    animation: spin 2s linear infinite; /* Animação de rotação */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
