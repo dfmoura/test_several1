@@ -1,0 +1,149 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_PERIODO" description="Período de Inclusão" metadata="datePeriod" required="true" keep-last="true" keep-date="true" order="0"/>
+    <parameter id="P_CODEMP" description="Código da Empresa" metadata="entity:Empresa@CODEMP" required="false" keep-last="true" keep-date="false" order="1"/>
+  </prompt-parameters>
+  <level id="lvl_aas6is3" description="Principal">
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="56800">
+        <chart id="cht_aas6is4" type="column" tamTexto="12" nroColuna="6">
+          <title><![CDATA[Estratificação Ações - Por Unidade e Status]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT  EMP.NOMEFANTASIA AS CODUNIDADE,        SUM(CASE WHEN INICIO_AFASTAMENTO IS NULL THEN 1 ELSE 0 END) AS TOTAL_UNIDADE_ASA,        SUM(CASE WHEN INICIO_AFASTAMENTO IS NOT NULL THEN 1 ELSE 0 END) AS TOTAL_UNIDADE_ACA,        SUM(CASE WHEN EST.TIPO_ACIDENTE = 'TP' THEN 1 ELSE 0 END) AS TOTAL_TP,        SUM(CASE WHEN EST.TIPO_ACIDENTE = 'TJ' THEN 1 ELSE 0 END) AS TOTAL_TJ,        COUNT(*) AS TOTAL        FROM AD_ESTACIDENTES ESTINNER JOIN TSIEMP EMP ON EMP.CODEMP = EST.CODEMPWHERE  (DT_ACIDENTE >= :P_PERIODO.INI or :P_PERIODO.INI is null)AND (DT_ACIDENTE <= :P_PERIODO.FIN or :P_PERIODO.FIN is null)GROUP BY EMP.NOMEFANTASIA]]></expression>
+          <metadata>
+            <field name="CODUNIDADE" label="Empresa" type="S" visible="true" useFooter="false"/>
+            <field name="TOTAL_UNIDADE_ASA" label="Qtd. ASA" type="I" visible="true" useFooter="false"/>
+            <field name="TOTAL_UNIDADE_ACA" label="Qtd. ACA" type="I" visible="true" useFooter="false"/>
+            <field name="TOTAL_TP" label="Qtd. Acidente Típico" type="I" visible="true" useFooter="false"/>
+            <field name="TOTAL_TJ" label="Qtd. Acidente de Trajeto" type="I" visible="true" useFooter="false"/>
+            <field name="TOTAL" label="Quantidade Total" type="I" visible="true" useFooter="false"/>
+          </metadata>
+          <horizontal-axis>
+            <category field="CODUNIDADE" rotation="1" dropLabel="true">
+              <initView value="first"/>
+            </category>
+          </horizontal-axis>
+          <vertical-axis>
+            <linear resultRotation="0" vResizing="true">
+              <mask>###0</mask>
+              <showStackLabels/>
+              <title>Quantidade por Unidade e Status</title>
+            </linear>
+          </vertical-axis>
+          <series>
+            <serie type="column">
+              <xField>$CODUNIDADE</xField>
+              <yField>$TOTAL_UNIDADE_ASA</yField>
+              <display><![CDATA[Qtd. Acidentes - ASA]]></display>
+              <color>0xb578c</color>
+            </serie>
+            <serie type="column">
+              <xField>$CODUNIDADE</xField>
+              <yField>$TOTAL_UNIDADE_ACA</yField>
+              <display><![CDATA[Qtd. Acidentes - ACA]]></display>
+              <color>0xb748c</color>
+            </serie>
+            <serie type="column">
+              <xField>$CODUNIDADE</xField>
+              <yField>$TOTAL_TP</yField>
+              <display><![CDATA[Qtd. Acidentes - Típico]]></display>
+              <color>0x5ba8a9</color>
+            </serie>
+            <serie type="column">
+              <xField>$CODUNIDADE</xField>
+              <yField>$TOTAL_TJ</yField>
+              <display><![CDATA[Qtd. Acidentes - Trajeto]]></display>
+              <color>0x94b447</color>
+            </serie>
+            <serie type="column">
+              <xField>$CODUNIDADE</xField>
+              <yField>$TOTAL</yField>
+              <display><![CDATA[Qtd. Acidentes - Geral]]></display>
+              <color>0x5d6e1e</color>
+            </serie>
+          </series>
+          <legend position="right" direction="h"/>
+        </chart>
+      </container>
+      <container orientacao="V" tamanhoRelativo="46800">
+        <container orientacao="V" tamanhoRelativo="100">
+          <chart id="cht_ajbphq5" type="column">
+            <title><![CDATA[Estratificação por Tipo de Acidentes]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT   EMP.NOMEFANTASIA AS UNIDADE,  SUM(CASE WHEN EST.TIPO_ACIDENTE = 'TP' THEN 1 ELSE 0 END) AS TOTAL_TP,  SUM(CASE WHEN EST.TIPO_ACIDENTE = 'TJ' THEN 1 ELSE 0 END) AS TOTAL_TJFROM AD_ESTACIDENTES ESTINNER JOIN TSIEMP EMP ON EMP.CODEMP = EST.CODEMPWHERE (DT_ACIDENTE >= :P_PERIODO.INI or :P_PERIODO.INI is null)  AND (DT_ACIDENTE <= :P_PERIODO.FIN or :P_PERIODO.FIN is null)GROUP BY EMP.NOMEFANTASIA]]></expression>
+            <metadata>
+              <field name="UNIDADE" label="Unidade" type="S" visible="true" useFooter="false"/>
+              <field name="TOTAL_TP" label="Quantidade" type="I" visible="true" useFooter="false"/>
+              <field name="TOTAL_TJ" label="Quantidade" type="I" visible="true" useFooter="false"/>
+            </metadata>
+            <vertical-axis>
+              <linear resultRotation="0" vResizing="true">
+                <mask>###0</mask>
+                <showStackLabels/>
+              </linear>
+            </vertical-axis>
+            <series>
+              <serie type="column">
+                <xField>$UNIDADE</xField>
+                <yField>$TOTAL_TJ</yField>
+                <display><![CDATA[Acidentes de Trajeto ]]></display>
+                <color>0x94b447</color>
+              </serie>
+              <serie type="column">
+                <xField>$UNIDADE</xField>
+                <yField>$TOTAL_TP</yField>
+                <display><![CDATA[Acidentes Típicos]]></display>
+                <color>0x5ba8a9</color>
+              </serie>
+            </series>
+            <legend position="right" direction="h"/>
+          </chart>
+        </container>
+        <container orientacao="V" tamanhoRelativo="106">
+          <chart id="cht_ajbphq6" type="column">
+            <title><![CDATA[Estratificação por Local de Acidente]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT          DECODE (EST.SETOR ,        'ADM',	'Administrativo',        'B',	'Borracharia',        'C',	'Caldeira',        'CIP',	'CIP',        'CQ',	'Controle Qualidade',        'ETE',	'ETE e Meio Ambiente',        'EX',	'Expedição',        'LB',	'Laboratório',        'LA',	'Linha Água',        'LT',	'Linha Lata',        'LP',	'Linha PET',        'LV',	'Linha Vidro',        'LO',	'Logística',        'MI',	'Manut. Industria',        'MER',	'Merchandising',        'PE',   'Portaria Expansão',        'PA',	'PA',        'P',	'Portarias',        'PC',	'Posto Combustivel',        'SESMT',	'SESMT Seg. do Trabalho',        'CO',	'Comercial',        'XA',	'Xaroparia',        'LAV',	'Lavador Veículos',        'SM',	'SESMT Medicina Uberlândia'        )AS SETOR,          SUM(CASE WHEN EST.INICIO_AFASTAMENTO IS NULL THEN 1 ELSE 0 END) AS TOTAL_UNIDADE_ASA,        SUM(CASE WHEN EST.INICIO_AFASTAMENTO IS NOT NULL THEN 1 ELSE 0 END) AS TOTAL_UNIDADE_ACA,        SUM(CASE WHEN EST.TIPO_ACIDENTE = 'TP' THEN 1 ELSE 0 END) AS TOTAL_TP,        SUM(CASE WHEN EST.TIPO_ACIDENTE = 'TJ' THEN 1 ELSE 0 END) AS TOTAL_TJ      FROM AD_ESTACIDENTES ESTINNER JOIN TSIEMP EMP ON EMP.CODEMP = EST.CODEMPWHERE EST.CODEMP = :P_CODEMPGROUP BY  EST.SETORORDER BY SETOR DESC]]></expression>
+            <metadata>
+              <field name="SETOR" label="Setor" type="S" visible="true" useFooter="false"/>
+              <field name="TOTAL_UNIDADE_ASA" label="Qtd. ASA" type="I" visible="true" useFooter="false"/>
+              <field name="TOTAL_UNIDADE_ACA" label="Qtd. ACA" type="I" visible="true" useFooter="false"/>
+              <field name="TOTAL_TP" label="Qtd. Típico" type="I" visible="true" useFooter="false"/>
+              <field name="TOTAL_TJ" label="Qtd. Trajeto" type="I" visible="true" useFooter="false"/>
+            </metadata>
+            <vertical-axis>
+              <linear resultRotation="0" vResizing="true">
+                <mask>###0</mask>
+                <showStackLabels/>
+              </linear>
+            </vertical-axis>
+            <series>
+              <serie type="column">
+                <xField>$SETOR</xField>
+                <yField>$TOTAL_UNIDADE_ASA</yField>
+                <display><![CDATA[Qtd. Acidentes - ASA]]></display>
+                <color>0xb748c</color>
+              </serie>
+              <serie type="column">
+                <xField>$SETOR</xField>
+                <yField>$TOTAL_UNIDADE_ACA</yField>
+                <display><![CDATA[Qtd. Acidentes - ACA]]></display>
+                <color>0x5ba8a9</color>
+              </serie>
+              <serie type="column">
+                <xField>$SETOR</xField>
+                <yField>$TOTAL_TJ</yField>
+                <display><![CDATA[Qtd. Acidentes - Trajeto ]]></display>
+                <color>0x94b447</color>
+              </serie>
+              <serie type="column">
+                <xField>$SETOR</xField>
+                <yField>$TOTAL_TP</yField>
+                <display><![CDATA[Qtd. Acidentes - Típicos ]]></display>
+                <color>0x5d6e1e</color>
+              </serie>
+            </series>
+            <legend position="right" direction="h"/>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+</gadget>

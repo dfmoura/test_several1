@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerar Botões Dinamicamente</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button:active {
+            background-color: #00408a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="button-container"></div>
+
+    <script>
+        // Array de exemplo com dados
+        const records = [
+            'Registro 1',
+            'Registro 2',
+            'Registro 3',
+            'Registro 4',
+            'Registro 5',
+            'Registro 6',
+            'Registro 7',
+            'Registro 8'
+        ];
+
+        // Função para gerar botões dinamicamente
+        function generateButtons(records) {
+            const container = document.getElementById('button-container');
+
+            records.forEach((record, index) => {
+                const button = document.createElement('button');
+                button.className = 'button';
+                button.textContent = `Botão ${index + 1}`;
+                button.addEventListener('click', () => {
+                    alert(`Você clicou no ${record}`);
+                });
+                container.appendChild(button);
+            });
+        }
+
+        // Chamar a função para gerar os botões
+        generateButtons(records);
+    </script>
+</body>
+</html>

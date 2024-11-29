@@ -1,0 +1,654 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="PERIODOBAI" description="Periodo 1" metadata="datePeriod" required="true" keep-last="true" keep-date="false" order="0"/>
+    <parameter id="PERIODO2" description="Periodo 2" metadata="datePeriod" required="false" keep-last="true" keep-date="false" order="1"/>
+    <parameter id="P_RECDESP" description="Receita/Despesa" metadata="singleList:Text" listType="text" required="false" keep-last="true" keep-date="false" order="2">
+      <item value="-1" label="Despesas"/>
+      <item value="0" label="Ambos"/>
+      <item value="1" label="Receita"/>
+    </parameter>
+    <parameter id="CR" description="Centro de Resultado" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="3">
+      <expression type="SQL"><![CDATA[SELECTCODCENCUS AS VALUE,DESCRCENCUS||'-'||AD_APELIDO AS LABELFROM TSICUSWHERE ATIVO = 'S'AND ANALITICO = 'S'ORDER BY CODCENCUS]]></expression>
+    </parameter>
+    <parameter id="NATDIF" description="Natureza Diferente de" metadata="entity:Natureza@CODNAT" required="false" keep-last="true" keep-date="false" order="4"/>
+    <parameter id="P_CRINI" description="C.R maior ou igual que?" metadata="entity:CentroResultado@CODCENCUS" required="false" keep-last="true" keep-date="false" order="5"/>
+    <parameter id="P_CRFIN" description="C.R menor que?" metadata="entity:CentroResultado@CODCENCUS" required="false" keep-last="true" keep-date="false" order="6"/>
+    <parameter id="P_CUSFIXO" description="Apenas Nat. Custo Fixo?" metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="7"/>
+  </prompt-parameters>
+  <level id="lvl_w3038x" description="Principal">
+    <args>
+      <arg id="A_CODCENCUS" type="integer"/>
+      <arg id="A_DESCRCENCUS" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="100">
+        <simple-value id="svl_zng4fh">
+          <value-expression><![CDATA[<b>GRAU 1</b>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="2061">
+        <container orientacao="V" tamanhoRelativo="100">
+          <container orientacao="V" tamanhoRelativo="50">
+            <grid id="grd_w3039c" useNewGrid="S">
+              <expression type="sql" data-source="MGEDS"><![CDATA[WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 2) AS F, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 1)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 2),CODCENCUS,DESCRCENCUS ORDER BY 1)SELECT BAS.F, T.CODCENCUS, T. DESCRCENCUS, SUM(BAS.VLRBAIXA_REC) AS REC_VLRBAIXA, SUM(BAS.VLRBAIXA_DESP) AS DESP_VLRBAIXA, SUM(BAS.VLRBAIXA) AS VLRBAIXAFROM(SELECT CUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2),CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO) BASINNER JOIN T ON BAS.F = T.FGROUP BYBAS.F, T.CODCENCUS, T. DESCRCENCUSORDER BYT.CODCENCUS]]></expression>
+              <metadata>
+                <field name="F" label="F" type="S" visible="true" useFooter="false"/>
+                <field name="CODCENCUS" label="Cód.CR" type="S" visible="true" useFooter="false"/>
+                <field name="DESCRCENCUS" label="Descr.CR" type="S" visible="true" useFooter="false"/>
+                <field name="REC_VLRBAIXA" label="REC-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="DESP_VLRBAIXA" label="DESP-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#66FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+              <on-click navigate-to="lvl_ycbm9d">
+                <param id="A_DESCRCENCUS">$DESCRCENCUS</param>
+                <param id="A_CODCENCUS">$CODCENCUS</param>
+                <param id="A_F">$F</param>
+              </on-click>
+              <refresh-details ui-list="grd_w304gx,cht_w304hj">
+                <param id="A_CODCENCUS">$CODCENCUS</param>
+                <param id="A_DESCRCENCUS">$DESCRCENCUS</param>
+                <param id="A_F">$F</param>
+              </refresh-details>
+            </grid>
+          </container>
+          <container orientacao="V" tamanhoRelativo="50">
+            <grid id="grd_w304gx" useNewGrid="S">
+              <args>
+                <arg id="A_CODCENCUS" type="text"/>
+                <arg id="A_DESCRCENCUS" type="text"/>
+                <arg id="A_F" type="text"/>
+              </args>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT *FROM(WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 2) AS F, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 1)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 2),CODCENCUS,DESCRCENCUS ORDER BY 1)SELECT BAS.F, T.CODCENCUS, T. DESCRCENCUS, BAS.CODNAT, BAS.DESCRNAT, SUM(BAS.VLRBAIXA_REC) AS REC_VLRBAIXA, SUM(BAS.VLRBAIXA_DESP) AS DESP_VLRBAIXA, SUM(BAS.VLRBAIXA) AS VLRBAIXAFROM(SELECT CUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO, X.CODNAT, X.DESCRNAT,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2),CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO, X.CODNAT, X.DESCRNAT) BASINNER JOIN T ON BAS.F = T.FGROUP BYBAS.F, T.CODCENCUS, T. DESCRCENCUS, BAS.CODNAT, BAS.DESCRNAT)WHERE CODCENCUS = :A_CODCENCUSORDER BY CODNAT]]></expression>
+              <metadata>
+                <field name="F" label="F" type="S" visible="false" useFooter="false"/>
+                <field name="CODCENCUS" label="CODCENCUS" type="S" visible="false" useFooter="false"/>
+                <field name="DESCRCENCUS" label="DESCRCENCUS" type="S" visible="false" useFooter="false"/>
+                <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+                <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+                <field name="REC_VLRBAIXA" label="REC-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="DESP_VLRBAIXA" label="DESP-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+            </grid>
+          </container>
+        </container>
+        <container orientacao="V" tamanhoRelativo="157">
+          <chart id="cht_w304hj" type="line" nroColuna="12">
+            <args>
+              <arg id="A_CODCENCUS" type="text"/>
+              <arg id="A_DESCRCENCUS" type="text"/>
+              <arg id="A_F" type="text"/>
+            </args>
+            <title><![CDATA[<b>CR: :A_DESCRCENCUS</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECTCODCENCUS,'Ref: '|| LINHA AS LINHA, MAX(MES_ANO_1) AS MES_ANO_1, MAX(MES_ANO_2) AS MES_ANO_2, SUM(VLRBAIXA_1) AS VLRBAIXA_1, SUM(VLRBAIXA_2) AS VLRBAIXA_2FROM (SELECTROWNUM AS LINHA,CODCENCUS, MES_ANO AS MES_ANO_1, NULL AS MES_ANO_2, VLRBAIXA AS VLRBAIXA_1, 0 AS VLRBAIXA_2FROM (WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 2) AS F, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 1)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 2),CODCENCUS,DESCRCENCUS ORDER BY 1)    SELECT     BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUS    , SUM(BAS.VLRBAIXA) AS VLRBAIXA    FROM(        SELECT         TO_CHAR(X.DHBAIXA,'YYYY') AS ANO        , TO_CHAR(X.DHBAIXA,'MM') AS MES        , TO_CHAR(X.DHBAIXA,'MM-YYYY') AS MES_ANO        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F        ,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '_' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=3 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=4 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=5 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        ELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS        ,CUS1.GRAU        ,CUS1.ANALITICO        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP        ,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB        ,NVL(SUM(X.VLRJURO),0) AS VLRJURO        ,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA        ,NVL(SUM(X.VLRDESC),0) AS VLRDESC        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP        ,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA        FROM TSICUS CUS1        LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUS                        WHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))        AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)        AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)        AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)        AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)        AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )        GROUP BY        TO_CHAR(X.DHBAIXA,'YYYY')        , TO_CHAR(X.DHBAIXA,'MM')        , TO_CHAR(X.DHBAIXA,'MM-YYYY')        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2)        ,CUS1.DESCRCENCUS ,CUS1.GRAU ,CUS1.ANALITICO    ) BAS    INNER JOIN T ON BAS.F = T.F    WHERE ANO IS NOT NULL    AND T.CODCENCUS = :A_CODCENCUS    GROUP BY    BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUSORDER BY MES)UNION ALLSELECTROWNUM AS LINHA,CODCENCUS, NULL AS MES_ANO_1, MES_ANO AS MES_ANO_2, 0 AS VLRBAIXA_1, VLRBAIXA AS VLRBAIXA_2FROM (WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 2) AS F, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 1)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 2),CODCENCUS,DESCRCENCUS ORDER BY 1)    SELECT     BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUS    , SUM(BAS.VLRBAIXA) AS VLRBAIXA    FROM(        SELECT         TO_CHAR(X.DHBAIXA,'YYYY') AS ANO        , TO_CHAR(X.DHBAIXA,'MM') AS MES        , TO_CHAR(X.DHBAIXA,'MM-YYYY') AS MES_ANO        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F        ,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '_' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=3 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=4 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=5 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        ELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS        ,CUS1.GRAU        ,CUS1.ANALITICO        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP        ,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB        ,NVL(SUM(X.VLRJURO),0) AS VLRJURO        ,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA        ,NVL(SUM(X.VLRDESC),0) AS VLRDESC        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP        ,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA        FROM TSICUS CUS1        LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUS        WHERE        (            (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))            OR            (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))            OR            (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))        )        OR        (            X.RECDESP = 1             AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL)            AND EXISTS (                SELECT 1                 FROM TGFCAB CAB                INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)                WHERE                    TOP.ATUALEST <> 'N'                    AND CAB.TIPMOV IN ('V','D')                    AND CAB.STATUSNOTA='L'                    AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)                    AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )                    AND NUNOTA = X.NUNOTA            )        )        AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)        AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)        AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)        AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)        AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )        AND (select ABS(ROUND(months_between(:PERIODOBAI.INI , :PERIODOBAI.FIN))) from dual) = (select ABS(ROUND(months_between(:PERIODO2.INI , :PERIODO2.FIN))) from dual)        GROUP BY        TO_CHAR(X.DHBAIXA,'YYYY')        , TO_CHAR(X.DHBAIXA,'MM')        , TO_CHAR(X.DHBAIXA,'MM-YYYY')        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2)        ,CUS1.DESCRCENCUS ,CUS1.GRAU ,CUS1.ANALITICO    ) BAS    INNER JOIN T ON BAS.F = T.F    WHERE ANO IS NOT NULL    AND T.CODCENCUS = :A_CODCENCUS    GROUP BY    BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUSORDER BY MES))GROUP BY CODCENCUS, LINHAORDER BY LINHA]]></expression>
+            <metadata>
+              <field name="CODCENCUS" label="C.R" type="S" visible="true" useFooter="false"/>
+              <field name="LINHA" label="Ref." type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO_1" label="Mês 1" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO_2" label="Mês 2" type="S" visible="true" useFooter="false"/>
+              <field name="VLRBAIXA_1" label="Vlr. Líq" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="VLRBAIXA_2" label="Vlr. Líq" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <horizontal-axis>
+              <category field="LINHA" rotation="-45" dropLabel="false">
+                <initView value="first"/>
+              </category>
+            </horizontal-axis>
+            <vertical-axis>
+              <linear resultRotation="0" vResizing="false">
+                <mask/>
+              </linear>
+            </vertical-axis>
+            <series>
+              <serie type="line" circle-intersection="true">
+                <xField>LINHA</xField>
+                <yField>VLRBAIXA_1</yField>
+                <display><![CDATA[Ref: $MES_ANO_1]]></display>
+                <color>0x33cc00</color>
+              </serie>
+              <serie type="line" circle-intersection="true">
+                <xField>LINHA</xField>
+                <yField>VLRBAIXA_2</yField>
+                <display><![CDATA[Ref: $MES_ANO_2]]></display>
+                <color>0xff6600</color>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_ycbm9d" description="Grau_2">
+    <args>
+      <arg id="A_DESCRCENCUS" type="text"/>
+      <arg id="A_CODCENCUS" type="text"/>
+      <arg id="A_F" type="text"/>
+      <arg id="A_G" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="126">
+        <simple-value id="svl_zng4ew">
+          <args>
+            <arg id="A_CODCENCUS" type="text"/>
+            <arg id="A_DESCRCENCUS" type="text"/>
+            <arg id="A_G" type="text"/>
+          </args>
+          <value-expression><![CDATA[<b>GRAU 2</b>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="1600">
+        <container orientacao="V" tamanhoRelativo="100">
+          <container orientacao="V" tamanhoRelativo="50">
+            <grid id="grd_ycbm9j" useNewGrid="S">
+              <expression type="sql" data-source="MGEDS"><![CDATA[WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 4) AS G, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 2)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 4),CODCENCUS,DESCRCENCUS ORDER BY 1)SELECT BAS.F, BAS.G, T.CODCENCUS, T. DESCRCENCUS, SUM(BAS.VLRBAIXA_REC) AS REC_VLRBAIXA, SUM(BAS.VLRBAIXA_DESP) AS DESP_VLRBAIXA, SUM(BAS.VLRBAIXA) AS VLRBAIXAFROM(SELECT CUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP = 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4),CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO) BASINNER JOIN T ON BAS.G = T.GWHEREBAS.F= :A_FGROUP BYBAS.F, BAS.G, T.CODCENCUS, T. DESCRCENCUSORDER BYT.CODCENCUS]]></expression>
+              <metadata>
+                <field name="F" label="F" type="S" visible="true" useFooter="false"/>
+                <field name="G" label="G" type="S" visible="true" useFooter="false"/>
+                <field name="CODCENCUS" label="Cód.CR" type="S" visible="true" useFooter="false"/>
+                <field name="DESCRCENCUS" label="Descr.CR" type="S" visible="true" useFooter="false"/>
+                <field name="REC_VLRBAIXA" label="REC-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="DESP_VLRBAIXA" label="DESP-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#66FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+              <on-click navigate-to="lvl_y0jyoh">
+                <param id="A_CODCENCUS">$CODCENCUS</param>
+                <param id="A_DESCRCENCUS">$DESCRCENCUS</param>
+                <param id="A_G">$G</param>
+              </on-click>
+              <refresh-details ui-list="svl_zng4ew,grd_1gjtkq,cht_1gjttl">
+                <param id="A_CODCENCUS">$CODCENCUS</param>
+                <param id="A_DESCRCENCUS">$DESCRCENCUS</param>
+                <param id="A_G">$G</param>
+              </refresh-details>
+            </grid>
+          </container>
+          <container orientacao="H" tamanhoRelativo="50">
+            <grid id="grd_1gjtkq" useNewGrid="S">
+              <args>
+                <arg id="A_CODCENCUS" type="text"/>
+                <arg id="A_DESCRCENCUS" type="text"/>
+                <arg id="A_G" type="text"/>
+              </args>
+              <expression type="sql" data-source="MGEDS"><![CDATA[WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 4) AS G, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 2)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 4),CODCENCUS,DESCRCENCUS)SELECT BAS.CODNAT, BAS.DESCRNAT, SUM(BAS.VLRBAIXA_REC) AS REC_VLRBAIXA, SUM(BAS.VLRBAIXA_DESP) AS DESP_VLRBAIXA, SUM(BAS.VLRBAIXA) AS VLRBAIXAFROM(SELECT CUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4),CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT) BASINNER JOIN T ON BAS.G = T.GWHERET.CODCENCUS = :A_CODCENCUSGROUP BYBAS.CODNAT, BAS.DESCRNATORDER BYBAS.CODNAT]]></expression>
+              <metadata>
+                <field name="CODNAT" label="CODNAT" type="I" visible="true" useFooter="false"/>
+                <field name="DESCRNAT" label="DESCRNAT" type="S" visible="true" useFooter="false"/>
+                <field name="REC_VLRBAIXA" label="REC-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="DESP_VLRBAIXA" label="DESP-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+            </grid>
+          </container>
+        </container>
+        <container orientacao="H" tamanhoRelativo="186">
+          <chart id="cht_1gjttl" type="line" nroColuna="12">
+            <args>
+              <arg id="A_CODCENCUS" type="text"/>
+              <arg id="A_DESCRCENCUS" type="text"/>
+              <arg id="A_G" type="text"/>
+            </args>
+            <title><![CDATA[<b>CR: :A_DESCRCENCUS</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT(CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END) AS CODCENCUS,'Ref: '|| LINHA AS LINHA, MAX(MES_ANO_1) AS MES_ANO_1, MAX(MES_ANO_2) AS MES_ANO_2, SUM(VLRBAIXA_1) AS VLRBAIXA_1, SUM(VLRBAIXA_2) AS VLRBAIXA_2FROM (SELECTROWNUM AS LINHA,CODCENCUS, MES_ANO AS MES_ANO_1, NULL AS MES_ANO_2, VLRBAIXA AS VLRBAIXA_1, 0 AS VLRBAIXA_2FROM (WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 4) AS G, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 2)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 4),CODCENCUS,DESCRCENCUS)    SELECT     BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUS    , SUM(BAS.VLRBAIXA) AS VLRBAIXA    FROM(        SELECT         TO_CHAR(X.DHBAIXA,'YYYY') AS ANO        , TO_CHAR(X.DHBAIXA,'MM') AS MES        , TO_CHAR(X.DHBAIXA,'MM-YYYY') AS MES_ANO        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G        ,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUS        ELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS        ,CUS1.GRAU        ,CUS1.ANALITICO        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP        ,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB        ,NVL(SUM(X.VLRJURO),0) AS VLRJURO        ,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA        ,NVL(SUM(X.VLRDESC),0) AS VLRDESC        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP        ,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA        FROM TSICUS CUS1        LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUS                        WHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))        AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)        AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)        AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)        AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)        AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )        GROUP BY        TO_CHAR(X.DHBAIXA,'YYYY')        , TO_CHAR(X.DHBAIXA,'MM')        , TO_CHAR(X.DHBAIXA,'MM-YYYY')        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4)        ,CUS1.DESCRCENCUS ,CUS1.GRAU ,CUS1.ANALITICO    ) BAS    INNER JOIN T ON BAS.G = T.G    WHERE T.CODCENCUS = :A_CODCENCUS AND ANO IS NOT NULL    GROUP BY    BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUSORDER BY MES)UNION ALLSELECTROWNUM AS LINHA,CODCENCUS, NULL AS MES_ANO_1, MES_ANO AS MES_ANO_2, 0 AS VLRBAIXA_1, VLRBAIXA AS VLRBAIXA_2FROM (WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 4) AS G, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 2)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 4),CODCENCUS,DESCRCENCUS)    SELECT     BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUS    , SUM(BAS.VLRBAIXA) AS VLRBAIXA    FROM(        SELECT         TO_CHAR(X.DHBAIXA,'YYYY') AS ANO        , TO_CHAR(X.DHBAIXA,'MM') AS MES        , TO_CHAR(X.DHBAIXA,'MM-YYYY') AS MES_ANO        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G        ,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUS        ELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS        ,CUS1.GRAU        ,CUS1.ANALITICO        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP        ,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB        ,NVL(SUM(X.VLRJURO),0) AS VLRJURO        ,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA        ,NVL(SUM(X.VLRDESC),0) AS VLRDESC        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP        ,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA        FROM TSICUS CUS1        LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUS        WHERE                (            (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))            OR            (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))            OR            (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))        )        OR        (            X.RECDESP = 1             AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL)            AND EXISTS (                SELECT 1                 FROM TGFCAB CAB                INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)                WHERE                    TOP.ATUALEST <> 'N'                    AND CAB.TIPMOV IN ('V','D')                    AND CAB.STATUSNOTA='L'                    AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)                    AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )                    AND NUNOTA = X.NUNOTA            )        )        AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)        AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)        AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)        AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)        AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )        AND (select ABS(ROUND(months_between(:PERIODOBAI.INI , :PERIODOBAI.FIN))) from dual) = (select ABS(ROUND(months_between(:PERIODO2.INI , :PERIODO2.FIN))) from dual)        GROUP BY        TO_CHAR(X.DHBAIXA,'YYYY')        , TO_CHAR(X.DHBAIXA,'MM')        , TO_CHAR(X.DHBAIXA,'MM-YYYY')        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4)        ,CUS1.DESCRCENCUS ,CUS1.GRAU ,CUS1.ANALITICO    ) BAS    INNER JOIN T ON BAS.G = T.G    WHERE T.CODCENCUS = :A_CODCENCUS AND ANO IS NOT NULL    GROUP BY    BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUSORDER BY MES))GROUP BY CODCENCUS, LINHAORDER BY LINHA]]></expression>
+            <metadata>
+              <field name="CODCENCUS" label="C.R" type="S" visible="true" useFooter="false"/>
+              <field name="LINHA" label="Ref." type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO_1" label="Mês 1" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO_2" label="Mês 2" type="S" visible="true" useFooter="false"/>
+              <field name="VLRBAIXA_1" label="Vlr. Líq" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="VLRBAIXA_2" label="Vlr. Líq" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <horizontal-axis>
+              <category field="LINHA" rotation="-45" dropLabel="false">
+                <initView value="first"/>
+              </category>
+            </horizontal-axis>
+            <vertical-axis>
+              <linear resultRotation="0" vResizing="false">
+                <mask/>
+              </linear>
+            </vertical-axis>
+            <series>
+              <serie type="line" circle-intersection="true">
+                <xField>LINHA</xField>
+                <yField>VLRBAIXA_1</yField>
+                <display><![CDATA[Ref: $MES_ANO_1]]></display>
+                <color>0x33cc00</color>
+              </serie>
+              <serie type="line" circle-intersection="true">
+                <xField>LINHA</xField>
+                <yField>VLRBAIXA_2</yField>
+                <display><![CDATA[Ref: $MES_ANO_2]]></display>
+                <color>0xff6600</color>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_y0jyoh" description="Grau_3">
+    <args>
+      <arg id="A_CODCENCUS" type="integer"/>
+      <arg id="A_DESCRCENCUS" type="text"/>
+      <arg id="A_G" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="111">
+        <simple-value id="svl_zng4du">
+          <value-expression><![CDATA[<b>GRAU 3</b>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="1411">
+        <container orientacao="V" tamanhoRelativo="161">
+          <container orientacao="H" tamanhoRelativo="50">
+            <grid id="grd_1gjt3r" useNewGrid="S">
+              <expression type="sql" data-source="MGEDS"><![CDATA[WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 6) AS H, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 3)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 6),CODCENCUS,DESCRCENCUS ORDER BY 1)SELECT BAS.F, BAS.G, BAS.H, T.CODCENCUS, T. DESCRCENCUS, SUM(BAS.VLRBAIXA_REC) AS REC_VLRBAIXA, SUM(BAS.VLRBAIXA_DESP) AS DESP_VLRBAIXA, SUM(BAS.VLRBAIXA) AS VLRBAIXAFROM(SELECT CUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP = 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6),CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO) BASINNER JOIN T ON BAS.H = T.HWHEREBAS.G = :A_GGROUP BYBAS.F, BAS.G, BAS.H, T.CODCENCUS, T. DESCRCENCUSORDER BYT.CODCENCUS]]></expression>
+              <metadata>
+                <field name="F" label="F" type="S" visible="true" useFooter="false"/>
+                <field name="G" label="G" type="S" visible="true" useFooter="false"/>
+                <field name="H" label="H" type="S" visible="true" useFooter="false"/>
+                <field name="CODCENCUS" label="Cód.CR" type="S" visible="true" useFooter="false"/>
+                <field name="DESCRCENCUS" label="Descr.CR" type="S" visible="true" useFooter="false"/>
+                <field name="REC_VLRBAIXA" label="REC-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="DESP_VLRBAIXA" label="DESP-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#66FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+              <on-click navigate-to="lvl_zd7cnl">
+                <param id="A_H">$H</param>
+                <param id="A_CODCENCUS">$CODCENCUS</param>
+                <param id="A_DESCRCENCUS">$DESCRCENCUS</param>
+              </on-click>
+              <refresh-details ui-list="grd_1gjt8f,cht_1yxsgt">
+                <param id="A_CODCENCUS">$CODCENCUS</param>
+                <param id="A_DESCRCENCUS">$DESCRCENCUS</param>
+                <param id="A_H">$H</param>
+              </refresh-details>
+            </grid>
+          </container>
+          <container orientacao="H" tamanhoRelativo="50">
+            <grid id="grd_1gjt8f" useNewGrid="S">
+              <args>
+                <arg id="A_CODCENCUS" type="text"/>
+                <arg id="A_DESCRCENCUS" type="text"/>
+                <arg id="A_H" type="text"/>
+              </args>
+              <expression type="sql" data-source="MGEDS"><![CDATA[WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 6) AS H, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 3)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 6),CODCENCUS,DESCRCENCUS)SELECT BAS.CODNAT, BAS.DESCRNAT, SUM(BAS.VLRBAIXA_REC) AS REC_VLRBAIXA, SUM(BAS.VLRBAIXA_DESP) AS DESP_VLRBAIXA, SUM(BAS.VLRBAIXA) AS VLRBAIXAFROM(SELECT CUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6),CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT) BASINNER JOIN T ON BAS.H = T.HWHERET.CODCENCUS = :A_CODCENCUSGROUP BYBAS.CODNAT, BAS.DESCRNATORDER BYBAS.CODNAT]]></expression>
+              <metadata>
+                <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+                <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+                <field name="REC_VLRBAIXA" label="REC-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="DESP_VLRBAIXA" label="DESP-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+            </grid>
+          </container>
+        </container>
+        <container orientacao="H" tamanhoRelativo="313">
+          <chart id="cht_1yxsgt" type="line" nroColuna="12">
+            <args>
+              <arg id="A_CODCENCUS" type="text"/>
+              <arg id="A_DESCRCENCUS" type="text"/>
+              <arg id="A_H" type="text"/>
+            </args>
+            <title><![CDATA[<b>CR: :A_DESCRCENCUS</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT(CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END) AS CODCENCUS,'Ref: '|| LINHA AS LINHA, MAX(MES_ANO_1) AS MES_ANO_1, MAX(MES_ANO_2) AS MES_ANO_2, SUM(VLRBAIXA_1) AS VLRBAIXA_1, SUM(VLRBAIXA_2) AS VLRBAIXA_2FROM (SELECTROWNUM AS LINHA,CODCENCUS, MES_ANO AS MES_ANO_1, NULL AS MES_ANO_2, VLRBAIXA AS VLRBAIXA_1, 0 AS VLRBAIXA_2FROM (WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 6) AS H, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 3)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 6),CODCENCUS,DESCRCENCUS)    SELECT     BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUS    , SUM(BAS.VLRBAIXA) AS VLRBAIXA    FROM(        SELECT         TO_CHAR(X.DHBAIXA,'YYYY') AS ANO        , TO_CHAR(X.DHBAIXA,'MM') AS MES        , TO_CHAR(X.DHBAIXA,'MM-YYYY') AS MES_ANO        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H        ,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUS        ELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS        ,CUS1.GRAU        ,CUS1.ANALITICO        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP        ,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB        ,NVL(SUM(X.VLRJURO),0) AS VLRJURO        ,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA        ,NVL(SUM(X.VLRDESC),0) AS VLRDESC        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP        ,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA        FROM TSICUS CUS1        LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUS                        WHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))        AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)        AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)        AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)        AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)        AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )        GROUP BY        TO_CHAR(X.DHBAIXA,'YYYY')        , TO_CHAR(X.DHBAIXA,'MM')        , TO_CHAR(X.DHBAIXA,'MM-YYYY')        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6)        ,CUS1.DESCRCENCUS ,CUS1.GRAU ,CUS1.ANALITICO    ) BAS    INNER JOIN T ON BAS.H = T.H    WHERE T.CODCENCUS = :A_CODCENCUS AND ANO IS NOT NULL    GROUP BY    BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUSORDER BY MES)UNION ALLSELECTROWNUM AS LINHA,CODCENCUS, NULL AS MES_ANO_1, MES_ANO AS MES_ANO_2, 0 AS VLRBAIXA_1, VLRBAIXA AS VLRBAIXA_2FROM (WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 6) AS H, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 3)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 6),CODCENCUS,DESCRCENCUS)    SELECT     BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUS    , SUM(BAS.VLRBAIXA) AS VLRBAIXA    FROM(        SELECT         TO_CHAR(X.DHBAIXA,'YYYY') AS ANO        , TO_CHAR(X.DHBAIXA,'MM') AS MES        , TO_CHAR(X.DHBAIXA,'MM-YYYY') AS MES_ANO        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H        ,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUS        ELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS        ,CUS1.GRAU        ,CUS1.ANALITICO        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP        ,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB        ,NVL(SUM(X.VLRJURO),0) AS VLRJURO        ,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA        ,NVL(SUM(X.VLRDESC),0) AS VLRDESC        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP        ,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA        FROM TSICUS CUS1        LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUS        WHERE                (            (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))            OR            (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))            OR            (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))        )        OR        (            X.RECDESP = 1             AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL)            AND EXISTS (                SELECT 1                 FROM TGFCAB CAB                INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)                WHERE                    TOP.ATUALEST <> 'N'                    AND CAB.TIPMOV IN ('V','D')                    AND CAB.STATUSNOTA='L'                    AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)                    AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )                    AND NUNOTA = X.NUNOTA            )        )                AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)        AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)        AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)        AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)        AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )        AND (select ABS(ROUND(months_between(:PERIODOBAI.INI , :PERIODOBAI.FIN))) from dual) = (select ABS(ROUND(months_between(:PERIODO2.INI , :PERIODO2.FIN))) from dual)                GROUP BY        TO_CHAR(X.DHBAIXA,'YYYY')        , TO_CHAR(X.DHBAIXA,'MM')        , TO_CHAR(X.DHBAIXA,'MM-YYYY')        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6)        ,CUS1.DESCRCENCUS ,CUS1.GRAU ,CUS1.ANALITICO    ) BAS    INNER JOIN T ON BAS.H = T.H    WHERE T.CODCENCUS = :A_CODCENCUS AND ANO IS NOT NULL    GROUP BY    BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUSORDER BY MES))GROUP BY CODCENCUS, LINHAORDER BY LINHA]]></expression>
+            <metadata>
+              <field name="CODCENCUS" label="C.R" type="S" visible="true" useFooter="false"/>
+              <field name="LINHA" label="Ref." type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO_1" label="Mês 1" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO_2" label="Mês 2" type="S" visible="true" useFooter="false"/>
+              <field name="VLRBAIXA_1" label="Vlr. Líq" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="VLRBAIXA_2" label="Vlr. Líq" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <horizontal-axis>
+              <category field="LINHA" rotation="-45" dropLabel="false">
+                <initView value="first"/>
+              </category>
+            </horizontal-axis>
+            <vertical-axis>
+              <linear resultRotation="0" vResizing="false">
+                <mask/>
+              </linear>
+            </vertical-axis>
+            <series>
+              <serie type="line" circle-intersection="true">
+                <xField>LINHA</xField>
+                <yField>VLRBAIXA_1</yField>
+                <display><![CDATA[Ref: $MES_ANO_1]]></display>
+                <color>0x33cc00</color>
+              </serie>
+              <serie type="line" circle-intersection="true">
+                <xField>LINHA</xField>
+                <yField>VLRBAIXA_2</yField>
+                <display><![CDATA[Ref: $MES_ANO_2]]></display>
+                <color>0xff6600</color>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_zd7cnl" description="Grau_4">
+    <args>
+      <arg id="A_H" type="text"/>
+      <arg id="A_CODCENCUS" type="integer"/>
+      <arg id="A_DESCRCENCUS" type="text"/>
+      <arg id="A_I" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="100">
+        <simple-value id="svl_zng4db">
+          <value-expression><![CDATA[<b>GRAU 4</b>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="1716">
+        <container orientacao="V" tamanhoRelativo="118">
+          <container orientacao="H" tamanhoRelativo="50">
+            <grid id="grd_1yxsjh" useNewGrid="S">
+              <expression type="sql" data-source="MGEDS"><![CDATA[WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 8) AS I, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 4)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 8),CODCENCUS,DESCRCENCUS ORDER BY 1)SELECT BAS.F, BAS.G, BAS.H, BAS.I, T.CODCENCUS, T. DESCRCENCUS, SUM(BAS.VLRBAIXA_REC) AS REC_VLRBAIXA, SUM(BAS.VLRBAIXA_DESP) AS DESP_VLRBAIXA, SUM(BAS.VLRBAIXA) AS VLRBAIXAFROM(SELECT CUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8) AS I,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP = 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8),CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO) BASINNER JOIN T ON BAS.I = T.IWHEREBAS.H = :A_HGROUP BYBAS.F, BAS.G, BAS.H, BAS.I, T.CODCENCUS, T. DESCRCENCUSORDER BYT.CODCENCUS]]></expression>
+              <metadata>
+                <field name="F" label="F" type="S" visible="true" useFooter="false"/>
+                <field name="G" label="G" type="S" visible="true" useFooter="false"/>
+                <field name="H" label="H" type="S" visible="true" useFooter="false"/>
+                <field name="I" label="I" type="S" visible="true" useFooter="false"/>
+                <field name="CODCENCUS" label="Cód.CR" type="S" visible="true" useFooter="false"/>
+                <field name="DESCRCENCUS" label="Descr.CR" type="S" visible="true" useFooter="false"/>
+                <field name="REC_VLRBAIXA" label="REC-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="DESP_VLRBAIXA" label="DESP-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#66FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+              <on-click navigate-to="lvl_zd7ctf">
+                <param id="A_I">$I</param>
+                <param id="A_CODCENCUS">$CODCENCUS</param>
+                <param id="A_DESCRCENCUS">$DESCRCENCUS</param>
+              </on-click>
+              <refresh-details ui-list="grd_1yxskj,cht_1yxsln">
+                <param id="A_CODCENCUS">$CODCENCUS</param>
+                <param id="A_DESCRCENCUS">$DESCRCENCUS</param>
+                <param id="A_I">$I</param>
+              </refresh-details>
+            </grid>
+          </container>
+          <container orientacao="H" tamanhoRelativo="50">
+            <grid id="grd_1yxskj" useNewGrid="S">
+              <args>
+                <arg id="A_CODCENCUS" type="text"/>
+                <arg id="A_DESCRCENCUS" type="text"/>
+                <arg id="A_I" type="text"/>
+              </args>
+              <expression type="sql" data-source="MGEDS"><![CDATA[WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 8) AS I, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 4)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 8),CODCENCUS,DESCRCENCUS)SELECT BAS.CODNAT, BAS.DESCRNAT, SUM(BAS.VLRBAIXA_REC) AS REC_VLRBAIXA, SUM(BAS.VLRBAIXA_DESP) AS DESP_VLRBAIXA, SUM(BAS.VLRBAIXA) AS VLRBAIXAFROM(SELECT CUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8) AS I,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8),CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT) BASINNER JOIN T ON BAS.I = T.IWHERET.CODCENCUS = :A_CODCENCUSGROUP BYBAS.CODNAT, BAS.DESCRNATORDER BYBAS.CODNAT]]></expression>
+              <metadata>
+                <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+                <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+                <field name="REC_VLRBAIXA" label="REC-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="DESP_VLRBAIXA" label="DESP-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+            </grid>
+          </container>
+        </container>
+        <container orientacao="H" tamanhoRelativo="197">
+          <chart id="cht_1yxsln" type="line" nroColuna="12">
+            <args>
+              <arg id="A_CODCENCUS" type="text"/>
+              <arg id="A_DESCRCENCUS" type="text"/>
+              <arg id="A_I" type="text"/>
+            </args>
+            <title><![CDATA[<b>CR: :A_DESCRCENCUS</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT(CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END) AS CODCENCUS,'Ref: '|| LINHA AS LINHA, MAX(MES_ANO_1) AS MES_ANO_1, MAX(MES_ANO_2) AS MES_ANO_2, SUM(VLRBAIXA_1) AS VLRBAIXA_1, SUM(VLRBAIXA_2) AS VLRBAIXA_2FROM (SELECTROWNUM AS LINHA,CODCENCUS, MES_ANO AS MES_ANO_1, NULL AS MES_ANO_2, VLRBAIXA AS VLRBAIXA_1, 0 AS VLRBAIXA_2FROM (WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 8) AS I, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 4)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 8),CODCENCUS,DESCRCENCUS)    SELECT     BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUS    , SUM(BAS.VLRBAIXA) AS VLRBAIXA    FROM(        SELECT         TO_CHAR(X.DHBAIXA,'YYYY') AS ANO        , TO_CHAR(X.DHBAIXA,'MM') AS MES        , TO_CHAR(X.DHBAIXA,'MM-YYYY') AS MES_ANO        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8) AS I        ,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUS        ELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS        ,CUS1.GRAU        ,CUS1.ANALITICO        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP        ,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB        ,NVL(SUM(X.VLRJURO),0) AS VLRJURO        ,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA        ,NVL(SUM(X.VLRDESC),0) AS VLRDESC        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP        ,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA        FROM TSICUS CUS1        LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUS                        WHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))        AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)        AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)        AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)        AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)        AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )        GROUP BY        TO_CHAR(X.DHBAIXA,'YYYY')        , TO_CHAR(X.DHBAIXA,'MM')        , TO_CHAR(X.DHBAIXA,'MM-YYYY')        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8)        ,CUS1.DESCRCENCUS ,CUS1.GRAU ,CUS1.ANALITICO    ) BAS    INNER JOIN T ON BAS.I = T.I    WHERE T.CODCENCUS = :A_CODCENCUS AND ANO IS NOT NULL    GROUP BY    BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUSORDER BY MES)UNION ALLSELECTROWNUM AS LINHA,CODCENCUS, NULL AS MES_ANO_1, MES_ANO AS MES_ANO_2, 0 AS VLRBAIXA_1, VLRBAIXA AS VLRBAIXA_2FROM (WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 8) AS I, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 4)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 8),CODCENCUS,DESCRCENCUS)    SELECT     BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUS    , SUM(BAS.VLRBAIXA) AS VLRBAIXA    FROM(        SELECT         TO_CHAR(X.DHBAIXA,'YYYY') AS ANO        , TO_CHAR(X.DHBAIXA,'MM') AS MES        , TO_CHAR(X.DHBAIXA,'MM-YYYY') AS MES_ANO        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8) AS I        ,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUS        ELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS        ,CUS1.GRAU        ,CUS1.ANALITICO        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP        ,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB        ,NVL(SUM(X.VLRJURO),0) AS VLRJURO        ,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA        ,NVL(SUM(X.VLRDESC),0) AS VLRDESC        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP        ,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA        FROM TSICUS CUS1        LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUS        WHERE                (            (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))            OR            (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))            OR            (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))        )        OR        (            X.RECDESP = 1             AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL)            AND EXISTS (                SELECT 1                 FROM TGFCAB CAB                INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)                WHERE                    TOP.ATUALEST <> 'N'                    AND CAB.TIPMOV IN ('V','D')                    AND CAB.STATUSNOTA='L'                    AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)                    AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )                    AND NUNOTA = X.NUNOTA            )        )                AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)        AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)        AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)        AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)        AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )        AND (select ABS(ROUND(months_between(:PERIODOBAI.INI , :PERIODOBAI.FIN))) from dual) = (select ABS(ROUND(months_between(:PERIODO2.INI , :PERIODO2.FIN))) from dual)                GROUP BY        TO_CHAR(X.DHBAIXA,'YYYY')        , TO_CHAR(X.DHBAIXA,'MM')        , TO_CHAR(X.DHBAIXA,'MM-YYYY')        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8)        ,CUS1.DESCRCENCUS ,CUS1.GRAU ,CUS1.ANALITICO    ) BAS    INNER JOIN T ON BAS.I = T.I    WHERE T.CODCENCUS = :A_CODCENCUS AND ANO IS NOT NULL    GROUP BY    BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUSORDER BY MES))GROUP BY CODCENCUS, LINHAORDER BY LINHA]]></expression>
+            <metadata>
+              <field name="CODCENCUS" label="C.R" type="S" visible="true" useFooter="false"/>
+              <field name="LINHA" label="Ref." type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO_1" label="Mês 1" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO_2" label="Mês 2" type="S" visible="true" useFooter="false"/>
+              <field name="VLRBAIXA_1" label="Vlr. Líq" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="VLRBAIXA_2" label="Vlr. Líq" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <horizontal-axis>
+              <category field="LINHA" rotation="-45" dropLabel="false">
+                <initView value="first"/>
+              </category>
+            </horizontal-axis>
+            <vertical-axis>
+              <linear resultRotation="0" vResizing="false">
+                <mask/>
+              </linear>
+            </vertical-axis>
+            <series>
+              <serie type="line" circle-intersection="true">
+                <xField>LINHA</xField>
+                <yField>VLRBAIXA_1</yField>
+                <display><![CDATA[Ref: $MES_ANO_1]]></display>
+                <color>0x33cc00</color>
+              </serie>
+              <serie type="line" circle-intersection="true">
+                <xField>LINHA</xField>
+                <yField>VLRBAIXA_2</yField>
+                <display><![CDATA[Ref: $MES_ANO_2]]></display>
+                <color>0xff6600</color>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_zd7ctf" description="Grau_5">
+    <args>
+      <arg id="A_I" type="text"/>
+      <arg id="A_CODCENCUS" type="integer"/>
+      <arg id="A_DESCRCENCUS" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="125">
+        <simple-value id="svl_zng4cn">
+          <value-expression><![CDATA[<b>GRAU 5</b>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="2712">
+        <container orientacao="V" tamanhoRelativo="206">
+          <container orientacao="H" tamanhoRelativo="124">
+            <grid id="grd_2fgyel" useNewGrid="S">
+              <expression type="sql" data-source="MGEDS"><![CDATA[WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 10) AS J, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 5)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 10),CODCENCUS,DESCRCENCUS ORDER BY 1)SELECT BAS.F, BAS.G, BAS.H, BAS.I, BAS.J, T.CODCENCUS, T. DESCRCENCUS, SUM(BAS.VLRBAIXA_REC) AS REC_VLRBAIXA, SUM(BAS.VLRBAIXA_DESP) AS DESP_VLRBAIXA, SUM(BAS.VLRBAIXA) AS VLRBAIXAFROM(SELECT CUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8) AS I,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 10) AS J,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP = 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)))            AND NUNOTA = X.NUNOTA    ))AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 10),CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO) BASINNER JOIN T ON BAS.J = T.JWHEREBAS.I = :A_IGROUP BYBAS.F, BAS.G, BAS.H, BAS.I, BAS.J, T.CODCENCUS, T. DESCRCENCUSORDER BYT.CODCENCUS]]></expression>
+              <metadata>
+                <field name="F" label="F" type="S" visible="true" useFooter="false"/>
+                <field name="G" label="G" type="S" visible="true" useFooter="false"/>
+                <field name="H" label="H" type="S" visible="true" useFooter="false"/>
+                <field name="I" label="I" type="S" visible="true" useFooter="false"/>
+                <field name="J" label="J" type="S" visible="true" useFooter="false"/>
+                <field name="CODCENCUS" label="Cód.CR" type="S" visible="true" useFooter="false"/>
+                <field name="DESCRCENCUS" label="Descr.CR" type="S" visible="true" useFooter="false"/>
+                <field name="REC_VLRBAIXA" label="REC-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="DESP_VLRBAIXA" label="DESP-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#66FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+              <on-click navigate-to="lvl_zd7ctf">
+                <param id="A_I"/>
+                <param id="A_CODCENCUS"/>
+                <param id="A_DESCRCENCUS"/>
+              </on-click>
+              <refresh-details ui-list="grd_2fgyfn,cht_2fgyhf">
+                <param id="A_CODCENCUS">$CODCENCUS</param>
+                <param id="A_DESCRCENCUS">$DESCRCENCUS</param>
+              </refresh-details>
+            </grid>
+          </container>
+          <container orientacao="H" tamanhoRelativo="131">
+            <grid id="grd_2fgyfn" useNewGrid="S">
+              <args>
+                <arg id="A_CODCENCUS" type="text"/>
+                <arg id="A_DESCRCENCUS" type="text"/>
+              </args>
+              <expression type="sql" data-source="MGEDS"><![CDATA[WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 10) AS J, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 5)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 10),CODCENCUS,DESCRCENCUS)SELECT BAS.CODNAT, BAS.DESCRNAT, SUM(BAS.VLRBAIXA_REC) AS REC_VLRBAIXA, SUM(BAS.VLRBAIXA_DESP) AS DESP_VLRBAIXA, SUM(BAS.VLRBAIXA) AS VLRBAIXAFROM(SELECT CUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8) AS I,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 10) AS J,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUSWHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUSELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB,NVL(SUM(X.VLRJURO),0) AS VLRJURO,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA,NVL(SUM(X.VLRDESC),0) AS VLRDESC,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXAFROM TSICUS CUS1LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUSWHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP = 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)))            AND NUNOTA = X.NUNOTA    ))AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )GROUP BYCUS1.CODCENCUS,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8),SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 10),CUS1.DESCRCENCUS,CUS1.GRAU,CUS1.ANALITICO,X.CODNAT,X.DESCRNAT) BASINNER JOIN T ON BAS.J = T.JWHERET.CODCENCUS = :A_CODCENCUSGROUP BYBAS.CODNAT, BAS.DESCRNATORDER BYBAS.CODNAT]]></expression>
+              <metadata>
+                <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+                <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+                <field name="REC_VLRBAIXA" label="REC-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="DESP_VLRBAIXA" label="DESP-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+                <field name="VLRBAIXA" label="LÍQ-Vlr.Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                  <formatter isEmpty="false"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                </field>
+              </metadata>
+            </grid>
+          </container>
+        </container>
+        <container orientacao="H" tamanhoRelativo="365">
+          <chart id="cht_2fgyhf" type="line" nroColuna="12">
+            <args>
+              <arg id="A_CODCENCUS" type="text"/>
+              <arg id="A_DESCRCENCUS" type="text"/>
+            </args>
+            <title><![CDATA[<b>CR: :A_DESCRCENCUS</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT(CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END) AS CODCENCUS,'Ref: '|| LINHA AS LINHA, MAX(MES_ANO_1) AS MES_ANO_1, MAX(MES_ANO_2) AS MES_ANO_2, SUM(VLRBAIXA_1) AS VLRBAIXA_1, SUM(VLRBAIXA_2) AS VLRBAIXA_2FROM (SELECTROWNUM AS LINHA,CODCENCUS, MES_ANO AS MES_ANO_1, NULL AS MES_ANO_2, VLRBAIXA AS VLRBAIXA_1, 0 AS VLRBAIXA_2FROM (WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 10) AS J, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 5)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 10),CODCENCUS,DESCRCENCUS)    SELECT     BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUS    , SUM(BAS.VLRBAIXA) AS VLRBAIXA    FROM(        SELECT         TO_CHAR(X.DHBAIXA,'YYYY') AS ANO        , TO_CHAR(X.DHBAIXA,'MM') AS MES        , TO_CHAR(X.DHBAIXA,'MM-YYYY') AS MES_ANO        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8) AS I        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 10) AS J        ,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUS        ELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS        ,CUS1.GRAU        ,CUS1.ANALITICO        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP        ,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB        ,NVL(SUM(X.VLRJURO),0) AS VLRJURO        ,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA        ,NVL(SUM(X.VLRDESC),0) AS VLRDESC        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP        ,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA        FROM TSICUS CUS1        LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUS                        WHERE(    (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL))    OR    (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)))OR(    X.RECDESP = 1     AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODOBAI.INI AND :PERIODOBAI.FIN OR :PERIODOBAI.FIN IS NULL)    AND EXISTS (        SELECT 1         FROM TGFCAB CAB        INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)        WHERE            TOP.ATUALEST <> 'N'            AND CAB.TIPMOV IN ('V','D')            AND CAB.STATUSNOTA='L'            AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)            AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )            AND NUNOTA = X.NUNOTA    ))        AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)        AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)        AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)        AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)        AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )        GROUP BY        TO_CHAR(X.DHBAIXA,'YYYY')        , TO_CHAR(X.DHBAIXA,'MM')        , TO_CHAR(X.DHBAIXA,'MM-YYYY')        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 10)        ,CUS1.DESCRCENCUS ,CUS1.GRAU ,CUS1.ANALITICO    ) BAS    INNER JOIN T ON BAS.J = T.J    WHERE T.CODCENCUS = :A_CODCENCUS AND ANO IS NOT NULL    GROUP BY    BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUSORDER BY MES)UNION ALLSELECTROWNUM AS LINHA,CODCENCUS, NULL AS MES_ANO_1, MES_ANO AS MES_ANO_2, 0 AS VLRBAIXA_1, VLRBAIXA AS VLRBAIXA_2FROM (WITH T AS (SELECT SUBSTR(TO_CHAR(CODCENCUS), 1, 10) AS J, CODCENCUS, DESCRCENCUSFROM(SELECT CASE WHEN LENGTH(CODCENCUS) = 9 THEN TO_CHAR(0||CODCENCUS) ELSE TO_CHAR(CODCENCUS) END AS CODCENCUS,DESCRCENCUSFROM TSICUSWHERE CODCENCUS <> 0 AND GRAU = 5)GROUP BY SUBSTR(TO_CHAR(CODCENCUS), 1, 10),CODCENCUS,DESCRCENCUS)    SELECT     BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUS    , SUM(BAS.VLRBAIXA) AS VLRBAIXA    FROM(        SELECT         TO_CHAR(X.DHBAIXA,'YYYY') AS ANO        , TO_CHAR(X.DHBAIXA,'MM') AS MES        , TO_CHAR(X.DHBAIXA,'MM-YYYY') AS MES_ANO        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2) AS F        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4) AS G        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6) AS H        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8) AS I        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 10) AS J        ,CASE WHEN CUS1.GRAU=2 THEN CUS1.GRAU || '___' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=3 THEN CUS1.GRAU || '_____' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=4 THEN CUS1.GRAU || '_______' || CUS1.DESCRCENCUS        WHEN CUS1.GRAU=5 THEN CUS1.GRAU || '_________' || CUS1.DESCRCENCUS        ELSE CUS1.GRAU||'_'||CUS1.DESCRCENCUS END AS DESCRCENCUS        ,CUS1.GRAU        ,CUS1.ANALITICO        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END),0) AS VLRDESDOB_DESP        ,NVL(SUM(X.VLRDESDOB),0) AS VLRDESDOB        ,NVL(SUM(X.VLRJURO),0) AS VLRJURO        ,NVL(SUM(X.VLRMULTA),0) AS VLRMULTA        ,NVL(SUM(X.VLRDESC),0) AS VLRDESC        ,NVL(SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_REC        ,NVL(SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA ELSE 0 END),0) AS VLRBAIXA_DESP        ,NVL(SUM(X.VLRBAIXA),0) AS VLRBAIXA        FROM TSICUS CUS1        LEFT JOIN VGF_RESULTADO2_SATIS X ON X.CODCENCUS=CUS1.CODCENCUS        WHERE                (            (X.CODCENCUS NOT LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'S' AND (X.DTNEG BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))            OR            (X.CODCENCUS LIKE '6%' AND X.RECDESP <> 1 AND X.CODNAT = 2020202 AND X.PROVISAO = 'N' AND (X.DTNEG BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))            OR            (X.RECDESP NOT IN (1, 0) AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL))        )        OR        (            X.RECDESP = 1             AND X.CODNAT <> 2020202 AND PROVISAO = 'N' AND (X.DHBAIXA BETWEEN :PERIODO2.INI AND :PERIODO2.FIN OR :PERIODO2.FIN IS NULL)            AND EXISTS (                SELECT 1                 FROM TGFCAB CAB                INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)                WHERE                    TOP.ATUALEST <> 'N'                    AND CAB.TIPMOV IN ('V','D')                    AND CAB.STATUSNOTA='L'                    AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)                    AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )                    AND NUNOTA = X.NUNOTA            )        )                AND X.CODCENCUS IN :CR AND X.CODCENCUS <> 0 AND (X.RECDESP=:P_RECDESP OR :P_RECDESP = 0)        AND (X.CODCENCUS >= :P_CRINI OR :P_CRINI IS NULL)        AND (X.CODCENCUS < :P_CRFIN OR :P_CRFIN IS NULL)        AND (X.CODNAT <> :NATDIF OR :NATDIF IS NULL)        AND ( (X.CODNAT IN (SELECT CODNAT FROM TGFNAT WHERE AD_CUSTOFIXO = 'S') AND :P_CUSFIXO='S') OR :P_CUSFIXO='N' )        AND (select ABS(ROUND(months_between(:PERIODOBAI.INI , :PERIODOBAI.FIN))) from dual) = (select ABS(ROUND(months_between(:PERIODO2.INI , :PERIODO2.FIN))) from dual)                GROUP BY        TO_CHAR(X.DHBAIXA,'YYYY')        , TO_CHAR(X.DHBAIXA,'MM')        , TO_CHAR(X.DHBAIXA,'MM-YYYY')        , CUS1.CODCENCUS        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 2)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 4)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 6)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 8)        ,SUBSTR(TO_CHAR(CASE WHEN LENGTH(CUS1.CODCENCUS) = 9 THEN TO_CHAR(0||CUS1.CODCENCUS) ELSE TO_CHAR(CUS1.CODCENCUS) END), 1, 10)        ,CUS1.DESCRCENCUS ,CUS1.GRAU ,CUS1.ANALITICO    ) BAS    INNER JOIN T ON BAS.J = T.J    WHERE T.CODCENCUS = :A_CODCENCUS AND ANO IS NOT NULL    GROUP BY    BAS.ANO    , BAS.MES    , BAS.MES_ANO    , T.CODCENCUSORDER BY MES))GROUP BY CODCENCUS, LINHAORDER BY LINHA]]></expression>
+            <metadata>
+              <field name="CODCENCUS" label="C.R" type="S" visible="true" useFooter="false"/>
+              <field name="LINHA" label="Ref." type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO_1" label="Mês 1" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO_2" label="Mês 2" type="S" visible="true" useFooter="false"/>
+              <field name="VLRBAIXA_1" label="Vlr. Líq" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="VLRBAIXA_2" label="Vlr. Líq" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <horizontal-axis>
+              <category field="LINHA" rotation="-44" dropLabel="false">
+                <initView value="first"/>
+              </category>
+            </horizontal-axis>
+            <series>
+              <serie type="line" circle-intersection="true">
+                <xField>MES_ANO_1</xField>
+                <yField>VLRBAIXA_1</yField>
+                <display><![CDATA[Ref: $MES_ANO_1]]></display>
+                <color>0x33cc00</color>
+              </serie>
+              <serie type="line" circle-intersection="true">
+                <xField>MES_ANO_2</xField>
+                <yField>VLRBAIXA_2</yField>
+                <display><![CDATA[Ref: $MES_ANO_2]]></display>
+                <color>0xff6600</color>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+</gadget>

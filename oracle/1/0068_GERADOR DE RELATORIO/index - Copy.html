@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Relatório</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Gerador de Relatório</h1>
+        <form id="reportForm">
+            <div class="form-group">
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" placeholder="Insira seu nome" required>
+            </div>
+            <div class="form-group">
+                <label for="data">Data:</label>
+                <input type="date" id="data" required>
+            </div>
+            <div class="form-group">
+                <label for="relatorio">Relatório:</label>
+                <textarea id="relatorio" placeholder="Descreva o relatório" required></textarea>
+            </div>
+            <button type="submit">Gerar Relatório</button>
+        </form>
+
+        <div id="generatedReport" class="report hidden">
+            <h2>Relatório Gerado</h2>
+            <p><strong>Nome:</strong> <span id="reportNome"></span></p>
+            <p><strong>Data:</strong> <span id="reportData"></span></p>
+            <p><strong>Relatório:</strong></p>
+            <p id="reportContent"></p>
+            <button id="imprimir">Imprimir Relatório</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_PERIODO" description="Período" metadata="datePeriod" required="true" keep-last="true" keep-date="false" label="P_PERIODO : Período" order="0"/>
+    <parameter id="P_CODPARC" description="Parceiro" metadata="entity:Parceiro@CODPARC" required="false" keep-last="true" keep-date="false" label="P_CODPARC : Entidade/Tabela" order="1"/>
+    <parameter id="P_EMP" description="Empresa" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" label="P_EMP : multiList:Text" order="2">
+      <expression type="SQL">SELECT
+CODEMP AS VALUE
+,NOMEFANTASIA AS LABEL
+FROM TSIEMP</expression>
+    </parameter>
+    <parameter id="P_CODVEND" description="Vendedor" metadata="entity:Vendedor@CODVEND" required="false" keep-last="true" keep-date="false" label="P_CODVEND : Entidade/Tabela" order="3"/>
+    <parameter id="P_MARCA" description="Marca" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" label="P_MARCA : multiList:Text" order="4">
+      <expression type="SQL">SELECT
+SEQ AS VALUE
+,MARCA AS LABEL
+FROM AD_VGFMARCA</expression>
+    </parameter>
+    <parameter id="P_GRUPOPROD" description="Grupo Produto" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" label="P_GRUPOPROD : multiList:Text" order="5">
+      <expression type="SQL">SELECT 
+CODGRUPOPROD AS VALUE
+,DESCRGRUPOPROD AS LABEL
+FROM TGFGRU</expression>
+    </parameter>
+    <parameter id="P_GRUPOSATIS" description="Grupo Produtos Satis" metadata="entity:AD_GRUPOPRODSATIS@CODGRUPO" required="false" keep-last="true" keep-date="false" label="P_GRUPOSATIS : Entidade/Tabela" order="6"/>
+    <parameter id="P_BONIF" description="Apresentar Bonificações?" metadata="singleList:Text" listType="text" required="false" keep-last="true" keep-date="false" label="P_BONIF : singleList:Text" order="7">
+      <item value="0" label="Não"/>
+      <item value="1" label="Sim"/>
+    </parameter>
+  </prompt-parameters>
+  <level id="023" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="50">
+        <chart id="cht_axh7e3k" type="column">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTTRUNC(CAB.DTMOV,'MM') AS DTMOV,SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.QTDNEG * PRO.AD_QTDVOLLT) *-1 ELSE (ITE.QTDNEG * PRO.AD_QTDVOLLT) END) AS QTD,SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END) AS VLR,SUM(CASE WHEN CAB.TIPMOV='D' THEN (CUS.CUSGER * ITE.QTDNEG)*-1 ELSE (CUS.CUSGER * ITE.QTDNEG) END) AS VLRCUSFROM TSIEMP EMPINNER JOIN TGFCAB CAB ON (EMP.CODEMP = CAB.CODEMP)INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)INNER JOIN TGFPAR PAR ON (CAB.CODPARC = PAR.CODPARC)INNER JOIN TGFITE ITE ON (CAB.NUNOTA = ITE.NUNOTA)INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)LEFT JOIN AD_ITENSGRUPOSATIS GRUS ON  (GRUS.CODPROD=PRO.CODPROD AND :P_GRUPOSATIS IS NOT NULL)LEFT JOIN TGFCUS CUS ON CUS.CODPROD=ITE.CODPROD AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD=ITE.CODPROD AND DTATUAL <= CAB.DTNEG AND CODEMP=CAB.CODEMP) AND CUS.CODEMP=CAB.CODEMPWHERE(TOP.ATUALEST <> 'N')AND TRUNC(CAB.DTMOV) >= :P_PERIODO.INIAND TRUNC(CAB.DTMOV) <= :P_PERIODO.FINAND (CAB.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)AND (CAB.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)AND CAB.TIPMOV IN ('V','D')AND CAB.STATUSNOTA='L'AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T'  OR CAB.STATUSNFE = 'S' OR CAB.STATUSNFE IS NULL)AND (CAB.CODEMP IN :P_EMP)AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' AND :P_BONIF = 0) OR (TOP.CODTIPOPER IN (1112,1113)  AND :P_BONIF = 0) OR ( :P_BONIF = 1 AND TOP.BONIFICACAO='S'))AND PRO.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA)AND (PRO.CODGRUPOPROD IN :P_GRUPOPROD)AND (GRUS.CODGRUPO = :P_GRUPOSATIS OR :P_GRUPOSATIS IS NULL)GROUP BY TRUNC(CAB.DTMOV,'MM')ORDER BY TRUNC(CAB.DTMOV,'MM')]]></expression>
+          <metadata>
+            <field name="DTMOV" label="Dt.Mov." type="D" visible="true" useFooter="false"/>
+            <field name="QTD" label="Volume" type="F" visible="true" useFooter="false"/>
+            <field name="VLR" label="Vlr. Fatur." type="F" visible="false" useFooter="false" mask="#.##0,00"/>
+            <field name="VLRCUS" label="Vlr. Custo" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+          <series>
+            <serie type="column">
+              <xField>$DTMOV</xField>
+              <yField>$VLR</yField>
+              <display><![CDATA[Faturamento]]></display>
+              <color>0x66ff</color>
+              <on-click navigate-to="lvl_axh7e7v">
+                <param id="A_MES">$DTMOV</param>
+              </on-click>
+            </serie>
+            <serie type="column">
+              <xField>$DTMOV</xField>
+              <yField>$QTD</yField>
+              <display><![CDATA[Volume]]></display>
+              <color>0xff66</color>
+            </serie>
+          </series>
+        </chart>
+      </container>
+      <container orientacao="V" tamanhoRelativo="50">
+        <container orientacao="H" tamanhoRelativo="50">
+          <container orientacao="V" tamanhoRelativo="33">
+            <container orientacao="H" tamanhoRelativo="100">
+              <container orientacao="H" tamanhoRelativo="174">
+                <simple-value id="svl_aztqe4d">
+                  <value-expression><![CDATA[<span style='color: #006600; font-size: 18px;'><div style='text-align: right;'><b>Análise de Estoque Atual</b></div></span>]]></value-expression>
+                </simple-value>
+              </container>
+              <container orientacao="V" tamanhoRelativo="146">
+                <simple-value id="svl_aztqe4c">
+                  <value-expression><![CDATA[<div style='text-align: right;'><span style='color: #0099FF;'><u><i><b>->Posição Análitica de Estoque</b></i></u></span><span style='background-color: #FFFFFF;'></span></div>]]></value-expression>
+                  <on-click navigate-to="lvl_aztqe3x"/>
+                </simple-value>
+              </container>
+            </container>
+            <container orientacao="H" tamanhoRelativo="627">
+              <container orientacao="V" tamanhoRelativo="50">
+                <chart id="cht_aztqe6j" type="pizza">
+                  <title><![CDATA[TOP 5 - ESTOQUE POR VOLUME (LT)]]></title>
+                  <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CASE WHEN ROWNUM >= 6 THEN 'OUTROS' ELSE MARCA END AS MARCA, SUM(ESTOQUE_VOL) AS ESTOQUE_VOLFROM(SELECT          PRO.MARCA AS MARCA,SUM((SELECT SUM(ESTOQUE) * NVL(PRO.AD_QTDVOLLT,1) FROM TGFEST WHERE CODEMP=EMP.CODEMP AND CODPROD=PRO.CODPROD)) AS ESTOQUE_VOLFROM TGFPRO PROINNER JOIN TGFGRU GRU ON GRU.CODGRUPOPROD=PRO.CODGRUPOPRODLEFT JOIN TSIEMP EMP ON CODEMP IN :P_EMPLEFT JOIN AD_ITENSGRUPOSATIS GRUS ON  (GRUS.CODPROD=PRO.CODPROD AND :P_GRUPOSATIS IS NOT NULL)INNER JOIN TGFCUS CUS ON CUS.CODPROD=PRO.CODPROD AND CUS.CODEMP=EMP.CODEMP AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD=CUS.CODPROD AND CODEMP=CUS.CODEMP AND DTATUAL <= SYSDATE)WHERE ((SELECT MAX(ESTOQUE) FROM TGFEST WHERE CODPROD=PRO.CODPROD AND CODEMP=EMP.CODEMP) > 0)AND  NVL(PRO.AD_QTDVOLLT,1) <> 0AND PRO.USOPROD IS NOT NULLAND PRO.USOPROD <> 'C'AND GRU.DESCRGRUPOPROD <> 'CONSUMO'AND PRO.MARCA IS NOT NULLAND PRO.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA)AND (PRO.CODGRUPOPROD IN :P_GRUPOPROD)AND (GRUS.CODGRUPO = :P_GRUPOSATIS OR :P_GRUPOSATIS IS NULL)GROUP BY PRO.MARCAORDER BY ESTOQUE_VOL DESC)GROUP BY CASE WHEN ROWNUM >= 6 THEN 'OUTROS' ELSE MARCA ENDORDER BY ESTOQUE_VOL DESC]]></expression>
+                  <metadata>
+                    <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+                    <field name="ESTOQUE_VOL" label="Volume em Estoque" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                  </metadata>
+                  <series>
+                    <serie type="pizza">
+                      <field>$ESTOQUE_VOL</field>
+                      <nameField>$MARCA</nameField>
+                    </serie>
+                  </series>
+                  <legend position="top" direction="v"/>
+                </chart>
+              </container>
+              <container orientacao="V" tamanhoRelativo="50">
+                <chart id="cht_aztqe8x" type="pizza">
+                  <title><![CDATA[TOP 5 - ESTOQUE POR CUSTO DE PRODUÇÃO (LT)]]></title>
+                  <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CASE WHEN ROWNUM >= 6 THEN 'OUTROS' ELSE MARCA END AS MARCA, SUM(CUS_EST_VOL) AS CUS_EST_VOLFROM(SELECT          PRO.MARCA AS MARCA,SUM((SELECT (SUM(ESTOQUE) * NVL(PRO.AD_QTDVOLLT,1)) * (CUS.CUSSEMICM / NVL(PRO.AD_QTDVOLLT,1)) FROM TGFEST WHERE CODEMP=EMP.CODEMP AND CODPROD=PRO.CODPROD)) AS CUS_EST_VOLFROM TGFPRO PROINNER JOIN TGFGRU GRU ON GRU.CODGRUPOPROD=PRO.CODGRUPOPRODLEFT JOIN TSIEMP EMP ON CODEMP IN :P_EMPLEFT JOIN AD_ITENSGRUPOSATIS GRUS ON  (GRUS.CODPROD=PRO.CODPROD AND :P_GRUPOSATIS IS NOT NULL)INNER JOIN TGFCUS CUS ON CUS.CODPROD=PRO.CODPROD AND CUS.CODEMP=EMP.CODEMP AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD=CUS.CODPROD AND CODEMP=CUS.CODEMP AND DTATUAL <= SYSDATE)WHERE ((SELECT MAX(ESTOQUE) FROM TGFEST WHERE CODPROD=PRO.CODPROD AND CODEMP=EMP.CODEMP) > 0)AND  NVL(PRO.AD_QTDVOLLT,1) <> 0AND PRO.USOPROD IS NOT NULLAND PRO.USOPROD <> 'C'AND GRU.DESCRGRUPOPROD <> 'CONSUMO'AND PRO.MARCA IS NOT NULLAND PRO.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA)AND (PRO.CODGRUPOPROD IN :P_GRUPOPROD)AND (GRUS.CODGRUPO = :P_GRUPOSATIS OR :P_GRUPOSATIS IS NULL)GROUP BY PRO.MARCAORDER BY CUS_EST_VOL DESC)GROUP BY CASE WHEN ROWNUM >= 6 THEN 'OUTROS' ELSE MARCA ENDORDER BY CUS_EST_VOL DESC]]></expression>
+                  <metadata>
+                    <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+                    <field name="CUS_EST_VOL" label="CUS_EST_VOL" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                  </metadata>
+                  <series>
+                    <serie type="pizza">
+                      <field>$CUS_EST_VOL</field>
+                      <nameField>$MARCA</nameField>
+                    </serie>
+                  </series>
+                  <legend position="top" direction="v"/>
+                </chart>
+              </container>
+            </container>
+          </container>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_axh7e3n" description="GRAFICO-NIVEL 2">
+    <args>
+      <arg id="A_MES" type="date"/>
+      <arg id="A_DTMOV" type="date"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="50">
+        <container orientacao="H" tamanhoRelativo="100">
+          <simple-value id="svl_axh7e5r">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT        to_char(:A_MES,'Month')||' de '||       to_char(:A_MES,'RRRR') data_atualFROM dual]]></expression>
+            <metadata>
+              <field name="DATA_ATUAL" label="DATA_ATUAL" type="S" visible="true" useFooter="false"/>
+            </metadata>
+            <value-expression><![CDATA[<span style='font-size: 22px;'><b>$DATA_ATUAL</b></span>]]></value-expression>
+          </simple-value>
+        </container>
+        <container orientacao="V" tamanhoRelativo="724">
+          <chart id="cht_axh7e5q" type="column">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECTTRUNC(CAB.DTMOV) AS DTMOV,SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.QTDNEG * PRO.AD_QTDVOLLT) *-1 ELSE (ITE.QTDNEG * PRO.AD_QTDVOLLT) END) AS QTD,SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END) AS VLR,SUM(CASE WHEN CAB.TIPMOV='D' THEN (CUS.CUSGER * ITE.QTDNEG)*-1 ELSE (CUS.CUSGER * ITE.QTDNEG) END) AS VLRCUSFROM TSIEMP EMPINNER JOIN TGFCAB CAB ON (EMP.CODEMP = CAB.CODEMP)INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)INNER JOIN TGFPAR PAR ON (CAB.CODPARC = PAR.CODPARC)INNER JOIN TGFITE ITE ON (CAB.NUNOTA = ITE.NUNOTA)INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)LEFT JOIN AD_ITENSGRUPOSATIS GRUS ON  (GRUS.CODPROD=PRO.CODPROD AND :P_GRUPOSATIS IS NOT NULL)LEFT JOIN TGFCUS CUS ON CUS.CODPROD=ITE.CODPROD AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD=ITE.CODPROD AND DTATUAL <= CAB.DTNEG AND CODEMP=CAB.CODEMP) AND CUS.CODEMP=CAB.CODEMPWHERE(TOP.ATUALEST <> 'N')AND TRUNC(CAB.DTMOV) >= :P_PERIODO.INIAND TRUNC(CAB.DTMOV) <= :P_PERIODO.FINAND (CAB.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)AND (CAB.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)AND CAB.TIPMOV IN ('V','D')AND CAB.STATUSNOTA='L'AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE = 'S' OR CAB.STATUSNFE IS NULL)AND (CAB.CODEMP IN :P_EMP)AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' AND :P_BONIF = 0) OR (TOP.CODTIPOPER = 1112  AND :P_BONIF = 0) OR ( :P_BONIF = 1 AND TOP.BONIFICACAO='S'))AND PRO.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA)AND (PRO.CODGRUPOPROD IN :P_GRUPOPROD)AND (GRUS.CODGRUPO = :P_GRUPOSATIS OR :P_GRUPOSATIS IS NULL)AND TRUNC(CAB.DTMOV,'MM') = :A_MESGROUP BY TRUNC(CAB.DTMOV)ORDER BY TRUNC(CAB.DTMOV)]]></expression>
+            <metadata>
+              <field name="DTMOV" label="Dt.Mov." type="D" visible="true" useFooter="false"/>
+              <field name="QTD" label="Volume" type="F" visible="true" useFooter="false"/>
+              <field name="VLR" label="Vlr. Fatur." type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="VLRCUS" label="Vlr. Custo" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <series>
+              <serie type="column">
+                <xField>$DTMOV</xField>
+                <yField>$VLRCUS</yField>
+                <display><![CDATA[Custo]]></display>
+                <color>0x0</color>
+                <on-click navigate-to="lvl_axh7e3n">
+                  <param id="A_MES">$DTMOV</param>
+                  <param id="A_DTMOV">$DTMOV</param>
+                </on-click>
+                <refresh-details ui-list="grd_axh7e4b">
+                  <param id="A_DTMOV">$DTMOV</param>
+                </refresh-details>
+              </serie>
+              <serie type="column">
+                <xField>$DTMOV</xField>
+                <yField>$VLR</yField>
+                <display><![CDATA[Vlr. Fatur.]]></display>
+                <color>0x66ff</color>
+                <refresh-details ui-list="grd_axh7e4b">
+                  <param id="A_DTMOV">$DTMOV</param>
+                </refresh-details>
+              </serie>
+              <serie type="column">
+                <xField>$DTMOV</xField>
+                <yField>$QTD</yField>
+                <display><![CDATA[Volume]]></display>
+                <color>0xff66</color>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+      <container orientacao="V" tamanhoRelativo="50">
+        <grid id="grd_axh7e4b" useNewGrid="S">
+          <args>
+            <arg id="A_DTMOV" type="date"/>
+          </args>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTCAB.NUNOTA ||' / '||CAB.NUMNOTA AS NRO,EMP.CODEMP ||'-'||EMP.RAZAOSOCIAL AS EMP,EMP.CODEMP ||'-'||EMP.RAZAOABREV AS NOMEFANTASIAEMP,EMP.CGC AS CPFCNPJ,EMP.INSCESTAD AS IE,EMP.TELEFONE AS TEL,EMP.FAX AS FAX,CAB.CODVEND || ' - ' || VEN.APELIDO AS VEND,CAB.CODPARC || ' - ' || PAR.NOMEPARC AS PARC,ITE.CODPROD || ' - ' || PRO.DESCRPROD AS PROD,CAB.DTMOV,ITE.CODVOL AS VOL,CASE WHEN CAB.TIPMOV='D' THEN (ITE.QTDNEG * PRO.AD_QTDVOLLT) *-1 ELSE (ITE.QTDNEG * PRO.AD_QTDVOLLT) END AS QTD,CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END AS VLR,CASE WHEN CAB.TIPMOV='D' THEN (CUS.CUSGER * ITE.QTDNEG)*-1 ELSE (CUS.CUSGER * ITE.QTDNEG) END AS VLRCUS,CAB.CODTIPOPER||'-'||TOP.DESCROPER AS TOP,CASE WHEN :P_BONIF=1 THEN 'S' ELSE 'N' END AS BONIF,PAR.NOMEPARC,ITE.CODPROD AS CODPROD,PRO.DESCRPROD AS DESCRPROD,VEN.CODVEND AS CODVEND,VEN.APELIDO,PAR.CODPARC AS CODPARCFROM TSIEMP EMPINNER JOIN TGFCAB CAB ON (EMP.CODEMP = CAB.CODEMP)INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)INNER JOIN TGFPAR PAR ON (CAB.CODPARC = PAR.CODPARC)INNER JOIN TGFITE ITE ON (CAB.NUNOTA = ITE.NUNOTA)INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)LEFT JOIN AD_ITENSGRUPOSATIS GRUS ON  (GRUS.CODPROD=PRO.CODPROD AND :P_GRUPOSATIS IS NOT NULL)LEFT JOIN TGFCUS CUS ON CUS.CODPROD=ITE.CODPROD AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD=ITE.CODPROD AND DTATUAL <= CAB.DTNEG AND CODEMP=CAB.CODEMP) AND CUS.CODEMP=CAB.CODEMPWHERE(TOP.ATUALEST <> 'N')AND TRUNC(CAB.DTMOV) >= :P_PERIODO.INIAND TRUNC(CAB.DTMOV) <= :P_PERIODO.FINAND (CAB.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)AND (CAB.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)AND CAB.TIPMOV IN ('V','D')AND CAB.STATUSNOTA='L'AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE = 'S' OR CAB.STATUSNFE IS NULL)AND (CAB.CODEMP IN :P_EMP)AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' AND :P_BONIF = 0) OR (TOP.CODTIPOPER = 1112  AND :P_BONIF = 0) OR ( :P_BONIF = 1 AND TOP.BONIFICACAO='S'))AND PRO.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA)AND (PRO.CODGRUPOPROD IN :P_GRUPOPROD)AND (GRUS.CODGRUPO = :P_GRUPOSATIS OR :P_GRUPOSATIS IS NULL)AND TRUNC(CAB.DTMOV) = :A_DTMOVORDER BY CAB.CODEMP, CAB.DTMOV, PAR.NOMEPARC]]></expression>
+          <metadata>
+            <field name="NRO" label="Nro. (Único/Nota)" type="S" visible="true" useFooter="false"/>
+            <field name="EMP" label="RazãoSocial" type="S" visible="false" useFooter="false"/>
+            <field name="NOMEFANTASIAEMP" label="NomeFantasia" type="S" visible="true" useFooter="false"/>
+            <field name="CPFCNPJ" label="CNPJ" type="S" visible="true" useFooter="false"/>
+            <field name="IE" label="IE" type="S" visible="false" useFooter="false"/>
+            <field name="TEL" label="Telefone 1" type="S" visible="false" useFooter="false"/>
+            <field name="FAX" label="Telefone 2" type="S" visible="false" useFooter="false"/>
+            <field name="VEND" label="Vendedor" type="S" visible="true" useFooter="false"/>
+            <field name="PARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="PROD" label="Produto" type="S" visible="true" useFooter="false"/>
+            <field name="DTMOV" label="Dt.Mov." type="D" visible="true" useFooter="false"/>
+            <field name="VOL" label="Unidade" type="S" visible="true" useFooter="false"/>
+            <field name="QTD" label="Volume (LT)" type="F" visible="true" useFooter="SUM"/>
+            <field name="VLR" label="Valor Financeiro" type="F" visible="true" useFooter="SUM"/>
+            <field name="VLRCUS" label="Custo Gerencial" type="F" visible="true" useFooter="SUM"/>
+            <field name="TOP" label="TOP" type="S" visible="true" useFooter="false"/>
+            <field name="BONIF" label="Bonificado?" type="S" visible="true" useFooter="false"/>
+            <field name="NOMEPARC" label="Nome Parceiro" type="S" visible="false" useFooter="false"/>
+            <field name="CODPROD" label="Cód.Produto" type="I" visible="false" useFooter="false"/>
+            <field name="DESCRPROD" label="NomeProduto" type="S" visible="false" useFooter="false"/>
+            <field name="CODVEND" label="Cód. Vendedor" type="I" visible="false" useFooter="false"/>
+            <field name="APELIDO" label="Nome Vendedor" type="S" visible="false" useFooter="false"/>
+            <field name="CODPARC" label="Cód. Parceiro" type="I" visible="false" useFooter="false"/>
+          </metadata>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_axh7e7v" description="GRAFICO - NIVEL 3">
+    <args>
+      <arg id="A_MARCA" type="text"/>
+      <arg id="A_MES" type="date"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="50">
+        <container orientacao="H" tamanhoRelativo="100">
+          <simple-value id="svl_axlmfmh">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT        to_char(:A_MES,'Month')||' de '||       to_char(:A_MES,'RRRR') data_atualFROM dual]]></expression>
+            <metadata>
+              <field name="DATA_ATUAL" label="DATA_ATUAL" type="S" visible="true" useFooter="false"/>
+            </metadata>
+            <value-expression><![CDATA[<span style='font-size: 22px;'><b>$DATA_ATUAL</b></span>]]></value-expression>
+          </simple-value>
+        </container>
+        <container orientacao="H" tamanhoRelativo="653">
+          <container orientacao="V" tamanhoRelativo="189">
+            <chart id="cht_axlmfl6" type="column">
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECTCASE WHEN PRO.MARCA IS NULL THEN 'MARCA NÃO CADASTRADA' ELSE PRO.MARCA END AS MARCA,SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.QTDNEG * PRO.AD_QTDVOLLT) *-1 ELSE (ITE.QTDNEG * PRO.AD_QTDVOLLT) END) AS QTD,SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END) AS VLR,SUM(CASE WHEN CAB.TIPMOV='D' THEN (CUS.CUSGER*ITE.QTDNEG)*-1 ELSE (CUS.CUSGER*ITE.QTDNEG) END) AS VLRCUSFROM TSIEMP EMPINNER JOIN TGFCAB CAB ON (EMP.CODEMP = CAB.CODEMP)INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)INNER JOIN TGFPAR PAR ON (CAB.CODPARC = PAR.CODPARC)INNER JOIN TGFITE ITE ON (CAB.NUNOTA = ITE.NUNOTA)INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)LEFT JOIN AD_ITENSGRUPOSATIS GRUS ON  (GRUS.CODPROD=PRO.CODPROD AND :P_GRUPOSATIS IS NOT NULL)LEFT JOIN TGFCUS CUS ON CUS.CODPROD=ITE.CODPROD AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD=ITE.CODPROD AND DTATUAL <= CAB.DTNEG AND CODEMP=CAB.CODEMP) AND CUS.CODEMP=CAB.CODEMP WHERETOP.ATUALEST <> 'N'AND TRUNC(CAB.DTMOV) >= :P_PERIODO.INIAND TRUNC(CAB.DTMOV) <= :P_PERIODO.FINAND (CAB.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)AND (CAB.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)AND CAB.TIPMOV IN ('V','D')AND CAB.STATUSNOTA='L'AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE = 'S' OR CAB.STATUSNFE IS NULL)AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' AND :P_BONIF = 0) OR (TOP.CODTIPOPER = 1112  AND :P_BONIF = 0) OR (:P_BONIF = 1 AND TOP.BONIFICACAO='S'))AND (CAB.CODEMP IN :P_EMP)AND PRO.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA)AND (PRO.CODGRUPOPROD IN :P_GRUPOPROD)AND (CAB.CODCENCUS = :P_CR OR :P_CR IS NULL)AND (GRUS.CODGRUPO = :P_GRUPOSATIS OR :P_GRUPOSATIS IS NULL)AND TRUNC(CAB.DTMOV,'MM') = :A_MESGROUP BY PRO.MARCAORDER BY  SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END) DESC, PRO.MARCA]]></expression>
+              <metadata>
+                <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+                <field name="QTD" label="Volume" type="F" visible="true" useFooter="false"/>
+                <field name="VLR" label="Vlr. Fatur." type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="VLRCUS" label="Vlr. Custo" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              </metadata>
+              <series>
+                <serie type="column">
+                  <xField>$MARCA</xField>
+                  <yField>$VLRCUS</yField>
+                  <display><![CDATA[Custo Gerencial]]></display>
+                  <color>0x0</color>
+                  <refresh-details ui-list="grd_axh7e8b">
+                    <param id="A_MARCA">$MARCA</param>
+                  </refresh-details>
+                </serie>
+                <serie type="column">
+                  <xField>$MARCA</xField>
+                  <yField>$VLR</yField>
+                  <display><![CDATA[Faturamento]]></display>
+                  <color>0x66ff</color>
+                  <refresh-details ui-list="grd_axh7e8b">
+                    <param id="A_MARCA">$MARCA</param>
+                  </refresh-details>
+                </serie>
+                <serie type="column">
+                  <xField>$MARCA</xField>
+                  <yField>$QTD</yField>
+                  <display><![CDATA[Volume]]></display>
+                  <color>0xff66</color>
+                  <refresh-details ui-list="grd_axh7e8b">
+                    <param id="A_MARCA">$MARCA</param>
+                  </refresh-details>
+                </serie>
+              </series>
+            </chart>
+          </container>
+          <container orientacao="V" tamanhoRelativo="100">
+            <chart id="cht_aztqeyr" type="donut">
+              <title><![CDATA[TOP 5 Marcas]]></title>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CASE WHEN ROWNUM >= 6 THEN 'OUTROS' ELSE MARCA END AS MARCA,SUM(QTD) AS QTD,SUM(VLR) AS VLR,SUM(VLRCUS) AS VLRCUSFROM (SELECT CASE WHEN PRO.MARCA IS NULL THEN 'MARCA NÃO CADASTRADA'  ELSE PRO.MARCA END AS MARCA,SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.QTDNEG * PRO.AD_QTDVOLLT) *-1 ELSE (ITE.QTDNEG * PRO.AD_QTDVOLLT) END) AS QTD,SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END) AS VLR,SUM(CASE WHEN CAB.TIPMOV='D' THEN (CUS.CUSGER*ITE.QTDNEG)*-1 ELSE (CUS.CUSGER*ITE.QTDNEG) END) AS VLRCUSFROM TSIEMP EMPINNER JOIN TGFCAB CAB ON (EMP.CODEMP = CAB.CODEMP)INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)INNER JOIN TGFPAR PAR ON (CAB.CODPARC = PAR.CODPARC)INNER JOIN TGFITE ITE ON (CAB.NUNOTA = ITE.NUNOTA)INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)LEFT JOIN AD_ITENSGRUPOSATIS GRUS ON  (GRUS.CODPROD=PRO.CODPROD AND :P_GRUPOSATIS IS NOT NULL)LEFT JOIN TGFCUS CUS ON CUS.CODPROD=ITE.CODPROD AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD=ITE.CODPROD AND DTATUAL <= CAB.DTNEG AND CODEMP=CAB.CODEMP) AND CUS.CODEMP=CAB.CODEMP WHERETOP.ATUALEST <> 'N'AND TRUNC(CAB.DTMOV) >= '01/01/2023'AND TRUNC(CAB.DTMOV) <= '30/04/2023'AND (CAB.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)AND (CAB.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)AND CAB.TIPMOV IN ('V','D')AND CAB.STATUSNOTA='L'AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE = 'S' OR CAB.STATUSNFE IS NULL)AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' AND :P_BONIF = 0) OR (TOP.CODTIPOPER = 1112  AND :P_BONIF = 0) OR (:P_BONIF = 1 AND TOP.BONIFICACAO='S'))AND (CAB.CODEMP IN :P_EMP)AND PRO.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA)AND (PRO.CODGRUPOPROD IN :P_GRUPOPROD)AND (CAB.CODCENCUS = :P_CR OR :P_CR IS NULL)AND (GRUS.CODGRUPO = :P_GRUPOSATIS OR :P_GRUPOSATIS IS NULL)AND TRUNC(CAB.DTMOV,'MM') = :A_MESGROUP BY PRO.MARCAORDER BY  SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END) DESC, PRO.MARCA)WHERE MARCA <> 'MARCA NÃO CADASTRADA'GROUP BY CASE WHEN ROWNUM >= 6 THEN 'OUTROS' ELSE MARCA ENDORDER BY VLR]]></expression>
+              <metadata>
+                <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+                <field name="QTD" label="Volume" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="VLR" label="Vlr. Fatur." type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="VLRCUS" label="Vlr. Custo Ger." type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              </metadata>
+              <series>
+                <serie type="donut">
+                  <field>$VLR</field>
+                  <nameField>$MARCA</nameField>
+                </serie>
+              </series>
+            </chart>
+          </container>
+        </container>
+      </container>
+      <container orientacao="V" tamanhoRelativo="50">
+        <grid id="grd_axh7e8b" useNewGrid="S">
+          <args>
+            <arg id="A_MARCA" type="text"/>
+          </args>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTEMP.NOMEFANTASIA AS EMP,EMP.CGC AS CPFCNPJ,EMP.INSCESTAD AS IE,EMP.TELEFONE AS TEL,EMP.FAX AS FAX,CAB.CODVEND || ' - ' || VEN.APELIDO AS VEND,CAB.CODPARC || ' - ' || PAR.NOMEPARC AS PARC,CASE WHEN PRO.MARCA IS NULL THEN 'MARCA NÃO CADASTRADA' ELSE PRO.MARCA END AS MARCA,SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.QTDNEG * PRO.AD_QTDVOLLT) *-1 ELSE (ITE.QTDNEG * PRO.AD_QTDVOLLT) END) AS QTD,SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END) AS VLR,SUM(CASE WHEN CAB.TIPMOV='D' THEN (CUS.CUSGER*ITE.QTDNEG)*-1 ELSE (CUS.CUSGER*ITE.QTDNEG) END) AS VLRCUS,CASE WHEN :P_BONIF=1 THEN 'S' ELSE 'N' END AS BONIF,VEN.CODVEND AS CODVEND,VEN.APELIDO,PAR.CODPARC AS CODPARC,PAR.NOMEPARCFROM TSIEMP EMPINNER JOIN TGFCAB CAB ON (EMP.CODEMP = CAB.CODEMP)INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)INNER JOIN TGFPAR PAR ON (CAB.CODPARC = PAR.CODPARC)INNER JOIN TGFITE ITE ON (CAB.NUNOTA = ITE.NUNOTA)INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)LEFT JOIN AD_ITENSGRUPOSATIS GRUS ON  (GRUS.CODPROD=PRO.CODPROD AND :P_GRUPOSATIS IS NOT NULL)LEFT JOIN TGFCUS CUS ON CUS.CODPROD=ITE.CODPROD AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD=ITE.CODPROD AND DTATUAL <= CAB.DTNEG AND CODEMP=CAB.CODEMP) AND CUS.CODEMP=CAB.CODEMP WHERETOP.ATUALEST <> 'N'AND TRUNC(CAB.DTMOV) >= :P_PERIODO.INIAND TRUNC(CAB.DTMOV) <= :P_PERIODO.FINAND (CAB.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)AND (CAB.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)AND CAB.TIPMOV IN ('V','D')AND CAB.STATUSNOTA='L'AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE = 'S' OR CAB.STATUSNFE IS NULL)AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' AND :P_BONIF = 0) OR (TOP.CODTIPOPER = 1112  AND :P_BONIF = 0) OR (:P_BONIF = 1 AND TOP.BONIFICACAO='S'))AND (CAB.CODEMP IN :P_EMP)AND PRO.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA)AND (PRO.CODGRUPOPROD IN :P_GRUPOPROD)AND (CAB.CODCENCUS = :P_CR OR :P_CR IS NULL)AND (GRUS.CODGRUPO = :P_GRUPOSATIS OR :P_GRUPOSATIS IS NULL)AND PRO.MARCA = :A_MARCAAND TRUNC(CAB.DTMOV,'MM') = :A_MESGROUP BY EMP.NOMEFANTASIA,EMP.CGC,EMP.INSCESTAD,EMP.TELEFONE,EMP.FAX,CAB.CODVEND,VEN.APELIDO,VEN.CODVEND,CAB.CODPARC,PAR.NOMEPARC,PAR.CODPARC,PRO.MARCAORDER BY VEN.APELIDO, PAR.CODPARC, PRO.MARCA]]></expression>
+          <metadata>
+            <field name="EMP" label="Empresa" type="S" visible="true" useFooter="false"/>
+            <field name="CPFCNPJ" label="CNPJ" type="S" visible="true" useFooter="false"/>
+            <field name="IE" label="IE" type="S" visible="false" useFooter="false"/>
+            <field name="TEL" label="Telefone 1" type="S" visible="false" useFooter="false"/>
+            <field name="FAX" label="Telefone 2" type="S" visible="false" useFooter="false"/>
+            <field name="VEND" label="Vendedor" type="S" visible="true" useFooter="false"/>
+            <field name="PARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+            <field name="QTD" label="Volume (LT)" type="F" visible="true" useFooter="SUM"/>
+            <field name="VLR" label="Valor Financeiro" type="F" visible="true" useFooter="SUM"/>
+            <field name="VLRCUS" label="Custo Gerencial" type="F" visible="true" useFooter="SUM"/>
+            <field name="BONIF" label="Bonificado?" type="S" visible="true" useFooter="false"/>
+            <field name="CODVEND" label="Cód. Vendedor" type="I" visible="true" useFooter="false"/>
+            <field name="APELIDO" label="Nome Vendedor" type="S" visible="true" useFooter="false"/>
+            <field name="CODPARC" label="Cód. Parceiro" type="I" visible="true" useFooter="false"/>
+            <field name="NOMEPARC" label="Nome Parceiro" type="S" visible="true" useFooter="false"/>
+          </metadata>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_aztqe3x" description="ESTOQUE">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_aztqe3z" useNewGrid="S">
+        <title><![CDATA[Posição de Estoque - HOJE]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT          EMP.CODEMP,EMP.CODEMP || '-'||EMP.NOMEFANTASIA AS NOMEFANTASIA,PRO.CODPROD,PRO.DESCRPROD,PRO.AD_QTDVOLLT AS VOLUME,CUS.CUSSEMICM,CUS.CUSSEMICM / NVL(PRO.AD_QTDVOLLT,1) AS CUSVOL,(SELECT SUM(ESTOQUE) FROM TGFEST WHERE CODEMP=EMP.CODEMP AND CODPROD=PRO.CODPROD) AS ESTOQUE_UN,(SELECT SUM(ESTOQUE) * CUS.CUSSEMICM  FROM TGFEST WHERE CODEMP=EMP.CODEMP AND CODPROD=PRO.CODPROD) AS CUS_EST_UN,(SELECT SUM(ESTOQUE) * NVL(PRO.AD_QTDVOLLT,1) FROM TGFEST WHERE CODEMP=EMP.CODEMP AND CODPROD=PRO.CODPROD) AS ESTOQUE_VOL,(SELECT (SUM(ESTOQUE) * NVL(PRO.AD_QTDVOLLT,1)) * (CUS.CUSSEMICM / NVL(PRO.AD_QTDVOLLT,1)) FROM TGFEST WHERE CODEMP=EMP.CODEMP AND CODPROD=PRO.CODPROD) AS CUS_EST_VOL,PRO.MARCA,(SELECT OPCAO FROM TDDOPC WHERE NUCAMPO=613 AND VALOR = PRO.USOPROD) AS USOPROD,GRU.DESCRGRUPOPRODFROM TGFPRO PROINNER JOIN TGFGRU GRU ON GRU.CODGRUPOPROD=PRO.CODGRUPOPRODLEFT JOIN TSIEMP EMP ON CODEMP IN :P_EMPLEFT JOIN AD_ITENSGRUPOSATIS GRUS ON  (GRUS.CODPROD=PRO.CODPROD AND :P_GRUPOSATIS IS NOT NULL)INNER JOIN TGFCUS CUS ON CUS.CODPROD=PRO.CODPROD AND CUS.CODEMP=EMP.CODEMP AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE CODPROD=CUS.CODPROD AND CODEMP=CUS.CODEMP AND DTATUAL <= SYSDATE)WHERE ((SELECT MAX(ESTOQUE) FROM TGFEST WHERE CODPROD=PRO.CODPROD AND CODEMP=EMP.CODEMP) > 0)AND  NVL(PRO.AD_QTDVOLLT,1) <> 0AND PRO.USOPROD IS NOT NULLAND PRO.USOPROD <> 'C'AND GRU.DESCRGRUPOPROD <> 'CONSUMO'AND PRO.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA)AND (PRO.CODGRUPOPROD IN :P_GRUPOPROD)AND (GRUS.CODGRUPO = :P_GRUPOSATIS OR :P_GRUPOSATIS IS NULL)ORDER BY GRU.DESCRGRUPOPROD, PRO.DESCRPROD, EMP.CODEMP]]></expression>
+        <metadata>
+          <field name="CODEMP" label="CODEMP" type="I" visible="false" useFooter="false"/>
+          <field name="NOMEFANTASIA" label="Empresa" type="S" visible="true" useFooter="false"/>
+          <field name="CODPROD" label="Cód.Prod." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+          <field name="VOLUME" label="LT por UN" type="F" visible="true" useFooter="SUM"/>
+          <field name="CUSSEMICM" label="Custo Produção (UN)" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="CUSVOL" label="Custo Produção (LT)" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="ESTOQUE_UN" label="Estoque (UN)" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+            <formatter isEmpty="false"><![CDATA[<span style="; background-color:#00FF99">$VALUE</span>]]></formatter>
+          </field>
+          <field name="CUS_EST_UN" label="Custo Produção (UN)" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+            <formatter isEmpty="false"><![CDATA[<span style="; background-color:#00FF99">$VALUE</span>]]></formatter>
+          </field>
+          <field name="ESTOQUE_VOL" label="Estoque (LT)" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+            <formatter isEmpty="false"><![CDATA[<span style="; background-color:#00FFFF">$VALUE</span>]]></formatter>
+          </field>
+          <field name="CUS_EST_VOL" label="Custo Produção (LT)" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+            <formatter isEmpty="false"><![CDATA[<span style="; background-color:#00FFFF">$VALUE</span>]]></formatter>
+          </field>
+          <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+          <field name="USOPROD" label="Uso Produto" type="S" visible="true" useFooter="false"/>
+          <field name="DESCRGRUPOPROD" label="Grupo" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>

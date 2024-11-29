@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfico com Plotly.js</title>
+    <!-- Incluindo Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        /* Estilos opcionais para o gráfico */
+        .chart-container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container" id="chart"></div>
+
+    <script>
+        // Dados fictícios para o gráfico
+        const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const serie1 = [120, 150, 200, 180, 250, 300, 280, 320, 280, 350, 400, 380];
+        const serie2 = [100, 130, 180, 150, 220, 280, 260, 300, 260, 320, 360, 340];
+
+        // Configuração do gráfico
+        const data = [{
+            x: meses,
+            y: serie1,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Série 1'
+        }, {
+            x: meses,
+            y: serie2,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Série 2'
+        }];
+
+        const layout = {
+            title: 'Gráfico com duas séries ao longo dos meses',
+            xaxis: {
+                title: 'Meses'
+            },
+            yaxis: {
+                title: 'Valores'
+            }
+        };
+
+        // Renderizando o gráfico usando Plotly.js
+        Plotly.newPlot('chart', data, layout);
+    </script>
+</body>
+</html>

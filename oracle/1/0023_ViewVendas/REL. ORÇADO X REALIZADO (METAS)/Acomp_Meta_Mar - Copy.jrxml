@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Acomp_Meta_Mar" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.1000000000000005"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt. Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="P_DTFIN" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt. Final]]></parameterDescription>
+	</parameter>
+	<parameter name="P_CODVEND" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Cód. Vendedor]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND_1" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Cód. Vendedor 1]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND_2" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Cód. Vendedor 2]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODPARC" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFPAR"/>
+		<parameterDescription><![CDATA[Cód. Parceiro]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODGER" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Cód. Coordenador/Gerente]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_MARCA" class="java.lang.String">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<property name="nomeTabela" value="AD_VGFMARCA"/>
+		<parameterDescription><![CDATA[Marca]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_GRUPOPROD" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFGRU"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="Type" value="D"/>
+		<parameterDescription><![CDATA[Grupo de Produtos]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CR" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TSICUS"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Centro de Resultado]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+MARCA,
+SUM(QTDPREV) AS QTDPREV,
+SUM(QTDREAL) AS QTDREAL,
+SUM(VLR_PREV) AS PREV,
+SUM(VLR_REAL) AS REAL,
+CASE WHEN SUM(QTDPREV) = 0 THEN 0 ELSE SUM(QTDREAL) * 100 / NULLIF(SUM(QTDPREV), 0) END AS PERC_QTD,
+CASE WHEN SUM(VLR_PREV) = 0 THEN 0 ELSE NVL(SUM(VLR_REAL) * 100 / NULLIF(SUM(VLR_PREV), 0), 0) END AS PERC_VLR
+FROM
+(
+
+SELECT
+MARCA
+, SUM(QTDPREV) AS QTDPREV
+, SUM(QTDREAL) AS QTDREAL
+, SUM(QTDPREV * PRECOLT)  AS VLR_PREV
+, SUM(NVL(VLRREAL, 0)) AS VLR_REAL
+
+
+FROM
+(
+SELECT MET.DTREF, MET.CODVEND, MET.CODPARC, MET.MARCA, NVL(MET.QTDPREV,0) AS QTDPREV, NVL(MET.QTDREAL,0) AS QTDREAL, NVL(PRC.VLRVENDALT,0) AS PRECOLT, SUM(NVL(VGF.VLR,0)) AS VLRREAL
+FROM TGFMET MET
+LEFT JOIN VGF_VENDAS_SATIS VGF ON MET.DTREF = TRUNC(VGF.DTMOV,'MM') AND MET.CODVEND = VGF.CODVEND AND MET.CODPARC = VGF.CODPARC AND MET.MARCA = VGF.MARCA
+LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')
+
+WHERE
+
+MET.CODMETA = 4
+
+
+AND MET.DTREF >= $P{P_DTINI}
+AND MET.DTREF <= $P{P_DTFIN}
+AND (
+(VGF.CODVEND IN ($P{P_CODVEND}, $P{P_CODVEND_1}, $P{P_CODVEND_2})
+OR ($P{P_CODVEND} IS NULL AND $P{P_CODVEND_1} IS NULL AND $P{P_CODVEND_2} IS NULL))
+)
+AND (VGF.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+AND (VGF.MARCA = (SELECT MARCA FROM TGFPRO WHERE CODPROD=$P{P_MARCA}) OR $P{P_MARCA} IS NULL)
+AND (VGF.CODGER = $P{P_CODGER} OR $P{P_CODGER} IS NULL)
+AND (VGF.CODGRUPOPROD = $P{P_GRUPOPROD} OR $P{P_GRUPOPROD} IS NULL)
+
+
+/*            AND ((:P_NTEMMETA='S' AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR :P_NTEMMETA='N')
+
+AND
+(
+VEN.CODVEND = (SELECT CODVEND FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO)
+OR VEN.CODVEND IN (SELECT VEN.CODVEND FROM TGFVEN VEN, TSIUSU USU WHERE USU.CODVEND = VEN.CODGER AND USU.CODUSU = STP_GET_CODUSULOGADO)
+OR (SELECT AD_GESTOR_META FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO) = 'S'
+)*/
+
+
+GROUP BY MET.DTREF, MET.CODVEND, MET.CODPARC, MET.MARCA, MET.QTDPREV, MET.QTDREAL,  NVL(PRC.VLRVENDALT,0)
+)
+GROUP BY MARCA
+)
+HAVING SUM(QTDPREV) + SUM(QTDREAL) + SUM(VLR_PREV) + SUM(VLR_REAL) <> 0
+GROUP BY MARCA
+ORDER BY 1]]>
+	</queryString>
+	<field name="MARCA" class="java.lang.String">
+		<fieldDescription><![CDATA[Marca]]></fieldDescription>
+	</field>
+	<field name="QTDPREV" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Qtd. Prev.]]></fieldDescription>
+	</field>
+	<field name="QTDREAL" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Qtd. Real]]></fieldDescription>
+	</field>
+	<field name="PREV" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Vlr. Prev.]]></fieldDescription>
+	</field>
+	<field name="REAL" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Vlr. Real]]></fieldDescription>
+	</field>
+	<field name="PERC_QTD" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[%]]></fieldDescription>
+	</field>
+	<field name="PERC_VLR" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[%]]></fieldDescription>
+	</field>
+	<variable name="SQTDPREV" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{QTDPREV}]]></variableExpression>
+	</variable>
+	<variable name="SQTDREAL" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{QTDREAL}]]></variableExpression>
+	</variable>
+	<variable name="SVLRPREV" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{PREV}]]></variableExpression>
+	</variable>
+	<variable name="SVLRREAL" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{REAL}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="20" splitType="Stretch">
+			<staticText>
+				<reportElement x="217" y="3" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Qtd. Prev.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="268" y="3" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Qtd. Real]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="359" y="3" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Vlr. Prev.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="409" y="3" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Vlr. Real]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="318" y="3" width="35" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Qtd %]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="19" width="550" height="1"/>
+			</line>
+			<staticText>
+				<reportElement x="2" y="3" width="61" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Marca]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="459" y="3" width="35" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Vlr %]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField pattern="#,##0.00">
+				<reportElement x="217" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDPREV}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="268" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDREAL}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="359" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PREV}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="409" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{REAL}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement x="318" y="0" width="35" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC_QTD}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="2" y="0" width="178" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{MARCA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement x="459" y="0" width="35" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERC_VLR}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="21" splitType="Stretch">
+			<line>
+				<reportElement x="0" y="2" width="550" height="1"/>
+			</line>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement x="217" y="4" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SQTDPREV}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement x="268" y="4" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SQTDREAL}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="359" y="4" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SVLRPREV}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="409" y="4" width="50" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SVLRREAL}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="172" y="4" width="44" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAL:]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>

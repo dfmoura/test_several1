@@ -1,0 +1,362 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_LIMCRED" description="   Possui Limite ?" metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="0"/>
+    <parameter id="P_POSSUIANALISE" description="Possui Análise de Crédito?  " metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="1"/>
+  </prompt-parameters>
+  <level id="lvl_8ndc2h" description="Principal">
+    <args>
+      <arg id="A_CODPARC" type="integer"/>
+    </args>
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <grid id="grd_8ndc2i" entityName="Parceiro" multiplaSelecao="N" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+*
+FROM(
+SELECT
+CAB.CODPARC,
+PAR.RAZAOSOCIAL,
+NVL(PAR.LIMCRED, 0) AS LIMCRED,
+SUM(FIN.VLRDESDOB)  AS LIMCREDCONSUM,
+NVL(PAR.LIMCRED, 0) - SUM(FIN.VLRDESDOB) AS LIMCREDISP
+
+FROM   TGFFIN FIN
+LEFT JOIN TGFCAB CAB  ON FIN.NUNOTA = CAB.NUNOTA
+INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+WHERE  
+	CAB.STATUSNOTA = 'L' OR FIN.VLRBAIXA IS NULL
+	AND PAR.CLIENTE = 'S'
+	AND PAR.ATIVO = 'S'
+
+
+
+GROUP BY
+CAB.CODPARC,
+PAR.RAZAOSOCIAL,
+NVL(PAR.LIMCRED, 0)
+)
+WHERE
+    (
+        (:P_LIMCRED = 'S' AND LIMCRED > 1)
+        OR
+        (:P_LIMCRED = 'N' AND LIMCRED >= 0)
+    )
+
+        AND (
+            (:P_POSSUIANALISE = 'S' AND CODPARC IN (SELECT codparc FROM ad_ancredito))
+            OR
+            (:P_POSSUIANALISE = 'N')
+        )]]></expression>
+          <metadata>
+            <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+            <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="LIMCRED" label="Lim.Cred.Total" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="LIMCREDCONSUM" label="Lim.Créd.Cons." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="LIMCREDISP" label="Lim.Créd.Dispo." type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+              <formatter lessThan="0"><![CDATA[<span style="color:#000000; background-color:#FFFFFF; src:iconFlagRed">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              <formatter greaterEqualThan="0"><![CDATA[<span style="color:#000000; background-color:#FFFFFF; src:iconFlagBlue">
+  <b>$VALUE</b>
+</span>]]></formatter>
+            </field>
+          </metadata>
+          <on-click navigate-to="lvl_82xfow">
+            <param id="A_CODPARC">$CODPARC</param>
+          </on-click>
+          <refresh-details ui-list="html5_8ndc6l,html5_8ndc3i">
+            <param id="A_CODPARC">$CODPARC</param>
+          </refresh-details>
+        </grid>
+      </container>
+      <container orientacao="V" tamanhoRelativo="146">
+        <container orientacao="H" tamanhoRelativo="100">
+          <container orientacao="V" tamanhoRelativo="50">
+            <container orientacao="V" tamanhoRelativo="100">
+              <html5component id="html5_8ndc6l" entryPoint="card12.jsp">
+                <args>
+                  <arg id="A_CODPARC" type="integer"/>
+                </args>
+              </html5component>
+            </container>
+          </container>
+          <container orientacao="V" tamanhoRelativo="50">
+            <container orientacao="V" tamanhoRelativo="100">
+              <html5component id="html5_8ndc3i" entryPoint="card8.jsp">
+                <args>
+                  <arg id="A_CODPARC" type="integer"/>
+                </args>
+              </html5component>
+            </container>
+          </container>
+        </container>
+        <container orientacao="V" tamanhoRelativo="278">
+          <simple-value id="svl_ab6rgyz">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+        anc.codparc,
+        par.razaosocial,
+        anc.codanalise,
+        anc.abempresa,
+        anc.conserasa,
+        anc.scorserasa,
+        to_char(anc.obsserasa) as obsserasa,
+        anc.anodre,
+        anc.recdre,
+        anc.lucdre,
+        anc.predre,
+        to_char(anc.dadosir) as dadosir,
+        anc.pretcompra,
+        anc.catfianca,
+        to_char(anc.observacoes) as observacoes,
+        anc.parecer,
+        anc.anoanalise,
+        anc.anofat,
+        anc.valorfat
+
+        FROM
+        ad_ancredito anc
+        INNER JOIN tgfpar par ON anc.codparc = par.codparc
+
+        WHERE
+        /*mostrando somente a ultima analise*/
+        anc.codanalise = (
+        SELECT MAX(anc_inner.codanalise)
+        FROM ad_ancredito anc_inner
+        WHERE anc_inner.codparc = anc.codparc
+        )
+
+        and anc.codparc = :A_CODPARC]]></expression>
+            <metadata>
+              <field name="CODPARC" label="CODPARC" type="I" visible="true" useFooter="false"/>
+              <field name="RAZAOSOCIAL" label="RAZAOSOCIAL" type="S" visible="true" useFooter="false"/>
+              <field name="CODANALISE" label="CODANALISE" type="I" visible="true" useFooter="false"/>
+              <field name="ABEMPRESA" label="ABEMPRESA" type="D" visible="true" useFooter="false"/>
+              <field name="CONSERASA" label="CONSERASA" type="D" visible="true" useFooter="false"/>
+              <field name="SCORSERASA" label="SCORSERASA" type="I" visible="true" useFooter="false"/>
+              <field name="OBSSERASA" label="OBSSERASA" type="S" visible="true" useFooter="false"/>
+              <field name="ANODRE" label="ANODRE" type="I" visible="true" useFooter="false"/>
+              <field name="RECDRE" label="RECDRE" type="F" visible="true" useFooter="false"/>
+              <field name="LUCDRE" label="LUCDRE" type="F" visible="true" useFooter="false"/>
+              <field name="PREDRE" label="PREDRE" type="F" visible="true" useFooter="false"/>
+              <field name="DADOSIR" label="DADOSIR" type="S" visible="true" useFooter="false"/>
+              <field name="PRETCOMPRA" label="PRETCOMPRA" type="F" visible="true" useFooter="false"/>
+              <field name="CATFIANCA" label="CATFIANCA" type="D" visible="true" useFooter="false"/>
+              <field name="OBSERVACOES" label="OBSERVACOES" type="S" visible="true" useFooter="false"/>
+              <field name="PARECER" label="PARECER" type="S" visible="true" useFooter="false"/>
+              <field name="ANOANALISE" label="ANOANALISE" type="I" visible="true" useFooter="false"/>
+              <field name="ANOFAT" label="ANOFAT" type="S" visible="true" useFooter="false"/>
+              <field name="VALORFAT" label="VALORFAT" type="F" visible="true" useFooter="false"/>
+            </metadata>
+            <value-expression><![CDATA[<style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .data-form {
+      width: 50%;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .field-group {
+      border-bottom: 1px solid #ccc;
+      padding: 10px;
+    }
+
+    .field-group:last-child {
+      border-bottom: none;
+    }
+
+    .field-label {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .field-value {
+      margin-bottom: 10px;
+    }
+  </style>
+
+<div class="data-form">
+  <div class="field-group">
+    <div class="field-label">Name:</div>
+    <div class="field-value">John Doe</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Email:</div>
+    <div class="field-value">john.doe@example.com</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Phone:</div>
+    <div class="field-value">123-456-7890</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Address:</div>
+    <div class="field-value">123 Main St, City</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Small Field 1:</div>
+    <div class="field-value">Value 1</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Small Field 2:</div>
+    <div class="field-value">Value 2</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Small Field 3:</div>
+    <div class="field-value">Value 3</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Large Field 1:</div>
+    <div class="field-value">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eget urna ac arcu ultricies aliquam.</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Large Field 2:</div>
+    <div class="field-value">Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Large Field 3:</div>
+    <div class="field-value">Sed hendrerit elit et lacus efficitur, vel scelerisque turpis congue.</div>
+  </div>
+</div>]]></value-expression>
+          </simple-value>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_82xfow" description="Nivel1">
+    <args>
+      <arg id="A_CODPARC" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_82xfox" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+*
+FROM(
+SELECT
+CAB.CODPARC,
+PAR.RAZAOSOCIAL,
+FIN.NUFIN,
+FIN.NUNOTA,
+FIN.NUMNOTA,
+FIN.DTNEG,
+NVL(PAR.LIMCRED, 0) AS LIMCRED,
+SUM(FIN.VLRDESDOB)  AS LIMCREDCONSUM,
+NVL(PAR.LIMCRED, 0) - SUM(FIN.VLRDESDOB) AS LIMCREDISP
+
+FROM   TGFFIN FIN
+LEFT JOIN TGFCAB CAB  ON FIN.NUNOTA = CAB.NUNOTA
+INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+WHERE  
+	CAB.STATUSNOTA = 'L' OR FIN.VLRBAIXA IS NULL
+	AND PAR.CLIENTE = 'S'
+	AND PAR.ATIVO = 'S'
+GROUP BY
+CAB.CODPARC,
+PAR.RAZAOSOCIAL,
+FIN.NUFIN,
+FIN.NUNOTA,
+FIN.NUMNOTA,
+FIN.DTNEG,
+NVL(PAR.LIMCRED, 0)
+)
+WHERE
+codparc = :A_CODPARC]]></expression>
+        <metadata>
+          <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+          <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="NUNOTA" label="NÚ. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+          <field name="LIMCRED" label="Lim.Créd." type="F" visible="false" useFooter="SUM" mask="#.##0,00"/>
+          <field name="LIMCREDCONSUM" label="Lim.Cred.Cons." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="LIMCREDISP" label="Lim.Cred.Disp." type="F" visible="false" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+          <NUFIN>$NUFIN</NUFIN>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_82xfp3" description="Nivel2">
+    <args>
+      <arg id="A_CODPARC" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_82xfp4" entityName="Parceiro" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT
+    FIN.CODPARC,
+    PAR.RAZAOSOCIAL,
+    FIN.CODTIPOPER,
+    FIN.NUFIN,
+    FIN.NUNOTA,
+    FIN.NUMNOTA,
+    FIN.DTVENC,
+    FIN.DHBAIXA,
+    CASE 
+        /*WHEN FIN.DTVENC > SYSDATE AND DHBAIXA IS NULL THEN 0 'A vencer'*/
+        WHEN FIN.DTVENC < SYSDATE AND DHBAIXA IS NULL THEN FIN.DTVENC-SYSDATE/*'Aberto Vencido'*/
+        WHEN (FIN.DTVENC - FIN.DHBAIXA) > 0 AND DHBAIXA IS NOT NULL THEN FIN.DTVENC - FIN.DHBAIXA /*'Antecipação'*/
+        WHEN (FIN.DTVENC - FIN.DHBAIXA) < 0 AND DHBAIXA IS NOT NULL THEN FIN.DTVENC - FIN.DHBAIXA /*'Pago em atraso'*/
+        WHEN (FIN.DTVENC - FIN.DHBAIXA) = 0 AND DHBAIXA IS NOT NULL THEN FIN.DTVENC - FIN.DHBAIXA /*'No dia'*/
+    END AS DIAS_EM_ATRASO,
+    CASE 
+        /*WHEN FIN.DTVENC > SYSDATE AND DHBAIXA IS NULL THEN 'A vencer'*/
+        WHEN FIN.DTVENC < SYSDATE AND DHBAIXA IS NULL THEN 'Aberto Vencido'
+        WHEN (FIN.DTVENC - DHBAIXA) > 0 AND DHBAIXA IS NOT NULL THEN 'Antecipação'
+        WHEN (FIN.DTVENC - DHBAIXA) < 0 AND DHBAIXA IS NOT NULL THEN 'Pago em atraso'
+        WHEN (FIN.DTVENC - DHBAIXA) = 0 AND DHBAIXA IS NOT NULL THEN 'No dia'
+    END AS STATUS,
+    FIN.VLRDESDOB,
+    FIN.VLRBAIXA,
+    FIN.HISTORICO
+FROM TGFFIN FIN
+INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+WHERE FIN.RECDESP = 1 AND FIN.PROVISAO='N'
+AND
+(
+(FIN.DTVENC < SYSDATE AND DHBAIXA IS NULL)/*'Aberto Vencido'*/
+OR ((FIN.DTVENC - FIN.DHBAIXA) > 0 AND DHBAIXA IS NOT NULL) /*'Antecipação'*/
+OR ((FIN.DTVENC - FIN.DHBAIXA) < 0 AND DHBAIXA IS NOT NULL) /*'Pago em atraso'*/
+OR ((FIN.DTVENC - FIN.DHBAIXA) = 0 AND DHBAIXA IS NOT NULL) /*'No dia'*/
+)
+AND FIN.CODPARC = :A_CODPARC]]></expression>
+        <metadata>
+          <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+          <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="CODTIPOPER" label="TOP" type="I" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="NUNOTA" label="NÚ. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro. Documento" type="I" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="DHBAIXA" label="Dt. Baixa" type="D" visible="true" useFooter="false"/>
+          <field name="DIAS_EM_ATRASO" label="Pontualidade" type="I" visible="true" useFooter="AVG" mask="#.##0"/>
+          <field name="STATUS" label="Status" type="S" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Vlr. Desdob." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>

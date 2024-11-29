@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Form</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .data-form {
+      width: 50%;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .field-group {
+      border-bottom: 1px solid #ccc;
+      padding: 10px;
+    }
+
+    .field-group:last-child {
+      border-bottom: none;
+    }
+
+    .field-label {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .field-value {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="data-form">
+  <div class="field-group">
+    <div class="field-label">Name:</div>
+    <div class="field-value">John Doe</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Email:</div>
+    <div class="field-value">john.doe@example.com</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Phone:</div>
+    <div class="field-value">123-456-7890</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Address:</div>
+    <div class="field-value">123 Main St, City</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Small Field 1:</div>
+    <div class="field-value">Value 1</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Small Field 2:</div>
+    <div class="field-value">Value 2</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Small Field 3:</div>
+    <div class="field-value">Value 3</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Large Field 1:</div>
+    <div class="field-value">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eget urna ac arcu ultricies aliquam.</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Large Field 2:</div>
+    <div class="field-value">Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.</div>
+  </div>
+
+  <div class="field-group">
+    <div class="field-label">Large Field 3:</div>
+    <div class="field-value">Sed hendrerit elit et lacus efficitur, vel scelerisque turpis congue.</div>
+  </div>
+</div>
+
+</body>
+</html>

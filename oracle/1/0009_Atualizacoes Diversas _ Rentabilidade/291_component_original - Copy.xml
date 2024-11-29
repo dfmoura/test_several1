@@ -1,0 +1,1332 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_PERIODO" description="Período" metadata="datePeriod" required="false" keep-last="true" keep-date="false" order="0"/>
+    <parameter id="P_EMPRESA" description="Empresa" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="1">
+      <expression type="SQL"><![CDATA[SELECT CAB.CODEMP AS VALUE,CAB.CODEMP||' - '||EMP.RAZAOSOCIAL AS LABELFROM TGFCAB CABINNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMPGROUP BYCAB.CODEMP,EMP.RAZAOSOCIALORDER BY CAB.CODEMP]]></expression>
+    </parameter>
+  </prompt-parameters>
+  <level id="lvl_ai6j06b" description="Principal">
+    <args>
+      <arg id="A_DESCRPROD" type="text"/>
+      <arg id="A_PERIODO" type="date"/>
+      <arg id="A_TPPROD" type="integer" order="0"/>
+      <arg id="A_PERC_FAT" type="decimal"/>
+      <arg id="A_RESULTADO" type="decimal" order="1"/>
+      <arg id="A_GF" type="decimal" order="2"/>
+      <arg id="A_VLRFAT" type="decimal" order="3"/>
+      <arg id="A_CUSTO" type="decimal" order="4"/>
+      <arg id="A_GV" type="decimal" order="5"/>
+      <arg id="A_CODPROD" type="integer" order="6"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="104">
+        <container orientacao="V" tamanhoRelativo="119">
+          <grid id="grd_ai6j06c" useNewGrid="S">
+            <expression type="sql" data-source="MGEDS"><![CDATA[WITH SUB_GASTO_FIXO AS (SELECT SUM(VLRBAIXA) * -1 AS VALORFROM VGF_RESULTADO_GMWHERE AD_TIPOCUSTO = 'F'AND CODCENCUS NOT BETWEEN 2500000 AND 2599999AND DHBAIXA IS NOT NULLAND (DHBAIXA BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)AND (CODEMP IN :P_EMPRESA)AND RECDESP = -1),BOL AS (SELECT FIN.NUNOTA,ITE.CODPROD,CTA.AD_CUSTOBOLETO/CAB.VLRNOTA * (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) AS RATEIO_BOLETOFROM TGFFIN FININNER JOIN TSICTA CTA ON FIN.CODCTABCOINT = CTA.CODCTABCOINTINNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TGFITE ITE ON FIN.NUNOTA = ITE.NUNOTAWHERE CTA.AD_CUSTOBOLETO > 0AND FIN.NUNOTA > 0AND CAB.TIPMOV = 'V'),T AS (SELECTSUB.CODTIPO, SUB.TIPOPROD, SUB.HL, SUB.HL*100 AS LT, SUB.VLRFAT, SUB.CUSSEMICM, SUB.GASTO_VARIAVEL, SUM( SUB.VLRFAT - SUB.CUSSEMICM - SUB.GASTO_VARIAVEL) AS MARGEM_CONTRIB, (RATIO_TO_REPORT(SUB.VLRFAT) OVER ()) * GF.VALOR AS GASTO_FIXO, SUM( SUB.VLRFAT - SUB.CUSSEMICM - SUB.GASTO_VARIAVEL) - ((RATIO_TO_REPORT(SUB.VLRFAT) OVER ()) * GF.VALOR) AS RESULTADO, (RATIO_TO_REPORT(SUM(SUB.VLRFAT - SUB.CUSSEMICM - SUB.GASTO_VARIAVEL)) OVER ()) * 100 AS PERCEFROM (SELECT PRO.AD_TPPROD AS CODTIPO, UPPER (F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD) ) AS TIPOPROD, SUM(FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS HL , SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS VLRFAT, NVL(SUM(CUS.CUSSEMICM * ITE.QTDNEG),0) AS CUSSEMICM, NVL(SUM(ITE.VLRSUBST + ITE.VLRIPI + /*ITE.VLRICMS - aqui que substituimos pelo icms liquido*/ (CASE WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF<> '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF= '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF <> 2 AND PAR.TIPPESSOA= 'J' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF = 2THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF IN (1,7,8,15,13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.03WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF NOT IN (2, 1, 7, 8, 15, 13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.01ELSE ITE.VLRICMS END)    + NVL((SELECT (VALOR) FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6),0)/*VLRPIS*/    + NVL((SELECT (VALOR) FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7),0) /* VLRCOFINS*/     + NVL(BOL.RATEIO_BOLETO,0)   ),0) AS GASTO_VARIAVELFROM TGFCAB CABINNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTALEFT JOIN BOL ON ITE.NUNOTA = BOL.NUNOTA AND ITE.CODPROD = BOL.CODPRODLEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(DTATUAL)FROM TGFCUS WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP)INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPRODINNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCINNER JOIN TSICID CID ON PAR.CODCID = CID.CODCIDWHERE TOP.GOLSINAL = -1AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)AND (CAB.CODEMP IN :P_EMPRESA)AND TOP.TIPMOV IN ('V', 'D')AND TOP.ATIVO = 'S'GROUP BY PRO.AD_TPPROD) SUB, SUB_GASTO_FIXO GFGROUP BYSUB.CODTIPO, SUB.TIPOPROD, SUB.HL, SUB.HL*100 , SUB.VLRFAT, SUB.CUSSEMICM, SUB.GASTO_VARIAVEL, GF.VALOR)SELECT T.CODTIPO,T.TIPOPROD,T.HL,T.LT,T.VLRFAT,T.CUSSEMICM,T.GASTO_VARIAVEL,T.MARGEM_CONTRIB,T.GASTO_FIXO,T.RESULTADO,T.RESULTADO * 100 / T.VLRFAT AS PERCEFROM TUNION ALLSELECT     9999 AS CODTIPO,    'TOTAL' AS TIPOPROD,    SUM(T.HL) AS HL,    SUM(T.LT) AS LT,    SUM(T.VLRFAT) AS VLRFAT,    SUM(T.CUSSEMICM) AS CUSSEMICM,    SUM(T.GASTO_VARIAVEL) AS GASTO_VARIAVEL,    SUM(T.MARGEM_CONTRIB) AS MARGEM_CONTRIB,    SUM(T.GASTO_FIXO) AS GASTO_FIXO,    SUM(T.RESULTADO) AS RESULTADO,    SUM(T.RESULTADO) * 100 / SUM(T.VLRFAT) AS PERCEFROM TORDER BY    1,     11 desc]]></expression>
+            <metadata>
+              <field name="CODTIPO" label="CODTIPO" type="I" visible="false" useFooter="false"/>
+              <field name="TIPOPROD" label="Tipo Produto" type="S" visible="true" useFooter="false"/>
+              <field name="HL" label="HL" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="LT" label="LT" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="VLRFAT" label="Vlr. Fat." type="F" visible="true" useFooter="false" mask="#.##0,00">
+                <formatter isEmpty="false"><![CDATA[<span style="color:#FFFFFF; background-color:#17A817">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="CUSSEMICM" label="Custo" type="F" visible="true" useFooter="false" mask="#.##0,00">
+                <formatter isEmpty="false"><![CDATA[<span style="color:#000000; background-color:#FFFF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="GASTO_VARIAVEL" label="Gasto Variavel" type="F" visible="true" useFooter="false" mask="#.##0,00">
+                <formatter isEmpty="false"><![CDATA[<span style="color:#000000; background-color:#DCDCDC">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="MARGEM_CONTRIB" label="Margem Contribuição" type="F" visible="true" useFooter="false" mask="#.##0,00">
+                <formatter isEmpty="false"><![CDATA[<span style="color:#FFFFFF; background-color:#2727B2">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="GASTO_FIXO" label="Gasto Fixo" type="F" visible="true" useFooter="false" mask="#.##0,00">
+                <formatter isEmpty="false"><![CDATA[<span style="color:#FFFFFF; background-color:#950B95">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="RESULTADO" label="Resultado" type="F" visible="true" useFooter="false" mask="#.##0,00">
+                <formatter greaterEqualThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#5CABAC">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                <formatter lessThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#FF0000">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="PERCE" label="%L" type="F" visible="true" useFooter="false" mask="#.##0,00 %">
+                <formatter greaterEqualThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#5CABAC">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                <formatter lessThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#FF0000">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+            </metadata>
+            <refresh-details ui-list="cht_amci5wj,grd_ai8i20f">
+              <param id="A_TPPROD">$CODTIPO</param>
+              <param id="A_VLRFAT">$VLRFAT</param>
+              <param id="A_CUSTO">$CUSSEMICM</param>
+              <param id="A_GV">$GASTO_VARIAVEL</param>
+              <param id="A_MARGEM">$MARGEM_CONTRIB</param>
+              <param id="A_GF">$GASTO_FIXO</param>
+              <param id="A_RESULTADO">$RESULTADO</param>
+              <param id="A_GF_TTL">$GASTO_FIXO</param>
+            </refresh-details>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="100">
+          <chart id="cht_amci5wj" type="analise-rentabilidade" presentation="produto">
+            <args>
+              <arg id="A_VLRFAT" type="decimal"/>
+              <arg id="A_CUSTO" type="decimal"/>
+              <arg id="A_GV" type="decimal"/>
+              <arg id="A_GF" type="decimal"/>
+              <arg id="A_RESULTADO" type="decimal"/>
+              <arg id="A_CODPROD" type="integer"/>
+              <arg id="A_PERC_FAT" type="decimal"/>
+              <arg id="A_TPPROD" type="integer"/>
+              <arg id="A_MARGEM" type="decimal"/>
+              <arg id="A_GF_TTL" type="decimal"/>
+            </args>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT :P_PERIODO.INI AS PER_INI, :P_PERIODO.FIN AS PER_FIN, :A_TPPROD AS TPPROD, :A_CODPROD AS CODPROD, UPPER (F_DESCROPC('TGFPRO', 'AD_TPPROD', :A_TPPROD) ) AS TIPOPRODFROM DUAL]]></expression>
+            <metadata>
+              <field name="PER_INI" label="PER_INI" type="D" visible="true" useFooter="false"/>
+              <field name="PER_FIN" label="PER_FIN" type="D" visible="true" useFooter="false"/>
+              <field name="TPPROD" label="TPPROD" type="I" visible="true" useFooter="false"/>
+              <field name="CODPROD" label="CODPROD" type="I" visible="true" useFooter="false"/>
+              <field name="TIPOPROD" label="TIPOPROD" type="S" visible="true" useFooter="false"/>
+            </metadata>
+            <legend position="top" columns="2" value-type="P"/>
+            <fat>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT :A_VLRFAT AS VLRFAT FROM DUAL]]></expression>
+              <on-click navigate-to="lvl_a4fz4iz">
+                <param id="A_CODPROD">$CODPROD</param>
+                <param id="A_TPPROD">$TPPROD</param>
+                <param id="A_TIPOPROD">$TIPOPROD</param>
+              </on-click>
+            </fat>
+            <cmv>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT :A_CUSTO AS CUSTO FROM DUAL]]></expression>
+              <on-click navigate-to="lvl_anbe4mv">
+                <param id="A_PERIODO"/>
+                <param id="A_TPPROD">$TPPROD</param>
+                <param id="A_CODPROD">$CODPROD</param>
+                <param id="A_DESCRPROD"/>
+                <param id="A_TIPOPROD">$TIPOPROD</param>
+              </on-click>
+            </cmv>
+            <gv>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT :A_GV AS GVFROM DUAL]]></expression>
+              <on-click navigate-to="lvl_asrpuxy">
+                <param id="A_PERIODO">$PER_FIN</param>
+                <param id="A_TPPROD">$TPPROD</param>
+                <param id="A_CODPROD"/>
+                <param id="A_TIPOPROD"/>
+                <param id="A_DESCRPROD"/>
+              </on-click>
+            </gv>
+            <gf>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT :A_GF AS GF FROM DUAL]]></expression>
+              <on-click navigate-to="lvl_aterc0r">
+                <param id="A_GF">$CODPROD</param>
+                <param id="A_VLRFAT"/>
+                <param id="A_PERC_FAT"/>
+                <param id="A_CODPROD"/>
+                <param id="A_CODNAT"/>
+                <param id="A_CODCENCUS"/>
+                <param id="A_TPPROD">$TPPROD</param>
+              </on-click>
+            </gf>
+            <mc/>
+            <resultado>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT :A_RESULTADO AS RESULTADO FROM DUAL]]></expression>
+              <on-click navigate-to="lvl_aamtaj3">
+                <param id="A_TPPROD">:A_TPPROD</param>
+                <param id="A_GF">$GF</param>
+              </on-click>
+            </resultado>
+          </chart>
+        </container>
+      </container>
+      <container orientacao="H" tamanhoRelativo="136">
+        <container orientacao="V" tamanhoRelativo="123">
+          <grid id="grd_ai8i20f" useNewGrid="S">
+            <args>
+              <arg id="A_TPPROD" type="integer"/>
+              <arg id="A_VLRFAT" type="decimal"/>
+              <arg id="A_CUSTO" type="decimal"/>
+              <arg id="A_GV" type="decimal"/>
+              <arg id="A_MARGEM" type="decimal"/>
+              <arg id="A_GF" type="decimal"/>
+              <arg id="A_RESULTADO" type="decimal"/>
+              <arg id="A_GF_TTL" type="integer"/>
+            </args>
+            <expression type="sql" data-source="MGEDS"><![CDATA[WITHBOL AS (SELECT FIN.NUNOTA,ITE.CODPROD,CTA.AD_CUSTOBOLETO/CAB.VLRNOTA * (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) AS RATEIO_BOLETOFROM TGFFIN FININNER JOIN TSICTA CTA ON FIN.CODCTABCOINT = CTA.CODCTABCOINTINNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TGFITE ITE ON FIN.NUNOTA = ITE.NUNOTAWHERE CTA.AD_CUSTOBOLETO > 0AND FIN.NUNOTA > 0AND CAB.TIPMOV = 'V'AND (CAB.CODEMP IN :P_EMPRESA)),SUB AS (    SELECT        ITE.CODPROD,        PRO.DESCRPROD,        PRO.AD_TPPROD AS CODTIPO,        UPPER(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD,        SUM(FC_QTDALT_HL(ITE.CODPROD, ITE.QTDNEG, 'HL') * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS HL,        SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) AS VLRFAT,        NVL(SUM(CUS.CUSSEMICM * ITE.QTDNEG),0) AS CUSSEMICM,        NVL(SUM(          ITE.VLRSUBST + ITE.VLRIPI + /*ITE.VLRICMS substituido pelo icms liquido */ (CASE WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF<> '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF= '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF <> 2 AND PAR.TIPPESSOA= 'J' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF = 2THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF IN (1,7,8,15,13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.03WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF NOT IN (2, 1, 7, 8, 15, 13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.01ELSE ITE.VLRICMS END)+          NVL((SELECT (VALOR) FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6),0)/*VLRPIS*/ +          NVL((SELECT (VALOR) FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7),0) /* VLRCOFINS*/     + NVL(BOL.RATEIO_BOLETO,0)  ),0) AS GASTO_VARIAVEL    FROM TGFCAB CAB        INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA        LEFT JOIN BOL ON ITE.NUNOTA = BOL.NUNOTA AND ITE.CODPROD = BOL.CODPROD        LEFT JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP)        INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)        INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD        INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC        INNER JOIN TSICID CID ON PAR.CODCID = CID.CODCID    WHERE        TOP.GOLSINAL = -1        AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)        AND (CAB.CODEMP IN :P_EMPRESA)        AND (PRO.AD_TPPROD = :A_TPPROD OR :A_TPPROD = 9999)        AND TOP.TIPMOV IN ('V', 'D')        AND TOP.ATIVO = 'S'    GROUP BY        ITE.CODPROD, PRO.DESCRPROD, PRO.AD_TPPROD),T AS (    SELECT        SUB.CODPROD,        SUB.DESCRPROD,        SUB.CODTIPO,        SUB.TIPOPROD,        SUB.HL,        SUB.VLRFAT,        SUB.CUSSEMICM,        SUB.GASTO_VARIAVEL,        SUM(SUB.VLRFAT - SUB.CUSSEMICM - SUB.GASTO_VARIAVEL) AS MARGEM_CONTRIB,        RATIO_TO_REPORT(SUB.VLRFAT) OVER () AS PERC_FAT,        RATIO_TO_REPORT(SUB.VLRFAT) OVER () * :A_GF AS GASTO_FIXO,        SUM(SUB.VLRFAT - SUB.CUSSEMICM - SUB.GASTO_VARIAVEL) - (RATIO_TO_REPORT(SUB.VLRFAT) OVER () * :A_GF) AS RESULTADO    FROM SUB    GROUP BY        SUB.CODPROD, SUB.DESCRPROD, SUB.CODTIPO, SUB.TIPOPROD, SUB.HL, SUB.VLRFAT, SUB.CUSSEMICM, SUB.GASTO_VARIAVEL, :A_GF)SELECT    CODPROD,    DESCRPROD,    CODTIPO,    TIPOPROD,    HL,    HL * 100 AS LT,    VLRFAT,    PERC_FAT,    CUSSEMICM,    GASTO_VARIAVEL,	MARGEM_CONTRIB,    GASTO_FIXO,    RESULTADO,    RESULTADO * 100 / VLRFAT AS PERCEFROM TORDER BY RESULTADO DESC]]></expression>
+            <metadata>
+              <field name="CODPROD" label="Cód. Produto" type="I" visible="true" useFooter="false"/>
+              <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+              <field name="CODTIPO" label="CODTIPO" type="I" visible="false" useFooter="false"/>
+              <field name="TIPOPROD" label="TIPOPROD" type="S" visible="false" useFooter="false"/>
+              <field name="HL" label="HL" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="LT" label="LT" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="VLRFAT" label="Vlr. Fat." type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                <formatter greaterEqualThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#17A817">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                <formatter lessThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#FF0000">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="PERC_FAT" label="PERC_FAT" type="F" visible="false" useFooter="SUM" mask="#.##0,00 %"/>
+              <field name="CUSSEMICM" label="Custo" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                <formatter greaterEqualThan="0"><![CDATA[<span style="color:#000000; background-color:#FFFF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="GASTO_VARIAVEL" label="Gasto Variável" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                <formatter greaterEqualThan="0"><![CDATA[<span style="color:#000000; background-color:#DCDCDC">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="MARGEM_CONTRIB" label="Margem Contribuição" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                <formatter isEmpty="false"><![CDATA[<span style="color:#FFFFFF; background-color:#2727B2">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="GASTO_FIXO" label="Gasto Fixo" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                <formatter isEmpty="false"><![CDATA[<span style="color:#FFFFFF; background-color:#950B95">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="RESULTADO" label="Resultado" type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+                <formatter greaterEqualThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#5CABAC">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                <formatter lessThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#FF0000">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+              <field name="PERCE" label="%L" type="F" visible="true" useFooter="false" mask="#.##0,00 %">
+                <formatter greaterEqualThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#5CABAC">
+  <b>$VALUE</b>
+</span>]]></formatter>
+                <formatter lessThan="0"><![CDATA[<span style="color:#FFFFFF; background-color:#FF0000">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              </field>
+            </metadata>
+            <on-click navigate-to="lvl_ai6j06b">
+              <param id="A_DESCRPROD"/>
+              <param id="A_PERIODO"/>
+              <param id="A_TPPROD"/>
+              <param id="A_PERC_FAT"/>
+              <param id="A_RESULTADO"/>
+              <param id="A_GF"/>
+              <param id="A_VLRFAT"/>
+              <param id="A_CUSTO"/>
+              <param id="A_GV"/>
+              <param id="A_CODPROD"/>
+            </on-click>
+            <refresh-details ui-list="cht_amfmc1b,svl_9nfhre">
+              <param id="A_VLRFAT">$VLRFAT</param>
+              <param id="A_CUSTO">$CUSSEMICM</param>
+              <param id="A_GV">$GASTO_VARIAVEL</param>
+              <param id="A_GF">$GASTO_FIXO</param>
+              <param id="A_RESULTADO">$RESULTADO</param>
+              <param id="A_CODPROD">$CODPROD</param>
+              <param id="A_PERC_FAT">$PERC_FAT</param>
+              <param id="A_DESCRPROD">$DESCRPROD</param>
+            </refresh-details>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="100">
+          <chart id="cht_amfmc1b" type="analise-rentabilidade" presentation="produto">
+            <args>
+              <arg id="A_VLRFAT" type="decimal"/>
+              <arg id="A_CUSTO" type="decimal"/>
+              <arg id="A_GV" type="decimal"/>
+              <arg id="A_GF" type="decimal"/>
+              <arg id="A_RESULTADO" type="decimal"/>
+              <arg id="A_CODPROD" type="integer"/>
+              <arg id="A_PERC_FAT" type="decimal"/>
+              <arg id="A_DESCRPROD" type="text"/>
+            </args>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT :A_CODPROD AS CODPROD , :P_PERIODO.INI AS PER_INI, :P_PERIODO.FIN AS PER_FIN, :A_VLRFAT AS VLRFAT, :A_PERC_FAT AS PERC_FAT, :A_GF AS GF, :A_TPPROD AS TPPROD, :A_DESCRPROD AS DESCRPROD, :A_TIPOPROD AS TIPOPRODFROM DUAL]]></expression>
+            <metadata>
+              <field name="CODPROD" label="CODPROD" type="I" visible="true" useFooter="false"/>
+              <field name="PER_INI" label="PER_INI" type="D" visible="true" useFooter="false"/>
+              <field name="PER_FIN" label="PER_FIN" type="D" visible="true" useFooter="false"/>
+              <field name="VLRFAT" label="VLRFAT" type="F" visible="true" useFooter="false"/>
+              <field name="PERC_FAT" label="PERC_FAT" type="F" visible="true" useFooter="false"/>
+              <field name="GF" label="GF" type="F" visible="true" useFooter="false"/>
+              <field name="TPPROD" label="TPPROD" type="I" visible="true" useFooter="false"/>
+              <field name="DESCRPROD" label="DESCRPROD" type="S" visible="true" useFooter="false"/>
+              <field name="TIPOPROD" label="TIPOPROD" type="S" visible="true" useFooter="false"/>
+            </metadata>
+            <legend position="top" columns="2" value-type="P"/>
+            <fat>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT:A_VLRFAT AS VLRFATFROM DUAL]]></expression>
+              <on-click navigate-to="lvl_a4fz4iz">
+                <param id="A_CODPROD">$CODPROD</param>
+                <param id="A_TPPROD">$TPPROD</param>
+                <param id="A_TIPOPROD">$TIPOPROD</param>
+                <param id="A_DESCRPROD">$DESCRPROD</param>
+              </on-click>
+            </fat>
+            <cmv>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT:A_CUSTO AS CUSTOFROM DUAL]]></expression>
+              <on-click navigate-to="lvl_anbe4mv">
+                <param id="A_PERIODO">$PER_FIN</param>
+                <param id="A_TPPROD"/>
+                <param id="A_CODPROD">$CODPROD</param>
+                <param id="A_DESCRPROD">$DESCRPROD</param>
+                <param id="A_TIPOPROD">$TIPOPROD</param>
+              </on-click>
+            </cmv>
+            <gv>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT:A_GV AS GVFROM DUAL]]></expression>
+              <on-click navigate-to="lvl_asrpuxy">
+                <param id="A_PERIODO">$PER_FIN</param>
+                <param id="A_TPPROD"/>
+                <param id="A_CODPROD">$CODPROD</param>
+                <param id="A_TIPOPROD"/>
+                <param id="A_DESCRPROD">$DESCRPROD</param>
+              </on-click>
+            </gv>
+            <gf>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT:A_GF AS GFFROM DUAL]]></expression>
+              <on-click navigate-to="lvl_aterc0r">
+                <param id="A_GF">$GF</param>
+                <param id="A_VLRFAT">$VLRFAT</param>
+                <param id="A_PERC_FAT">$PERC_FAT</param>
+                <param id="A_CODPROD">$CODPROD</param>
+                <param id="A_CODNAT"/>
+                <param id="A_CODCENCUS"/>
+                <param id="A_TPPROD"/>
+              </on-click>
+            </gf>
+            <mc/>
+            <resultado>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT:A_RESULTADO AS RESULTADOFROM DUAL]]></expression>
+              <on-click navigate-to="lvl_aamtaj3">
+                <param id="A_TPPROD"/>
+                <param id="A_GF"/>
+                <param id="A_CODNAT"/>
+                <param id="A_MES_ANO"/>
+              </on-click>
+            </resultado>
+          </chart>
+        </container>
+      </container>
+      <container orientacao="V" tamanhoRelativo="0">
+        <simple-value id="svl_9nfhre">
+          <args>
+            <arg id="A_VLRFAT" type="decimal"/>
+            <arg id="A_CUSTO" type="decimal"/>
+            <arg id="A_GV" type="decimal"/>
+            <arg id="A_GF" type="decimal"/>
+            <arg id="A_RESULTADO" type="decimal"/>
+            <arg id="A_CODPROD" type="integer"/>
+            <arg id="A_PERC_FAT" type="decimal"/>
+            <arg id="A_DESCRPROD" type="text"/>
+          </args>
+          <expression type="sql" data-source="MGEDS"><![CDATA[select :A_CODPROD AS CODPROD from dual]]></expression>
+          <metadata>
+            <field name="CODPROD" label="CODPROD" type="I" visible="true" useFooter="false"/>
+          </metadata>
+        </simple-value>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_anbe4mv" description="Nivel1">
+    <args>
+      <arg id="A_PERIODO" type="date" order="0"/>
+      <arg id="A_TPPROD" type="integer" order="1"/>
+      <arg id="A_CODPROD" type="integer" order="2"/>
+      <arg id="A_DESCRPROD" type="text" order="3"/>
+      <arg id="A_TIPOPROD" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="107">
+        <container orientacao="V" tamanhoRelativo="100">
+          <simple-value id="svl_a2yy5og">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CASE WHEN :A_TPPROD = 9999 THEN 'TOTAL' ELSE :A_TIPOPROD END AS TIPOPROD,CASE WHEN :A_CODPROD IS NOT NULL THEN (SELECT DESCRPROD FROM TGFPRO WHERE CODPROD = :A_CODPROD)  END AS DESCRPRODFROM DUAL]]></expression>
+            <metadata>
+              <field name="TIPOPROD" label="TIPOPROD" type="S" visible="true" useFooter="false"/>
+              <field name="DESCRPROD" label="DESCRPROD" type="S" visible="true" useFooter="false"/>
+            </metadata>
+            <value-expression><![CDATA[<div style='text-align: left;'><h2><b>CUSTO - PRODUTO: :A_TPPROD  :A_CODPROD  - $TIPOPROD  $DESCRPROD </b></h2></div>]]></value-expression>
+          </simple-value>
+        </container>
+      </container>
+      <container orientacao="H" tamanhoRelativo="334">
+        <container orientacao="V" tamanhoRelativo="100">
+          <chart id="cht_a2yy5mr" type="line" nroColuna="13">
+            <expression type="sql" data-source="MGEDS"><![CDATA[WITH T AS (SELECTDATA,0 AS CODPROD,AD_TPPROD,AVG(CUSTO) AS CUSTO,AVG(CUSTOT) AS CUSTOTFROM (SELECT    DHINICIO AS DATA,    CODPRODPA AS CODPROD,    AD_TPPROD,    MAX(CUSTO) AS CUSTO,    SUM(CUSTOT) + (SELECT SUM(CIP.QTD * NVL(CUS.CUSSEMICM,0)) AS CUSTO_CIPFROM TPRTPP CIP INNER JOIN TGFCUS CUS ON CIP.CODPRODTAR = CUS.CODPROD AND CUS.CODEMP = 1 AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE DTATUAL <= X.DHINICIO AND CODPROD = CIP.CODPRODTAR AND CODEMP = 1)WHERE CIP.CODPRODPA = X.CODPRODPA AND CIP.IDPROC = (SELECT MAX(IDPROC) FROM TPRTPP WHERE CODPRODPA = X.CODPRODPA) ) AS CUSTOT  FROM (SELECT MAX(ATV.IDEFX)IDEFX, LAST_DAY(TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO))) AS DHINICIO, PA.CODPRODPA , PRO.AD_TPPROD, MP.CODPRODMP , MP.QTDMISTURA, CUS.CUSSEMICM, CUSPA.CUSSEMICM AS CUSTO, MP.QTDMISTURA * CUS.CUSSEMICM AS CUSTOTFROM TPRIATV ATVINNER JOIN TPRIPA PA ON PA.IDIPROC = ATV.IDIPROCINNER JOIN TPRLMP MP ON MP.CODPRODPA = PA.CODPRODPA AND MP.IDEFX = ATV.IDEFXINNER JOIN TGFCUS CUS ON MP.CODPRODMP = CUS.CODPROD AND 1 = CUS.CODEMPAND CUS.DTATUAL = (SELECT MAX(DTATUAL)FROM TGFCUS WHERE DTATUAL <= LAST_DAY(TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO))) AND CODPROD = MP.CODPRODMP AND CODEMP = 1)INNER JOIN TGFPRO PRO ON PA.CODPRODPA = PRO.CODPROD  /*foi efetuado esta ligaçao para trazer o pro.ad_tpprod***/INNER JOIN TGFCUS CUSPA ON PA.CODPRODPA = CUSPA.CODPROD AND CUSPA.CODEMP = 1AND CUSPA.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE DTATUAL <= LAST_DAY(TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO))) AND CODPROD = PA.CODPRODPA AND CODEMP = 1)WHERE ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))AND LAST_DAY(TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO))) >= ADD_MONTHS(:P_PERIODO.FIN, -12) AND TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO)) < :P_PERIODO.FINGROUP BY LAST_DAY(TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO))), PA.CODPRODPA , PRO.AD_TPPROD, MP.CODPRODMP , MP.QTDMISTURA, CUS.CUSSEMICM, CUSPA.CUSSEMICM) XGROUP BY    DHINICIO,    CODPRODPA,    AD_TPPROD) YGROUP BYDATA,AD_TPPRODUNION ALLSELECT    DHINICIO AS DATA,    CODPRODPA AS CODPROD,    NULL AS AD_TPPROD,    MAX(CUSTO) AS CUSTO,    SUM(CUSTOT) + (SELECT SUM(CIP.QTD * NVL(CUS.CUSSEMICM,0)) AS CUSTO_CIPFROM TPRTPP CIP INNER JOIN TGFCUS CUS ON CIP.CODPRODTAR = CUS.CODPROD AND CUS.CODEMP = 1 AND CUS.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE DTATUAL <= X.DHINICIO AND CODPROD = CIP.CODPRODTAR AND CODEMP = 1)WHERE CIP.CODPRODPA = X.CODPRODPA AND CIP.IDPROC = (SELECT MAX(IDPROC) FROM TPRTPP WHERE CODPRODPA = X.CODPRODPA) ) AS CUSTOTFROM (SELECT MAX(ATV.IDEFX)IDEFX, LAST_DAY(TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO))) AS DHINICIO, PA.CODPRODPA , PRO.AD_TPPROD, MP.CODPRODMP , MP.QTDMISTURA, CUS.CUSSEMICM, CUSPA.CUSSEMICM AS CUSTO, MP.QTDMISTURA * CUS.CUSSEMICM AS CUSTOTFROM TPRIATV ATVINNER JOIN TPRIPA PA ON PA.IDIPROC = ATV.IDIPROCINNER JOIN TPRLMP MP ON MP.CODPRODPA = PA.CODPRODPA AND MP.IDEFX = ATV.IDEFXINNER JOIN TGFCUS CUS ON MP.CODPRODMP = CUS.CODPROD AND 1 = CUS.CODEMPAND CUS.DTATUAL = (SELECT MAX(DTATUAL)FROM TGFCUS WHERE DTATUAL <= LAST_DAY(TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO))) AND CODPROD = MP.CODPRODMP AND CODEMP = 1)INNER JOIN TGFPRO PRO ON PA.CODPRODPA = PRO.CODPROD  /*foi efetuado esta ligaçao para trazer o pro.ad_tpprod***/INNER JOIN TGFCUS CUSPA ON PA.CODPRODPA = CUSPA.CODPROD AND CUSPA.CODEMP = 1AND CUSPA.DTATUAL = (SELECT MAX(DTATUAL) FROM TGFCUS WHERE DTATUAL <= LAST_DAY(TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO))) AND CODPROD = PA.CODPRODPA AND CODEMP = 1)WHERE PRO.CODPROD = :A_CODPRODAND LAST_DAY(TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO))) >= ADD_MONTHS(:P_PERIODO.FIN, -12) AND TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO)) <= LAST_DAY(:P_PERIODO.FIN )GROUP BY LAST_DAY(TRUNC(NVL(ATV.DHINICIO, ATV.DHINCLUSAO))), PA.CODPRODPA , PRO.AD_TPPROD, MP.CODPRODMP , MP.QTDMISTURA, CUS.CUSSEMICM, CUSPA.CUSSEMICM) XGROUP BY    DHINICIO,    CODPRODPA,    AD_TPPROD)SELECT DATA,CODPROD,AD_TPPROD,CUSTO,CUSTOT,CUSTO - CUSTOT AS DIFFROM TORDER BY 1]]></expression>
+            <metadata>
+              <field name="DATA" label="Data" type="D" visible="true" useFooter="false" mask="MMM-YY"/>
+              <field name="CODPROD" label="CODPROD" type="I" visible="true" useFooter="false"/>
+              <field name="AD_TPPROD" label="AD_TPPROD" type="I" visible="true" useFooter="false"/>
+              <field name="CUSTO" label="Custo Médio" type="F" visible="true" useFooter="false" mask="#.##0,0000"/>
+              <field name="CUSTOT" label="Custo Previsto Produção" type="F" visible="true" useFooter="false" mask="#.##0,0000"/>
+              <field name="DIF" label="DIF" type="F" visible="true" useFooter="false" mask="#.##0,0000"/>
+            </metadata>
+            <horizontal-axis>
+              <category field="$DATA" rotation="0" dropLabel="false">
+                <initView value="last"/>
+              </category>
+            </horizontal-axis>
+            <vertical-axis>
+              <linear resultRotation="0" vResizing="true">
+                <mask>#.##0,00</mask>
+              </linear>
+            </vertical-axis>
+            <series>
+              <serie type="line" circle-intersection="true">
+                <xField>$DATA</xField>
+                <yField>$CUSTO</yField>
+                <display><![CDATA[Custo Médio Produção]]></display>
+                <color>0xffff00</color>
+                <on-click navigate-to="lvl_anbe5cs">
+                  <param id="A_PERIODO">$DATA</param>
+                  <param id="A_CODPROD">$CODPROD</param>
+                  <param id="A_TPPROD">$AD_TPPROD</param>
+                </on-click>
+              </serie>
+              <serie type="line" circle-intersection="true">
+                <xField>$DATA</xField>
+                <yField>$CUSTOT</yField>
+                <display><![CDATA[Custo Prevista Produção]]></display>
+                <color>0x99</color>
+              </serie>
+              <serie type="line" circle-intersection="true">
+                <xField>DATA</xField>
+                <yField>$DIF</yField>
+                <display><![CDATA[Diferença]]></display>
+                <color>0xff0000</color>
+              </serie>
+            </series>
+            <legend position="right" direction="v"/>
+          </chart>
+        </container>
+      </container>
+      <container orientacao="H" tamanhoRelativo="398">
+        <container orientacao="V" tamanhoRelativo="50">
+          <grid id="grd_a2yy5mn" useNewGrid="S">
+            <title><![CDATA[<b>Análise do Custo Indireto de Produção </b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT LAN.REFERENCIA,SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC *(-1)) ELSE LAN.VLRLANC END) AS "VLRLANC" FROM TCBLAN LAN, TCBPLA PLAWHERE LAN.CODCTACTB=PLA.CODCTACTBAND (PLA.CTACTB  LIKE '3.1.04.005%'  ORPLA.CTACTB  LIKE '3.1.04.006%' ORPLA.CTACTB  LIKE '3.1.04.009%' ORPLA.CTACTB  LIKE '3.1.04.010%')AND LAN.DTMOV BETWEEN ADD_MONTHS(:P_PERIODO.FIN, -12) AND :P_PERIODO.FINAND NUMLOTE<>999AND PLA.CTACTB <> '3.1.04.010.0001'GROUP BY LAN.REFERENCIAORDER BY 1]]></expression>
+            <metadata>
+              <field name="REFERENCIA" label="Referência" type="D" visible="true" useFooter="false"/>
+              <field name="VLRLANC" label="CIP Total" type="I" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            </metadata>
+            <on-click navigate-to="lvl_anbe5cs"/>
+            <refresh-details ui-list="grd_a2yy5mp">
+              <param id="A_PERIODO">$REFERENCIA</param>
+            </refresh-details>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="50">
+          <grid id="grd_a2yy5mp" useNewGrid="S">
+            <args>
+              <arg id="A_PERIODO" type="date"/>
+            </args>
+            <title><![CDATA[<b>Composição do CIP </b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT LAN.REFERENCIA, PLA.CTACTB, PLA.DESCRCTA, SUM(CASE WHEN LAN.TIPLANC = 'R' THEN (LAN.VLRLANC *(-1)) ELSE LAN.VLRLANC END) AS "VLRLANC" FROM TCBLAN LANINNER JOIN TCBPLA PLA ON LAN.CODCTACTB = PLA.CODCTACTBWHERE(PLA.CTACTB  LIKE '3.1.04.005%' ORPLA.CTACTB  LIKE '3.1.04.006%'  ORPLA.CTACTB  LIKE '3.1.04.009%'  ORPLA.CTACTB  LIKE '3.1.04.010%') AND(LAN.DTMOV BETWEEN ADD_MONTHS(:P_PERIODO.FIN, -12) AND :P_PERIODO.FIN) AND NUMLOTE<>999 ANDLAN.REFERENCIA = :A_PERIODO ANDPLA.CTACTB <> '3.1.04.010.0001'GROUP BY LAN.REFERENCIA, PLA.CTACTB, PLA.DESCRCTAORDER BY 1,2]]></expression>
+            <metadata>
+              <field name="REFERENCIA" label="Ref." type="D" visible="true" useFooter="false"/>
+              <field name="CTACTB" label="Conta Contábil" type="S" visible="true" useFooter="false"/>
+              <field name="DESCRCTA" label="Descrição" type="S" visible="true" useFooter="false"/>
+              <field name="VLRLANC" label="Vlr. CIP" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            </metadata>
+          </grid>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_anbe5cs" description="Nivel2">
+    <args>
+      <arg id="A_PERIODO" type="date"/>
+      <arg id="A_CODPROD" type="integer"/>
+      <arg id="A_TPPROD" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <grid id="grd_anbe5dv" useNewGrid="S">
+          <title><![CDATA[Produções do periodo para o produto (cód: :A_CODPROD)]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[/* Formatted on 30/07/2018 15:37:13 (QP5 v5.240.12305.39446) */  SELECT DISTINCT I.NUNOTA,CAB.IDIPROC,:A_PERIODO AS PERIODO_FIN,				CAB.DTNEG,                  I.CODPROD,                  P.DESCRPROD,                  I.QTDNEG,                  I.CODVOL,						(SELECT ENTRADASEMICMS FROM TGFCUSITE WHERE NUNOTA=I.NUNOTA AND SEQUENCIA=I.SEQUENCIA AND CODPROD=I.CODPROD) AS CUSNOTA,                  (SELECT CUSSEMICM                     FROM TGFCUS                    WHERE     TGFCUS.CODPROD = I.CODPROD                          AND DTATUAL = (SELECT MAX (DTATUAL)                                           FROM TGFCUS                                          WHERE DTATUAL <= CAB.DTNEG)                          AND TGFCUS.CODEMP = CAB.CODEMP) CUSTO,                  I.CONTROLE,                  I.SEQUENCIA    FROM TGFITE I         INNER JOIN TGFCAB CAB ON (CAB.NUNOTA = I.NUNOTA)         INNER JOIN TGFPRO P ON (P.CODPROD = I.CODPROD)   WHERE LAST_DAY(CAB.DTNEG) =  :A_PERIODO         AND I.ATUALESTOQUE = 1         AND (I.CODPROD = :A_CODPROD OR P.AD_TPPROD = :A_TPPROD)		AND CAB.TIPMOV = 'F'         ORDER BY CODPROD, I.NUNOTA]]></expression>
+          <metadata>
+            <field name="NUNOTA" label="NÚ.Nota" type="I" visible="true" useFooter="false"/>
+            <field name="IDIPROC" label="Ordem Produção" type="I" visible="true" useFooter="false"/>
+            <field name="PERIODO_FIN" label="PERIODO_FIN" type="S" visible="false" useFooter="false"/>
+            <field name="DTNEG" label="Dt.Neg." type="D" visible="true" useFooter="false"/>
+            <field name="CODPROD" label="Cód.Prod." type="I" visible="true" useFooter="false"/>
+            <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+            <field name="QTDNEG" label="Quantidade" type="F" visible="true" useFooter="false"/>
+            <field name="CODVOL" label="Volume" type="S" visible="true" useFooter="false"/>
+            <field name="CUSNOTA" label="Custo Produção" type="I" visible="true" useFooter="false"/>
+            <field name="CUSTO" label="Custo Médio" type="I" visible="true" useFooter="false"/>
+            <field name="CONTROLE" label="Controle" type="S" visible="false" useFooter="false"/>
+            <field name="SEQUENCIA" label="Sequencia" type="I" visible="false" useFooter="false"/>
+          </metadata>
+          <on-click navigate-to="lvl_aoi0ut0">
+            <param id="A_NUNOTA">$NUNOTA</param>
+            <param id="A_CODPROD">$CODPROD</param>
+            <param id="A_SEQUENCIA">$SEQUENCIA</param>
+          </on-click>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_aoi0ut0" description="Nível 3">
+    <args>
+      <arg id="A_NUNOTA" type="integer"/>
+      <arg id="A_CODPROD" type="integer"/>
+      <arg id="A_SEQUENCIA" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_aoi0ut1" useNewGrid="S">
+        <title><![CDATA[Componentes Consumidos para produzir 1 UN do Produto Acabado (cód. :A_CODPROD)]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[/* Formatted on 30/07/2018 14:10:19 (QP5 v5.240.12305.39446) */  SELECT I.NUNOTA,         I.CODPROD,	      P.DESCRPROD,         I.QTDNEG / I2.QTDNEG AS QTDNEG,         I.CODVOL,         C.CUSSEMICM,         C.CUSSEMICM * I.QTDNEG AS VLRTOT,(C.CUSSEMICM * I.QTDNEG) / I2.QTDNEG AS CUSTO_UN_PA,         ROUND(((I.QTDNEG / I2.QTDNEG) * C.CUSSEMICM),5) AS CUSTO    FROM TGFITE I         INNER JOIN TGFITE I2 ON (I2.NUNOTA = I.NUNOTA)         INNER JOIN TGFCUS C ON (I.CODPROD = C.CODPROD AND I.CODEMP = C.CODEMP)         INNER JOIN TGFCAB CAB            ON (CAB.NUNOTA = I.NUNOTA AND CAB.NUNOTA = I2.NUNOTA)         INNER JOIN TGFPRO P ON (P.CODPROD = I.CODPROD)         INNER JOIN TGFVAR V            ON (    I.NUNOTA = V.NUNOTAORIG                AND I2.NUNOTA = V.NUNOTA                AND V.SEQUENCIAORIG = I2.SEQUENCIA                AND V.SEQUENCIA = I.SEQUENCIA)   WHERE     I.NUNOTA = :A_NUNOTA          AND I2.CODPROD = :A_CODPROD                 AND (I.ATUALESTOQUE IN (-1, 0))         AND I2.ATUALESTOQUE = 1         AND C.DTATUAL =                (SELECT MAX (DTATUAL)                   FROM TGFCUS C1                  WHERE     C1.CODPROD = C.CODPROD                        AND I.CODPROD = C1.CODPROD                        AND DTATUAL <= CAB.DTNEG)         AND V.SEQUENCIAORIG = :A_SEQUENCIA         ORDER BY CODPROD]]></expression>
+        <metadata>
+          <field name="NUNOTA" label="NÚ.Nota" type="I" visible="true" useFooter="false"/>
+          <field name="CODPROD" label="Cód.Prod." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+          <field name="QTDNEG" label="Quantidade" type="F" visible="true" useFooter="false" mask="###0,0000"/>
+          <field name="CODVOL" label="Volume" type="S" visible="true" useFooter="false"/>
+          <field name="CUSSEMICM" label="Custo Médio M.P" type="F" visible="true" useFooter="false" mask="###0,0000"/>
+          <field name="VLRTOT" label="Custo Total" type="I" visible="false" useFooter="false"/>
+          <field name="CUSTO_UN_PA" label="Custo Produção P.A" type="F" visible="true" useFooter="SUM" mask="###0,0000"/>
+          <field name="CUSTO" label="CUSTO" type="I" visible="false" useFooter="SUM"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_asrpuxy" description="Nivel1_GV">
+    <args>
+      <arg id="A_PERIODO" type="date" order="0"/>
+      <arg id="A_TPPROD" type="integer" order="1"/>
+      <arg id="A_CODPROD" type="integer" order="2"/>
+      <arg id="A_TIPOPROD" type="text" order="3"/>
+      <arg id="A_DESCRPROD" type="text" order="4"/>
+      <arg id="A_TIPO_GV" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="50">
+        <container orientacao="V" tamanhoRelativo="107">
+          <simple-value id="svl_asrpvmp">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CASE WHEN :A_TPPROD = 9999 THEN 'TOTAL' ELSE UPPER(F_DESCROPC('TGFPRO', 'AD_TPPROD', :A_TPPROD)) END AS TIPOPROD,CASE WHEN :A_CODPROD IS NOT NULL THEN (SELECT DESCRPROD FROM TGFPRO WHERE CODPROD = :A_CODPROD)  END AS DESCRPRODFROM DUAL]]></expression>
+            <metadata>
+              <field name="TIPOPROD" label="TIPOPROD" type="S" visible="true" useFooter="false"/>
+              <field name="DESCRPROD" label="DESCRPROD" type="S" visible="true" useFooter="false"/>
+            </metadata>
+            <value-expression><![CDATA[<div style='text-align: left;'><h2><b>GASTO VARIAVEL - :A_TPPROD  :A_CODPROD  - $TIPOPROD  $DESCRPROD </b></h2></div>]]></value-expression>
+          </simple-value>
+        </container>
+        <container orientacao="H" tamanhoRelativo="448">
+          <container orientacao="V" tamanhoRelativo="50">
+            <container orientacao="V" tamanhoRelativo="100">
+              <grid id="grd_asrpvkn" useNewGrid="S">
+                <expression type="sql" data-source="MGEDS"><![CDATA[SELECTTIPO_GV,SUM(VALOR) AS VALOR,SUM(PERC_GV) AS PERC_GVFROM(SELECT        TESTE AS TIPO_GV,    TESTES AS VALOR,    (RATIO_TO_REPORT(TESTES) OVER ())*100 AS PERC_GVFROM (WITHBOL AS (SELECT FIN.NUNOTA,ITE.CODPROD,CTA.AD_CUSTOBOLETO/CAB.VLRNOTA * (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) AS RATEIO_BOLETOFROM TGFFIN FININNER JOIN TSICTA CTA ON FIN.CODCTABCOINT = CTA.CODCTABCOINTINNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TGFITE ITE ON FIN.NUNOTA = ITE.NUNOTAWHERE CTA.AD_CUSTOBOLETO > 0AND FIN.NUNOTA > 0AND CAB.TIPMOV = 'V')    SELECT		 ITE.CODPROD,        PRO.DESCRPROD,         PRO.AD_TPPROD AS CODTIPO,        UPPER(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD,        SUM(ITE.VLRSUBST) AS VLRSUBST,        SUM(ITE.VLRIPI) AS VLRIPI,SUM(CASE WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF<> '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF= '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF <> 2 AND PAR.TIPPESSOA= 'J' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF = 2THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF IN (1,7,8,15,13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.03WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF NOT IN (2, 1, 7, 8, 15, 13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.01ELSE ITE.VLRICMS END) AS VLRICMS,        SUM((SELECT (VALOR) FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6)) AS VLRPIS,        SUM((SELECT (VALOR) FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7)) AS VLRCOFINS,        SUM(BOL.RATEIO_BOLETO) AS RATEIO_BOLETO    FROM TGFCAB CAB    INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA    LEFT JOIN BOL ON ITE.NUNOTA = BOL.NUNOTA AND ITE.CODPROD = BOL.CODPROD    INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (        SELECT MAX(DTATUAL) FROM TGFCUS WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP    )    INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (        SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER    )INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPRODINNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCINNER JOIN TSICID CID ON PAR.CODCID = CID.CODCIDINNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMPINNER JOIN TSICID CID2 ON EMP.CODCID = CID2.CODCIDINNER JOIN TSIUFS UFS2 ON CID2.UF = UFS2.CODUFWHERE TOP.GOLSINAL = -1AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)AND (CAB.CODEMP IN :P_EMPRESA)AND TOP.TIPMOV IN ('V', 'D')AND TOP.ATIVO = 'S'AND( ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))  OR (PRO.CODPROD = :A_CODPROD AND PRO.CODPROD IS NOT NULL))    GROUP BY ITE.CODPROD, PRO.DESCRPROD,PRO.AD_TPPROD) SUBUNPIVOT (   TESTES  FOR TESTE IN (        VLRSUBST AS 'ST',        VLRIPI AS 'IPI',        VLRICMS AS 'ICMS',        VLRPIS AS 'PIS',        VLRCOFINS AS 'COFINS',        RATEIO_BOLETO AS 'BOLETO'    )))GROUP BYTIPO_GVORDER BY "VALOR" DESC]]></expression>
+                <metadata>
+                  <field name="TIPO_GV" label="Tipo G.V" type="S" visible="true" useFooter="false"/>
+                  <field name="VALOR" label="Valor" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+                  <field name="PERC_GV" label="%" type="F" visible="true" useFooter="SUM" mask="#.##0,00 %"/>
+                </metadata>
+                <on-click navigate-to="lvl_asrpuxy">
+                  <param id="A_PERIODO"/>
+                  <param id="A_TPPROD"/>
+                  <param id="A_CODPROD"/>
+                  <param id="A_TIPOPROD"/>
+                  <param id="A_DESCRPROD"/>
+                  <param id="A_TIPO_GV"/>
+                </on-click>
+                <refresh-details ui-list="grd_98kmyd,grd_aams9t9">
+                  <param id="A_TIPO_GV">$TIPO_GV</param>
+                </refresh-details>
+              </grid>
+            </container>
+          </container>
+          <container orientacao="V" tamanhoRelativo="50">
+            <chart id="cht_asrpvno" type="pizza">
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECTTIPO_GV,SUM(VALOR) AS VALOR,SUM(PERC_GV) AS PERC_GVFROM(SELECT        TESTE AS TIPO_GV,    TESTES AS VALOR,    (RATIO_TO_REPORT(TESTES) OVER ())*100 AS PERC_GVFROM (WITHBOL AS (SELECT FIN.NUNOTA,ITE.CODPROD,CTA.AD_CUSTOBOLETO/CAB.VLRNOTA * (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) AS RATEIO_BOLETOFROM TGFFIN FININNER JOIN TSICTA CTA ON FIN.CODCTABCOINT = CTA.CODCTABCOINTINNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TGFITE ITE ON FIN.NUNOTA = ITE.NUNOTAWHERE CTA.AD_CUSTOBOLETO > 0AND FIN.NUNOTA > 0AND CAB.TIPMOV = 'V')    SELECT		 ITE.CODPROD,        PRO.DESCRPROD,         PRO.AD_TPPROD AS CODTIPO,        UPPER(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD,        SUM(ITE.VLRSUBST) AS VLRSUBST,        SUM(ITE.VLRIPI) AS VLRIPI,SUM(CASE WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF<> '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF= '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF <> 2 AND PAR.TIPPESSOA= 'J' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF = 2THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF IN (1,7,8,15,13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.03WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF NOT IN (2, 1, 7, 8, 15, 13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.01ELSE ITE.VLRICMS END) AS VLRICMS,        SUM((SELECT (VALOR) FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6)) AS VLRPIS,        SUM((SELECT (VALOR) FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7)) AS VLRCOFINS,        SUM(BOL.RATEIO_BOLETO) AS RATEIO_BOLETO    FROM TGFCAB CAB    INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA    LEFT JOIN BOL ON ITE.NUNOTA = BOL.NUNOTA AND ITE.CODPROD = BOL.CODPROD    INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (        SELECT MAX(DTATUAL) FROM TGFCUS WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP    )    INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (        SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER    )INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPRODINNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCINNER JOIN TSICID CID ON PAR.CODCID = CID.CODCIDINNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMPINNER JOIN TSICID CID2 ON EMP.CODCID = CID2.CODCIDINNER JOIN TSIUFS UFS2 ON CID2.UF = UFS2.CODUFWHERE TOP.GOLSINAL = -1AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)AND (CAB.CODEMP IN :P_EMPRESA)AND TOP.TIPMOV IN ('V', 'D')AND TOP.ATIVO = 'S'AND( ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))  OR (PRO.CODPROD = :A_CODPROD AND PRO.CODPROD IS NOT NULL))    GROUP BY ITE.CODPROD, PRO.DESCRPROD,PRO.AD_TPPROD) SUBUNPIVOT (   TESTES  FOR TESTE IN (        VLRSUBST AS 'ST',        VLRIPI AS 'IPI',        VLRICMS AS 'ICMS',        VLRPIS AS 'PIS',        VLRCOFINS AS 'COFINS',        RATEIO_BOLETO AS 'BOLETO'    )))GROUP BYTIPO_GVORDER BY "VALOR" DESC]]></expression>
+              <metadata>
+                <field name="TIPO_GV" label="Tipo GV" type="S" visible="true" useFooter="false"/>
+                <field name="VALOR" label="Valor" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+                <field name="PERC_GV" label="PERC_GV" type="F" visible="true" useFooter="false"/>
+              </metadata>
+              <series>
+                <serie type="pizza" labelSize="10">
+                  <field>VALOR</field>
+                  <nameField>TIPO_GV</nameField>
+                </serie>
+              </series>
+              <legend position="bottom" direction="h"/>
+            </chart>
+          </container>
+        </container>
+        <container orientacao="H" tamanhoRelativo="386">
+          <container orientacao="V" tamanhoRelativo="232">
+            <grid id="grd_98kmyd" useNewGrid="S">
+              <args>
+                <arg id="A_TIPO_GV" type="text"/>
+              </args>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECTNUNOTA, CODPROD, DESCRPROD, CODTIPO, TIPOPROD, TIPO_GV, SUM(VALOR) AS VALOR, SUM(PERC_GV) AS PERC_GVFROM(SELECT    NUNOTA,    CODPROD,    DESCRPROD,    CODTIPO,    TIPOPROD,            TESTE AS TIPO_GV,    TESTES AS VALOR,    (RATIO_TO_REPORT(TESTES) OVER ())*100 AS PERC_GVFROM (WITHBOL AS (SELECT FIN.NUNOTA,ITE.CODPROD,CTA.AD_CUSTOBOLETO/CAB.VLRNOTA * (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) AS RATEIO_BOLETOFROM TGFFIN FININNER JOIN TSICTA CTA ON FIN.CODCTABCOINT = CTA.CODCTABCOINTINNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TGFITE ITE ON FIN.NUNOTA = ITE.NUNOTAWHERE CTA.AD_CUSTOBOLETO > 0AND FIN.NUNOTA > 0AND CAB.TIPMOV = 'V')SELECTITE.NUNOTA    , ITE.CODPROD, PRO.DESCRPROD, PRO.AD_TPPROD AS CODTIPO, UPPER(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD, SUM(ITE.VLRSUBST) AS VLRSUBST, SUM(ITE.VLRIPI) AS VLRIPI, SUM(CASE WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF<> '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF= '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF <> 2 AND PAR.TIPPESSOA= 'J' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF = 2THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF IN (1,7,8,15,13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.03WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF NOT IN (2, 1, 7, 8, 15, 13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.01ELSE ITE.VLRICMS END) AS VLRICMS, SUM((SELECT (VALOR) FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 6)) AS VLRPIS, SUM((SELECT (VALOR) FROM TGFDIN WHERE NUNOTA = ITE.NUNOTA AND SEQUENCIA = ITE.SEQUENCIA AND CODIMP = 7)) AS VLRCOFINS, SUM(BOL.RATEIO_BOLETO) AS RATEIO_BOLETOFROM TGFCAB CABINNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTALEFT JOIN BOL ON ITE.NUNOTA = BOL.NUNOTA AND ITE.CODPROD = BOL.CODPRODINNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (    SELECT MAX(DTATUAL) FROM TGFCUS WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP)INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (    SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPRODINNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCINNER JOIN TSICID CID ON PAR.CODCID = CID.CODCIDINNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMPINNER JOIN TSICID CID2 ON EMP.CODCID = CID2.CODCIDINNER JOIN TSIUFS UFS2 ON CID2.UF = UFS2.CODUFWHERE TOP.GOLSINAL = -1AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)AND (CAB.CODEMP IN :P_EMPRESA)AND TOP.TIPMOV IN ('V', 'D')AND TOP.ATIVO = 'S'AND( ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))  OR (PRO.CODPROD = :A_CODPROD AND PRO.CODPROD IS NOT NULL))    GROUP BY ITE.NUNOTA,ITE.CODPROD, PRO.DESCRPROD,PRO.AD_TPPROD) SUBUNPIVOT (   TESTES  FOR TESTE IN (        VLRSUBST AS 'ST',        VLRIPI AS 'IPI',        VLRICMS AS 'ICMS',        VLRPIS AS 'PIS',        VLRCOFINS AS 'COFINS',        RATEIO_BOLETO AS 'BOLETO'    )))WHERE TIPO_GV = :A_TIPO_GVGROUP BYNUNOTA,TIPO_GV, CODPROD, DESCRPROD, CODTIPO, TIPOPRODORDER BY "VALOR" DESC]]></expression>
+              <metadata>
+                <field name="NUNOTA" label="NÚ. Nota" type="I" visible="true" useFooter="false"/>
+                <field name="CODPROD" label="Cód. Produto" type="I" visible="true" useFooter="false"/>
+                <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+                <field name="CODTIPO" label="Cód. Tipo" type="I" visible="true" useFooter="false"/>
+                <field name="TIPOPROD" label="Tp. Produto" type="S" visible="true" useFooter="false"/>
+                <field name="TIPO_GV" label="Tp. GV" type="S" visible="true" useFooter="false"/>
+                <field name="VALOR" label="Valor" type="I" visible="true" useFooter="SUM" mask="#.##0,00"/>
+                <field name="PERC_GV" label="% GV" type="I" visible="true" useFooter="SUM" mask="#.##0,00 %"/>
+              </metadata>
+            </grid>
+          </container>
+          <container orientacao="V" tamanhoRelativo="205">
+            <grid id="grd_aams9t9" useNewGrid="S">
+              <args>
+                <arg id="A_TIPO_GV" type="text"/>
+              </args>
+              <expression type="sql" data-source="MGEDS"><![CDATA[WITHBOL AS (SELECT FIN.NUNOTA,ITE.CODPROD,CTA.AD_CUSTOBOLETO/CAB.VLRNOTA * (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) AS RATEIO_BOLETOFROM TGFFIN FININNER JOIN TSICTA CTA ON FIN.CODCTABCOINT = CTA.CODCTABCOINTINNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TGFITE ITE ON FIN.NUNOTA = ITE.NUNOTAWHERE CTA.AD_CUSTOBOLETO > 0AND FIN.NUNOTA > 0AND CAB.TIPMOV = 'V')    SELECT        PRO.AD_TPPROD AS CODTIPO,        UPPER(F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD)) AS TIPOPROD,        'ICMS' AS TIPO_GV,SUM(CASE WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF<> '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF= '    ' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF <> 2 AND PAR.TIPPESSOA= 'J' THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.04WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF = 2THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.06WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF IN (1,7,8,15,13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.03WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2,3,4) AND CID.UF NOT IN (2, 1, 7, 8, 15, 13)THEN (CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1 ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) * 0.01ELSE ITE.VLRICMS END) AS VLRICMS_LIQ,SUM(ITE.VLRICMS) AS VLRICMS,CASEWHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF <> '    ' THEN 'AGUA, DENTRO MG, COM I.E. 4%'WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF = '    ' THEN 'AGUA, DENTRO MG, SEM I.E. 6%'WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF <> 2 AND PAR.TIPPESSOA = 'J' THEN 'AGUA, FORA MG, PJ 4%'WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2, 3, 4) AND CID.UF = 2 THEN 'REFRI, DENTRO MG 6%'WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2, 3, 4) AND CID.UF IN (1, 7, 8, 15, 13) THEN 'REFRI FORA (SUL E SULDESTE - ES 3%'WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2, 3, 4) AND CID.UF NOT IN (2, 1, 7, 8, 15, 13) THEN 'REFRI, DEMAIS ESTADOS + ES  1%'ELSE 'SEM BENEFICIO'END AS REGRA    FROM TGFCAB CAB    INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA    LEFT JOIN BOL ON ITE.NUNOTA = BOL.NUNOTA AND ITE.CODPROD = BOL.CODPROD    INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (        SELECT MAX(DTATUAL) FROM TGFCUS WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP    )    INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (        SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER    )INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPRODINNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCINNER JOIN TSICID CID ON PAR.CODCID = CID.CODCIDINNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMPINNER JOIN TSICID CID2 ON EMP.CODCID = CID2.CODCIDINNER JOIN TSIUFS UFS2 ON CID2.UF = UFS2.CODUFWHERE TOP.GOLSINAL = -1AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN)AND (CAB.CODEMP IN :P_EMPRESA)AND TOP.TIPMOV IN ('V', 'D')AND TOP.ATIVO = 'S'AND( ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))  OR (PRO.CODPROD = :A_CODPROD AND PRO.CODPROD IS NOT NULL))AND :A_TIPO_GV = 'ICMS'    GROUP BY PRO.AD_TPPROD,CASEWHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF <> '    ' THEN 'AGUA, DENTRO MG, COM I.E. 4%'WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF = 2 AND PAR.INSCESTADNAUF = '    ' THEN 'AGUA, DENTRO MG, SEM I.E. 6%'WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD = 1 AND CID.UF <> 2 AND PAR.TIPPESSOA = 'J' THEN 'AGUA, FORA MG, PJ 4%'WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2, 3, 4) AND CID.UF = 2 THEN 'REFRI, DENTRO MG 6%'WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2, 3, 4) AND CID.UF IN (1, 7, 8, 15, 13) THEN 'REFRI FORA (SUL E SULDESTE - ES 3%'WHEN CAB.CODEMP = 1 AND PRO.AD_TPPROD IN (2, 3, 4) AND CID.UF NOT IN (2, 1, 7, 8, 15, 13) THEN 'REFRI, DEMAIS ESTADOS + ES  1%'ELSE 'SEM BENEFICIO'END]]></expression>
+              <metadata>
+                <field name="CODTIPO" label="Cód. Tipo" type="I" visible="true" useFooter="false"/>
+                <field name="TIPOPROD" label="Tipo Produto" type="S" visible="true" useFooter="false"/>
+                <field name="TIPO_GV" label="Tipo GV" type="S" visible="true" useFooter="false"/>
+                <field name="VLRICMS_LIQ" label="Vlr. ICMS Liq." type="I" visible="true" useFooter="SUM" mask="#.##0,00"/>
+                <field name="VLRICMS" label="Vlr. Icms" type="I" visible="true" useFooter="SUM" mask="#.##0,00"/>
+                <field name="REGRA" label="Regra Benefício" type="S" visible="true" useFooter="false"/>
+              </metadata>
+            </grid>
+          </container>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_aterc0r" description="Leve1_GF">
+    <args>
+      <arg id="A_GF" type="decimal"/>
+      <arg id="A_VLRFAT" type="decimal"/>
+      <arg id="A_PERC_FAT" type="decimal"/>
+      <arg id="A_CODPROD" type="integer"/>
+      <arg id="A_CODNAT" type="integer"/>
+      <arg id="A_CODCENCUS" type="integer"/>
+      <arg id="A_TPPROD" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="137">
+        <simple-value id="svl_aterc2n">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTCASEWHEN :A_CODPROD IS NOT NULL THEN'<b>O produto: </b>' || :A_CODPROD || ' - ' || PRO.DESCRPROD || ', <b>faturou</b> R$' || TO_CHAR(:A_VLRFAT, '999,999,999.99')||' (Fat. Total = %'||(TO_CHAR((:A_PERC_FAT)*100, '999.99'))||') e '||CHR(10)||'absorveu R$' || TO_CHAR(:A_GF, '999,999,999.99')|| ' do Gasto Fixo Total de  R$'||TO_CHAR((:A_GF/:A_PERC_FAT), '999,999,999.99')||' deste tipo de produto.'WHEN :A_TPPROD IS NOT NULL THEN :A_TPPROD||' AMIGO'END AS TFROM TGFPRO PROWHERE :A_CODPROD = PRO.CODPROD]]></expression>
+          <metadata>
+            <field name="T" label="T" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <value-expression><![CDATA[<div style='text-align: left;'>$T</div>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="V" tamanhoRelativo="1393">
+        <container orientacao="V" tamanhoRelativo="100">
+          <container orientacao="H" tamanhoRelativo="313">
+            <container orientacao="V" tamanhoRelativo="100">
+              <container orientacao="V" tamanhoRelativo="704">
+                <grid id="grd_aterdmu" useNewGrid="S">
+                  <expression type="sql" data-source="MGEDS"><![CDATA[WITH rank_dados AS (  SELECT     CODCENCUS,    DESCRCENCUS,    CODNAT,    DESCRNAT,    SUM(VLRBAIXA) * -1 AS VALOR,	'#ffffff' AS FGCOLOR,    (RATIO_TO_REPORT(SUM(VLRBAIXA) * -1) OVER ())*100 AS PERC,    NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC) AS group_num,	CASE	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 1 THEN '#950b95'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 2 THEN '#9f239f'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 3 THEN '#aa3baa'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 4 THEN '#b454b4'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 5 THEN '#bf6cbf'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 6 THEN '#ca85ca'END AS BKCOLOR  FROM     VGF_RESULTADO_GM  WHERE     AD_TIPOCUSTO = 'F'    AND CODCENCUS NOT BETWEEN 2500000 AND 2599999    AND DHBAIXA IS NOT NULL    AND (DHBAIXA BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)        AND RECDESP = -1  GROUP BY     CODCENCUS,    DESCRCENCUS,    CODNAT,    DESCRNAT)SELECT * FROM rank_dadosWHERE group_num <= 6]]></expression>
+                  <metadata>
+                    <field name="CODCENCUS" label="Cód. CR" type="I" visible="true" useFooter="false"/>
+                    <field name="DESCRCENCUS" label="CR" type="S" visible="true" useFooter="false"/>
+                    <field name="CODNAT" label="Cód. NAT" type="I" visible="true" useFooter="false"/>
+                    <field name="DESCRNAT" label="NAT" type="S" visible="true" useFooter="false"/>
+                    <field name="VALOR" label="Valor" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+                    <field name="FGCOLOR" label="FGCOLOR" type="S" visible="true" useFooter="false"/>
+                    <field name="PERC" label="%" type="F" visible="true" useFooter="SUM" mask="###0,0000"/>
+                    <field name="GROUP_NUM" label="GROUP_NUM" type="F" visible="false" useFooter="false"/>
+                    <field name="BKCOLOR" label="BKCOLOR" type="S" visible="true" useFooter="false"/>
+                  </metadata>
+                  <on-click navigate-to="lvl_auaofct">
+                    <param id="A_CODNAT">$CODNAT</param>
+                    <param id="A_CODCENCUS">$CODCENCUS</param>
+                  </on-click>
+                </grid>
+              </container>
+              <container orientacao="V" tamanhoRelativo="100">
+                <simple-value id="svl_aymckc7">
+                  <value-expression><![CDATA[<span style='color: #000000;'><i><span style='color: #0000FF;'><b>Gráfico de Evolução por Natureza</b></span></i></span<span style='color: #0000FF;'></span>]]></value-expression>
+                  <on-click navigate-to="lvl_aypn42a"/>
+                </simple-value>
+              </container>
+            </container>
+            <container orientacao="V" tamanhoRelativo="125">
+              <container orientacao="V" tamanhoRelativo="107">
+                <chart id="cht_aumuswl" type="pizza">
+                  <title><![CDATA[<b>TOP FIVE - NATUREZA</b>]]></title>
+                  <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODNAT,SUBSTR(DESCRNAT,1, 15) AS NATUREZA, SUM(VLRBAIXA) * -1 AS VALORFROM VGF_RESULTADO_GMWHERE AD_TIPOCUSTO = 'F'AND CODCENCUS NOT BETWEEN 2500000 AND 2599999AND DHBAIXA IS NOT NULLAND (DHBAIXA BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)AND RECDESP = -1GROUP BY CODNAT,SUBSTR(DESCRNAT,1, 15)ORDER BY VALOR DESCFETCH FIRST 5 ROWS ONLY]]></expression>
+                  <metadata>
+                    <field name="CODNAT" label="CODNAT" type="I" visible="true" useFooter="false"/>
+                    <field name="NATUREZA" label="NATUREZA" type="S" visible="true" useFooter="false"/>
+                    <field name="VALOR" label="VALOR" type="F" visible="true" useFooter="false"/>
+                  </metadata>
+                  <series>
+                    <serie type="pizza" labelSize="10">
+                      <field>VALOR</field>
+                      <nameField>NATUREZA</nameField>
+                      <on-click navigate-to="lvl_auaofct">
+                        <param id="A_CODNAT">$CODNAT</param>
+                        <param id="A_CODCENCUS"/>
+                      </on-click>
+                    </serie>
+                  </series>
+                </chart>
+              </container>
+              <container orientacao="V" tamanhoRelativo="132">
+                <chart id="cht_aumuswn" type="pizza">
+                  <title><![CDATA[<b>TOP FIVE - CR</b>]]></title>
+                  <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODCENCUS,SUBSTR(DESCRCENCUS,1, 15) AS CR, SUM(VLRBAIXA) * -1 AS VALOR1FROM VGF_RESULTADO_GMWHERE AD_TIPOCUSTO = 'F'AND CODCENCUS NOT BETWEEN 2500000 AND 2599999AND DHBAIXA IS NOT NULLAND (DHBAIXA BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)AND RECDESP = -1GROUP BY CODCENCUS,SUBSTR(DESCRCENCUS,1, 15)ORDER BY VALOR1 DESCFETCH FIRST 5 ROWS ONLY]]></expression>
+                  <metadata>
+                    <field name="CODCENCUS" label="CODCENCUS" type="I" visible="true" useFooter="false"/>
+                    <field name="CR" label="CR" type="S" visible="true" useFooter="false"/>
+                    <field name="VALOR1" label="VALOR1" type="F" visible="true" useFooter="false"/>
+                  </metadata>
+                  <series>
+                    <serie type="pizza" labelSize="10">
+                      <field>VALOR1</field>
+                      <nameField>CR</nameField>
+                      <on-click navigate-to="lvl_auaofct">
+                        <param id="A_CODNAT"/>
+                        <param id="A_CODCENCUS">$CODCENCUS</param>
+                      </on-click>
+                    </serie>
+                  </series>
+                </chart>
+              </container>
+            </container>
+          </container>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_auaofct" description="Level1_GF1">
+    <args>
+      <arg id="A_CODNAT" type="integer"/>
+      <arg id="A_CODCENCUS" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="50">
+        <grid id="grd_auaofdb" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT *FROM VGF_RESULTADO_GMWHERE AD_TIPOCUSTO = 'F'AND CODCENCUS NOT BETWEEN 2500000 AND 2599999AND DHBAIXA IS NOT NULLAND (DHBAIXA BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)AND RECDESP = -1AND (CODNAT = :A_CODNAT OR :A_CODNAT IS NULL)AND (CODCENCUS = :A_CODCENCUS OR :A_CODCENCUS IS NULL)ORDER BY VLRBAIXA DESC  ]]></expression>
+          <metadata>
+            <field name="ORIGEM" label="Origem" type="S" visible="true" useFooter="false"/>
+            <field name="RECDESP" label="Rec./Desp." type="I" visible="true" useFooter="false"/>
+            <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+            <field name="NUMNOTA" label="Nro. Documento" type="I" visible="true" useFooter="false"/>
+            <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+            <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+            <field name="DTENTSAI" label="Dt. Ent./Sai." type="D" visible="true" useFooter="false"/>
+            <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+            <field name="DHBAIXA" label="Dt. Baixa" type="D" visible="true" useFooter="false"/>
+            <field name="CODPARC" label="Cód. Parceiro" type="I" visible="true" useFooter="false"/>
+            <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="CODCENCUS" label="Cód. CR" type="I" visible="true" useFooter="false"/>
+            <field name="CODCENCUSPAI" label="CR Pai" type="I" visible="true" useFooter="false"/>
+            <field name="GRAU" label="Grau" type="I" visible="true" useFooter="false"/>
+            <field name="DESCRCENCUS" label="CR" type="S" visible="true" useFooter="false"/>
+            <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+            <field name="DESCRNAT" label="Nat." type="S" visible="true" useFooter="false"/>
+            <field name="AD_TIPOCUSTO" label="Tp. Custo" type="S" visible="true" useFooter="false"/>
+            <field name="CODPROJ" label="Cód. Proj." type="I" visible="true" useFooter="false"/>
+            <field name="IDENTIFICACAO" label="Identificação" type="S" visible="true" useFooter="false"/>
+            <field name="ABREVIATURA" label="Abreviatura" type="S" visible="true" useFooter="false"/>
+            <field name="GRAUPRJ" label="Grau PRJ" type="I" visible="true" useFooter="false"/>
+            <field name="CODPROJPAI" label="Cód. PRJ Pai" type="I" visible="true" useFooter="false"/>
+            <field name="ANALITICO_PRJ" label="Analitico PRJ" type="S" visible="true" useFooter="false"/>
+            <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+            <field name="VLRDESDOB" label="Vlr. Desdobr." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="VLRJURO" label="Vlr. Juros" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="VLRMULTA" label="Vlr. Multa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="VLRDESC" label="Vlr. Desc." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="CODTIPOPER" label="Cód. Top." type="I" visible="true" useFooter="false"/>
+            <field name="DESCROPER" label="TOP" type="S" visible="true" useFooter="false"/>
+            <field name="CODVEICULO" label="Cód. Veículo" type="F" visible="true" useFooter="false"/>
+            <field name="PLACA" label="Placa" type="S" visible="true" useFooter="false"/>
+            <field name="MARCAMODELO" label="Marca/Modelo" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+            <NUFIN>$NUFIN</NUFIN>
+          </on-click-launcher>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_aypn42a" description="Level2_GF">
+    <args>
+      <arg id="A_CODNAT" type="integer"/>
+      <arg id="A_MES_ANO" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="103"/>
+      <container orientacao="H" tamanhoRelativo="1048">
+        <container orientacao="V" tamanhoRelativo="50">
+          <grid id="grd_aypn42t" useNewGrid="S">
+            <expression type="sql" data-source="MGEDS"><![CDATA[WITH rank_dados AS (  SELECT     CODNAT,    DESCRNAT,    SUM(VLRBAIXA) * -1 AS VALOR,	'#ffffff' AS FGCOLOR,    (RATIO_TO_REPORT(SUM(VLRBAIXA) * -1) OVER ())*100 AS PERC,    NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC) AS group_num,	CASE	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 1 THEN '#950b95'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 2 THEN '#9f239f'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 3 THEN '#aa3baa'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 4 THEN '#b454b4'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 5 THEN '#bf6cbf'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 6 THEN '#ca85ca'END AS BKCOLOR  FROM     VGF_RESULTADO_GM  WHERE     AD_TIPOCUSTO = 'F'    AND CODCENCUS NOT BETWEEN 2500000 AND 2599999    AND DHBAIXA IS NOT NULL    AND (DHBAIXA BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)        AND RECDESP = -1  GROUP BY     CODNAT,    DESCRNAT)SELECT * FROM rank_dadosWHERE group_num <= 6]]></expression>
+            <metadata>
+              <field name="CODNAT" label="Cód.Nat." type="I" visible="true" useFooter="false"/>
+              <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+              <field name="VALOR" label="Valor" type="F" visible="true" useFooter="false"/>
+              <field name="FGCOLOR" label="FGCOLOR" type="S" visible="true" useFooter="false"/>
+              <field name="PERC" label="%" type="F" visible="true" useFooter="false"/>
+              <field name="GROUP_NUM" label="GROUP_NUM" type="F" visible="false" useFooter="false"/>
+              <field name="BKCOLOR" label="BKCOLOR" type="S" visible="true" useFooter="false"/>
+            </metadata>
+            <refresh-details ui-list="cht_aypn44f">
+              <param id="A_CODNAT">$CODNAT</param>
+            </refresh-details>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="50">
+          <chart id="cht_aypn44f" type="line" nroColuna="13">
+            <args>
+              <arg id="A_CODNAT" type="integer"/>
+            </args>
+            <expression type="sql" data-source="MGEDS"><![CDATA[WITH rank_dados AS (  SELECT     TO_CHAR(DHBAIXA,'YYYY') AS ANO,    TO_CHAR(DHBAIXA,'MM') AS MES,    TO_CHAR(DHBAIXA,'MM-YYYY') AS MES_ANO,    CODNAT,    DESCRNAT,    SUM(VLRBAIXA) * -1 AS VALOR,    (RATIO_TO_REPORT(SUM(VLRBAIXA) * -1) OVER ())*100 AS PERC,    NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC) AS group_num  FROM     VGF_RESULTADO_GM  WHERE     AD_TIPOCUSTO = 'F'    AND CODCENCUS NOT BETWEEN 2500000 AND 2599999    AND DHBAIXA IS NOT NULL    AND RECDESP = -1    AND CODNAT = :A_CODNAT    -- ULTIMOS 12 MESES    AND DHBAIXA >= ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -12)      GROUP BY     TO_CHAR(DHBAIXA,'YYYY'),    TO_CHAR(DHBAIXA,'MM'),    TO_CHAR(DHBAIXA,'MM-YYYY'),    CODNAT,    DESCRNAT)SELECT * FROM rank_dadosWHERE group_num <= 6ORDER BY 1,2]]></expression>
+            <metadata>
+              <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+              <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO" label="Mês / Ano" type="D" visible="true" useFooter="false"/>
+              <field name="CODNAT" label="CODNAT" type="I" visible="true" useFooter="false"/>
+              <field name="DESCRNAT" label="DESCRNAT" type="S" visible="true" useFooter="false"/>
+              <field name="VALOR" label="Valor" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="PERC" label="PERC" type="F" visible="true" useFooter="false"/>
+              <field name="GROUP_NUM" label="GROUP_NUM" type="F" visible="true" useFooter="false"/>
+            </metadata>
+            <horizontal-axis>
+              <category field="$CODNAT" rotation="0" dropLabel="false">
+                <initView value="first"/>
+              </category>
+            </horizontal-axis>
+            <series>
+              <serie type="line" circle-intersection="true">
+                <xField>$MES_ANO</xField>
+                <yField>$VALOR</yField>
+                <display><![CDATA[Natureza]]></display>
+                <color>0x990000</color>
+                <on-click navigate-to="lvl_o63oxs">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                  <param id="A_CODNAT">$CODNAT</param>
+                </on-click>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_a4fz4iz" description="Detalhe Fat">
+    <args>
+      <arg id="A_CODPROD" type="integer"/>
+      <arg id="A_TPPROD" type="integer"/>
+      <arg id="A_TIPOPROD" type="text"/>
+      <arg id="A_DESCRPROD" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="177">
+        <simple-value id="svl_a64w5qg">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CASE WHEN :A_TPPROD = 9999 THEN 'TOTAL' ELSE :A_TIPOPROD END AS TIPOPROD,CASE WHEN :A_CODPROD IS NOT NULL THEN (SELECT DESCRPROD FROM TGFPRO WHERE CODPROD = :A_CODPROD)  END AS DESCRPRODFROM DUAL]]></expression>
+          <metadata>
+            <field name="TIPOPROD" label="TIPOPROD" type="S" visible="true" useFooter="false"/>
+            <field name="DESCRPROD" label="DESCRPROD" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <value-expression><![CDATA[<div style='text-align: left;'><h2><b>FATURAMENTO :A_TPPROD  :A_CODPROD  - $TIPOPROD  $DESCRPROD </b></h2></div>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="968">
+        <container orientacao="V" tamanhoRelativo="0"/>
+        <container orientacao="V" tamanhoRelativo="103">
+          <chart id="cht_a4fz5t5" type="pizza">
+            <title><![CDATA[<b>TOP 5 VENDEDOR</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT   CAB.CODVEND,          SUBSTR(VEN.APELIDO,1,6) AS VENDEDOR,  SUM(CASE         WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1         ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC)       END) AS VLRFATFROM   TGFCAB CAB  INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA  INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (    SELECT MAX(DTATUAL) FROM TGFCUS     WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP  )  INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (    SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER  )  INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD  INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVENDWHERE   TOP.GOLSINAL = -1  AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)  AND (CAB.CODEMP IN :P_EMPRESA)  AND TOP.TIPMOV IN ('V', 'D')  AND TOP.ATIVO = 'S'  AND VEN.TIPVEND = 'V'  AND ( ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))  OR (PRO.CODPROD = :A_CODPROD AND PRO.CODPROD IS NOT NULL))GROUP BY   CAB.CODVEND, VEN.APELIDOORDER BY   VLRFAT DESCFETCH FIRST 5 ROWS ONLY]]></expression>
+            <metadata>
+              <field name="CODVEND" label="CODVEND" type="I" visible="true" useFooter="false"/>
+              <field name="VENDEDOR" label="Vendedor" type="S" visible="true" useFooter="false"/>
+              <field name="VLRFAT" label="Faturamento" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <series>
+              <serie type="pizza">
+                <field>$VLRFAT</field>
+                <nameField>$VENDEDOR</nameField>
+              </serie>
+            </series>
+            <legend position="bottom" direction="h"/>
+          </chart>
+        </container>
+        <container orientacao="V" tamanhoRelativo="115">
+          <chart id="cht_a4fz5vm" type="pizza">
+            <title><![CDATA[<b>TOP 5 GERENTE</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT VEN.CODGER,SUBSTR(VEN1.APELIDO,1,10) AS GERENTE,SUM(CASEWHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC)END) AS VLRFATFROM   TGFCAB CAB  INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA  INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (    SELECT MAX(DTATUAL) FROM TGFCUS     WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP  )  INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (    SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER  )  INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD  INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND  INNER JOIN TGFVEN VEN1 ON VEN.CODGER = VEN1.CODGERWHERE   TOP.GOLSINAL = -1  AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)  AND (CAB.CODEMP IN :P_EMPRESA)  AND TOP.TIPMOV IN ('V', 'D')  AND TOP.ATIVO = 'S'  AND VEN.TIPVEND = 'V'  AND ( ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))  OR (PRO.CODPROD = :A_CODPROD AND PRO.CODPROD IS NOT NULL))  GROUP BY   VEN.CODGER, VEN1.APELIDOORDER BY   VLRFAT DESCFETCH FIRST 5 ROWS ONLY]]></expression>
+            <metadata>
+              <field name="CODGER" label="CODGER" type="I" visible="true" useFooter="false"/>
+              <field name="GERENTE" label="Gerente" type="S" visible="true" useFooter="false"/>
+              <field name="VLRFAT" label="Faturamento" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <series>
+              <serie type="pizza">
+                <field>$VLRFAT</field>
+                <nameField>$GERENTE</nameField>
+              </serie>
+            </series>
+            <legend position="bottom" direction="h"/>
+          </chart>
+        </container>
+        <container orientacao="V" tamanhoRelativo="120">
+          <chart id="cht_a4fz5zv" type="pizza">
+            <title><![CDATA[<b>TOP 5 SUPERVISOR</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT   VEN.AD_SUPERVISOR,  SUBSTR(VEN1.APELIDO, 1,6) AS SUPERVISOR,  SUM(CASE         WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1         ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC)       END) AS VLRFATFROM   TGFCAB CAB  INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA  INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (    SELECT MAX(DTATUAL) FROM TGFCUS     WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP  )  INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (    SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER  )  INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD  INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND  INNER JOIN TGFVEN VEN1 ON VEN.AD_SUPERVISOR = VEN1.CODVENDWHERE   TOP.GOLSINAL = -1  AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)  AND (CAB.CODEMP IN :P_EMPRESA)  AND TOP.TIPMOV IN ('V', 'D')  AND TOP.ATIVO = 'S'  AND VEN.TIPVEND = 'V'  AND ( ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))  OR (PRO.CODPROD = :A_CODPROD AND PRO.CODPROD IS NOT NULL))GROUP BY   VEN.AD_SUPERVISOR,VEN1.APELIDO ORDER BY   VLRFAT DESCFETCH FIRST 5 ROWS ONLY]]></expression>
+            <metadata>
+              <field name="AD_SUPERVISOR" label="AD_SUPERVISOR" type="I" visible="true" useFooter="false"/>
+              <field name="SUPERVISOR" label="Supervisor" type="S" visible="true" useFooter="false"/>
+              <field name="VLRFAT" label="Faturamento" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <series>
+              <serie type="pizza">
+                <field>$VLRFAT</field>
+                <nameField>$SUPERVISOR</nameField>
+              </serie>
+            </series>
+            <legend position="bottom" direction="h"/>
+          </chart>
+        </container>
+        <container orientacao="V" tamanhoRelativo="0"/>
+      </container>
+      <container orientacao="H" tamanhoRelativo="122">
+        <container orientacao="V" tamanhoRelativo="33">
+          <simple-value id="svl_a4fz6hn">
+            <value-expression><![CDATA[<span style='color: #0000CC;'><i>Mais detalhes Produtos </i></span>]]></value-expression>
+            <on-click navigate-to="lvl_a4fz59p"/>
+          </simple-value>
+        </container>
+        <container orientacao="V" tamanhoRelativo="33">
+          <simple-value id="svl_a64w5se">
+            <value-expression><![CDATA[<span style='color: #0000CC;'><i>Mais detalhes Devoluções </i></span>]]></value-expression>
+            <on-click navigate-to="lvl_a4fz6qo"/>
+          </simple-value>
+        </container>
+        <container orientacao="H" tamanhoRelativo="33">
+          <simple-value id="svl_a64w5zj">
+            <value-expression><![CDATA[<span style='color: #0000CC;'><i>Mais detalhes Descontos </i></span>]]></value-expression>
+            <on-click navigate-to="lvl_a64w5ub"/>
+          </simple-value>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_a4fz59p" description="Detalhe Ven">
+    <args>
+      <arg id="A_TIPOPROD" type="text"/>
+      <arg id="A_TPPROD" type="integer"/>
+      <arg id="A_CODPROD" type="integer"/>
+      <arg id="A_DESCRPROD" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <simple-value id="svl_a64w5oh">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CASE WHEN :A_TPPROD = 9999 THEN 'TOTAL' ELSE :A_TIPOPROD END AS TIPOPROD,CASE WHEN :A_CODPROD IS NOT NULL THEN (SELECT DESCRPROD FROM TGFPRO WHERE CODPROD = :A_CODPROD)  END AS DESCRPRODFROM DUAL]]></expression>
+          <metadata>
+            <field name="TIPOPROD" label="TIPOPROD" type="S" visible="true" useFooter="false"/>
+            <field name="DESCRPROD" label="DESCRPROD" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <value-expression><![CDATA[<div style='text-align: left;'><h2><b>FATURAMENTO :A_TPPROD  :A_CODPROD  - $TIPOPROD  $DESCRPROD </b></h2></div>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="629">
+        <container orientacao="V" tamanhoRelativo="33">
+          <chart id="cht_a4fz6be" type="pizza">
+            <title><![CDATA[<b>TOP 5 CLIENTES</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT   CAB.CODPARC,  SUBSTR(PAR.RAZAOSOCIAL,1,15) AS RAZAOSOCIAL,  SUM(CASE         WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1         ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC)       END) AS VLRFATFROM   TGFCAB CAB  INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA  INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (    SELECT MAX(DTATUAL) FROM TGFCUS     WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP  )  INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (    SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER  )  INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD  INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCWHERE   TOP.GOLSINAL = -1  AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)  AND (CAB.CODEMP IN :P_EMPRESA)  AND TOP.TIPMOV IN ('V', 'D')  AND TOP.ATIVO = 'S'  AND ( ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))  OR (PRO.CODPROD = :A_CODPROD AND PRO.CODPROD IS NOT NULL))GROUP BY   CAB.CODPARC, PAR.RAZAOSOCIALORDER BY   VLRFAT DESCFETCH FIRST 5 ROWS ONLY]]></expression>
+            <metadata>
+              <field name="CODPARC" label="CODPARC" type="I" visible="true" useFooter="false"/>
+              <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+              <field name="VLRFAT" label="Faturamento" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <series>
+              <serie type="pizza">
+                <field>$VLRFAT</field>
+                <nameField>$RAZAOSOCIAL</nameField>
+              </serie>
+            </series>
+            <legend position="bottom" direction="h"/>
+          </chart>
+        </container>
+        <container orientacao="V" tamanhoRelativo="33">
+          <chart id="cht_a4fz6b8" type="pizza">
+            <title><![CDATA[<b>TOP 5 PRODUTOS</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT   ITE.CODPROD,  PRO.DESCRPROD AS PRODUTO,  SUM(CASE         WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1         ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC)       END) AS VLRFATFROM   TGFCAB CAB  INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA  INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (    SELECT MAX(DTATUAL) FROM TGFCUS     WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP  )  INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (    SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER  )  INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD  INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND  INNER JOIN TGFVEN VEN1 ON VEN.AD_SUPERVISOR = VEN1.CODVENDWHERE   TOP.GOLSINAL = -1  AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)  AND (CAB.CODEMP IN :P_EMPRESA)  AND TOP.TIPMOV IN ('V', 'D')  AND TOP.ATIVO = 'S'  AND VEN.TIPVEND = 'V'  AND ( ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))  OR (PRO.CODPROD = :A_CODPROD AND PRO.CODPROD IS NOT NULL))GROUP BY   ITE.CODPROD,PRO.DESCRPRODORDER BY   VLRFAT DESCFETCH FIRST 5 ROWS ONLY]]></expression>
+            <metadata>
+              <field name="CODPROD" label="CODPROD" type="I" visible="true" useFooter="false"/>
+              <field name="PRODUTO" label="Produto" type="S" visible="true" useFooter="false"/>
+              <field name="VLRFAT" label="Faturamento" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <series>
+              <serie type="pizza">
+                <field>$VLRFAT</field>
+                <nameField>$PRODUTO</nameField>
+              </serie>
+            </series>
+            <legend position="bottom" direction="h"/>
+          </chart>
+        </container>
+        <container orientacao="V" tamanhoRelativo="33">
+          <chart id="cht_a4fz6oz" type="pizza">
+            <title><![CDATA[<b>TIPO PRODUTO</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT   UPPER (F_DESCROPC('TGFPRO', 'AD_TPPROD', PRO.AD_TPPROD) ) AS TIPOPROD,  SUM(CASE         WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1         ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC)       END) AS VLRFATFROM   TGFCAB CAB  INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA  INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (    SELECT MAX(DTATUAL) FROM TGFCUS     WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP  )  INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (    SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER  )  INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD  INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND  INNER JOIN TGFVEN VEN1 ON VEN.AD_SUPERVISOR = VEN1.CODVENDWHERE   TOP.GOLSINAL = -1  AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)  AND (CAB.CODEMP IN :P_EMPRESA)  AND TOP.TIPMOV IN ('V', 'D')  AND TOP.ATIVO = 'S'  AND VEN.TIPVEND = 'V'  AND ( ((:A_TPPROD IN (1, 2, 4, 5, 6) AND PRO.AD_TPPROD = :A_TPPROD) OR (:A_TPPROD = 9999))  OR (PRO.CODPROD = :A_CODPROD AND PRO.CODPROD IS NOT NULL))GROUP BY   PRO.AD_TPPRODORDER BY   VLRFAT DESCFETCH FIRST 5 ROWS ONLY]]></expression>
+            <metadata>
+              <field name="TIPOPROD" label="TIPOPROD" type="S" visible="true" useFooter="false"/>
+              <field name="VLRFAT" label="VLRFAT" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <series>
+              <serie type="pizza">
+                <field>$VLRFAT</field>
+                <nameField>$TIPOPROD</nameField>
+              </serie>
+            </series>
+            <legend position="bottom" direction="h"/>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_a4fz6qo" description="Detalhe Pro">
+    <args>
+      <arg id="A_CODPROD" type="integer"/>
+      <arg id="A_MES_ANO" type="text"/>
+      <arg id="A_PRODUTO" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="100">
+        <simple-value id="svl_a64w5mg">
+          <value-expression><![CDATA[<div style='text-align: center;'><h3><b>FATURAMENTO - Devoluções</b></h3></div>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="539">
+        <container orientacao="V" tamanhoRelativo="50">
+          <grid id="grd_a4fz6qp" useNewGrid="S">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT   ITE.CODPROD,  PRO.DESCRPROD AS PRODUTO,  SUM(CASE         WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1         ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC)       END) AS VLRFAT,  COUNT(PRO.DESCRPROD) AS QTD_VENDAS,  SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) VLR_DEVOLUCAO,  COUNT(CASE WHEN CAB.TIPMOV = 'D' THEN CAB.TIPMOV END) AS QTD_DEVOLUCAO,  COUNT(DISTINCT CAB.CODPARC) AS QTD_CLIENTES_ATENDIDOS,  SUM(ITE.VLRDESC)AS VLRDESC,  SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1         ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) / COUNT(PRO.DESCRPROD) AS TICKET_MEDIO  FROM   TGFCAB CAB  INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA  INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (    SELECT MAX(DTATUAL) FROM TGFCUS     WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP  )  INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (    SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER  )  INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD  INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND  INNER JOIN TGFVEN VEN1 ON VEN.AD_SUPERVISOR = VEN1.CODVENDWHERE   TOP.GOLSINAL = -1  AND (CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)  AND (CAB.CODEMP IN :P_EMPRESA)  AND TOP.TIPMOV IN ('V', 'D')  AND TOP.ATIVO = 'S'  AND PRO.AD_TPPROD IS NOT NULLGROUP BY   ITE.CODPROD,PRO.DESCRPRODORDER BY   VLRFAT DESC]]></expression>
+            <metadata>
+              <field name="CODPROD" label="Cód. Produto" type="I" visible="true" useFooter="false"/>
+              <field name="PRODUTO" label="Produto" type="S" visible="true" useFooter="false"/>
+              <field name="VLRFAT" label="Faturamento" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="QTD_VENDAS" label="Qt. Vendas" type="I" visible="true" useFooter="SUM"/>
+              <field name="VLR_DEVOLUCAO" label="Vlr. Devolução" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="QTD_DEVOLUCAO" label="Qtd. Devolução" type="I" visible="true" useFooter="SUM"/>
+              <field name="QTD_CLIENTES_ATENDIDOS" label="Clientes Atendidos" type="I" visible="true" useFooter="SUM"/>
+              <field name="VLRDESC" label="Vlr. Desconto" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="TICKET_MEDIO" label="Ticket Médio" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            </metadata>
+            <refresh-details ui-list="cht_a4fz60y">
+              <param id="A_CODPROD">$CODPROD</param>
+              <param id="A_PRODUTO">$PRODUTO</param>
+            </refresh-details>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="50">
+          <chart id="cht_a4fz60y" type="line" nroColuna="13">
+            <args>
+              <arg id="A_CODPROD" type="integer"/>
+              <arg id="A_PRODUTO" type="text"/>
+            </args>
+            <title><![CDATA[<b>Produto:  :A_CODPROD - :A_PRODUTO </b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT     TO_CHAR(CAB.DTNEG,'YYYY') AS ANO,    TO_CHAR(CAB.DTNEG,'MM') AS MES,    TO_CHAR(CAB.DTNEG,'MM-YYYY') AS MES_ANO,  ITE.CODPROD,  PRO.DESCRPROD AS PRODUTO,  SUM(CASE         WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1         ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC)       END) AS VLRFAT,  SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) VLR_DEVOLUCAOFROM   TGFCAB CAB  INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA    INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (    SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER  )  INNER JOIN TGFCUS CUS ON CUS.CODPROD = ITE.CODPROD AND CUS.CODEMP = CAB.CODEMP AND CUS.DTATUAL = (  SELECT MAX(DTATUAL) FROM TGFCUS   WHERE DTATUAL <= CAB.DTNEG AND CODPROD = ITE.CODPROD AND CODEMP = CAB.CODEMP  )  INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD  INNER JOIN TGFVEN VEN ON CAB.CODVEND = VEN.CODVEND  INNER JOIN TGFVEN VEN1 ON VEN.AD_SUPERVISOR = VEN1.CODVENDWHERE   TOP.GOLSINAL = -1  AND CAB.DTNEG BETWEEN ADD_MONTHS(:P_PERIODO.INI, -12) AND :P_PERIODO.FIN  AND (CAB.CODEMP IN :P_EMPRESA)    AND TOP.TIPMOV IN ('V', 'D')  AND TOP.ATIVO = 'S'  AND PRO.AD_TPPROD IS NOT NULL  AND ITE.CODPROD = :A_CODPRODGROUP BY    TO_CHAR(CAB.DTNEG,'YYYY'),    TO_CHAR(CAB.DTNEG,'MM'),    TO_CHAR(CAB.DTNEG,'MM-YYYY'),  ITE.CODPROD,PRO.DESCRPRODORDER BY 1,2]]></expression>
+            <metadata>
+              <field name="ANO" label="ANO" type="D" visible="true" useFooter="false"/>
+              <field name="MES" label="MES" type="D" visible="true" useFooter="false"/>
+              <field name="MES_ANO" label="Mes / Ano" type="S" visible="true" useFooter="false"/>
+              <field name="CODPROD" label="CODPROD" type="I" visible="true" useFooter="false"/>
+              <field name="PRODUTO" label="PRODUTO" type="S" visible="true" useFooter="false"/>
+              <field name="VLRFAT" label="Faturamento" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="VLR_DEVOLUCAO" label="Vlr. Devolução" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <horizontal-axis>
+              <category field="$CODPROD" rotation="0" dropLabel="false">
+                <initView value="first"/>
+              </category>
+            </horizontal-axis>
+            <vertical-axis>
+              <category field="" rotation="0" dropLabel="false">
+                <initView value="first"/>
+              </category>
+            </vertical-axis>
+            <series>
+              <serie type="line" circle-intersection="true">
+                <xField>$MES_ANO</xField>
+                <yField>$VLRFAT</yField>
+                <display><![CDATA[Faturamento]]></display>
+                <color>0x9933</color>
+              </serie>
+              <serie type="line" circle-intersection="true">
+                <xField>$MES_ANO</xField>
+                <yField>$VLR_DEVOLUCAO</yField>
+                <display><![CDATA[Devolução]]></display>
+                <color>0xff0000</color>
+                <on-click navigate-to="lvl_o63qdf">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                  <param id="A_CODPROD">$CODPROD</param>
+                </on-click>
+              </serie>
+            </series>
+            <legend position="right" direction="v"/>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_a64w5ub" description="Detalhe Desc">
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <simple-value id="svl_a64w5vb">
+          <value-expression><![CDATA[<div style='text-align: center;'><h1><b>FATURAMENTO DETALHADO</b></h1></div>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="V" tamanhoRelativo="539">
+        <grid id="grd_a64w5vc" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CAB.DTNEG,ITE.NUNOTA,CAB.CODPARC,PAR.RAZAOSOCIAL,UPPER (F_DESCROPC('TGFCAB', 'TIPMOV', CAB.TIPMOV) ) AS TIPMOV,SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST) AS VLRFAT_BRU,SUM(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) AS VLRFAT_LIQ,SUM(ITE.VLRDESC) AS VLRDESC,(SUM(ABS(ITE.VLRDESC)) / NULLIF(SUM(ABS(ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST)), 0))*100 AS PERC_POR_FAT_BRUFROM TGFCAB CABINNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTAINNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPRODINNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCWHERE TOP.GOLSINAL = -1/*FILTRO CORRETO*/AND CAB.DTNEG BETWEEN ADD_MONTHS(:P_PERIODO.INI, -12) AND :P_PERIODO.FINAND TOP.TIPMOV IN ('V')AND TOP.ATIVO = 'S'AND ITE.VLRDESC > 0GROUP BY CAB.DTNEG,ITE.NUNOTA, CAB.CODPARC, PAR.RAZAOSOCIAL,CAB.TIPMOV,CAB.CODTIPVENDAORDER BY 1 DESC]]></expression>
+          <metadata>
+            <field name="DTNEG" label="Dt. Negociação" type="D" visible="true" useFooter="false"/>
+            <field name="NUNOTA" label="NU. Único" type="I" visible="true" useFooter="false"/>
+            <field name="CODPARC" label="Cód. Parceiro" type="I" visible="true" useFooter="false"/>
+            <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="TIPMOV" label="Tp. Movimentação" type="S" visible="true" useFooter="false"/>
+            <field name="VLRFAT_BRU" label="Faturamento Bruto" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="VLRFAT_LIQ" label="Faturamento S/ Desc." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="VLRDESC" label="Vlr. Desconto" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="PERC_POR_FAT_BRU" label="% Desc. Fat." type="F" visible="true" useFooter="SUM" mask="#.##0,00 %"/>
+          </metadata>
+          <on-click-launcher resource-id="br.com.sankhya.com.mov.CentralNotas">
+            <NUNOTA>$NUNOTA</NUNOTA>
+          </on-click-launcher>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_o63oxs" description="Level3_GF">
+    <args>
+      <arg id="A_CODNAT" type="integer" order="0"/>
+      <arg id="A_MES_ANO" type="text" order="1"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <grid id="grd_o63oxt" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[WITH rank_dados AS (  SELECT     CODEMP,    TO_CHAR(DHBAIXA,'YYYY') AS ANO,    TO_CHAR(DHBAIXA,'MM') AS MES,    TO_CHAR(DHBAIXA,'MM-YYYY') AS MES_ANO,    DHBAIXA,    NUFIN,    CODPARC,    NOMEPARC,    CODNAT,    DESCRNAT,    SUM(VLRBAIXA) * -1 AS VALOR,    (RATIO_TO_REPORT(SUM(VLRBAIXA) * -1) OVER ())*100 AS PERC,    NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC) AS group_num  FROM     VGF_RESULTADO_GM  WHERE     AD_TIPOCUSTO = 'F'    AND CODCENCUS NOT BETWEEN 2500000 AND 2599999    AND DHBAIXA IS NOT NULL    AND RECDESP = -1    AND CODNAT = :A_CODNAT    AND TO_CHAR(DHBAIXA, 'MM-YYYY') = :A_MES_ANO      GROUP BY     CODEMP,    TO_CHAR(DHBAIXA,'YYYY'),    TO_CHAR(DHBAIXA,'MM'),    TO_CHAR(DHBAIXA,'MM-YYYY'),    DHBAIXA,    NUFIN,    CODPARC,    NOMEPARC,    CODNAT,    DESCRNAT)SELECT * FROM rank_dadosWHERE group_num <= 6ORDER BY 1,2]]></expression>
+          <metadata>
+            <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+            <field name="ANO" label="ANO" type="S" visible="false" useFooter="false"/>
+            <field name="MES" label="MES" type="S" visible="false" useFooter="false"/>
+            <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+            <field name="DHBAIXA" label="Dt. Baixa" type="D" visible="true" useFooter="false"/>
+            <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+            <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+            <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+            <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+            <field name="VALOR" label="Valor" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="PERC" label="%" type="F" visible="true" useFooter="false"/>
+            <field name="GROUP_NUM" label="GROUP_NUM" type="F" visible="false" useFooter="false"/>
+          </metadata>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_o63qdf" description="Detalhe Dev">
+    <args>
+      <arg id="A_MES_ANO" type="text"/>
+      <arg id="A_CODPROD" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_o63qdg" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT     TO_CHAR(CAB.DTNEG,'YYYY') AS ANO,    TO_CHAR(CAB.DTNEG,'MM') AS MES,    TO_CHAR(CAB.DTNEG,'MM-YYYY') AS MES_ANO,  ITE.NUNOTA,      ITE.CODPROD,  PRO.DESCRPROD AS PRODUTO,  SUM(CASE         WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) * -1         ELSE (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC)       END) AS VLRFAT,  SUM(CASE WHEN CAB.TIPMOV = 'D' THEN (ITE.VLRTOT + ITE.VLRIPI + ITE.VLRSUBST - ITE.VLRDESC) END) VLR_DEVOLUCAOFROM   TGFCAB CAB  INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA  INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (    SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER  )  INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPRODWHERE   TOP.GOLSINAL = -1  AND TO_CHAR(CAB.DTNEG, 'MM-YYYY') = :A_MES_ANO  AND (CAB.CODEMP IN :P_EMPRESA)  AND TOP.TIPMOV IN ('D')  AND TOP.ATIVO = 'S'  AND PRO.AD_TPPROD IS NOT NULL  AND ITE.CODPROD = :A_CODPRODGROUP BY    TO_CHAR(CAB.DTNEG,'YYYY'),    TO_CHAR(CAB.DTNEG,'MM'),    TO_CHAR(CAB.DTNEG,'MM-YYYY'),  ITE.NUNOTA,ITE.CODPROD,PRO.DESCRPRODORDER BY 1,2]]></expression>
+        <metadata>
+          <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+          <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+          <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+          <field name="NUNOTA" label="NÚ. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="CODPROD" label="Cód. Prod." type="I" visible="true" useFooter="false"/>
+          <field name="PRODUTO" label="Produto" type="S" visible="true" useFooter="false"/>
+          <field name="VLRFAT" label="Vlr. Fat." type="F" visible="false" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLR_DEVOLUCAO" label="Vlr. Devolução" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_aamtaj3" description="Resultado1">
+    <args>
+      <arg id="A_TPPROD" type="integer"/>
+      <arg id="A_GF" type="decimal"/>
+      <arg id="A_CODNAT" type="integer"/>
+      <arg id="A_MES_ANO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="154">
+        <simple-value id="svl_aamta5t"/>
+      </container>
+      <container orientacao="H" tamanhoRelativo="3309">
+        <container orientacao="V" tamanhoRelativo="50">
+          <grid id="grd_ab2z21y" useNewGrid="S">
+            <title><![CDATA[Investimentos no Período por C.R / Natureza]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[WITH rank_dados AS (  SELECT     CODCENCUS,    DESCRCENCUS,    CODNAT,    DESCRNAT,    SUM(VLRBAIXA) * -1 AS VALOR,	'#ffffff' AS FGCOLOR,    (RATIO_TO_REPORT(SUM(VLRBAIXA) * -1) OVER ())*100 AS PERC,    NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC) AS group_num,	CASE   WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 1 THEN '#5CABAC'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 2 THEN '#7ab9b9'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 3 THEN '#95c7c7'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 4 THEN '#b0d5d5'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 5 THEN '#7ebdbe'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 6 THEN '#8fc5c6'END AS BKCOLOR  FROM VGF_RESULTADO_GM  WHERE     NVL(AD_TIPOCUSTO, 'N') NOT IN ('I', 'F', 'V','D')    AND DHBAIXA IS NOT NULL    AND (DHBAIXA BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)        AND RECDESP = -1  GROUP BY     CODCENCUS,    DESCRCENCUS,    CODNAT,    DESCRNAT)SELECT * FROM rank_dadosWHERE group_num <= 6]]></expression>
+            <metadata>
+              <field name="CODCENCUS" label="Cód. CR" type="I" visible="true" useFooter="false"/>
+              <field name="DESCRCENCUS" label="Descr. CR" type="S" visible="true" useFooter="false"/>
+              <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+              <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+              <field name="VALOR" label="Valor" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="FGCOLOR" label="FGCOLOR" type="S" visible="true" useFooter="false"/>
+              <field name="PERC" label="%" type="F" visible="true" useFooter="SUM" mask="#.##0,00 %"/>
+              <field name="GROUP_NUM" label="Group. Num." type="F" visible="false" useFooter="false"/>
+              <field name="BKCOLOR" label="BKCOLOR" type="S" visible="false" useFooter="false"/>
+            </metadata>
+            <on-click navigate-to="lvl_ab2z4h6">
+              <param id="A_CODNAT">$CODNAT</param>
+            </on-click>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="50">
+          <chart id="cht_ab2z26w" type="pizza">
+            <title><![CDATA[<b> TOP 5 - INVESTIMENTOS</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODNAT,SUBSTR(DESCRNAT,1, 15) AS NATUREZA, SUM(VLRBAIXA) * -1 AS VALORFROM VGF_RESULTADO_GMWHERE NVL(AD_TIPOCUSTO, 'N') NOT IN ('I', 'F', 'V','D')AND DHBAIXA IS NOT NULLAND (DHBAIXA BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)AND RECDESP = -1GROUP BY CODNAT,SUBSTR(DESCRNAT,1, 15)ORDER BY VALOR DESCFETCH FIRST 5 ROWS ONLY]]></expression>
+            <metadata>
+              <field name="CODNAT" label="CODNAT" type="I" visible="true" useFooter="false"/>
+              <field name="NATUREZA" label="Natureza" type="S" visible="true" useFooter="false"/>
+              <field name="VALOR" label="Valor" type="F" visible="true" useFooter="false"/>
+            </metadata>
+            <series>
+              <serie type="pizza">
+                <field>$VALOR</field>
+                <nameField>$NATUREZA</nameField>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+      <container orientacao="V" tamanhoRelativo="245">
+        <simple-value id="svl_ab2z3or">
+          <value-expression><![CDATA[<span style='color: #000000;'><i><span style='color: #0000FF;'><b>Gráfico de Evolução por Natureza</b></span></i></span<span style='color: #0000FF;'></span>]]></value-expression>
+          <on-click navigate-to="lvl_ab2z3jg"/>
+        </simple-value>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_ab2z3jg" description="Resultado2">
+    <args>
+      <arg id="A_CODNAT" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100"/>
+      <container orientacao="H" tamanhoRelativo="1729">
+        <container orientacao="V" tamanhoRelativo="50">
+          <grid id="grd_ab2z3jh" useNewGrid="S">
+            <title><![CDATA[<b>INVESTIMENTOS NO PERÍODO POR NATUREZA</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[WITH rank_dados AS (  SELECT     CODNAT,    DESCRNAT,    SUM(VLRBAIXA) * -1 AS VALOR,	'#ffffff' AS FGCOLOR,    (RATIO_TO_REPORT(SUM(VLRBAIXA) * -1) OVER ())*100 AS PERC,    NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC) AS group_num,	CASE   WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 1 THEN '#5CABAC'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 2 THEN '#7ab9b9'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 3 THEN '#95c7c7'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 4 THEN '#b0d5d5'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 5 THEN '#7ebdbe'	WHEN (NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC)) = 6 THEN '#8fc5c6'END AS BKCOLOR  FROM     VGF_RESULTADO_GM  WHERE     NVL(AD_TIPOCUSTO, 'N') NOT IN ('I', 'F', 'V','D')    AND DHBAIXA IS NOT NULL    AND (DHBAIXA BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)        AND RECDESP = -1  GROUP BY     CODNAT,    DESCRNAT)SELECT * FROM rank_dadosWHERE group_num <= 6]]></expression>
+            <metadata>
+              <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+              <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+              <field name="VALOR" label="Valor" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+              <field name="FGCOLOR" label="FGCOLOR" type="S" visible="true" useFooter="false"/>
+              <field name="PERC" label="%" type="F" visible="true" useFooter="SUM" mask="#.##0,00 %"/>
+              <field name="GROUP_NUM" label="Grupo Num." type="F" visible="true" useFooter="false"/>
+              <field name="BKCOLOR" label="BKCOLOR" type="S" visible="true" useFooter="false"/>
+            </metadata>
+            <refresh-details ui-list="cht_ab2z3l3">
+              <param id="A_CODNAT">$CODNAT</param>
+            </refresh-details>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="50">
+          <chart id="cht_ab2z3l3" type="line" nroColuna="13">
+            <args>
+              <arg id="A_CODNAT" type="integer"/>
+            </args>
+            <title><![CDATA[<strong>EVOLUÇÃO DOS ÚLTIMOS 12 MESES</strong>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[WITH rank_dados AS (  SELECT     TO_CHAR(DHBAIXA,'YYYY') AS ANO,    TO_CHAR(DHBAIXA,'MM') AS MES,    TO_CHAR(DHBAIXA,'MM-YYYY') AS MES_ANO,    CODNAT,    DESCRNAT,    SUM(VLRBAIXA) * -1 AS VALOR,    (RATIO_TO_REPORT(SUM(VLRBAIXA) * -1) OVER ())*100 AS PERC,    NTILE(6) OVER (ORDER BY SUM(VLRBAIXA) * -1 DESC) AS group_num  FROM     VGF_RESULTADO_GM  WHERE     NVL(AD_TIPOCUSTO, 'N') NOT IN ('I', 'F', 'V','D')    AND DHBAIXA IS NOT NULL    AND RECDESP = -1    AND CODNAT = :A_CODNAT    -- ULTIMOS 12 MESES    AND DHBAIXA >= ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -12)      GROUP BY     TO_CHAR(DHBAIXA,'YYYY'),    TO_CHAR(DHBAIXA,'MM'),    TO_CHAR(DHBAIXA,'MM-YYYY'),    CODNAT,    DESCRNAT)SELECT * FROM rank_dadosWHERE group_num <= 6ORDER BY 1,2]]></expression>
+            <metadata>
+              <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+              <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+              <field name="CODNAT" label="CODNAT" type="I" visible="true" useFooter="false"/>
+              <field name="DESCRNAT" label="DESCRNAT" type="S" visible="true" useFooter="false"/>
+              <field name="VALOR" label="Valor" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="PERC" label="PERC" type="F" visible="true" useFooter="false"/>
+              <field name="GROUP_NUM" label="GROUP_NUM" type="F" visible="true" useFooter="false"/>
+            </metadata>
+            <horizontal-axis>
+              <category field="$DESCRNAT" rotation="0" dropLabel="false">
+                <initView value="first"/>
+                <title>Natureza</title>
+              </category>
+            </horizontal-axis>
+            <series>
+              <serie type="line" circle-intersection="true">
+                <xField>$MES_ANO</xField>
+                <yField>$VALOR</yField>
+                <display><![CDATA[Natureza]]></display>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_ab2z4h6" description="Resultado3">
+    <args>
+      <arg id="A_CODNAT" type="integer"/>
+    </args>
+    <container orientacao="H" tamanhoRelativo="100">
+      <grid id="grd_ab2z4ii" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT *FROM VGF_RESULTADO_GMWHERE         NVL(AD_TIPOCUSTO, 'N') NOT IN ('I', 'F', 'V','D')    AND DHBAIXA IS NOT NULL    AND (DHBAIXA BETWEEN :P_PERIODO.INI and :P_PERIODO.FIN)        AND RECDESP = -1    AND CODNAT = :A_CODNATORDER BY VLRBAIXA DESC  ]]></expression>
+        <metadata>
+          <field name="ORIGEM" label="Origem" type="S" visible="true" useFooter="false"/>
+          <field name="RECDESP" label="Rec./Desp." type="I" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+          <field name="DTENTSAI" label="Dt. Ent./Sai." type="D" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="DHBAIXA" label="Dh. Baixa" type="D" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+          <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="CODCENCUS" label="Cód. CR" type="I" visible="true" useFooter="false"/>
+          <field name="CODCENCUSPAI" label="Cód. CR Pai" type="I" visible="true" useFooter="false"/>
+          <field name="GRAU" label="Grau" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRCENCUS" label="Descr. CR" type="S" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="Cód. Nat" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+          <field name="AD_TIPOCUSTO" label="Tp. Custo" type="S" visible="true" useFooter="false"/>
+          <field name="CODPROJ" label="Cód. Proj." type="I" visible="true" useFooter="false"/>
+          <field name="IDENTIFICACAO" label="Projeto" type="S" visible="true" useFooter="false"/>
+          <field name="ABREVIATURA" label="Abrev." type="S" visible="true" useFooter="false"/>
+          <field name="GRAUPRJ" label="Grau. Proj." type="I" visible="true" useFooter="false"/>
+          <field name="CODPROJPAI" label="Cód. Proj. Pai" type="I" visible="true" useFooter="false"/>
+          <field name="ANALITICO_PRJ" label="Ana. Proj." type="S" visible="true" useFooter="false"/>
+          <field name="HISTORICO" label="Histor." type="S" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Vlr. Desdob." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRJURO" label="Vlr. Juros" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRMULTA" label="Vlr. Multa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRDESC" label="Vlr. Desc." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="CODTIPOPER" label="Cód. TOP" type="I" visible="true" useFooter="false"/>
+          <field name="DESCROPER" label="TOP" type="S" visible="true" useFooter="false"/>
+          <field name="CODVEICULO" label="Cód. Vei." type="F" visible="true" useFooter="false"/>
+          <field name="PLACA" label="Placa" type="S" visible="true" useFooter="false"/>
+          <field name="MARCAMODELO" label="Marca/Mod." type="S" visible="true" useFooter="false"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+          <NUFIN>$NUFIN</NUFIN>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+</gadget>

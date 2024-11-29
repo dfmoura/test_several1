@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Exemplo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .section {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px; /* Bordas arredondadas */
+            background-color: #fff; /* Cor de fundo para contraste */            
+            transition: box-shadow 0.3s ease, transform 0.3s ease; /* Transição suave */            
+            height: 45%; /* Altura fixa para a seção */
+        }
+        .section:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra ao passar o mouse */
+            transform: translateY(-4px); /* Leve elevação */
+        }        
+
+        .section-upper {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 40%; /* Altura fixa para a seção superior */
+        }
+
+        .section-lower {
+            flex: 1;
+            display: flex;
+            justify-content: space-around;
+            gap: 20px; /* Espaço entre as subseções */
+            height: 45%; /* Altura fixa para a seção inferior */
+        }
+
+        .sub-section {
+            width: 48%;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px; /* Bordas arredondadas */
+            background-color: #fff; /* Cor de fundo para contraste */            
+            transition: box-shadow 0.3s ease, transform 0.3s ease; /* Transição suave */            
+            height: 80%; /* Altura fixa para as subseções */
+            overflow: hidden; /* Evita que o conteúdo extra afete o layout */            
+        }
+
+        .sub-section:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra ao passar o mouse */
+            transform: translateY(-4px); /* Leve elevação */
+        }
+
+        .table-container {
+            max-height: 150px; /* Diminuir a altura das tabelas */
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            font-size: 1em; /* Tamanho da fonte dos cabeçalhos da tabela */
+        }
+
+        .table-container {
+            max-height: 300px; /* Ajuste a altura conforme necessário */
+            overflow-y: auto;
+        }
+
+        h2 {
+            margin-bottom: 15px;
+            text-align: center;
+            width: 100%;            
+        }
+    </style>
+</head>
+<body>
+    <h2>Custo Indireto de Produção</h2>
+    <div class="section section-upper">
+        <canvas id="lineChart"></canvas>
+    </div>
+
+    <div class="section section-lower">
+        <div class="sub-section">
+            <h2>Consolidado por Referencia</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mês / Ano</th>
+                            <th>Refência</th>
+                            <th>Vlr. Lanç.</th>
+                            <th>Perc.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Dados 1</td>
+                            <td>Dados 2</td>
+                            <td>Dados 3</td>
+                            <td>Dados 4</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 6</td>
+                            <td>Dados 7</td>
+                            <td>Dados 8</td>
+                            <td>Dados 9</td>
+                            
+                        </tr>
+                        <tr>
+                            <td>Dados 11</td>
+                            <td>Dados 12</td>
+                            <td>Dados 13</td>
+                            <td>Dados 14</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 11</td>
+                            <td>Dados 12</td>
+                            <td>Dados 13</td>
+                            <td>Dados 14</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 11</td>
+                            <td>Dados 12</td>
+                            <td>Dados 13</td>
+                            <td>Dados 14</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 11</td>
+                            <td>Dados 12</td>
+                            <td>Dados 13</td>
+                            <td>Dados 14</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 11</td>
+                            <td>Dados 12</td>
+                            <td>Dados 13</td>
+                            <td>Dados 14</td>
+                        </tr>                        
+                        <tr>
+                            <td>Dados 11</td>
+                            <td>Dados 12</td>
+                            <td>Dados 13</td>
+                            <td>Dados 14</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 11</td>
+                            <td>Dados 12</td>
+                            <td>Dados 13</td>
+                            <td>Dados 14</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 11</td>
+                            <td>Dados 12</td>
+                            <td>Dados 13</td>
+                            <td>Dados 14</td>
+                        </tr>                                                
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="sub-section">
+            <h2>Detalhamento por Referencia</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mês / Ano</th>
+                            <th>Refência</th>
+                            <th>Cód. CTA. CTB.</th>
+                            <th>Conta Contábil</th>                                                
+                            <th>Vlr. CIP</th>
+                            <th>Descrição</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Dados 16</td>
+                            <td>Dados 17</td>
+                            <td>Dados 18</td>
+                            <td>Dados 19</td>
+                            <td>Dados 20</td>
+                            <td>Dados 20</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 21</td>
+                            <td>Dados 22</td>
+                            <td>Dados 23</td>
+                            <td>Dados 24</td>
+                            <td>Dados 20</td>
+                            <td>Dados 25</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 26</td>
+                            <td>Dados 27</td>
+                            <td>Dados 28</td>
+                            <td>Dados 29</td>
+                            <td>Dados 30</td>
+                            <td>Dados 20</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 26</td>
+                            <td>Dados 27</td>
+                            <td>Dados 28</td>
+                            <td>Dados 29</td>
+                            <td>Dados 30</td>
+                            <td>Dados 20</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 26</td>
+                            <td>Dados 27</td>
+                            <td>Dados 28</td>
+                            <td>Dados 29</td>
+                            <td>Dados 30</td>
+                            <td>Dados 20</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 26</td>
+                            <td>Dados 27</td>
+                            <td>Dados 28</td>
+                            <td>Dados 29</td>
+                            <td>Dados 30</td>
+                            <td>Dados 20</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 26</td>
+                            <td>Dados 27</td>
+                            <td>Dados 28</td>
+                            <td>Dados 29</td>
+                            <td>Dados 30</td>
+                            <td>Dados 20</td>
+                        </tr>
+                        <tr>
+                            <td>Dados 26</td>
+                            <td>Dados 27</td>
+                            <td>Dados 28</td>
+                            <td>Dados 29</td>
+                            <td>Dados 30</td>
+                            <td>Dados 20</td>
+                        </tr>                                                                                                
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('lineChart').getContext('2d');
+        const lineChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho','Julho'],
+                datasets: [
+                    {
+                        label: 'Custo Médio de Produção',
+                        data: [65, 59, 80, 81, 56, 55, 38],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: false
+                    },
+                    {
+                        label: 'Custo Previsto Produção',
+                        data: [28, 48, 40, 19, 86, 27],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: false
+                    },
+                    {
+                        label: 'Diferença',
+                        data: [18, 12, 60, 59, 76, 50],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    </script>
+</body>
+</html>

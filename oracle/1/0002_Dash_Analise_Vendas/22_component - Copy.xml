@@ -1,0 +1,111 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_PERIODO" description="Período" metadata="datePeriod" required="true" keep-last="true" keep-date="false" order="0"/>
+    <parameter id="P_TOP" description="Tipo Operação" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="1">
+      <expression type="SQL"><![CDATA[SELECT CAB.CODTIPOPER AS VALUE, CAB.CODTIPOPER ||' - '||TOP.DESCROPER AS LABELFROM TGFCAB CABINNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPERWHERE   CAB.STATUSNFE = 'A'  AND CAB.TIPMOV = 'V'GROUP BY   CAB.CODTIPOPER,  TOP.DESCROPERORDER BY 1]]></expression>
+    </parameter>
+    <parameter id="P_CLIENTE" description="Cliente" metadata="entity:Parceiro@CODPARC" required="false" keep-last="true" keep-date="false" order="2"/>
+  </prompt-parameters>
+  <level id="lvl_rlaeif" description="Principal">
+    <args>
+      <arg id="A_VERIF" type="integer"/>
+      <arg id="A_MES_ANO" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="1319">
+        <chart id="cht_rlaeig" type="column" nroColuna="6">
+          <title><![CDATA[<b style="text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);font-size: 22px;">ANÁLISE DE VENDAS</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[/*GRAFICO INICIAL*/SELECTANO,MES,MES_ANO,SUM(APROVADAS) AS APROVADAS,SUM(ABERTAS) AS ABERTAS,SUM(RECEBIDAS) AS RECEBIDAS,SUM(DIF_CONT) AS DIF_CONT,/*PARA AGUMENTO 1 = APROVADO, 3 = ABERTO, 2 = RECEBIDO*/1 AS AP,2 AS RE,3 AS ABFROM(SELECT F.*,APROVADAS - RECEBIDAS-ABERTAS AS DIF_CONT,VLR_APROVADAS-VLR_RECEBIDO-VLR_ABERTO AS DIF_VLRFROM(WITH FIN AS(/*VERIFICACAO DE TOTAL DE PARCELA E PARCELAS EM ABERTO E RECEBIDAS*/SELECT T.*,CASE WHEN (PARCELA >= ABERTO) AND (PARCELA > RECEBIDO) THEN 1 ELSE 0 END AS ABERTO1,CASE WHEN PARCELA = RECEBIDO THEN 1 ELSE 0 END AS RECEBIDO1FROM(SELECT FIN.NUNOTA,COUNT(*) AS PARCELA,COUNT(CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.NUNOTA END) AS ABERTO,COUNT(CASE WHEN FIN.DHBAIXA IS NOT NULL THEN FIN.NUNOTA END) AS RECEBIDO,SUM(CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.VLRDESDOB END) AS VLR_ABERTO,SUM(CASE WHEN FIN.DHBAIXA IS NOT NULL THEN FIN.VLRBAIXA END) AS VLR_RECEBIDOFROM TGFFIN FINGROUP BYFIN.NUNOTA) T)SELECT  TO_CHAR(CAB.DTNEG, 'YYYY') AS ANO,  TO_CHAR(CAB.DTNEG, 'MM') AS MES,  TO_CHAR(CAB.DTNEG, 'MM/YYYY') AS MES_ANO,  CAB.CODTIPVENDA,  TPV.DESCRTIPVENDA,  COUNT(CAB.NUNOTA) AS APROVADAS,  SUM(CAB.VLRNOTA) AS VLR_APROVADAS,  SUM(FIN.RECEBIDO1) AS RECEBIDAS,  SUM(FIN.VLR_RECEBIDO) AS VLR_RECEBIDO,  SUM(FIN.ABERTO1) AS ABERTAS,  SUM(FIN.VLR_ABERTO) AS VLR_ABERTOFROM TGFCAB CABINNER JOIN FIN ON CAB.NUNOTA = FIN.NUNOTAINNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDAWHERE   CAB.STATUSNFE = 'A'  AND CAB.TIPMOV = 'V'  AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN  AND (CAB.CODTIPOPER IN :P_TOP)  AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)GROUP BY   TO_CHAR(CAB.DTNEG, 'YYYY'),  TO_CHAR(CAB.DTNEG, 'MM'),  TO_CHAR(CAB.DTNEG, 'MM/YYYY'),  CAB.CODTIPVENDA,  TPV.DESCRTIPVENDA) F)GRAGROUP BYANO,MES,MES_ANOORDER BY 4 desc]]></expression>
+          <metadata>
+            <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+            <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+            <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+            <field name="APROVADAS" label="Aprovadas" type="I" visible="true" useFooter="false"/>
+            <field name="ABERTAS" label="Abertas" type="I" visible="true" useFooter="false"/>
+            <field name="RECEBIDAS" label="Recebidas" type="I" visible="true" useFooter="false"/>
+            <field name="DIF_CONT" label="DIF_CONT" type="I" visible="true" useFooter="false"/>
+            <field name="AP" label="AP" type="I" visible="true" useFooter="false"/>
+            <field name="RE" label="RE" type="I" visible="true" useFooter="false"/>
+            <field name="AB" label="AB" type="I" visible="true" useFooter="false"/>
+          </metadata>
+          <horizontal-axis>
+            <category field="" rotation="0" dropLabel="true">
+              <initView value="first"/>
+            </category>
+          </horizontal-axis>
+          <vertical-axis>
+            <linear resultRotation="-90" vResizing="true">
+              <mask/>
+              <showStackLabels/>
+              <title>Total</title>
+            </linear>
+          </vertical-axis>
+          <series>
+            <serie type="column">
+              <xField>$MES_ANO</xField>
+              <yField>$APROVADAS</yField>
+              <display><![CDATA[Aprovadas]]></display>
+              <color>0x339900</color>
+              <refresh-details ui-list="grd_sdo7ck">
+                <param id="A_VERIF">$AP</param>
+                <param id="A_MES_ANO">$MES_ANO</param>
+              </refresh-details>
+            </serie>
+            <serie type="column">
+              <xField>$MES_ANO</xField>
+              <yField>$RECEBIDAS</yField>
+              <display><![CDATA[Recebidas]]></display>
+              <color>0x33cc99</color>
+              <refresh-details ui-list="grd_sdo7ck">
+                <param id="A_VERIF">$RE</param>
+                <param id="A_MES_ANO">$MES_ANO</param>
+              </refresh-details>
+            </serie>
+            <serie type="column">
+              <xField>$MES_ANO</xField>
+              <yField>$ABERTAS</yField>
+              <display><![CDATA[Abertas]]></display>
+              <color>0xff3300</color>
+              <refresh-details ui-list="grd_sdo7ck">
+                <param id="A_VERIF">$AB</param>
+                <param id="A_MES_ANO">$MES_ANO</param>
+              </refresh-details>
+            </serie>
+          </series>
+          <legend position="bottom" direction="h"/>
+        </chart>
+      </container>
+      <container orientacao="H" tamanhoRelativo="1147">
+        <container orientacao="V" tamanhoRelativo="33">
+          <grid id="grd_sdo7ck" useNewGrid="S">
+            <args>
+              <arg id="A_VERIF" type="integer"/>
+              <arg id="A_MES_ANO" type="text"/>
+            </args>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT F.*,APROVADAS - RECEBIDAS-ABERTA AS DIF_CONT,VLR_APROVADAS-VLR_RECEBIDO-VLR_ABERTO AS DIF_VLR,    CASE        WHEN :A_VERIF = 1 THEN APROVADAS        WHEN :A_VERIF = 2 THEN RECEBIDAS        WHEN :A_VERIF = 3 THEN ABERTA        ELSE NULL    END AS QTD_NOTAS,    CASE        WHEN :A_VERIF = 1 THEN 'APROVADAS'        WHEN :A_VERIF = 2 THEN 'RECEBIDAS'        WHEN :A_VERIF = 3 THEN 'ABERTAS'        ELSE NULL    END AS TIPO,    CASE        WHEN :A_VERIF = 1 THEN NVL(VLR_APROVADAS,0)        WHEN :A_VERIF = 2 THEN NVL(VLR_RECEBIDO,0)        WHEN :A_VERIF = 3 THEN NVL(VLR_ABERTO,0)        ELSE NULL    END AS VLR_TOTAL  FROM(WITH FIN AS(SELECT T.*,CASE WHEN (PARCELA >= ABERTO) AND (PARCELA > RECEBIDO) THEN 1 ELSE 0 END AS ABERTO1,CASE WHEN PARCELA = RECEBIDO THEN 1 ELSE 0 END AS RECEBIDO1FROM(SELECT FIN.NUNOTA,COUNT(*) AS PARCELA,COUNT(CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.NUNOTA END) AS ABERTO,COUNT(CASE WHEN FIN.DHBAIXA IS NOT NULL THEN FIN.NUNOTA END) AS RECEBIDO,SUM(CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.VLRDESDOB END) AS VLR_ABERTO,SUM(CASE WHEN FIN.DHBAIXA IS NOT NULL THEN FIN.VLRBAIXA END) AS VLR_RECEBIDOFROM TGFFIN FINGROUP BYFIN.NUNOTA) T)SELECT  TO_CHAR(CAB.DTNEG, 'YYYY') AS ANO,  TO_CHAR(CAB.DTNEG, 'MM') AS MES,  TO_CHAR(CAB.DTNEG, 'MM/YYYY') AS MES_ANO,  CAB.CODTIPVENDA,  TPV.DESCRTIPVENDA,  COUNT(CAB.NUNOTA) AS APROVADAS,  SUM(CAB.VLRNOTA) AS VLR_APROVADAS,  SUM(FIN.RECEBIDO1) AS RECEBIDAS,  SUM(FIN.VLR_RECEBIDO) AS VLR_RECEBIDO,  SUM(FIN.ABERTO1) AS ABERTA,  SUM(FIN.VLR_ABERTO) AS VLR_ABERTOFROM TGFCAB CABINNER JOIN FIN ON CAB.NUNOTA = FIN.NUNOTAINNER JOIN TGFTPV TPV ON CAB.CODTIPVENDA = TPV.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDAWHERE   CAB.STATUSNFE = 'A'  AND CAB.TIPMOV = 'V'  AND TO_CHAR(CAB.DTNEG, 'MM/YYYY') = :A_MES_ANOGROUP BY   TO_CHAR(CAB.DTNEG, 'YYYY'),  TO_CHAR(CAB.DTNEG, 'MM'),  TO_CHAR(CAB.DTNEG, 'MM/YYYY'),  CAB.CODTIPVENDA,  TPV.DESCRTIPVENDA) FORDER BY 6 desc]]></expression>
+            <metadata>
+              <field name="ANO" label="ANO" type="S" visible="false" useFooter="false"/>
+              <field name="MES" label="MES" type="S" visible="false" useFooter="false"/>
+              <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+              <field name="CODTIPVENDA" label="Cód." type="I" visible="false" useFooter="false"/>
+              <field name="DESCRTIPVENDA" label="Tipo Negociação" type="S" visible="true" useFooter="false"/>
+              <field name="APROVADAS" label="APROVADAS" type="I" visible="false" useFooter="false"/>
+              <field name="VLR_APROVADAS" label="VLR_APROVADAS" type="I" visible="false" useFooter="false"/>
+              <field name="RECEBIDAS" label="RECEBIDAS" type="I" visible="false" useFooter="false"/>
+              <field name="VLR_RECEBIDO" label="VLR_RECEBIDO" type="I" visible="false" useFooter="false"/>
+              <field name="ABERTA" label="ABERTA" type="I" visible="false" useFooter="false"/>
+              <field name="VLR_ABERTO" label="VLR_ABERTO" type="I" visible="false" useFooter="false"/>
+              <field name="DIF_CONT" label="DIF_CONT" type="I" visible="false" useFooter="false"/>
+              <field name="DIF_VLR" label="DIF_VLR" type="I" visible="false" useFooter="false"/>
+              <field name="QTD_NOTAS" label="qtd. Notas" type="I" visible="true" useFooter="SUM"/>
+              <field name="TIPO" label="Status" type="S" visible="true" useFooter="false"/>
+              <field name="VLR_TOTAL" label="Vlr. Total" type="F" visible="true" useFooter="SUM"/>
+            </metadata>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="33"/>
+        <container orientacao="V" tamanhoRelativo="33"/>
+      </container>
+    </container>
+  </level>
+</gadget>

@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Data base" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<style name="style1" mode="Opaque" fill="Solid"/>
+	<parameter name="Data Base" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["./"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="CODEMP" class="java.lang.String">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT *
+FROM(
+SELECT
+     FIN."DTNEG",
+     FIN."DTVENC",
+     FIN."DHBAIXA",
+     FIN."NUMNOTA",
+     FIN."DESDOBRAMENTO",
+     FIN."VLRDESDOB",
+     FIN."CODPARC",
+     FIN."CODTIPTIT",
+     TIT."DESCRTIPTIT",
+     EMP.RAZAOSOCIAL AS EMPRESA
+FROM
+     TGFFIN FIN, TGFTIT TIT, TSIEMP EMP
+WHERE
+ 	 FIN."CODTIPTIT" = TIT."CODTIPTIT"
+
+AND EMP.CODEMP=FIN.CODEMP
+AND FIN.CODEMP=$P{CODEMP}
+
+  AND FIN.DTNEG <= $P{Data Base}
+ AND (FIN.DHBAIXA IS NULL
+OR FIN.DHBAIXA > $P{Data Base}
+)
+AND FIN.DTNEG >= TO_DATE('01/01/1900','dd/mm/yyyy')
+AND FIN.RECDESP=1
+AND FIN.PROVISAO='N'
+AND FIN.NURENEG IS NULL
+
+UNION ALL
+
+SELECT
+     FIN."DTNEG",
+     FIN."DTVENC",
+     FIN."DHBAIXA",
+     FIN."NUMNOTA",
+     FIN."DESDOBRAMENTO",
+     FIN."VLRDESDOB",
+     FIN."CODPARC",
+     FIN."CODTIPTIT",
+     TIT."DESCRTIPTIT",
+     EMP.RAZAOSOCIAL AS EMPRESA
+FROM
+     TGFFIN FIN, TGFTIT TIT, TSIEMP EMP
+WHERE
+ 	 FIN."CODTIPTIT" = TIT."CODTIPTIT"
+
+AND EMP.CODEMP=FIN.CODEMP
+AND FIN.CODEMP=$P{CODEMP}
+
+	 AND (FIN.DHBAIXA IS NULL
+	 OR FIN.DHBAIXA > $P{Data Base}
+	 )
+
+	AND FIN.PROVISAO = 'N'
+	AND FIN.NURENEG IS NOT NULL
+    AND FIN.RECDESP = (CASE WHEN Fc_Verifica_RenegR(FIN.NURENEG,FIN.RECDESP,FIN.DTNEG,TO_DATE('01/01/1900','dd/mm/yyyy'), $P{Data Base}) = 1
+				  		THEN 1
+				   ELSE	(CASE WHEN Fc_Verifica_RenegR(FIN.NURENEG,FIN.RECDESP,FIN.DTNEG,TO_DATE('01/01/1900','dd/mm/yyyy'), $P{Data Base}) = 2
+						THEN 0
+				   		END)	END)
+)
+ORDER BY
+     CODTIPTIT]]>
+	</queryString>
+	<field name="DTNEG" class="java.sql.Timestamp"/>
+	<field name="DTVENC" class="java.sql.Timestamp"/>
+	<field name="DHBAIXA" class="java.sql.Timestamp"/>
+	<field name="NUMNOTA" class="java.math.BigDecimal"/>
+	<field name="DESDOBRAMENTO" class="java.lang.String"/>
+	<field name="VLRDESDOB" class="java.lang.Double"/>
+	<field name="CODPARC" class="java.math.BigDecimal"/>
+	<field name="CODTIPTIT" class="java.math.BigDecimal"/>
+	<field name="DESCRTIPTIT" class="java.lang.String"/>
+	<field name="EMPRESA" class="java.lang.String"/>
+	<variable name="VLRDESDOB_2" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLRDESDOB}]]></variableExpression>
+	</variable>
+	<variable name="VLRDESDOB_1" class="java.lang.Double" resetType="Group" resetGroup="CODTIPTIT" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLRDESDOB}]]></variableExpression>
+	</variable>
+	<group name="CODTIPTIT">
+		<groupExpression><![CDATA[$F{CODTIPTIT}]]></groupExpression>
+		<groupHeader>
+			<band height="15">
+				<textField>
+					<reportElement x="0" y="0" width="48" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODTIPTIT}]]></textFieldExpression>
+				</textField>
+				<textField evaluationTime="Group" evaluationGroup="CODTIPTIT" pattern="#,##0.00;-#,##0.00">
+					<reportElement x="230" y="0" width="100" height="15"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.lang.Double"><![CDATA[$V{VLRDESDOB_1}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="48" y="0" width="180" height="15"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRTIPTIT}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="63">
+			<image onErrorType="Blank">
+				<reportElement x="0" y="0" width="200" height="60"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "Logo/logoprestservicos.jpg"]]></imageExpression>
+			</image>
+			<elementGroup/>
+			<staticText>
+				<reportElement x="516" y="2" width="15" height="15"/>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[/]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="502" y="2" width="14" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="6" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="463" y="2" width="39" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Página]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="227" y="47" width="162" height="15"/>
+				<textElement>
+					<font isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Agrupado por tipo de título]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="227" y="32" width="213" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[TÍTULOS EM ABERTO ATÉ A DATA BASE]]></text>
+			</staticText>
+			<textField evaluationTime="Report">
+				<reportElement x="531" y="2" width="23" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.Integer"><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="284" y="2" width="54" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Emitido em]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="440" y="32" width="100" height="15"/>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$P{Data Base}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy HH.mm">
+				<reportElement x="340" y="2" width="123" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isItalic="true"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="363" y="17" width="177" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{EMPRESA}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="230" y="17" width="136" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[CONTAS A RECEBER - EMPRESA:]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="22" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="48" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[CÓDIGO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="48" y="0" width="179" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[TIPO DE TÍTULO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="230" y="0" width="100" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[VALOR]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="18" width="554" height="1"/>
+			</line>
+		</band>
+	</columnHeader>
+	<pageFooter>
+		<band height="11" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="51" splitType="Stretch">
+			<staticText>
+				<reportElement x="149" y="31" width="81" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAL:]]></text>
+			</staticText>
+			<textField pattern="#,##0.00;-#,##0.00">
+				<reportElement x="230" y="31" width="100" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression class="java.lang.Double"><![CDATA[$V{VLRDESDOB_2}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="1" y="30" width="554" height="1"/>
+			</line>
+		</band>
+	</summary>
+</jasperReport>

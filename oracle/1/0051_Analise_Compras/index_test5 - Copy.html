@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfico Sunburst com Chart.js</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        canvas {
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="mySunburst" width="400" height="400"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-sunburst@3"></script>
+    <script>
+        const ctx = document.getElementById('mySunburst').getContext('2d');
+
+        const data = {
+            datasets: [{
+                label: 'Exemplo de Gráfico Sunburst',
+                data: [
+                    { name: 'Grupo A', value: 100, children: [
+                        { name: 'Subgrupo A1', value: 40 },
+                        { name: 'Subgrupo A2', value: 60 }
+                    ]},
+                    { name: 'Grupo B', value: 50, children: [
+                        { name: 'Subgrupo B1', value: 30 },
+                        { name: 'Subgrupo B2', value: 20 }
+                    ]},
+                    { name: 'Grupo C', value: 80 }
+                ],
+                borderWidth: 1,
+                borderColor: '#fff'
+            }]
+        };
+
+        const config = {
+            type: 'sunburst',
+            data: data,
+            options: {
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(tooltipItem) {
+                                return `${tooltipItem.raw.name}: ${tooltipItem.raw.value}`;
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        const mySunburstChart = new Chart(ctx, config);
+    </script>
+</body>
+</html>

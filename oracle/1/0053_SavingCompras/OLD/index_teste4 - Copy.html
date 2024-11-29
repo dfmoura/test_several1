@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfico de Barras com Plotly.js</title>
+    <!-- Incluir o Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        /* Estilos CSS simples para o contêiner do gráfico */
+        #chart-container {
+            width: 80%; /* largura ajustável */
+            margin: 50px auto; /* centralizar na página */
+        }
+    </style>
+</head>
+<body>
+
+<!-- Contêiner para o gráfico -->
+<div id="chart-container">
+    <!-- O gráfico de barras será renderizado aqui -->
+</div>
+
+<script>
+    // Dados fictícios para o gráfico
+    const data = {
+        x: ['Produto A', 'Produto B', 'Produto C', 'Produto D'],
+        y: [20, 35, 25, 30],
+        type: 'bar'
+    };
+
+    // Layout do gráfico
+    const layout = {
+        title: 'Vendas por Produto',
+        xaxis: {
+            title: 'Produtos'
+        },
+        yaxis: {
+            title: 'Vendas'
+        }
+    };
+
+    // Renderizar o gráfico usando Plotly.js
+    Plotly.newPlot('chart-container', [data], layout);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Saving_Resumo" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.2100000000000024"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DTFIM" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<parameter name="P_CODPARC" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFPAR"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Parceiro:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODPROD" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFPRO"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Produto:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+COMPRADOR,
+SUM(QTDNEG) AS QTDNEG,
+SUM(VLRTOT) AS VLRTOT,
+SUM(SAVING) AS SAVING,
+SUM(GANHO_EVOLUCAO) AS GANHO_EVOLUCAO,
+SUM(SAVING)+SUM(GANHO_EVOLUCAO) AS ECONOMIA_COMPRAS
+FROM
+(
+SELECT
+*
+FROM(
+SELECT
+CODEMP,
+PARCEIRO,
+PRODUTO,
+CODPROD,
+GRUPO,
+CODGRUPOPROD,
+UN,
+NUNOTA,
+TIPMOV,
+DTNEG,
+COMPRADOR,
+USUARIO_INC,
+QTDNEG,
+VLRTOT,
+SAVING,
+       (SAVING / NULLIF(VLRTOT,0)) * 100 AS PERC_SAVING,
+       (VLRTOT) / NULLIF(QTDNEG,0) AS PRECO_COMPRA_UN,
+       (VLRTOT - SAVING) / NULLIF(QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
+       GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) AS PRECO_COMPRA_UN_LIQ_ANT_MED,
+       CASE
+       WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))>0
+       AND CODGRUPOPROD IN(3020000,3010000)
+       THEN
+       ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0))) ELSE 0 END GANHO_EVOLUCAO_UN,
+
+       CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))>0
+       AND CODGRUPOPROD IN(3020000,3010000)
+       THEN
+       ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0))) * QTDNEG ELSE 0 END GANHO_EVOLUCAO,
+
+        CASE
+        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) > 0 THEN 'REDUCAO'
+        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) <> 0 THEN 'AUMENTO'
+        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) = 0 THEN 'SEM ALTERACAO'
+        ELSE 'MANTEVE'
+        END AS SITUACAO_PRECO,
+            (CASE WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG, 0)) < 0  AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) = 0 THEN 0 ELSE
+           ABS(ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) / NULLIF(QTDNEG,0)))/NULLIF(((VLRTOT - SAVING) / NULLIF(QTDNEG,0)),0))*100 END) AS PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ
+
+FROM(
+WITH
+USU AS (SELECT CODUSU,NOMEUSU,AD_USUCOMPRADOR FROM TSIUSU)
+SELECT CAB.CODEMP,
+       SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL), 1, 20) AS PARCEIRO,
+       SUBSTR(ITE.CODPROD||'-'||PRO.DESCRPROD,1,15) AS PRODUTO,
+       PRO.CODPROD,
+       SUBSTR(PRO.CODGRUPOPROD||'-'|| GRU.DESCRGRUPOPROD,1,15) AS GRUPO,
+       PRO.CODGRUPOPROD,
+       ITE.CODVOL AS UN,
+       ITE.NUNOTA AS NUNOTA,
+       CAB.TIPMOV AS TIPMOV,
+       CAB.DTNEG,
+       SUBSTR(VEN.CODVEND||'-'||VEN.APELIDO,1,10) AS COMPRADOR,
+       SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,10) AS USUARIO_INC,
+       CASE WHEN ITE.CODVOL = 'MI'
+       THEN GET_QTDNEG_SATIS(ITE.NUNOTA,ITE.SEQUENCIA,ITE.CODPROD)
+       ELSE ITE.QTDNEG END AS QTDNEG,
+       ITE.VLRTOT,
+       ITE.VLRDESC AS SAVING
+  FROM TGFITE ITE
+  INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
+  INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
+  INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )
+  INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
+  INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+  INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
+  INNER JOIN USU ON CAB.CODUSUINC = USU.CODUSU
+ WHERE CAB.TIPMOV = 'O'
+   AND CAB.STATUSNOTA = 'L'
+   AND USU.AD_USUCOMPRADOR = 'S'
+   AND CAB.DTNEG BETWEEN $P{DTINI} AND $P{DTFIM}
+   AND (CAB.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+   AND (ITE.CODPROD = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+)
+)
+WHERE (SAVING <> 0 OR GANHO_EVOLUCAO_UN <> 0)
+ORDER BY 4,17 DESC
+)GROUP BY COMPRADOR]]>
+	</queryString>
+	<field name="COMPRADOR" class="java.lang.String">
+		<fieldDescription><![CDATA[Comprador]]></fieldDescription>
+	</field>
+	<field name="QTDNEG" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Qtd. Neg.]]></fieldDescription>
+	</field>
+	<field name="VLRTOT" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Vlr. Tot.]]></fieldDescription>
+	</field>
+	<field name="SAVING" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Saving]]></fieldDescription>
+	</field>
+	<field name="GANHO_EVOLUCAO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Ganho Evolução]]></fieldDescription>
+	</field>
+	<field name="ECONOMIA_COMPRAS" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Economia Compras]]></fieldDescription>
+	</field>
+	<variable name="TotalQtdGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{QTDNEG}]]></variableExpression>
+	</variable>
+	<variable name="TotalVlrGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLRTOT}]]></variableExpression>
+	</variable>
+	<variable name="TotalVlrSavingGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{SAVING}]]></variableExpression>
+	</variable>
+	<variable name="TotalVlrGanEvolucao" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{GANHO_EVOLUCAO}]]></variableExpression>
+	</variable>
+	<variable name="TotalVlrEconoCompra" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{ECONOMIA_COMPRAS}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<columnHeader>
+		<band height="13" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="60" height="13"/>
+				<textElement>
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Comprador]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="60" y="0" width="50" height="13"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Qtd. Neg.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="110" y="0" width="50" height="13"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Vlr. Tot.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="160" y="0" width="50" height="13"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Saving]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="210" y="0" width="50" height="13"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Ganho Evolução]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="260" y="0" width="50" height="13"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Economia Compras]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="13" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="60" height="12"/>
+				<textElement>
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{COMPRADOR}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="60" y="0" width="50" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTDNEG}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="110" y="0" width="50" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRTOT}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="160" y="0" width="50" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{SAVING}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="210" y="0" width="50" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{GANHO_EVOLUCAO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="260" y="0" width="50" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{ECONOMIA_COMPRAS}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="12" width="310" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Dotted"/>
+				</graphicElement>
+			</line>
+		</band>
+	</detail>
+	<summary>
+		<band height="15" splitType="Stretch">
+			<textField pattern="#,##0.00">
+				<reportElement x="60" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TotalQtdGeral}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="110" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TotalVlrGeral}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="160" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TotalVlrSavingGeral}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="210" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TotalVlrGanEvolucao}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="260" y="0" width="50" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TotalVlrEconoCompra}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

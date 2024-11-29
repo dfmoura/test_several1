@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kanban Simples</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f7f6;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .kanban {
+      display: flex;
+      justify-content: space-around;
+      padding: 20px;
+    }
+
+    .column {
+      width: 30%;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .column h2 {
+      text-align: center;
+      color: #444;
+    }
+
+    .task {
+      background-color: #e3f2fd;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      cursor: grab;
+    }
+
+    .task.dragging {
+      opacity: 0.5;
+      border: 2px dashed #007bff;
+    }
+
+    .placeholder {
+      background-color: #d1c4e9;
+      border-radius: 5px;
+      margin: 10px 0;
+      padding: 15px;
+      border: 2px dashed #8e24aa;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <h1>Kanban Simples</h1>
+  <div class="kanban">
+    <div class="column" id="todo">
+      <h2>A Fazer</h2>
+      <div class="task" draggable="true">Tarefa 1</div>
+      <div class="task" draggable="true">Tarefa 2</div>
+    </div>
+    <div class="column" id="in-progress">
+      <h2>Em Progresso</h2>
+    </div>
+    <div class="column" id="done">
+      <h2>Concluído</h2>
+    </div>
+  </div>
+
+  <script>
+    let draggedTask = null;
+    let placeholder = document.createElement('div');
+    placeholder.classList.add('placeholder');
+
+    document.querySelectorAll('.task').forEach(task => {
+      task.addEventListener('dragstart', (e) => {
+        draggedTask = task;
+        task.classList.add('dragging');
+      });
+
+      task.addEventListener('dragend', () => {
+        draggedTask.classList.remove('dragging');
+        draggedTask = null;
+      });
+    });
+
+    document.querySelectorAll('.column').forEach(column => {
+      column.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const draggingOverTask = Array.from(column.querySelectorAll('.task')).find(task => task.getBoundingClientRect().top > e.clientY);
+        if (draggingOverTask) {
+          column.insertBefore(placeholder, draggingOverTask);
+        } else {
+          column.appendChild(placeholder);
+        }
+      });
+
+      column.addEventListener('dragleave', () => {
+        if (column.contains(placeholder)) {
+          column.removeChild(placeholder);
+        }
+      });
+
+      column.addEventListener('drop', () => {
+        if (draggedTask) {
+          column.insertBefore(draggedTask, placeholder);
+          column.removeChild(placeholder);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

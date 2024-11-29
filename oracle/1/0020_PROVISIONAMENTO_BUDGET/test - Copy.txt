@@ -1,0 +1,5 @@
+O objetivo é criar uma rotina personalizada que identifique o valor de despesa prevista nos orçamentos e gere provisões (despesa financeira provisionada) para cada mês de referência do orçamento, centro de resultado, projeto e natureza.
+
+ou seja:
+
+alimentar como provisões a tgffin os orçamento cadastrados.

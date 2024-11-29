@@ -1,0 +1,63 @@
+<gadget >
+  <prompt-parameters>
+    <parameter  id="P_PERIODO" description="Período" metadata="datePeriod" required="true" keep-last="true" keep-date="false" label="P_PERIODO : Período" order="0"/>
+    <parameter  id="P_CODPARC" description="Parceiro" metadata="entity:Parceiro@CODPARC" required="false" keep-last="true" keep-date="false" label="P_CODPARC : Entidade/Tabela" order="1"/>
+    <parameter  id="P_EMP" description="Empresa" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" label="P_EMP : multiList:Text" order="2">
+      <expression type="SQL">
+        <![CDATA[SELECT
+CODEMP AS VALUE
+,NOMEFANTASIA AS LABEL
+FROM TSIEMP]]>
+      </expression>
+    </parameter>
+    <parameter  id="P_CR" description="Centro de Resultado" metadata="entity:CentroResultado@CODCENCUS" required="false" keep-last="true" keep-date="false" label="P_CR : Entidade/Tabela" order="3"/>
+    <parameter  id="P_MARCA" description="Marca" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" label="P_MARCA : multiList:Text" order="4">
+      <expression type="SQL">
+        <![CDATA[SELECT
+SEQ AS VALUE
+,MARCA AS LABEL
+FROM AD_VGFMARCA]]>
+      </expression>
+    </parameter>
+    <parameter  id="P_GRUPOPROD" description="Grupo Produto" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" label="P_GRUPOPROD : multiList:Text" order="5">
+      <expression type="SQL">
+        <![CDATA[SELECT 
+CODGRUPOPROD AS VALUE
+,DESCRGRUPOPROD AS LABEL
+FROM TGFGRU]]>
+      </expression>
+    </parameter>
+    <parameter  id="P_GRUPOSATIS" description="Grupo Produtos Satis" metadata="entity:AD_GRUPOPRODSATIS@CODGRUPO" required="false" keep-last="true" keep-date="false" label="P_GRUPOSATIS : Entidade/Tabela" order="6"/>
+    <parameter  id="P_BONIF" description="Apresentar Bonificações?" metadata="singleList:Text" listType="text" required="false" keep-last="true" keep-date="false" label="P_BONIF : singleList:Text" order="7">
+      <item value="0" label="Não"/>
+      <item value="1" label="Sim"/>
+    </parameter>
+  </prompt-parameters>
+  <level id="023" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_025" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS">
+          <![CDATA[SELECTVGF1.EMP,VGF1.CPFCNPJ,VGF1.IE,VGF1.TEL,VGF1.FAX,VGF1.CODVEND,VGF1.APELIDO,VGF1.VEND,VGF1.CODPARC,VGF1.PARC,VGF1.NOMEPARC,CASE WHEN VGF1.MARCA IS NULL THEN 'MARCA NÃO CADASTRADA' ELSE VGF1.MARCA END AS MARCA,SUM(VGF1.QTD) AS QTD,SUM(VGF1.VLR) AS VLR,SUM(VGF1.VLRCUSICM2) AS VLRCUSICM2,CASE WHEN :P_BONIF=1 THEN 'S' ELSE 'N' END AS BONIFFROM VGF_VENDAS_SATIS VGF1LEFT JOIN AD_ITENSGRUPOSATIS GRUS ON (GRUS.CODPROD=VGF1.CODPROD AND :P_GRUPOSATIS IS NOT NULL)WHERE    TRUNC(VGF1.DTMOV) >= :P_PERIODO.INIAND TRUNC(VGF1.DTMOV) <= :P_PERIODO.FINAND (VGF1.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)AND (VGF1.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)AND ((VGF1.ATUALFIN<>0 AND VGF1.TIPATUALFIN='I' AND :P_BONIF = 0) OR (VGF1.CODTIPOPER IN (1112,1113)  AND :P_BONIF = 0) OR (:P_BONIF = 1 AND VGF1.BONIFICACAO='S'))AND (VGF1.CODEMP IN :P_EMP)AND VGF1.MARCA IN (SELECT MARCA FROM TGFPRO WHERE CODPROD IN :P_MARCA)AND (VGF1.CODGRUPOPROD IN :P_GRUPOPROD)AND (VGF1.CODCENCUS = :P_CR OR :P_CR IS NULL)AND (GRUS.CODGRUPO = :P_GRUPOSATIS OR :P_GRUPOSATIS IS NULL)GROUP BYVGF1.EMP,VGF1.CPFCNPJ,VGF1.IE,VGF1.TEL,VGF1.FAX,VGF1.VEND,VGF1.CODVEND,VGF1.APELIDO,VGF1.CODPARC,VGF1.PARC,VGF1.NOMEPARC,VGF1.MARCA,CASE WHEN :P_BONIF=1 THEN 'S' ELSE 'N' ENDORDER BY VGF1.APELIDO, VGF1.CODPARC, VGF1.MARCA]]>
+        </expression>
+        <metadata>
+          <field name="EMP" label="Empresa" type="S" visible="true" useFooter="false"></field>
+          <field name="CPFCNPJ" label="CNPJ" type="S" visible="true" useFooter="false"></field>
+          <field name="IE" label="IE" type="S" visible="false" useFooter="false"></field>
+          <field name="TEL" label="Telefone 1" type="S" visible="false" useFooter="false"></field>
+          <field name="FAX" label="Telefone 2" type="S" visible="false" useFooter="false"></field>
+          <field name="CODVEND" label="Cód. Vendedor" type="I" visible="true" useFooter="false"></field>
+          <field name="APELIDO" label="Nome Vendedor" type="S" visible="true" useFooter="false"></field>
+          <field name="VEND" label="Vendedor" type="S" visible="true" useFooter="false"></field>
+          <field name="CODPARC" label="Cód. Parceiro" type="I" visible="true" useFooter="false"></field>
+          <field name="PARC" label="Parceiro" type="S" visible="true" useFooter="false"></field>
+          <field name="NOMEPARC" label="Nome Parceiro" type="S" visible="true" useFooter="false"></field>
+          <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"></field>
+          <field name="QTD" label="Volume (LT)" type="F" visible="true" useFooter="SUM"></field>
+          <field name="VLR" label="Valor Financeiro" type="F" visible="true" useFooter="SUM"></field>
+          <field name="VLRCUSICM2" label="Custo Produção" type="F" visible="true" useFooter="SUM" mask="#.##0,00"></field>
+          <field name="BONIF" label="Bonificado?" type="S" visible="true" useFooter="false"></field>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>

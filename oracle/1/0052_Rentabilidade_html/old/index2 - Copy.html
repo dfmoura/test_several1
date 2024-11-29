@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Dynamic Cards with Bootstrap</title>
+        <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha512-sx33aZJ6D+xWkRmbIO1Dy6A0TveJ+7Ezx++We9eS1eMz47zqo+xXb5EFo9Sh1zFN6M12QvsvWz58S29Z2R0PKA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            background: #f7f7f7;
+            padding-top: 2cm; /* Espaçamento de 2cm no topo */
+        }
+        .card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .card-body {
+            text-align: center;
+        }
+        .card-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0; /* Remove margem padrão do Bootstrap */
+        }
+        .card-title i {
+            margin-right: 0.5rem;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <!-- Repeated card -->
+            <div class="col-sm-6 col-md-4 col-lg-3 mb-4" id="card-template">
+                <div class="card" onclick="cardClicked(this)">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-dollar-sign"></i> Card Title</h5>
+                        <p class="card-value">1,500,000</p>
+                        <p class="card-text">Some quick example text to build on the card title.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const template = document.getElementById('card-template').outerHTML;
+            const row = document.querySelector('.row');
+            row.innerHTML = '';
+            for (let i = 1; i <= 8; i++) {
+                row.innerHTML += template.replace('Card Title', 'Card Title ' + i)
+                                         .replace('Some quick example text to build on the card title.', 'This is card number ' + i);
+            }
+        });
+
+        function cardClicked(card) {
+            // Example action when a card is clicked
+            console.log('Card clicked:', card.querySelector('.card-title').textContent);
+            // You can add your custom logic or redirect to another page here
+        }
+    </script>
+</body>
+</html>

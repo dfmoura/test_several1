@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Series Pie Chart with Chart.js</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f8f9fa;
+        }
+        #chart-container {
+            width: 60%;
+            height: 60%;
+        }
+    </style>
+</head>
+<body>
+    <div id="chart-container">
+        <canvas id="multiSeriesPieChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('multiSeriesPieChart').getContext('2d');
+
+        const data = {
+            datasets: [{
+                label: 'Series 1',
+                data: [30, 50, 20],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.6)',
+                    'rgba(54, 162, 235, 0.6)',
+                    'rgba(255, 206, 86, 0.6)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)'
+                ],
+                borderWidth: 1
+            },
+            {
+                label: 'Series 2',
+                data: [40, 30, 30],
+                backgroundColor: [
+                    'rgba(75, 192, 192, 0.6)',
+                    'rgba(153, 102, 255, 0.6)',
+                    'rgba(255, 159, 64, 0.6)'
+                ],
+                borderColor: [
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+
+        const options = {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function (tooltipItem) {
+                            const datasetLabel = tooltipItem.dataset.label || '';
+                            const label = tooltipItem.label || '';
+                            const value = tooltipItem.raw;
+                            return `${datasetLabel}: ${label} - ${value}%`;
+                        }
+                    }
+                }
+            }
+        };
+
+        const multiSeriesPieChart = new Chart(ctx, {
+            type: 'pie',
+            data: data,
+            options: options
+        });
+    </script>
+</body>
+</html>

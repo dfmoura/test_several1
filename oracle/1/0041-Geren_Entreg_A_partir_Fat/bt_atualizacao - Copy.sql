@@ -1,0 +1,96 @@
+CREATE OR REPLACE PROCEDURE "STP_ATUALIZA_VIAGEM_GUI_1" (
+    P_CODUSU NUMBER,        -- Código do usuário logado
+    P_IDSESSAO VARCHAR2,    -- Identificador da execução. Serve para buscar informações dos parâmetros/campos da execução.
+    P_QTDLINHAS NUMBER,     -- Informa a quantidade de registros selecionados no momento da execução.
+    P_MENSAGEM OUT VARCHAR2 -- Caso seja passada uma mensagem aqui, ela será exibida como uma informação ao usuário.
+) AS
+    PARAM_P_CODVEICULO VARCHAR2(4000);
+    PARAM_P_HORASAIDA DATE;
+    PARAM_P_CODPARCMOTORISTA VARCHAR2(4000);
+    PARAM_P_STATUS VARCHAR2(4000);
+    PARAM_P_NOVA_OC NUMBER;
+    FIELD_NUNOTA NUMBER;
+    FIELD_ORDEMCARGA_MAX NUMBER;
+    FIELD_ORDEMCARGA_MIN NUMBER;
+    FIELD_ORDEMCARGA_NEW NUMBER;
+    FIELD_ORDEMCARGA     NUMBER;
+
+BEGIN
+    -- Obtenção dos valores informados pelo formulário de parâmetros
+    PARAM_P_CODVEICULO := ACT_TXT_PARAM(P_IDSESSAO, 'P_CODVEICULO');
+    PARAM_P_HORASAIDA := ACT_DTA_PARAM(P_IDSESSAO, 'P_HORASAIDA');
+    PARAM_P_CODPARCMOTORISTA := ACT_TXT_PARAM(P_IDSESSAO, 'P_CODPARCMOTORISTA');
+    PARAM_P_STATUS := ACT_TXT_PARAM(P_IDSESSAO, 'P_STATUS');
+    PARAM_P_NOVA_OC := ACT_INT_PARAM(P_IDSESSAO, 'P_NOVA_OC');
+
+    FOR I IN 1..P_QTDLINHAS LOOP
+        -- Obtenção dos valores dos campos dos registros envolvidos na execução
+        FIELD_NUNOTA := ACT_INT_FIELD(P_IDSESSAO, I, 'NUNOTA');
+        SELECT MAX(ORDEMCARGA) INTO FIELD_ORDEMCARGA FROM TGFCAB WHERE NUNOTA = FIELD_NUNOTA;
+
+
+        SELECT MIN(ORDEMCARGA)+1 INTO FIELD_ORDEMCARGA_MIN FROM TGFORD;
+        SELECT MAX(ORDEMCARGA) INTO FIELD_ORDEMCARGA_MAX FROM TGFORD;
+        SELECT MAX(ORDEMCARGA)+1 INTO FIELD_ORDEMCARGA_NEW FROM TGFORD;
+
+        IF FIELD_ORDEMCARGA IS NULL AND PARAM_P_NOVA_OC IS NULL THEN
+            P_MENSAGEM := 'Crie uma nova ordem de carga para este movimento!';
+        ELSIF FIELD_ORDEMCARGA IS NULL AND PARAM_P_NOVA_OC IS NOT NULL THEN
+            IF PARAM_P_NOVA_OC BETWEEN FIELD_ORDEMCARGA_MIN AND FIELD_ORDEMCARGA_MAX THEN
+                UPDATE TGFORD SET ORDEMCARGA = NVL(PARAM_P_NOVA_OC,0) WHERE ORDEMCARGA = FIELD_ORDEMCARGA;
+                UPDATE TGFCAB SET ORDEMCARGA = NVL(PARAM_P_NOVA_OC,0) WHERE CODEMP = 2 AND NUNOTA = FIELD_NUNOTA;
+
+                UPDATE TGFORD
+                SET CODVEICULO = NVL(PARAM_P_CODVEICULO, CODVEICULO),
+                    CODPARCMOTORISTA = NVL(PARAM_P_CODPARCMOTORISTA,CODPARCMOTORISTA),
+                    HORASAIDA = CASE WHEN PARAM_P_HORASAIDA IS NOT NULL THEN
+                    PARAM_P_HORASAIDA ELSE HORASAIDA END,
+                    SITUACAO = CASE
+                                    WHEN PARAM_P_STATUS = '1' THEN 'F'
+                                    WHEN PARAM_P_STATUS = '2' THEN 'A'
+                                    ELSE SITUACAO
+                                END
+                WHERE ORDEMCARGA = PARAM_P_NOVA_OC;
+
+            ELSE P_MENSAGEM := 'O.C. informada para atualização está indevida!';
+            END IF;
+        ELSIF FIELD_ORDEMCARGA IS NOT NULL AND PARAM_P_NOVA_OC IS NULL THEN
+            IF FIELD_ORDEMCARGA BETWEEN FIELD_ORDEMCARGA_MIN AND FIELD_ORDEMCARGA_MAX THEN
+                UPDATE TGFORD SET ORDEMCARGA = NVL(FIELD_ORDEMCARGA,0) WHERE ORDEMCARGA = FIELD_ORDEMCARGA;
+                UPDATE TGFCAB SET ORDEMCARGA = NVL(FIELD_ORDEMCARGA,0) WHERE CODEMP = 2 AND NUNOTA = FIELD_NUNOTA;
+
+                UPDATE TGFORD
+                SET CODVEICULO = NVL(PARAM_P_CODVEICULO, CODVEICULO), 
+                    CODPARCMOTORISTA = NVL(PARAM_P_CODPARCMOTORISTA, CODPARCMOTORISTA),
+                    HORASAIDA = CASE WHEN PARAM_P_HORASAIDA IS NOT NULL THEN
+                    PARAM_P_HORASAIDA ELSE HORASAIDA END,
+                    SITUACAO = CASE
+                                    WHEN PARAM_P_STATUS = '1' THEN 'F'
+                                    WHEN PARAM_P_STATUS = '2' THEN 'A'
+                                    ELSE SITUACAO
+                                END
+                WHERE ORDEMCARGA = FIELD_ORDEMCARGA;
+                ELSE P_MENSAGEM := 'O.C. informada para atualização está indevida!';
+            END IF;
+        ELSIF FIELD_ORDEMCARGA IS NOT NULL AND PARAM_P_NOVA_OC IS NOT NULL THEN
+            IF PARAM_P_NOVA_OC BETWEEN FIELD_ORDEMCARGA_MIN AND FIELD_ORDEMCARGA_MAX THEN
+                UPDATE TGFORD SET ORDEMCARGA = NVL(PARAM_P_NOVA_OC,0) WHERE ORDEMCARGA = PARAM_P_NOVA_OC;
+                UPDATE TGFCAB SET ORDEMCARGA = NVL(PARAM_P_NOVA_OC,0) WHERE CODEMP = 2 AND NUNOTA = FIELD_NUNOTA;
+
+                UPDATE TGFORD
+                SET CODVEICULO = NVL(PARAM_P_CODVEICULO, CODVEICULO),
+                    CODPARCMOTORISTA = NVL(PARAM_P_CODPARCMOTORISTA,CODPARCMOTORISTA),
+                    HORASAIDA = CASE WHEN PARAM_P_HORASAIDA IS NOT NULL THEN
+                    PARAM_P_HORASAIDA ELSE HORASAIDA END,
+                    SITUACAO = CASE
+                                    WHEN PARAM_P_STATUS = '1' THEN 'F'
+                                    WHEN PARAM_P_STATUS = '2' THEN 'A'
+                                    ELSE SITUACAO
+                                END
+                WHERE ORDEMCARGA = PARAM_P_NOVA_OC;
+                ELSE P_MENSAGEM := 'O.C. informada para atualização está indevida!';
+            END IF;
+        END IF;
+    END LOOP;
+END;
+/

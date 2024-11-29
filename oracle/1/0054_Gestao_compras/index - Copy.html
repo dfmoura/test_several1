@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de Compras</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+    }
+    .container {
+        width: 100%;
+        margin: 20px auto;
+        overflow-x: auto;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+    }
+    th, td {
+        padding: 10px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    th {
+        position: sticky;
+        top: 0;
+        background-color: #f2f2f2;
+    }
+    tr:hover {
+        background-color: #f5f5f5;
+    }
+    .green-icon {
+        color: green;
+    }
+    .yellow-icon {
+        color: yellow;
+    }
+    .red-icon {
+        color: red;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <table>
+        <thead>
+            <tr>
+                <th>Cód. Parceiro</th>
+                <th>Parceiro</th>
+                <th>NÚ. Único</th>
+                <th>Dt. Negociação</th>
+                <th>Dt. Prev. Entrega</th>
+                <th>Dias P/ Entrega</th>
+                <th>Vlr. Nota</th>
+                <th>Vlr. Líq.</th>
+                <th>Vlr. Baixa</th>
+                <th>Prox. Dt. Venc.</th>
+                <th>Dias p/ Venc.</th>
+                <th>Conta ou Pix</th>
+                <th>Boleto</th>
+                <th>NFe</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Exemplo de dados -->
+            <tr>
+                <td>001</td>
+                <td>Empresa A</td>
+                <td>123456</td>
+                <td>2024-07-15</td>
+                <td>2024-07-20</td>
+                <td>5</td>
+                <td>R$ 500,00</td>
+                <td>R$ 490,00</td>
+                <td>R$ 480,00</td>
+                <td>2024-08-15</td>
+                <td>15</td>
+                <td><svg class="green-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 21h-4v-11h4v11zm7-11h-4v11h4v-11zm7 0h-4v11h4v-11zm2 12h-22v2h22v-2zm-23-13h24l-12-9-12 9z"/></svg></td>
+                <td><svg class="red-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 21h-4v-11h4v11zm7-11h-4v11h4v-11zm7 0h-4v11h4v-11zm2 12h-22v2h22v-2zm-23-13h24l-12-9-12 9z"/></svg></td>
+                <td><svg class="green-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 21h-4v-11h4v11zm7-11h-4v11h4v-11zm7 0h-4v11h4v-11zm2 12h-22v2h22v-2zm-23-13h24l-12-9-12 9z"/></svg></td>
+            </tr>
+            <!-- Adicione mais linhas conforme necessário -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Lógica para definir ícones de dias para vencimento
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const daysRemaining = parseInt(row.querySelector('td:nth-child(11)').textContent);
+        const iconCell = row.querySelector('td:nth-child(11)');
+        
+        if (daysRemaining > 20) {
+            iconCell.innerHTML = '<svg class="green-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 21h-4v-11h4v11zm7-11h-4v11h4v-11zm7 0h-4v11h4v-11zm2 12h-22v2h22v-2zm-23-13h24l-12-9-12 9z"/></svg>';
+        } else if (daysRemaining > 10) {
+            iconCell.innerHTML = '<svg class="yellow-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 21h-4v-11h4v11zm7-11h-4v11h4v-11zm7 0h-4v11h4v-11zm2 12h-22v2h22v-2zm-23-13h24l-12-9-12 9z"/></svg>';
+        } else {
+            iconCell.innerHTML = '<svg class="red-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 21h-4v-11h4v11zm7-11h-4v11h4v-11zm7 0h-4v11h4v-11zm2 12h-22v2h22v-2zm-23-13h24l-12-9-12 9z"/></svg>';
+        }
+    });
+</script>
+
+</body>
+</html>

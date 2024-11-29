@@ -1,0 +1,275 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_PERIODO" description="Período" metadata="datePeriod" required="true" keep-last="true" keep-date="false" order="0"/>
+    <parameter id="P_CLIENTE" description="Cliente" metadata="entity:Parceiro@CODPARC" required="false" keep-last="true" keep-date="false" order="2"/>
+    <parameter id="P_TOP" description="Tipo Operação" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" order="3">
+      <expression type="SQL"><![CDATA[SELECT DISTINCT CAB.CODTIPOPER AS VALUE, CAB.CODTIPOPER ||' - '||TOP.DESCROPER AS LABELFROM TGFCAB CABINNER JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPERWHERE   CAB.STATUSNFE = 'A'  AND CAB.TIPMOV IN ('V','D')  AND STATUSNOTA = 'L' AND STATUSNFE = 'A'AND CAB.DTNEG >= ADD_MONTHS(SYSDATE,-12)ORDER BY 2]]></expression>
+    </parameter>
+  </prompt-parameters>
+  <level id="lvl_vkyzp7" description="Principal">
+    <args>
+      <arg id="A_MES_ANO" type="text"/>
+      <arg id="A_SUBTIPO" type="integer"/>
+      <arg id="A_STATUS" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="127">
+        <chart id="cht_vkyzp8" type="column">
+          <title><![CDATA[<b style="text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);font-size: 22px;">ANÁLISE DE VENDAS</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT    MAIN.ANO,    MAIN.MES,    MAIN.MES_ANO,    MAIN.QTD_ABERTO1,    MAIN.QTD_RECEBIDO1,    SEC.APROVADAS,    SEC.CANCELADAS,    SEC.DEVOLUCOESFROM(    /* PRIMEIRA CONSULTA COM FIN2 - ABERTO E RECEBIDOS */    WITH FIN2 AS (        SELECT            T.*,            CASE WHEN (PARCELA >= QTD_ABERTO) AND (PARCELA > QTD_RECEBIDO) THEN 1 ELSE 0 END AS QTD_ABERTO1,            CASE WHEN PARCELA = QTD_RECEBIDO THEN 1 ELSE 0 END AS QTD_RECEBIDO1        FROM        (            SELECT                TO_CHAR(FIN.DTNEG, 'YYYY') AS ANO,                TO_CHAR(FIN.DTNEG, 'MM') AS MES,                TO_CHAR(FIN.DTNEG, 'MM/YYYY') AS MES_ANO,                FIN.NUNOTA,                COUNT(*) AS PARCELA,                SUM(CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.VLRDESDOB ELSE 0 END) AS VLR_ABERTO,                COUNT(CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.VLRDESDOB END) AS QTD_ABERTO,                SUM(CASE WHEN FIN.DHBAIXA IS NOT NULL THEN FIN.VLRDESDOB ELSE 0 END) AS VLR_RECEBIDO,                COUNT(CASE WHEN FIN.DHBAIXA IS NOT NULL THEN FIN.NUFIN END) AS QTD_RECEBIDO            FROM                TGFFIN FIN                INNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTA            WHERE                CAB.STATUSNFE = 'A'                AND CAB.TIPMOV = 'V'                AND FIN.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN            GROUP BY                FIN.NUNOTA,                TO_CHAR(FIN.DTNEG, 'YYYY'),                TO_CHAR(FIN.DTNEG, 'MM'),                TO_CHAR(FIN.DTNEG, 'MM/YYYY')        ) T    )    SELECT        ANO,        MES,        MES_ANO,        SUM(QTD_ABERTO1) AS QTD_ABERTO1,        SUM(QTD_RECEBIDO1) AS QTD_RECEBIDO1    FROM FIN2    GROUP BY        ANO,        MES,        MES_ANO) MAINJOIN(    /* SEC CONSULTA COM DEV, CAN, APR WITH CLAUSULA */    WITH         DEV AS (            SELECT                 TO_CHAR(CAB.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAB.DTNEG, 'MM') AS MES,                TO_CHAR(CAB.DTNEG, 'MM/YYYY') AS MES_ANO,                COUNT(*) AS DEVOLUCOES            FROM                TGFCAB CAB            WHERE                CAB.TIPMOV = 'D'                AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN                AND (CAB.CODTIPOPER IN :P_TOP)                AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)            GROUP BY                TO_CHAR(CAB.DTNEG, 'YYYY'),                TO_CHAR(CAB.DTNEG, 'MM'),                TO_CHAR(CAB.DTNEG, 'MM/YYYY')        ),        CAN AS (            SELECT                TO_CHAR(CAN.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAN.DTNEG, 'MM') AS MES,                TO_CHAR(CAN.DTNEG, 'MM/YYYY') AS MES_ANO,                COUNT(*) AS CANCELADAS            FROM                TGFCAN CAN			 LEFT JOIN TGFCAB_EXC EXC ON EXC.NUNOTA = CAN.NUNOTA             WHERE                 CAN.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN                AND (EXC.CODTIPOPER IN :P_TOP)                AND (CAN.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)            GROUP BY                TO_CHAR(CAN.DTNEG, 'YYYY'),                TO_CHAR(CAN.DTNEG, 'MM'),                TO_CHAR(CAN.DTNEG, 'MM/YYYY')        ),        APR AS (            SELECT                 TO_CHAR(CAB.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAB.DTNEG, 'MM') AS MES,                TO_CHAR(CAB.DTNEG, 'MM/YYYY') AS MES_ANO,                COUNT(*) AS APROVADAS            FROM                TGFCAB CAB            WHERE                CAB.STATUSNFE = 'A'                AND CAB.TIPMOV = 'V'                AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN                AND (CAB.CODTIPOPER IN :P_TOP)                AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)            GROUP BY                TO_CHAR(CAB.DTNEG, 'YYYY'),                TO_CHAR(CAB.DTNEG, 'MM'),                TO_CHAR(CAB.DTNEG, 'MM/YYYY')        )    SELECT        APR.ANO,        APR.MES,        APR.APROVADAS,        CAN.CANCELADAS,        DEV.DEVOLUCOES    FROM        APR        INNER JOIN CAN ON APR.MES_ANO = CAN.MES_ANO        INNER JOIN DEV ON APR.MES_ANO = DEV.MES_ANO) SECON MAIN.ANO = SEC.ANO AND MAIN.MES = SEC.MESORDER BY MAIN.ANO, MAIN.MES]]></expression>
+          <metadata>
+            <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+            <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+            <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+            <field name="QTD_ABERTO1" label="Aberto" type="I" visible="true" useFooter="false" mask="#.##0"/>
+            <field name="QTD_RECEBIDO1" label="Recebido" type="I" visible="true" useFooter="false" mask="#.##0"/>
+            <field name="APROVADAS" label="Aprovadas" type="I" visible="true" useFooter="false" mask="#.##0"/>
+            <field name="CANCELADAS" label="Canceladas" type="I" visible="true" useFooter="false" mask="#.##0"/>
+            <field name="DEVOLUCOES" label="Devoluções" type="I" visible="true" useFooter="false" mask="#.##0"/>
+          </metadata>
+          <vertical-axis>
+            <linear resultRotation="-90" vResizing="true">
+              <mask/>
+            </linear>
+          </vertical-axis>
+          <series>
+            <set type="stacked">
+              <serie type="column">
+                <xField>$MES_ANO</xField>
+                <yField>$APROVADAS</yField>
+                <display><![CDATA[Aprovadas]]></display>
+                <color>0x339900</color>
+                <refresh-details ui-list="cht_vtiy6f,cht_vtiy24,cht_vtiy3g">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                </refresh-details>
+              </serie>
+              <serie type="column">
+                <xField>$MES_ANO</xField>
+                <yField>$CANCELADAS</yField>
+                <display><![CDATA[Canceladas]]></display>
+                <refresh-details ui-list="cht_vtiy6f,cht_vtiy24,cht_vtiy3g">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                </refresh-details>
+              </serie>
+              <serie type="column">
+                <xField>$MES_ANO</xField>
+                <yField>$DEVOLUCOES</yField>
+                <display><![CDATA[Devoluções]]></display>
+                <refresh-details ui-list="cht_vtiy6f,cht_vtiy24,cht_vtiy3g">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                </refresh-details>
+              </serie>
+            </set>
+            <set type="stacked">
+              <serie type="column">
+                <xField>$MES_ANO</xField>
+                <yField>$QTD_ABERTO1</yField>
+                <display><![CDATA[Aberto]]></display>
+                <refresh-details ui-list="cht_vtiy6f,cht_vtiy24,cht_vtiy3g">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                </refresh-details>
+              </serie>
+              <serie type="column">
+                <xField>$MES_ANO</xField>
+                <yField>$QTD_RECEBIDO1</yField>
+                <display><![CDATA[Recebido]]></display>
+                <refresh-details ui-list="cht_vtiy6f,cht_vtiy24,cht_vtiy3g">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                </refresh-details>
+              </serie>
+            </set>
+          </series>
+          <legend position="bottom" direction="h"/>
+        </chart>
+      </container>
+      <container orientacao="H" tamanhoRelativo="100">
+        <container orientacao="V" tamanhoRelativo="33">
+          <chart id="cht_vtiy6f" type="pizza">
+            <args>
+              <arg id="A_MES_ANO" type="text"/>
+              <arg id="A_SUBTIPO" type="integer"/>
+            </args>
+            <title><![CDATA[<b style="text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);font-size: 18px;">VENDAS POR TIPO DE TITULO (:A_MES_ANO)</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECTANO,MES,MES_ANO,TITULO,SUBTIPO,SUM(VLRDESDOB) AS VLRDESDOBFROM(WITHTITU AS (SELECT OPC.VALOR, OPC.OPCAOFROM tddcam CAMINNER JOIN TDDOPC OPC ON CAM.NUCAMPO = OPC.NUCAMPOWHERE CAM.NOMETAB = 'TGFTIT' AND CAM.NOMECAMPO = 'SUBTIPOVENDA')SELECTTO_CHAR(FIN.DTNEG, 'YYYY') AS ANO,TO_CHAR(FIN.DTNEG, 'MM') AS MES,TO_CHAR(FIN.DTNEG, 'MM/YYYY') AS MES_ANO,FIN.NUNOTA,FIN.CODTIPTIT,NVL(TITU.VALOR,0) AS SUBTIPO,NVL(TITU.OPCAO,'PREENCHER') AS TITULO,FIN.VLRDESDOBFROM TGFFIN FININNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TGFTIT TIT ON FIN.CODTIPTIT = TIT.CODTIPTITLEFT JOIN TITU ON TIT.SUBTIPOVENDA = TITU.VALORWHERECAB.STATUSNFE = 'A'AND CAB.TIPMOV = 'V'AND TO_CHAR(FIN.DTNEG, 'MM/YYYY') = :A_MES_ANOAND (CAB.CODTIPOPER IN :P_TOP)AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL))GROUP BYANO,MES,MES_ANO,TITULO,SUBTIPO]]></expression>
+            <metadata>
+              <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+              <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+              <field name="TITULO" label="Título" type="S" visible="true" useFooter="false"/>
+              <field name="SUBTIPO" label="SUBTIPO" type="I" visible="true" useFooter="false"/>
+              <field name="VLRDESDOB" label="Vlr. Total" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <series>
+              <serie type="pizza">
+                <field>$VLRDESDOB</field>
+                <nameField>$TITULO</nameField>
+                <on-click navigate-to="lvl_wwh5np">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                  <param id="A_NUNOTA"/>
+                  <param id="A_STATUS"/>
+                  <param id="A_SUBTIPO">$SUBTIPO</param>
+                </on-click>
+              </serie>
+            </series>
+          </chart>
+        </container>
+        <container orientacao="V" tamanhoRelativo="33">
+          <chart id="cht_vtiy24" type="pizza">
+            <args>
+              <arg id="A_MES_ANO" type="text"/>
+              <arg id="A_SUBTIPO" type="integer"/>
+            </args>
+            <title><![CDATA[<b style="text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);font-size: 18px;">TIPO DE VENDAS (:A_MES_ANO)</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT    SEC.ANO,    SEC.MES,    SEC.MES_ANO,    SEC.TIPO,    SEC.VALORFROM(            SELECT                 TO_CHAR(CAB.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAB.DTNEG, 'MM') AS MES,                TO_CHAR(CAB.DTNEG, 'MM/YYYY') AS MES_ANO,                'Devolvidas' AS TIPO,                SUM(VLRNOTA) AS VALOR            FROM                TGFCAB CAB            WHERE                CAB.TIPMOV = 'D'                AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN                AND (CAB.CODTIPOPER IN :P_TOP)                AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)            GROUP BY                TO_CHAR(CAB.DTNEG, 'YYYY'),                TO_CHAR(CAB.DTNEG, 'MM'),                TO_CHAR(CAB.DTNEG, 'MM/YYYY')                        UNION ALL                    SELECT                TO_CHAR(CAN.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAN.DTNEG, 'MM') AS MES,                TO_CHAR(CAN.DTNEG, 'MM/YYYY') AS MES_ANO,                'Canceladas' AS TIPO,                SUM(CAN.VLRNOTA) AS VALOR            FROM                TGFCAN CAN                 LEFT JOIN TGFCAB_EXC EXC ON CAN.NUNOTA = EXC.NUNOTA            WHERE                 CAN.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN                AND (EXC.CODTIPOPER IN :P_TOP)                AND (CAN.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)            GROUP BY                TO_CHAR(CAN.DTNEG, 'YYYY'),                TO_CHAR(CAN.DTNEG, 'MM'),                TO_CHAR(CAN.DTNEG, 'MM/YYYY')        UNION ALL            SELECT                 TO_CHAR(CAB.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAB.DTNEG, 'MM') AS MES,                TO_CHAR(CAB.DTNEG, 'MM/YYYY') AS MES_ANO,                'Aprovadas' AS TIPO,                SUM(VLRNOTA) AS VALOR            FROM                TGFCAB CAB            WHERE                CAB.STATUSNFE = 'A'                AND CAB.TIPMOV = 'V'                AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN                AND (CAB.CODTIPOPER IN :P_TOP)                AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)            GROUP BY                TO_CHAR(CAB.DTNEG, 'YYYY'),                TO_CHAR(CAB.DTNEG, 'MM'),                TO_CHAR(CAB.DTNEG, 'MM/YYYY')                        UNION ALL            SELECT                 TO_CHAR(CAB_EX.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAB_EX.DTNEG, 'MM') AS MES,                TO_CHAR(CAB_EX.DTNEG, 'MM/YYYY') AS MES_ANO,                'Excluídas' AS TIPO,                SUM(CAB_EX.VLRNOTA) AS VALOR            FROM                TGFCAB_EXC CAB_EX            WHERE                CAB_EX.TIPMOV IN ('V', 'D')                AND CAB_EX.NUNOTA NOT IN (SELECT NUNOTA FROM TGFCAN)                AND CAB_EX.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN                AND (CAB_EX.CODTIPOPER IN :P_TOP)                AND (CAB_EX.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)            GROUP BY                TO_CHAR(CAB_EX.DTNEG, 'YYYY'),                TO_CHAR(CAB_EX.DTNEG, 'MM'),                TO_CHAR(CAB_EX.DTNEG, 'MM/YYYY')) SECWHERE SEC.MES_ANO = :A_MES_ANOORDER BY SEC.TIPO DESC]]></expression>
+            <metadata>
+              <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+              <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO" label="MES_ANO" type="S" visible="true" useFooter="false"/>
+              <field name="TIPO" label="Tipo" type="S" visible="true" useFooter="false"/>
+              <field name="VALOR" label="Vlr. Notas" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            </metadata>
+            <series>
+              <serie type="pizza">
+                <field>$VALOR</field>
+                <nameField>$TIPO</nameField>
+                <on-click navigate-to="lvl_0wv0w4">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                  <param id="A_TIPO">$TIPO</param>
+                </on-click>
+              </serie>
+            </series>
+          </chart>
+        </container>
+        <container orientacao="V" tamanhoRelativo="33">
+          <chart id="cht_vtiy3g" type="pizza">
+            <args>
+              <arg id="A_MES_ANO" type="text"/>
+              <arg id="A_SUBTIPO" type="integer"/>
+            </args>
+            <title><![CDATA[<b style="text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);font-size: 18px;">STATUS FINANCEIRO DAS VENDAS (:A_MES_ANO)</b>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[WITH FIN_DATA AS (        SELECT        TO_CHAR(FIN.DTNEG, 'YYYY') AS ANO,        TO_CHAR(FIN.DTNEG, 'MM') AS MES,        TO_CHAR(FIN.DTNEG, 'MM/YYYY') AS MES_ANO,        FIN.NUNOTA,        COUNT(*) AS PARCELA,        SUM(CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.VLRDESDOB ELSE 0 END) AS VLR_ABERTO,        COUNT(CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.VLRDESDOB END) AS QTD_ABERTO,        CASE             WHEN FIN.DHBAIXA IS NOT NULL  THEN 'Recebido'            WHEN FIN.DHBAIXA IS NULL AND SYSDATE < (FIN.DTVENC +3)THEN 'Aberto - Regular'             WHEN FIN.DHBAIXA IS NULL AND SYSDATE > (FIN.DTVENC + 3) THEN 'Aberto - Atraso'        END STATUS1,        SUM(CASE WHEN FIN.DHBAIXA IS NOT NULL THEN FIN.VLRBAIXA ELSE 0 END) AS VLR_RECEBIDO,        COUNT(CASE WHEN FIN.DHBAIXA IS NOT NULL THEN FIN.NUFIN END) AS QTD_RECEBIDO    FROM        TGFFIN FIN        INNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTA    WHERE        CAB.STATUSNFE = 'A'        AND CAB.TIPMOV = 'V'        AND TO_CHAR(FIN.DTNEG, 'MM/YYYY') = :A_MES_ANO        AND (CAB.CODTIPOPER IN :P_TOP)        AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)    GROUP BY        FIN.NUNOTA,        TO_CHAR(FIN.DTNEG, 'YYYY'),        TO_CHAR(FIN.DTNEG, 'MM'),        TO_CHAR(FIN.DTNEG, 'MM/YYYY'),        CASE             WHEN FIN.DHBAIXA IS NOT NULL  THEN 'Recebido'            WHEN FIN.DHBAIXA IS NULL AND SYSDATE < (FIN.DTVENC +3)THEN 'Aberto - Regular'             WHEN FIN.DHBAIXA IS NULL AND SYSDATE > (FIN.DTVENC + 3) THEN 'Aberto - Atraso'        END),FIN2 AS (    SELECT        T.*,        CASE WHEN PARCELA >= QTD_ABERTO AND PARCELA > QTD_RECEBIDO THEN 1 ELSE 0 END AS QTD_ABERTO1,        CASE WHEN PARCELA = QTD_RECEBIDO THEN 1 ELSE 0 END AS QTD_RECEBIDO1    FROM FIN_DATA T)SELECT    ANO,    MES,    MES_ANO,    SUM(VLR_ABERTO) AS VLR_NOTAS,    'Aberto' AS STATUS,    STATUS1FROM FIN2WHERE QTD_ABERTO1 = 1GROUP BY    ANO,    MES,    MES_ANO,    STATUS1UNION ALLSELECT    ANO,    MES,    MES_ANO,    SUM(VLR_RECEBIDO) AS VLR_NOTAS,    'Recebido' AS STATUS,    'Recebido' AS STATUS1FROM FIN2WHERE QTD_RECEBIDO1 = 1GROUP BY    ANO,    MES,    MES_ANO,    STATUS1ORDER BY ANO, MES]]></expression>
+            <metadata>
+              <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+              <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+              <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+              <field name="VLR_NOTAS" label="Vlr. Notas" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="STATUS" label="Status" type="S" visible="true" useFooter="false"/>
+              <field name="STATUS1" label="Status" type="S" visible="true" useFooter="false"/>
+            </metadata>
+            <series>
+              <serie type="pizza">
+                <field>$VLR_NOTAS</field>
+                <nameField>$STATUS1</nameField>
+                <on-click navigate-to="lvl_wwh5np">
+                  <param id="A_MES_ANO">$MES_ANO</param>
+                  <param id="A_NUNOTA"/>
+                  <param id="A_STATUS">$STATUS1</param>
+                  <param id="A_SUBTIPO"/>
+                </on-click>
+              </serie>
+            </series>
+          </chart>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_wwh5np" description="Detalhe">
+    <args>
+      <arg id="A_MES_ANO" type="text"/>
+      <arg id="A_NUNOTA" type="integer"/>
+      <arg id="A_STATUS" type="text"/>
+      <arg id="A_SUBTIPO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="333">
+        <grid id="grd_wwh5nu" useNewGrid="S">
+          <title><![CDATA[<b style="text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);font-size: 18px;">LISTAGEM DE NOTAS (:A_MES_ANO)</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTTO_CHAR(CAB.DTNEG, 'MM/YYYY') AS MES_ANO,CAB.DTNEG,CAB.NUNOTA,CAB.NUMNOTA,CAB.CODTIPOPER,CAB.CODPARC,PAR.RAZAOSOCIAL,CAB.VLRNOTA,CAB.CODTIPVENDA||'-'||TPV.DESCRTIPVENDA AS TIPVENDAFROM TGFCAB CABINNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCLEFT JOIN TGFTPV TPV ON TPV.CODTIPVENDA = CAB.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDAWHERECAB.STATUSNFE = 'A'AND CAB.TIPMOV = 'V'AND TO_CHAR(CAB.DTNEG, 'MM/YYYY') = :A_MES_ANOAND (CAB.CODTIPOPER IN :P_TOP)AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)AND (SELECT COUNT(FIN.NUFIN) FROM TGFFIN FIN, TGFTIT TIT WHERE FIN.NUNOTA = CAB.NUNOTA AND TIT.CODTIPTIT = FIN.CODTIPTITAND ( ((:A_STATUS = 'Recebido' AND FIN.DHBAIXA IS NOT NULL) OR(:A_STATUS = 'Aberto - Atraso' AND FIN.DHBAIXA IS NULL) OR(:A_STATUS = 'Aberto - Regular' AND FIN.DHBAIXA IS NULL))OR :A_STATUS IS NULL)AND (:A_SUBTIPO = TIT.SUBTIPOVENDA OR :A_SUBTIPO IS NULL)) > 0]]></expression>
+          <metadata>
+            <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+            <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+            <field name="NUNOTA" label="NÚ. Nota" type="I" visible="true" useFooter="false"/>
+            <field name="NUMNOTA" label="Nro. Doc." type="I" visible="true" useFooter="false"/>
+            <field name="CODTIPOPER" label="Cód. TOP" type="I" visible="true" useFooter="false"/>
+            <field name="CODPARC" label="Cód. Parceiro" type="I" visible="true" useFooter="false"/>
+            <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="VLRNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="TIPVENDA" label="Tipo Negociação" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <on-click-launcher resource-id="br.com.sankhya.com.mov.CentralNotas">
+            <NUNOTA>$NUNOTA</NUNOTA>
+          </on-click-launcher>
+        </grid>
+      </container>
+      <container orientacao="V" tamanhoRelativo="562">
+        <grid id="grd_w5aarg" useNewGrid="S">
+          <title><![CDATA[<b style="text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);font-size: 18px;">DETALHAMENTO FINANCEIRO DAS NOTAS (:A_MES_ANO)</b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTFIN.NUNOTA,FIN.NUFIN,FIN.NUMNOTA,FIN.DESDOBRAMENTO,FIN.CODPARC,PAR.RAZAOSOCIAL,FIN.DTNEG,FIN.DTVENC,FIN.DHBAIXA,FIN.VLRBAIXA,FIN.VLRDESDOB,TIT.DESCRTIPTIT,FIN.CARTAODESC AS TAXAADM,FIN.VLRDESC,FIN.VLRJURO,FIN.VLRMULTA,:A_STATUS AS STATUSFROM TGFFIN FININNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARCINNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTALEFT JOIN TGFTIT TIT ON TIT.CODTIPTIT = FIN.CODTIPTITWHERECAB.STATUSNFE = 'A'AND CAB.TIPMOV = 'V'AND TO_CHAR(CAB.DTNEG, 'MM/YYYY') = :A_MES_ANOAND (CAB.CODTIPOPER IN :P_TOP)AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)AND (    (:A_STATUS = 'Recebido' AND FIN.DHBAIXA IS NOT NULL) OR  (:A_STATUS = 'Aberto - Atraso' AND FIN.DHBAIXA IS NULL AND SYSDATE > (FIN.DTVENC + 3)) OR  (:A_STATUS = 'Aberto - Regular' AND FIN.DHBAIXA IS NULL AND SYSDATE < (FIN.DTVENC + 3)) OR  (:A_STATUS IS NULL))AND (:A_SUBTIPO = TIT.SUBTIPOVENDA OR :A_SUBTIPO IS NULL)]]></expression>
+          <metadata>
+            <field name="NUNOTA" label="NÚ. Único" type="I" visible="true" useFooter="false"/>
+            <field name="NUFIN" label="Nro. Fin." type="I" visible="true" useFooter="false"/>
+            <field name="NUMNOTA" label="Nro. Doc." type="I" visible="true" useFooter="false"/>
+            <field name="DESDOBRAMENTO" label="Desdobramento" type="S" visible="true" useFooter="false"/>
+            <field name="CODPARC" label="Cód. Parceiro" type="I" visible="true" useFooter="false"/>
+            <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+            <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+            <field name="DHBAIXA" label="Dt. Baixa" type="D" visible="true" useFooter="false"/>
+            <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="VLRDESDOB" label="Vlr. Desdobramento" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="DESCRTIPTIT" label="Tipo Titulo" type="S" visible="true" useFooter="false"/>
+            <field name="TAXAADM" label="Taxa Adm." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="VLRDESC" label="Desconto" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="VLRJURO" label="Juro" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="VLRMULTA" label="Multa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="STATUS" label="STATUS" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+            <NUFIN>$NUFIN</NUFIN>
+          </on-click-launcher>
+        </grid>
+      </container>
+      <container orientacao="V" tamanhoRelativo="100">
+        <simple-value id="svl_av6licw">
+          <value-expression><![CDATA[:A_STATUS]]></value-expression>
+        </simple-value>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_0wv0w4" description="Detalhe2">
+    <args>
+      <arg id="A_MES_ANO" type="text"/>
+      <arg id="A_TIPO" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_0wv0w5" useNewGrid="S">
+        <title><![CDATA[LISTAGEM DE NOTAS (:A_MES_ANO)]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[            SELECT                 TO_CHAR(CAB.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAB.DTNEG, 'MM') AS MES,                TO_CHAR(CAB.DTNEG, 'MM/YYYY') AS MES_ANO,CAB.DTNEG,                'Devolvidas' AS TIPO,CAB.CODPARC,PAR.NOMEPARC,CAB.NUNOTA,CAB.NUMNOTA,CAB.CODTIPOPER,TOP.DESCROPER,CAB.CODTIPVENDA,TPV.DESCRTIPVENDA,CAB.VLRNOTA,CAB.AD_MOTIVO_DEV AS MOTIVO,NULL AS DHPROTOCNFE,NULL AS DHPROTOCCAN,NULL AS DIF_TEMPO,(SELECT CODUSU||' - '||NOMEUSU FROM TSIUSU WHERE CODUSU = CAB.CODUSUINC) AS USUARIO            FROM                TGFCAB CABINNER JOIN TGFTOP TOP ON TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = CAB.DHTIPOPERINNER JOIN TGFTPV TPV ON TPV.CODTIPVENDA = CAB.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDAINNER JOIN TGFPAR PAR ON PAR.CODPARC = CAB.CODPARC            WHERE                CAB.TIPMOV = 'D'                AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN                AND (CAB.CODTIPOPER IN :P_TOP)                AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)				 AND (TO_CHAR(CAB.DTNEG, 'MM/YYYY') = :A_MES_ANO)                AND (:A_TIPO = 'Devolvidas')                        UNION ALL                    SELECT                TO_CHAR(CAN.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAN.DTNEG, 'MM') AS MES,                TO_CHAR(CAN.DTNEG, 'MM/YYYY') AS MES_ANO,CAN.DTNEG,                'Canceladas' AS TIPO,CAN.CODPARC,PAR.NOMEPARC,CAN.NUNOTA,EXC.NUMNOTA,EXC.CODTIPOPER,TOP.DESCROPER,EXC.CODTIPVENDA,TPV.DESCRTIPVENDA                ,CAN.VLRNOTA,MOTCANCEL AS MOTIVO, DHPROTOCNFE, DHPROTOCCAN,trunc( 24* (DHPROTOCCAN - DHPROTOCNFE)) || ':'||trunc( mod(mod(DHPROTOCCAN - DHPROTOCNFE,1)*24,1)*60 ) AS DIF_TEMPO,(SELECT CODUSU||' - '||NOMEUSU FROM TSIUSU WHERE CODUSU = EXC.CODUSU) AS USUARIO            FROM                TGFCAN CAN                 LEFT JOIN TGFCAB_EXC EXC ON CAN.NUNOTA = EXC.NUNOTAINNER JOIN TGFTOP TOP ON TOP.CODTIPOPER = EXC.CODTIPOPER AND TOP.DHALTER = EXC.DHTIPOPERINNER JOIN TGFTPV TPV ON TPV.CODTIPVENDA = EXC.CODTIPVENDA AND TPV.DHALTER = EXC.DHTIPVENDAINNER JOIN TGFPAR PAR ON PAR.CODPARC = CAN.CODPARC            WHERE                 CAN.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN                AND (EXC.CODTIPOPER IN :P_TOP)                AND (CAN.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)                AND (TO_CHAR(CAN.DTNEG, 'MM/YYYY') = :A_MES_ANO)                AND (:A_TIPO = 'Canceladas')        UNION ALL            SELECT                 TO_CHAR(CAB.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAB.DTNEG, 'MM') AS MES,                TO_CHAR(CAB.DTNEG, 'MM/YYYY') AS MES_ANO,CAB.DTNEG,                'Aprovadas' AS TIPO,CAB.CODPARC,PAR.NOMEPARC,CAB.NUNOTA,CAB.NUMNOTA,CAB.CODTIPOPER,TOP.DESCROPER,CAB.CODTIPVENDA,TPV.DESCRTIPVENDA                ,CAB.VLRNOTA,NULL AS MOTIVO,NULL AS DHPROTOCNFE,NULL AS DHPROTOCCAN,NULL AS DIF_TEMPO,(SELECT CODUSU||' - '||NOMEUSU FROM TSIUSU WHERE CODUSU = CAB.CODUSUINC) AS USUARIO            FROM                TGFCAB CABINNER JOIN TGFTOP TOP ON TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = CAB.DHTIPOPERINNER JOIN TGFTPV TPV ON TPV.CODTIPVENDA = CAB.CODTIPVENDA AND TPV.DHALTER = CAB.DHTIPVENDAINNER JOIN TGFPAR PAR ON PAR.CODPARC = CAB.CODPARC            WHERE                CAB.STATUSNFE = 'A'                AND CAB.TIPMOV = 'V'                AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN                AND (CAB.CODTIPOPER IN :P_TOP)                AND (CAB.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)                AND (TO_CHAR(CAB.DTNEG, 'MM/YYYY') = :A_MES_ANO)                AND (:A_TIPO = 'Aprovadas')                                        UNION ALL                            SELECT                            TO_CHAR(CAB_EX.DTNEG, 'YYYY') AS ANO,                TO_CHAR(CAB_EX.DTNEG, 'MM') AS MES,                TO_CHAR(CAB_EX.DTNEG, 'MM/YYYY') AS MES_ANO,                CAB_EX.DTNEG,                'Excluídas' AS TIPO                ,CAB_EX.CODPARC                ,PAR.NOMEPARC                ,CAB_EX.NUNOTA                ,CAB_EX.NUMNOTA                ,CAB_EX.CODTIPOPER                ,TOP.DESCROPER                ,CAB_EX.CODTIPVENDA                ,TPV.DESCRTIPVENDA                ,CAB_EX.VLRNOTA                ,NULL AS MOTIVO                ,NULL AS DHPROTOCNFE                ,NULL AS DHPROTOCCAN                ,NULL AS DIF_TEMPO                ,(SELECT CODUSU||' - '||NOMEUSU FROM TSIUSU WHERE CODUSU = CAB_EX.CODUSU) AS USUARIOFROMTGFCAB_EXC CAB_EXINNER JOIN TGFTOP TOP ON TOP.CODTIPOPER = CAB_EX.CODTIPOPER AND TOP.DHALTER = CAB_EX.DHTIPOPERINNER JOIN TGFTPV TPV ON TPV.CODTIPVENDA = CAB_EX.CODTIPVENDA AND TPV.DHALTER = CAB_EX.DHTIPVENDAINNER JOIN TGFPAR PAR ON PAR.CODPARC = CAB_EX.CODPARCWHERECAB_EX.TIPMOV IN ('V','D')AND CAB_EX.NUNOTA NOT IN (SELECT NUNOTA FROM TGFCAN)AND CAB_EX.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND (CAB_EX.CODTIPOPER IN :P_TOP)AND (CAB_EX.CODPARC = :P_CLIENTE OR :P_CLIENTE IS NULL)AND (TO_CHAR(CAB_EX.DTNEG, 'MM/YYYY') = :A_MES_ANO)AND (:A_TIPO = 'Excluídas')]]></expression>
+        <metadata>
+          <field name="ANO" label="ANO" type="S" visible="false" useFooter="false"/>
+          <field name="MES" label="MES" type="S" visible="false" useFooter="false"/>
+          <field name="MES_ANO" label="MES_ANO" type="S" visible="false" useFooter="false"/>
+          <field name="DTNEG" label="Dt.Neg." type="D" visible="true" useFooter="false"/>
+          <field name="TIPO" label="Tipo" type="S" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="Cód.Parc." type="I" visible="true" useFooter="false"/>
+          <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="NUNOTA" label="Nro.Único" type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro.Doc." type="I" visible="true" useFooter="false"/>
+          <field name="CODTIPOPER" label="Cód.TOP" type="I" visible="true" useFooter="false"/>
+          <field name="DESCROPER" label="TOP" type="S" visible="true" useFooter="false"/>
+          <field name="CODTIPVENDA" label="Cód.Tip.Neg." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRTIPVENDA" label="Tipo Negociação" type="S" visible="true" useFooter="false"/>
+          <field name="VLRNOTA" label="Vlr.Nota" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="MOTIVO" label="Motivo" type="S" visible="true" useFooter="false"/>
+          <field name="DHPROTOCNFE" label="Dt. Aprov." type="T" visible="true" useFooter="false"/>
+          <field name="DHPROTOCCAN" label="Dt. Cancel." type="T" visible="true" useFooter="false"/>
+          <field name="DIF_TEMPO" label="Dif. Tempo(Aprov-Cancel)" type="S" visible="true" useFooter="false"/>
+          <field name="USUARIO" label="Usuário" type="S" visible="true" useFooter="false"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.com.mov.CentralNotas">
+          <NUNOTA>$NUNOTA</NUNOTA>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+</gadget>

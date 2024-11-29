@@ -1,0 +1,505 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_CODMETA" description="Meta" metadata="entity:ConfiguracaoMeta@CODMETA" required="true" keep-last="true" keep-date="false" order="0" label="P_CODMETA : Entidade/Tabela"/>
+    <parameter id="P_PERIODO" description="Período" metadata="datePeriod" required="true" keep-last="true" keep-date="false" order="1" label="P_PERIODO : Período"/>
+    <parameter id="P_NTEMMETA" description="Ignorar Ref. Sem Meta Prev./Real" metadata="boolean" required="false" keep-last="false" keep-date="false" default="true" order="2" label="P_NTEMMETA : Verdadeiro/Falso"/>
+    <parameter id="P_CODVEND" description="Vendedor" metadata="entity:Vendedor@CODVEND" required="false" keep-last="true" keep-date="false" order="3" label="P_CODVEND : Entidade/Tabela"/>
+    <parameter id="P_CODPARC" description="Cliente" metadata="entity:Parceiro@CODPARC" required="false" keep-last="true" keep-date="false" order="4" label="P_CODPARC : Entidade/Tabela"/>
+  </prompt-parameters>
+  <level id="lvl_uvxb5v" description="Principal">
+    <args>
+      <arg id="A_CODVEND" type="integer" label="A_CODVEND : Número Inteiro"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="50">
+        <container orientacao="V" tamanhoRelativo="152">
+          <container orientacao="H" tamanhoRelativo="3625">
+            <container orientacao="V" tamanhoRelativo="108">
+              <grid id="grd_g29iyi" useNewGrid="S">
+                <title><![CDATA[Consolidado por Vendedor]]></title>
+                <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODVEND, APELIDO, SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) AS QTDREAL, SUM(QTDPREV * PRECOLT)  AS VLR_PREV, SUM(VLRREAL) AS VLRREAL, CASE WHEN SUM(QTDPREV) = 0 THEN 100 ELSE SUM(QTDREAL) * 100 / SUM(QTDPREV) END AS PERCFROM(SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0) AS PRECOLT,  SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL  FROM TGMMET MET  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND (TOP.ATUALEST <> 'N') AND TOP.GOLSINAL = -1 ) > 0  LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPROD  WHERE MET.CODMETA = :P_CODMETA  AND MET.DTREF >= :P_PERIODO.INI  AND MET.DTREF <= :P_PERIODO.FIN  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)  AND ((:P_NTEMMETA='S' AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR :P_NTEMMETA='N') GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL,  NVL(PRC.VLRVENDALT,0)) GROUP BY CODVEND, APELIDOORDER BY APELIDO ASC, "QTDREAL" DESC]]></expression>
+                <metadata>
+                  <field name="CODVEND" label="Cód.Vend." type="I" visible="true" useFooter="false"/>
+                  <field name="APELIDO" label="Vendedor" type="S" visible="true" useFooter="false"/>
+                  <field name="QTDPREV" label="Qtd.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                  <field name="QTDREAL" label="Qtd.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                  <field name="VLR_PREV" label="Vlr.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                  <field name="VLRREAL" label="Vlr.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+                  <field name="PERC" label="% Real" type="F" visible="true" useFooter="false">
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC >= 100&& $QTDPREV == 0]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagBlue">$VALUE</span>]]>
+                    </formatter>
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC >= 100&& $QTDPREV >0 ]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagGreen">$VALUE</span>]]>
+                    </formatter>
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC >=50&& $PERC <100]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagYellow">$VALUE</span>]]>
+                    </formatter>
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC < 50]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagRed">$VALUE</span>]]>
+                    </formatter>
+                  </field>
+                </metadata>
+                <refresh-details ui-list="svl_ad3xhyy,svl_ad3xh1r,svl_ad4o5zv">
+                  <param id="A_CODVEND">$CODVEND</param>
+                </refresh-details>
+              </grid>
+            </container>
+            <container orientacao="V" tamanhoRelativo="109">
+              <grid id="grd_ad3xhyn" entityName="MetaAtual" multiplaSelecao="N" useNewGrid="S">
+                <args>
+                  <arg id="A_CODVEND" type="integer"/>
+                </args>
+                <title><![CDATA[Consolidado por Cliente]]></title>
+                <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODPARC, RAZAOSOCIAL, CGC_CPF, SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) AS QTDREAL, SUM(QTDPREV * PRECOLT)  AS VLR_PREV, SUM(VLRREAL)  AS VLR_REAL
+, CASE WHEN SUM(QTDPREV) = 0 THEN 100 ELSE SUM(QTDREAL) * 100 / SUM(QTDPREV) END AS PERC
+FROM
+(
+SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL,PAR.CGC_CPF, MET.MARCA, MET.QTDPREV, MET.QTDREAL
+, NVL(PRC.VLRVENDALT,0) AS PRECOLT,  SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL
+  FROM TGMMET MET
+  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)
+  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)
+  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')
+LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0 
+  
+  LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA
+  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPROD
+WHERE MET.CODMETA = :P_CODMETA
+  AND MET.DTREF >= :P_PERIODO.INI
+  AND MET.DTREF <= :P_PERIODO.FIN
+  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)
+  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)
+  AND ((:P_NTEMMETA='S' AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR :P_NTEMMETA='N') 
+GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL,  NVL(PRC.VLRVENDALT,0),PAR.CGC_CPF
+) WHERE (QTDPREV <> 0 OR QTDREAL <> 0)
+GROUP BY CODPARC, RAZAOSOCIAL,CGC_CPF
+ORDER BY RAZAOSOCIAL ASC, "QTDREAL" DESC]]></expression>
+                <metadata>
+                  <field name="CODPARC" label="Cód.Parc." type="I" visible="true" useFooter="false"/>
+                  <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+                  <field name="CGC_CPF" label="Cnpj / Cpf" type="S" visible="true" useFooter="false"/>
+                  <field name="QTDPREV" label="Qtd.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                  <field name="QTDREAL" label="Qtd.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                  <field name="VLR_PREV" label="Vlr.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                  <field name="VLR_REAL" label="Vlr.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                  <field name="PERC" label="% Real" type="F" visible="true" useFooter="false">
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC >= 100&& $QTDPREV == 0]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagBlue">$VALUE</span>]]>
+                    </formatter>
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC >= 100&& $QTDPREV >0 ]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagGreen">$VALUE</span>]]>
+                    </formatter>
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC >=50&& $PERC <100]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagYellow">$VALUE</span>]]>
+                    </formatter>
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC < 50]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagRed">$VALUE</span>]]>
+                    </formatter>
+                  </field>
+                </metadata>
+              </grid>
+            </container>
+            <container orientacao="V" tamanhoRelativo="108">
+              <grid id="grd_ad3xhyp" useNewGrid="S">
+                <title><![CDATA[Consolidado por Marca]]></title>
+                <expression type="sql" data-source="MGEDS"><![CDATA[SELECT MARCA, SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) AS QTDREAL, SUM(QTDPREV * PRECOLT)  AS VLR_PREV, SUM(VLRREAL)  AS VLR_REAL, CASE WHEN SUM(QTDPREV) = 0 THEN 100 ELSE SUM(QTDREAL) * 100 / SUM(QTDPREV) END AS PERCFROM(SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL, NVL(PRC.VLRVENDALT,0) AS PRECOLT  FROM TGMMET MET  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0  LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPRODWHERE MET.CODMETA = :P_CODMETA  AND MET.DTREF >= :P_PERIODO.INI  AND MET.DTREF <= :P_PERIODO.FIN  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)  AND ((:P_NTEMMETA='S' AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR :P_NTEMMETA='N')    GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0)) GROUP BY MARCAORDER BY MARCA ASC, "QTDREAL" DESC]]></expression>
+                <metadata>
+                  <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+                  <field name="QTDPREV" label="Qtd.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                  <field name="QTDREAL" label="Qtd.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                  <field name="VLR_PREV" label="Vlr.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+                  <field name="VLR_REAL" label="Vlr.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+                  <field name="PERC" label="% Real" type="F" visible="true" useFooter="false">
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC >= 100&& $QTDPREV == 0]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagBlue">$VALUE</span>]]>
+                    </formatter>
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC >= 100&& $QTDPREV >0 ]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagGreen">$VALUE</span>]]>
+                    </formatter>
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC >=50&& $PERC <100]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagYellow">$VALUE</span>]]>
+                    </formatter>
+                    <formatter formula="true">
+                      <formula><![CDATA[$PERC < 50   ]]></formula>
+                      <![CDATA[<span style="color:#000000; src:iconFlagRed">$VALUE</span>]]>
+                    </formatter>
+                  </field>
+                </metadata>
+              </grid>
+            </container>
+          </container>
+          <container orientacao="H" tamanhoRelativo="166">
+            <container orientacao="H" tamanhoRelativo="50">
+              <container orientacao="V" tamanhoRelativo="103">
+                <simple-value id="svl_ad3xhyy">
+                  <args>
+                    <arg id="A_CODVEND" type="integer"/>
+                  </args>
+                  <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODVEND FROM TGFVEN WHERE CODVEND = :A_CODVEND]]></expression>
+                  <metadata>
+                    <field name="CODVEND" label="CODVEND" type="I" visible="true" useFooter="false"/>
+                  </metadata>
+                  <value-expression><![CDATA[<span style='color: #0000FF;'><u><b>Análitico por Vendedor</b></u></span>]]></value-expression>
+                  <on-click navigate-to="lvl_v9okgg">
+                    <param id="A_CODVEND">$CODVEND</param>
+                    <param id="A_DTREF"/>
+                    <param id="A_CODPARC"/>
+                  </on-click>
+                </simple-value>
+              </container>
+              <container orientacao="H" tamanhoRelativo="832">
+                <container orientacao="V" tamanhoRelativo="108">
+                  <simple-value id="svl_ad3xh1r">
+                    <args>
+                      <arg id="A_CODVEND" type="integer"/>
+                    </args>
+                    <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODVEND FROM TGFVEN WHERE CODVEND = :A_CODVEND]]></expression>
+                    <metadata>
+                      <field name="CODVEND" label="CODVEND" type="I" visible="true" useFooter="false"/>
+                    </metadata>
+                    <value-expression><![CDATA[<span style='color: #0000FF;'><u><b>Gráfico Evolução por Vendedor</b></u></span>]]></value-expression>
+                    <on-click navigate-to="lvl_ad3xh13">
+                      <param id="A_CODVEND">$CODVEND</param>
+                      <param id="A_DTREF"/>
+                      <param id="A_CODPARC"/>
+                    </on-click>
+                  </simple-value>
+                </container>
+                <container orientacao="H" tamanhoRelativo="547">
+                  <container orientacao="V" tamanhoRelativo="20">
+                    <simple-value id="svl_ad4o5zv">
+                      <args>
+                        <arg id="A_CODVEND" type="integer"/>
+                      </args>
+                      <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODVEND FROM TGFVEN WHERE CODVEND = :A_CODVEND]]></expression>
+                      <metadata>
+                        <field name="CODVEND" label="CODVEND" type="I" visible="true" useFooter="false"/>
+                      </metadata>
+                      <value-expression><![CDATA[<span style='color: #0000FF;'><u><b>Auditoria do Realizado</b></u></span>]]></value-expression>
+                      <on-click navigate-to="lvl_u4k4dx">
+                        <param id="A_CODVEND"/>
+                        <param id="A_MARCA"/>
+                        <param id="A_CODPARC"/>
+                      </on-click>
+                    </simple-value>
+                  </container>
+                  <container orientacao="H" tamanhoRelativo="20">
+                    <simple-value id="svl_ad4o6gh">
+                      <args>
+                        <arg id="A_CODVEND" type="integer"/>
+                      </args>
+                      <value-expression><![CDATA[<span style='color: #0000FF;'><u><b>Indicadores Macro da Meta</b></u></span>]]></value-expression>
+                      <on-click navigate-to="lvl_ad4o6f0"/>
+                    </simple-value>
+                  </container>
+                  <container orientacao="V" tamanhoRelativo="20">
+                    <simple-value id="svl_azpc5nm">
+                      <value-expression><![CDATA[<span style='color: #0000FF;'><u><b>Rel. Orçado x Realizado</b></u></span>]]></value-expression>
+                      <on-click-launcher resource-id="br.com.sankhya.menu.adicional.rfe.251.1"/>
+                    </simple-value>
+                  </container>
+                  <container orientacao="V" tamanhoRelativo="20">
+                    <simple-value id="svl_p4udld">
+                      <value-expression><![CDATA[<span style='color: #0000FF;'><u><b>Análise de Metas Comerciais</b></u></span>]]></value-expression>
+                      <on-click-launcher resource-id="br.com.sankhya.menu.adicional.nuDsb.166.1"/>
+                    </simple-value>
+                  </container>
+                  <container orientacao="V" tamanhoRelativo="20">
+                    <simple-value id="svl_rlk0q9">
+                      <value-expression><![CDATA[<span style='color: #0000FF;'><u><b>Comparativo de Metas Comerciais</b></u></span>]]></value-expression>
+                      <on-click-launcher resource-id="br.com.sankhya.menu.adicional.nuDsb.167.1"/>
+                    </simple-value>
+                  </container>
+                </container>
+              </container>
+            </container>
+          </container>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_u4k4dx" description="NIVEL02">
+    <args>
+      <arg id="A_CODVEND" type="integer"/>
+      <arg id="A_MARCA" type="text"/>
+      <arg id="A_CODPARC" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="50">
+        <container orientacao="V" tamanhoRelativo="612">
+          <grid id="grd_u4k4dy" useNewGrid="S">
+            <args>
+              <arg id="A_CODVEND" type="integer"/>
+              <arg id="A_MARCA" type="text"/>
+              <arg id="A_CODPARC" type="integer"/>
+            </args>
+            <title><![CDATA[Consolidado por Vendedor]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODVEND, APELIDO, SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) AS QTDREAL, SUM(QTDPREV * PRECOLT)  AS VLR_PREV, SUM(VLRREAL)  AS VLR_REALFROM(SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0) AS PRECOLT, SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL  FROM TGMMET MET  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0    LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPRODWHERE MET.CODMETA = 4  AND MET.DTREF >= :P_PERIODO.INI  AND MET.DTREF <= :P_PERIODO.FIN  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)  AND ((:P_NTEMMETA='S' AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR :P_NTEMMETA='N') GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0)) GROUP BY CODVEND, APELIDOORDER BY APELIDO ASC, "QTDREAL" DESC]]></expression>
+            <metadata>
+              <field name="CODVEND" label="Cód. Vendedor" type="I" visible="true" useFooter="false"/>
+              <field name="APELIDO" label="Apelido" type="S" visible="true" useFooter="false"/>
+              <field name="QTDPREV" label="Qtd.Prev." type="F" visible="true" useFooter="SUM" mask="###0,00"/>
+              <field name="QTDREAL" label="Qtd.Real" type="F" visible="true" useFooter="SUM" mask="###0,00"/>
+              <field name="VLR_PREV" label="Vlr.Prev." type="F" visible="true" useFooter="SUM" mask="###0,00"/>
+              <field name="VLR_REAL" label="Vlr.Real" type="F" visible="true" useFooter="SUM" mask="###0,00"/>
+            </metadata>
+            <refresh-details ui-list="grd_u4k4en">
+              <param id="A_CODVEND">$CODVEND</param>
+            </refresh-details>
+          </grid>
+        </container>
+      </container>
+      <container orientacao="V" tamanhoRelativo="50">
+        <grid id="grd_u4k4en" useNewGrid="S">
+          <args>
+            <arg id="A_CODVEND" type="integer"/>
+          </args>
+          <title><![CDATA[Auditoria do Realizado]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CAB.NUNOTA, CAB.NUMNOTA, CAB.DTMOV , CAB.CODVEND , VEN.APELIDO, CAB.CODPARC, PAR.RAZAOSOCIAL, PRO.MARCA, ITE.CODPROD, PRO.DESCRPROD,    SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.QTDNEG * PRO.AD_QTDVOLLT) *-1 ELSE (ITE.QTDNEG * PRO.AD_QTDVOLLT) END) AS QTD, NVL(PRC.VLRVENDALT,0) AS PRECOLT   , SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS PRECOTOT   , TOP.CODTIPOPER||'-'||TOP.DESCROPER AS TOP   FROM TSIEMP EMP   INNER JOIN TGFCAB CAB ON (EMP.CODEMP = CAB.CODEMP)   INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)   INNER JOIN TGFPAR PAR ON (CAB.CODPARC = PAR.CODPARC)   INNER JOIN TGFITE ITE ON (CAB.NUNOTA = ITE.NUNOTA)   INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)   INNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER)   LEFT JOIN AD_PRECOMARCA PRC ON (PRO.MARCA = PRC.MARCA AND PRC.DTREF='01/07/2023')  WHERE TOP.ATUALEST <> 'N'       AND TRUNC(CAB.DTMOV,'MONTH') >= :P_PERIODO.INI       AND TRUNC(CAB.DTMOV,'MONTH') <= :P_PERIODO.FIN         AND (CAB.CODVEND = :A_CODVEND OR :A_CODVEND IS NULL)         AND (PRO.MARCA = :A_MARCA OR :A_MARCA IS NULL)		 AND (PAR.CODPARC = :A_CODPARC OR :A_CODPARC IS NULL)       AND CAB.TIPMOV IN ('V','D')       AND CAB.STATUSNOTA='L'       AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL)       AND PRO.MARCA IS NOT NULL       AND ((TOP.ATUALFIN<>0 AND TOP.TIPATUALFIN='I' ) OR (TOP.CODTIPOPER IN (1112,1113)  ) )GROUP BY CAB.NUNOTA, CAB.NUMNOTA, CAB.DTMOV , CAB.CODVEND , VEN.APELIDO, CAB.CODPARC, PAR.RAZAOSOCIAL, PRO.MARCA, ITE.CODPROD, PRO.DESCRPROD, TOP.CODTIPOPER, TOP.DESCROPER, NVL(PRC.VLRVENDALT,0)]]></expression>
+          <metadata>
+            <field name="NUNOTA" label="Nro Único" type="I" visible="true" useFooter="false"/>
+            <field name="NUMNOTA" label="Nro Nota" type="I" visible="true" useFooter="false"/>
+            <field name="DTMOV" label="Dt. Movimento" type="D" visible="true" useFooter="false"/>
+            <field name="CODVEND" label="Cód. Vendedor" type="I" visible="true" useFooter="false"/>
+            <field name="APELIDO" label="Vendedor" type="S" visible="true" useFooter="false"/>
+            <field name="CODPARC" label="Cód. Cliente" type="I" visible="true" useFooter="false"/>
+            <field name="RAZAOSOCIAL" label="Razão Social" type="S" visible="true" useFooter="false"/>
+            <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+            <field name="CODPROD" label="Cód. Produto" type="I" visible="true" useFooter="false"/>
+            <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+            <field name="QTD" label="Qtd.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+            <field name="PRECOLT" label="Vlr.LT" type="F" visible="true" useFooter="false" mask="###0,000000"/>
+            <field name="PRECOTOT" label="Vlr.Tot.Real" type="F" visible="true" useFooter="SUM" mask="###0,00"/>
+            <field name="TOP" label="TOP" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <on-click-launcher resource-id="br.com.sankhya.com.mov.CentralNotas">
+            <NUNOTA>$NUNOTA</NUNOTA>
+          </on-click-launcher>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_v9okgg" description="NIVEL03">
+    <args>
+      <arg id="A_CODVEND" type="integer"/>
+      <arg id="A_DTREF" type="date"/>
+      <arg id="A_CODPARC" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="50">
+        <container orientacao="V" tamanhoRelativo="50">
+          <grid id="grd_v9okgn" useNewGrid="S">
+            <args>
+              <arg id="A_DTREF" type="date"/>
+              <arg id="A_CODVEND" type="integer"/>
+            </args>
+            <title><![CDATA[Meta por Vendedor/Cliente]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT DTREF, CODVEND, APELIDO, CODPARC, RAZAOSOCIAL, SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) QTDREAL, SUM(QTDPREV * PRECOLT)  AS VLR_PREV, SUM(VLRREAL)  AS VLR_REALFROM(SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL , NVL(PRC.VLRVENDALT,0) AS PRECOLT, SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL  FROM TGMMET MET  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0    LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPRODWHERE MET.CODMETA = :P_CODMETA  AND MET.DTREF >= :P_PERIODO.INI  AND MET.DTREF <= :P_PERIODO.FIN  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)  AND ((:P_NTEMMETA='S' AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR :P_NTEMMETA='N')    GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL , NVL(PRC.VLRVENDALT,0)) WHERE CODVEND = :A_CODVEND  GROUP BY DTREF, CODVEND, APELIDO, CODPARC, RAZAOSOCIALORDER BY "DTREF"]]></expression>
+            <metadata>
+              <field name="DTREF" label="Mês" type="D" visible="true" useFooter="false"/>
+              <field name="CODVEND" label="Cód.Vend." type="I" visible="true" useFooter="false"/>
+              <field name="APELIDO" label="Vendedor" type="S" visible="true" useFooter="false"/>
+              <field name="CODPARC" label="Cód.Parc." type="I" visible="true" useFooter="false"/>
+              <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+              <field name="QTDPREV" label="Qtd.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+              <field name="QTDREAL" label="Qtd.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+              <field name="VLR_PREV" label="Vlr.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+              <field name="VLR_REAL" label="Vlr.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+            </metadata>
+            <refresh-details ui-list="grd_v9oki1">
+              <param id="A_CODPARC">$CODPARC</param>
+              <param id="A_DTREF">$DTREF</param>
+            </refresh-details>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="50">
+          <grid id="grd_v9oki1" useNewGrid="S">
+            <args>
+              <arg id="A_CODPARC" type="integer"/>
+              <arg id="A_DTREF" type="date"/>
+            </args>
+            <title><![CDATA[Meta por Vendedor/Cliente/Marca]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT DTREF, CODPARC, RAZAOSOCIAL, MARCA, SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) AS QTDREAL, SUM(QTDPREV * PRECOLT)  AS VLR_PREV, SUM(VLRREAL)  AS VLR_REALFROM(SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL , NVL(PRC.VLRVENDALT,0) AS PRECOLT, SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL  FROM TGMMET MET  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0    LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPRODWHERE MET.CODMETA = :P_CODMETA  AND MET.DTREF >= :P_PERIODO.INI  AND MET.DTREF <= :P_PERIODO.FIN  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)  AND ((:P_NTEMMETA='S' AND (MET.QTDPREV <> 0 OR MET.QTDREAL <> 0)) OR :P_NTEMMETA='N')  GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0)) WHERE CODVEND = :A_CODVEND    AND (DTREF = :A_DTREF OR :A_DTREF IS NULL)	 AND (CODPARC = :A_CODPARC) GROUP BY DTREF, CODPARC, RAZAOSOCIAL, MARCAORDER BY "DTREF"]]></expression>
+            <metadata>
+              <field name="DTREF" label="Mês" type="D" visible="true" useFooter="false"/>
+              <field name="CODPARC" label="Cód.Parc." type="I" visible="true" useFooter="false"/>
+              <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+              <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+              <field name="QTDPREV" label="Qtd.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+              <field name="QTDREAL" label="Qtd.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+              <field name="VLR_PREV" label="Vlr.Prev." type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+              <field name="VLR_REAL" label="Vlr.Real" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+            </metadata>
+          </grid>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_ad3xh13" description="NIVEL04">
+    <args>
+      <arg id="A_CODVEND" type="integer"/>
+      <arg id="A_DTREF" type="date"/>
+      <arg id="A_CODPARC" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="50">
+        <chart id="cht_ad3xh15" type="line" nroColuna="6">
+          <title><![CDATA[Evolução Meta por VOLUME]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT DTREF, TO_CHAR(DTREF,'MONTH') ||'/' ||TO_CHAR(DTREF,'YYYY') AS DTREF_EXT, CODVEND, APELIDO, SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) AS QTDREALFROM(SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL   FROM TGMMET MET  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)WHERE MET.CODMETA = :P_CODMETA  AND MET.DTREF >= :P_PERIODO.INI  AND MET.DTREF <= :P_PERIODO.FIN  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)  --AND QTDPREV > 0 ) WHERE CODVEND = :A_CODVEND    GROUP BY DTREF, CODVEND, APELIDOORDER BY "DTREF"]]></expression>
+          <metadata>
+            <field name="DTREF" label="Mês" type="D" visible="true" useFooter="false"/>
+            <field name="DTREF_EXT" label="Mês" type="S" visible="true" useFooter="false"/>
+            <field name="CODVEND" label="CODVEND" type="I" visible="true" useFooter="false"/>
+            <field name="APELIDO" label="Vendedor" type="S" visible="true" useFooter="false"/>
+            <field name="QTDPREV" label="Prev." type="F" visible="true" useFooter="false" mask="#.##0,00;-n"/>
+            <field name="QTDREAL" label="Real" type="F" visible="true" useFooter="false" mask="#.##0,00;-n"/>
+          </metadata>
+          <horizontal-axis>
+            <category field="DTREF" rotation="0" dropLabel="false">
+              <initView value="first"/>
+              <title>Prev.</title>
+            </category>
+          </horizontal-axis>
+          <vertical-axis>
+            <linear resultRotation="-45" vResizing="true">
+              <mask/>
+              <title>Real</title>
+            </linear>
+          </vertical-axis>
+          <series>
+            <serie type="line" circle-intersection="true">
+              <xField>DTREF</xField>
+              <yField>QTDPREV</yField>
+              <display><![CDATA[Prev.]]></display>
+              <color>0xff</color>
+            </serie>
+            <serie type="line" circle-intersection="true">
+              <xField>DTREF</xField>
+              <yField>QTDREAL</yField>
+              <display><![CDATA[Real]]></display>
+              <color>0xff00</color>
+            </serie>
+          </series>
+          <legend position="left" direction="v"/>
+        </chart>
+      </container>
+      <container orientacao="V" tamanhoRelativo="50">
+        <chart id="cht_ad3xh17" type="line" nroColuna="6">
+          <title><![CDATA[Evolução da Meta por VALOR]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT DTREF, TO_CHAR(DTREF,'MONTH') ||'/' ||TO_CHAR(DTREF,'YYYY') AS DTREF_EXT, CODVEND, APELIDO, SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) AS QTDREAL, SUM(QTDPREV * PRECOLT)  AS VLR_PREV, SUM(VLRREAL)  AS VLR_REALFROM(SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL, NVL(PRC.VLRVENDALT,0) AS PRECOLT  FROM TGMMET MET  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0    LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPRODWHERE MET.CODMETA = :P_CODMETA  AND MET.DTREF >= :P_PERIODO.INI  AND MET.DTREF <= :P_PERIODO.FIN  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)  --AND QTDPREV > 0   GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0)) WHERE CODVEND = :A_CODVEND    GROUP BY DTREF, CODVEND, APELIDOORDER BY "DTREF"]]></expression>
+          <metadata>
+            <field name="DTREF" label="Mês" type="D" visible="true" useFooter="false"/>
+            <field name="DTREF_EXT" label="Mês" type="S" visible="true" useFooter="false"/>
+            <field name="CODVEND" label="CODVEND" type="I" visible="true" useFooter="false"/>
+            <field name="APELIDO" label="Vendedor" type="S" visible="true" useFooter="false"/>
+            <field name="QTDPREV" label="Prev." type="F" visible="true" useFooter="false" mask="#.##0,00;-n"/>
+            <field name="QTDREAL" label="Real" type="F" visible="true" useFooter="false" mask="#.##0,00;-n"/>
+            <field name="VLR_PREV" label="Vlr.Prev." type="F" visible="true" useFooter="false" mask="#.##0,00;-n"/>
+            <field name="VLR_REAL" label="Vlr.Real" type="F" visible="true" useFooter="false" mask="#.##0,00;-n"/>
+          </metadata>
+          <horizontal-axis>
+            <category field="DTREF" rotation="0" dropLabel="false">
+              <initView value="first"/>
+              <title>Prev.</title>
+            </category>
+          </horizontal-axis>
+          <vertical-axis>
+            <linear resultRotation="-45" vResizing="true">
+              <mask/>
+              <title>Real</title>
+            </linear>
+          </vertical-axis>
+          <series>
+            <serie type="line" circle-intersection="true">
+              <xField>DTREF</xField>
+              <yField>VLR_PREV</yField>
+              <display><![CDATA[Prev.]]></display>
+              <color>0xff</color>
+            </serie>
+            <serie type="line" circle-intersection="true">
+              <xField>DTREF</xField>
+              <yField>VLR_REAL</yField>
+              <display><![CDATA[Real]]></display>
+              <color>0xff00</color>
+            </serie>
+          </series>
+          <legend position="left" direction="v"/>
+        </chart>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_ad4o6f0" description="NIVEL4">
+    <args>
+      <arg id="A_CODVEND" type="integer"/>
+      <arg id="A_MARCA" type="text"/>
+    </args>
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="186">
+        <container orientacao="V" tamanhoRelativo="104">
+          <simple-value id="svl_ad4o6jp">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT  SUM(QTDPREV) AS QTDPREV, SUM(QTDREAL) AS QTDREAL, SUM(QTDPREV * PRECOLT)  AS VLR_PREV, SUM(VLRREAL)  AS VLR_REAL, SYSDATE AS DTHRFROM(SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0) AS PRECOLT, SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL  FROM TGMMET MET  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')  LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0  LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPRODWHERE MET.CODMETA = 4  AND MET.DTREF >= :P_PERIODO.INI  AND MET.DTREF <= :P_PERIODO.FIN  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)  GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0)) GROUP BY SYSDATE]]></expression>
+            <metadata>
+              <field name="QTDPREV" label="QTDPREV" type="F" visible="true" useFooter="false" mask="#.##0,00;-n"/>
+              <field name="QTDREAL" label="QTDREAL" type="F" visible="true" useFooter="false" mask="#.##0,00;-n"/>
+              <field name="VLR_PREV" label="VLR_PREV" type="F" visible="true" useFooter="false" mask="R$ #.##0,00"/>
+              <field name="VLR_REAL" label="VLR_REAL" type="F" visible="true" useFooter="false" mask="R$ #.##0,00"/>
+              <field name="DTHR" label="DTHR" type="T" visible="true" useFooter="false"/>
+            </metadata>
+            <value-expression><![CDATA[<span style='color: #000000; font-size: 16px;'><b>Gerado em: <span style='font-size: 18px;'>$DTHR</span>Volume Previsto: <span style='font-size: 18px;'>$QTDPREV</span>Volume Realizado: <span style='font-size: 18px;'>$QTDREAL</span><br>Valor Previsto: <span style='font-size: 18px;'>$VLR_PREV</span>Valor Realizado: <span style='font-size: 18px;'>$VLR_REAL</span></b></span>]]></value-expression>
+          </simple-value>
+        </container>
+        <container orientacao="H" tamanhoRelativo="204"/>
+      </container>
+      <container orientacao="V" tamanhoRelativo="598">
+        <container orientacao="H" tamanhoRelativo="100">
+          <container orientacao="V" tamanhoRelativo="100">
+            <chart id="cht_ad4o6jn" type="gauge">
+              <title><![CDATA[Percentual de Atingimento da Meta de VOLUME]]></title>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT (SUM(QTDREAL) * 100 / SUM(QTDPREV)) AS PERC_ATINGIDOFROM(SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0) AS PRECOLT  FROM TGMMET MET  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')WHERE MET.CODMETA = 4  AND MET.DTREF >= :P_PERIODO.INI  AND MET.DTREF <= :P_PERIODO.FIN  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL))]]></expression>
+              <metadata>
+                <field name="PERC_ATINGIDO" label="% Atingido" type="F" visible="true" useFooter="false"/>
+              </metadata>
+              <show-ticks>true</show-ticks>
+              <min-value>0</min-value>
+              <max-value>100</max-value>
+              <value-field>PERC_ATINGIDO</value-field>
+              <alert-colors values="0,30,50,70,90,100" colors="0xff0000,0xff9900,0xffff,0xff,0xff00"/>
+            </chart>
+          </container>
+          <container orientacao="H" tamanhoRelativo="239">
+            <container orientacao="V" tamanhoRelativo="50">
+              <chart id="cht_a2reqiu" type="gauge">
+                <title><![CDATA[Percentual de Atingimento da Meta de VALOR]]></title>
+                <expression type="sql" data-source="MGEDS"><![CDATA[SELECT (SUM(VLRREAL) * 100 / SUM(QTDPREV * PRECOLT)) AS PERC_ATINGIDOFROM(SELECT MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0) AS PRECOLT, SUM(CASE WHEN CAB.TIPMOV='D' THEN (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED)*-1 ELSE (ITE.VLRTOT-ITE.VLRDESC-ITE.VLRREPRED) END)  AS VLRREAL  FROM TGMMET MET  LEFT JOIN TGFVEN VEN ON (MET.CODVEND = VEN.CODVEND)  LEFT JOIN TGFPAR PAR ON (MET.CODPARC = PAR.CODPARC)  LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA=MET.CODMETA AND PRC.DTREF='01/07/2023')  LEFT JOIN TGFCAB CAB ON CAB.CODVEND = VEN.CODVEND AND TRUNC(DTMOV,'MM') = MET.DTREF AND CAB.TIPMOV IN ('V','D') AND CAB.STATUSNOTA='L' AND (CAB.STATUSNFE = 'A' OR CAB.STATUSNFE = 'T' OR CAB.STATUSNFE IS NULL) AND CAB.CODPARC = MET.CODPARC AND (SELECT COUNT(TOP.CODTIPOPER) FROM TGFTOP TOP WHERE TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER) AND TOP.ATUALEST <> 'N' AND TOP.GOLSINAL = -1 ) > 0  LEFT JOIN TGFPRO PRO ON PRO.MARCA = MET.MARCA  LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND PRO.CODPROD = ITE.CODPRODWHERE MET.CODMETA = 4  AND MET.DTREF >= :P_PERIODO.INI  AND MET.DTREF <= :P_PERIODO.FIN  AND (MET.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)  AND (MET.CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)GROUP BY MET.DTREF, MET.CODVEND, VEN.APELIDO, MET.CODPARC, PAR.RAZAOSOCIAL, MET.MARCA, MET.QTDPREV, MET.QTDREAL, NVL(PRC.VLRVENDALT,0))]]></expression>
+                <metadata>
+                  <field name="PERC_ATINGIDO" label="% Atingido" type="F" visible="true" useFooter="false"/>
+                </metadata>
+                <show-ticks>true</show-ticks>
+                <min-value>0</min-value>
+                <max-value>100</max-value>
+                <value-field>PERC_ATINGIDO</value-field>
+                <alert-colors values="0,30,50,70,90,100" colors="0xff0000,0xff9900,0xffff,0xff,0xff00"/>
+              </chart>
+            </container>
+            <container orientacao="V" tamanhoRelativo="50"/>
+          </container>
+        </container>
+        <container orientacao="H" tamanhoRelativo="196">
+          <container orientacao="H" tamanhoRelativo="109"/>
+        </container>
+      </container>
+    </container>
+  </level>
+</gadget>

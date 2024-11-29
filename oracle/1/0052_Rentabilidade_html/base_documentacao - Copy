@@ -1,0 +1,54 @@
+Criar uma documentação detalhada para o projeto abaixo:
+
+Dashboard: Rentabilidade Financeira 2.0
+Objetivo: Demonstrar forma detalhada e analítica o resultado da companhia.
+
+O dashboard contem os fitros padrões para todos os nível de:
+- Data de Negociação
+- Empresa
+- Natureza
+- Centro de Resultado (CR)
+- Vendedor
+- Supervisor
+- Gerente
+- Rota
+- Meta
+- Tipo de Operação (Top)
+
+No nível principal existem 11 cartões, respectivamente com a demonstração de:
+1- Faturamento
+2- Devolução
+3- Impostos
+4- CMV
+5- HL (hectolitro)
+6- Desconto
+7- Margem de constribuição nominal
+8- Margem decontribuição percentual
+9- Despesa Operacional
+10- Investimentos
+11- Resultado
+
+Cada card's respeita uma sequencia particular niveis a partir do nivel principal até cheguem em um nivel de detalhamento.
+1) Ao acessar o Faturamento, o usuario é direcionado para um nivel com 4 componentes:
+1.1- Faturamento por tipo de produto: Grafico de Rosca com totalizador no meio.
+	- Neste componente ao clicar em alguma fatia o mesmo atualizará os demais componentes de acordo com a fatia clicada.
+1.2- Detalhamento dos valores do CIP (Custo indireto de Produção): Grafico de Rosca com totalizador no meio.
+	- Neste componente ao clicar em alguma fatia o mesmo direcionará para um nível inferior.
+		1.2.1- Neste nivel é apresentado 3 componentes, 1 grafico de linha com a evolução dos custos e 2 tabelas sendo uma com valor consolidado e outra detalhamento por natureza.
+			1.2.1.1- Na tabela Consolidado por Referencia clicando na coluna 'Referência' é atualizada a tabela de detalhamento. Tambem ao clicar na coluna 'Mês/Ano' o mesmo é direcionado para um nivel de detalhametno por lançamento.
+			1.2.1.2- Na tabela Detalhamento por Referência ao clicar na coluna 'Cód. CTA. CTB.' o mesmo é direcionado para um nivel de detalhametno por lançamento.
+1.3- Valores de venda por gerentes: Grafico de barras na horizontal.
+	1.3.1- Ao clicar no grafico o usário será direcionado para o nivel supervisor.
+		- Neste nivel é apresentado 2 componentes, 1 grafico de rosca e 1 tabela.
+			1.3.1.1- Ao clicar no grafico o usuário será direcionado para o nivel de vendedor.
+				- Neste nivel é apresentado 2 componentes, 1 grafico de rosca e 1 tabela.
+					1.3.1.1.1- Ao clicar no tabela o usuário será direcionado para o nivel de detalhamento, onde poderá acessar o portal a partir do número único clicado.
+			1.3.1.2- Ao clicar no tabela o usuário será direcionado para o nivel de detalhamento, onde poderá acessar o portal a partir do número único clicado.
+1.4- Detalhamento por Produto: Tabela
+	- Neste componente ao clicar na coluna Cód. Prod. o mesmo direcionará para um nível inferior.
+		1.4.1- Ao clicar na coluna Nú. Único da tabela o usuário será direcionado para o portal.
+		
+2) Ao acessar a Devolução, o usuario é direcionado para um nivel com 4 componentes:
+2.1- Faturamento por tipo de produto: Grafico de Rosca com totalizador no meio.
+	- Neste componente ao clicar em alguma fatia o mesmo atualizará os demais componentes de acordo com a fatia clicada.
+	

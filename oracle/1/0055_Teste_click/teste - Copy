@@ -1,0 +1,9 @@
+  <%
+  // Código para depuração
+  String codGrupoProd = request.getParameter("A_CODGRUPOPROD");
+  if (codGrupoProd == null || codGrupoProd.isEmpty()) {
+    out.println("Nenhum código de grupo de produtos foi passado.");
+  } else {
+    out.println("Código do Grupo de Produtos: " + codGrupoProd);
+  }
+%>

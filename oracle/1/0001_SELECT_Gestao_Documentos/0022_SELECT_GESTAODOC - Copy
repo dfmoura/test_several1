@@ -1,0 +1,110 @@
+SELECT
+    NUTIPDOCS,
+    DOCUMENTO,
+    A_AGUARDANDO,
+    C_ConcluIdo,
+    D_Dispensado,
+    E_Deferido,
+    G_Vigente,
+    I_INDETERMINADO,
+    N_INDEFERIDO,
+    P_PENDENTE,
+    S_SUSPENSO,
+    V_VENCIDO,
+    TOTAL,
+    -- Column for condition1
+    COUNT(
+        CASE
+            WHEN (
+                (
+                    (
+                        (:P_DTVALIDADE = '1')
+                        OR (
+                            :P_DTVALIDADE = '2'
+                            AND (
+                                SELECT
+                                    MAX(REC.DTVALIDADE)
+                                FROM
+                                    AD_GESTAODOCUMREC REC
+                                WHERE
+                                    STATUS = 'E'
+                                    AND CUM.CODIGO = REC.CODIGO
+                                    AND CUM.NUMDOC = REC.NUMDOC
+                            ) < SYSDATE
+                        )
+                        OR (
+                            :P_DTVALIDADE = '3'
+                            AND (
+                                SELECT
+                                    MAX(REC.DTVALIDADE)
+                                FROM
+                                    AD_GESTAODOCUMREC REC
+                                WHERE
+                                    CUM.CODIGO = REC.CODIGO
+                                    AND CUM.NUMDOC = REC.NUMDOC
+                            ) > SYSDATE
+                        )
+                    )
+                    AND (
+                        CUM.NUTIPDOCS IN :P_DOCUMENTO
+                        AND (
+                            DOC.CODCID = :P_CIDADE
+                            OR :P_CIDADE IS NULL
+                        )
+                        AND CID.UF IN :P_UF
+                    )
+                )
+                AND (
+                    (
+                        :P_ATIVO = 1
+                        AND DOC.ATIVO = 'S'
+                    )
+                    OR (
+                        :P_ATIVO = 2
+                        AND DOC.ATIVO = 'N'
+                    )
+                    OR (:P_ATIVO = 3)
+                )
+            ) THEN 1
+            ELSE NULL
+        END
+    ) / TOTAL * 100 AS CONDITION1_PERCENTAGE,
+    -- Column for condition2
+    COUNT(
+        CASE
+            WHEN (
+                (
+                    REC.DTVALIDADE > SYSDATE
+                    AND REC.STATUS = 'E'
+                )
+                OR REC.STATUS IN ('C', 'D', 'I')
+            )
+            AND (
+                CUM.NUTIPDOCS IN :P_DOCUMENTO
+                AND (
+                    DOC.CODCID = :P_CIDADE
+                    OR :P_CIDADE IS NULL
+                )
+                AND CID.UF IN :P_UF
+            )
+            AND (
+                (
+                    :P_ATIVO = 1
+                    AND DOC.ATIVO = 'S'
+                )
+                OR (
+                    :P_ATIVO = 2
+                    AND DOC.ATIVO = 'N'
+                )
+                OR (:P_ATIVO = 3)
+            )
+         THEN 1
+        ELSE NULL
+    END
+) / TOTAL * 100 AS CONDITION2_PERCENTAGE
+FROM
+    (-- Existing query remains unchanged
+)
+GROUP BY
+    NUTIPDOCS,
+    DOCUMENTO;

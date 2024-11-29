@@ -1,0 +1,432 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_LIMCRED" description="   Possui Limite ?" metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="0" label="P_LIMCRED : Verdadeiro/Falso"/>
+    <parameter id="P_POSSUIANALISE" description="Possui Análise de Crédito?  " metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="1" label="P_POSSUIANALISE : Verdadeiro/Falso"/>
+  </prompt-parameters>
+  <level id="lvl_8ndc2h" description="Principal">
+    <args>
+      <arg id="A_CODPARC" type="integer" label="A_CODPARC : Número Inteiro"/>
+    </args>
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <grid id="grd_8ndc2i" entityName="Parceiro" multiplaSelecao="N" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT*FROM (SELECTCODPARCMATRIZ,RAZAOSOCIAL,ATIVO,LIMCRED,LIMCREDCONSUM,LIMCREDISP,AD_DTVENCCAD,STATUS_CADASTROFROM(SELECTCOALESCE(PAR.CODPARCMATRIZ,PAR.CODPARC) AS CODPARCMATRIZ,COALESCE(PAR2.RAZAOSOCIAL,PAR.RAZAOSOCIAL) AS RAZAOSOCIAL,PAR2.ATIVO,NVL(PAR2.LIMCRED,0) AS LIMCRED,SUM(NVL(FIN.VLRDESDOB,0)) AS LIMCREDCONSUM,NVL(PAR2.LIMCRED,0) - SUM(NVL(FIN.VLRDESDOB,0)) AS LIMCREDISP,PAR2.AD_DTVENCCAD,CASEWHEN PAR2.AD_DTVENCCAD >= SYSDATE THEN 'Casdastro Não Vencido'WHEN PAR2.AD_DTVENCCAD < SYSDATE THEN 'Cadastro Vencido' ELSE 'Sem Data de Cadastro' END AS STATUS_CADASTROFROM TGFPAR PAR LEFT JOIN TGFFIN FIN ON PAR.CODPARC = FIN.CODPARCLEFT JOIN TGFPAR PAR2 ON PAR.CODPARCMATRIZ = PAR2.CODPARCLEFT JOIN TGFCAB CAB  ON FIN.NUNOTA = CAB.NUNOTAWHERE FIN.RECDESP = 1 AND FIN.DHBAIXA IS NULLAND (CAB.STATUSNOTA = 'L' OR FIN.NUNOTA IS NULL)AND PAR.CLIENTE = 'S'GROUP BYCOALESCE(PAR.CODPARCMATRIZ,PAR.CODPARC),COALESCE(PAR2.RAZAOSOCIAL,PAR.RAZAOSOCIAL),PAR2.ATIVO,PAR2.LIMCRED,PAR2.AD_DTVENCCADUNION ALLSELECT * FROM (-- Primeiro, criamos um CTE (Common Table Expression) para o segundo SELECTWITH SegundoSelect AS (	SELECT	COALESCE(PAR.CODPARCMATRIZ,PAR.CODPARC) AS CODPARCMATRIZ,	COALESCE(PAR2.RAZAOSOCIAL,PAR.RAZAOSOCIAL) AS RAZAOSOCIAL,	PAR2.ATIVO,	NVL(PAR2.LIMCRED,0) AS LIMCRED,	SUM(NVL(FIN.VLRDESDOB,0)) AS LIMCREDCONSUM,	NVL(PAR2.LIMCRED,0) - SUM(NVL(FIN.VLRDESDOB,0)) AS LIMCREDISP,	PAR2.AD_DTVENCCAD,	CASE	WHEN PAR2.AD_DTVENCCAD >= SYSDATE THEN 'Casdastro Não Vencido'	WHEN PAR2.AD_DTVENCCAD < SYSDATE THEN 'Cadastro Vencido' 	ELSE 'Sem Data de Cadastro' 	END AS STATUS_CADASTRO	FROM TGFPAR PAR 	LEFT JOIN TGFFIN FIN ON PAR.CODPARC = FIN.CODPARC	LEFT JOIN TGFPAR PAR2 ON PAR.CODPARCMATRIZ = PAR2.CODPARC	LEFT JOIN TGFCAB CAB  ON FIN.NUNOTA = CAB.NUNOTA	WHERE 	FIN.RECDESP = 1 AND FIN.DHBAIXA IS NULL	AND (CAB.STATUSNOTA = 'L' OR FIN.NUNOTA IS NULL)	AND PAR.CLIENTE = 'S'	GROUP BY	COALESCE(PAR.CODPARCMATRIZ,PAR.CODPARC),	COALESCE(PAR2.RAZAOSOCIAL,PAR.RAZAOSOCIAL),	PAR2.ATIVO,PAR2.LIMCRED,PAR2.AD_DTVENCCAD)-- Agora fazemos o SELECT principal excluindo os registros que estão no SecondSelectSELECT    COALESCE(PAR.CODPARCMATRIZ, PAR.CODPARC) AS CODPARCMATRIZ,    COALESCE(PAR2.RAZAOSOCIAL, PAR.RAZAOSOCIAL) AS PARCEIRO_MATRIZ,    PAR2.ATIVO,    NVL(PAR2.LIMCRED, 0) AS LIMCRED,    0 AS LIMCREDCONSUM,    NVL(PAR2.LIMCRED, 0) - 0 AS LIMCREDISP,    PAR2.AD_DTVENCCAD,    CASE        WHEN PAR2.AD_DTVENCCAD >= SYSDATE THEN 'Cadastro Não Vencido'        WHEN PAR2.AD_DTVENCCAD < SYSDATE THEN 'Cadastro Vencido'        ELSE 'Sem Data de Cadastro'    END AS STATUS_CADASTROFROM TGFPAR PARLEFT JOIN TGFPAR PAR2 ON PAR.CODPARCMATRIZ = PAR2.CODPARCWHERE PAR.CLIENTE = 'S' AND COALESCE(PAR.CODPARCMATRIZ, PAR.CODPARC) <> 0AND COALESCE(PAR.CODPARCMATRIZ, PAR.CODPARC) NOT IN (    SELECT CODPARCMATRIZ FROM SegundoSelect)))GROUP BYCODPARCMATRIZ,RAZAOSOCIAL,ATIVO,LIMCRED,LIMCREDCONSUM,LIMCREDISP,AD_DTVENCCAD,STATUS_CADASTRO)WHERE((:P_LIMCRED = 'S' AND LIMCRED > 1)OR(:P_LIMCRED = 'N' AND LIMCRED >= 0))AND ((:P_POSSUIANALISE = 'S' AND CODPARCMATRIZ IN (SELECT codparc FROM ad_ancredito))OR(:P_POSSUIANALISE = 'N'))ORDER BY 1]]></expression>
+          <metadata>
+            <field name="CODPARCMATRIZ" label="Cód. Parc. Matriz" type="I" visible="true" useFooter="false"/>
+            <field name="RAZAOSOCIAL" label="Parceiro Matriz" type="S" visible="true" useFooter="false"/>
+            <field name="ATIVO" label="Ativo" type="S" visible="true" useFooter="false"/>
+            <field name="LIMCRED" label="Lim.Cred.Total" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="LIMCREDCONSUM" label="Lim.Créd.Cons." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="LIMCREDISP" label="Lim.Créd.Dispo." type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+              <formatter lessThan="0"><![CDATA[<span style="color:#000000; background-color:#FFFFFF; src:iconFlagRed">
+  <b>$VALUE</b>
+</span>]]></formatter>
+              <formatter greaterEqualThan="0"><![CDATA[<span style="color:#000000; background-color:#FFFFFF; src:iconFlagBlue">
+  <b>$VALUE</b>
+</span>]]></formatter>
+            </field>
+            <field name="AD_DTVENCCAD" label="Dt. Venc. Cad." type="D" visible="true" useFooter="false"/>
+            <field name="STATUS_CADASTRO" label="Status" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <on-click navigate-to="lvl_82xfow">
+            <param id="A_CODPARC">$CODPARCMATRIZ</param>
+          </on-click>
+          <refresh-details ui-list="html5_8ndc3i,html5_8ndc6l,svl_agtliip">
+            <param id="A_CODPARC">$CODPARCMATRIZ</param>
+          </refresh-details>
+        </grid>
+      </container>
+      <container orientacao="V" tamanhoRelativo="146">
+        <container orientacao="H" tamanhoRelativo="110">
+          <container orientacao="V" tamanhoRelativo="50">
+            <container orientacao="V" tamanhoRelativo="100">
+              <html5component id="html5_8ndc3i" entryPoint="card12.jsp">
+                <args>
+                  <arg id="A_CODPARC" type="integer"/>
+                </args>
+              </html5component>
+            </container>
+          </container>
+          <container orientacao="V" tamanhoRelativo="50">
+            <container orientacao="V" tamanhoRelativo="100">
+              <html5component id="html5_8ndc6l" entryPoint="card8.jsp">
+                <args>
+                  <arg id="A_CODPARC" type="integer"/>
+                </args>
+              </html5component>
+            </container>
+          </container>
+        </container>
+        <container orientacao="V" tamanhoRelativo="268">
+          <simple-value id="svl_agtliip">
+            <args>
+              <arg id="A_CODPARC" type="integer"/>
+            </args>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT*        FROM        ad_ancredito anc        INNER JOIN tgfpar par ON anc.codparc = par.codparc        WHERE        /*mostrando somente a ultima analise*/        anc.codanalise = (        SELECT MAX(anc_inner.codanalise)        FROM ad_ancredito anc_inner        WHERE anc_inner.codparc = anc.codparc        )        and anc.codparc = :A_CODPARC]]></expression>
+            <metadata>
+              <field name="CODPARC" label="CODPARC" type="I" visible="true" useFooter="false"/>
+              <field name="CODANALISE" label="CODANALISE" type="I" visible="true" useFooter="false"/>
+              <field name="ABEMPRESA" label="ABEMPRESA" type="D" visible="true" useFooter="false"/>
+              <field name="CONSERASA" label="CONSERASA" type="D" visible="true" useFooter="false"/>
+              <field name="SCORSERASA" label="SCORSERASA" type="I" visible="true" useFooter="false"/>
+              <field name="OBSSERASA" label="OBSSERASA" type="S" visible="true" useFooter="false"/>
+              <field name="ANODRE" label="ANODRE" type="I" visible="true" useFooter="false"/>
+              <field name="RECDRE" label="RECDRE" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="LUCDRE" label="LUCDRE" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="PREDRE" label="PREDRE" type="F" visible="true" useFooter="false"/>
+              <field name="DADOSIR" label="DADOSIR" type="S" visible="true" useFooter="false"/>
+              <field name="PRETCOMPRA" label="PRETCOMPRA" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="CATFIANCA" label="CATFIANCA" type="D" visible="true" useFooter="false"/>
+              <field name="OBSERVACOES" label="OBSERVACOES" type="S" visible="true" useFooter="false"/>
+              <field name="PARECER" label="PARECER" type="S" visible="true" useFooter="false"/>
+              <field name="ANOANALISE" label="ANOANALISE" type="I" visible="true" useFooter="false"/>
+              <field name="ANOFAT" label="ANOFAT" type="S" visible="true" useFooter="false"/>
+              <field name="VALORFAT" label="VALORFAT" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+              <field name="DTACARTORIO" label="DTACARTORIO" type="D" visible="true" useFooter="false"/>
+              <field name="OBSCART" label="OBSCART" type="S" visible="true" useFooter="false"/>
+              <field name="CODVEND" label="CODVEND" type="I" visible="true" useFooter="false"/>
+              <field name="NOMEPARC" label="NOMEPARC" type="S" visible="true" useFooter="false"/>
+              <field name="RAZAOSOCIAL" label="RAZAOSOCIAL" type="S" visible="true" useFooter="false"/>
+              <field name="TIPPESSOA" label="TIPPESSOA" type="S" visible="true" useFooter="false"/>
+              <field name="CODPARCMATRIZ" label="CODPARCMATRIZ" type="I" visible="true" useFooter="false"/>
+              <field name="CODEND" label="CODEND" type="I" visible="true" useFooter="false"/>
+              <field name="NUMEND" label="NUMEND" type="S" visible="true" useFooter="false"/>
+              <field name="COMPLEMENTO" label="COMPLEMENTO" type="S" visible="true" useFooter="false"/>
+              <field name="CODBAI" label="CODBAI" type="I" visible="true" useFooter="false"/>
+              <field name="CODCID" label="CODCID" type="I" visible="true" useFooter="false"/>
+              <field name="CODREG" label="CODREG" type="I" visible="true" useFooter="false"/>
+              <field name="CEP" label="CEP" type="S" visible="true" useFooter="false"/>
+              <field name="CAIXAPOSTAL" label="CAIXAPOSTAL" type="S" visible="true" useFooter="false"/>
+              <field name="TELEFONE" label="TELEFONE" type="S" visible="true" useFooter="false"/>
+              <field name="RAMAL" label="RAMAL" type="I" visible="true" useFooter="false"/>
+              <field name="FAX" label="FAX" type="S" visible="true" useFooter="false"/>
+              <field name="EMAIL" label="EMAIL" type="S" visible="true" useFooter="false"/>
+              <field name="DTCAD" label="DTCAD" type="D" visible="true" useFooter="false"/>
+              <field name="DTALTER" label="DTALTER" type="D" visible="true" useFooter="false"/>
+              <field name="DTNASC" label="DTNASC" type="D" visible="true" useFooter="false"/>
+              <field name="DTULTCONTATO" label="DTULTCONTATO" type="D" visible="true" useFooter="false"/>
+              <field name="DTULTNEGOC" label="DTULTNEGOC" type="D" visible="true" useFooter="false"/>
+              <field name="IDENTINSCESTAD" label="IDENTINSCESTAD" type="S" visible="true" useFooter="false"/>
+              <field name="INSCESTADNAUF" label="INSCESTADNAUF" type="S" visible="true" useFooter="false"/>
+              <field name="CGC_CPF" label="CGC_CPF" type="S" visible="true" useFooter="false"/>
+              <field name="CODTAB" label="CODTAB" type="I" visible="true" useFooter="false"/>
+              <field name="PRAZOCONTATO" label="PRAZOCONTATO" type="I" visible="true" useFooter="false"/>
+              <field name="PRAZOPAG" label="PRAZOPAG" type="I" visible="true" useFooter="false"/>
+              <field name="TOLERINADIMP" label="TOLERINADIMP" type="I" visible="true" useFooter="false"/>
+              <field name="CLIENTE" label="CLIENTE" type="S" visible="true" useFooter="false"/>
+              <field name="FORNECEDOR" label="FORNECEDOR" type="S" visible="true" useFooter="false"/>
+              <field name="TRANSPORTADORA" label="TRANSPORTADORA" type="S" visible="true" useFooter="false"/>
+              <field name="VENDEDOR" label="VENDEDOR" type="S" visible="true" useFooter="false"/>
+              <field name="AGENCIA" label="AGENCIA" type="S" visible="true" useFooter="false"/>
+              <field name="CODTIPPARC" label="CODTIPPARC" type="I" visible="true" useFooter="false"/>
+              <field name="CODCTABCO" label="CODCTABCO" type="S" visible="true" useFooter="false"/>
+              <field name="CODAGE" label="CODAGE" type="S" visible="true" useFooter="false"/>
+              <field name="CODBCO" label="CODBCO" type="I" visible="true" useFooter="false"/>
+              <field name="NOMEAGE" label="NOMEAGE" type="S" visible="true" useFooter="false"/>
+              <field name="CODCTACTB" label="CODCTACTB" type="I" visible="true" useFooter="false"/>
+              <field name="CODCTACTB2" label="CODCTACTB2" type="I" visible="true" useFooter="false"/>
+              <field name="CLASSIFICMS" label="CLASSIFICMS" type="S" visible="true" useFooter="false"/>
+              <field name="TARE" label="TARE" type="S" visible="true" useFooter="false"/>
+              <field name="IPIINCICMS" label="IPIINCICMS" type="S" visible="true" useFooter="false"/>
+              <field name="RETEMISS" label="RETEMISS" type="S" visible="true" useFooter="false"/>
+              <field name="RETEMINSS" label="RETEMINSS" type="S" visible="true" useFooter="false"/>
+              <field name="CONTACESSO" label="CONTACESSO" type="S" visible="true" useFooter="false"/>
+              <field name="SITUACAO" label="SITUACAO" type="S" visible="true" useFooter="false"/>
+              <field name="ATIVO" label="ATIVO" type="S" visible="true" useFooter="false"/>
+              <field name="CODANT" label="CODANT" type="I" visible="true" useFooter="false"/>
+              <field name="CODCTABCOINT" label="CODCTABCOINT" type="I" visible="true" useFooter="false"/>
+              <field name="GRUPOAUTOR" label="GRUPOAUTOR" type="S" visible="true" useFooter="false"/>
+              <field name="LIMCRED" label="LIMCRED" type="F" visible="true" useFooter="false"/>
+              <field name="BLOQUEAR" label="BLOQUEAR" type="S" visible="true" useFooter="false"/>
+              <field name="SELECIONADO" label="SELECIONADO" type="S" visible="true" useFooter="false"/>
+              <field name="MOTBLOQ" label="MOTBLOQ" type="S" visible="true" useFooter="false"/>
+              <field name="EVENDA" label="EVENDA" type="S" visible="true" useFooter="false"/>
+              <field name="ECOMPRA" label="ECOMPRA" type="S" visible="true" useFooter="false"/>
+              <field name="HOMEPAGE" label="HOMEPAGE" type="S" visible="true" useFooter="false"/>
+              <field name="CTAADIANT" label="CTAADIANT" type="S" visible="true" useFooter="false"/>
+              <field name="CODASSESSOR" label="CODASSESSOR" type="I" visible="true" useFooter="false"/>
+              <field name="INSCMUN" label="INSCMUN" type="S" visible="true" useFooter="false"/>
+              <field name="CALCINSS" label="CALCINSS" type="S" visible="true" useFooter="false"/>
+              <field name="CODUSU" label="CODUSU" type="I" visible="true" useFooter="false"/>
+              <field name="RETEMPIS" label="RETEMPIS" type="S" visible="true" useFooter="false"/>
+              <field name="RETEMCOFINS" label="RETEMCOFINS" type="S" visible="true" useFooter="false"/>
+              <field name="RETEMCSL" label="RETEMCSL" type="S" visible="true" useFooter="false"/>
+              <field name="USUARIO" label="USUARIO" type="S" visible="true" useFooter="false"/>
+              <field name="CEI" label="CEI" type="S" visible="true" useFooter="false"/>
+              <field name="LIMCREDMENSAL" label="LIMCREDMENSAL" type="F" visible="true" useFooter="false"/>
+              <field name="CODTABST" label="CODTABST" type="I" visible="true" useFooter="false"/>
+              <field name="QTDMAXTITVENCIDOS" label="QTDMAXTITVENCIDOS" type="I" visible="true" useFooter="false"/>
+              <field name="TEMIPI" label="TEMIPI" type="S" visible="true" useFooter="false"/>
+              <field name="ALUNO" label="ALUNO" type="S" visible="true" useFooter="false"/>
+              <field name="PROFESSOR" label="PROFESSOR" type="S" visible="true" useFooter="false"/>
+              <field name="DESCFIN" label="DESCFIN" type="F" visible="true" useFooter="false"/>
+              <field name="DESCBONIF" label="DESCBONIF" type="S" visible="true" useFooter="false"/>
+              <field name="IMPLAUDOLOTE" label="IMPLAUDOLOTE" type="S" visible="true" useFooter="false"/>
+              <field name="DIASEM" label="DIASEM" type="I" visible="true" useFooter="false"/>
+              <field name="MEDICO" label="MEDICO" type="S" visible="true" useFooter="false"/>
+              <field name="TIPOFATUR" label="TIPOFATUR" type="S" visible="true" useFooter="false"/>
+              <field name="DIASVARPAGTO" label="DIASVARPAGTO" type="I" visible="true" useFooter="false"/>
+              <field name="CODUNIMED" label="CODUNIMED" type="S" visible="true" useFooter="false"/>
+              <field name="CODCRED" label="CODCRED" type="I" visible="true" useFooter="false"/>
+              <field name="PERCCUSVAR" label="PERCCUSVAR" type="F" visible="true" useFooter="false"/>
+              <field name="MOTORISTA" label="MOTORISTA" type="S" visible="true" useFooter="false"/>
+              <field name="NATUREZAOPERDES" label="NATUREZAOPERDES" type="S" visible="true" useFooter="false"/>
+              <field name="SERIENFDES" label="SERIENFDES" type="S" visible="true" useFooter="false"/>
+              <field name="MODELONFDES" label="MODELONFDES" type="S" visible="true" useFooter="false"/>
+              <field name="DESCSTIVA" label="DESCSTIVA" type="S" visible="true" useFooter="false"/>
+              <field name="CSTIPIENT" label="CSTIPIENT" type="I" visible="true" useFooter="false"/>
+              <field name="CSTIPISAI" label="CSTIPISAI" type="I" visible="true" useFooter="false"/>
+              <field name="CODEMP" label="CODEMP" type="I" visible="true" useFooter="false"/>
+              <field name="VLRMINPEDCPA" label="VLRMINPEDCPA" type="F" visible="true" useFooter="false"/>
+              <field name="QTDMAXPEDCPA" label="QTDMAXPEDCPA" type="I" visible="true" useFooter="false"/>
+              <field name="OPERLOGIST" label="OPERLOGIST" type="S" visible="true" useFooter="false"/>
+              <field name="AGRONOMO" label="AGRONOMO" type="S" visible="true" useFooter="false"/>
+              <field name="PRODUTORTEMNF" label="PRODUTORTEMNF" type="S" visible="true" useFooter="false"/>
+              <field name="POTENCIALNEG" label="POTENCIALNEG" type="F" visible="true" useFooter="false"/>
+              <field name="EMAILNFE" label="EMAILNFE" type="S" visible="true" useFooter="false"/>
+              <field name="TIPANEXONFE" label="TIPANEXONFE" type="S" visible="true" useFooter="false"/>
+              <field name="ORDSUBST" label="ORDSUBST" type="S" visible="true" useFooter="false"/>
+              <field name="MAXCREDINDENIZ" label="MAXCREDINDENIZ" type="F" visible="true" useFooter="false"/>
+              <field name="MAXDEBINDENIZ" label="MAXDEBINDENIZ" type="F" visible="true" useFooter="false"/>
+              <field name="SALDOINDENIZ" label="SALDOINDENIZ" type="F" visible="true" useFooter="false"/>
+              <field name="FLEX" label="FLEX" type="S" visible="true" useFooter="false"/>
+              <field name="SIMPLES" label="SIMPLES" type="S" visible="true" useFooter="false"/>
+              <field name="SEXO" label="SEXO" type="S" visible="true" useFooter="false"/>
+              <field name="NURESPPERG" label="NURESPPERG" type="I" visible="true" useFooter="false"/>
+              <field name="NURESPPERGFECH" label="NURESPPERGFECH" type="I" visible="true" useFooter="false"/>
+              <field name="CODROTA" label="CODROTA" type="I" visible="true" useFooter="false"/>
+              <field name="CODCTACTB3" label="CODCTACTB3" type="I" visible="true" useFooter="false"/>
+              <field name="CODCTACTB4" label="CODCTACTB4" type="I" visible="true" useFooter="false"/>
+              <field name="CODUSUCOBR" label="CODUSUCOBR" type="I" visible="true" useFooter="false"/>
+              <field name="AGRUPAR" label="AGRUPAR" type="S" visible="true" useFooter="false"/>
+              <field name="EMAILDANFE" label="EMAILDANFE" type="S" visible="true" useFooter="false"/>
+              <field name="VALDESCGRDCAR" label="VALDESCGRDCAR" type="S" visible="true" useFooter="false"/>
+              <field name="AGRUPBOLEMPDIF" label="AGRUPBOLEMPDIF" type="S" visible="true" useFooter="false"/>
+              <field name="PERCREDINSS" label="PERCREDINSS" type="F" visible="true" useFooter="false"/>
+              <field name="PERMITECORTE" label="PERMITECORTE" type="S" visible="true" useFooter="false"/>
+              <field name="INDNATRET" label="INDNATRET" type="S" visible="true" useFooter="false"/>
+              <field name="STATUSEDZ" label="STATUSEDZ" type="S" visible="true" useFooter="false"/>
+              <field name="SITRECEITA" label="SITRECEITA" type="S" visible="true" useFooter="false"/>
+              <field name="SITSINTEGRA" label="SITSINTEGRA" type="S" visible="true" useFooter="false"/>
+              <field name="SITCCF" label="SITCCF" type="S" visible="true" useFooter="false"/>
+              <field name="USATABCRFORN" label="USATABCRFORN" type="S" visible="true" useFooter="false"/>
+              <field name="QTDPEDPRZMED" label="QTDPEDPRZMED" type="I" visible="true" useFooter="false"/>
+              <field name="DIASPEDPRZMED" label="DIASPEDPRZMED" type="I" visible="true" useFooter="false"/>
+              <field name="ARTPRECAD" label="ARTPRECAD" type="S" visible="true" useFooter="false"/>
+              <field name="GERCTRCAUTO" label="GERCTRCAUTO" type="S" visible="true" useFooter="false"/>
+              <field name="CODLOCALPADRAO" label="CODLOCALPADRAO" type="I" visible="true" useFooter="false"/>
+              <field name="SALDODISP" label="SALDODISP" type="F" visible="true" useFooter="false"/>
+              <field name="PROVACRESC" label="PROVACRESC" type="F" visible="true" useFooter="false"/>
+              <field name="EXIGELAUDOPRD" label="EXIGELAUDOPRD" type="S" visible="true" useFooter="false"/>
+              <field name="MEIRJ" label="MEIRJ" type="S" visible="true" useFooter="false"/>
+              <field name="ENTREGAENDCONTATO" label="ENTREGAENDCONTATO" type="S" visible="true" useFooter="false"/>
+              <field name="CODEMPPARC" label="CODEMPPARC" type="I" visible="true" useFooter="false"/>
+              <field name="RETSTVENDA" label="RETSTVENDA" type="S" visible="true" useFooter="false"/>
+              <field name="LATITUDE" label="LATITUDE" type="S" visible="true" useFooter="false"/>
+              <field name="LONGITUDE" label="LONGITUDE" type="S" visible="true" useFooter="false"/>
+              <field name="TIPOGERBOLETO" label="TIPOGERBOLETO" type="S" visible="true" useFooter="false"/>
+              <field name="PERCJURO" label="PERCJURO" type="F" visible="true" useFooter="false"/>
+              <field name="PERCMULTA" label="PERCMULTA" type="F" visible="true" useFooter="false"/>
+              <field name="TIPJURO" label="TIPJURO" type="S" visible="true" useFooter="false"/>
+              <field name="PERCDESCESPECIAL" label="PERCDESCESPECIAL" type="F" visible="true" useFooter="false"/>
+              <field name="CODEMPPREF" label="CODEMPPREF" type="I" visible="true" useFooter="false"/>
+              <field name="SITESPECIALRESP" label="SITESPECIALRESP" type="S" visible="true" useFooter="false"/>
+              <field name="MOTNAORETERISSQN" label="MOTNAORETERISSQN" type="S" visible="true" useFooter="false"/>
+              <field name="SITCADSEFAZ" label="SITCADSEFAZ" type="I" visible="true" useFooter="false"/>
+              <field name="DHCADSEFAZ" label="DHCADSEFAZ" type="D" visible="true" useFooter="false"/>
+              <field name="ALIQISSRETSIMPLES" label="ALIQISSRETSIMPLES" type="F" visible="true" useFooter="false"/>
+              <field name="IDESTRANGEIRO" label="IDESTRANGEIRO" type="S" visible="true" useFooter="false"/>
+              <field name="TIPGERBOLCENT" label="TIPGERBOLCENT" type="S" visible="true" useFooter="false"/>
+              <field name="COMOCONHECEU" label="COMOCONHECEU" type="S" visible="true" useFooter="false"/>
+              <field name="TIPOGERBOLETODUP" label="TIPOGERBOLETODUP" type="S" visible="true" useFooter="false"/>
+              <field name="BOLDESTEMAIL" label="BOLDESTEMAIL" type="S" visible="true" useFooter="false"/>
+              <field name="TPASSINANTE" label="TPASSINANTE" type="I" visible="true" useFooter="false"/>
+              <field name="APLICLEITRANSP" label="APLICLEITRANSP" type="S" visible="true" useFooter="false"/>
+              <field name="VENDAMIN" label="VENDAMIN" type="F" visible="true" useFooter="false"/>
+              <field name="CODENQIPIENT" label="CODENQIPIENT" type="I" visible="true" useFooter="false"/>
+              <field name="CODENQIPISAI" label="CODENQIPISAI" type="I" visible="true" useFooter="false"/>
+              <field name="ENVIPEDEMAILTOP" label="ENVIPEDEMAILTOP" type="S" visible="true" useFooter="false"/>
+              <field name="INTEGRAECONECT" label="INTEGRAECONECT" type="S" visible="true" useFooter="false"/>
+              <field name="SENHAECONECT" label="SENHAECONECT" type="S" visible="true" useFooter="false"/>
+              <field name="PRAZOPARCECONECT" label="PRAZOPARCECONECT" type="S" visible="true" useFooter="false"/>
+              <field name="BASEPRAZOECONECT" label="BASEPRAZOECONECT" type="I" visible="true" useFooter="false"/>
+              <field name="PARCELAMECONECT" label="PARCELAMECONECT" type="S" visible="true" useFooter="false"/>
+              <field name="BASEPARCELECONECT" label="BASEPARCELECONECT" type="I" visible="true" useFooter="false"/>
+              <field name="DIAFECHAECONECT" label="DIAFECHAECONECT" type="I" visible="true" useFooter="false"/>
+              <field name="DIAPAGTOECONECT" label="DIAPAGTOECONECT" type="I" visible="true" useFooter="false"/>
+              <field name="PERFILECONECT" label="PERFILECONECT" type="S" visible="true" useFooter="false"/>
+              <field name="DTEMISNFEFORN" label="DTEMISNFEFORN" type="D" visible="true" useFooter="false"/>
+              <field name="ESTABTRANSP" label="ESTABTRANSP" type="S" visible="true" useFooter="false"/>
+              <field name="TRANSPPROPRIA" label="TRANSPPROPRIA" type="S" visible="true" useFooter="false"/>
+              <field name="TERMACORD" label="TERMACORD" type="S" visible="true" useFooter="false"/>
+              <field name="INTERVANALISCRED" label="INTERVANALISCRED" type="I" visible="true" useFooter="false"/>
+              <field name="INDCOMERCIALIZACAO" label="INDCOMERCIALIZACAO" type="S" visible="true" useFooter="false"/>
+              <field name="INDAQUISICAO" label="INDAQUISICAO" type="S" visible="true" useFooter="false"/>
+              <field name="MERCHANTID" label="MERCHANTID" type="F" visible="true" useFooter="false"/>
+              <field name="EMAILNOTIFENTREGA" label="EMAILNOTIFENTREGA" type="S" visible="true" useFooter="false"/>
+              <field name="IMPAGRUPFIN" label="IMPAGRUPFIN" type="S" visible="true" useFooter="false"/>
+              <field name="TIPLOTACAO" label="TIPLOTACAO" type="I" visible="true" useFooter="false"/>
+              <field name="UNIDIMPORT" label="UNIDIMPORT" type="I" visible="true" useFooter="false"/>
+              <field name="CODPARCGRUECONOMICO" label="CODPARCGRUECONOMICO" type="I" visible="true" useFooter="false"/>
+              <field name="ENQART227" label="ENQART227" type="S" visible="true" useFooter="false"/>
+              <field name="LIMCHEQECONECT" label="LIMCHEQECONECT" type="F" visible="true" useFooter="false"/>
+              <field name="ORGPUBLNFSE" label="ORGPUBLNFSE" type="S" visible="true" useFooter="false"/>
+              <field name="ASSOCIACAODESP" label="ASSOCIACAODESP" type="S" visible="true" useFooter="false"/>
+              <field name="MODELONOTACOMPRA" label="MODELONOTACOMPRA" type="I" visible="true" useFooter="false"/>
+              <field name="ARREDPRIMEIRAPARC" label="ARREDPRIMEIRAPARC" type="S" visible="true" useFooter="false"/>
+              <field name="SITCADRF" label="SITCADRF" type="I" visible="true" useFooter="false"/>
+              <field name="DHCADRF" label="DHCADRF" type="D" visible="true" useFooter="false"/>
+              <field name="VLRLIQITEMNFE" label="VLRLIQITEMNFE" type="S" visible="true" useFooter="false"/>
+              <field name="VLRLIQITEMNFCE" label="VLRLIQITEMNFCE" type="S" visible="true" useFooter="false"/>
+              <field name="CPFPRODRURAL" label="CPFPRODRURAL" type="S" visible="true" useFooter="false"/>
+              <field name="EMAILNFSE" label="EMAILNFSE" type="S" visible="true" useFooter="false"/>
+              <field name="NUFOP" label="NUFOP" type="I" visible="true" useFooter="false"/>
+              <field name="CNAE" label="CNAE" type="S" visible="true" useFooter="false"/>
+              <field name="INDCREDNFE" label="INDCREDNFE" type="I" visible="true" useFooter="false"/>
+              <field name="INDCREDCTE" label="INDCREDCTE" type="I" visible="true" useFooter="false"/>
+              <field name="DTINIATIV" label="DTINIATIV" type="D" visible="true" useFooter="false"/>
+              <field name="DTULTSIT" label="DTULTSIT" type="D" visible="true" useFooter="false"/>
+              <field name="DTBAIXA" label="DTBAIXA" type="D" visible="true" useFooter="false"/>
+              <field name="REGAPUR" label="REGAPUR" type="S" visible="true" useFooter="false"/>
+              <field name="CODGRUPO" label="CODGRUPO" type="I" visible="true" useFooter="false"/>
+              <field name="PARCINTER" label="PARCINTER" type="S" visible="true" useFooter="false"/>
+              <field name="INDOPCCP" label="INDOPCCP" type="I" visible="true" useFooter="false"/>
+              <field name="TRUNCPARCELA" label="TRUNCPARCELA" type="S" visible="true" useFooter="false"/>
+              <field name="NUVERSAO" label="NUVERSAO" type="I" visible="true" useFooter="false"/>
+              <field name="CODCONTATOPADCOT" label="CODCONTATOPADCOT" type="I" visible="true" useFooter="false"/>
+              <field name="TIMESTADOCIVIL" label="TIMESTADOCIVIL" type="S" visible="true" useFooter="false"/>
+              <field name="TIMQUERCOMPRAR" label="TIMQUERCOMPRAR" type="S" visible="true" useFooter="false"/>
+              <field name="TIMREFERENCIA02" label="TIMREFERENCIA02" type="S" visible="true" useFooter="false"/>
+              <field name="TIMORGAO" label="TIMORGAO" type="S" visible="true" useFooter="false"/>
+              <field name="TIMCOMPRADOR" label="TIMCOMPRADOR" type="S" visible="true" useFooter="false"/>
+              <field name="TIMBAIRROCOMPRA" label="TIMBAIRROCOMPRA" type="I" visible="true" useFooter="false"/>
+              <field name="TIMDATACI" label="TIMDATACI" type="D" visible="true" useFooter="false"/>
+              <field name="TIMPROPVENDA" label="TIMPROPVENDA" type="S" visible="true" useFooter="false"/>
+              <field name="TIMPAI" label="TIMPAI" type="S" visible="true" useFooter="false"/>
+              <field name="TIMREFERENCIA01" label="TIMREFERENCIA01" type="S" visible="true" useFooter="false"/>
+              <field name="TIMTIPOMORADIA" label="TIMTIPOMORADIA" type="S" visible="true" useFooter="false"/>
+              <field name="TIMINQUILINO" label="TIMINQUILINO" type="S" visible="true" useFooter="false"/>
+              <field name="TIMTELEFONE02" label="TIMTELEFONE02" type="S" visible="true" useFooter="false"/>
+              <field name="TIMPROPRIETA" label="TIMPROPRIETA" type="S" visible="true" useFooter="false"/>
+              <field name="TIMCORRESPBANCARIO" label="TIMCORRESPBANCARIO" type="S" visible="true" useFooter="false"/>
+              <field name="TIMMAE" label="TIMMAE" type="S" visible="true" useFooter="false"/>
+              <field name="TIMFAIXASALARIAL" label="TIMFAIXASALARIAL" type="S" visible="true" useFooter="false"/>
+              <field name="TIMCORRETOR" label="TIMCORRETOR" type="S" visible="true" useFooter="false"/>
+              <field name="TIMOUTTELS" label="TIMOUTTELS" type="S" visible="true" useFooter="false"/>
+              <field name="TIMTELEFONE01" label="TIMTELEFONE01" type="S" visible="true" useFooter="false"/>
+              <field name="TIMAINVESTIR" label="TIMAINVESTIR" type="F" visible="true" useFooter="false"/>
+              <field name="TIMFIADOR" label="TIMFIADOR" type="S" visible="true" useFooter="false"/>
+              <field name="TIMSENHASITE" label="TIMSENHASITE" type="S" visible="true" useFooter="false"/>
+              <field name="TIMSENHADESC" label="TIMSENHADESC" type="S" visible="true" useFooter="false"/>
+              <field name="TIMCARTORIO" label="TIMCARTORIO" type="I" visible="true" useFooter="false"/>
+              <field name="TIMPROFISSAO" label="TIMPROFISSAO" type="I" visible="true" useFooter="false"/>
+              <field name="TIMNACIONALIDAD" label="TIMNACIONALIDAD" type="I" visible="true" useFooter="false"/>
+              <field name="TIMCARTREGIMEBENSV" label="TIMCARTREGIMEBENSV" type="S" visible="true" useFooter="false"/>
+              <field name="INSCRCNO" label="INSCRCNO" type="S" visible="true" useFooter="false"/>
+              <field name="PARCSUBSTISS" label="PARCSUBSTISS" type="S" visible="true" useFooter="false"/>
+              <field name="EXIGCONTATOENTCAB" label="EXIGCONTATOENTCAB" type="S" visible="true" useFooter="false"/>
+              <field name="ENVIADANFEREDESPACHO" label="ENVIADANFEREDESPACHO" type="S" visible="true" useFooter="false"/>
+              <field name="EXIGENOMEPARC" label="EXIGENOMEPARC" type="S" visible="true" useFooter="false"/>
+              <field name="SALDODISPCAC" label="SALDODISPCAC" type="F" visible="true" useFooter="false"/>
+              <field name="PROVACRESCCAC" label="PROVACRESCCAC" type="F" visible="true" useFooter="false"/>
+              <field name="CONSIDTOTITENSTRIB" label="CONSIDTOTITENSTRIB" type="S" visible="true" useFooter="false"/>
+              <field name="ATUNUVERSAO" label="ATUNUVERSAO" type="S" visible="true" useFooter="false"/>
+              <field name="DESCONSIDESCBASE" label="DESCONSIDESCBASE" type="S" visible="true" useFooter="false"/>
+              <field name="CODIDENTCONS" label="CODIDENTCONS" type="I" visible="true" useFooter="false"/>
+              <field name="UTILIZANUCADPARC" label="UTILIZANUCADPARC" type="S" visible="true" useFooter="false"/>
+              <field name="TIPCLIENTESERVCOM" label="TIPCLIENTESERVCOM" type="I" visible="true" useFooter="false"/>
+              <field name="CHAVEPIX" label="CHAVEPIX" type="S" visible="true" useFooter="false"/>
+              <field name="AD_CODPARCAGROTIS" label="AD_CODPARCAGROTIS" type="I" visible="true" useFooter="false"/>
+              <field name="AD_NOMEFANTASIA" label="AD_NOMEFANTASIA" type="S" visible="true" useFooter="false"/>
+              <field name="AD_DTVENCCAD" label="AD_DTVENCCAD" type="D" visible="true" useFooter="false"/>
+              <field name="AD_CERTNEGATIVA" label="AD_CERTNEGATIVA" type="S" visible="true" useFooter="false"/>
+              <field name="AD_DTNASCIMENTO" label="AD_DTNASCIMENTO" type="D" visible="true" useFooter="false"/>
+              <field name="AD_DTVENCCERTIDAO" label="AD_DTVENCCERTIDAO" type="D" visible="true" useFooter="false"/>
+              <field name="AD_EMAILBKP" label="AD_EMAILBKP" type="S" visible="true" useFooter="false"/>
+              <field name="AD_TIPOPIX" label="AD_TIPOPIX" type="S" visible="true" useFooter="false"/>
+              <field name="AD_TIPTRANSFPIX" label="AD_TIPTRANSFPIX" type="S" visible="true" useFooter="false"/>
+              <field name="AD_CPF_CNPJ_CONTA" label="AD_CPF_CNPJ_CONTA" type="S" visible="true" useFooter="false"/>
+              <field name="AD_CRPADVEND" label="AD_CRPADVEND" type="I" visible="true" useFooter="false"/>
+              <field name="EMAILCTE" label="EMAILCTE" type="S" visible="true" useFooter="false"/>
+              <field name="CONSPARCADRCST" label="CONSPARCADRCST" type="S" visible="true" useFooter="false"/>
+              <field name="DESCONSDESCINSS" label="DESCONSDESCINSS" type="S" visible="true" useFooter="false"/>
+              <field name="AD_FORNCLI" label="AD_FORNCLI" type="S" visible="true" useFooter="false"/>
+              <field name="MANUTENCAO" label="MANUTENCAO" type="S" visible="true" useFooter="false"/>
+              <field name="AD_RESPONDEPESQUISA" label="AD_RESPONDEPESQUISA" type="S" visible="true" useFooter="false"/>
+              <field name="AD_INFOVEICULO" label="AD_INFOVEICULO" type="S" visible="true" useFooter="false"/>
+              <field name="DEDUZIPIBCPISCF" label="DEDUZIPIBCPISCF" type="S" visible="true" useFooter="false"/>
+              <field name="AD_ANOCAMP" label="AD_ANOCAMP" type="S" visible="true" useFooter="false"/>
+              <field name="CALCFETHAB" label="CALCFETHAB" type="S" visible="true" useFooter="false"/>
+              <field name="AD_CODPARCMETA" label="AD_CODPARCMETA" type="I" visible="true" useFooter="false"/>
+              <field name="AD_CONTAPAG" label="AD_CONTAPAG" type="I" visible="true" useFooter="false"/>
+              <field name="AD_BANCOPAG" label="AD_BANCOPAG" type="I" visible="true" useFooter="false"/>
+              <field name="AD_BLOQUEARNEG" label="AD_BLOQUEARNEG" type="S" visible="true" useFooter="false"/>
+              <field name="AD_CR_PARCEIRO" label="AD_CR_PARCEIRO" type="I" visible="true" useFooter="false"/>
+              <field name="AD_CODPAIS" label="AD_CODPAIS" type="I" visible="true" useFooter="false"/>
+            </metadata>
+            <value-expression><![CDATA[<style>    body {        font-family: Arial, sans-serif;        line-height: 1.4;    }    .container {        width: 100%;        margin: 0 auto;    }    .card {        border: 1px solid #ccc;        border-radius: 10px;        padding: 10px;        margin-bottom: 10px;        position: relative;    }    .card .small-fields {        margin-bottom: 20px;    }    .card .large-fields {        margin-top: 20px;    }    .card h2 {        font-weight: bold;    }    .field-label {        font-weight: bold;    }</style><div class="card"><div><strong> Cód. Parc.: </strong>$CODPARC  - <strong> Parceiro: </strong>$RAZAOSOCIAL - <strong>Análise de Crédito:</strong>$CODANALISE</div><div><strong>Abertura Empresa:</strong>$ABEMPRESA - <strong>Data Consulta Serasa:</strong>$CONSERASA - <strong>Score:</strong>$SCORSERASA</div><div><strong>Observação Serasa:</strong></div><div>$OBSSERASA</div><div><strong>Ano DRE:</strong>$ANODRE - <strong>Rec. DRE:</strong>$RECDRE - <strong>Luc. DRE:</strong>$LUCDRE</div><div><strong>Dados IR:</strong></div><div>$DADOSIR</div><div><strong>Pretensão Compra:</strong>$PRETCOMPRA - <strong>Carta Fiança:</strong>$CATFIANCA</div><div><strong>Observações:</strong></div><div>$OBSERVACOES</div><div><strong>Parecer:</strong></div><div>$PARECER</div><div><strong>Ano Análise:</strong> - $ANOANALISE - <strong>Ano Fat.:</strong>$ANOFAT - <strong>Valor Fat.:</strong>$VALORFAT</div></div>]]></value-expression>
+            <on-click-launcher resource-id="br.com.sankhya.menu.adicional.AD_ANCREDITO">
+              <CODPARC>$CODPARC</CODPARC>
+              <CODANALISE>$CODANALISE</CODANALISE>
+            </on-click-launcher>
+          </simple-value>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_82xfow" description="Nivel1">
+    <args>
+      <arg id="A_CODPARC" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_82xfox" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT*FROM(SELECTFIN.CODPARC,PAR.CODPARCMATRIZ,PAR.RAZAOSOCIAL,FIN.NUFIN,FIN.NUNOTA,FIN.NUMNOTA,FIN.DTNEG,FIN.DTVENC,NVL(PAR.LIMCRED, 0) AS LIMCRED,FIN.VLRDESDOB  AS LIMCREDCONSUM,NVL(PAR.LIMCRED, 0) - FIN.VLRDESDOB AS LIMCREDISP,FIN.HISTORICO,FIN.CODEMP,EMP.NOMEFANTASIAFROM   TGFFIN FINLEFT JOIN TGFCAB CAB  ON FIN.NUNOTA = CAB.NUNOTAINNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARCINNER JOIN TSIEMP EMP ON FIN.CODEMP = EMP.CODEMPWHERE  	(CAB.STATUSNOTA = 'L' OR FIN.NUNOTA IS NULL)	AND PAR.CLIENTE = 'S'	AND PAR.ATIVO = 'S'		AND FIN.RECDESP = 1		AND FIN.DHBAIXA IS NULL)WHERECODPARCMATRIZ = :A_CODPARC]]></expression>
+        <metadata>
+          <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+          <field name="CODPARCMATRIZ" label="CODPARCMATRIZ" type="I" visible="false" useFooter="false"/>
+          <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="NUNOTA" label="NÚ. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="LIMCRED" label="Lim.Créd." type="F" visible="false" useFooter="SUM" mask="#.##0,00"/>
+          <field name="LIMCREDCONSUM" label="Lim.Cred.Cons." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="LIMCREDISP" label="Lim.Cred.Disp." type="F" visible="false" useFooter="SUM" mask="#.##0,00"/>
+          <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="Cód.Emp." type="I" visible="true" useFooter="false"/>
+          <field name="NOMEFANTASIA" label="Empresa" type="S" visible="true" useFooter="false"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+          <NUFIN>$NUFIN</NUFIN>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_82xfp3" description="Nivel2">
+    <args>
+      <arg id="A_CODPARC" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_82xfp4" entityName="Parceiro" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[  SELECT    1 AS A,    COALESCE(PAR.CODPARCMATRIZ, PAR.CODPARC) AS CODPARC,    COALESCE(PAR2.RAZAOSOCIAL, PAR.RAZAOSOCIAL) AS RAZAOSOCIAL,    FIN.CODTIPOPER,    FIN.NUFIN,    FIN.NUNOTA,    FIN.NUMNOTA,    FIN.DTVENC,    FIN.DHBAIXA,    CASE       WHEN FIN.DTVENC < SYSDATE AND DHBAIXA IS NULL THEN FIN.DTVENC - SYSDATE      WHEN (FIN.DTVENC - FIN.DHBAIXA) > 0 AND DHBAIXA IS NOT NULL THEN FIN.DTVENC - FIN.DHBAIXA      WHEN (FIN.DTVENC - FIN.DHBAIXA) < 0 AND DHBAIXA IS NOT NULL THEN FIN.DTVENC - FIN.DHBAIXA      WHEN (FIN.DTVENC - FIN.DHBAIXA) = 0 AND DHBAIXA IS NOT NULL THEN FIN.DTVENC - FIN.DHBAIXA    END AS DIAS_EM_ATRASO,    CASE       WHEN FIN.DTVENC < SYSDATE AND DHBAIXA IS NULL THEN 'Aberto Vencido'      WHEN (FIN.DTVENC - DHBAIXA) > 0 AND DHBAIXA IS NOT NULL THEN 'Antecipação'      WHEN (FIN.DTVENC - DHBAIXA) < 0 AND DHBAIXA IS NOT NULL THEN 'Pago em atraso'      WHEN (FIN.DTVENC - DHBAIXA) = 0 AND DHBAIXA IS NOT NULL THEN 'No dia'    END AS STATUS,    FIN.VLRDESDOB,    FIN.VLRBAIXA,    FIN.HISTORICO  FROM TGFFIN FIN   INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC  LEFT JOIN TGFPAR PAR2 ON PAR.CODPARCMATRIZ = PAR2.CODPARC  WHERE RECDESP = 1 AND PROVISAO = 'N' AND PAR.CLIENTE = 'S'    AND PAR.CODPARCMATRIZ = :A_CODPARC    AND (FIN.DHBAIXA IS NOT NULL OR FIN.DTVENC < TRUNC(SYSDATE))  UNION ALL  SELECT    1 AS A,    CAST(:A_CODPARC AS NUMBER) AS CODPARC,    CAST(NULL AS VARCHAR2(255)) AS RAZAOSOCIAL,    0 AS CODTIPOPER,    0 AS NUFIN,    0 AS NUNOTA,    0 AS NUMNOTA,    CAST(NULL AS DATE) AS DTVENC,    CAST(NULL AS DATE) AS DHBAIXA,    CAST(0 AS NUMBER) AS DIAS_EM_ATRASO,    CAST(NULL AS VARCHAR2(255)) AS STATUS,    0 AS VLRDESDOB,    0 AS VLRBAIXA,    CAST(NULL AS VARCHAR2(255)) AS HISTORICO  FROM DUAL  /* ESTE WHERE FOI FEITO PARA O REGISTRO ZERADO NAO APARECE QUANDO A PARTE DE CIMA DO UNION ALL APRESENTE REGISTRO, POIS INTERFERE NO CALCULO DA MEDIA*/  WHERE NOT EXISTS (    SELECT 1    FROM TGFFIN FIN     INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC    LEFT JOIN TGFPAR PAR2 ON PAR.CODPARCMATRIZ = PAR2.CODPARC    WHERE RECDESP = 1 AND PROVISAO = 'N' AND PAR.CLIENTE = 'S'      AND PAR.CODPARCMATRIZ = :A_CODPARC      AND (FIN.DHBAIXA IS NOT NULL OR FIN.DTVENC < TRUNC(SYSDATE))  )]]></expression>
+        <metadata>
+          <field name="A" label="A" type="F" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="CODPARC" type="I" visible="true" useFooter="false"/>
+          <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="CODTIPOPER" label="TOP" type="I" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="NUNOTA" label="NÚ. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro. Documento" type="I" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="DHBAIXA" label="Dt. Baixa" type="D" visible="true" useFooter="false"/>
+          <field name="DIAS_EM_ATRASO" label="Pontualidade" type="I" visible="true" useFooter="AVG" mask="#.##0"/>
+          <field name="STATUS" label="Status" type="S" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Vlr. Desdob." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>

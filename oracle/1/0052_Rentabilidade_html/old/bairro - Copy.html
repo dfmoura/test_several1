@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seleção de Localização</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            display: flex;
+            height: 100%;
+        }
+        .left-section, .right-section {
+            flex: 1;
+            padding: 20px;
+        }
+        .map {
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-section">
+            <h2>Seleção de Localização</h2>
+            <div class="form-group">
+                <label for="stateSelect">Estado:</label>
+                <select class="form-control" id="stateSelect">
+                    <option value="">Selecione um estado</option>
+                    <option value="sp">São Paulo</option>
+                    <option value="rj">Rio de Janeiro</option>
+                    <option value="mg">Minas Gerais</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="citySelect">Cidade:</label>
+                <select class="form-control" id="citySelect" disabled>
+                    <option value="">Selecione um estado primeiro</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="neighborhoodSelect">Bairro:</label>
+                <select class="form-control" id="neighborhoodSelect" disabled>
+                    <option value="">Selecione uma cidade primeiro</option>
+                </select>
+            </div>
+        </div>
+        <div class="right-section">
+            <h2>Mapa</h2>
+            <div id="map" class="map"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var stateSelect = document.getElementById('stateSelect');
+            var citySelect = document.getElementById('citySelect');
+            var neighborhoodSelect = document.getElementById('neighborhoodSelect');
+
+            var citiesByState = {
+                'sp': ['São Paulo', 'Campinas', 'Santos'],
+                'rj': ['Rio de Janeiro', 'Niterói', 'Petrópolis'],
+                'mg': ['Belo Horizonte', 'Uberlândia', 'Contagem']
+            };
+
+            var neighborhoodsByCity = {
+                'São Paulo': ['Centro', 'Zona Sul', 'Zona Leste'],
+                'Campinas': ['Centro', 'Barão Geraldo', 'Taquaral'],
+                'Santos': ['Gonzaga', 'Ponta da Praia', 'Embaré'],
+                'Rio de Janeiro': ['Copacabana', 'Barra da Tijuca', 'Ipanema'],
+                'Niterói': ['Icaraí', 'São Francisco', 'Centro'],
+                'Petrópolis': ['Centro', 'Quitandinha', 'Valparaíso'],
+                'Belo Horizonte': ['Savassi', 'Pampulha', 'Centro'],
+                'Uberlândia': ['Centro', 'Santa Mônica', 'Granja Marileusa'],
+                'Contagem': ['Eldorado', 'Industrial', 'Inconfidentes']
+            };
+
+            stateSelect.addEventListener('change', function () {
+                var selectedState = stateSelect.value;
+                citySelect.innerHTML = '<option value="">Selecione uma cidade</option>';
+                neighborhoodSelect.innerHTML = '<option value="">Selecione uma cidade primeiro</option>';
+                neighborhoodSelect.disabled = true;
+
+                if (selectedState) {
+                    citiesByState[selectedState].forEach(function (city) {
+                        var option = document.createElement('option');
+                        option.value = city;
+                        option.textContent = city;
+                        citySelect.appendChild(option);
+                    });
+                    citySelect.disabled = false;
+                } else {
+                    citySelect.disabled = true;
+                }
+            });
+
+            citySelect.addEventListener('change', function () {
+                var selectedCity = citySelect.value;
+                neighborhoodSelect.innerHTML = '<option value="">Selecione um bairro</option>';
+
+                if (selectedCity) {
+                    neighborhoodsByCity[selectedCity].forEach(function (neighborhood) {
+                        var option = document.createElement('option');
+                        option.value = neighborhood;
+                        option.textContent = neighborhood;
+                        neighborhoodSelect.appendChild(option);
+                    });
+                    neighborhoodSelect.disabled = false;
+                } else {
+                    neighborhoodSelect.disabled = true;
+                }
+            });
+
+            var map = L.map('map').setView([-23.55052, -46.633308], 10);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            neighborhoodSelect.addEventListener('change', function () {
+                var selectedCity = citySelect.value;
+
+                var coordinates = {
+                    'São Paulo': [-23.55052, -46.633308],
+                    'Campinas': [-22.909938, -47.062633],
+                    'Santos': [-23.953533, -46.334857],
+                    'Rio de Janeiro': [-22.906847, -43.172896],
+                    'Niterói': [-22.883053, -43.103961],
+                    'Petrópolis': [-22.519002, -43.192604],
+                    'Belo Horizonte': [-19.924501, -43.935973],
+                    'Uberlândia': [-18.911306, -48.275299],
+                    'Contagem': [-19.938682, -44.053229]
+                };
+
+                if (selectedCity) {
+                    map.setView(coordinates[selectedCity], 12);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela Estilizada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        caption {
+            caption-side: top;
+            font-size: 1.5em;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <table>
+        <caption>Tabela de Exemplo</caption>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Idade</th>
+                <th>Profissão</th>
+                <th>Cidade</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Ana</td>
+                <td>29</td>
+                <td>Engenheira</td>
+                <td>São Paulo</td>
+            </tr>
+            <tr>
+                <td>Bruno</td>
+                <td>34</td>
+                <td>Designer</td>
+                <td>Rio de Janeiro</td>
+            </tr>
+            <tr>
+                <td>Carla</td>
+                <td>41</td>
+                <td>Médica</td>
+                <td>Belo Horizonte</td>
+            </tr>
+            <tr>
+                <td>Daniel</td>
+                <td>23</td>
+                <td>Programador</td>
+                <td>Curitiba</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

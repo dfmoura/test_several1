@@ -1,0 +1,470 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Gestao_Documentos_cond1_cab2" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.024520183047606"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<style name="style1" mode="Opaque" fill="Solid"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\diogo\\OneDrive\\Documentos\\GitHub\\test_several\\ireport\\Gestao_Documentos\\"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+NUTIPDOCS,
+DOCUMENTO,
+SUM(A) AS A_AGUARDANDO,
+SUM(C) AS C_ConcluIdo,
+SUM(D) AS D_Dispensado,
+SUM(E) AS E_Deferido,
+SUM(G) AS G_Vigente,
+SUM(I) AS I_INDETERMINADO,
+SUM(N) AS N_INDEFERIDO,
+SUM(P) AS P_PENDENTE,
+SUM(S) AS S_SUSPENSO,
+SUM(V) AS V_VENCIDO,
+(SUM(A) + SUM(C) + SUM(D) + SUM(E) + SUM(G) + SUM(I) + SUM(N) + SUM(P) + SUM(S) + SUM(V)) AS TOTAL
+
+
+FROM(
+
+SELECT *
+FROM (
+  WITH DES AS (
+    SELECT OPC.VALOR, OPC.OPCAO
+    FROM tddcam CAM
+    INNER JOIN TDDOPC OPC ON CAM.NUCAMPO = OPC.NUCAMPO
+    WHERE CAM.NOMETAB = 'AD_GESTAODOCUM' AND CAM.NOMECAMPO = 'STATUS'
+  )
+  SELECT DISTINCT
+    DOC.CODCID,
+    CID.NOMECID,
+    DOC.CODEMP,
+    DOC.EMPRESA,
+    CUM.NUTIPDOCS,
+    TIP.DOCUMENTO,
+    CASE WHEN REC.DTVALIDADE < SYSDATE THEN 'VENCIDO' ELSE NULL END AS DTVALIDADE1,
+    MAX(REC.DTVALIDADE) AS DTVALIDADE,
+    REC.STATUS,
+    DES.OPCAO
+  FROM AD_GESTAODOC DOC
+  INNER JOIN AD_GESTAODOCUM CUM ON DOC.CODIGO = CUM.CODIGO
+  INNER JOIN AD_GESTAODOCUMREC REC ON CUM.CODIGO = REC.CODIGO AND CUM.NUMDOC = REC.NUMDOC
+  INNER JOIN AD_TIPDOCS TIP ON CUM.NUTIPDOCS = TIP.NUTIPDOCS
+  INNER JOIN TSICID CID ON DOC.CODCID = CID.CODCID
+  INNER JOIN DES ON REC.STATUS = DES.VALOR
+  WHERE
+(((SELECT MAX(REC.DTVALIDADE) FROM AD_GESTAODOCUMREC REC WHERE STATUS = 'E' AND CUM.CODIGO = REC.CODIGO AND CUM.NUMDOC = REC.NUMDOC) < SYSDATE AND REC.STATUS = 'E')
+OR (SELECT MAX(REC.DTVALIDADE) FROM AD_GESTAODOCUMREC REC WHERE CUM.CODIGO = REC.CODIGO AND CUM.NUMDOC = REC.NUMDOC) < SYSDATE)
+  GROUP BY
+    DOC.CODCID,
+    CID.NOMECID,
+    DOC.CODEMP,
+    DOC.EMPRESA,
+    CUM.NUTIPDOCS,
+    TIP.DOCUMENTO,
+    CASE WHEN REC.DTVALIDADE < SYSDATE THEN 'VENCIDO' ELSE NULL END,
+    REC.STATUS,
+    DES.OPCAO
+  ORDER BY 1, 3, 4
+)
+PIVOT (
+  COUNT(OPCAO) FOR STATUS IN ('A' AS A,'E' AS E,'C' AS C,'D' AS D, 'G' AS G, 'I' AS I, 'N' AS N, 'P' AS P, 'S' AS S, 'V' AS V)
+))
+
+GROUP BY NUTIPDOCS,DOCUMENTO]]>
+	</queryString>
+	<field name="NUTIPDOCS" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[NÚ.]]></fieldDescription>
+	</field>
+	<field name="DOCUMENTO" class="java.lang.String">
+		<fieldDescription><![CDATA[Documento]]></fieldDescription>
+	</field>
+	<field name="A_AGUARDANDO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A-Aguardando]]></fieldDescription>
+	</field>
+	<field name="C_CONCLUIDO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[C-Concluído]]></fieldDescription>
+	</field>
+	<field name="D_DISPENSADO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[D-Dispensado]]></fieldDescription>
+	</field>
+	<field name="E_DEFERIDO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[E-Deferido]]></fieldDescription>
+	</field>
+	<field name="G_VIGENTE" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[G-Vigente]]></fieldDescription>
+	</field>
+	<field name="I_INDETERMINADO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[I-Indeterminado]]></fieldDescription>
+	</field>
+	<field name="N_INDEFERIDO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[N-Indeferido]]></fieldDescription>
+	</field>
+	<field name="P_PENDENTE" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[P-Pendente]]></fieldDescription>
+	</field>
+	<field name="S_SUSPENSO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[S-Suspenso]]></fieldDescription>
+	</field>
+	<field name="V_VENCIDO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[V-Vencido]]></fieldDescription>
+	</field>
+	<field name="TOTAL" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Total]]></fieldDescription>
+	</field>
+	<variable name="A" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{A_AGUARDANDO}]]></variableExpression>
+	</variable>
+	<variable name="C" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{C_CONCLUIDO}]]></variableExpression>
+	</variable>
+	<variable name="D" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{D_DISPENSADO}]]></variableExpression>
+	</variable>
+	<variable name="E" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{E_DEFERIDO}]]></variableExpression>
+	</variable>
+	<variable name="G" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{G_VIGENTE}]]></variableExpression>
+	</variable>
+	<variable name="I" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{I_INDETERMINADO}]]></variableExpression>
+	</variable>
+	<variable name="N" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{N_INDEFERIDO}]]></variableExpression>
+	</variable>
+	<variable name="P" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{P_PENDENTE}]]></variableExpression>
+	</variable>
+	<variable name="S" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{S_SUSPENSO}]]></variableExpression>
+	</variable>
+	<variable name="V" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{V_VENCIDO}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{TOTAL}]]></variableExpression>
+	</variable>
+	<pageHeader>
+		<band height="80">
+			<staticText>
+				<reportElement positionType="Float" mode="Opaque" x="2" y="55" width="550" height="17" backcolor="#F0F0F0"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true" isItalic="false"/>
+				</textElement>
+				<text><![CDATA[CONSOLIDADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="3" y="4" width="549" height="48"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Condição 1 - Contém Documentos Vencidos
+	- Data de Validade Vencido  e documentos com status Deferido ou;
+	- Data de Validade Vencido;]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="18" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="16" height="15"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[NÚ.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="116" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="false"/>
+				</textElement>
+				<text><![CDATA[A-Aguardando]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="157" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="false"/>
+				</textElement>
+				<text><![CDATA[C-Concluído]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="198" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="false"/>
+				</textElement>
+				<text><![CDATA[D-Dispensado]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="239" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="false"/>
+				</textElement>
+				<text><![CDATA[E-Deferido]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="280" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="false"/>
+				</textElement>
+				<text><![CDATA[G-Vigente]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="321" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="false"/>
+				</textElement>
+				<text><![CDATA[I-Indeterminado]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="362" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="false"/>
+				</textElement>
+				<text><![CDATA[N-Indeferido]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="403" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="false"/>
+				</textElement>
+				<text><![CDATA[P-Pendente]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="444" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="false"/>
+				</textElement>
+				<text><![CDATA[S-Suspenso]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="485" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5" isBold="false"/>
+				</textElement>
+				<text><![CDATA[V-Vencido]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="525" y="0" width="29" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="16" y="0" width="100" height="15"/>
+				<textElement>
+					<font size="7" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Documento]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="16" width="554" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dotted"/>
+				</graphicElement>
+			</line>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="15">
+			<textField>
+				<reportElement x="0" y="0" width="16" height="15"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUTIPDOCS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="116" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_AGUARDANDO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="157" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{C_CONCLUIDO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="198" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{D_DISPENSADO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="239" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{E_DEFERIDO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="280" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{G_VIGENTE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="321" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{I_INDETERMINADO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="362" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{N_INDEFERIDO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="403" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{P_PENDENTE}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="444" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{S_SUSPENSO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="485" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{V_VENCIDO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="525" y="0" width="29" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{TOTAL}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="16" y="0" width="100" height="15"/>
+				<textElement>
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DOCUMENTO}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="149" splitType="Stretch">
+			<textField>
+				<reportElement x="116" y="5" width="40" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{A}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="157" y="5" width="40" height="12"/>
+				<textElement textAlignment="Center">
+					<font size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{C}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="198" y="5" width="40" height="12"/>
+				<textElement textAlignment="Center">
+					<font fontName="SansSerif" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{D}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="239" y="5" width="40" height="12"/>
+				<textElement textAlignment="Center">
+					<font fontName="SansSerif" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{E}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="280" y="5" width="40" height="12"/>
+				<textElement textAlignment="Center">
+					<font fontName="SansSerif" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{G}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="321" y="5" width="40" height="12"/>
+				<textElement textAlignment="Center">
+					<font fontName="SansSerif" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{I}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="362" y="5" width="40" height="12"/>
+				<textElement textAlignment="Center">
+					<font fontName="SansSerif" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{N}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="403" y="5" width="40" height="12"/>
+				<textElement textAlignment="Center">
+					<font fontName="SansSerif" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{P}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="444" y="5" width="40" height="12"/>
+				<textElement textAlignment="Center">
+					<font fontName="SansSerif" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{S}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="485" y="5" width="40" height="12"/>
+				<textElement textAlignment="Center">
+					<font fontName="SansSerif" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{V}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="525" y="5" width="29" height="12"/>
+				<textElement textAlignment="Center">
+					<font fontName="SansSerif" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TOTAL}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="5" width="115" height="12"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="2" width="554" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dotted"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement positionType="Float" mode="Opaque" x="0" y="22" width="554" height="17" backcolor="#F0F0F0"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true" isItalic="false"/>
+				</textElement>
+				<text><![CDATA[DETALHAMENTO]]></text>
+			</staticText>
+			<subreport>
+				<reportElement key="Gestao_Documentos_cond1_det" x="1" y="44" width="554" height="100"/>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Gestao_Documentos_cond1_det.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+	</summary>
+</jasperReport>

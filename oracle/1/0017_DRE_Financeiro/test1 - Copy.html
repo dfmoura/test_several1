@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree Component Example</title>
+    <style>
+        /* CSS for tree component */
+        .tree {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+
+        .tree li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+        }
+
+        .tree li:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -10px;
+            border-left: 1px solid #000;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <ul class="tree">
+        <li>010000 - MASTER
+            <ul>
+                <li>010100 - SON1</li>
+                <li>010200 - SON2</li>
+            </ul>
+        </li>
+        <li>020000 - VIDA
+            <ul>
+                <li>020100 - COMIDA1</li>
+                <ul>
+                    <li>020101 - TESTE1</li>
+                </ul>
+            </ul>
+        </li>
+    </ul>
+
+    <script>
+        // JavaScript for tree component
+        document.addEventListener("DOMContentLoaded", function () {
+            // Toggle children visibility
+            document.querySelectorAll('.tree li').forEach(function (node) {
+                if (node.querySelector('ul')) {
+                    node.classList.add('parent');
+                    node.querySelector('ul').style.display = 'none';
+                }
+                node.addEventListener('click', function () {
+                    this.classList.toggle('open');
+                    var childUl = this.querySelector('ul');
+                    if (childUl) {
+                        if (childUl.style.display === 'none') {
+                            childUl.style.display = 'block';
+                        } else {
+                            childUl.style.display = 'none';
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>

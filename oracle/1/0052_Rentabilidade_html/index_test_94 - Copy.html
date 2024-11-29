@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela com Filtros e Ordenação</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .table-wrapper {
+            max-width: 1200px; /* Aumente a largura máxima conforme necessário */
+            margin: 20px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-container {
+            margin: 10px;
+            text-align: center;
+        }
+
+        .table-container {
+            overflow-y: auto;
+            height: 600px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px; /* Reduz o tamanho da fonte da tabela */
+        }
+
+        th, td {
+            padding: 8px; /* Ajuste o padding se necessário */
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            cursor: pointer;
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        th.sort-asc::after {
+            content: " ▲";
+        }
+
+        th.sort-desc::after {
+            content: " ▼";
+        }
+
+        input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+            font-size: 14px; /* Ajusta o tamanho da fonte do campo de filtro */
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 0;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<div class="table-wrapper">
+    <h2>Detalhamento Motivo Devolução por Vendedor</h2>
+    <div class="filter-container">
+        <input type="text" id="tableFilter" placeholder="Digite para filtrar...">
+    </div>
+    <div class="table-container">
+        <table id="myTable">
+            <thead>
+            <tr>
+                <th onclick="sortTable(0)">Nome</th>
+                <th onclick="sortTable(1)">Idade</th>
+                <th onclick="sortTable(2)">País</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Maria</td>
+                <td>25</td>
+                <td>Brasil</td>
+            </tr>
+            <tr>
+                <td>João</td>
+                <td>30</td>
+                <td>Portugal</td>
+            </tr>
+            <tr>
+                <td>Ana</td>
+                <td>22</td>
+                <td>Angola</td>
+            </tr>
+            <tr>
+                <td>Pedro</td>
+                <td>35</td>
+                <td>Moçambique</td>
+            </tr>
+            <tr>
+                <td>Laura</td>
+                <td>28</td>
+                <td>Brasil</td>
+            </tr>
+            <tr>
+                <td>Carlos</td>
+                <td>40</td>
+                <td>Portugal</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.getElementById('tableFilter').addEventListener('keyup', function () {
+        const filter = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#myTable tbody tr');
+
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const match = Array.from(cells).some(cell => cell.textContent.toLowerCase().includes(filter));
+            row.style.display = match ? '' : 'none';
+        });
+    });
+
+    function sortTable(n) {
+        const table = document.getElementById("myTable");
+        let rows = Array.from(table.rows).slice(1);
+        const isAscending = table.querySelectorAll('th')[n].classList.toggle('sort-asc');
+
+        rows.sort((rowA, rowB) => {
+            const cellA = rowA.cells[n].textContent.trim().toLowerCase();
+            const cellB = rowB.cells[n].textContent.trim().toLowerCase();
+
+            if (!isNaN(cellA) && !isNaN(cellB)) {
+                return isAscending ? cellA - cellB : cellB - cellA;
+            }
+
+            return isAscending ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+        });
+
+        rows.forEach(row => table.appendChild(row));
+
+        Array.from(table.querySelectorAll('th')).forEach((th, index) => {
+            th.classList.remove('sort-asc', 'sort-desc');
+            if (index === n) {
+                th.classList.add(isAscending ? 'sort-asc' : 'sort-desc');
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

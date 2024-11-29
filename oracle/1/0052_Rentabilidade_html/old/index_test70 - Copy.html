@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfico de Barras com Plotly.js</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        #chart {
+            width: 80%;
+            max-width: 800px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div id="chart"></div>
+    <script>
+        var data = [
+            {
+                x: ['Produto A', 'Produto B', 'Produto C', 'Produto D', 'Produto E'],
+                y: [20, 14, 23, 25, 22],
+                type: 'bar',
+                marker: {
+                    color: 'rgba(55,128,191,0.7)',
+                    line: {
+                        color: 'rgba(55,128,191,1.0)',
+                        width: 2
+                    }
+                }
+            }
+        ];
+
+        var layout = {
+            //title: 'Vendas por Produto',
+            xaxis: {
+                //title: 'Produtos',
+                showticklabels: false
+
+                //tickangle: -45
+            },
+            yaxis: {
+                //title: 'Vendas'
+                showticklabels: false
+
+            },
+            margin: {
+                l: 50,
+                r: 50,
+                b: 100,
+                t: 50,
+                pad: 10
+            },
+            bargap: 0.05
+        };
+
+        Plotly.newPlot('chart', data, layout);
+    </script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gráficos de Barras Horizontais com Plotly.js</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css">
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        padding: 20px;
+    }
+    .chart-container {
+        flex: 1;
+        display: flex;
+        gap: 20px;
+    }
+    .chart {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1 class="text-center mb-4">Gráficos de Barras Horizontais com Plotly.js</h1>
+    <div class="chart-container">
+        <div id="produto-chart" class="chart"></div>
+        <div id="fornecedor-chart" class="chart"></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/plotly.js@2.5.1/dist/plotly.min.js"></script>
+<script>
+    // Dados fictícios de produtos com maior saving
+    const produtos = [
+        { nome: 'Produto A', saving: 500 },
+        { nome: 'Produto B', saving: 400 },
+        { nome: 'Produto C', saving: 300 },
+        { nome: 'Produto D', saving: 200 },
+        { nome: 'Produto E', saving: 100 }
+    ];
+
+    // Dados fictícios de fornecedores com maior saving
+    const fornecedores = [
+        { nome: 'Fornecedor X', saving: 800 },
+        { nome: 'Fornecedor Y', saving: 700 },
+        { nome: 'Fornecedor Z', saving: 600 },
+        { nome: 'Fornecedor W', saving: 500 },
+        { nome: 'Fornecedor V', saving: 400 }
+    ];
+
+    // Função para ordenar os dados por saving em ordem decrescente
+    function ordenarPorSaving(data) {
+        return data.sort((a, b) => b.saving - a.saving);
+    }
+
+    // Função para criar um gráfico de barras horizontais com Plotly.js
+    function criarGraficoBarrasHorizontal(idContainer, data, titulo) {
+        const sortedData = ordenarPorSaving(data);
+        const nomes = sortedData.map(item => item.nome);
+        const savings = sortedData.map(item => item.saving);
+
+        const trace = {
+            x: savings,
+            y: nomes,
+            type: 'bar',
+            orientation: 'h'
+        };
+
+        const layout = {
+            title: titulo,
+            margin: { t: 40, l: 150 },
+            xaxis: { title: 'Saving' },
+            yaxis: { automargin: true }
+        };
+
+        Plotly.newPlot(idContainer, [trace], layout);
+    }
+
+    // Chamando as funções para criar os gráficos
+    criarGraficoBarrasHorizontal('produto-chart', produtos, 'Produtos que tiveram maior saving');
+    criarGraficoBarrasHorizontal('fornecedor-chart', fornecedores, 'Fornecedores que tiveram maior saving');
+</script>
+</body>
+</html>

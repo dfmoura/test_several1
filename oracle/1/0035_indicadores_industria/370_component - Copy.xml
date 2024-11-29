@@ -1,0 +1,353 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_PERIODO" description="Periodo" metadata="datePeriod" required="false" keep-last="true" keep-date="false" order="0"/>
+    <parameter id="P_TIPO" description="Estoque Tipo" metadata="singleList:Text" listType="text" required="false" keep-last="true" keep-date="false" order="1">
+      <item value="1" label="1-Matéria Prima"/>
+      <item value="2" label="2-Embalagem"/>
+      <item value="3" label="3-Produto Acabado"/>
+      <item value="4" label="4-Produto Devolvido"/>
+    </parameter>
+    <parameter id="P_FRETE" description="Frete Compras" metadata="singleList:Text" listType="text" required="false" keep-last="true" keep-date="false" order="4">
+      <item value="1" label="1-Matéria Prima"/>
+      <item value="2" label="2-Embalagem"/>
+    </parameter>
+  </prompt-parameters>
+  <level id="lvl_a1il3lh" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="H" tamanhoRelativo="20">
+        <simple-value id="svl_a1il3t9">
+          <value-expression><![CDATA[<b><div style='text-align: center; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-size: 40px;'><img src='https://cdns.iconmonstr.com/wp-content/releases/preview/2017/96/iconmonstr-building-26.png' style='width: 50px; height: 50px; margin-right: 10px;' alt='Ícone'>INDICADORES INDUSTRIAIS</div></b>]]></value-expression>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="20">
+        <simple-value id="svl_a1il3su">
+          <value-expression><![CDATA[<b><div style='text-align: center; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-size: 40px;'><img src='https://cdns.iconmonstr.com/wp-content/releases/preview/2019/96/iconmonstr-product-10.png' style='width: 40px; height: 40px; margin-right: 10px;' alt='Ícone'>Valor de Estoque (R$)</div></b>]]></value-expression>
+          <on-click navigate-to="lvl_a1il3pr"/>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="20">
+        <simple-value id="svl_a1il3ss">
+          <value-expression><![CDATA[<b><div style='text-align: center; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-size: 40px;'><img src='https://cdns.iconmonstr.com/wp-content/releases/preview/2019/96/iconmonstr-product-9.png' style='width: 40px; height: 40px; margin-right: 10px;' alt='Ícone'>Produção - Planejado x Realizado</div></b>]]></value-expression>
+          <on-click navigate-to="lvl_a1il3s6"/>
+        </simple-value>
+      </container>
+      <container orientacao="H" tamanhoRelativo="20">
+        <simple-value id="svl_a1il3sq">
+          <value-expression><![CDATA[<b><div style='text-align: center; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-size: 40px;'><img src='https://cdns.iconmonstr.com/wp-content/releases/preview/2017/96/iconmonstr-delivery-3.png' style='width: 40px; height: 40px; margin-right: 10px;' alt='Ícone'>% Média frete (Entregas)</div></b>]]></value-expression>
+          <on-click navigate-to="lvl_a17fjyw"/>
+        </simple-value>
+      </container>
+      <container orientacao="V" tamanhoRelativo="20">
+        <simple-value id="svl_a1il3so">
+          <value-expression><![CDATA[<b><div style='text-align: center; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-size: 40px;'><img src='https://cdns.iconmonstr.com/wp-content/releases/preview/2017/96/iconmonstr-delivery-6.png' style='width: 40px; height: 40px; margin-right: 10px;' alt='Ícone'>% Média frete (Compras)</div></b>]]></value-expression>
+          <on-click navigate-to="lvl_a2u1h2d"/>
+        </simple-value>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_a1il3pr" description="Nivel1_Valor_Estoque">
+    <args>
+      <arg id="A_ULT_DIA_MES" type="date"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <chart id="cht_a1il3p7" type="column" nroColuna="12">
+        <title><![CDATA[<b style="font-size: 22px; border: 1px solid black; padding: 5px;">Valor de Estoque (R$)  - Tipo :P_TIPO</b>]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[WITH MET AS (SELECTCODIGO,ULT_DIA_MES, TIPO, F_DESCROPC('AD_METAINDUSTRIA','TIPO',TIPO) AS DESCRICAO, VALORFROM AD_METAINDUSTRIA WHERE    (:P_TIPO = 1 AND TIPO = 1) OR    (:P_TIPO = 2 AND TIPO = 2) OR    (:P_TIPO = 3 AND TIPO = 3) OR    (:P_TIPO = 4 AND TIPO = 4))SELECT    CASE     WHEN :P_TIPO = 1 THEN 'Matéria Prima'     WHEN :P_TIPO = 2 THEN 'Embalagem'     WHEN :P_TIPO = 3 THEN 'Produto Acabado'     WHEN :P_TIPO = 4 THEN 'Produto Devolvido'     END AS TIPO,    A.ULT_DIA_MES,    SUM(A.ESTOQUE) AS ESTOQUE,    SUM(A.custotal) AS custotal,    MAX(MET.VALOR) AS METAFROM (    WITH intervalo_datas AS (SELECT DISTINCT    LAST_DAY(ADD_MONTHS(:P_PERIODO.INI, LEVEL - 1)) AS ULT_DIA_MESFROM    dualCONNECT BY    ADD_MONTHS(:P_PERIODO.INI, LEVEL - 1) <= :P_PERIODO.FIN    )    SELECT         intervalo_datas.ult_dia_mes,        PRO.CODPROD,        PRO.DESCRPROD,        PRO.CODGRUPOPROD,        GRU.DESCRGRUPOPROD,        EST.CODEMP,        SUM(EST.ESTOQUE) - NVL((SELECT SUM(ITE.QTDNEG*ITE.ATUALESTOQUE)                                 FROM TGFITE ITE                                 WHERE ITE.RESERVA = 'N'                                     AND ITE.CODEMP = EST.CODEMP                                     AND ITE.CODPROD = EST.CODPROD                                     AND ITE.CODLOCALORIG = EST.CODLOCAL                                     AND ITE.CONTROLE = EST.CONTROLE                                     AND ITE.ATUALESTOQUE <> 0                                     AND ITE.NUNOTA IN (SELECT NUNOTA FROM TGFCAB WHERE DTNEG > intervalo_datas.ult_dia_mes)),0) AS ESTOQUE,        PRO.AD_QTDVOLLT,        EST.CODLOCAL,        LOC.DESCRLOCAL,        (SELECT CUS.CUSMEDICM          FROM TGFCUS CUS          WHERE CUS.CODEMP = EST.CODEMP              AND CUS.CODPROD = EST.CODPROD              AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL)                                 FROM TGFCUS C                                 WHERE C.CODEMP = CUS.CODEMP                                     AND C.CODPROD = CUS.CODPROD                                     AND C.DTATUAL <= intervalo_datas.ult_dia_mes)) AS CUSUNIT,        EST.CONTROLE AS LOTE,        (SUM(EST.ESTOQUE) - NVL((SELECT SUM(ITE.QTDNEG*ITE.ATUALESTOQUE)                                  FROM TGFITE ITE                                  WHERE ITE.RESERVA = 'N'                                      AND  EST.CODEMP = ITE.CODEMP                                      AND ITE.CODPROD = EST.CODPROD                                      AND ITE.CODLOCALORIG = EST.CODLOCAL                                      AND ITE.CONTROLE = EST.CONTROLE                                      AND ITE.ATUALESTOQUE <> 0                                      AND ITE.NUNOTA IN (SELECT NUNOTA FROM TGFCAB WHERE DTNEG > intervalo_datas.ult_dia_mes)),0)) *            (SELECT CUS.CUSMEDICM              FROM TGFCUS CUS              WHERE CUS.CODEMP = EST.CODEMP                  AND CUS.CODPROD = EST.CODPROD                  AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL)                                     FROM TGFCUS C                                     WHERE C.CODEMP = CUS.CODEMP                                         AND C.CODPROD = CUS.CODPROD                                         AND C.DTATUAL <= intervalo_datas.ult_dia_mes)) AS custotal    FROM         TGFEST EST    INNER JOIN         TGFPRO PRO ON EST.CODPROD = PRO.CODPROD    INNER JOIN         TGFLOC LOC ON EST.CODLOCAL = LOC.CODLOCAL    INNER JOIN         TGFGRU GRU ON GRU.CODGRUPOPROD = PRO.CODGRUPOPROD    CROSS JOIN         intervalo_datas    WHERE         EST.CODEMP = 1    GROUP BY         intervalo_datas.ult_dia_mes,         PRO.CODPROD,         PRO.DESCRPROD,        PRO.CODGRUPOPROD,        GRU.DESCRGRUPOPROD,         LOC.DESCRLOCAL,         EST.CONTROLE,         EST.CODLOCAL,        EST.CODPROD,         EST.CODEMP,         PRO.AD_QTDVOLLT) ALEFT JOIN MET ON A.ULT_DIA_MES = MET.ULT_DIA_MESWHERE     (:P_TIPO = 1 AND A.CODGRUPOPROD = 3010000) OR    (:P_TIPO = 2 AND A.CODGRUPOPROD = 3020000) OR    (:P_TIPO = 3 AND A.CODGRUPOPROD NOT IN (1020000) AND A.CODLOCAL IN (102,103)) OR    (:P_TIPO = 4 AND A.CODGRUPOPROD NOT IN (1020000) AND A.CODLOCAL IN (104))/*(A.CODGRUPOPROD IN :P_GRUPO) AND (A.CODLOCAL IN :P_LOCAL)*/GROUP BY A.ULT_DIA_MESORDER BY 2]]></expression>
+        <metadata>
+          <field name="TIPO" label="TIPO" type="S" visible="true" useFooter="false"/>
+          <field name="ULT_DIA_MES" label="Último Dia Mes" type="D" visible="true" useFooter="false"/>
+          <field name="ESTOQUE" label="Estoque" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          <field name="CUSTOTAL" label="Cus. Total" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          <field name="META" label="Meta" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+        </metadata>
+        <horizontal-axis>
+          <category field="ULT_DIA_MES" rotation="1" dropLabel="false">
+            <initView value="first"/>
+          </category>
+        </horizontal-axis>
+        <vertical-axis>
+          <linear resultRotation="1" vResizing="true">
+            <mask/>
+            <showStackLabels/>
+          </linear>
+        </vertical-axis>
+        <series>
+          <serie type="column">
+            <xField>ULT_DIA_MES</xField>
+            <yField>CUSTOTAL</yField>
+            <display><![CDATA[Vlr. Estoque]]></display>
+            <color>0xcc00</color>
+            <on-click navigate-to="lvl_a17fj5v">
+              <param id="A_ULT_DIA_MES">$ULT_DIA_MES</param>
+            </on-click>
+          </serie>
+          <serie type="line" circle-intersection="true">
+            <xField>$ULT_DIA_MES</xField>
+            <yField>$META</yField>
+            <display><![CDATA[Vlr. Meta]]></display>
+            <color>0xff3300</color>
+          </serie>
+        </series>
+        <legend position="top" direction="h"/>
+      </chart>
+    </container>
+  </level>
+  <level id="lvl_a1il3s6" description="Nivel2_Prod_PlanXReal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <chart id="cht_a1il3tp" type="column" nroColuna="6">
+        <title><![CDATA[<b style="font-size: 20px; border: 1px solid black; padding: 5px;">Produção - Planejado x Realizado  - Tipo :P_TIPO</b>]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[WITH MET AS (SELECTCODIGO,ULT_DIA_MES, TIPO, F_DESCROPC('AD_METAINDUSTRIA','TIPO',TIPO) AS DESCRICAO, VALORFROM AD_METAINDUSTRIA WHERE    (:P_TIPO = 1 AND TIPO = 1) OR    (:P_TIPO = 2 AND TIPO = 2) OR    (:P_TIPO = 3 AND TIPO = 3) OR    (:P_TIPO = 4 AND TIPO = 4))SELECT    CASE     WHEN :P_TIPO = 1 THEN 'Matéria Prima'     WHEN :P_TIPO = 2 THEN 'Embalagem'     WHEN :P_TIPO = 3 THEN 'Produto Acabado'     WHEN :P_TIPO = 4 THEN 'Produto Devolvido'     END AS TIPO,    A.ULT_DIA_MES,    SUM(A.ESTOQUE) AS ESTOQUE,    SUM(A.custotal) AS custotal,    MAX(MET.VALOR) AS METAFROM (    WITH intervalo_datas AS (SELECT DISTINCT    LAST_DAY(ADD_MONTHS(:P_PERIODO.INI, LEVEL - 1)) AS ULT_DIA_MESFROM    dualCONNECT BY    ADD_MONTHS(:P_PERIODO.INI, LEVEL - 1) <= :P_PERIODO.FIN    )    SELECT         intervalo_datas.ult_dia_mes,        PRO.CODPROD,        PRO.DESCRPROD,        PRO.CODGRUPOPROD,        GRU.DESCRGRUPOPROD,        EST.CODEMP,        SUM(EST.ESTOQUE) - NVL((SELECT SUM(ITE.QTDNEG*ITE.ATUALESTOQUE)                                 FROM TGFITE ITE                                 WHERE ITE.RESERVA = 'N'                                     AND ITE.CODEMP = EST.CODEMP                                     AND ITE.CODPROD = EST.CODPROD                                     AND ITE.CODLOCALORIG = EST.CODLOCAL                                     AND ITE.CONTROLE = EST.CONTROLE                                     AND ITE.ATUALESTOQUE <> 0                                     AND ITE.NUNOTA IN (SELECT NUNOTA FROM TGFCAB WHERE DTNEG > intervalo_datas.ult_dia_mes)),0) AS ESTOQUE,        PRO.AD_QTDVOLLT,        EST.CODLOCAL,        LOC.DESCRLOCAL,        (SELECT CUS.CUSMEDICM          FROM TGFCUS CUS          WHERE CUS.CODEMP = EST.CODEMP              AND CUS.CODPROD = EST.CODPROD              AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL)                                 FROM TGFCUS C                                 WHERE C.CODEMP = CUS.CODEMP                                     AND C.CODPROD = CUS.CODPROD                                     AND C.DTATUAL <= intervalo_datas.ult_dia_mes)) AS CUSUNIT,        EST.CONTROLE AS LOTE,        (SUM(EST.ESTOQUE) - NVL((SELECT SUM(ITE.QTDNEG*ITE.ATUALESTOQUE)                                  FROM TGFITE ITE                                  WHERE ITE.RESERVA = 'N'                                      AND  EST.CODEMP = ITE.CODEMP                                      AND ITE.CODPROD = EST.CODPROD                                      AND ITE.CODLOCALORIG = EST.CODLOCAL                                      AND ITE.CONTROLE = EST.CONTROLE                                      AND ITE.ATUALESTOQUE <> 0                                      AND ITE.NUNOTA IN (SELECT NUNOTA FROM TGFCAB WHERE DTNEG > intervalo_datas.ult_dia_mes)),0)) *            (SELECT CUS.CUSMEDICM              FROM TGFCUS CUS              WHERE CUS.CODEMP = EST.CODEMP                  AND CUS.CODPROD = EST.CODPROD                  AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL)                                     FROM TGFCUS C                                     WHERE C.CODEMP = CUS.CODEMP                                         AND C.CODPROD = CUS.CODPROD                                         AND C.DTATUAL <= intervalo_datas.ult_dia_mes)) AS custotal    FROM         TGFEST EST    INNER JOIN         TGFPRO PRO ON EST.CODPROD = PRO.CODPROD    INNER JOIN         TGFLOC LOC ON EST.CODLOCAL = LOC.CODLOCAL    INNER JOIN         TGFGRU GRU ON GRU.CODGRUPOPROD = PRO.CODGRUPOPROD    CROSS JOIN         intervalo_datas    WHERE         EST.CODEMP = 1    GROUP BY         intervalo_datas.ult_dia_mes,         PRO.CODPROD,         PRO.DESCRPROD,        PRO.CODGRUPOPROD,        GRU.DESCRGRUPOPROD,         LOC.DESCRLOCAL,         EST.CONTROLE,         EST.CODLOCAL,        EST.CODPROD,         EST.CODEMP,         PRO.AD_QTDVOLLT) ALEFT JOIN MET ON A.ULT_DIA_MES = MET.ULT_DIA_MESWHERE     (:P_TIPO = 1 AND A.CODGRUPOPROD = 3010000) OR    (:P_TIPO = 2 AND A.CODGRUPOPROD = 3020000) OR    (:P_TIPO = 3 AND A.CODGRUPOPROD NOT IN (1020000) AND A.CODLOCAL IN (102,103)) OR    (:P_TIPO = 4 AND A.CODGRUPOPROD NOT IN (1020000) AND A.CODLOCAL IN (104))/*(A.CODGRUPOPROD IN :P_GRUPO) AND (A.CODLOCAL IN :P_LOCAL)*/GROUP BY A.ULT_DIA_MESORDER BY 2]]></expression>
+        <metadata>
+          <field name="TIPO" label="Tipo" type="S" visible="true" useFooter="false"/>
+          <field name="ULT_DIA_MES" label="Último Dia" type="D" visible="true" useFooter="false"/>
+          <field name="ESTOQUE" label="Estoque" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          <field name="CUSTOTAL" label="Cus. Total" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          <field name="META" label="Meta" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+        </metadata>
+        <horizontal-axis>
+          <category field="" rotation="-1" dropLabel="false">
+            <initView value="first"/>
+          </category>
+        </horizontal-axis>
+        <vertical-axis>
+          <linear resultRotation="2" vResizing="true">
+            <mask/>
+            <showStackLabels/>
+          </linear>
+        </vertical-axis>
+        <series>
+          <serie type="column">
+            <xField>ULT_DIA_MES</xField>
+            <yField>ESTOQUE</yField>
+            <display><![CDATA[Qtd. Estoque]]></display>
+            <color>0xff9900</color>
+            <on-click navigate-to="lvl_a17fj5w">
+              <param id="A_ULT_DIA_MES">$ULT_DIA_MES</param>
+            </on-click>
+          </serie>
+          <serie type="line" circle-intersection="true">
+            <xField>ULT_DIA_MES</xField>
+            <yField>META</yField>
+            <display><![CDATA[Qtd. Meta]]></display>
+            <color>0xff0000</color>
+          </serie>
+        </series>
+      </chart>
+    </container>
+  </level>
+  <level id="lvl_a17fjyw" description="Media_frete">
+    <args>
+      <arg id="A_MES_ANO" type="text"/>
+    </args>
+    <container orientacao="H" tamanhoRelativo="100">
+      <chart id="cht_a17fjyy" type="column" nroColuna="12">
+        <title><![CDATA[<b style="font-size: 20px; border: 1px solid black; padding: 5px;">% Média frete (Entregas)</b>]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[WITH MET AS(SELECTCODIGO,ULT_DIA_MES, TIPO, F_DESCROPC('AD_METAINDUSTRIA','TIPO',TIPO) AS DESCRICAO, VALORFROM AD_METAINDUSTRIA WHERETIPO = 9 AND ULT_DIA_MES BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)SELECTA.ULT_DIA_MES,A.ANO,A.MES,A.MES_ANO,A.PERC,A.VLRFRETE,A.VLRNOTA,MET.VALORFROM(SELECTLAST_DAY(HORASAIDA) AS ULT_DIA_MES,TO_CHAR(HORASAIDA,'YYYY') AS ANO,TO_CHAR(HORASAIDA,'MM') AS MES,TO_CHAR(HORASAIDA,'MM-YYYY') AS MES_ANO,SUM(VLRFRETE) / NULLIF(SUM(AD_TOTALNOTA), 0) * 100 AS PERC,SUM(VLRFRETE) AS VLRFRETE,SUM(AD_TOTALNOTA) AS VLRNOTAFROM(SELECTCODEMP,CODPARCTRANSP,CODEMP,COALESCE(HORASAIDA,DTALTER) AS HORASAIDA,VLRFRETE,AD_TOTALNOTA,VLRFRETE / NULLIF(AD_TOTALNOTA,0) *100 AS PERCFROM( SELECT TGFORD.AD_ADIANTCOMB                                         AS AD_ADIANTCOMB,       TGFORD.AD_ADIANTVIA                                           AS AD_ADIANTVIA,       1                                                             AS AD_ANEXO,       TGFORD.AD_CHAPA                                               AS AD_CHAPA,       TGFORD.AD_CIOT                                                AS AD_CIOT,       TGFORD.AD_CODEMPCARR                                          AS AD_CODEMPCARR,       TGFORD.AD_CODFORM                                             AS AD_CODFORM,       TGFORD.AD_CODUSU                                              AS AD_CODUSU,       TGFORD.AD_CODUSUALTER                                         AS AD_CODUSUALTER,       TGFORD.AD_COMBUSTIVEL                                         AS AD_COMBUSTIVEL,       TGFORD.AD_DTAALTER                                            AS AD_DTAALTER,       TGFORD.AD_DTCOLETAPREV                                        AS AD_DTCOLETAPREV,       TGFORD.AD_DTINCLUSAO                                          AS AD_DTINCLUSAO,       TGFORD.AD_DTVENCFRETE                                         AS AD_DTVENCFRETE,       TGFORD.AD_ENTREGABISEGURADA                                   AS AD_ENTREGABISEGURADA,       TGFORD.AD_FRETEADIANTCOMB                                     AS AD_FRETEADIANTCOMB,       TGFORD.AD_FRETEPEDCHAPA                                       AS AD_FRETEPEDCHAPA,       TGFORD.AD_KMFINAL                                             AS AD_KMFINAL,       TGFORD.AD_KMINICIAL                                           AS AD_KMINICIAL,       TGFORD.AD_NUFIN                                               AS AD_NUFIN,       TGFORD.AD_NUNOTAPEDCOMP                                       AS AD_NUNOTAPEDCOMP,       TGFORD.AD_PEDAGIO                                             AS AD_PEDAGIO,       TGFORD.AD_PEDCHAPA                                            AS AD_PEDCHAPA,       TGFORD.AD_TAMCARROCERIA                                       AS AD_TAMCARROCERIA,       TGFORD.AD_TIPCARROCERIA                                       AS AD_TIPCARROCERIA,       TGFORD.AD_TIPOC                                               AS AD_TIPOC,       TGFORD.AD_TIPVEICULO                                          AS AD_TIPVEICULO,       TGFORD.AD_TOTKM                                               AS AD_TOTKM,       TGFORD.AD_TOTRECEBER                                          AS AD_TOTRECEBER,       TGFORD.AD_VLRFRETE                                            AS AD_VLRFRETE,       TGFORD.AD_VLRFRETEINICIAL                                     AS AD_VLRFRETEINICIAL,       TGFORD.AD_VLRKM                                               AS AD_VLRKM,       TGFORD.CODDOCA                                                AS CODDOCA,       TGFORD.CODEMP                                                 AS CODEMP,       TGFORD.CODEMPPAI                                              AS CODEMPPAI,       TGFORD.CODLOCAL                                               AS CODLOCAL,       TGFORD.CODPARCDEST                                            AS CODPARCDEST,       TGFORD.CODPARCMOTORISTA                                       AS CODPARCMOTORISTA,       TGFORD.CODPARCORIG                                            AS CODPARCORIG,       TGFORD.CODPARCTRANSP                                          AS CODPARCTRANSP,       TGFORD.CODREG                                                 AS CODREG,       TGFORD.CODROTA                                                AS CODROTA,       TGFORD.CODTIPOPERTRANSB                                       AS CODTIPOPERTRANSB,       TGFORD.CODUSU                                                 AS CODUSU,       TGFORD.CODUSURETORNO                                          AS CODUSURETORNO,       TGFORD.CODVEICULO                                             AS CODVEICULO,       TGFORD.DHFINALPESAGEM                                         AS DHFINALPESAGEM,       TGFORD.DHINICIALPESAGEM                                       AS DHINICIALPESAGEM,       TGFORD.DTALTER                                                AS DTALTER,       TGFORD.DTALTERROTCAT                                          AS DTALTERROTCAT,       TGFORD.DTINIC                                                 AS DTINIC,       TGFORD.DTPREVSAIDA                                            AS DTPREVSAIDA,       TGFORD.DTRETORNO                                              AS DTRETORNO,       TGFORD.ENTSAI                                                 AS ENTSAI,       TGFORD.ENVIOWMS                                               AS ENVIOWMS,       TGFORD.FRETECALC                                              AS FRETECALC,       TGFORD.HORASAIDA                                              AS HORASAIDA,       TGFORD.IDORDEMCARGA                                           AS IDORDEMCARGA,       TGFORD.JUSTIFICATIVA                                          AS JUSTIFICATIVA,       TGFORD.KMFIN                                                  AS KMFIN,       TGFORD.KMINIC                                                 AS KMINIC,       TGFORD.M3MAX                                                  AS M3MAX,       TGFORD.NROFROTA                                               AS NROFROTA,       TGFORD.NUCAIXA                                                AS NUCAIXA,       TGFORD.NUFINACERTO                                            AS NUFINACERTO,       TGFORD.NUVIAG                                                 AS NUVIAG,       TGFORD.OBSMOTORISTA                                           AS OBSMOTORISTA,       TGFORD.ORDEMCARGA                                             AS ORDEMCARGA,       TGFORD.ORDEMCARGAPAI                                          AS ORDEMCARGAPAI,       TGFORD.PESOMAX                                                AS PESOMAX,       TGFORD.PRIORIDADE                                             AS PRIORIDADE,       TGFORD.QTDENTREGA                                             AS QTDENTREGA,       TGFORD.ROTEIRO                                                AS ROTEIRO,       TGFORD.SEQCARGA                                               AS SEQCARGA,       TGFORD.SITUACAO                                               AS SITUACAO,       TGFORD.STATUSAVAL                                             AS STATUSAVAL,       TGFORD.TEMTRANSBORDO                                          AS TEMTRANSBORDO,       TGFORD.TIPCALCFRETE                                           AS TIPCALCFRETE,       TGFORD.TIPCARGA                                               AS TIPCARGA,       TGFORD.TIPDIST                                                AS TIPDIST,       TGFORD.TIPEMBALAGEM                                           AS TIPEMBALAGEM,       TGFORD.VINCROT                                                AS VINCROT,       TGFORD.VLRDIFACERTO                                           AS VLRDIFACERTO,       TGFORD.VLRFRETE                                               AS VLRFRETE       ,       (SELECT ROUND(MAX(NVL(ORD.VLRFRETE, 0)) * 100 /               SUM(CAB.VLRNOTA), 2)        FROM   TGFCAB CAB               INNER JOIN TGFTOP TOP                       ON CAB.CODTIPOPER = TOP.CODTIPOPER                          AND CAB.DHTIPOPER = TOP.DHALTER               INNER JOIN TGFORD ORD                       ON ( CAB.ORDEMCARGA = ORD.ORDEMCARGA )        WHERE  CAB.VLRNOTA > 0               AND TGFORD.VLRFRETE > 0               AND TOP.CODTIPOPER = ANY ( '1101', '1103', '1106', '1112', '1181'                                        )               AND CAB.ORDEMCARGA = TGFORD.ORDEMCARGA)               AS AD_PERCENTUALFRETE,       (SELECT COUNT(NUNOTA)        FROM   TGFCAB        WHERE  ORDEMCARGA = TGFORD.ORDEMCARGA               AND TIPMOV = 'V')                                     AS AD_QTDNOTASV,       (SELECT COUNT(NUNOTA)        FROM   TGFCAB        WHERE  ORDEMCARGA = TGFORD.ORDEMCARGA               AND TIPMOV = 'P'               AND CODTIPOPER NOT IN ( 10001, 10002, 10003, 10004,                                       10005, 10006, 10007, 10008 )) AS AD_QTDPEDIDOS,       (SELECT ( SUM(VLRFRETE * 100 / (SELECT SUM(VLRNOTA)                                       FROM   TGFCAB                                       WHERE  TIPMOV = 'V'                                              AND ORDEMCARGA = TGFORD.ORDEMCARGA                                              AND CODEMP = TGFORD.CODEMP)) )        FROM   TGFORD)                                               AS AD_REPREFRETE,       (( CASE            WHEN (SELECT COUNT(*)                  FROM   AD_APONTLOTE L                  WHERE  L.CODEMP = TGFORD.CODEMP                         AND L.ORDEMCARGA = TGFORD.ORDEMCARGA) = 0 THEN '0'            WHEN (SELECT COUNT(*)                  FROM   AD_APONTLOTE L                  WHERE  L.CODEMP = TGFORD.CODEMP                         AND L.ORDEMCARGA = TGFORD.ORDEMCARGA                         AND L.STATUS = 'A') > 0 THEN '1'            ELSE '2'          END ))                                                     AS       AD_STATUSCONF,       (SELECT SUM(VLRNOTA)        FROM   TGFCAB               INNER JOIN TGFTOP TOP                       ON TGFCAB.CODTIPOPER = TOP.CODTIPOPER                          AND TGFCAB.DHTIPOPER = TOP.DHALTER        WHERE  ORDEMCARGA = TGFORD.ORDEMCARGA               AND TOP.CODTIPOPER = ANY ( '1101', '1103', '1106', '1181', '1112'                                        )               AND CODEMP = TGFORD.CODEMP)                           AS AD_TOTALNOTA,       ( TGFORD.AD_VLRFRETEINICIAL - TGFORD.VLRFRETE )               AS AD_VLRSAVAING,       AD_FORMSATIS.DESCRICAO                                        AS l0_DESCRICAO,       DOCA.DESCRICAO                                                AS l1_DESCRICAO,       EMPRESA.NOMEFANTASIA                                          AS l2_NOMEFANTASIA,       EMPRESA_AD001.NOMEFANTASIA                                    AS l3_NOMEFANTASIA,       LOCALFINANCEIRO.DESCRLOCAL                                    AS l4_DESCRLOCAL,       MOTORISTA.NOMEPARC                                            AS l5_NOMEPARC,       PARCEIRODESTINO.NOMEPARC                                      AS l6_NOMEPARC,       PARCEIROORIGEM.NOMEPARC                                       AS l7_NOMEPARC,       REGIAO.NOMEREG                                                AS l8_NOMEREG,       ROTA.DESCRROTA                                                AS l9_DESCRROTA,       TIPOOPERACAO.DESCROPER                                        AS l10_DESCROPER,       TRANSPORTADORA.NOMEPARC                                       AS l11_NOMEPARC,       USUARIO.NOMEUSU                                               AS l12_NOMEUSU,       USUARIO_AD001.NOMEUSU                                         AS l13_NOMEUSU,       VEICULO.PLACA                                                 AS l14_PLACAFROM   TGFORD       LEFT JOIN (SELECT CODFORM,                         DESCRICAO                  FROM   AD_FORMSATIS) AD_FORMSATIS              ON( TGFORD.AD_CODFORM = AD_FORMSATIS.CODFORM )       LEFT JOIN (SELECT DESCRICAO,                         CODDOCA                  FROM   TGWDCA) DOCA              ON( TGFORD.CODDOCA = DOCA.CODDOCA )       LEFT JOIN (SELECT NOMEFANTASIA,                         CODEMP                  FROM   TSIEMP) EMPRESA              ON( TGFORD.CODEMP = EMPRESA.CODEMP )       LEFT JOIN (SELECT NOMEFANTASIA,                         CODEMP                  FROM   TSIEMP) EMPRESA_AD001              ON( TGFORD.AD_CODEMPCARR = EMPRESA_AD001.CODEMP )       LEFT JOIN (SELECT DESCRLOCAL,                         CODLOCAL                  FROM   TGFLOC) LOCALFINANCEIRO              ON( TGFORD.CODLOCAL = LOCALFINANCEIRO.CODLOCAL )       LEFT JOIN (SELECT NOMEPARC,                         CODPARC                  FROM   TGFPAR) MOTORISTA              ON( TGFORD.CODPARCMOTORISTA = MOTORISTA.CODPARC )       LEFT JOIN (SELECT NOMEPARC,                         CODPARC                  FROM   TGFPAR) PARCEIRODESTINO              ON( TGFORD.CODPARCDEST = PARCEIRODESTINO.CODPARC )       LEFT JOIN (SELECT NOMEPARC,                         CODPARC                  FROM   TGFPAR) PARCEIROORIGEM              ON( TGFORD.CODPARCORIG = PARCEIROORIGEM.CODPARC )       LEFT JOIN (SELECT CODREG,                         NOMEREG                  FROM   TSIREG) REGIAO              ON( TGFORD.CODREG = REGIAO.CODREG )       LEFT JOIN (SELECT CODROTA,                         DESCRROTA                  FROM   TGFROT) ROTA              ON( TGFORD.CODROTA = ROTA.CODROTA )       LEFT JOIN (SELECT X.CODTIPOPER,                         X.DHALTER,                         X.DESCROPER                  FROM   TGFTOP X                  WHERE  X.DHALTER = (SELECT MAX(Y.DHALTER)                                      FROM   TGFTOP Y                                      WHERE  Y.CODTIPOPER = X.CODTIPOPER                                             AND ( Y.DHALTER = (SELECT                                                   MAX(TOP2.DHALTER)                                                                FROM   TGFTOP                                                               TOP2                                                                WHERE                                                   TOP2.CODTIPOPER =                                                   Y.CODTIPOPER                                                   AND TOP2.ATIVO = 'S') )))                                                            TIPOOPERACAO              ON( TGFORD.CODTIPOPERTRANSB = TIPOOPERACAO.CODTIPOPER )       LEFT JOIN (SELECT NOMEPARC,                         CODPARC                  FROM   TGFPAR) TRANSPORTADORA              ON( TGFORD.CODPARCTRANSP = TRANSPORTADORA.CODPARC )       LEFT JOIN (SELECT CODUSU,                         NOMEUSU                  FROM   TSIUSU) USUARIO              ON( TGFORD.AD_CODUSU = USUARIO.CODUSU )       LEFT JOIN (SELECT CODUSU,                         NOMEUSU                  FROM   TSIUSU) USUARIO_AD001              ON( TGFORD.AD_CODUSUALTER = USUARIO_AD001.CODUSU )       LEFT JOIN (SELECT CODVEICULO,                         PLACA                  FROM   TGFVEI) VEICULO              ON( TGFORD.CODVEICULO = VEICULO.CODVEICULO )WHERE  (((( TGFORD.CODEMP = 1            AND TGFORD.CODPARCTRANSP <> 1            )/*O LOG PEGOU MEU FILTRO PERSONALIZADO MAS MAS REFIZ ABAIX PARA GARANTIR E ACRESCENTE O VLRNOTA DA CAB QUE TRAZER NULL OU ZERO DESCONSIDERAR*/))) )WHERE CODPARCTRANSP <> 1 AND CODEMP = 1AND COALESCE(HORASAIDA,DTALTER) BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)GROUP BYLAST_DAY(HORASAIDA),TO_CHAR(HORASAIDA,'YYYY'),TO_CHAR(HORASAIDA,'MM'),TO_CHAR(HORASAIDA,'MM-YYYY'))ALEFT JOIN MET ON A.ULT_DIA_MES = MET.ULT_DIA_MESORDER BY 2,3]]></expression>
+        <metadata>
+          <field name="ULT_DIA_MES" label="ULT_DIA_MES" type="D" visible="true" useFooter="false"/>
+          <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+          <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+          <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+          <field name="PERC" label="%" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          <field name="VLRFRETE" label="Vlr. Frete" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          <field name="VLRNOTA" label="VLRNOTA" type="F" visible="true" useFooter="false"/>
+          <field name="VALOR" label="VALOR" type="F" visible="true" useFooter="false"/>
+        </metadata>
+        <horizontal-axis>
+          <category field="" rotation="-1" dropLabel="false">
+            <initView value="first"/>
+          </category>
+        </horizontal-axis>
+        <vertical-axis>
+          <linear resultRotation="1" vResizing="true">
+            <mask/>
+            <showStackLabels/>
+          </linear>
+        </vertical-axis>
+        <series>
+          <serie type="column">
+            <xField>MES_ANO</xField>
+            <yField>PERC</yField>
+            <display><![CDATA[Media % Frete / Nota]]></display>
+            <color>0xcc00</color>
+            <on-click navigate-to="lvl_a17fj5x">
+              <param id="A_MES_ANO">$MES_ANO</param>
+            </on-click>
+          </serie>
+          <serie type="line" circle-intersection="true">
+            <xField>MES_ANO</xField>
+            <yField>VALOR</yField>
+            <display><![CDATA[Média % Meta]]></display>
+            <color>0xff0000</color>
+          </serie>
+        </series>
+      </chart>
+    </container>
+  </level>
+  <level id="lvl_a2u1h2d" description="Media_Frete_Compra">
+    <args>
+      <arg id="A_MES_ANO" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <chart id="cht_a2u1h2f" type="column" nroColuna="12">
+        <title><![CDATA[<b style="font-size: 20px; border: 1px solid black; padding: 5px;">% Média frete (COMPRA)</b>]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[WITH MET AS(SELECTCODIGO,ULT_DIA_MES, TIPO, F_DESCROPC('AD_METAINDUSTRIA','TIPO',TIPO) AS DESCRICAO, VALORFROM AD_METAINDUSTRIA WHERE((:P_FRETE = 1 AND TIPO = 10) OR (:P_FRETE = 2 AND TIPO = 11)) AND ULT_DIA_MES BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)SELECTA.ULT_DIA_MES,A.ANO,A.MES,A.MES_ANO,A.PERC,A.VLRFRETE,A.VLRNOTA,MET.VALORFROM(SELECTLAST_DAY(CAB.DTNEG) AS ULT_DIA_MES,TO_CHAR(CAB.DTNEG,'YYYY') AS ANO,TO_CHAR(CAB.DTNEG,'MM') AS MES,TO_CHAR(CAB.DTNEG,'MM-YYYY') AS MES_ANO,SUM(VLRFRETE) AS VLRFRETE,SUM(VLRNOTA) AS VLRNOTA,(SUM(VLRFRETE) / NULLIF(SUM(VLRNOTA), 0)) * 100 AS PERCFROM TGFCAB CABINNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCINNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMPWHERE ((:P_FRETE = 1 AND CAB.CODNAT = 2020101 AND CAB.CODCENCUS = 402000000) OR(:P_FRETE = 2 AND CAB.CODNAT IN (2020601,2020602) AND CAB.CODCENCUS = 402000000))AND CAB.TIPMOV IN ('C')AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.CODEMP = 1GROUP BYLAST_DAY(CAB.DTNEG),TO_CHAR(CAB.DTNEG,'YYYY'),TO_CHAR(CAB.DTNEG,'MM'),TO_CHAR(CAB.DTNEG,'MM-YYYY'))ALEFT JOIN MET ON A.ULT_DIA_MES = MET.ULT_DIA_MESORDER BY 2,3]]></expression>
+        <metadata>
+          <field name="ULT_DIA_MES" label="ULT_DIA_MES" type="D" visible="true" useFooter="false"/>
+          <field name="ANO" label="ANO" type="S" visible="true" useFooter="false"/>
+          <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+          <field name="MES_ANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+          <field name="PERC" label="% Frete/Nota" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          <field name="VLRFRETE" label="VLRFRETE" type="I" visible="true" useFooter="false"/>
+          <field name="VLRNOTA" label="VLRNOTA" type="I" visible="true" useFooter="false"/>
+          <field name="VALOR" label="% Meta" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+        </metadata>
+        <vertical-axis>
+          <linear resultRotation="1" vResizing="true">
+            <mask/>
+            <showStackLabels/>
+          </linear>
+        </vertical-axis>
+        <series>
+          <serie type="column">
+            <xField>$MES_ANO</xField>
+            <yField>$PERC</yField>
+            <display><![CDATA[% Media Frete/Nota ]]></display>
+            <color>0x33cc00</color>
+            <on-click navigate-to="lvl_a2u1h4s">
+              <param id="A_MES_ANO">$MES_ANO</param>
+            </on-click>
+          </serie>
+          <serie type="line" circle-intersection="true">
+            <xField>MES_ANO</xField>
+            <yField>VALOR</yField>
+            <display><![CDATA[% Media Meta]]></display>
+            <color>0xff0000</color>
+          </serie>
+        </series>
+      </chart>
+    </container>
+  </level>
+  <level id="lvl_a17fj5v" description="Det_Valor_Estoque">
+    <args>
+      <arg id="A_ULT_DIA_MES" type="date"/>
+    </args>
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="278">
+        <grid id="grd_a17fkar" entityName="AD_METAINDUSTRIA" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[    SELECT         :A_ULT_DIA_MES AS ULT_DIA_MES,        PRO.CODPROD,        PRO.DESCRPROD,        PRO.CODGRUPOPROD,        GRU.DESCRGRUPOPROD,        EST.CODEMP,        SUM(EST.ESTOQUE) - NVL((SELECT SUM(ITE.QTDNEG*ITE.ATUALESTOQUE)                                 FROM TGFITE ITE                                 WHERE ITE.RESERVA = 'N'                                     AND ITE.CODEMP = EST.CODEMP                                     AND ITE.CODPROD = EST.CODPROD                                     AND ITE.CODLOCALORIG = EST.CODLOCAL                                     AND ITE.CONTROLE = EST.CONTROLE                                     AND ITE.ATUALESTOQUE <> 0                                     AND ITE.NUNOTA IN (SELECT NUNOTA FROM TGFCAB WHERE DTNEG > :A_ULT_DIA_MES)),0) AS ESTOQUE,        PRO.AD_QTDVOLLT,        EST.CODLOCAL,        LOC.DESCRLOCAL,        (SELECT CUS.CUSMEDICM          FROM TGFCUS CUS          WHERE CUS.CODEMP = EST.CODEMP              AND CUS.CODPROD = EST.CODPROD              AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL)                                 FROM TGFCUS C                                 WHERE C.CODEMP = CUS.CODEMP                                     AND C.CODPROD = CUS.CODPROD                                     AND C.DTATUAL <= :A_ULT_DIA_MES)) AS CUSUNIT,        EST.CONTROLE AS LOTE,        (SUM(EST.ESTOQUE) - NVL((SELECT SUM(ITE.QTDNEG*ITE.ATUALESTOQUE)                                  FROM TGFITE ITE                                  WHERE ITE.RESERVA = 'N'                                      AND  EST.CODEMP = ITE.CODEMP                                      AND ITE.CODPROD = EST.CODPROD                                      AND ITE.CODLOCALORIG = EST.CODLOCAL                                      AND ITE.CONTROLE = EST.CONTROLE                                      AND ITE.ATUALESTOQUE <> 0                                      AND ITE.NUNOTA IN (SELECT NUNOTA FROM TGFCAB WHERE DTNEG > :A_ULT_DIA_MES)),0)) *            (SELECT CUS.CUSMEDICM              FROM TGFCUS CUS              WHERE CUS.CODEMP = EST.CODEMP                  AND CUS.CODPROD = EST.CODPROD                  AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL)                                     FROM TGFCUS C                                     WHERE C.CODEMP = CUS.CODEMP                                         AND C.CODPROD = CUS.CODPROD                                         AND C.DTATUAL <= :A_ULT_DIA_MES)) AS custotal    FROM         TGFEST EST    INNER JOIN         TGFPRO PRO ON EST.CODPROD = PRO.CODPROD    INNER JOIN         TGFLOC LOC ON EST.CODLOCAL = LOC.CODLOCAL    INNER JOIN         TGFGRU GRU ON GRU.CODGRUPOPROD = PRO.CODGRUPOPROD    WHERE         EST.CODEMP = 1 AND /*(PRO.CODGRUPOPROD IN :P_GRUPO) AND (EST.CODLOCAL IN :P_LOCAL)*/    ((:P_TIPO = 1 AND PRO.CODGRUPOPROD = 3010000) OR    (:P_TIPO = 2 AND PRO.CODGRUPOPROD = 3020000) OR    (:P_TIPO = 3 AND PRO.CODGRUPOPROD NOT IN (1020000) AND EST.CODLOCAL IN (102,103)) OR    (:P_TIPO = 4 AND PRO.CODGRUPOPROD NOT IN (1020000) AND EST.CODLOCAL IN (104)))    GROUP BY         :A_ULT_DIA_MES,         PRO.CODPROD,         PRO.DESCRPROD,        PRO.CODGRUPOPROD,        GRU.DESCRGRUPOPROD,         LOC.DESCRLOCAL,         EST.CONTROLE,         EST.CODLOCAL,        EST.CODPROD,         EST.CODEMP,         PRO.AD_QTDVOLLT]]></expression>
+          <metadata>
+            <field name="ULT_DIA_MES" label="Ult. Dia Mês" type="T" visible="true" useFooter="false"/>
+            <field name="CODPROD" label="Cód. Prod." type="I" visible="true" useFooter="false"/>
+            <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+            <field name="CODGRUPOPROD" label="Cód. Grupo" type="I" visible="true" useFooter="false"/>
+            <field name="DESCRGRUPOPROD" label="Grupo" type="S" visible="true" useFooter="false"/>
+            <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+            <field name="ESTOQUE" label="Estoque" type="I" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="AD_QTDVOLLT" label="Qtd. Vol. LT" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="CODLOCAL" label="Cód. Local" type="I" visible="true" useFooter="false"/>
+            <field name="DESCRLOCAL" label="Local" type="S" visible="true" useFooter="false"/>
+            <field name="CUSUNIT" label="Cus. Unit." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+            <field name="LOTE" label="Lote" type="S" visible="true" useFooter="false"/>
+            <field name="CUSTOTAL" label="Cus. Tot." type="F" visible="true" useFooter="SUM" mask="#.##0,00">
+              <formatter notEqualThan="0"><![CDATA[<span style="; background-color:#33FF00">
+  <b>$VALUE</b>
+</span>]]></formatter>
+            </field>
+          </metadata>
+        </grid>
+      </container>
+      <container orientacao="V" tamanhoRelativo="118">
+        <simple-value id="svl_a4d5rng">
+          <value-expression><![CDATA[<span style='font-size: 48px;'>AQUI VAI FICAR A JUSTIFICATIVA</span>]]></value-expression>
+        </simple-value>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_a17fj5w" description="Det_Qtd_Estoque">
+    <args>
+      <arg id="A_ULT_DIA_MES" type="date"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_a17fkez" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[    SELECT         :A_ULT_DIA_MES AS ULT_DIA_MES,        PRO.CODPROD,        PRO.DESCRPROD,        PRO.CODGRUPOPROD,        GRU.DESCRGRUPOPROD,        EST.CODEMP,        SUM(EST.ESTOQUE) - NVL((SELECT SUM(ITE.QTDNEG*ITE.ATUALESTOQUE)                                 FROM TGFITE ITE                                 WHERE ITE.RESERVA = 'N'                                     AND ITE.CODEMP = EST.CODEMP                                     AND ITE.CODPROD = EST.CODPROD                                     AND ITE.CODLOCALORIG = EST.CODLOCAL                                     AND ITE.CONTROLE = EST.CONTROLE                                     AND ITE.ATUALESTOQUE <> 0                                     AND ITE.NUNOTA IN (SELECT NUNOTA FROM TGFCAB WHERE DTNEG > :A_ULT_DIA_MES)),0) AS ESTOQUE,        PRO.AD_QTDVOLLT,        EST.CODLOCAL,        LOC.DESCRLOCAL,        (SELECT CUS.CUSMEDICM          FROM TGFCUS CUS          WHERE CUS.CODEMP = EST.CODEMP              AND CUS.CODPROD = EST.CODPROD              AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL)                                 FROM TGFCUS C                                 WHERE C.CODEMP = CUS.CODEMP                                     AND C.CODPROD = CUS.CODPROD                                     AND C.DTATUAL <= :A_ULT_DIA_MES)) AS CUSUNIT,        EST.CONTROLE AS LOTE,        (SUM(EST.ESTOQUE) - NVL((SELECT SUM(ITE.QTDNEG*ITE.ATUALESTOQUE)                                  FROM TGFITE ITE                                  WHERE ITE.RESERVA = 'N'                                      AND  EST.CODEMP = ITE.CODEMP                                      AND ITE.CODPROD = EST.CODPROD                                      AND ITE.CODLOCALORIG = EST.CODLOCAL                                      AND ITE.CONTROLE = EST.CONTROLE                                      AND ITE.ATUALESTOQUE <> 0                                      AND ITE.NUNOTA IN (SELECT NUNOTA FROM TGFCAB WHERE DTNEG > :A_ULT_DIA_MES)),0)) *            (SELECT CUS.CUSMEDICM              FROM TGFCUS CUS              WHERE CUS.CODEMP = EST.CODEMP                  AND CUS.CODPROD = EST.CODPROD                  AND CUS.DTATUAL = (SELECT MAX(C.DTATUAL)                                     FROM TGFCUS C                                     WHERE C.CODEMP = CUS.CODEMP                                         AND C.CODPROD = CUS.CODPROD                                         AND C.DTATUAL <= :A_ULT_DIA_MES)) AS custotal    FROM         TGFEST EST    INNER JOIN         TGFPRO PRO ON EST.CODPROD = PRO.CODPROD    INNER JOIN         TGFLOC LOC ON EST.CODLOCAL = LOC.CODLOCAL    INNER JOIN         TGFGRU GRU ON GRU.CODGRUPOPROD = PRO.CODGRUPOPROD    WHERE         EST.CODEMP = 1 AND /*(PRO.CODGRUPOPROD IN :P_GRUPO) AND (EST.CODLOCAL IN :P_LOCAL)*/    ((:P_TIPO = 1 AND PRO.CODGRUPOPROD = 3010000) OR    (:P_TIPO = 2 AND PRO.CODGRUPOPROD = 3020000) OR    (:P_TIPO = 3 AND PRO.CODGRUPOPROD NOT IN (1020000) AND EST.CODLOCAL IN (102,103)) OR    (:P_TIPO = 4 AND PRO.CODGRUPOPROD NOT IN (1020000) AND EST.CODLOCAL IN (104)))    GROUP BY         :A_ULT_DIA_MES,         PRO.CODPROD,         PRO.DESCRPROD,        PRO.CODGRUPOPROD,        GRU.DESCRGRUPOPROD,         LOC.DESCRLOCAL,         EST.CONTROLE,         EST.CODLOCAL,        EST.CODPROD,         EST.CODEMP,         PRO.AD_QTDVOLLT]]></expression>
+        <metadata>
+          <field name="ULT_DIA_MES" label="Ult. Dia Mês" type="T" visible="true" useFooter="false"/>
+          <field name="CODPROD" label="Cód. Prod." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+          <field name="CODGRUPOPROD" label="Cód. Grupo" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRGRUPOPROD" label="Grupo" type="S" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+          <field name="ESTOQUE" label="Estoque" type="I" visible="true" useFooter="SUM" mask="#.##0,00">
+            <formatter notEqualThan="0"><![CDATA[<span style="; background-color:#FF9900">
+  <b>$VALUE</b>
+</span>]]></formatter>
+          </field>
+          <field name="AD_QTDVOLLT" label="Qtd. Vol. LT" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="CODLOCAL" label="Cód. Local" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRLOCAL" label="Local" type="S" visible="true" useFooter="false"/>
+          <field name="CUSUNIT" label="Cus. Unit." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="LOTE" label="Lote" type="S" visible="true" useFooter="false"/>
+          <field name="CUSTOTAL" label="Cus. Tot." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_a17fj5x" description="Det_Media_Frete_Entrega">
+    <args>
+      <arg id="A_MES_ANO" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_a17fj5y" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECTORDEMCARGA,CODEMP,CODPARCTRANSP,CODEMP,COALESCE(HORASAIDA,DTALTER) AS HORASAIDA,VLRFRETE,AD_TOTALNOTA,VLRFRETE / NULLIF(AD_TOTALNOTA,0) *100 AS PERCFROM( SELECT TGFORD.AD_ADIANTCOMB                                         AS AD_ADIANTCOMB,       TGFORD.AD_ADIANTVIA                                           AS AD_ADIANTVIA,       1                                                             AS AD_ANEXO,       TGFORD.AD_CHAPA                                               AS AD_CHAPA,       TGFORD.AD_CIOT                                                AS AD_CIOT,       TGFORD.AD_CODEMPCARR                                          AS AD_CODEMPCARR,       TGFORD.AD_CODFORM                                             AS AD_CODFORM,       TGFORD.AD_CODUSU                                              AS AD_CODUSU,       TGFORD.AD_CODUSUALTER                                         AS AD_CODUSUALTER,       TGFORD.AD_COMBUSTIVEL                                         AS AD_COMBUSTIVEL,       TGFORD.AD_DTAALTER                                            AS AD_DTAALTER,       TGFORD.AD_DTCOLETAPREV                                        AS AD_DTCOLETAPREV,       TGFORD.AD_DTINCLUSAO                                          AS AD_DTINCLUSAO,       TGFORD.AD_DTVENCFRETE                                         AS AD_DTVENCFRETE,       TGFORD.AD_ENTREGABISEGURADA                                   AS AD_ENTREGABISEGURADA,       TGFORD.AD_FRETEADIANTCOMB                                     AS AD_FRETEADIANTCOMB,       TGFORD.AD_FRETEPEDCHAPA                                       AS AD_FRETEPEDCHAPA,       TGFORD.AD_KMFINAL                                             AS AD_KMFINAL,       TGFORD.AD_KMINICIAL                                           AS AD_KMINICIAL,       TGFORD.AD_NUFIN                                               AS AD_NUFIN,       TGFORD.AD_NUNOTAPEDCOMP                                       AS AD_NUNOTAPEDCOMP,       TGFORD.AD_PEDAGIO                                             AS AD_PEDAGIO,       TGFORD.AD_PEDCHAPA                                            AS AD_PEDCHAPA,       TGFORD.AD_TAMCARROCERIA                                       AS AD_TAMCARROCERIA,       TGFORD.AD_TIPCARROCERIA                                       AS AD_TIPCARROCERIA,       TGFORD.AD_TIPOC                                               AS AD_TIPOC,       TGFORD.AD_TIPVEICULO                                          AS AD_TIPVEICULO,       TGFORD.AD_TOTKM                                               AS AD_TOTKM,       TGFORD.AD_TOTRECEBER                                          AS AD_TOTRECEBER,       TGFORD.AD_VLRFRETE                                            AS AD_VLRFRETE,       TGFORD.AD_VLRFRETEINICIAL                                     AS AD_VLRFRETEINICIAL,       TGFORD.AD_VLRKM                                               AS AD_VLRKM,       TGFORD.CODDOCA                                                AS CODDOCA,       TGFORD.CODEMP                                                 AS CODEMP,       TGFORD.CODEMPPAI                                              AS CODEMPPAI,       TGFORD.CODLOCAL                                               AS CODLOCAL,       TGFORD.CODPARCDEST                                            AS CODPARCDEST,       TGFORD.CODPARCMOTORISTA                                       AS CODPARCMOTORISTA,       TGFORD.CODPARCORIG                                            AS CODPARCORIG,       TGFORD.CODPARCTRANSP                                          AS CODPARCTRANSP,       TGFORD.CODREG                                                 AS CODREG,       TGFORD.CODROTA                                                AS CODROTA,       TGFORD.CODTIPOPERTRANSB                                       AS CODTIPOPERTRANSB,       TGFORD.CODUSU                                                 AS CODUSU,       TGFORD.CODUSURETORNO                                          AS CODUSURETORNO,       TGFORD.CODVEICULO                                             AS CODVEICULO,       TGFORD.DHFINALPESAGEM                                         AS DHFINALPESAGEM,       TGFORD.DHINICIALPESAGEM                                       AS DHINICIALPESAGEM,       TGFORD.DTALTER                                                AS DTALTER,       TGFORD.DTALTERROTCAT                                          AS DTALTERROTCAT,       TGFORD.DTINIC                                                 AS DTINIC,       TGFORD.DTPREVSAIDA                                            AS DTPREVSAIDA,       TGFORD.DTRETORNO                                              AS DTRETORNO,       TGFORD.ENTSAI                                                 AS ENTSAI,       TGFORD.ENVIOWMS                                               AS ENVIOWMS,       TGFORD.FRETECALC                                              AS FRETECALC,       TGFORD.HORASAIDA                                              AS HORASAIDA,       TGFORD.IDORDEMCARGA                                           AS IDORDEMCARGA,       TGFORD.JUSTIFICATIVA                                          AS JUSTIFICATIVA,       TGFORD.KMFIN                                                  AS KMFIN,       TGFORD.KMINIC                                                 AS KMINIC,       TGFORD.M3MAX                                                  AS M3MAX,       TGFORD.NROFROTA                                               AS NROFROTA,       TGFORD.NUCAIXA                                                AS NUCAIXA,       TGFORD.NUFINACERTO                                            AS NUFINACERTO,       TGFORD.NUVIAG                                                 AS NUVIAG,       TGFORD.OBSMOTORISTA                                           AS OBSMOTORISTA,       TGFORD.ORDEMCARGA                                             AS ORDEMCARGA,       TGFORD.ORDEMCARGAPAI                                          AS ORDEMCARGAPAI,       TGFORD.PESOMAX                                                AS PESOMAX,       TGFORD.PRIORIDADE                                             AS PRIORIDADE,       TGFORD.QTDENTREGA                                             AS QTDENTREGA,       TGFORD.ROTEIRO                                                AS ROTEIRO,       TGFORD.SEQCARGA                                               AS SEQCARGA,       TGFORD.SITUACAO                                               AS SITUACAO,       TGFORD.STATUSAVAL                                             AS STATUSAVAL,       TGFORD.TEMTRANSBORDO                                          AS TEMTRANSBORDO,       TGFORD.TIPCALCFRETE                                           AS TIPCALCFRETE,       TGFORD.TIPCARGA                                               AS TIPCARGA,       TGFORD.TIPDIST                                                AS TIPDIST,       TGFORD.TIPEMBALAGEM                                           AS TIPEMBALAGEM,       TGFORD.VINCROT                                                AS VINCROT,       TGFORD.VLRDIFACERTO                                           AS VLRDIFACERTO,       TGFORD.VLRFRETE                                               AS VLRFRETE       ,       (SELECT ROUND(MAX(NVL(ORD.VLRFRETE, 0)) * 100 /               SUM(CAB.VLRNOTA), 2)        FROM   TGFCAB CAB               INNER JOIN TGFTOP TOP                       ON CAB.CODTIPOPER = TOP.CODTIPOPER                          AND CAB.DHTIPOPER = TOP.DHALTER               INNER JOIN TGFORD ORD                       ON ( CAB.ORDEMCARGA = ORD.ORDEMCARGA )        WHERE  CAB.VLRNOTA > 0               AND TGFORD.VLRFRETE > 0               AND TOP.CODTIPOPER = ANY ( '1101', '1103', '1106', '1112', '1181'                                        )               AND CAB.ORDEMCARGA = TGFORD.ORDEMCARGA)               AS AD_PERCENTUALFRETE,       (SELECT COUNT(NUNOTA)        FROM   TGFCAB        WHERE  ORDEMCARGA = TGFORD.ORDEMCARGA               AND TIPMOV = 'V')                                     AS AD_QTDNOTASV,       (SELECT COUNT(NUNOTA)        FROM   TGFCAB        WHERE  ORDEMCARGA = TGFORD.ORDEMCARGA               AND TIPMOV = 'P'               AND CODTIPOPER NOT IN ( 10001, 10002, 10003, 10004,                                       10005, 10006, 10007, 10008 )) AS AD_QTDPEDIDOS,       (SELECT ( SUM(VLRFRETE * 100 / (SELECT SUM(VLRNOTA)                                       FROM   TGFCAB                                       WHERE  TIPMOV = 'V'                                              AND ORDEMCARGA = TGFORD.ORDEMCARGA                                              AND CODEMP = TGFORD.CODEMP)) )        FROM   TGFORD)                                               AS AD_REPREFRETE,       (( CASE            WHEN (SELECT COUNT(*)                  FROM   AD_APONTLOTE L                  WHERE  L.CODEMP = TGFORD.CODEMP                         AND L.ORDEMCARGA = TGFORD.ORDEMCARGA) = 0 THEN '0'            WHEN (SELECT COUNT(*)                  FROM   AD_APONTLOTE L                  WHERE  L.CODEMP = TGFORD.CODEMP                         AND L.ORDEMCARGA = TGFORD.ORDEMCARGA                         AND L.STATUS = 'A') > 0 THEN '1'            ELSE '2'          END ))                                                     AS       AD_STATUSCONF,       (SELECT SUM(VLRNOTA)        FROM   TGFCAB               INNER JOIN TGFTOP TOP                       ON TGFCAB.CODTIPOPER = TOP.CODTIPOPER                          AND TGFCAB.DHTIPOPER = TOP.DHALTER        WHERE  ORDEMCARGA = TGFORD.ORDEMCARGA               AND TOP.CODTIPOPER = ANY ( '1101', '1103', '1106', '1181', '1112'                                        )               AND CODEMP = TGFORD.CODEMP)                           AS AD_TOTALNOTA,       ( TGFORD.AD_VLRFRETEINICIAL - TGFORD.VLRFRETE )               AS AD_VLRSAVAING,       AD_FORMSATIS.DESCRICAO                                        AS l0_DESCRICAO,       DOCA.DESCRICAO                                                AS l1_DESCRICAO,       EMPRESA.NOMEFANTASIA                                          AS l2_NOMEFANTASIA,       EMPRESA_AD001.NOMEFANTASIA                                    AS l3_NOMEFANTASIA,       LOCALFINANCEIRO.DESCRLOCAL                                    AS l4_DESCRLOCAL,       MOTORISTA.NOMEPARC                                            AS l5_NOMEPARC,       PARCEIRODESTINO.NOMEPARC                                      AS l6_NOMEPARC,       PARCEIROORIGEM.NOMEPARC                                       AS l7_NOMEPARC,       REGIAO.NOMEREG                                                AS l8_NOMEREG,       ROTA.DESCRROTA                                                AS l9_DESCRROTA,       TIPOOPERACAO.DESCROPER                                        AS l10_DESCROPER,       TRANSPORTADORA.NOMEPARC                                       AS l11_NOMEPARC,       USUARIO.NOMEUSU                                               AS l12_NOMEUSU,       USUARIO_AD001.NOMEUSU                                         AS l13_NOMEUSU,       VEICULO.PLACA                                                 AS l14_PLACAFROM   TGFORD       LEFT JOIN (SELECT CODFORM,                         DESCRICAO                  FROM   AD_FORMSATIS) AD_FORMSATIS              ON( TGFORD.AD_CODFORM = AD_FORMSATIS.CODFORM )       LEFT JOIN (SELECT DESCRICAO,                         CODDOCA                  FROM   TGWDCA) DOCA              ON( TGFORD.CODDOCA = DOCA.CODDOCA )       LEFT JOIN (SELECT NOMEFANTASIA,                         CODEMP                  FROM   TSIEMP) EMPRESA              ON( TGFORD.CODEMP = EMPRESA.CODEMP )       LEFT JOIN (SELECT NOMEFANTASIA,                         CODEMP                  FROM   TSIEMP) EMPRESA_AD001              ON( TGFORD.AD_CODEMPCARR = EMPRESA_AD001.CODEMP )       LEFT JOIN (SELECT DESCRLOCAL,                         CODLOCAL                  FROM   TGFLOC) LOCALFINANCEIRO              ON( TGFORD.CODLOCAL = LOCALFINANCEIRO.CODLOCAL )       LEFT JOIN (SELECT NOMEPARC,                         CODPARC                  FROM   TGFPAR) MOTORISTA              ON( TGFORD.CODPARCMOTORISTA = MOTORISTA.CODPARC )       LEFT JOIN (SELECT NOMEPARC,                         CODPARC                  FROM   TGFPAR) PARCEIRODESTINO              ON( TGFORD.CODPARCDEST = PARCEIRODESTINO.CODPARC )       LEFT JOIN (SELECT NOMEPARC,                         CODPARC                  FROM   TGFPAR) PARCEIROORIGEM              ON( TGFORD.CODPARCORIG = PARCEIROORIGEM.CODPARC )       LEFT JOIN (SELECT CODREG,                         NOMEREG                  FROM   TSIREG) REGIAO              ON( TGFORD.CODREG = REGIAO.CODREG )       LEFT JOIN (SELECT CODROTA,                         DESCRROTA                  FROM   TGFROT) ROTA              ON( TGFORD.CODROTA = ROTA.CODROTA )       LEFT JOIN (SELECT X.CODTIPOPER,                         X.DHALTER,                         X.DESCROPER                  FROM   TGFTOP X                  WHERE  X.DHALTER = (SELECT MAX(Y.DHALTER)                                      FROM   TGFTOP Y                                      WHERE  Y.CODTIPOPER = X.CODTIPOPER                                             AND ( Y.DHALTER = (SELECT                                                   MAX(TOP2.DHALTER)                                                                FROM   TGFTOP                                                               TOP2                                                                WHERE                                                   TOP2.CODTIPOPER =                                                   Y.CODTIPOPER                                                   AND TOP2.ATIVO = 'S') )))                                                            TIPOOPERACAO              ON( TGFORD.CODTIPOPERTRANSB = TIPOOPERACAO.CODTIPOPER )       LEFT JOIN (SELECT NOMEPARC,                         CODPARC                  FROM   TGFPAR) TRANSPORTADORA              ON( TGFORD.CODPARCTRANSP = TRANSPORTADORA.CODPARC )       LEFT JOIN (SELECT CODUSU,                         NOMEUSU                  FROM   TSIUSU) USUARIO              ON( TGFORD.AD_CODUSU = USUARIO.CODUSU )       LEFT JOIN (SELECT CODUSU,                         NOMEUSU                  FROM   TSIUSU) USUARIO_AD001              ON( TGFORD.AD_CODUSUALTER = USUARIO_AD001.CODUSU )       LEFT JOIN (SELECT CODVEICULO,                         PLACA                  FROM   TGFVEI) VEICULO              ON( TGFORD.CODVEICULO = VEICULO.CODVEICULO )WHERE  (((( TGFORD.CODEMP = 1            AND TGFORD.CODPARCTRANSP <> 1            )/*O LOG PEGOU MEU FILTRO PERSONALIZADO MAS MAS REFIZ ABAIX PARA GARANTIR E ACRESCENTE O VLRNOTA DA CAB QUE TRAZER NULL OU ZERO DESCONSIDERAR*/))) )WHERE CODPARCTRANSP <> 1 AND CODEMP = 1AND TO_CHAR(COALESCE(HORASAIDA,DTALTER),'MM-YYYY') = :A_MES_ANO]]></expression>
+        <metadata>
+          <field name="ORDEMCARGA" label="Ordem Carga" type="I" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+          <field name="CODPARCTRANSP" label="Cód. Transp. Orig." type="I" visible="true" useFooter="false"/>
+          <field name="HORASAIDA" label="Dt. Hora Saída" type="D" visible="true" useFooter="false"/>
+          <field name="VLRFRETE" label="Vlr. Frete" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="AD_TOTALNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="PERC" label="% Frete / Nota" type="F" visible="true" useFooter="PER" mask="#.##0,00">
+            <aggregates per="PER">
+              <text><![CDATA[Media]]></text>
+              <personalized><![CDATA[SUM($VLRFRETE)/SUM($AD_TOTALNOTA)*100]]></personalized>
+            </aggregates>
+          </field>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.mgecom.cad.ordensdecarga">
+          <CODEMP>$CODEMP</CODEMP>
+          <ORDEMCARGA>$ORDEMCARGA</ORDEMCARGA>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_a2u1h4s" description="Det_Media_Frete_Compra">
+    <args>
+      <arg id="A_MES_ANO" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_a2u1h5t" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECTTO_CHAR(CAB.DTNEG,'YYYY') AS ANO,TO_CHAR(CAB.DTNEG,'MM') AS MES,TO_CHAR(CAB.DTNEG,'MM-YYYY') AS MES_ANO,CAB.DTNEG,CAB.NUNOTA AS NUNOTA,CAB.CODEMP AS CODEMP,EMP.RAZAOSOCIAL AS EMPRESA,CAB.CODPARC AS CODPARC,PAR.RAZAOSOCIAL AS RAZAOSOCIAL,SUM(VLRFRETE) AS VLRFRETE,SUM(VLRNOTA) AS VLRNOTA,(SUM(VLRFRETE) / NULLIF(SUM(VLRNOTA), 0)) * 100 AS PERCFROM TGFCAB CABINNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARCINNER JOIN TSIEMP EMP ON CAB.CODEMP = EMP.CODEMPWHERE /*(CAB.CODNAT IN :P_CODNAT) AND (CAB.CODCENCUS IN :P_CODCENCUS)*/CAB.TIPMOV IN ('C')AND TO_CHAR(CAB.DTNEG,'MM-YYYY') = :A_MES_ANOAND CAB.CODEMP = 1AND((:P_FRETE = 1 AND CAB.CODNAT = 2020101 AND CAB.CODCENCUS = 402000000) OR(:P_FRETE = 2 AND CAB.CODNAT IN (2020601,2020602) AND CAB.CODCENCUS = 402000000))GROUP BYTO_CHAR(CAB.DTNEG,'YYYY'),TO_CHAR(CAB.DTNEG,'MM'),TO_CHAR(CAB.DTNEG,'MM-YYYY'),PAR.RAZAOSOCIAL,CAB.NUNOTA,CAB.CODEMP,EMP.RAZAOSOCIAL,CAB.CODPARC,CAB.DTNEG]]></expression>
+        <metadata>
+          <field name="ANO" label="ANO" type="S" visible="false" useFooter="false"/>
+          <field name="MES" label="MES" type="S" visible="true" useFooter="false"/>
+          <field name="MES_ANO" label="MES_ANO" type="S" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="DTNEG" type="D" visible="true" useFooter="false"/>
+          <field name="NUNOTA" label="NUNOTA" type="I" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="CODEMP" type="I" visible="true" useFooter="false"/>
+          <field name="EMPRESA" label="EMPRESA" type="S" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="CODPARC" type="I" visible="true" useFooter="false"/>
+          <field name="RAZAOSOCIAL" label="RAZAOSOCIAL" type="S" visible="true" useFooter="false"/>
+          <field name="VLRFRETE" label="VLRFRETE" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRNOTA" label="VLRNOTA" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="PERC" label="PERC" type="F" visible="true" useFooter="PER" mask="#.##0,00">
+            <aggregates per="PER">
+              <text><![CDATA[Media]]></text>
+              <personalized><![CDATA[SUM($VLRFRETE)/SUM($VLRNOTA)*100]]></personalized>
+            </aggregates>
+          </field>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>

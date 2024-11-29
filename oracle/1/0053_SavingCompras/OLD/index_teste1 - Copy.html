@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabela Bonita com Plotly.js</title>
+  <!-- Incluindo o Plotly.js -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    /* Estilo básico para a tabela */
+    .styled-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 16px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .styled-table th,
+    .styled-table td {
+      border: 1px solid #dddddd;
+      padding: 10px;
+      text-align: left;
+    }
+    .styled-table th {
+      background-color: #f2f2f2;
+    }
+    .styled-table tbody tr:hover {
+      background-color: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+  <div id="table-container">
+    <!-- Tabela será inserida aqui -->
+  </div>
+
+  <script>
+    // Dados de exemplo para preencher a tabela
+    var data = [
+      { Name: 'John Doe', Age: 30, City: 'New York' },
+      { Name: 'Jane Smith', Age: 25, City: 'San Francisco' },
+      { Name: 'Bob Johnson', Age: 35, City: 'Chicago' }
+    ];
+
+    // Gerando HTML para a tabela dinamicamente
+    var tableHtml = '<table class="styled-table">';
+    tableHtml += '<thead><tr>';
+    tableHtml += '<th>Name</th><th>Age</th><th>City</th>';
+    tableHtml += '</tr></thead>';
+    tableHtml += '<tbody>';
+    
+    // Preenchendo linhas da tabela com dados
+    data.forEach(function(row) {
+      tableHtml += '<tr>';
+      tableHtml += '<td>' + row.Name + '</td>';
+      tableHtml += '<td>' + row.Age + '</td>';
+      tableHtml += '<td>' + row.City + '</td>';
+      tableHtml += '</tr>';
+    });
+    
+    tableHtml += '</tbody></table>';
+
+    // Inserindo tabela gerada no container desejado
+    document.getElementById('table-container').innerHTML = tableHtml;
+  </script>
+</body>
+</html>

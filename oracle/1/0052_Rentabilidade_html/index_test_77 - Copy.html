@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tela de Devoluções</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px; /* Ajuste do gap para aumentar o espaçamento vertical */
+            width: 90%;
+            height: 90%;
+        }
+        .section {
+            display: flex;
+            flex-direction: column;
+            gap: 30px; /* Ajuste do gap para aumentar o espaçamento vertical */
+        }
+        .part {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+            height: calc(50% - 20px); /* Ajuste da altura para refletir o novo gap */
+            overflow: hidden; /* Impede que o conteúdo altere o tamanho da parte */
+            position: relative; /* Necessário para posicionar o título */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Centraliza verticalmente */
+            align-items: center; /* Centraliza horizontalmente */
+            transition: transform 0.3s ease; /* Adicionado para transição suave */
+        }
+        .part:hover {
+           transform: translateY(-10px); /* Movimento para cima ao passar o mouse */
+        }        
+        .part-title {
+            position: absolute;
+            top: 10px; /* Espaçamento do topo */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            background-color: #fff; /* Cor de fundo para legibilidade */
+            padding: 0 10px; /* Espaçamento horizontal */
+        }
+        .chart-container {
+            position: relative; /* Para posicionamento absoluto do overlay */
+            width: 80%; /* Ajuste da largura do gráfico */
+            height: 80%; /* Ajuste da altura do gráfico */
+            display: flex;
+            justify-content: center; /* Centraliza horizontalmente o gráfico */
+            align-items: center; /* Centraliza verticalmente o gráfico */
+        }
+        .chart-overlay {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            left: 45%; /* Move o overlay 10% para a direita */
+            transform: translateX(45%); /* Ajusta a posição do texto para centralizá-lo */
+            /*text-align: center; Opcional, para centralizar o texto se ele tiver várias linhas */            
+        }
+        .dropdown-container {
+            display: flex;
+            justify-content: flex-start; /* Alinha o dropdown à esquerda */
+            width: 100%;
+        }
+        .dropdown-container select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 100%;
+            max-width: 300px; /* Limita a largura máxima do dropdown */
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        /* Estilo para a tabela */
+        .table-container {
+            width: 80%; /* Reduz a largura da tabela em 20% */
+            height: 85%;
+            display: flex;
+            flex-direction: column;
+        }
+        .table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table-container th, .table-container td {
+            padding: 2px;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 10px; /* Define o tamanho da fonte como 10 */
+        }
+        .table-container th {
+            background-color: #f4f4f4;
+            position: sticky;
+            top: 0; /* Fixa o cabeçalho no topo ao rolar */
+            z-index: 1; /* Garante que o cabeçalho fique sobre o conteúdo */
+        }
+        .table-container tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate,
+        .dataTables_wrapper .dataTables_length label,
+        .dataTables_wrapper .dataTables_filter label {
+            font-size: 10px; /* Tamanho pequeno para os textos de navegação */
+        }          
+        .table-container tfoot {
+            height: 30px; /* Aumenta a altura do tfoot */
+            font-size: 8px; /* Diminui o tamanho da fonte do tfoot */
+        }        
+    </style>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="section">
+            <div class="part" id="left-top">
+                <div class="part-title">HL por Tipo Produto</div>
+                <div class="chart-container">
+                    <canvas id="doughnutChart"></canvas>
+                    <div class="chart-overlay">155.000</div>
+                </div>
+            </div>
+            <div class="part" id="left-bottom">
+                <div class="part-title">HL Por Cliente</div>
+                <div class="chart-container">
+                    <canvas id="doughnutChart1"></canvas>
+                    <div class="chart-overlay">155.000</div>
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="part" id="right-top">
+                <div class="part-title">HL Por Gerente</div>
+                <div class="chart-container">
+                    <canvas id="barChartRight"></canvas>
+                </div>
+            </div>
+            <div class="part" id="right-bottom">
+                <div class="part-title">HL por Produto</div>
+                <div class="table-container">
+                    <table id="dataTable" class="display nowrap" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Motivo</th>
+                                <th>Quantidade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Produto A</td>
+                                <td>Motivo 1</td>
+                                <td>10</td>
+                            </tr>
+                            <tr>
+                                <td>Produto B</td>
+                                <td>Motivo 2</td>
+                                <td>20</td>
+                            </tr>
+                            <tr>
+                                <td>Produto C</td>
+                                <td>Motivo 3</td>
+                                <td>30</td>
+                            </tr>
+                            <tr>
+                                <td>Produto D</td>
+                                <td>Motivo 4</td>
+                                <td>40</td>
+                            </tr>
+                            <tr>
+                                <td>Produto E</td>
+                                <td>Motivo 5</td>
+                                <td>50</td>
+                            </tr>
+                            <tr>
+                                <td>Produto E</td>
+                                <td>Motivo 5</td>
+                                <td>50</td>
+                            </tr>
+                            <tr>
+                                <td>Produto E</td>
+                                <td>Motivo 5</td>
+                                <td>50</td>
+                            </tr>
+                            <tr>
+                                <td>Produto E</td>
+                                <td>Motivo 5</td>
+                                <td>50</td>
+                            </tr>
+                            <tr>
+                                <td>Produto E</td>
+                                <td>Motivo 5</td>
+                                <td>50</td>
+                            </tr>                                                                                    
+                            <tr>
+                                <td>Produto E</td>
+                                <td>Motivo 5</td>
+                                <td>50</td>
+                            </tr>
+                            <tr>
+                                <td>Produto E</td>
+                                <td>Motivo 5</td>
+                                <td>50</td>
+                            </tr>                                                        
+                            <tr>
+                                <td>Produto E</td>
+                                <td>Motivo 5</td>
+                                <td>50</td>
+                            </tr>                            
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th id="total-value"></th>
+                            </tr>
+                        </tfoot>                        
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adicionando a biblioteca Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Adicionando a biblioteca jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Adicionando a biblioteca DataTables -->
+    <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script>
+        // Dados fictícios para o gráfico de rosca
+        const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
+        const doughnutChart = new Chart(ctxDoughnut, {
+            type: 'doughnut',
+            data: {
+                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                datasets: [{
+                    label: 'My Doughnut Chart',
+                    data: [12, 19, 3, 5, 2, 3],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '50%',
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                let value = context.raw || 0;
+                                let total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                                let percentage = ((value / total) * 100).toFixed(2);
+                                return label + ': ' + value + ' (' + percentage + '%)';
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'left',
+                        align: 'center', // Alinhamento vertical da legenda
+                    }                    
+                }
+            }
+        });
+
+        // Dados fictícios para o gráfico de rosca
+        const ctxDoughnut1 = document.getElementById('doughnutChart1').getContext('2d');
+        const doughnutChart1 = new Chart(ctxDoughnut1, {
+            type: 'doughnut',
+            data: {
+                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                datasets: [{
+                    label: 'My Doughnut Chart',
+                    data: [12, 19, 3, 5, 2, 3],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '50%',
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                let value = context.raw || 0;
+                                let total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                                let percentage = ((value / total) * 100).toFixed(2);
+                                return label + ': ' + value + ' (' + percentage + '%)';
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'left',
+                        align: 'center', // Alinhamento vertical da legenda
+                    }                    
+                }
+            }
+        });
+
+        // Dados fictícios para o gráfico de barras verticais (direito)
+        const ctxBarRight = document.getElementById('barChartRight').getContext('2d');
+        const barChartRight = new Chart(ctxBarRight, {
+            type: 'bar',
+            data: {
+                labels: ['Gerente 1', 'Gerente 2', 'Gerente 3', 'Gerente 4'],
+                datasets: [{
+                    label: 'Quantidade',
+                    data: [15, 25, 35, 45],
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+
+        $(document).ready(function() {
+    // Inicializando DataTables
+    var table = $('#dataTable').DataTable({
+        scrollY: '150px',
+        scrollCollapse: true,
+        paging: true,
+        ordering: true,
+        info: true,
+        searching: true
+    });
+
+    // Função para calcular e exibir o total
+    function calculateTotal() {
+        var total = 0;
+        // Itera sobre cada linha visível da tabela para calcular o total
+        table.rows({ filter: 'applied' }).every(function() {
+            var data = this.data();
+            total += parseFloat(data[2]); // Soma a quantidade da terceira coluna
+        });
+        $('#total-value').text(total.toFixed(2));
+    }
+
+    // Recalcula o total ao pesquisar, ordenar ou paginar
+    table.on('draw', function() {
+        calculateTotal();
+    });
+
+    // Calcula o total na inicialização
+    calculateTotal();
+});
+
+    </script>
+</body>
+</html>

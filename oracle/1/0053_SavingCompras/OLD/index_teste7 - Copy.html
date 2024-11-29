@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resizable Page with Horizontal Bar Charts</title>
+<!-- Plotly.js CDN -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+  }
+  .container {
+    display: flex;
+    height: 100%;
+  }
+  .chart-container {
+    flex: 1;
+    height: 100%;
+    overflow: auto;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+  .chart-title {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="left-chart" class="chart-container">
+    <h2 class="chart-title">Produtos que tiveram maior saving</h2>
+    <div id="left-chart-plot"></div>
+  </div>
+  <div id="right-chart" class="chart-container">
+    <h2 class="chart-title">Fornecedores que tiveram maior saving</h2>
+    <div id="right-chart-plot"></div>
+  </div>
+</div>
+
+<script>
+  // Dados fictícios para os gráficos
+  const produtosData = [
+    { produto: 'Produto A', saving: 1200 },
+    { produto: 'Produto B', saving: 900 },
+    { produto: 'Produto C', saving: 800 },
+    { produto: 'Produto D', saving: 600 },
+    { produto: 'Produto E', saving: 400 }
+  ];
+
+  const fornecedoresData = [
+    { fornecedor: 'Fornecedor X', saving: 1500 },
+    { fornecedor: 'Fornecedor Y', saving: 1100 },
+    { fornecedor: 'Fornecedor Z', saving: 900 },
+    { fornecedor: 'Fornecedor W', saving: 700 },
+    { fornecedor: 'Fornecedor V', saving: 500 }
+  ];
+
+  // Função para criar um gráfico de barras horizontal com Plotly.js
+  function createBarChart(containerId, data) {
+    const sortedData = data.sort((a, b) => b.saving - a.saving); // Ordena por maior saving
+    const xValues = sortedData.map(item => item.saving);
+    const yValues = sortedData.map(item => item.produto || item.fornecedor);
+    
+    const trace = {
+      x: xValues,
+      y: yValues,
+      type: 'bar',
+      orientation: 'h'
+    };
+    
+    const layout = {
+      margin: {
+        l: 50,
+        r: 10,
+        t: 10,
+        b: 30
+      },
+      yaxis: {
+        automargin: true
+      }
+    };
+    
+    Plotly.newPlot(containerId, [trace], layout);
+  }
+
+  // Chamada para criar os gráficos
+  createBarChart('left-chart-plot', produtosData);
+  createBarChart('right-chart-plot', fornecedoresData);
+
+  // Redimensiona os gráficos quando a janela é redimensionada
+  window.onresize = function() {
+    Plotly.Plots.resize('left-chart-plot');
+    Plotly.Plots.resize('right-chart-plot');
+  };
+</script>
+</body>
+</html>

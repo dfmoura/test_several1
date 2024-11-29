@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tela Dividida com Gráfico e Tabela</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+        .left, .right {
+            flex: 1;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        .left {
+            border-right: 1px solid #ddd;
+        }
+        .right {
+            overflow: auto;
+        }
+        .title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .plotly-graph-div {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="left" id="left-panel">
+            <div class="title">Faturamento por Supervisores</div>
+            <div id="tree-map" class="plotly-graph-div"></div>
+        </div>
+        <div class="right" id="right-panel">
+            <div class="title">Detalhamento Faturamento</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Supervisor</th>
+                        <th>Vendedor</th>
+                        <th>Produto</th>
+                        <th>Preço Médio</th>
+                        <th>Vlr. Fat.</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Dados serão preenchidos aqui -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Dados de exemplo para o gráfico Tree Map
+        const data = [
+            {id: '1', parent: '', value: 10, label: 'Supervisor A'},
+            {id: '2', parent: '', value: 20, label: 'Supervisor B'},
+            {id: '3', parent: '', value: 30, label: 'Supervisor C'},
+            {id: '4', parent: '', value: 40, label: 'Supervisor D'},
+            {id: '5', parent: '', value: 50, label: 'Supervisor E'},
+            {id: '6', parent: '', value: 60, label: 'Supervisor F'},
+            {id: '7', parent: '', value: 70, label: 'Supervisor G'},
+            {id: '8', parent: '', value: 80, label: 'Supervisor H'},
+            {id: '9', parent: '', value: 90, label: 'Supervisor I'},
+            {id: '10', parent: '', value: 100, label: 'Supervisor J'},
+            {id: '11', parent: '', value: 110, label: 'Supervisor K'},
+            {id: '12', parent: '', value: 120, label: 'Supervisor L'},
+            {id: '13', parent: '', value: 130, label: 'Supervisor M'},
+            {id: '14', parent: '', value: 140, label: 'Supervisor N'},
+            {id: '15', parent: '', value: 150, label: 'Supervisor O'},
+            {id: '16', parent: '', value: 160, label: 'Supervisor P'},
+            {id: '17', parent: '', value: 170, label: 'Supervisor Q'},
+            {id: '18', parent: '', value: 180, label: 'Supervisor R'},
+            {id: '19', parent: '', value: 190, label: 'Supervisor S'},
+            {id: '20', parent: '', value: 200, label: 'Supervisor T'},
+            {id: '21', parent: '', value: 210, label: 'Supervisor U'},
+            {id: '22', parent: '', value: 220, label: 'Supervisor V'},
+            {id: '23', parent: '', value: 230, label: 'Supervisor W'},
+            {id: '24', parent: '', value: 240, label: 'Supervisor X'},
+            {id: '25', parent: '', value: 250, label: 'Supervisor Y'},
+            {id: '26', parent: '', value: 260, label: 'Supervisor Z'},
+            {id: '27', parent: '', value: 270, label: 'Supervisor AA'},
+            {id: '28', parent: '', value: 280, label: 'Supervisor AB'},
+            {id: '29', parent: '', value: 290, label: 'Supervisor AC'},
+            {id: '30', parent: '', value: 300, label: 'Supervisor AD'}
+        ];
+
+        // Função para gerar cores com transparência
+        function generateColors(values) {
+            const max = Math.max(...values);
+            return values.map(value => {
+                const alpha = value / max;
+                return `rgba(135, 206, 235, ${alpha})`; // Cor com transparência
+            });
+        }
+
+        const trace = {
+            type: 'treemap',
+            labels: data.map(d => d.label),
+            parents: data.map(d => d.parent),
+            values: data.map(d => d.value),
+            textinfo: 'label+value+percent parent',
+            marker: {
+                colors: generateColors(data.map(d => d.value))
+            }
+        };
+
+        const layout = {
+            margin: {t: 0, l: 0, r: 0, b: 0}
+        };
+
+        Plotly.newPlot('tree-map', [trace], layout);
+
+        // Dados de exemplo para a tabela
+        const tableData = [
+        {supervisor: 'Supervisor A', vendedor: 'Vendedor A', produto: 'Produto A', precoMedio: 'R$ 10,00', vlrFat: 'R$ 100,00'},
+    {supervisor: 'Supervisor B', vendedor: 'Vendedor B', produto: 'Produto B', precoMedio: 'R$ 20,00', vlrFat: 'R$ 200,00'},
+    {supervisor: 'Supervisor C', vendedor: 'Vendedor C', produto: 'Produto C', precoMedio: 'R$ 30,00', vlrFat: 'R$ 300,00'},
+    {supervisor: 'Supervisor D', vendedor: 'Vendedor D', produto: 'Produto D', precoMedio: 'R$ 30,00', vlrFat: 'R$ 300,00'},
+    {supervisor: 'Supervisor E', vendedor: 'Vendedor E', produto: 'Produto E', precoMedio: 'R$ 30,00', vlrFat: 'R$ 300,00'},
+    {supervisor: 'Supervisor F', vendedor: 'Vendedor F', produto: 'Produto F', precoMedio: 'R$ 40,00', vlrFat: 'R$ 400,00'},
+    {supervisor: 'Supervisor G', vendedor: 'Vendedor G', produto: 'Produto G', precoMedio: 'R$ 50,00', vlrFat: 'R$ 500,00'},
+    {supervisor: 'Supervisor H', vendedor: 'Vendedor H', produto: 'Produto H', precoMedio: 'R$ 60,00', vlrFat: 'R$ 600,00'},
+    {supervisor: 'Supervisor I', vendedor: 'Vendedor I', produto: 'Produto I', precoMedio: 'R$ 70,00', vlrFat: 'R$ 700,00'},
+    {supervisor: 'Supervisor J', vendedor: 'Vendedor J', produto: 'Produto J', precoMedio: 'R$ 80,00', vlrFat: 'R$ 800,00'},
+    {supervisor: 'Supervisor K', vendedor: 'Vendedor K', produto: 'Produto K', precoMedio: 'R$ 90,00', vlrFat: 'R$ 900,00'},
+    {supervisor: 'Supervisor L', vendedor: 'Vendedor L', produto: 'Produto L', precoMedio: 'R$ 100,00', vlrFat: 'R$ 1000,00'},
+    {supervisor: 'Supervisor M', vendedor: 'Vendedor M', produto: 'Produto M', precoMedio: 'R$ 110,00', vlrFat: 'R$ 1100,00'},
+    {supervisor: 'Supervisor N', vendedor: 'Vendedor N', produto: 'Produto N', precoMedio: 'R$ 120,00', vlrFat: 'R$ 1200,00'},
+    {supervisor: 'Supervisor O', vendedor: 'Vendedor O', produto: 'Produto O', precoMedio: 'R$ 130,00', vlrFat: 'R$ 1300,00'},
+    {supervisor: 'Supervisor P', vendedor: 'Vendedor P', produto: 'Produto P', precoMedio: 'R$ 140,00', vlrFat: 'R$ 1400,00'},
+    {supervisor: 'Supervisor Q', vendedor: 'Vendedor Q', produto: 'Produto Q', precoMedio: 'R$ 150,00', vlrFat: 'R$ 1500,00'},
+    {supervisor: 'Supervisor R', vendedor: 'Vendedor R', produto: 'Produto R', precoMedio: 'R$ 160,00', vlrFat: 'R$ 1600,00'},
+    {supervisor: 'Supervisor S', vendedor: 'Vendedor S', produto: 'Produto S', precoMedio: 'R$ 170,00', vlrFat: 'R$ 1700,00'},
+    {supervisor: 'Supervisor T', vendedor: 'Vendedor T', produto: 'Produto T', precoMedio: 'R$ 180,00', vlrFat: 'R$ 1800,00'},
+    {supervisor: 'Supervisor U', vendedor: 'Vendedor U', produto: 'Produto U', precoMedio: 'R$ 190,00', vlrFat: 'R$ 1900,00'},
+    {supervisor: 'Supervisor V', vendedor: 'Vendedor V', produto: 'Produto V', precoMedio: 'R$ 200,00', vlrFat: 'R$ 2000,00'},
+    {supervisor: 'Supervisor W', vendedor: 'Vendedor W', produto: 'Produto W', precoMedio: 'R$ 210,00', vlrFat: 'R$ 2100,00'},
+    {supervisor: 'Supervisor X', vendedor: 'Vendedor X', produto: 'Produto X', precoMedio: 'R$ 220,00', vlrFat: 'R$ 2200,00'},
+    {supervisor: 'Supervisor Y', vendedor: 'Vendedor Y', produto: 'Produto Y', precoMedio: 'R$ 230,00', vlrFat: 'R$ 2300,00'},
+    {supervisor: 'Supervisor Z', vendedor: 'Vendedor Z', produto: 'Produto Z', precoMedio: 'R$ 240,00', vlrFat: 'R$ 2400,00'},
+    {supervisor: 'Supervisor AA', vendedor: 'Vendedor AA', produto: 'Produto AA', precoMedio: 'R$ 250,00', vlrFat: 'R$ 2500,00'},
+    {supervisor: 'Supervisor AB', vendedor: 'Vendedor AB', produto: 'Produto AB', precoMedio: 'R$ 260,00', vlrFat: 'R$ 2600,00'},
+    {supervisor: 'Supervisor AC', vendedor: 'Vendedor AC', produto: 'Produto AC', precoMedio: 'R$ 270,00', vlrFat: 'R$ 2700,00'},
+    {supervisor: 'Supervisor AD', vendedor: 'Vendedor AD', produto: 'Produto AD', precoMedio: 'R$ 280,00', vlrFat: 'R$ 2800,00'},
+    {supervisor: 'Supervisor AE', vendedor: 'Vendedor AE', produto: 'Produto AE', precoMedio: 'R$ 290,00', vlrFat: 'R$ 2900,00'},
+    {supervisor: 'Supervisor AF', vendedor: 'Vendedor AF', produto: 'Produto AF', precoMedio: 'R$ 300,00', vlrFat: 'R$ 3000,00'},
+    {supervisor: 'Supervisor AG', vendedor: 'Vendedor AG', produto: 'Produto AG', precoMedio: 'R$ 310,00', vlrFat: 'R$ 3100,00'},
+    {supervisor: 'Supervisor AH', vendedor: 'Vendedor AH', produto: 'Produto AH', precoMedio: 'R$ 320,00', vlrFat: 'R$ 3200,00'},
+    {supervisor: 'Supervisor AI', vendedor: 'Vendedor AI', produto: 'Produto AI', precoMedio: 'R$ 330,00', vlrFat: 'R$ 3300,00'},
+    {supervisor: 'Supervisor AJ', vendedor: 'Vendedor AJ', produto: 'Produto AJ', precoMedio: 'R$ 340,00', vlrFat: 'R$ 3400,00'},
+    {supervisor: 'Supervisor AK', vendedor: 'Vendedor AK', produto: 'Produto AK', precoMedio: 'R$ 350,00', vlrFat: 'R$ 3500,00'},
+    {supervisor: 'Supervisor AL', vendedor: 'Vendedor AL', produto: 'Produto AL', precoMedio: 'R$ 360,00', vlrFat: 'R$ 3600,00'},
+    {supervisor: 'Supervisor AM', vendedor: 'Vendedor AM', produto: 'Produto AM', precoMedio: 'R$ 370,00', vlrFat: 'R$ 3700,00'},
+    {supervisor: 'Supervisor AN', vendedor: 'Vendedor AN', produto: 'Produto AN', precoMedio: 'R$ 380,00', vlrFat: 'R$ 3800,00'},
+    {supervisor: 'Supervisor AO', vendedor: 'Vendedor AO', produto: 'Produto AO', precoMedio: 'R$ 390,00', vlrFat: 'R$ 3900,00'},
+    {supervisor: 'Supervisor AP', vendedor: 'Vendedor AP', produto: 'Produto AP', precoMedio: 'R$ 400,00', vlrFat: 'R$ 4000,00'},
+    {supervisor: 'Supervisor AQ', vendedor: 'Vendedor AQ', produto: 'Produto AQ', precoMedio: 'R$ 410,00', vlrFat: 'R$ 4100,00'},
+    {supervisor: 'Supervisor AR', vendedor: 'Vendedor AR', produto: 'Produto AR', precoMedio: 'R$ 420,00', vlrFat: 'R$ 4200,00'},
+    {supervisor: 'Supervisor AS', vendedor: 'Vendedor AS', produto: 'Produto AS', precoMedio: 'R$ 430,00', vlrFat: 'R$ 4300,00'},
+    {supervisor: 'Supervisor AT', vendedor: 'Vendedor AT', produto: 'Produto AT', precoMedio: 'R$ 440,00', vlrFat: 'R$ 4400,00'}
+            // Adicione mais registros conforme necessário
+        ];
+
+        const tableBody = document.getElementById('table-body');
+        tableData.forEach(row => {
+            const tr = document.createElement('tr');
+            Object.values(row).forEach(text => {
+                const td = document.createElement('td');
+                td.textContent = text;
+                tr.appendChild(td);
+            });
+            tableBody.appendChild(tr);
+        });
+    </script>
+</body>
+</html>
