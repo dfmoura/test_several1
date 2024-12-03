@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FullCalendar - Exibição Contínua</title>
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #calendar {
+      max-width: 900px;
+      margin: 50px auto;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center;">Calendário de Atividades Contínuas</h1>
+  <div id="calendar"></div>
+
+  <!-- FullCalendar JS -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Dados aleatórios de atividades
+      const atividades = [
+        { title: 'Projeto A', start: '2024-12-01', end: '2024-12-03', user: 'Carlos' },
+        { title: 'Treinamento', start: '2024-12-05', end: '2024-12-07', user: 'Ana' },
+        { title: 'Desenvolvimento do Produto', start: '2024-12-10', end: '2024-12-14', user: 'Bruno' },
+        { title: 'Análise Final', start: '2024-12-15', end: '2024-12-18', user: 'Diana' },
+        { title: 'Apresentação de Resultados', start: '2024-12-20', end: '2024-12-23', user: 'Pedro' }
+      ];
+
+      // Inicializar o FullCalendar
+      const calendarEl = document.getElementById('calendar');
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'pt-br', // Define o idioma como português
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: atividades,
+        eventDidMount: function(info) {
+          // Adiciona detalhes do usuário ao tooltip do evento
+          info.el.title = `Usuário: ${info.event.extendedProps.user}`;
+        },
+        eventContent: function(info) {
+          // Personaliza a exibição do evento para mostrar título e usuário
+          return {
+            html: `<b>${info.event.title}</b><br><i>${info.event.extendedProps.user}</i>`
+          };
+        }
+      });
+      calendar.render();
+    });
+  </script>
+</body>
+</html>

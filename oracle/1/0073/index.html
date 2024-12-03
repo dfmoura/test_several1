@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendário de Atividades</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background-color: #ccc;
+    }
+    .day {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      padding: 10px;
+      height: 100px;
+      overflow: auto;
+    }
+    .header {
+      text-align: center;
+      font-weight: bold;
+      padding: 10px;
+      background-color: #007BFF;
+      color: white;
+    }
+    .activity {
+      font-size: 12px;
+      margin: 5px 0;
+      padding: 5px;
+      background-color: #e3f2fd;
+      border-left: 5px solid #2196F3;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center; margin-top: 20px;">Calendário de Atividades</h1>
+  <div id="calendar" class="calendar"></div>
+
+  <script>
+    // Dados aleatórios
+    const atividades = [
+      { atividade: "Reunião", inicio: "2024-11-01", termino: "2024-11-04", usuario: "João" },
+      { atividade: "Desenvolvimento", inicio: "2024-11-02", termino: "2024-11-05", usuario: "Maria" },
+      { atividade: "Revisão", inicio: "2024-11-04", termino: "2024-11-06", usuario: "Carlos" },
+      { atividade: "Entrega", inicio: "2024-11-07", termino: "2024-11-08", usuario: "Ana" },
+    ];
+
+    // Criar um calendário básico para novembro de 2024
+    const diasNoMes = 30;
+    const primeiroDia = new Date("2024-11-01").getDay(); // Primeiro dia do mês
+    const calendarEl = document.getElementById("calendar");
+
+    // Adicionar cabeçalhos dos dias da semana
+    const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    diasSemana.forEach(dia => {
+      const header = document.createElement("div");
+      header.className = "header";
+      header.innerText = dia;
+      calendarEl.appendChild(header);
+    });
+
+    // Preencher os dias do calendário
+    for (let i = 0; i < primeiroDia; i++) {
+      calendarEl.appendChild(document.createElement("div")); // Espaço vazio para alinhamento
+    }
+
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+      const dayEl = document.createElement("div");
+      dayEl.className = "day";
+      dayEl.innerHTML = `<strong>${dia}</strong>`;
+      
+      // Adicionar atividades ao dia
+      atividades.forEach(({ atividade, inicio, termino, usuario }) => {
+        const dataInicio = new Date(inicio);
+        const dataTermino = new Date(termino);
+        const dataAtual = new Date(`2024-11-${String(dia).padStart(2, "0")}`);
+
+        if (dataAtual >= dataInicio && dataAtual <= dataTermino) {
+          const activityEl = document.createElement("div");
+          activityEl.className = "activity";
+          activityEl.innerHTML = `<strong>${atividade}</strong><br>Usuário: ${usuario}`;
+          dayEl.appendChild(activityEl);
+        }
+      });
+
+      calendarEl.appendChild(dayEl);
+    }
+  </script>
+</body>
+</html>

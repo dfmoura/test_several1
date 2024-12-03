@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login com 2FA</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Login</h2>
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="Usuário" required>
+      <input type="password" id="password" placeholder="Senha" required>
+      <button type="submit">Entrar</button>
+    </form>
+
+    <div id="twoFactorSection" class="hidden">
+      <h2>Autenticação em 2 etapas</h2>
+      <p>Digite o código enviado para seu e-mail ou telefone.</p>
+      <input type="text" id="twoFactorCode" placeholder="Código 2FA" required>
+      <button id="verifyButton">Verificar</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

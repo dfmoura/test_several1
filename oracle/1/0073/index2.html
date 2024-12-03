@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FullCalendar - Progresso de Atividades</title>
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #calendar {
+      max-width: 900px;
+      margin: 50px auto;
+    }
+    .progress-event {
+      background-color: rgba(0, 123, 255, 0.6) !important; /* Azul transparente */
+      border-color: rgba(0, 123, 255, 0.8) !important;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center;">Calendário com Progresso de Atividades</h1>
+  <div id="calendar"></div>
+
+  <!-- FullCalendar JS -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Data atual para progresso
+      const dataAtual = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+
+      // Dados das atividades
+      const atividades = [
+        { title: 'Projeto A', start: '2024-12-01', end: '2024-12-03', inicio_real: '2024-11-27', fim_real: '2024-12-07', user: 'Carlos' },
+        { title: 'Treinamento', start: '2024-12-05', end: '2024-12-07', inicio_real: '2024-12-05', fim_real: '2024-12-07', user: 'Ana' },
+        { title: 'Desenvolvimento do Produto', start: '2024-12-10', end: '2024-12-14', inicio_real: '2024-12-10', fim_real: null, user: 'Bruno' },
+        { title: 'Análise Final', start: '2024-12-15', end: '2024-12-17', inicio_real: '2024-12-15', fim_real: '2024-12-19', user: 'Diana' },
+        { title: 'Apresentação de Resultados', start: '2024-12-20', end: '2024-12-23', inicio_real: '2024-12-20', fim_real: null, user: 'Pedro' }
+      ];
+
+      // Processar eventos e calcular progresso
+      const eventos = [];
+      atividades.forEach((atividade) => {
+        // Evento original
+        eventos.push({
+          title: atividade.title,
+          start: atividade.start,
+          end: atividade.end,
+          user: atividade.user,
+          classNames: 'original-event' // Classe para diferenciar
+        });
+
+        // Evento de progresso (se não concluída, usa dataAtual como fim_real)
+        if (!atividade.fim_real || new Date(atividade.fim_real) > new Date()) {
+          eventos.push({
+            title: `Progresso: ${atividade.title}`,
+            start: atividade.inicio_real,
+            end: atividade.fim_real ? atividade.fim_real : dataAtual,
+            user: atividade.user,
+            classNames: 'progress-event' // Classe para progresso
+          });
+        }
+      });
+
+      // Inicializar o FullCalendar
+      const calendarEl = document.getElementById('calendar');
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'pt-br',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: eventos,
+        eventDidMount: function(info) {
+          // Adiciona detalhes do usuário ao tooltip
+          info.el.title = `Usuário: ${info.event.extendedProps.user} || Atividade: ${info.event.title}`;
+        },
+        eventContent: function(info) {
+          // Exibir título personalizado para progresso e eventos normais
+          if (info.event.classNames.includes('progress-event')) {
+            return { html: `<b>${info.event.title}</b>` };
+          } else {
+            return { html: `<b>${info.event.title}</b>` };
+          }
+        }
+      });
+
+      calendar.render();
+    });
+  </script>
+</body>
+</html>

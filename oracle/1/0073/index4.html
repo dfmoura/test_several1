@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Compromissos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: gray;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lista de Compromissos</h1>
+    <table id="commitmentsTable">
+        <thead>
+            <tr>
+                <th>Compromisso</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Dados serão preenchidos dinamicamente -->
+        </tbody>
+    </table>
+
+    <script>
+        // Base de dados de exemplo
+        const commitments = [
+            { compromisso: "Comprar pão", status: "concluído" },
+            { compromisso: "Enviar relatório", status: "pendente" },
+            { compromisso: "Estudar programação", status: "concluído" },
+            { compromisso: "Fazer exercícios físicos", status: "pendente" }
+        ];
+
+        // Referência ao corpo da tabela
+        const tableBody = document.querySelector("#commitmentsTable tbody");
+
+        // Função para preencher a tabela
+        function populateTable(data) {
+            data.forEach(item => {
+                const row = document.createElement("tr");
+                
+                // Cria a célula do compromisso
+                const commitmentCell = document.createElement("td");
+                commitmentCell.textContent = item.compromisso;
+                if (item.status === "concluído") {
+                    commitmentCell.classList.add("completed");
+                }
+                row.appendChild(commitmentCell);
+
+                // Cria a célula do status
+                const statusCell = document.createElement("td");
+                statusCell.textContent = item.status;
+                row.appendChild(statusCell);
+
+                // Adiciona a linha à tabela
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Preenche a tabela ao carregar a página
+        populateTable(commitments);
+    </script>
+</body>
+</html>

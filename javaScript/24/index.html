@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+
+    <script>
+
+        let produto = 'Arroz'
+        let quant = 2
+        let precoUnitario = 4.99
+        let precoTotal = quant*precoUnitario
+
+        document.write(`Preco Total R$ ${precoTotal} <br>`)
+        console.log(new Intl.NumberFormat('pt-BR').format(precoTotal))
+        document.write(`Preco Total ${precoTotal.toLocaleString('pt-BR',{style: 'currency', currency: 'BRL'})}<hr>`)
+
+
+        const nome = 'Diogo Moura'
+        const peso = 83.5
+        const altura = 1.84
+        const imc = peso / (altura * altura)
+
+        document.write(`IMC: ${imc}<br>`)
+        document.write(`IMC: ${imc.toFixed(2)}<br>`)
+
+
+        let nota1 = 7.5
+        let nota2 = 5.5
+        let nota3 = 4.0
+        let notaFinal = nota1 + nota2 + nota3
+        document.write("Nota final "+ notaFinal+'<br>')
+
+
+        let compra = 1999.9
+        let desconto = 145.42
+        let compraComDesconto = compra - desconto
+        document.write(compraComDesconto.toLocaleString('pt-BR',{style: 'currency', currency: 'BRL'})+'<br>')
+        document.write(compraComDesconto + '<br>')
+
+        var x = "5";
+
+        if (x <=5){
+
+        console.log("X é menor ou igual a cinco");
+
+        }
+
+
+        let saida="";
+        let i = 1;
+
+        do {
+        console.log("O número é " + i);
+        i++;
+        }
+        while (i <= 1);        
+
+
+    </script>
+</body>
+</html>
