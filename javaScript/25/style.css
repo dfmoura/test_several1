@@ -1,0 +1,47 @@
+/* colocaremos o efeito css */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: black;
+    color: #0f0;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.frame {
+    position: relative;
+    width: 80vw;
+    height: 80vh;
+    overflow: hidden;
+}
+
+.matrix {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 20px;
+    white-space: nowrap;
+    opacity: 1;
+}
+
+/* efeito da cachoeira */
+@keyframes fall {
+    0% {
+        transform: translateY(-100%);
+    }
+    100% {
+        transform: translateY(100%);
+    }
+}
+
+.drop {
+    animation: fall 0.5s infinite;
+    animation-delay: calc(0.1s * var(--i));
+}
