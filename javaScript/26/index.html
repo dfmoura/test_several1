@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Cache Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: #fff;
+            margin: 5px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>IPs no Cache do Servidor</h1>
+    <ul id="ip-list">
+        <!-- Lista de IPs será preenchida aqui -->
+    </ul>
+
+    <script>
+        // Array simulando IPs no cache do servidor
+        let cachedIPs = [];
+
+        // Simula o salvamento e recuperação de IP
+        function simulateServerIP() {
+            // Obtenha um IP aleatório para simular
+            const randomIP = `192.168.1.${Math.floor(Math.random() * 255)}`;
+            
+            // Adiciona o IP ao cache se não existir
+            if (!cachedIPs.includes(randomIP)) {
+                cachedIPs.push(randomIP);
+            }
+
+            return randomIP;
+        }
+
+        // Adiciona os IPs ao HTML
+        function updateIPList() {
+            const ipListElement = document.getElementById('ip-list');
+            ipListElement.innerHTML = ''; // Limpa a lista
+
+            cachedIPs.forEach(ip => {
+                const li = document.createElement('li');
+                li.textContent = ip;
+                ipListElement.appendChild(li);
+            });
+        }
+
+        // Ao carregar a página
+        window.onload = () => {
+            // Simula o acesso ao servidor e recupera o IP
+            simulateServerIP();
+
+            // Atualiza a lista de IPs no HTML
+            updateIPList();
+        };
+    </script>
+</body>
+</html>

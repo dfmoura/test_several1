@@ -26,3 +26,9 @@ A etapa foi dedicada à integração e testes da aba "Duplicatas de Terceiros" n
 
 5) 28/11/2024 13:10 as 18:00
 Por fim, foi realizada a revisão completa do código, abrangendo a query e a integração da aba, e a finalização dos testes em ambiente controlado. Após a validação de todos os cenários, a funcionalidade foi documentada e entregue para homologação. A documentação incluiu o detalhamento técnico da view criada, as regras de negócios aplicadas e as instruções para validação em ambiente de produção. A nova funcionalidade está agora pronta para ser submetida a testes pelo cliente.
+
+
+
+efetuado atualizacao na view para que os dados da cte AD_HISTCOB troxesse alem do campo obervacao os
+demais campos da tabela.
+
