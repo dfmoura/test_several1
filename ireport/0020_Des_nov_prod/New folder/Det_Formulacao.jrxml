@@ -3,7 +3,6 @@
 	<property name="ireport.zoom" value="1.1000000000000019"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
-	<property name="ireport.definition"/>
 	<parameter name="PK_CODFORMULACAO" class="java.math.BigDecimal" isForPrompting="false">
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
 	</parameter>
@@ -261,7 +260,8 @@ SELECT CODIGO,CODCAD,COMPONENTE,GARANTIAS,DENSIDADE,PERC_100G,FATOR FROM BAS]]>
 			<textField pattern="#,##0.00">
 				<reportElement x="368" y="0" width="92" height="20"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle"/>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SumPERC}]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SumPERC}
+]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
 				<reportElement x="461" y="0" width="91" height="20"/>

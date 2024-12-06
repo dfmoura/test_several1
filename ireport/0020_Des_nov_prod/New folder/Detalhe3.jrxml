@@ -3,7 +3,6 @@
 	<property name="ireport.zoom" value="1.1000000000000039"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
-	<property name="ireport.definition"/>
 	<style name="table">
 		<box>
 			<pen lineWidth="1.0" lineColor="#000000"/>

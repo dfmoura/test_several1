@@ -3,7 +3,6 @@
 	<property name="ireport.zoom" value="1.4641000000000024"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
-	<property name="ireport.definition"/>
 	<parameter name="PK_NROUNICO" class="java.math.BigDecimal" isForPrompting="false">
 		<parameterDescription><![CDATA[Nro. Único]]></parameterDescription>
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>

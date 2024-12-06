@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Detalhe2" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
 	<property name="ireport.zoom" value="1.6105100000000032"/>
-	<property name="ireport.x" value="123"/>
+	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<property name="ireport.definition"/>
 	<style name="table">
@@ -44,11 +44,11 @@
 			<pen lineWidth="0.5" lineColor="#000000"/>
 		</box>
 	</style>
-	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
-		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
-	</parameter>
 	<parameter name="PK_NROUNICO" class="java.math.BigDecimal" isForPrompting="false">
 		<parameterDescription><![CDATA[Nro. Único]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
 	</parameter>
 	<parameter name="PK_CODAPONTAMENTO" class="java.math.BigDecimal" isForPrompting="false">
@@ -117,7 +117,7 @@ where APO.NROUNICO = $P{PK_NROUNICO}]]>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
 			</textField>
 		</band>
-		<band height="35">
+		<band height="42">
 			<subreport>
 				<reportElement key="Detalhe3" x="0" y="0" width="555" height="30"/>
 				<subreportParameter name="PK_NROUNICO">
@@ -128,19 +128,6 @@ where APO.NROUNICO = $P{PK_NROUNICO}]]>
 				</subreportParameter>
 				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
 				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Detalhe3.jasper"]]></subreportExpression>
-			</subreport>
-		</band>
-		<band height="50">
-			<subreport>
-				<reportElement key="Detalhe4" x="0" y="0" width="554" height="50"/>
-				<subreportParameter name="PK_NROUNICO">
-					<subreportParameterExpression><![CDATA[$F{NROUNICO}]]></subreportParameterExpression>
-				</subreportParameter>
-				<subreportParameter name="PK_CODAPONTAMENTO">
-					<subreportParameterExpression><![CDATA[$F{CODAPONTAMENTO}]]></subreportParameterExpression>
-				</subreportParameter>
-				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
-				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Detalhe4.jasper"]]></subreportExpression>
 			</subreport>
 		</band>
 	</detail>
