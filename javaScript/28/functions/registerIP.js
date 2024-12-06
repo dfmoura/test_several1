@@ -3,7 +3,7 @@ const q = faunadb.query;
 
 // Crie um cliente do FaunaDB usando sua chave secreta
 const client = new faunadb.Client({
-  secret: process.env.FAUNA_SECRET_KEY, // Defina sua chave de API do FaunaDB
+  secret: process.env.FAUNADB_SECRET_KEY, // Defina sua chave de API do FaunaDB
 });
 
 exports.handler = async (event, context) => {
