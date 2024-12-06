@@ -1,0 +1,9 @@
+[build]
+  functions = "functions"
+
+[dev]
+  functions = "functions"
+  publish = "."
+
+[build.environment]
+  FAUNA_SECRET_KEY = "fnacapi_omd2ZXJzaW9uAWdwYXlsb2FkWFiiYmlkcjQxNjQ1NDYwMTA4MTg4MTE3MWZzZWNyZXR4OGtadFBwMVBZODF3SVptanQySWg4YVJiRUYybE1ZSTJKUmZac2pMNWNmdVBGcXZwcmtydkg1UT09"
