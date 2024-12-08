@@ -1,0 +1,15 @@
+{
+    "name": "access-tracker",
+    "version": "1.0.0",
+    "description": "App para rastrear IPs com FaunaDB e Netlify",
+    "main": "index.js",
+    "scripts": {
+      "build": "echo 'No build step required'"
+    },
+    "dependencies": {
+      "faunadb": "^4.7.1"
+    },
+    "author": "",
+    "license": "MIT"
+  }
+  
