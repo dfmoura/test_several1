@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informações do Sistema</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Importa Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Informações do Sistema</h1>
+        <div id="ip-section">
+            <p><strong>IP Público:</strong> <span id="ip"></span></p>
+        </div>
+        <div id="device-section">
+            <p><strong>Equipamento:</strong> <span id="device"></span></p>
+        </div>
+        <div id="unique-code-section">
+            <p><strong>Código Único:</strong> <span id="uniqueCode"></span></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
