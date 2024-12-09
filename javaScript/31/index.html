@@ -3,22 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Formulário com Banco de Dados</title>
+  <title>Formulário com Firebase</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
-    <h1>Cadastro de Usuários</h1>
-    <form id="userForm">
-      <input type="text" id="name" placeholder="Nome" required>
-      <input type="email" id="email" placeholder="Email" required>
+    <h1>Cadastro de Informações</h1>
+    <form id="data-form">
+      <label for="name">Nome:</label>
+      <input type="text" id="name" name="name" required>
+      
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" required>
+      
       <button type="submit">Enviar</button>
     </form>
-    <h2>Usuários Cadastrados:</h2>
-    <ul id="userList"></ul>
+    <h2>Dados Cadastrados:</h2>
+    <ul id="data-list"></ul>
   </div>
-  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js"></script>
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

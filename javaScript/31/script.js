@@ -1,7 +1,8 @@
-// Importar e configurar Firebase
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
 import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
+// Configuração do Firebase
 const firebaseConfig = {
     apiKey: process.env.FIREBASE_API_KEY,
     authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -13,33 +14,39 @@ const firebaseConfig = {
     measurementId: process.env.FIREBASE_MEASUREMENT_ID
   };
 
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-const usersRef = ref(database, "users");
-
-// Captura o formulário e a lista
-const form = document.getElementById("userForm");
-const userList = document.getElementById("userList");
-
-// Adiciona um usuário ao banco
-form.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name = document.getElementById("name").value;
-  const email = document.getElementById("email").value;
-
-  if (name && email) {
-    push(usersRef, { name, email });
+  
+  // Inicializa o Firebase
+  const app = initializeApp(firebaseConfig);
+  const database = getDatabase(app);
+  
+  // Referência para os dados
+  const dbRef = ref(database, 'cadastros');
+  
+  // Formulário e elementos HTML
+  const form = document.getElementById('data-form');
+  const dataList = document.getElementById('data-list');
+  
+  // Função para enviar dados ao Firebase
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = form.name.value;
+    const email = form.email.value;
+  
+    // Enviar para o Firebase
+    push(dbRef, { name, email });
+  
+    // Limpa o formulário
     form.reset();
-  }
-});
-
-// Atualiza a lista de usuários ao vivo
-onValue(usersRef, (snapshot) => {
-  userList.innerHTML = "";
-  const data = snapshot.val();
-  for (const key in data) {
-    const li = document.createElement("li");
-    li.textContent = `${data[key].name} - ${data[key].email}`;
-    userList.appendChild(li);
-  }
-});
+  });
+  
+  // Função para listar os dados do Firebase
+  onValue(dbRef, (snapshot) => {
+    dataList.innerHTML = '';
+    snapshot.forEach((childSnapshot) => {
+      const data = childSnapshot.val();
+      const li = document.createElement('li');
+      li.textContent = `${data.name} (${data.email})`;
+      dataList.appendChild(li);
+    });
+  });
+  
