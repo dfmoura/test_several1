@@ -171,6 +171,11 @@
                                         const formulacao = row.FORMULACAO;
                                         const custo = parseFloat(row.CUSTO) || 0;
 
+                                        const custoFormatado = new Intl.NumberFormat('pt-BR', {
+                                            style: 'currency',
+                                            currency: 'BRL'
+                                        }).format(custo);
+
                                         // Add project to the filter options
                                         projectNames.add(projeto);
 
@@ -178,7 +183,7 @@
                                         const newRow = projectsTable.insertRow();
                                         newRow.insertCell(0).textContent = projeto;
                                         newRow.insertCell(1).textContent = formulacao;
-                                        newRow.insertCell(2).textContent = custo.toFixed(2);
+                                        newRow.insertCell(2).textContent = custoFormatado;
                                         totalCost += custo;
                                     });
 
@@ -191,7 +196,13 @@
                                     });
 
                                     // Display the total cost
-                                    document.getElementById('totalCost').textContent = 'Total: R$ ' + totalCost.toFixed(2);
+                                    const totalCostFormatted = new Intl.NumberFormat('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL'
+                                    }).format(totalCost);
+
+                                    document.getElementById('totalCost').textContent = 'Total: ' + totalCostFormatted;
+
 
                                 } catch (error) {
                                     console.error('Error fetching data:', error);

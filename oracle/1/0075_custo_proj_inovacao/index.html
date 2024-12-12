@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela com Grupos e Subgrupos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            text-align: center;
+            padding: 10px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .group-header {
+            background-color: #d9edf7;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Exemplo de Tabela com Grupos e Subgrupos</h1>
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">ID</th>
+                <th rowspan="2">Nome</th>
+                <th class="group-header" colspan="3" onclick="toggleGroup('grupoA')">Grupo A</th>
+                <th class="group-header" colspan="2" onclick="toggleGroup('grupoB')">Grupo B</th>
+            </tr>
+            <tr>
+                <th class="grupoA">Subgrupo 1</th>
+                <th class="grupoA">Subgrupo 2</th>
+                <th class="grupoA">Subgrupo 3</th>
+                <th class="grupoB">Subgrupo 1</th>
+                <th class="grupoB">Subgrupo 2</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            <!-- Os dados serão gerados pelo JavaScript -->
+        </tbody>
+    </table>
+
+    <script>
+        // Função para gerar dados aleatórios para a tabela
+        function generateRandomData() {
+            const data = [];
+            for (let i = 1; i <= 10; i++) {
+                data.push({
+                    id: i,
+                    nome: `Nome ${i}`,
+                    grupoA: [
+                        Math.floor(Math.random() * 100),
+                        Math.floor(Math.random() * 100),
+                        Math.floor(Math.random() * 100)
+                    ],
+                    grupoB: [
+                        Math.floor(Math.random() * 100),
+                        Math.floor(Math.random() * 100)
+                    ]
+                });
+            }
+            return data;
+        }
+
+        // Função para preencher a tabela com os dados
+        function populateTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                // Colunas principais
+                tr.innerHTML = `
+                    <td>${row.id}</td>
+                    <td>${row.nome}</td>
+                `;
+
+                // Grupo A
+                row.grupoA.forEach((value, index) => {
+                    const td = document.createElement('td');
+                    td.textContent = value;
+                    td.classList.add('grupoA');
+                    tr.appendChild(td);
+                });
+
+                // Grupo B
+                row.grupoB.forEach((value, index) => {
+                    const td = document.createElement('td');
+                    td.textContent = value;
+                    td.classList.add('grupoB');
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Função para alternar a visibilidade dos grupos
+        function toggleGroup(groupClass) {
+            const elements = document.querySelectorAll(`.${groupClass}`);
+            elements.forEach(el => {
+                el.classList.toggle('hidden');
+            });
+        }
+
+        // Gerar e preencher a tabela ao carregar a página
+        const data = generateRandomData();
+        populateTable(data);
+    </script>
+</body>
+</html>
