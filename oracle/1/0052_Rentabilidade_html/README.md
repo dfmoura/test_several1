@@ -1,6 +1,90 @@
 # Objetivos
 ```markdown
 
+# Documentação Técnica: Dashboard Rentabilidade Financeira 2.0
+
+## Objetivo
+O **Dashboard Rentabilidade Financeira 2.0** foi projetado para demonstrar, de forma detalhada e analítica, os resultados financeiros da companhia. Ele permite a navegação entre diferentes níveis de análise, através de componentes interativos como gráficos e tabelas, que facilitam a compreensão dos dados e a tomada de decisões.
+
+---
+
+## Estrutura Geral
+O dashboard contém filtros padrões que permitem a segmentação dos dados em todos os níveis de análise, abrangendo os seguintes critérios:
+- **Data de Negociação**
+- **Empresa**
+- **Natureza**
+- **Centro de Resultado (CR)**
+- **Vendedor**
+- **Supervisor**
+- **Gerente**
+- **Rota**
+- **Meta**
+- **Tipo de Operação (TOP)**
+
+No nível principal, o dashboard exibe 11 cartões que representam os principais indicadores de performance da companhia, descritos a seguir:
+1. Faturamento
+2. Devolução
+3. Impostos
+4. CMV (Custo da Mercadoria Vendida)
+5. HL (Hectolitro)
+6. Desconto
+7. Margem de Contribuição Nominal
+8. Margem de Contribuição Percentual
+9. Despesa Operacional
+10. Investimentos
+11. Resultado
+
+---
+
+## Navegação e Interatividade
+Cada cartão no nível principal serve como um ponto de entrada para níveis de detalhamento mais profundo. A seguir, detalha-se a dinâmica de cada indicador:
+
+### 1) **Faturamento**
+Ao clicar no cartão de **Faturamento**, o usuário é direcionado para uma tela com 4 componentes principais:
+- **Faturamento por Tipo de Produto**: Gráfico de rosca com totalizador central. A interação com uma fatia específica do gráfico atualiza os demais componentes com base na seleção.
+- **Detalhamento dos Valores do CIP**:
+  - Gráfico de rosca que permite a navegação para um nível inferior, detalhando o Custo Indireto de Produção.
+  - No nível inferior, são apresentados:
+    - Um gráfico de linha mostrando a evolução dos custos.
+    - Duas tabelas: uma consolidada por referência e outra detalhada por natureza.  
+      A interação com colunas específicas nas tabelas direciona para níveis de detalhamento ainda mais profundos, com possibilidade de acesso ao portal via número único.
+- **Valores de Venda por Gerentes**: Gráfico de barras horizontal que permite a navegação para o nível de supervisor, e subsequentemente, para o nível de vendedor.
+- **Detalhamento por Produto**: Tabela que, ao ser clicada, navega até o nível de detalhamento do produto e permite acesso ao portal.
+
+### 2) **Devolução**
+A tela de **Devolução** possui 4 componentes:
+- **Faturamento por Tipo de Produto**: Gráfico de rosca interativo, semelhante ao componente presente em Faturamento.
+- **Devoluções por Cidade e Bairro (Pedido Recusado)**: Gráfico de barras que exibe devoluções por bairro, filtradas por cidade via dropdown.
+- **Top 10 Devoluções por Vendedor e Motivo**: Gráfico que lista os vendedores com maior número de devoluções, permitindo navegação para detalhamento.
+- **Devoluções por Produto e Motivo**: Tabela consolidada com devoluções detalhadas por motivo e produto.
+
+### 3) **Impostos**
+Ao acessar o cartão de **Impostos**, o usuário é redirecionado para uma tela com 4 componentes:
+- **Impostos**: Gráfico de rosca com um totalizador no centro. A interação com o gráfico permite a atualização dos demais componentes e o acesso a um nível inferior.
+- **Impostos por Empresa**: Gráfico de barras, com navegação para detalhamento.
+- **Impostos por Grupo de Produtos**: Gráfico de barras, com navegação para detalhamento.
+- **Impostos por Produto**: Tabela detalhada que permite navegação para o nível de detalhamento por produto.
+
+### 4) **CMV**
+A tela de **CMV** contém 4 componentes focados nos custos médios dos produtos faturados:
+- **Custo Médio por Empresa**: Gráfico de rosca, interativo, que atualiza o próximo gráfico baseado na seleção.
+- **Custo Médio por TOP de Produtos**: Outro gráfico de rosca agrupando os custos médios, também interativo.
+- **Custo Médio por Tipo de Produto**: Gráfico que exibe o custo médio por tipo de produto, filtrado pela seleção anterior.
+- **Custo Médio dos Produtos**: Tabela consolidada com os custos médios por produto, permitindo navegação para níveis de detalhamento.
+
+---
+
+## Interações e Funcionalidades Adicionais
+- **Atualização Dinâmica**: Os gráficos e tabelas presentes nos níveis inferiores do dashboard são interativos e se atualizam de acordo com as seleções feitas em níveis superiores.
+- **Navegação entre Níveis**: O dashboard permite a navegação profunda entre diferentes níveis de detalhamento. A interação com colunas e gráficos direciona o usuário para níveis mais específicos, onde são apresentadas informações mais detalhadas e a opção de acessar o portal diretamente via número único.
+- **Acesso ao Portal**: Em vários pontos do dashboard, ao clicar em valores ou números únicos, o usuário pode acessar o portal da empresa para visualização de dados mais completos e específicos.
+
+---
+
+Essa documentação técnica apresenta a estrutura funcional do **Dashboard Rentabilidade Financeira 2.0**, com foco na interação entre componentes, navegação entre níveis e detalhamento das principais áreas de análise financeira. O objetivo é fornecer um suporte contínuo para a análise detalhada e tomada de decisões estratégicas da empresa.
+
+
+
 
 ```
 
