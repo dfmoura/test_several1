@@ -20,6 +20,13 @@ public class LancamentoCabecalhoBT implements AcaoRotinaJava {
         cabecalho.setCampo("CODPARC",10);
         cabecalho.save();
 
+        Object nrounico = cabecalho.getCampo("NROUNICO");
+
+        StringBuilder mensagem = new StringBuilder();
+        mensagem.append("Lancamento realizado com sucesso!").append(" Nro. Unico: ").append(nrounico);
+
+        contexto.setMensagemRetorno(mensagem.toString());
+        contexto.setMensagemRetorno("Lancamento realizado com sucesso! Nro. Unico: "+nrounico);
 
         System.out.println("LancamentoCabecalhoBT - Fim");
     }
