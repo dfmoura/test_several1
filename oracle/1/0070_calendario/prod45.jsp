@@ -179,12 +179,23 @@
                 try {
                     const usuarios = await JX.consultar(`
                     
-                    SELECT 
-                        USU.CODUSU AS VALUE,
-                        USU.CODUSU || '-' || USU.NOMEUSU AS LABEL
-                    FROM TSIUSU USU
-                    WHERE USU.AD_GESTORUSU = STP_GET_CODUSULOGADO
-                    OR USU.CODUSU = STP_GET_CODUSULOGADO`
+                        SELECT VALUE,LABEL FROM (
+                        SELECT 
+                        STP_GET_CODUSULOGADO AS VALUE,
+                        STP_GET_CODUSULOGADO ||'-'||USU.NOMEUSU AS LABEL
+                        FROM DUAL
+                        INNER JOIN TSIUSU USU ON STP_GET_CODUSULOGADO = USU.CODUSU
+                        UNION ALL
+                        SELECT
+                        ATV.CODVISUALIZAR AS VALUE,
+                        ATV.CODVISUALIZAR ||'-'||USU.NOMEUSU AS LABEL
+                        FROM AD_ATVOUTROS ATV
+                        INNER JOIN TSIUSU USU ON ATV.CODVISUALIZAR = USU.CODUSU
+                        WHERE ATV.CODUSU = STP_GET_CODUSULOGADO
+                        )
+                    
+                    
+                    `
                     
                     );
 

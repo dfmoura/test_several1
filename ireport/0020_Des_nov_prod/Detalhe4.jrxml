@@ -13,19 +13,27 @@
 		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
 	</parameter>
 	<queryString>
-		<![CDATA[select IMAGEM from AD_ANEXOAPONT
+		<![CDATA[select IMAGEM,OBS from AD_ANEXOAPONT
 WHERE NROUNICO = $P{PK_NROUNICO} AND CODAPONTAMENTO = $P{PK_CODAPONTAMENTO}]]>
 	</queryString>
 	<field name="IMAGEM" class="java.io.InputStream"/>
+	<field name="OBS" class="java.lang.String">
+		<fieldDescription><![CDATA[Observação]]></fieldDescription>
+	</field>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
 	<detail>
-		<band height="119" splitType="Stretch">
+		<band height="184" splitType="Stretch">
 			<image scaleImage="RealSize" hAlign="Center" vAlign="Top" isUsingCache="false" isLazy="true">
-				<reportElement positionType="Float" stretchType="RelativeToBandHeight" x="0" y="0" width="555" height="104" isRemoveLineWhenBlank="true" isPrintWhenDetailOverflows="true"/>
+				<reportElement positionType="Float" stretchType="RelativeToBandHeight" x="0" y="18" width="555" height="104" isRemoveLineWhenBlank="true" isPrintWhenDetailOverflows="true"/>
 				<imageExpression class="java.io.InputStream"><![CDATA[$F{IMAGEM}]]></imageExpression>
 			</image>
+			<textField>
+				<reportElement x="0" y="139" width="555" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{OBS}]]></textFieldExpression>
+			</textField>
 		</band>
 	</detail>
 	<summary>

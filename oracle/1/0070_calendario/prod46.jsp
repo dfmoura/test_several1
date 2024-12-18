@@ -130,9 +130,8 @@
                     const query = `
                         SELECT 
                             cal.codigo AS codcal,
-                            cal.cod_desenv_proj,
-                            nov.codigo AS codigo,
-                            nov.descricao AS descricao,
+                            cal.tarefa,
+
                             CASE WHEN cal.HRINI IS NULL THEN
                             to_char(cal.dtainicio,'YYYY-MM-DD') ELSE
                             to_char(cal.dtainicio,'YYYY-MM-DD')||'T' || TO_CHAR(LPAD(SUBSTR(TO_CHAR(cal.HRINI), 1, LENGTH(TO_CHAR(cal.HRINI)) - 2), 2, '0')) || ':' || 
@@ -147,18 +146,18 @@
                             cal.corfundo,
                             cal.corfonte
                         FROM AD_CALENDINOV cal
-                        INNER JOIN AD_NOVOSPRODUTOS nov ON cal.cod_desenv_proj = nov.nrounico
+                        
                         WHERE cal.usuario IN ` + userIdsAsNumbers;
 
                     const filteredEvents = await JX.consultar(query);
 
                     const finalEvents = filteredEvents.map(item => ({
-                        title: ' >> '+item.COD_DESENV_PROJ + ' - ' + item.DESCRICAO, // Adiciona cod_desenv_proj antes da descricao
+                        title: ' >> '+item.TAREFA, // Adiciona
                         start: item.DTAINICIO,
                         end: item.DTAFIM,
                         extendedProps: {
                             codCal: item.CODCAL,
-                            codProj: item.COD_DESENV_PROJ,
+                            codProj: item.TAREFA,
                             codigo: item.CODIGO,
                             obs: item.OBS,
                             concluido: item.CONCLUIDO,
@@ -179,12 +178,23 @@
                 try {
                     const usuarios = await JX.consultar(`
                     
-                    SELECT 
-                        USU.CODUSU AS VALUE,
-                        USU.CODUSU || '-' || USU.NOMEUSU AS LABEL
-                    FROM TSIUSU USU
-                    WHERE USU.AD_GESTORUSU = STP_GET_CODUSULOGADO
-                    OR USU.CODUSU = STP_GET_CODUSULOGADO`
+                        SELECT VALUE,LABEL FROM (
+                        SELECT 
+                        STP_GET_CODUSULOGADO AS VALUE,
+                        STP_GET_CODUSULOGADO ||'-'||USU.NOMEUSU AS LABEL
+                        FROM DUAL
+                        INNER JOIN TSIUSU USU ON STP_GET_CODUSULOGADO = USU.CODUSU
+                        UNION ALL
+                        SELECT
+                        ATV.CODVISUALIZAR AS VALUE,
+                        ATV.CODVISUALIZAR ||'-'||USU.NOMEUSU AS LABEL
+                        FROM AD_ATVOUTROS ATV
+                        INNER JOIN TSIUSU USU ON ATV.CODVISUALIZAR = USU.CODUSU
+                        WHERE ATV.CODUSU = STP_GET_CODUSULOGADO
+                        )
+                    
+                    
+                    `
                     
                     );
 

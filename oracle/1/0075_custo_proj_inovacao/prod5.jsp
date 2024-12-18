@@ -125,7 +125,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <!-- Data will be populated dynamically -->
+                                        <!-- gerado pelo script -->
                                     </tbody>
                                 </table>
                                 <div class="total" id="totalCost">Total: R$ 0</div>
@@ -133,106 +133,123 @@
                         </div>
 
                         <script>
-                            // Function to fetch data and populate the table
+                            // Função para buscar e preencher os dados na tabela
                             async function fetchData() {
                                 try {
-                                    const response = await JX.consultar(
-                                                    `SELECT DISTINCT NOV.NROUNICO, 
-                                                                    NOV.CODIGO, 
-                                                                    NOV.NROUNICO||\'-\'||NOV.CODIGO||\'-\'||NOV.DESCRICAO AS PROJETO,
-                                                                    BOR.CODFORMULACAO||\'-\'||BOR.PRODSEMCAD AS FORMULACAO,
-
-                                                                    SUM(NVL(BOR.QUANTIDADE * BOR.DENSIDADE * (DET.PERC_100G) * VALOR_UN, 0)) AS CUSTO
-                                                    FROM AD_NOVOSPRODUTOS NOV 
-                                                    LEFT JOIN AD_APONTAMFORMULACAO APO ON NOV.NROUNICO = APO.NROUNICO 
-                                                    LEFT JOIN AD_ADFORMULACOESLAB LAB  ON NOV.NROUNICO = LAB.NROUNICO AND APO.CODAPONTAMENTO = LAB.CODAPONTAMENTO 
-                                                    LEFT JOIN AD_FORMULLABOR BOR ON LAB.CODFORMULACAO = BOR.CODFORMULACAO 
-                                                    LEFT JOIN AD_DETALHFORMULACOES DET ON LAB.CODFORMULACAO = DET.CODFORMULACAO 
-                                                    LEFT JOIN AD_CONTINSUMO CONT ON DET.CODCAD = CONT.CODCAD AND DET.CODCONT = CONT.CODCONT 
-                                                    LEFT JOIN AD_CADMATERIA CAD ON CONT.CODCAD = CAD.CODCAD 
-                                                    INNER JOIN TSIUSU USU ON BOR.CODUSU = USU.CODUSU 
-                                                    LEFT JOIN TGFPRO PRO ON BOR.CODPROD = PRO.CODPROD 
-                                                    GROUP BY NOV.NROUNICO, 
-                                                                NOV.CODIGO, 
-                                                                NOV.NROUNICO||\'-\'||NOV.CODIGO||\'-\'||NOV.DESCRICAO,
-                                                                BOR.CODFORMULACAO||\'-\'||BOR.PRODSEMCAD
-                                                    ORDER BY NOV.NROUNICO`
-);
-
-                                    // Populate the table and filter options
-                                    const projectsTable = document.getElementById('projectsTable').getElementsByTagName('tbody')[0];
+                                    const response = await JX.consultar(`
+                                        SELECT DISTINCT NOV.NROUNICO, 
+                                                        NOV.CODIGO, 
+                                                        NOV.NROUNICO||'-'||NOV.CODIGO||'-'||NOV.DESCRICAO AS PROJETO,
+                                                        BOR.CODFORMULACAO||'-'||BOR.PRODSEMCAD AS FORMULACAO,
+                                                        SUM(NVL(BOR.QUANTIDADE * BOR.DENSIDADE * (DET.PERC_100G) * VALOR_UN, 0)) AS CUSTO
+                                        FROM AD_NOVOSPRODUTOS NOV 
+                                        LEFT JOIN AD_APONTAMFORMULACAO APO ON NOV.NROUNICO = APO.NROUNICO 
+                                        LEFT JOIN AD_ADFORMULACOESLAB LAB ON NOV.NROUNICO = LAB.NROUNICO AND APO.CODAPONTAMENTO = LAB.CODAPONTAMENTO 
+                                        LEFT JOIN AD_FORMULLABOR BOR ON LAB.CODFORMULACAO = BOR.CODFORMULACAO 
+                                        LEFT JOIN AD_DETALHFORMULACOES DET ON LAB.CODFORMULACAO = DET.CODFORMULACAO 
+                                        LEFT JOIN AD_CONTINSUMO CONT ON DET.CODCAD = CONT.CODCAD AND DET.CODCONT = CONT.CODCONT 
+                                        LEFT JOIN AD_CADMATERIA CAD ON CONT.CODCAD = CAD.CODCAD 
+                                        INNER JOIN TSIUSU USU ON BOR.CODUSU = USU.CODUSU 
+                                        LEFT JOIN TGFPRO PRO ON BOR.CODPROD = PRO.CODPROD 
+                                        GROUP BY NOV.NROUNICO, NOV.CODIGO, NOV.NROUNICO||'-'||NOV.CODIGO||'-'||NOV.DESCRICAO,
+                                                 BOR.CODFORMULACAO||'-'||BOR.PRODSEMCAD
+                                        ORDER BY NOV.NROUNICO
+                                    `);
+                        
+                                    const projectsTable = document.querySelector('#projectsTable tbody');
                                     const projectFilter = document.getElementById('projectFilter');
-
                                     let totalCost = 0;
                                     const projectNames = new Set();
-
+                        
+                                    // Limpa os dados existentes
+                                    projectsTable.innerHTML = '';
+                                    projectFilter.innerHTML = '';
+                        
                                     response.forEach(row => {
                                         const projeto = row.PROJETO;
                                         const formulacao = row.FORMULACAO;
                                         const custo = parseFloat(row.CUSTO) || 0;
-
+                        
+                                        // Formatação para exibição
                                         const custoFormatado = new Intl.NumberFormat('pt-BR', {
                                             style: 'currency',
                                             currency: 'BRL'
                                         }).format(custo);
-
-                                        // Add project to the filter options
+                        
+                                        // Adiciona opções de filtro
                                         projectNames.add(projeto);
-
-                                        // Add row to the table
+                        
+                                        // Adiciona uma linha na tabela
                                         const newRow = projectsTable.insertRow();
                                         newRow.insertCell(0).textContent = projeto;
                                         newRow.insertCell(1).textContent = formulacao;
-                                        newRow.insertCell(2).textContent = custoFormatado;
+                                        newRow.insertCell(2).textContent = custo.toFixed(2); // Usa valor bruto para cálculos futuros
                                         totalCost += custo;
                                     });
-
-                                    // Populate filter options
+                        
+                                    // Popula as opções do filtro
                                     projectNames.forEach(name => {
                                         const option = document.createElement('option');
                                         option.value = name;
                                         option.textContent = name;
                                         projectFilter.appendChild(option);
                                     });
-
-                                    // Display the total cost
+                        
+                                    // Adiciona uma opção para "Todos"
+                                    const allOption = document.createElement('option');
+                                    allOption.value = 'Todos';
+                                    allOption.textContent = 'Todos';
+                                    allOption.selected = true;
+                                    projectFilter.insertBefore(allOption, projectFilter.firstChild);
+                        
+                                    // Exibe o custo total
                                     const totalCostFormatted = new Intl.NumberFormat('pt-BR', {
                                         style: 'currency',
                                         currency: 'BRL'
                                     }).format(totalCost);
-
+                        
                                     document.getElementById('totalCost').textContent = 'Total: ' + totalCostFormatted;
-
-
+                        
                                 } catch (error) {
-                                    console.error('Error fetching data:', error);
+                                    console.error('Erro ao buscar dados:', error);
                                 }
                             }
-
+                        
+                            // Função para filtrar projetos e recalcular o custo total
                             function filterProjects() {
-                                const projectFilter = Array.from(document.getElementById('projectFilter').selectedOptions).map(option => option.value);
+                                const selectedProjects = Array.from(document.getElementById('projectFilter').selectedOptions).map(option => option.value);
                                 const rows = Array.from(document.querySelectorAll('#projectsTable tbody tr'));
                                 let total = 0;
-
+                        
                                 rows.forEach(row => {
                                     const projectName = row.cells[0].textContent;
-                                    const projectCost = parseFloat(row.cells[1].textContent);
-                                    const showRow = projectFilter.includes("Todos") || projectFilter.includes(projectName);
-
-                                    if (showRow) {
-                                        row.style.display = '';
-                                        total += projectCost;
-                                    } else {
-                                        row.style.display = 'none';
-                                    }
+                                    const projectCost = parseFloat(row.cells[2].textContent) || 0;
+                        
+                                    // Mostra ou oculta a linha com base no filtro
+                                    const showRow = selectedProjects.includes('Todos') || selectedProjects.includes(projectName);
+                        
+                                    row.style.display = showRow ? '' : 'none';
+                        
+                                    // Soma o custo das linhas visíveis
+                                    if (showRow) total += projectCost;
                                 });
-
-                                document.getElementById('totalCost').textContent = 'Total: R$ ' + total.toFixed(2);
+                        
+                                // Atualiza o custo total exibido
+                                const totalFormatted = new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL'
+                                }).format(total);
+                        
+                                document.getElementById('totalCost').textContent = 'Total: ' + totalFormatted;
                             }
-
-                            // Fetch data on page load
+                        
+                            // Chama a função para buscar dados ao carregar a página
                             fetchData();
                         </script>
+                        
+
+
+
                     </body>
 
                     </html>
