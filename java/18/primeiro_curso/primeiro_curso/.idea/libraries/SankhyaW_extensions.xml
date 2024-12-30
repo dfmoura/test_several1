@@ -3,6 +3,7 @@
     <CLASSES>
       <root url="jar://$USER_HOME$/Downloads/Libs Teste/Libs Teste/SankhyaW-extensions.jar!/" />
       <root url="jar://$USER_HOME$/Downloads/Libs Teste/Libs Teste/sanutil.jar!/" />
+      <root url="jar://$USER_HOME$/Downloads/bibliotecas/sanutil.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

@@ -4,6 +4,7 @@ import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.Registro;
 import com.sankhya.util.BigDecimalUtil;
+import com.sankhya.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -21,6 +22,20 @@ public class LancamentoCabecalhoBT implements AcaoRotinaJava {
         Timestamp dataFinal = (Timestamp)contexto.getParam("P_DTFIM");
         String codParceiro = (String)contexto.getParam("P_CODPARC");
 
+        System.out.println("Informacao do parametro de Parceiro"+codParceiro);
+
+        if (StringUtils.isEmpty(codParceiro)){
+            //lancar msg de erro
+            contexto.mostraErro("Informacao do parametro 'P_CODPARC' não pode ser nulo.");
+
+        }
+
+        BigDecimal codParceiroBigDecimal = null;
+        if (StringUtils.isNotEmpty(codParceiro)){
+
+            codParceiroBigDecimal = BigDecimalUtil.valueOf(codParceiro);
+
+        }
 
 
 

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exportar Tabela PDF</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tabela de Dados</h1>
+    <table id="myTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>    
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>  
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>  
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                                              
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>      
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>    
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>  
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>  
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                                              
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>  
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>    
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>  
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>  
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                                              
+            <tr>
+                <td>1</td>
+                <td>João Silva</td>
+                <td>joao.silva@email.com</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Maria Santos</td>
+                <td>maria.santos@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                        
+            <tr>
+                <td>3</td>
+                <td>Carlos Oliveira</td>
+                <td>carlos.oliveira@email.com</td>
+            </tr>                                  
+        </tbody>
+    </table>
+    <button id="exportButton">Exportar para PDF</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script>
+        document.getElementById('exportButton').addEventListener('click', function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Adicionar título ao PDF
+            doc.text('Tabela de Dados', 10, 10);
+
+            // Selecionar a tabela
+            const table = document.getElementById('myTable');
+
+            // Converter a tabela em uma matriz para o PDF
+            const data = [];
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('th, td');
+                const rowData = Array.from(cells).map(cell => cell.textContent);
+                data.push(rowData);
+            });
+
+            // Adicionar ao PDF
+            doc.autoTable({
+                head: [data[0]],
+                body: data.slice(1),
+            });
+
+            // Salvar o PDF
+            doc.save('tabela.pdf');
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable"></script>
+</body>
+</html>
