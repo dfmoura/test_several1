@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Modern Table</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 80%;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            padding: 1rem;
+            text-align: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .table-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            overflow: hidden;
+            background: white;
+        }
+
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: linear-gradient(135deg, #f6d365, #fda085);
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        tr:hover {
+            background: #f1f1f1;
+            transition: background 0.3s ease;
+        }
+
+        td {
+            color: #333;
+        }
+
+        @media (max-width: 600px) {
+            table, th, td {
+                display: block;
+            }
+
+            th {
+                position: relative;
+                text-align: left;
+            }
+
+            td {
+                border-bottom: 1px solid #ddd;
+                display: flex;
+                justify-content: space-between;
+                padding: 0.5rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>Modern Responsive Table</header>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>John Doe</td>
+                        <td>john.doe@example.com</td>
+                        <td>(555) 123-4567</td>
+                        <td>Developer</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Jane Smith</td>
+                        <td>jane.smith@example.com</td>
+                        <td>(555) 987-6543</td>
+                        <td>Designer</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>Mike Johnson</td>
+                        <td>mike.johnson@example.com</td>
+                        <td>(555) 555-1234</td>
+                        <td>Manager</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>Emily Davis</td>
+                        <td>emily.davis@example.com</td>
+                        <td>(555) 123-9876</td>
+                        <td>Analyst</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

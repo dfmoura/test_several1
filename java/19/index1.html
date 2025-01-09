@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capturar Tabela de Outro Site</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tabela Capturada</h1>
+    <iframe id="iframe" src="https://www2.bmf.com.br/pages/portal/bmfbovespa/lumis/lum-boletim-online-ptBR.asp?Acao=BUSCA&cboMercadoria=DOL" width="100%" height="600px"></iframe>
+    
+    <button onclick="capturarTabela()">Capturar Tabela</button>
+    <div id="tabelaContainer"></div>
+
+    <script>
+        function capturarTabela() {
+            // Acessar o conteúdo do iframe
+            const iframe = document.getElementById('iframe');
+            const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+
+            // Verificar se o iframe foi carregado
+            if (!iframeDocument) {
+                alert("Não foi possível acessar o conteúdo do iframe.");
+                return;
+            }
+
+            // Capturar a tabela com id "principal"
+            const tabelaOriginal = iframeDocument.getElementById('principal');
+            
+            if (!tabelaOriginal) {
+                alert("Tabela não encontrada!");
+                return;
+            }
+
+            // Criar uma nova tabela para exibição
+            const tabelaNova = document.createElement('table');
+            const linhas = tabelaOriginal.querySelectorAll('tr');
+            
+            // Preencher a nova tabela com as linhas capturadas
+            linhas.forEach(linha => {
+                const novaLinha = document.createElement('tr');
+                const colunas = linha.querySelectorAll('td, th');
+                
+                colunas.forEach(coluna => {
+                    const novaColuna = document.createElement(linha.querySelector('th') ? 'th' : 'td');
+                    novaColuna.textContent = coluna.textContent;
+                    novaLinha.appendChild(novaColuna);
+                });
+
+                tabelaNova.appendChild(novaLinha);
+            });
+
+            // Exibir a nova tabela no contêiner
+            document.getElementById('tabelaContainer').appendChild(tabelaNova);
+        }
+    </script>
+</body>
+</html>

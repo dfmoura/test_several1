@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consumo de API - BCB</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 90%;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .container:hover {
+            transform: scale(1.05);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .data {
+            font-size: 1.2rem;
+            margin-top: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .loader {
+            margin: 20px auto;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            .data {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="content">
+        <h1>Últimos Dados Econômicos</h1>
+        <div id="loader" class="loader"></div>
+        <div id="data" class="data" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            const apiUrl = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.10813/dados/ultimos/0?formato=json";
+            const contentDiv = document.getElementById("content");
+            const dataDiv = document.getElementById("data");
+            const loader = document.getElementById("loader");
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`Erro ao buscar dados: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Formatar os dados de forma mais legível
+                let htmlContent = "";
+                data.forEach(item => {
+                    htmlContent += `<p><strong>Data:</strong> ${item.data} | <strong>Valor:</strong> ${item.valor}</p>`;
+                });
+
+                dataDiv.innerHTML = htmlContent;
+                loader.style.display = "none";
+                dataDiv.style.display = "block";
+
+            } catch (error) {
+                loader.style.display = "none";
+                dataDiv.style.display = "block";
+                dataDiv.innerHTML = `<p>Erro ao carregar os dados. Por favor, tente novamente mais tarde.</p>`;
+                console.error(error);
+            }
+        }
+
+        // Chamar a função quando a página carregar
+        window.onload = fetchData;
+    </script>
+</body>
+</html>

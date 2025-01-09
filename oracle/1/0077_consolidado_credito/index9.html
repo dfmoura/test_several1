@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Responsive Table</title>
+    <style>
+        /* Resetting styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom right, #ffffff, #f0f0f0);
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .table-container {
+            width: 90%;
+            max-width: 1200px;
+            height: 80%;
+            overflow: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            background: white;
+        }
+
+        .table-container table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .table-container thead {
+            background: linear-gradient(90deg, #6a11cb, #2575fc);
+            color: white;
+        }
+
+        .table-container thead th {
+            padding: 15px;
+            font-size: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .table-container tbody tr {
+            transition: background 0.3s ease;
+        }
+
+        .table-container tbody tr:nth-child(odd) {
+            background: #f9f9f9;
+        }
+
+        .table-container tbody tr:hover {
+            background: rgba(98, 182, 239, 0.2);
+        }
+
+        .table-container tbody td {
+            padding: 12px;
+            font-size: 14px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #2575fc;
+            border-radius: 10px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #1b5dd8;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Role</th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>John Doe</td>
+                    <td>28</td>
+                    <td>Software Engineer</td>
+                    <td>New York</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Jane Smith</td>
+                    <td>32</td>
+                    <td>Product Manager</td>
+                    <td>San Francisco</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Mike Brown</td>
+                    <td>45</td>
+                    <td>Designer</td>
+                    <td>Los Angeles</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Emily White</td>
+                    <td>25</td>
+                    <td>Marketing Specialist</td>
+                    <td>Seattle</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>Chris Green</td>
+                    <td>38</td>
+                    <td>Data Analyst</td>
+                    <td>Chicago</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Samantha Blue</td>
+                    <td>29</td>
+                    <td>UX Designer</td>
+                    <td>Austin</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

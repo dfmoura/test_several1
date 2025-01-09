@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="UTF-8" isELIgnored="false" %>
+<%@ page import="java.util.*" %>
+<%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
+<%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Dashboard</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+  
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 1rem;
+        box-sizing: border-box;
+      }
+  
+      .top {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+  
+      .cards-container {
+        width: 48%;
+      }
+  
+      .cards-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        color: #333;
+        text-align: center;
+      }
+  
+      .cards {
+        display: grid;
+        /*grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));*/
+        grid-template-columns: repeat(4, 1fr); /* 4 colunas */
+        gap: 1rem;
+        align-content: center; /* Centraliza verticalmente */
+        justify-content: center; /* Centraliza horizontalmente */
+      }
+  
+      .card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        text-align: center;
+      }
+  
+      .card .value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+      }
+  
+      .card .description {
+        font-size: 0.9rem;
+        color: #777;
+      }
+  
+      .bottom {
+        display: flex;
+        justify-content: space-between;
+        flex-grow: 1;
+        gap: 2rem; /* Aumentando o espaço entre os gráficos */
+      }
+  
+      .chart {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        width: 48%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+  
+      .chart canvas {
+        width: 100% !important;
+        height: auto !important;
+      }
+  
+      @media (max-width: 768px) {
+        .cards {
+          grid-template-columns: repeat(2, 1fr);
+        }
+  
+        .bottom {
+          flex-direction: column;
+          gap: 1rem;
+        }
+  
+        .chart {
+          width: 100%;
+        }
+      }
+    </style>
+    <snk:load/>
+  </head>
+  <body>
+    <div class="container">
+      <div class="top">
+        <div class="cards-container">
+          <div class="cards-title">Dias de Pontualidade Negativa</div>
+          <div class="cards">
+            <!-- 4 cards on the left -->
+            <div class="card">
+              <div class="value">123</div>
+              <div class="description">Até 5 Dias</div>
+            </div>
+            <div class="card">
+              <div class="value">456</div>
+              <div class="description">Até 10 Dias</div>
+            </div>
+            <div class="card">
+              <div class="value">789</div>
+              <div class="description">Até 20 Dias</div>
+            </div>
+            <div class="card">
+              <div class="value">101</div>
+              <div class="description">> 20 Dias</div>
+            </div>
+          </div>
+        </div>
+  
+        <div class="cards-container">
+          <div class="cards-title">Vencimento Cadastro em Meses</div>
+          <div class="cards">
+            <!-- 4 cards on the right -->
+            <div class="card">
+              <div class="value">415</div>
+              <div class="description">Vencer Até 1</div>
+            </div>
+            <div class="card">
+              <div class="value">161</div>
+              <div class="description">Vencer Até 2</div>
+            </div>
+            <div class="card">
+              <div class="value">718</div>
+              <div class="description">Vencido até 1</div>
+            </div>
+            <div class="card">
+              <div class="value">192</div>
+              <div class="description">Vencido + 1</div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="bottom">
+        <div class="chart">
+          <canvas id="chartLeft"></canvas>
+        </div>
+        <div class="chart">
+          <canvas id="chartRight"></canvas>
+        </div>
+      </div>
+    </div>
+  
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      const ctxLeft = document.getElementById('chartLeft').getContext('2d');
+      const chartLeft = new Chart(ctxLeft, {
+        type: 'bar',
+        data: {
+          labels: ['Parc. A', 'Parc. B', 'Parc. C', 'Parc. D', 'Parc. E'],
+          datasets: [{
+            label: 'Dataset Left',
+            data: [12, 19, 3, 5, 2],
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: true, // Mostra o título
+              text: 'Lim.Créd.Consumido > 90%' // Título do gráfico
+            }
+          }
+          
+        }
+      });
+  
+      const ctxRight = document.getElementById('chartRight').getContext('2d');
+      const chartRight = new Chart(ctxRight, {
+        type: 'bar',
+        data: {
+          labels: ['Parc. A', 'Parc. B', 'Parc. C', 'Parc. D', 'Parc. E'],
+          datasets: [{
+            label: 'Dataset Right',
+            data: [5, 9, 2, 8, 7],
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: true, // Mostra o título
+              text: 'Diferença de Limite' // Título do gráfico
+            }
+          }
+        }
+      });
+    </script>
+  </body>
+  </html>

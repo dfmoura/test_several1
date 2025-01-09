@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Captura de Dados</title>
+</head>
+<body>
+    <table id="TB01">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Valor</th>
+                <th>Variação</th>
+                <th>Ultimo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Dados capturados serão inseridos aqui -->
+        </tbody>
+    </table>
+
+    <button onclick="capturarDados()">Capturar Dados</button>
+
+    <script>
+        // Função para capturar dados da página e inserir na tabela
+        function capturarDados() {
+            fetch('https://www2.bmf.com.br/pages/portal/bmfbovespa/lumis/lum-boletim-online-ptBR.asp?Acao=BUSCA&cboMercadoria=DOL')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Obtendo a tabela com os dados
+                    const tabelaOrigem = doc.querySelector('table'); // Ou XPath se necessário
+
+                    // Selecionando a tabela no HTML local
+                    const tabelaDestino = document.querySelector('#TB01 tbody');
+
+                    // Copiando as linhas da tabela de origem para a tabela de destino
+                    const linhas = tabelaOrigem.querySelectorAll('tr');
+                    linhas.forEach(linha => {
+                        const novaLinha = document.createElement('tr');
+                        const colunas = linha.querySelectorAll('td');
+                        colunas.forEach(coluna => {
+                            const novaColuna = document.createElement('td');
+                            novaColuna.textContent = coluna.textContent;
+                            novaLinha.appendChild(novaColuna);
+                        });
+                        tabelaDestino.appendChild(novaLinha);
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao capturar os dados:', error);
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Responsive Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 1rem;
+      width: 48%;
+    }
+
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .card .value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .card .description {
+      font-size: 0.9rem;
+      color: #777;
+    }
+
+    .bottom {
+      display: flex;
+      justify-content: space-between;
+      flex-grow: 1;
+      gap: 2rem; /* Aumentando o espaço entre os gráficos */
+    }
+
+    .chart {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      width: 48%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chart canvas {
+      width: 100% !important;
+      height: auto !important;
+    }
+
+    @media (max-width: 768px) {
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .bottom {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .chart {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <div class="cards">
+        <!-- 6 cards on the left -->
+        <div class="card">
+          <div class="value">123</div>
+          <div class="description">Descrição 1</div>
+        </div>
+        <div class="card">
+          <div class="value">456</div>
+          <div class="description">Descrição 2</div>
+        </div>
+        <div class="card">
+          <div class="value">789</div>
+          <div class="description">Descrição 3</div>
+        </div>
+        <div class="card">
+          <div class="value">101</div>
+          <div class="description">Descrição 4</div>
+        </div>
+
+        
+      </div>
+
+      <div class="cards">
+        <!-- 6 cards on the right -->
+        <div class="card">
+          <div class="value">415</div>
+          <div class="description">Descrição 7</div>
+        </div>
+        <div class="card">
+          <div class="value">161</div>
+          <div class="description">Descrição 8</div>
+        </div>
+        <div class="card">
+          <div class="value">718</div>
+          <div class="description">Descrição 9</div>
+        </div>
+        <div class="card">
+          <div class="value">192</div>
+          <div class="description">Descrição 10</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="bottom">
+      <div class="chart">
+        <canvas id="chartLeft"></canvas>
+      </div>
+      <div class="chart">
+        <canvas id="chartRight"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const ctxLeft = document.getElementById('chartLeft').getContext('2d');
+    const chartLeft = new Chart(ctxLeft, {
+      type: 'bar',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+        datasets: [{
+          label: 'Dataset Left',
+          data: [12, 19, 3, 5, 2],
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+      }
+    });
+
+    const ctxRight = document.getElementById('chartRight').getContext('2d');
+    const chartRight = new Chart(ctxRight, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+        datasets: [{
+          label: 'Dataset Right',
+          data: [5, 9, 2, 8, 7],
+          backgroundColor: 'rgba(153, 102, 255, 0.2)',
+          borderColor: 'rgba(153, 102, 255, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+      }
+    });
+  </script>
+</body>
+</html>
