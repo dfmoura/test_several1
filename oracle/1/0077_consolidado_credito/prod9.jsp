@@ -120,6 +120,11 @@
     SELECT
     CODPARCMATRIZ,
     RAZAOSOCIAL,
+    CASE 
+    WHEN CODPARCMATRIZ IN (SELECT DISTINCT CODPARC FROM AD_ANCREDITO) 
+    THEN 'Possui Análise de Crédito'
+    ELSE 'Não Possui Análise de Crédito'
+    END AS ANALISE_CREDITO,
     AD_DTVENCCAD,
     STATUS_CADASTRO,
     DIAS,
@@ -177,17 +182,19 @@
                 <tr>
                     <th onclick="sortTable(0)">Cód. Matriz</th>
                     <th onclick="sortTable(1)">Parceiro</th>
-                    <th style="text-align: center;" onclick="sortTable(2)">Dt. Venc. Cad.</th>
-                    <th style="text-align: center;" onclick="sortTable(3)">Status</th>
-                    <th style="text-align: center;" onclick="sortTable(4)">Dias</th>
-                    <th style="text-align: center;" onclick="sortTable(5)">Meses</th>
+                    <th onclick="sortTable(2)">Análise</th>
+                    <th style="text-align: center;" onclick="sortTable(3)">Dt. Venc. Cad.</th>
+                    <th style="text-align: center;" onclick="sortTable(4)">Status</th>
+                    <th style="text-align: center;" onclick="sortTable(5)">Dias</th>
+                    <th style="text-align: center;" onclick="sortTable(6)">Meses</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${detalhe.rows}">
                     <tr>
-                        <td>${row.CODPARCMATRIZ}</td>
+                        <td onclick="abrir('${row.CODPARCMATRIZ}')">${row.CODPARCMATRIZ}</td>
                         <td>${row.RAZAOSOCIAL}</td>
+                        <td>${row.ANALISE_CREDITO}</td>
                         <td style="text-align: center;">${row.AD_DTVENCCAD}</td>
                         <td style="text-align: center;">${row.STATUS_CADASTRO}</td>
                         <td style="text-align: center;">${row.DIAS}</td>
@@ -198,7 +205,7 @@
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total de registros:</b><span id="recordCount">0</span></td>
-                    <td colspan="5"></td>
+                    <td colspan="6"></td>
                 </tr>
             </tfoot>
         </table>
@@ -256,6 +263,15 @@
     }
 
     updateRecordCount();
+
+    function abrir(grupo) {
+            var params = { 
+                'A_CODPARC' : parseInt(grupo)
+             };
+            var level = 'lvl_ut74b5';
+            openLevel(level, params);
+        }  
+
 </script>
 </body>
 </html>

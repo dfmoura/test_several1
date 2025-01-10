@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Data Card</title>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2a9d8f;
+            margin-bottom: 10px;
+        }
+
+        .field {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .field-label {
+            font-weight: 500;
+            margin-right: 8px;
+            color: #555;
+        }
+
+        .field-value {
+            font-weight: 400;
+            color: #000;
+        }
+
+        .field-group {
+            margin-bottom: 20px;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 20px 0;
+        }
+
+        .observation {
+            background-color: #f9f9f9;
+            border-left: 4px solid #2a9d8f;
+            padding: 10px;
+            margin: 15px 0;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .field {
+                flex-direction: column;
+            }
+        }
+
+        /* Estilo para o botão overlay */
+        .overlay-button {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: #007BFF; /* Azul */
+            color: #ffffff; /* Branco */
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease;
+            z-index: 1000;
+        }
+
+        .overlay-button:hover {
+            background-color: #0056b3; /* Azul mais escuro no hover */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Botão Overlay -->
+    <button class="overlay-button" onclick="alert('Abrindo a tela!')">Abrir Tela</button>
+
+    <h2 style="text-align: center;">Análise de Crédito</h2>
+
+    <div class="container">
+        <div class="card">
+            <h2>Informações do Parceiro</h2>
+            <div class="field">
+                <span class="field-label">Cód. Parc.:</span>
+                <span class="field-value">$CODPARC</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Parceiro:</span>
+                <span class="field-value">$RAZAOSOCIAL</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Análise de Crédito:</span>
+                <span class="field-value">$CODANALISE</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="field">
+                <span class="field-label">Abertura Empresa:</span>
+                <span class="field-value">$ABEMPRESA</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Data Consulta Serasa:</span>
+                <span class="field-value">$CONSERASA</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Score:</span>
+                <span class="field-value">$SCORSERASA</span>
+            </div>
+            <div class="observation">
+                <strong>Observação Serasa:</strong> $OBSSERASA
+            </div>
+
+            <div class="divider"></div>
+
+            <h2>Dados Financeiros</h2>
+            <div class="field">
+                <span class="field-label">Ano DRE:</span>
+                <span class="field-value">$ANODRE</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Rec. DRE:</span>
+                <span class="field-value">$RECDRE</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Luc. DRE:</span>
+                <span class="field-value">$LUCDRE</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Dados IR:</span>
+                <span class="field-value">$DADOSIR</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <h2>Outras Informações</h2>
+            <div class="field">
+                <span class="field-label">Pretensão Compra:</span>
+                <span class="field-value">$PRETCOMPRA</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Carta Fiança:</span>
+                <span class="field-value">$CATFIANCA</span>
+            </div>
+            <div class="observation">
+                <strong>Observações:</strong> $OBSERVACOES
+            </div>
+            <div class="field">
+                <span class="field-label">Parecer:</span>
+                <span class="field-value">$PARECER</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <h2>Resumo</h2>
+            <div class="field">
+                <span class="field-label">CR / Apelido:</span>
+                <span class="field-value">$APELIDO</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Ano Análise:</span>
+                <span class="field-value">$ANOANALISE</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Ano Fat.:</span>
+                <span class="field-value">$ANOFAT</span>
+            </div>
+            <div class="field">
+                <span class="field-label">Valor Fat.:</span>
+                <span class="field-value">$TOTAL_VLR</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

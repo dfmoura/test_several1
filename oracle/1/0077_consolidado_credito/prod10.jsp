@@ -120,6 +120,11 @@
     SELECT 
     CODPARCMATRIZ,
     RAZAOSOCIAL,
+    CASE 
+    WHEN CODPARCMATRIZ IN (SELECT DISTINCT CODPARC FROM AD_ANCREDITO) 
+    THEN 'Possui Análise de Crédito'
+    ELSE 'Não Possui Análise de Crédito'
+    END AS ANALISE_CREDITO,    
     LIMCREDISP,
     GRUPO_LIMCREDISP,
     INTERVALO
@@ -256,15 +261,17 @@
                 <tr>
                     <th onclick="sortTable(0)">Cód. Matriz</th>
                     <th onclick="sortTable(1)">Parceiro</th>
-                    <th style="text-align: center;" onclick="sortTable(2)">Intervalo</th>
-                    <th style="text-align: center;" onclick="sortTable(3)">Lim. Créd. Consu.</th>
+                    <th onclick="sortTable(2)">Análise</th>
+                    <th style="text-align: center;" onclick="sortTable(3)">Intervalo</th>
+                    <th style="text-align: center;" onclick="sortTable(4)">Lim. Créd. Consu.</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${detalhe.rows}">
                     <tr>
-                        <td>${row.CODPARCMATRIZ}</td>
+                        <td onclick="abrir('${row.CODPARCMATRIZ}')">${row.CODPARCMATRIZ}</td>
                         <td>${row.RAZAOSOCIAL}</td>
+                        <td>${row.ANALISE_CREDITO}</td>
                         <td style="text-align: center;">${row.INTERVALO}</td>
                         <td style="text-align: center;">
                             <fmt:formatNumber value="${row.LIMCREDISP}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
@@ -275,7 +282,7 @@
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total de registros:</b><span id="recordCount">0</span></td>
-                    <td colspan="3"></td>
+                    <td colspan="4"></td>
                 </tr>
             </tfoot>
         </table>
@@ -334,6 +341,15 @@
     }
 
     updateRecordCount();
+
+    function abrir(grupo) {
+            var params = { 
+                'A_CODPARC' : parseInt(grupo)
+             };
+            var level = 'lvl_ut74b5';
+            openLevel(level, params);
+        }  
+
 </script>
 </body>
 </html>

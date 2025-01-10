@@ -121,6 +121,11 @@
         SELECT
         CODPARCMATRIZ,
         RAZAOSOCIAL,
+        CASE 
+            WHEN CODPARCMATRIZ IN (SELECT DISTINCT CODPARC FROM AD_ANCREDITO) 
+            THEN 'Possui Análise de Crédito'
+            ELSE 'Não Possui Análise de Crédito'
+        END AS ANALISE_CREDITO,        
         DIAS_EM_ATRASO,
         CASE 
             WHEN DIAS_EM_ATRASO <= 5 THEN 1
@@ -174,16 +179,18 @@
                 <tr>
                     <th onclick="sortTable(0)">Cód. Matriz</th>
                     <th onclick="sortTable(1)">Parceiro</th>
-                    <th style="text-align: center;" onclick="sortTable(2)">Dias Atraso</th>
-                    <th style="text-align: center;" onclick="sortTable(3)">Vlr. Desdob.</th>
-                    <th style="text-align: center;" onclick="sortTable(4)">Vlr. Baixa</th>
+                    <th onclick="sortTable(2)">Análise</th>
+                    <th style="text-align: center;" onclick="sortTable(3)">Dias Atraso</th>
+                    <th style="text-align: center;" onclick="sortTable(4)">Vlr. Desdob.</th>
+                    <th style="text-align: center;" onclick="sortTable(5)">Vlr. Baixa</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${detalhe.rows}">
                     <tr>
-                        <td>${row.CODPARCMATRIZ}</td>
+                        <td onclick="abrir('${row.CODPARCMATRIZ}')">${row.CODPARCMATRIZ}</td>
                         <td>${row.RAZAOSOCIAL}</td>
+                        <td>${row.ANALISE_CREDITO}</td>
                         <td style="text-align: center;">${row.DIAS_EM_ATRASO}</td>
                         <fmt:setLocale value="pt_BR" />
                         <td style="text-align: center;">
@@ -198,7 +205,7 @@
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total de registros:</b><span id="recordCount">0</span></td>
-                    <td colspan="1"></td>
+                    <td colspan="2"></td>
                     <td><b>Total</b></td>
                     <td style="text-align: center;" id="totalDesdob"><b>0,00</b></td>
                     <td style="text-align: center;" id="totalBaixa"><b>0,00</b></td>
@@ -279,6 +286,18 @@
 
     updateTotal();
     updateRecordCount();
+
+
+    function abrir(grupo) {
+            var params = { 
+                'A_CODPARC' : parseInt(grupo)
+             };
+            var level = 'lvl_ut74b5';
+            openLevel(level, params);
+    }
+
+     
+
 </script>
 </body>
 </html>
