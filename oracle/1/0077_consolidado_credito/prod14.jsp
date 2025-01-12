@@ -570,7 +570,7 @@
 
       const difLabels = [
             <c:forEach items="${dif_limite.rows}" var="row">
-                "${row.DIF_LIMITE}",
+                "${row.VERIFICADOR}-${row.DIF_LIMITE}",
             </c:forEach>              
         ];
 
@@ -631,6 +631,13 @@
                 },
                 align: 'center' // Centraliza o título
               }
+            },
+            onClick: function(evt, activeElements) {
+              if (activeElements.length > 0) {
+                  const index = activeElements[0].index;
+                  const grupo = difLabels[index].split('-')[0];
+                  abrir3(grupo);
+              }
             }
           }
         });
@@ -656,6 +663,15 @@
                 'A_GRUPO' : parseInt(grupo)
              };
             var level = 'lvl_tzi749';
+            openLevel(level, params);
+        }   
+
+
+        function abrir3(grupo) {
+            var params = { 
+                'A_GRUPO' : parseInt(grupo)
+             };
+            var level = 'lvl_vfneqh';
             openLevel(level, params);
         }   
 
