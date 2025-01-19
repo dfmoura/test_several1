@@ -9,7 +9,7 @@ const pool = new Pool({
     port: 6543,
     database: 'postgres',
     user: 'postgres.jdmgcvhcaulyllydvcob',
-    password: 'buc110t@2025', //depois colocar em variavel
+    password: 'ffffffff', //depois colocar em variavel
     ssl: { rejectUnauthorized: false }
 });
 
