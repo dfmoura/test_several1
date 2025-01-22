@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela Dinâmica Responsiva</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .table-container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #007BFF;
+            color: #fff;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .adjust-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-increase {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-decrease {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            th, td {
+                font-size: 14px;
+                padding: 8px 10px;
+            }
+
+            .adjust-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Idade</th>
+                    <th>Valor 1</th>
+                    <th>Variação 1</th>
+                    <th>Resultado 1</th>
+                    <th>Valor 2</th>
+                    <th>Variação 2</th>
+                    <th>Resultado 2</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Linhas da tabela serão geradas dinamicamente -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const data = [
+            { nome: 'João', idade: 30, valor1: 100, valor2: 200 },
+            { nome: 'Maria', idade: 25, valor1: 150, valor2: 250 },
+            { nome: 'Pedro', idade: 35, valor1: 200, valor2: 300 },
+            { nome: 'Ana', idade: 28, valor1: 180, valor2: 280 }
+        ];
+
+        const tableBody = document.getElementById('table-body');
+
+        function updateResult(rowIndex, column, value) {
+            const row = data[rowIndex];
+            const resultCell = document.getElementById(`result-${column}-${rowIndex}`);
+
+            if (column === 'valor1') {
+                resultCell.textContent = (row.valor1 + value).toFixed(2);
+            } else if (column === 'valor2') {
+                resultCell.textContent = (row.valor2 + value).toFixed(2);
+            }
+        }
+
+        function generateTableRows() {
+            tableBody.innerHTML = '';
+
+            data.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                
+                tr.innerHTML = `
+                    <td>${row.nome}</td>
+                    <td>${row.idade}</td>
+                    <td>${row.valor1.toFixed(2)}</td>
+                    <td>
+                        <div class="adjust-buttons">
+                            <button class="btn btn-decrease" onclick="updateResult(${index}, 'valor1', -1)">-1</button>
+                            <button class="btn btn-increase" onclick="updateResult(${index}, 'valor1', 1)">+1</button>
+                        </div>
+                    </td>
+                    <td id="result-valor1-${index}">${row.valor1.toFixed(2)}</td>
+                    <td>${row.valor2.toFixed(2)}</td>
+                    <td>
+                        <div class="adjust-buttons">
+                            <button class="btn btn-decrease" onclick="updateResult(${index}, 'valor2', -1)">-1</button>
+                            <button class="btn btn-increase" onclick="updateResult(${index}, 'valor2', 1)">+1</button>
+                        </div>
+                    </td>
+                    <td id="result-valor2-${index}">${row.valor2.toFixed(2)}</td>
+                `;
+
+                tableBody.appendChild(tr);
+            });
+        }
+
+        generateTableRows();
+    </script>
+</body>
+</html>

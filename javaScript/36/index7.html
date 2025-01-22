@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dash Análise de Giro e Previsão Demanda</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background: #0078D7;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .info {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        main {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        table th, table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        table th {
+            background: #0078D7;
+            color: white;
+            font-weight: bold;
+        }
+        table input[type="number"] {
+            width: 70px;
+            padding: 5px;
+            text-align: center;
+        }
+        .column-highlight {
+            background-color: #e6f7ff;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Dash Análise de Giro e Previsão Demanda</h1>
+        <div class="info">
+            Data Inicial: <span id="dataInicial"></span><br>
+            Data Final: <span id="dataFinal"></span><br>
+            Dias Úteis no Período: <span id="diasUteis"></span><br>
+            Períodos para Retroceder em Meses: <span id="retrocederMeses"></span>
+        </div>
+    </header>
+    <main>
+        <table>
+            <thead>
+                <tr>
+                    <th>CODEMP</th>
+                    <th>NOMEFANTASIA</th>
+                    <th>CODPROD</th>
+                    <th>DESCRPROD</th>
+                    <th>MARCA</th>
+                    <th>CODGRUPOPROD</th>
+                    <th>DESCRGRUPOPROD</th>
+                    <th>AD_QTDVOLLT</th>
+                    <th>ESTOQUE</th>
+                    <th>VENDA_PER_ANTERIOR</th>
+                    <th>GIRO</th>
+                    <th>ESTMIN</th>
+                    <th>Var. (%)</th>
+                    <th>ESTMIN + Var</th>
+                    <th>Var. (%)</th>
+                    <th>EST_MIN_COM_VAR + Var</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaDados">
+                <!-- Os dados da tabela serão preenchidos dinamicamente -->
+            </tbody>
+        </table>
+    </main>
+
+    <script>
+        // Simulação dos parâmetros e dados
+        const parametros = {
+            P_PERIODO: { INI: "01/01/2025", FIN: "31/01/2025" },
+            P_RETROCEDER_MESES: 3,
+            DU: 21
+        };
+
+        const queryData = [
+            {
+                CODEMP: "01",
+                NOMEFANTASIA: "Empresa A",
+                CODPROD: "1001",
+                DESCRPROD: "Produto X",
+                MARCA: "Marca Y",
+                CODGRUPOPROD: "10",
+                DESCRGRUPOPROD: "Grupo Z",
+                AD_QTDVOLLT: "50",
+                ESTOQUE: "200",
+                VENDA_PER_ANTERIOR: "180",
+                GIRO: "20",
+                ESTMIN: "50",
+                EST_MIN_COM_VAR: "55"
+            },
+            // Adicione mais objetos conforme necessário
+        ];
+
+        // Preenchendo os dados do cabeçalho
+        document.getElementById("dataInicial").textContent = parametros.P_PERIODO.INI;
+        document.getElementById("dataFinal").textContent = parametros.P_PERIODO.FIN;
+        document.getElementById("diasUteis").textContent = parametros.DU;
+        document.getElementById("retrocederMeses").textContent = parametros.P_RETROCEDER_MESES;
+
+        // Gerando as linhas da tabela dinamicamente
+        const tabelaDados = document.getElementById("tabelaDados");
+        queryData.forEach(item => {
+            const row = document.createElement("tr");
+
+            for (let key in item) {
+                const cell = document.createElement("td");
+                cell.textContent = item[key];
+                row.appendChild(cell);
+            }
+
+            // Coluna de variação 1
+            const var1 = document.createElement("td");
+            const inputVar1 = document.createElement("input");
+            inputVar1.type = "number";
+            inputVar1.value = 0;
+            inputVar1.addEventListener("input", () => {
+                calcEstMin(row, inputVar1.value, 11);
+            });
+            var1.appendChild(inputVar1);
+            row.appendChild(var1);
+
+            // Coluna de ESTMIN + variação
+            const estMinVar = document.createElement("td");
+            estMinVar.classList.add("column-highlight");
+            estMinVar.textContent = item.ESTMIN;
+            row.appendChild(estMinVar);
+
+            // Coluna de variação 2
+            const var2 = document.createElement("td");
+            const inputVar2 = document.createElement("input");
+            inputVar2.type = "number";
+            inputVar2.value = 0;
+            inputVar2.addEventListener("input", () => {
+                calcEstMin(row, inputVar2.value, 13);
+            });
+            var2.appendChild(inputVar2);
+            row.appendChild(var2);
+
+            // Coluna de EST_MIN_COM_VAR + variação
+            const estMinComVar = document.createElement("td");
+            estMinComVar.classList.add("column-highlight");
+            estMinComVar.textContent = item.EST_MIN_COM_VAR;
+            row.appendChild(estMinComVar);
+
+            tabelaDados.appendChild(row);
+        });
+
+        // Função para calcular e atualizar valores dinâmicos
+        function calcEstMin(row, variacao, colIndex) {
+            const baseValue = parseFloat(row.cells[colIndex - 1].textContent) || 0;
+            const newValue = baseValue + baseValue * (variacao / 100);
+            row.cells[colIndex].textContent = newValue.toFixed(2);
+        }
+    </script>
+</body>
+</html>
