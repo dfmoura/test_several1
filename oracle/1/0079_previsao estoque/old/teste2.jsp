@@ -4,145 +4,123 @@
 <%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
 <%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dash Análise de Giro e Previsão Demanda</title>
+    <title>Tabela Responsiva</title>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
+        /* Reset básico */
+        * {
             margin: 0;
             padding: 0;
-            background-color: #f4f4f9;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f9f9f9;
+            color: #333;
+            padding: 20px;
         }
 
         .container {
-            width: 90%;
-            margin: 30px auto;
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            margin: auto;
+            overflow: hidden;
+            padding: 0 20px;
         }
 
         h1 {
             text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-        }
-
-        .info-container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-        }
-
-        .info-container div {
-            flex: 1;
-            margin-right: 15px;
-        }
-
-        .info-container div:last-child {
-            margin-right: 0;
-        }
-
-        .info-container label {
-            font-weight: bold;
-            margin-bottom: 5px;
-            display: block;
-        }
-
-        .info-container span {
-            display: block;
-            padding: 8px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            color: #333;
+            margin-bottom: 20px;
+            color: #555;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 12px; /* Reduzido o tamanho da fonte da tabela */
+            margin: 20px 0;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        th, td {
-            padding: 8px;
-            text-align: center;
+        table thead {
+            background: linear-gradient(90deg, #007BFF, #0056b3);
+            color: #fff;
+            text-transform: uppercase;
+        }
+
+        table th, table td {
+            padding: 12px 15px;
+            text-align: left;
             border: 1px solid #ddd;
+            font-size: 14px;
         }
 
-        th {
-            background-color: #3a970f;
-            color: white;
+        table th {
             font-weight: bold;
-            position: sticky; /* Fixa o cabeçalho */
-            top: 0; /* Define o ponto fixo */
-            z-index: 1; /* Garante que o cabeçalho fique acima das células */
+            text-align: center;
         }
 
-        td {
-            background-color: #f9f9f9;
+        table tbody tr:nth-child(even) {
+            background: #f2f2f2;
         }
 
-        .btn {
-            padding: 5px 10px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
+        table tbody tr:hover {
+            background: #e6f7ff;
             cursor: pointer;
         }
 
-        .btn-decrease {
-            background-color: #dc3545;
+        table tbody td {
+            text-align: center;
         }
 
-        .btn-group {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+        /* Estilo responsivo */
+        @media (max-width: 768px) {
+            table thead {
+                display: none;
+            }
 
-        .btn-group button {
-            margin: 0 5px;
-        }
+            table, table tbody, table tr, table td {
+                display: block;
+                width: 100%;
+            }
 
-        .calculation-cell {
-            font-weight: bold;
-            color: #007BFF;
+            table tr {
+                margin-bottom: 15px;
+                border-bottom: 1px solid #ddd;
+                background: #fff;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            table td {
+                text-align: right;
+                padding-left: 50%;
+                position: relative;
+            }
+
+            table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                font-weight: bold;
+                text-align: left;
+                color: #555;
+            }
         }
     </style>
     <snk:load/>
 </head>
 <body>
 
-<snk:query var="cab">
-    select
-    TO_CHAR(DTINI,'DD/MM/YYYY')DTINI,TO_CHAR(DTFIN,'DD/MM/YYYY')DTFIN,DU,RETROCEDER,DTINI_ANT,DTFIN_ANT,DU_ANT
-    FROM(
-    SELECT        
-    :P_PERIODO.INI DTINI, 
-    :P_PERIODO.FIN DTFIN,
-    FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) AS DU,
-    :P_RETROCEDER_MESES RETROCEDER,
-    ADD_MONTHS(:P_PERIODO.INI, -12) DTINI_ANT,
-    ADD_MONTHS(:P_PERIODO.FIN, -12) DTFIN_ANT,
-    FUN_TOT_DIAS_UTE_SATIS(ADD_MONTHS(:P_PERIODO.INI, :P_RETROCEDER_MESES), ADD_MONTHS(:P_PERIODO.INI, :P_RETROCEDER_MESES)) AS DU_ANT
-    
-    from dual    )
-</snk:query>
+    <snk:query var="detalhe"> 
 
-<snk:query var="detalhe">
-	select 
-	CODEMP,NOMEFANTASIA,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD,AD_QTDVOLLT,
-	ESTOQUE,VENDA_PER_ANTERIOR,round(GIRO,2)GIRO,round(EST_MIN,2)EST_MIN,round(VAR_META,2)VAR_META,round(EST_MIN_COM_VAR,2)EST_MIN_COM_VAR
-
-    from(
 
     SELECT
         A.CODEMP,
@@ -393,31 +371,11 @@
         A.CODGRUPOPROD NOT IN (3010000,3020000,5000000,6000000)
     GROUP BY
         A.CODEMP, EMP.NOMEFANTASIA, A.CODPROD, A.DESCRPROD, A.MARCA, A.CODGRUPOPROD, A.DESCRGRUPOPROD, A.AD_QTDVOLLT
-    )
-</snk:query>
-<div class="container">
-    <c:forEach var="row" items="${cab.rows}">
-        <div class="info-container">
-            <div>
-                <label>Data Inicial:</label>
-                <span>${row.DTINI}</span>
-            </div>
-            <div>
-                <label>Data Final:</label>
-                <span>${row.DTFIN}</span>
-            </div>
-            <div>
-                <label>Dias Úteis no Período:</label>
-                <span>${row.DU}</span>
-            </div>
-            <div>
-                <label>Períodos para Retroceder em Meses:</label>
-                <span>${row.RETROCEDER}</span>
-            </div>
-        </div>
-    </c:forEach>
 
-    <h2 style="text-align:center; color:#333;">Dash Análise de Giro e Previsão Demanda</h2>
+    </snk:query>
+
+<div class="container">
+    <h1>Tabela de Produtos</h1>
     <table>
         <thead>
             <tr>
@@ -429,87 +387,41 @@
                 <th>Grupo</th>
                 <th>Descrição Grupo</th>
                 <th>Qtd Vol</th>
+                <th>Dias Úteis</th>
+                <th>Dias Úteis (Ant.)</th>
                 <th>Estoque</th>
                 <th>Venda Per. Ant.</th>
+                <th>Dias Venda Per. Ant.</th>
                 <th>Giro</th>
                 <th>Est. Mín.</th>
-                <th>Var. Escolha</th>
-                <th>Est. Mín. com Var. Escolha</th>
                 <th>Var. Meta</th>
-                <th>Est. Mín. com Var.</th>
-                <th>Var. Escolha 1</th>
-                <th>Est. Mín. com Var. Escolha 1</th>
+                <th>Est. Mín. Var.</th>
             </tr>
         </thead>
         <tbody>
             <c:forEach var="row" items="${detalhe.rows}">
                 <tr>
-                    <td>${row.CODEMP}</td>
-                    <td>${row.NOMEFANTASIA}</td>
-                    <td>${row.CODPROD}</td>
-                    <td>${row.DESCRPROD}</td>
-                    <td>${row.MARCA}</td>
-                    <td>${row.CODGRUPOPROD}</td>
-                    <td>${row.DESCRGRUPOPROD}</td>
-                    <td>${row.AD_QTDVOLLT}</td>
-                    <td>${row.ESTOQUE}</td>
-                    <td>${row.VENDA_PER_ANTERIOR}</td>
-                    <td>${row.GIRO}</td>
-                    <td>${row.EST_MIN}</td>
-                    <td class="btn-group">
-                        <button class="btn btn-decrease">-</button>
-                        <span class="var-escolha" data-est-min="${row.EST_MIN}">0.0</span>
-                        <button class="btn">+</button>
-                    </td>
-                    <td class="calculation-cell"></td>
-                    <td>${row.VAR_META}</td>
-                    <td>${row.EST_MIN_COM_VAR}</td>
-                    <td class="btn-group">
-                        <button class="btn btn-decrease">-</button>
-                        <span class="var-escolha1" data-est-min-com-var="${row.EST_MIN_COM_VAR}">0.0</span>
-                        <button class="btn">+</button>
-                    </td>
-                    <td class="calculation-cell"></td>
+                    <td data-label="Empresa">${row.CODEMP}</td>
+                    <td data-label="Nome Fantasia">${row.NOMEFANTASIA}</td>
+                    <td data-label="Código Produto">${row.CODPROD}</td>
+                    <td data-label="Descrição">${row.DESCRPROD}</td>
+                    <td data-label="Marca">${row.MARCA}</td>
+                    <td data-label="Grupo">${row.CODGRUPOPROD}</td>
+                    <td data-label="Descrição Grupo">${row.DESCRGRUPOPROD}</td>
+                    <td data-label="Qtd Vol">${row.AD_QTDVOLLT}</td>
+                    <td data-label="D.U.">${row.DU}</td>
+                    <td data-label="D.U. Ant.">${row.DU_ANT}</td>
+                    <td data-label="Estoque">${row.ESTOQUE}</td>
+                    <td data-label="Venda Ant.">${row.VENDA_PER_ANTERIOR}</td>
+                    <td data-label="Dias Venda Ant.">${row.DIAS_VENDA_PER_ANTERIOR}</td>
+                    <td data-label="Giro">${row.GIRO}</td>
+                    <td data-label="Est. Mín.">${row.EST_MIN}</td>
+                    <td data-label="Var. Meta">${row.VAR_META}</td>
+                    <td data-label="Est. Mín. Var.">${row.EST_MIN_COM_VAR}</td>
                 </tr>
             </c:forEach>
         </tbody>
     </table>
 </div>
-
-<script>
-    const incrementValue = 0.01; 
-
-    function updateCalculationEstMinVarEscolha(span, estMin) {
-        const value = parseFloat(span.textContent);
-        const estMinComVarEscolha = estMin * (1 + value);
-        span.closest('td').nextElementSibling.textContent = estMinComVarEscolha.toFixed(2);
-    }
-
-    function updateCalculationEstMinVarEscolha1(span, estMinComVar) {
-        const value = parseFloat(span.textContent);
-        const estMinComVarEscolha1 = estMinComVar * (1 + value);
-        span.closest('td').nextElementSibling.textContent = estMinComVarEscolha1.toFixed(2);
-    }
-
-    document.querySelectorAll('.btn').forEach(function(button) {
-        button.addEventListener('click', function() {
-            var span = this.parentElement.querySelector('span');
-            var estMin = parseFloat(span.getAttribute('data-est-min'));
-            var estMinComVar = parseFloat(span.getAttribute('data-est-min-com-var'));
-            var value = parseFloat(span.textContent);
-
-            value = (this.classList.contains('btn-decrease')) ? (value - incrementValue).toFixed(1) : (value + incrementValue).toFixed(1);
-
-            span.textContent = value;
-
-            if (span.classList.contains('var-escolha')) {
-                updateCalculationEstMinVarEscolha(span, estMin);
-            } else if (span.classList.contains('var-escolha1')) {
-                updateCalculationEstMinVarEscolha1(span, estMinComVar);
-            }
-        });
-    });
-</script>
-
 </body>
 </html>

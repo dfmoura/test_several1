@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela Dinâmica</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            th, td {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            button {
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Valor 1</th>
+                    <th>Variação 1</th>
+                    <th>Resultado 1</th>
+                    <th>Valor 2</th>
+                    <th>Variação 2</th>
+                    <th>Resultado 2</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Conteúdo gerado dinamicamente -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const tableBody = document.getElementById('table-body');
+
+        // Gera dados aleatórios
+        const generateRandomData = (rows) => {
+            const data = [];
+            for (let i = 1; i <= rows; i++) {
+                data.push({
+                    item: `Item ${i}`,
+                    valor1: (Math.random() * 100).toFixed(2),
+                    variacao1: 0,
+                    valor2: (Math.random() * 100).toFixed(2),
+                    variacao2: 0,
+                });
+            }
+            return data;
+        };
+
+        const updateRow = (row, data) => {
+            row.querySelector('.resultado1').textContent = (parseFloat(data.valor1) + parseFloat(data.variacao1)).toFixed(2);
+            row.querySelector('.resultado2').textContent = (parseFloat(data.valor2) + parseFloat(data.variacao2)).toFixed(2);
+        };
+
+        const createRow = (itemData) => {
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                <td>${itemData.item}</td>
+                <td>${itemData.valor1}</td>
+                <td>
+                    <div class="button-group">
+                        <button class="decrease1">-</button>
+                        <span class="variacao1">${itemData.variacao1}</span>
+                        <button class="increase1">+</button>
+                    </div>
+                </td>
+                <td class="resultado1">${(parseFloat(itemData.valor1) + parseFloat(itemData.variacao1)).toFixed(2)}</td>
+                <td>${itemData.valor2}</td>
+                <td>
+                    <div class="button-group">
+                        <button class="decrease2">-</button>
+                        <span class="variacao2">${itemData.variacao2}</span>
+                        <button class="increase2">+</button>
+                    </div>
+                </td>
+                <td class="resultado2">${(parseFloat(itemData.valor2) + parseFloat(itemData.variacao2)).toFixed(2)}</td>
+            `;
+
+            // Adiciona os eventos de clique para as variações
+            row.querySelector('.increase1').addEventListener('click', () => {
+                itemData.variacao1 += 1;
+                row.querySelector('.variacao1').textContent = itemData.variacao1;
+                updateRow(row, itemData);
+            });
+
+            row.querySelector('.decrease1').addEventListener('click', () => {
+                itemData.variacao1 -= 1;
+                row.querySelector('.variacao1').textContent = itemData.variacao1;
+                updateRow(row, itemData);
+            });
+
+            row.querySelector('.increase2').addEventListener('click', () => {
+                itemData.variacao2 += 1;
+                row.querySelector('.variacao2').textContent = itemData.variacao2;
+                updateRow(row, itemData);
+            });
+
+            row.querySelector('.decrease2').addEventListener('click', () => {
+                itemData.variacao2 -= 1;
+                row.querySelector('.variacao2').textContent = itemData.variacao2;
+                updateRow(row, itemData);
+            });
+
+            return row;
+        };
+
+        // Popula a tabela com dados aleatórios
+        const populateTable = () => {
+            const data = generateRandomData(10);
+            data.forEach(item => {
+                const row = createRow(item);
+                tableBody.appendChild(row);
+            });
+        };
+
+        populateTable();
+    </script>
+</body>
+</html>

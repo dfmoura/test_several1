@@ -477,7 +477,7 @@
 </div>
 
 <script>
-    const incrementValue = 0.01; 
+    const incrementValue = 0.1; 
 
     function updateCalculationEstMinVarEscolha(span, estMin) {
         const value = parseFloat(span.textContent);

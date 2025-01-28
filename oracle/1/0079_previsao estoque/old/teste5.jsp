@@ -4,8 +4,9 @@
 <%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
 <%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,134 +16,86 @@
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f9;
+            background-color: #f4f7fc;
+            color: #333;
         }
-
         .container {
-            width: 90%;
-            margin: 30px auto;
-            background-color: #ffffff;
+            max-width: 1200px;
+            margin: 50px auto;
             padding: 20px;
+            background-color: white;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-
         h1 {
             text-align: center;
-            color: #333;
-            margin-bottom: 30px;
+            color: #4CAF50;
         }
-
-        .info-container {
+        .top-section {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
         }
-
-        .info-container div {
-            flex: 1;
-            margin-right: 15px;
+        .top-section div {
+            margin: 5px;
         }
-
-        .info-container div:last-child {
-            margin-right: 0;
+        .table-container {
+            margin-top: 20px;
+            overflow-x: auto;
         }
-
-        .info-container label {
-            font-weight: bold;
-            margin-bottom: 5px;
-            display: block;
-        }
-
-        .info-container span {
-            display: block;
-            padding: 8px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            color: #333;
-        }
-
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 12px; /* Reduzido o tamanho da fonte da tabela */
+            font-size: 12px;
         }
-
         th, td {
-            padding: 8px;
+            padding: 10px;
             text-align: center;
             border: 1px solid #ddd;
         }
-
         th {
-            background-color: #3a970f;
+            background-color: #4CAF50;
             color: white;
-            font-weight: bold;
-            position: sticky; /* Fixa o cabeçalho */
-            top: 0; /* Define o ponto fixo */
-            z-index: 1; /* Garante que o cabeçalho fique acima das células */
         }
-
-        td {
+        tr:nth-child(even) {
             background-color: #f9f9f9;
         }
-
-        .btn {
-            padding: 5px 10px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        tr:hover {
+            background-color: #f1f1f1;
         }
-
-        .btn-decrease {
-            background-color: #dc3545;
-        }
-
-        .btn-group {
+        .var-buttons {
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
         }
-
-        .btn-group button {
+        .var-buttons button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            margin: 0 5px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .var-buttons button:focus {
+            outline: none;
+        }
+        .var-input {
+            width: 30px;
+            text-align: center;
+            font-size: 14px;
+            border: 1px solid #ddd;
             margin: 0 5px;
         }
-
-        .calculation-cell {
-            font-weight: bold;
-            color: #007BFF;
-        }
     </style>
-    <snk:load/>
+        <snk:load/>
 </head>
 <body>
 
-<snk:query var="cab">
-    select
-    TO_CHAR(DTINI,'DD/MM/YYYY')DTINI,TO_CHAR(DTFIN,'DD/MM/YYYY')DTFIN,DU,RETROCEDER,DTINI_ANT,DTFIN_ANT,DU_ANT
-    FROM(
-    SELECT        
-    :P_PERIODO.INI DTINI, 
-    :P_PERIODO.FIN DTFIN,
-    FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) AS DU,
-    :P_RETROCEDER_MESES RETROCEDER,
-    ADD_MONTHS(:P_PERIODO.INI, -12) DTINI_ANT,
-    ADD_MONTHS(:P_PERIODO.FIN, -12) DTFIN_ANT,
-    FUN_TOT_DIAS_UTE_SATIS(ADD_MONTHS(:P_PERIODO.INI, :P_RETROCEDER_MESES), ADD_MONTHS(:P_PERIODO.INI, :P_RETROCEDER_MESES)) AS DU_ANT
-    
-    from dual    )
-</snk:query>
+    <snk:query var="detalhe"> 
 
-<snk:query var="detalhe">
-	select 
-	CODEMP,NOMEFANTASIA,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD,AD_QTDVOLLT,
-	ESTOQUE,VENDA_PER_ANTERIOR,round(GIRO,2)GIRO,round(EST_MIN,2)EST_MIN,round(VAR_META,2)VAR_META,round(EST_MIN_COM_VAR,2)EST_MIN_COM_VAR
-
-    from(
 
     SELECT
         A.CODEMP,
@@ -393,123 +346,97 @@
         A.CODGRUPOPROD NOT IN (3010000,3020000,5000000,6000000)
     GROUP BY
         A.CODEMP, EMP.NOMEFANTASIA, A.CODPROD, A.DESCRPROD, A.MARCA, A.CODGRUPOPROD, A.DESCRGRUPOPROD, A.AD_QTDVOLLT
-    )
-</snk:query>
-<div class="container">
-    <c:forEach var="row" items="${cab.rows}">
-        <div class="info-container">
+
+    </snk:query>
+
+    <div class="container">
+        <div class="top-section">
             <div>
-                <label>Data Inicial:</label>
-                <span>${row.DTINI}</span>
+                <h1>Dash Análise de Giro e Previsão Demanda</h1>
             </div>
             <div>
-                <label>Data Final:</label>
-                <span>${row.DTFIN}</span>
-            </div>
-            <div>
-                <label>Dias Úteis no Período:</label>
-                <span>${row.DU}</span>
-            </div>
-            <div>
-                <label>Períodos para Retroceder em Meses:</label>
-                <span>${row.RETROCEDER}</span>
+                <label>Data Inicial:</label> <input type="date">
+                <label>Data Final:</label> <input type="date">
+                <label>Dias Úteis no Período:</label> <input type="number">
+                <label>Períodos para Retroceder em Meses:</label> <input type="number">
             </div>
         </div>
-    </c:forEach>
 
-    <h2 style="text-align:center; color:#333;">Dash Análise de Giro e Previsão Demanda</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Empresa</th>
-                <th>Nome Fantasia</th>
-                <th>Código Produto</th>
-                <th>Descrição</th>
-                <th>Marca</th>
-                <th>Grupo</th>
-                <th>Descrição Grupo</th>
-                <th>Qtd Vol</th>
-                <th>Estoque</th>
-                <th>Venda Per. Ant.</th>
-                <th>Giro</th>
-                <th>Est. Mín.</th>
-                <th>Var. Escolha</th>
-                <th>Est. Mín. com Var. Escolha</th>
-                <th>Var. Meta</th>
-                <th>Est. Mín. com Var.</th>
-                <th>Var. Escolha 1</th>
-                <th>Est. Mín. com Var. Escolha 1</th>
-            </tr>
-        </thead>
-        <tbody>
-            <c:forEach var="row" items="${detalhe.rows}">
-                <tr>
-                    <td>${row.CODEMP}</td>
-                    <td>${row.NOMEFANTASIA}</td>
-                    <td>${row.CODPROD}</td>
-                    <td>${row.DESCRPROD}</td>
-                    <td>${row.MARCA}</td>
-                    <td>${row.CODGRUPOPROD}</td>
-                    <td>${row.DESCRGRUPOPROD}</td>
-                    <td>${row.AD_QTDVOLLT}</td>
-                    <td>${row.ESTOQUE}</td>
-                    <td>${row.VENDA_PER_ANTERIOR}</td>
-                    <td>${row.GIRO}</td>
-                    <td>${row.EST_MIN}</td>
-                    <td class="btn-group">
-                        <button class="btn btn-decrease">-</button>
-                        <span class="var-escolha" data-est-min="${row.EST_MIN}">0.0</span>
-                        <button class="btn">+</button>
-                    </td>
-                    <td class="calculation-cell"></td>
-                    <td>${row.VAR_META}</td>
-                    <td>${row.EST_MIN_COM_VAR}</td>
-                    <td class="btn-group">
-                        <button class="btn btn-decrease">-</button>
-                        <span class="var-escolha1" data-est-min-com-var="${row.EST_MIN_COM_VAR}">0.0</span>
-                        <button class="btn">+</button>
-                    </td>
-                    <td class="calculation-cell"></td>
-                </tr>
-            </c:forEach>
-        </tbody>
-    </table>
-</div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>Nome Fantasia</th>
+                        <th>Código Produto</th>
+                        <th>Descrição</th>
+                        <th>Marca</th>
+                        <th>Grupo</th>
+                        <th>Descrição Grupo</th>
+                        <th>Qtd Vol</th>
+                        <th>Estoque</th>
+                        <th>Venda Per. Ant.</th>
+                        <th>Giro</th>
+                        <th>Est. Mín.</th>
+                        <th>Var. Meta</th>
+                        <th>Est. Mín. Var.</th>
+                        <th>Var. Escolha</th>
+                        <th>Est. Mín. com Var</th>
+                        <th>Var. Escolha 1</th>
+                        <th>Est. Mín. com Var 1</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <c:forEach var="row" items="${detalhe.rows}">
+                        <tr>
+                            <td>${row.CODEMP}</td>
+                            <td>${row.NOMEFANTASIA}</td>
+                            <td>${row.CODPROD}</td>
+                            <td>${row.DESCRPROD}</td>
+                            <td>${row.MARCA}</td>
+                            <td>${row.CODGRUPOPROD}</td>
+                            <td>${row.DESCRGRUPOPROD}</td>
+                            <td>${row.AD_QTDVOLLT}</td>
+                            <td>${row.ESTOQUE}</td>
+                            <td>${row.VENDA_PER_ANTERIOR}</td>
+                            <td>${row.GIRO}</td>
+                            <td>${row.EST_MIN}</td>
+                            <td>${row.VAR_META}</td>
+                            <td>${row.EST_MIN_COM_VAR}</td>
+                            <td class="var-buttons">
+                                <button onclick="adjustVar(this, 'increase')">+</button>
+                                <input type="text" class="var-input" value="0" readonly>
+                                <button onclick="adjustVar(this, 'decrease')">-</button>
+                            </td>
+                            <td class="calculated-est-min">
+                                <!-- Calculation for EST_MIN * (1 + VAR_ESCOLHA) -->
+                            </td>
+                            <td class="var-buttons">
+                                <button onclick="adjustVar(this, 'increase1')">+</button>
+                                <input type="text" class="var-input" value="0" readonly>
+                                <button onclick="adjustVar(this, 'decrease1')">-</button>
+                            </td>
+                            <td class="calculated-est-min-var1">
+                                <!-- Calculation for EST_MIN_COM_VAR * (1 + VAR_ESCOLHA1) -->
+                            </td>
+                        </tr>
+                    </c:forEach>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<script>
-    const incrementValue = 0.01; 
-
-    function updateCalculationEstMinVarEscolha(span, estMin) {
-        const value = parseFloat(span.textContent);
-        const estMinComVarEscolha = estMin * (1 + value);
-        span.closest('td').nextElementSibling.textContent = estMinComVarEscolha.toFixed(2);
-    }
-
-    function updateCalculationEstMinVarEscolha1(span, estMinComVar) {
-        const value = parseFloat(span.textContent);
-        const estMinComVarEscolha1 = estMinComVar * (1 + value);
-        span.closest('td').nextElementSibling.textContent = estMinComVarEscolha1.toFixed(2);
-    }
-
-    document.querySelectorAll('.btn').forEach(function(button) {
-        button.addEventListener('click', function() {
-            var span = this.parentElement.querySelector('span');
-            var estMin = parseFloat(span.getAttribute('data-est-min'));
-            var estMinComVar = parseFloat(span.getAttribute('data-est-min-com-var'));
-            var value = parseFloat(span.textContent);
-
-            value = (this.classList.contains('btn-decrease')) ? (value - incrementValue).toFixed(1) : (value + incrementValue).toFixed(1);
-
-            span.textContent = value;
-
-            if (span.classList.contains('var-escolha')) {
-                updateCalculationEstMinVarEscolha(span, estMin);
-            } else if (span.classList.contains('var-escolha1')) {
-                updateCalculationEstMinVarEscolha1(span, estMinComVar);
+    <script>
+        function adjustVar(button, action) {
+            const input = button.parentElement.querySelector('input');
+            let currentValue = parseFloat(input.value);
+            if (action === 'increase') {
+                input.value = (currentValue + 1).toFixed(2);
+            } else if (action === 'decrease') {
+                input.value = (currentValue - 1).toFixed(2);
             }
-        });
-    });
-</script>
+        }
+    </script>
 
 </body>
 </html>

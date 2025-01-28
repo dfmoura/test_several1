@@ -1,0 +1,45 @@
+<table id="tabela-dados">
+            <thead>
+                <tr>
+                    <th>Empresa</th>
+                    <th>Nome Fantasia</th>
+
+                    <th>Marca</th>
+
+                    <th title="Venda Período de Giro">Venda Per. Giro</th>
+                    <th title="Dias Período de Giro">Dias Per. Giro</th>
+                    <th title="Giro Período">Giro Período</th>
+                    <th title="Dias Período Estoque">Dias Per. Est.</th>
+                    <th title="Estoque Mínimo">Est. Mín.</th>
+                    <th title="Ajuste para Estoque Mínimo">Ajuste</th>
+                    <th title="Estoque Mínimo Ajustado">Est. Mín. Ajustado</th>
+                    <th>Estoque Atual</th>
+                    <th title="Superávit ou Déficit">Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+                    <tr>
+                        <td>1</td>
+                        <td>SATIS ARAXA</td>
+
+                        <td>VITAPHOL FERRO</td>
+
+                        
+                        <td>2385</td>
+                        <td>17</td>
+                        <td class="">140.29</td>
+                        <td>6</td>
+                        <td>841.76</td>
+                        <td class="btn-group">
+                            <button class="btn btn-decrease">-</button>
+                            <span class="var-escolha" data-est-min="841.76">0.00</span>
+                            <button class="btn">+</button>
+                        </td>
+                        <td class="calculation-cell">841.76</td>
+                        <td>2280</td>
+                        <td class="status-positive">1438.24 ↑</td>
+                    </tr>
+                
+            </tbody>
+        </table>

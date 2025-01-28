@@ -77,12 +77,9 @@
         }
 
         th {
-            background-color: #3a970f;
+            background-color: #007BFF;
             color: white;
             font-weight: bold;
-            position: sticky; /* Fixa o cabeçalho */
-            top: 0; /* Define o ponto fixo */
-            z-index: 1; /* Garante que o cabeçalho fique acima das células */
         }
 
         td {
@@ -477,7 +474,7 @@
 </div>
 
 <script>
-    const incrementValue = 0.01; 
+    const incrementValue = 0.1; 
 
     function updateCalculationEstMinVarEscolha(span, estMin) {
         const value = parseFloat(span.textContent);

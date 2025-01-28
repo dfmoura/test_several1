@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Simulation Cockpit</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .cockpit-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 400px;
+        }
+
+        .cockpit-header {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .simulate-button {
+            width: 100%;
+            padding: 10px;
+            background: #ff7e5f;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .simulate-button:hover {
+            background: #feb47b;
+        }
+
+        .result {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="cockpit-container">
+        <div class="cockpit-header">Stock Simulation Cockpit</div>
+        <div class="input-group">
+            <label for="current-stock">Current Stock (units)</label>
+            <input type="number" id="current-stock" placeholder="Enter current stock">
+        </div>
+        <div class="input-group">
+            <label for="daily-consumption">Daily Consumption (units/day)</label>
+            <input type="number" id="daily-consumption" placeholder="Enter daily consumption">
+        </div>
+        <button class="simulate-button" onclick="simulateStockDuration()">Simulate</button>
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        function simulateStockDuration() {
+            const currentStock = parseFloat(document.getElementById('current-stock').value);
+            const dailyConsumption = parseFloat(document.getElementById('daily-consumption').value);
+            const resultDiv = document.getElementById('result');
+
+            if (!currentStock || !dailyConsumption || currentStock <= 0 || dailyConsumption <= 0) {
+                resultDiv.textContent = 'Please enter valid positive numbers.';
+                return;
+            }
+
+            const days = (currentStock / dailyConsumption).toFixed(1);
+            resultDiv.textContent = `The stock will last for approximately ${days} days.`;
+        }
+    </script>
+</body>
+</html>

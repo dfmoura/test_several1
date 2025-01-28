@@ -67,7 +67,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            font-size: 12px; /* Reduzido o tamanho da fonte da tabela */
+            font-size: 12px;
         }
 
         th, td {
@@ -80,9 +80,9 @@
             background-color: #3a970f;
             color: white;
             font-weight: bold;
-            position: sticky; /* Fixa o cabeçalho */
-            top: 0; /* Define o ponto fixo */
-            z-index: 1; /* Garante que o cabeçalho fique acima das células */
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
 
         td {
@@ -428,17 +428,22 @@
                 <th>Marca</th>
                 <th>Grupo</th>
                 <th>Descrição Grupo</th>
-                <th>Qtd Vol</th>
-                <th>Estoque</th>
-                <th>Venda Per. Ant.</th>
-                <th>Giro</th>
-                <th>Est. Mín.</th>
-                <th>Var. Escolha</th>
-                <th>Est. Mín. com Var. Escolha</th>
-                <th>Var. Meta</th>
-                <th>Est. Mín. com Var.</th>
-                <th>Var. Escolha 1</th>
-                <th>Est. Mín. com Var. Escolha 1</th>
+
+                <th>Estoque Atual</th>
+                <th title="Venda Perído Anterior">Venda Per. Ant.</th>
+                <th  title="Giro Perído Anterior - O intervalo de datas é retroagido conforme especificado, 
+                identificando-se o mês correspondente ao período retroagido. 
+                Em seguida, são calculados os dias úteis desse mês, 
+                e o faturamento do período retroagido é dividido pelo total de dias úteis apurados">Giro Per. Ant.</th>
+                <th title="Estoque Mínimo - 
+                O total de dias úteis do período de estocagem é multiplicado 
+                pelo giro calculado.">Est. Mín.</th>
+                <th  title="Ajuste com Estoque Mínimo">Ajuste</th>
+                <th title="Estoque Mínimo Ajustado">Est. Mín. Ajustado</th>
+                <th  title="Variação da Meta (Perído Atual contra Periodo Anterior)">Var. Meta</th>
+                <th title="Estoque Mínimo com a Variação">Est. Mín. com Var.</th>
+                <th title="Ajuste com Estoque Mínimo com Variação">Ajuste</th>
+                <th title="Estoque Mínimo Ajustado com Variação">Est. Mín. Ajustado com Var.</th>
             </tr>
         </thead>
         <tbody>
@@ -451,14 +456,14 @@
                     <td>${row.MARCA}</td>
                     <td>${row.CODGRUPOPROD}</td>
                     <td>${row.DESCRGRUPOPROD}</td>
-                    <td>${row.AD_QTDVOLLT}</td>
+
                     <td>${row.ESTOQUE}</td>
                     <td>${row.VENDA_PER_ANTERIOR}</td>
                     <td>${row.GIRO}</td>
                     <td>${row.EST_MIN}</td>
                     <td class="btn-group">
                         <button class="btn btn-decrease">-</button>
-                        <span class="var-escolha" data-est-min="${row.EST_MIN}">0.0</span>
+                        <span class="var-escolha" data-est-min="${row.EST_MIN}">0.00</span>
                         <button class="btn">+</button>
                     </td>
                     <td class="calculation-cell"></td>
@@ -466,7 +471,7 @@
                     <td>${row.EST_MIN_COM_VAR}</td>
                     <td class="btn-group">
                         <button class="btn btn-decrease">-</button>
-                        <span class="var-escolha1" data-est-min-com-var="${row.EST_MIN_COM_VAR}">0.0</span>
+                        <span class="var-escolha1" data-est-min-com-var="${row.EST_MIN_COM_VAR}">0.00</span>
                         <button class="btn">+</button>
                     </td>
                     <td class="calculation-cell"></td>
@@ -498,7 +503,7 @@
             var estMinComVar = parseFloat(span.getAttribute('data-est-min-com-var'));
             var value = parseFloat(span.textContent);
 
-            value = (this.classList.contains('btn-decrease')) ? (value - incrementValue).toFixed(1) : (value + incrementValue).toFixed(1);
+            value = (this.classList.contains('btn-decrease')) ? (value - incrementValue).toFixed(2) : (value + incrementValue).toFixed(2);
 
             span.textContent = value;
 

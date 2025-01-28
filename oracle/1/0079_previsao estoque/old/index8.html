@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Valor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+            margin: 0;
+        }
+        
+        .container {
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        input[type="range"] {
+            width: 80%;
+            margin: 20px 0;
+        }
+        
+        p {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Controle de Valor</h2>
+        <input type="range" id="valorSlider" min="0" max="100" value="50">
+        <p>Valor: <span id="valorDisplay">50</span></p>
+    </div>
+
+    <script>
+        // Acessar o slider e o elemento de exibição do valor
+        const slider = document.getElementById('valorSlider');
+        const valorDisplay = document.getElementById('valorDisplay');
+
+        // Atualizar o valor exibido quando o slider for movido
+        slider.addEventListener('input', function() {
+            valorDisplay.textContent = slider.value;
+        });
+
+    </script>
+</body>
+</html>

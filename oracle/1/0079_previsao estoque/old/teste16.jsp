@@ -63,11 +63,31 @@
             color: #333;
         }
 
+        .adjustment-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .adjustment-container label {
+            margin-right: 10px;
+        }
+
+        .adjustment-container .btn-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-group button {
+            margin: 0 5px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            font-size: 12px; /* Reduzido o tamanho da fonte da tabela */
+            font-size: 12px;
         }
 
         th, td {
@@ -80,9 +100,9 @@
             background-color: #3a970f;
             color: white;
             font-weight: bold;
-            position: sticky; /* Fixa o cabeçalho */
-            top: 0; /* Define o ponto fixo */
-            z-index: 1; /* Garante que o cabeçalho fique acima das células */
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
 
         td {
@@ -108,10 +128,6 @@
             align-items: center;
         }
 
-        .btn-group button {
-            margin: 0 5px;
-        }
-
         .calculation-cell {
             font-weight: bold;
             color: #007BFF;
@@ -123,24 +139,28 @@
 
 <snk:query var="cab">
     select
-    TO_CHAR(DTINI,'DD/MM/YYYY')DTINI,TO_CHAR(DTFIN,'DD/MM/YYYY')DTFIN,DU,RETROCEDER,DTINI_ANT,DTFIN_ANT,DU_ANT
+    TO_CHAR(DTINI,'DD/MM/YYYY')DTINI,
+    TO_CHAR(DTFIN,'DD/MM/YYYY')DTFIN,
+    DU,
+    TO_CHAR(DTINI_GIRO,'DD/MM/YYYY')DTINI_GIRO,
+    TO_CHAR(DTFIN_GIRO,'DD/MM/YYYY')DTFIN_GIRO,
+    DU_GIRO
+    
     FROM(
     SELECT        
     :P_PERIODO.INI DTINI, 
     :P_PERIODO.FIN DTFIN,
     FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) AS DU,
-    :P_RETROCEDER_MESES RETROCEDER,
-    ADD_MONTHS(:P_PERIODO.INI, -12) DTINI_ANT,
-    ADD_MONTHS(:P_PERIODO.FIN, -12) DTFIN_ANT,
-    FUN_TOT_DIAS_UTE_SATIS(ADD_MONTHS(:P_PERIODO.INI, :P_RETROCEDER_MESES), ADD_MONTHS(:P_PERIODO.INI, :P_RETROCEDER_MESES)) AS DU_ANT
-    
-    from dual    )
+    :P_PERIODO1.INI DTINI_GIRO, 
+    :P_PERIODO1.FIN DTFIN_GIRO,
+    FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN) AS DU_GIRO    
+    from dual)
 </snk:query>
 
 <snk:query var="detalhe">
 	select 
 	CODEMP,NOMEFANTASIA,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD,AD_QTDVOLLT,
-	ESTOQUE,VENDA_PER_ANTERIOR,round(GIRO,2)GIRO,round(EST_MIN,2)EST_MIN,round(VAR_META,2)VAR_META,round(EST_MIN_COM_VAR,2)EST_MIN_COM_VAR
+	ESTOQUE,VENDA_PER_GIRO,round(GIRO,2)GIRO,round(EST_MIN,2)EST_MIN,round(VAR_META,2)VAR_META,round(EST_MIN_COM_VAR,2)EST_MIN_COM_VAR
 
     from(
 
@@ -159,93 +179,31 @@
         NVL((
         SELECT SUM(QTD) QTD
         FROM VGF_VENDAS_SATIS
-        WHERE     DTNEG BETWEEN ADD_MONTHS(:P_PERIODO.INI, :P_RETROCEDER_MESES)
-                  AND ADD_MONTHS(:P_PERIODO.FIN, :P_RETROCEDER_MESES)
+        WHERE     DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO.FIN
         AND CODEMP = A.CODEMP
         AND CODPROD = A.CODPROD
-        ),0) AS VENDA_PER_ANTERIOR,
+        ),0) AS VENDA_PER_GIRO,
 
         
         NVL((
-        SELECT COUNT(DISTINCT QTD) QTD
-        FROM VGF_VENDAS_SATIS
-        WHERE     DTNEG BETWEEN ADD_MONTHS(:P_PERIODO.INI, :P_RETROCEDER_MESES)
-                  AND ADD_MONTHS(:P_PERIODO.FIN, :P_RETROCEDER_MESES)
-        AND (:P_CHECK_EMP = 'S' OR (CODEMP = :P_EMPRESA  AND NVL(:P_CHECK_EMP,'N') = 'N'))
-        AND CODPROD = A.CODPROD
-        ),0) AS DIAS_VENDA_PER_ANTERIOR ,
-                
-
-
-        NVL((
-            SELECT GIRO
-            FROM
-            (
-            SELECT
-            CODEMP,
-            MES,
-            CODPROD,
-            AVG(GIRO) GIRO
-            FROM(
-            SELECT 
-            CODEMP,
-            EXTRACT(YEAR FROM DTNEG) ANO,
-            EXTRACT(MONTH FROM DTNEG) MES,
-            CODPROD,
-            SUM(QTD)/CALC_DU_MES_SATIS(EXTRACT(YEAR FROM DTNEG),EXTRACT(MONTH FROM DTNEG)) AS GIRO
+            SELECT SUM(QTD) QTD
             FROM VGF_VENDAS_SATIS
-            WHERE EXTRACT(YEAR FROM DTNEG) >= EXTRACT(YEAR FROM SYSDATE)-1
-            
-            GROUP BY
-            CODEMP,
-            EXTRACT(YEAR FROM DTNEG),
-            EXTRACT(MONTH FROM DTNEG),
-            CALC_DU_MES_SATIS(EXTRACT(YEAR FROM DTNEG),EXTRACT(MONTH FROM DTNEG)),
-            CODPROD
-            )
-            GROUP BY
-            CODEMP,
-            MES,
-            CODPROD
-            )
-            WHERE CODEMP = A.CODEMP AND CODPROD = A.CODPROD AND MES = EXTRACT(MONTH FROM :P_PERIODO.INI)
-            ),0)GIRO,
+            WHERE     DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO.FIN
+            AND CODEMP = A.CODEMP
+            AND CODPROD = A.CODPROD
+        ) / FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN),0) AS GIRO,             
 
 
-            FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) *
-            NVL((
-                SELECT GIRO
-                FROM
-                (
-                SELECT
-                CODEMP,
-                MES,
-                CODPROD,
-                AVG(GIRO) GIRO
-                FROM(
-                SELECT 
-                CODEMP,
-                EXTRACT(YEAR FROM DTNEG) ANO,
-                EXTRACT(MONTH FROM DTNEG) MES,
-                CODPROD,
-                SUM(QTD)/CALC_DU_MES_SATIS(EXTRACT(YEAR FROM DTNEG),EXTRACT(MONTH FROM DTNEG)) AS GIRO
-                FROM VGF_VENDAS_SATIS
-                WHERE EXTRACT(YEAR FROM DTNEG) >= EXTRACT(YEAR FROM SYSDATE)-1
-                
-                GROUP BY
-                CODEMP,
-                EXTRACT(YEAR FROM DTNEG),
-                EXTRACT(MONTH FROM DTNEG),
-                CALC_DU_MES_SATIS(EXTRACT(YEAR FROM DTNEG),EXTRACT(MONTH FROM DTNEG)),
-                CODPROD
-                )
-                GROUP BY
-                CODEMP,
-                MES,
-                CODPROD
-                )
-                WHERE CODEMP = A.CODEMP AND CODPROD = A.CODPROD AND MES = EXTRACT(MONTH FROM :P_PERIODO.INI)
-                ),0) AS EST_MIN,
+        NVL(FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) *
+
+        ((
+            SELECT SUM(QTD) QTD
+            FROM VGF_VENDAS_SATIS
+            WHERE     DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO.FIN
+            AND CODEMP = A.CODEMP
+            AND CODPROD = A.CODPROD
+        ) / FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN)),0)
+            AS EST_MIN,        
                 
                 NVL(
                     (
@@ -272,62 +230,43 @@
                     ),0) VAR_META,                
 
 
-                    NVL((1 + (                        
-                    SELECT
-                    NVL((QTDPREV1-QTDPREV2)/NULLIF(QTDPREV2,0),0) VAR
-                    FROM(
-                    SELECT
-                    MARCA,MAX(DTREF) AS DTREF1,MIN(DTREF) AS DTREF2,
-                    SUM(CASE WHEN TO_DATE(DTREF, 'DD/MM/YYYY') = TO_DATE(TRUNC(:P_PERIODO.INI, 'MM'), 'DD/MM/YYYY') THEN QTDPREV ELSE 0 END) AS QTDPREV1,
-                    SUM(CASE WHEN TO_DATE(DTREF, 'DD/MM/YYYY') = ADD_MONTHS(TO_DATE(TRUNC(:P_PERIODO.INI, 'MM'), 'DD/MM/YYYY'), :P_RETROCEDER_MESES) THEN QTDPREV ELSE 0 END) AS QTDPREV2
-                    FROM (
-                    SELECT
-                    MARCA,DTREF,SUM(QTDPREV) AS QTDPREV
-                    FROM tgfmet
-                    WHERE codmeta = 4 AND TO_DATE(DTREF, 'DD/MM/YYYY') IN (
-                    TO_DATE(TRUNC(:P_PERIODO.INI, 'MM'), 'DD/MM/YYYY'),ADD_MONTHS(TO_DATE(TRUNC(:P_PERIODO.INI, 'MM'), 'DD/MM/YYYY'), :P_RETROCEDER_MESES)
-                    )
-                    AND QTDPREV > 0
-                    GROUP BY MARCA, DTREF
-                    )
-                    GROUP BY MARCA
-                    )WHERE NVL((QTDPREV1-QTDPREV2)/NULLIF(QTDPREV2,0),0)<>0 AND MARCA = A.MARCA
-                    ))
-                    *
-                    (FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) *
-                    (
-                        SELECT GIRO
-                        FROM
-                        (
+                    NVL(
+                    (1 + (                        
                         SELECT
-                        CODEMP,
-                        MES,
-                        CODPROD,
-                        AVG(GIRO) GIRO
+                        NVL((QTDPREV1-QTDPREV2)/NULLIF(QTDPREV2,0),0) VAR
                         FROM(
-                        SELECT 
-                        CODEMP,
-                        EXTRACT(YEAR FROM DTNEG) ANO,
-                        EXTRACT(MONTH FROM DTNEG) MES,
-                        CODPROD,
-                        SUM(QTD)/CALC_DU_MES_SATIS(EXTRACT(YEAR FROM DTNEG),EXTRACT(MONTH FROM DTNEG)) AS GIRO
+                        SELECT
+                        MARCA,MAX(DTREF) AS DTREF1,MIN(DTREF) AS DTREF2,
+                        SUM(CASE WHEN TO_DATE(DTREF, 'DD/MM/YYYY') = TO_DATE(TRUNC(:P_PERIODO.INI, 'MM'), 'DD/MM/YYYY') THEN QTDPREV ELSE 0 END) AS QTDPREV1,
+                        SUM(CASE WHEN TO_DATE(DTREF, 'DD/MM/YYYY') = ADD_MONTHS(TO_DATE(TRUNC(:P_PERIODO.INI, 'MM'), 'DD/MM/YYYY'), :P_RETROCEDER_MESES) THEN QTDPREV ELSE 0 END) AS QTDPREV2
+                        FROM (
+                        SELECT
+                        MARCA,DTREF,SUM(QTDPREV) AS QTDPREV
+                        FROM tgfmet
+                        WHERE codmeta = 4 AND TO_DATE(DTREF, 'DD/MM/YYYY') IN (
+                        TO_DATE(TRUNC(:P_PERIODO.INI, 'MM'), 'DD/MM/YYYY'),ADD_MONTHS(TO_DATE(TRUNC(:P_PERIODO.INI, 'MM'), 'DD/MM/YYYY'), :P_RETROCEDER_MESES)
+                        )
+                        AND QTDPREV > 0
+                        GROUP BY MARCA, DTREF
+                        )
+                        GROUP BY MARCA
+                        )WHERE NVL((QTDPREV1-QTDPREV2)/NULLIF(QTDPREV2,0),0)<>0 AND MARCA = A.MARCA
+                    ))
+
+                    *
+
+                    (FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) *
+
+                    ((
+                        SELECT SUM(QTD) QTD
                         FROM VGF_VENDAS_SATIS
-                        WHERE EXTRACT(YEAR FROM DTNEG) >= EXTRACT(YEAR FROM SYSDATE)-1
+                        WHERE     DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO.FIN
+                        AND CODEMP = A.CODEMP
+                        AND CODPROD = A.CODPROD
+                    ) / FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN))),0)                    
                         
-                        GROUP BY
-                        CODEMP,
-                        EXTRACT(YEAR FROM DTNEG),
-                        EXTRACT(MONTH FROM DTNEG),
-                        CALC_DU_MES_SATIS(EXTRACT(YEAR FROM DTNEG),EXTRACT(MONTH FROM DTNEG)),
-                        CODPROD
-                        )
-                        GROUP BY
-                        CODEMP,
-                        MES,
-                        CODPROD
-                        )
-                        WHERE CODEMP = A.CODEMP AND CODPROD = A.CODPROD AND MES = EXTRACT(MONTH FROM :P_PERIODO.INI)
-                        )),0) AS EST_MIN_COM_VAR
+                        
+                        AS EST_MIN_COM_VAR
 
 
 
@@ -395,15 +334,26 @@
         A.CODEMP, EMP.NOMEFANTASIA, A.CODPROD, A.DESCRPROD, A.MARCA, A.CODGRUPOPROD, A.DESCRGRUPOPROD, A.AD_QTDVOLLT
     )
 </snk:query>
+
 <div class="container">
+    <!-- Ajuste Geral -->
+    <div class="adjustment-container">
+        <label for="ajuste-geral">Ajuste Geral:</label>
+        <div class="btn-group">
+            <button class="btn btn-decrease" id="ajuste-geral-decrease">-</button>
+            <span id="ajuste-geral-value">0.00</span>
+            <button class="btn" id="ajuste-geral-increase">+</button>
+        </div>
+    </div>
+
     <c:forEach var="row" items="${cab.rows}">
         <div class="info-container">
             <div>
-                <label>Data Inicial:</label>
+                <label>Data Inicial Estocagem:</label>
                 <span>${row.DTINI}</span>
             </div>
             <div>
-                <label>Data Final:</label>
+                <label>Data Final Estocagem:</label>
                 <span>${row.DTFIN}</span>
             </div>
             <div>
@@ -411,9 +361,17 @@
                 <span>${row.DU}</span>
             </div>
             <div>
-                <label>Períodos para Retroceder em Meses:</label>
-                <span>${row.RETROCEDER}</span>
+                <label>Data Inicial Giro:</label>
+                <span>${row.DTINI_GIRO}</span>
             </div>
+            <div>
+                <label>Data Final Giro:</label>
+                <span>${row.DTFIN_GIRO}</span>
+            </div>
+            <div>
+                <label>Dias Úteis no Período Giro:</label>
+                <span>${row.DU_GIRO}</span>
+            </div>            
         </div>
     </c:forEach>
 
@@ -428,17 +386,16 @@
                 <th>Marca</th>
                 <th>Grupo</th>
                 <th>Descrição Grupo</th>
-                <th>Qtd Vol</th>
-                <th>Estoque</th>
-                <th>Venda Per. Ant.</th>
-                <th>Giro</th>
-                <th>Est. Mín.</th>
-                <th>Var. Escolha</th>
-                <th>Est. Mín. com Var. Escolha</th>
-                <th>Var. Meta</th>
-                <th>Est. Mín. com Var.</th>
-                <th>Var. Escolha 1</th>
-                <th>Est. Mín. com Var. Escolha 1</th>
+                <th>Estoque Atual</th>
+                <th title="Venda Período de Giro">Venda Per. Giro</th>
+                <th title="Giro Período">Giro Período</th>
+                <th title="Estoque Mínimo">Est. Mín.</th>
+                <th  title="Ajuste para Estoque Mínimo">Ajuste</th>
+                <th title="Estoque Mínimo Ajustado">Est. Mín. Ajustado</th>
+                <th  title="Variação da Meta">Var. Meta</th>
+                <th title="Estoque Mínimo com a Variação">Est. Mín. com Var.</th>
+                <th title="Ajuste para Estoque Mínimo com Variação">Ajuste</th>
+                <th title="Estoque Mínimo Ajustado com Variação">Est. Mín. Ajustado com Var.</th>
             </tr>
         </thead>
         <tbody>
@@ -451,14 +408,13 @@
                     <td>${row.MARCA}</td>
                     <td>${row.CODGRUPOPROD}</td>
                     <td>${row.DESCRGRUPOPROD}</td>
-                    <td>${row.AD_QTDVOLLT}</td>
                     <td>${row.ESTOQUE}</td>
-                    <td>${row.VENDA_PER_ANTERIOR}</td>
+                    <td>${row.VENDA_PER_GIRO}</td>
                     <td>${row.GIRO}</td>
                     <td>${row.EST_MIN}</td>
                     <td class="btn-group">
                         <button class="btn btn-decrease">-</button>
-                        <span class="var-escolha" data-est-min="${row.EST_MIN}">0.0</span>
+                        <span class="var-escolha" data-est-min="${row.EST_MIN}">0.00</span>
                         <button class="btn">+</button>
                     </td>
                     <td class="calculation-cell"></td>
@@ -466,7 +422,7 @@
                     <td>${row.EST_MIN_COM_VAR}</td>
                     <td class="btn-group">
                         <button class="btn btn-decrease">-</button>
-                        <span class="var-escolha1" data-est-min-com-var="${row.EST_MIN_COM_VAR}">0.0</span>
+                        <span class="var-escolha1" data-est-min-com-var="${row.EST_MIN_COM_VAR}">0.00</span>
                         <button class="btn">+</button>
                     </td>
                     <td class="calculation-cell"></td>
@@ -477,17 +433,18 @@
 </div>
 
 <script>
-    const incrementValue = 0.01; 
+    const incrementValue = 0.01;
+    let ajusteGeral = 0;
 
     function updateCalculationEstMinVarEscolha(span, estMin) {
         const value = parseFloat(span.textContent);
-        const estMinComVarEscolha = estMin * (1 + value);
+        const estMinComVarEscolha = estMin * (1 + value + ajusteGeral);
         span.closest('td').nextElementSibling.textContent = estMinComVarEscolha.toFixed(2);
     }
 
     function updateCalculationEstMinVarEscolha1(span, estMinComVar) {
         const value = parseFloat(span.textContent);
-        const estMinComVarEscolha1 = estMinComVar * (1 + value);
+        const estMinComVarEscolha1 = estMinComVar * (1 + value + ajusteGeral);
         span.closest('td').nextElementSibling.textContent = estMinComVarEscolha1.toFixed(2);
     }
 
@@ -498,7 +455,7 @@
             var estMinComVar = parseFloat(span.getAttribute('data-est-min-com-var'));
             var value = parseFloat(span.textContent);
 
-            value = (this.classList.contains('btn-decrease')) ? (value - incrementValue).toFixed(1) : (value + incrementValue).toFixed(1);
+            value = (this.classList.contains('btn-decrease')) ? (value - incrementValue).toFixed(2) : (value + incrementValue).toFixed(2);
 
             span.textContent = value;
 
@@ -509,7 +466,36 @@
             }
         });
     });
-</script>
 
+    // Ajuste Geral
+    document.getElementById('ajuste-geral-increase').addEventListener('click', function() {
+        ajusteGeral += incrementValue;
+        document.getElementById('ajuste-geral-value').textContent = ajusteGeral.toFixed(2);
+        updateCalculations();
+    });
+
+    document.getElementById('ajuste-geral-decrease').addEventListener('click', function() {
+        ajusteGeral -= incrementValue;
+        document.getElementById('ajuste-geral-value').textContent = ajusteGeral.toFixed(2);
+        updateCalculations();
+    });
+
+    function updateCalculations() {
+        document.querySelectorAll('.var-escolha').forEach(function(span) {
+            const estMin = parseFloat(span.getAttribute('data-est-min'));
+            updateCalculationEstMinVarEscolha(span, estMin);
+        });
+
+        document.querySelectorAll('.var-escolha1').forEach(function(span) {
+            const estMinComVar = parseFloat(span.getAttribute('data-est-min-com-var'));
+            updateCalculationEstMinVarEscolha1(span, estMinComVar);
+        });
+    }
+
+    // Atualiza os cálculos ao carregar a página
+    window.addEventListener('load', function() {
+        updateCalculations();
+    });
+</script>
 </body>
 </html>

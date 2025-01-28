@@ -118,82 +118,98 @@
 
 <snk:query var="detalhe">
 
-    WITH ULT AS (
-    SELECT PAR1.CODPARC,MAX(VGF.DTNEG) ULT_VENDA 
-    FROM VGF_VENDAS_SATIS VGF
-    INNER JOIN TGFPAR PAR ON VGF.CODPARC = PAR.CODPARC
-    INNER JOIN TGFPAR PAR1 ON NVL(PAR.CODPARCMATRIZ,PAR.CODPARC) = PAR1.CODPARC
-    GROUP BY PAR1.CODPARC)
+SELECT
+CLIENTE,
+RAZAOSOCIAL,
+CASE 
+WHEN CLIENTE IN (SELECT DISTINCT CLIENTE FROM AD_GESTCRED) 
+THEN 'Possui Gestão de Crédito'
+ELSE 'Não Possui Gestão de Crédito'
+END AS ANALISE_CREDITO,    
+PERC,
+LIMVIGOR,
+LIMCALC,
+DIF_LIMITE,
+VERIFICADOR,
+DIFLIM
+FROM (
 
-    SELECT
-    CODPARCMATRIZ,
-    RAZAOSOCIAL,
-    CASE 
-    WHEN CODPARCMATRIZ IN (SELECT DISTINCT CODPARC FROM AD_ANCREDITO) 
-    THEN 'Possui Análise de Crédito'
-    ELSE 'Não Possui Análise de Crédito'
-    END AS ANALISE_CREDITO,
-    TO_CHAR(AD_DTVENCCAD,'DD/MM/YYYY') AD_DTVENCCAD,
-    STATUS_CADASTRO,
-    DIAS,
-    MESES,
-    STATUS_VENC,
-    TO_CHAR(ULT_VENDA,'DD/MM/YYYY') ULT_VENDA
-    FROM (
-    
-    SELECT
-    CODPARCMATRIZ,
-    RAZAOSOCIAL,
-    AD_DTVENCCAD,
-    STATUS_CADASTRO,
-    DIAS,
-    MESES,
-    CASE 
-    WHEN MESES <= 5 AND STATUS_CADASTRO = 'Casdastro Não Vencido' THEN 1
-    WHEN MESES > 5 AND STATUS_CADASTRO = 'Casdastro Não Vencido' THEN 2
-    WHEN MESES <= 6 AND STATUS_CADASTRO = 'Cadastro Vencido' THEN 3
-    WHEN MESES > 6 AND STATUS_CADASTRO = 'Cadastro Vencido' THEN 4 END AS STATUS_VENC
-    FROM (
-    
-    SELECT 
-    CODPARCMATRIZ,
-    RAZAOSOCIAL,
-    AD_DTVENCCAD,
-    CASE
-    WHEN AD_DTVENCCAD >= SYSDATE THEN 'Casdastro Não Vencido'
-    WHEN AD_DTVENCCAD < SYSDATE THEN 'Cadastro Vencido' END AS STATUS_CADASTRO,
-    ROUND(ABS(AD_DTVENCCAD - SYSDATE),0) AS DIAS,
-    ROUND(ABS(MONTHS_BETWEEN(SYSDATE, AD_DTVENCCAD)),0) AS MESES
-    FROM(
-    
-    SELECT
-    NVL(PAR.CODPARCMATRIZ,PAR.CODPARC) CODPARCMATRIZ,
-    PAR1.RAZAOSOCIAL,
-    MAX(PAR.AD_DTVENCCAD) AD_DTVENCCAD
-    FROM TGFPAR PAR
-    INNER JOIN TGFPAR PAR1 ON NVL(PAR.CODPARCMATRIZ,PAR.CODPARC) = PAR1.CODPARC
-    WHERE PAR.AD_DTVENCCAD IS NOT NULL AND PAR1.CODPARC > 2
+SELECT
+CLIENTE,
+RAZAOSOCIAL,
+LIMVIGOR,
+LIMCALC,
+PERC,
+CASE
+WHEN PERC <= 20 THEN 'Até 20%'
+WHEN PERC > 20 AND PERC <= 40 THEN 'Entre 21% e 40%'
+WHEN PERC > 40 AND PERC <= 60 THEN 'Entre 41% e 60%'
+WHEN PERC > 60 AND PERC <= 80 THEN 'Entre 61% e 80%'
+WHEN PERC > 80 THEN 'Maior que 80%' END AS DIF_LIMITE,
+CASE
+WHEN PERC <= 20 THEN 1
+WHEN PERC > 20 AND PERC <= 40 THEN 2
+WHEN PERC > 40 AND PERC <= 60 THEN 3
+WHEN PERC > 60 AND PERC <= 80 THEN 4
+WHEN PERC > 80 THEN 5 END AS VERIFICADOR,
+DIFLIM
+FROM
+(
+SELECT
+CLIENTE,
+RAZAOSOCIAL,
+LIMVIGOR,
+LIMCALC,
+ROUND(LIMCALC/LIMVIGOR*100,2) PERC,
+DIFLIM
 
-    AND
-    (:P_EXIBIR_CLI = 'S' OR 
-    (NVL(:P_EXIBIR_CLI,'N') = 'N'
-    AND EXISTS (SELECT 1 FROM VGF_VENDAS_SATIS WHERE CODPARC = PAR.CODPARC)
-    ))
-    
-
-    GROUP BY NVL(PAR.CODPARCMATRIZ,PAR.CODPARC),PAR1.RAZAOSOCIAL
-    )
+FROM (
+SELECT
+CRED.CLIENTE, 
+PAR.RAZAOSOCIAL,
+(SELECT NVL(PAR.LIMCRED,0) FROM TGFPAR PAR WHERE PAR.CODPARC = CRED.CLIENTE) LIMVIGOR,
+(SELECT NVL(RISCOSATIS,0) + NVL(VLRBENS,0) + NVL(VLRCPR,0) + NVL(VLRFIANC,0) + NVL(VALOR,0) FROM
+(SELECT
+CLIENTE, 
+RISCOSATIS,
+(SELECT SUM(VLRBENS) FROM AD_BENS WHERE CLIENTE = CRED.CLIENTE)AS VLRBENS,
+(SELECT SUM(VLRCPR) FROM AD_CPR WHERE CLIENTE = CRED.CLIENTE)AS VLRCPR,
+(SELECT SUM(VLRFIANC) FROM AD_CARTFIANC WHERE CLIENTE = CRED.CLIENTE)AS VLRFIANC,
+(SELECT SUM((CASE WHEN STATUS = 'ABERTO' THEN NVL(VALOR,0) ELSE 0 END)) FROM AD_DUPLIC WHERE CLIENTE = CRED.CLIENTE)AS VALOR
+FROM AD_GESTCRED CRED)
+WHERE CLIENTE = CRED.CLIENTE) LIMCALC,
+(SELECT (NVL(RISCOSATIS,0) + NVL(VLRBENS,0) + NVL(VLRCPR,0) + NVL(VLRFIANC,0) + NVL(VALOR,0)) - NVL(LIMCRED,0)  FROM
+(SELECT
+CLIENTE, 
+RISCOSATIS,
+(SELECT LIMCRED FROM TGFPAR WHERE CODPARC = CRED.CLIENTE)AS LIMCRED,
+(SELECT SUM(VLRBENS) FROM AD_BENS WHERE CLIENTE = CRED.CLIENTE)AS VLRBENS,
+(SELECT SUM(VLRCPR) FROM AD_CPR WHERE CLIENTE = CRED.CLIENTE)AS VLRCPR,
+(SELECT SUM(VLRFIANC) FROM AD_CARTFIANC WHERE CLIENTE = CRED.CLIENTE)AS VLRFIANC,
+(SELECT SUM(VALOR) FROM AD_DUPLIC WHERE CLIENTE = CRED.CLIENTE)AS VALOR
+FROM AD_GESTCRED CRED)
+WHERE CLIENTE = CRED.CLIENTE) DIFLIM,
 
 
-    )
-    )
-    INNER JOIN ULT ON CODPARCMATRIZ = ULT.CODPARC
+RISCOSATIS,
+(SELECT SUM(VLRBENS) FROM AD_BENS WHERE CLIENTE = CRED.CLIENTE)AS VLRBENS,
+(SELECT SUM(VLRCPR) FROM AD_CPR WHERE CLIENTE = CRED.CLIENTE)AS VLRCPR,
+(SELECT SUM(VLRFIANC) FROM AD_CARTFIANC WHERE CLIENTE = CRED.CLIENTE)AS VLRFIANC,
+(SELECT SUM(VALOR) FROM AD_DUPLIC WHERE CLIENTE = CRED.CLIENTE)AS VALOR
+FROM AD_GESTCRED CRED
+INNER JOIN TGFPAR PAR ON CRED.CLIENTE = PAR.CODPARC)
+WHERE LIMCALC > 0 AND DIFLIM < 0
 
-    WHERE STATUS_VENC = :A_GRUPO    
+)
+)
+
+
+    WHERE VERIFICADOR = :A_GRUPO
+
 </snk:query>
 
 <div class="table-wrapper">
-    <h2>Detalhamento - Vencimento Cadastro</h2>
+    <h2>Detalhamento - Diferença de Limite</h2>
     <div class="filter-container">
         <input type="text" id="tableFilter" placeholder="Digite para filtrar...">
     </div>
@@ -201,36 +217,51 @@
         <table id="myTable">
             <thead>
                 <tr>
-                    <th onclick="sortTable(0)">Cód. Matriz</th>
+                    <th onclick="sortTable(0)">Cód. Parceiro</th>
                     <th onclick="sortTable(1)">Parceiro</th>
-                    <th onclick="sortTable(2)">Análise</th>
-                    <th style="text-align: center;" onclick="sortTable(3)">Dt. Venc. Cad.</th>
-                    <th style="text-align: center;" onclick="sortTable(4)">Status</th>
-                    <th style="text-align: center;" onclick="sortTable(5)">Dias</th>
-                    <th style="text-align: center;" onclick="sortTable(6)">Meses</th>
-                    <th style="text-align: center;" onclick="sortTable(7)">Últ. Venda</th>
+                    <th onclick="sortTable(2)">Gestão Crédito</th>
+                    <th style="text-align: center;" onclick="sortTable(3)">Lim. Vigor.</th>
+                    <th style="text-align: center;" onclick="sortTable(4)">Lim. Calc.</th>
+                    <th style="text-align: center;" onclick="sortTable(5)">%</th>
+                    <th style="text-align: center;" onclick="sortTable(6)">Intervalo %</th>
+                    <th style="text-align: center;" onclick="sortTable(7)">Lim. Dif.</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <c:forEach var="row" items="${detalhe.rows}">
                     <tr>
-                        <td onclick="abrir('${row.CODPARCMATRIZ}')">${row.CODPARCMATRIZ}</td>
+                        <td onclick="abrir('${row.CLIENTE}')">${row.CLIENTE}</td>
                         <td>${row.RAZAOSOCIAL}</td>
                         <td>${row.ANALISE_CREDITO}</td>
-                        <td style="text-align: center;">${row.AD_DTVENCCAD}</td>
-                        <td style="text-align: center;">${row.STATUS_CADASTRO}</td>
-                        <td style="text-align: center;">${row.DIAS}</td>
-                        <td style="text-align: center;">${row.MESES}</td>
-                        <td style="text-align: center;">${row.ULT_VENDA}</td>
 
                         
+                        <fmt:setLocale value="pt_BR" />
+                        <td style="text-align: center;">
+                            <fmt:formatNumber value="${row.LIMVIGOR}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+                        </td>
+
+                        <fmt:setLocale value="pt_BR" />
+                        <td style="text-align: center;">
+                            <fmt:formatNumber value="${row.LIMCALC}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+                        </td>
+
+
+                        <td style="text-align: center;">${row.PERC}</td>
+                        <td style="text-align: center;">${row.DIF_LIMITE}</td>
+                        <fmt:setLocale value="pt_BR" />
+                        <td style="text-align: center;">
+                            <fmt:formatNumber value="${row.DIFLIM}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+                        </td>
                     </tr>
                 </c:forEach> 
             </tbody>
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total de registros:</b><span id="recordCount">0</span></td>
-                    <td colspan="7"></td>
+                    <td colspan="5"></td>
+                    <td><b>Total</b></td>
+                    <td style="text-align: center;" id="totaldiflim"><b>0,00</b></td>
+
                 </tr>
             </tfoot>
         </table>
@@ -242,6 +273,26 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
 <script>
+
+function updateTotal() {
+    const rows = document.querySelectorAll('#myTable tbody tr');
+    let totaldiflim = 0;
+
+    rows.forEach(row => {
+        const diflimValue = row.cells[7]?.textContent?.replace(/[^\d,-]/g, '').replace(',', '.');
+        const diflim = parseFloat(diflimValue);
+        
+        if (isNaN(diflim)) {
+            console.error(`Valor inválido encontrado: "${diflimValue}" na linha`, row);
+        }
+
+        totaldiflim += isNaN(diflim) ? 0 : diflim;
+    });
+
+    document.getElementById('totaldiflim').innerHTML = '<b>' + totaldiflim.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>';
+}
+
+
 
     function updateRecordCount() {
         const rows = document.querySelectorAll('#myTable tbody tr');
@@ -259,6 +310,7 @@
             row.style.display = match ? '' : 'none';
         });
 
+        updateTotal();
         updateRecordCount();
     });
 
@@ -287,15 +339,25 @@
         XLSX.writeFile(wb, 'Detalh_Vencimento_Cadastro.xlsx');
     }
 
+    updateTotal();
     updateRecordCount();
-
+/*
     function abrir(grupo) {
             var params = { 
                 'A_CODPARC' : parseInt(grupo)
              };
-            var level = 'lvl_ut74b5';
+            var level = 'lvl_xcph0h';
             openLevel(level, params);
         }  
+
+*/
+
+
+function abrir(grupo) {
+    var params = { 'CLIENTE': parseInt(grupo)};
+    var level = 'br.com.sankhya.menu.adicional.AD_GESTCRED';
+    openApp(level, params);
+}
 
 </script>
 </body>
