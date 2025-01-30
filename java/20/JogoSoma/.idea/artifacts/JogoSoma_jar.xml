@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="JogoSoma:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/JogoSoma_jar</output-path>
+    <root id="archive" name="JogoSoma.jar">
+      <element id="module-output" name="JogoSoma" />
+    </root>
+  </artifact>
+</component>

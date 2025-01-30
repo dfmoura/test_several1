@@ -172,11 +172,23 @@
 
         .overlay-button:hover {
             background-color: green; 
-        }         
+        }   
+            .column-highlight {
+            color: orange; /* Define a cor da fonte como laranja */
+        }
+
+        .column-header-highlight {
+            font-weight: bold; /* Negrito para o cabeçalho */
+            color: orange; /* Cor laranja no cabeçalho também */
+        }              
     </style>
+
     <snk:load/>
 </head>
 <body>
+
+
+
 
 <snk:query var="cab">
     select
@@ -201,7 +213,8 @@
 <snk:query var="detalhe">
 	select 
 	CODEMP,NOMEFANTASIA,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD,AD_QTDVOLLT,
-	ESTOQUE,VENDA_PER_GIRO,DU,round(GIRO,2)GIRO,DU_GIRO,round(EST_MIN,2)EST_MIN
+	ESTOQUE,VENDA_PER_GIRO,ROUND(QTDPREV,2)QTDPREV,DU,round(GIRO,2)GIRO,ROUND(GIRO_PREV,2) GIRO_PREV,DU_GIRO,round(EST_MIN,2)EST_MIN,
+    ROUND(EST_MIN_PREV,2) EST_MIN_PREV
 
     from(
 
@@ -227,6 +240,64 @@
         AND CODTIPOPER IN (SELECT MAX(CODTIPOPER) CODTIPOPER FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
         ),0) AS VENDA_PER_GIRO,
 
+
+
+
+        NVL((
+            
+
+        SELECT SUM(QTDPREVA) QTDPREV1
+        FROM (
+        
+        SELECT CODEMP,CODPROD,DESCRPROD,MARCA,
+        DTNEG,
+        QTD,PARTICIPACAO_TOTAL,QTDPREV,
+        PARTICIPACAO_TOTAL*QTDPREV AS QTDPREVA
+        
+        
+        FROM(
+        
+        WITH MET AS (
+        SELECT DTREF,MARCA,SUM(QTDPREV) QTDPREV
+        FROM TGFMET
+        WHERE 
+        CODMETA = 4 AND DTREF BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+        GROUP BY
+        DTREF,MARCA
+        )
+        SELECT 
+        VGF.CODEMP,VGF.CODPROD,VGF.DESCRPROD,VGF.MARCA,
+        TO_DATE(TRUNC(VGF.DTNEG,'MM'),'DD/MM/YYYY') AS DTNEG,
+        SUM(VGF.QTD) AS QTD,
+        SUM(VGF.QTD) / SUM(SUM(VGF.QTD)) OVER (PARTITION BY TO_DATE(TRUNC(VGF.DTNEG,'MM'),'DD/MM/YYYY'),VGF.MARCA) AS PARTICIPACAO_TOTAL,
+        MET.QTDPREV
+        FROM 
+        VGF_VENDAS_SATIS VGF
+        LEFT JOIN MET ON TRUNC(VGF.DTNEG,'MM') = MET.DTREF AND VGF.MARCA = MET.MARCA
+        WHERE 
+        VGF.DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+        AND VGF.CODTIPOPER IN (SELECT MAX(CODTIPOPER) FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
+        
+        
+        GROUP BY 
+        VGF.CODEMP, VGF.CODPROD,VGF.DESCRPROD,VGF.MARCA, 
+        TO_DATE(TRUNC(VGF.DTNEG,'MM'),'DD/MM/YYYY'),MET.QTDPREV
+        )
+        )
+        WHERE CODEMP = A.CODEMP AND CODPROD = A.CODPROD
+         
+        
+        
+        
+        
+        ),0) AS QTDPREV,        
+
+
+
+
+
+
+
         
         NVL((
             SELECT SUM(QTD) QTD
@@ -235,7 +306,66 @@
             AND CODEMP = A.CODEMP
             AND CODPROD = A.CODPROD
             AND CODTIPOPER IN (SELECT MAX(CODTIPOPER) CODTIPOPER FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
-        ) / FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN),0) AS GIRO,             
+        ) / nullif(FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN),0),0) AS GIRO,      
+        
+        
+
+
+        NVL(
+            
+        (
+            
+        
+        SELECT SUM(QTDPREVA) QTDPREV1
+        FROM (
+        
+        SELECT CODEMP,CODPROD,DESCRPROD,MARCA,
+        DTNEG,
+        QTD,PARTICIPACAO_TOTAL,QTDPREV,
+        PARTICIPACAO_TOTAL*QTDPREV AS QTDPREVA
+        
+        
+        FROM(
+        
+        WITH MET AS (
+        SELECT DTREF,MARCA,SUM(QTDPREV) QTDPREV
+        FROM TGFMET
+        WHERE 
+        CODMETA = 4 AND DTREF BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+        GROUP BY
+        DTREF,MARCA
+        )
+        SELECT 
+        VGF.CODEMP,VGF.CODPROD,VGF.DESCRPROD,VGF.MARCA,
+        TO_DATE(TRUNC(VGF.DTNEG,'MM'),'DD/MM/YYYY') AS DTNEG,
+        SUM(VGF.QTD) AS QTD,
+        SUM(VGF.QTD) / SUM(SUM(VGF.QTD)) OVER (PARTITION BY TO_DATE(TRUNC(VGF.DTNEG,'MM'),'DD/MM/YYYY'),VGF.MARCA) AS PARTICIPACAO_TOTAL,
+        MET.QTDPREV
+        FROM 
+        VGF_VENDAS_SATIS VGF
+        LEFT JOIN MET ON TRUNC(VGF.DTNEG,'MM') = MET.DTREF AND VGF.MARCA = MET.MARCA
+        WHERE 
+        VGF.DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+        AND VGF.CODTIPOPER IN (SELECT MAX(CODTIPOPER) FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
+        
+        
+        GROUP BY 
+        VGF.CODEMP, VGF.CODPROD,VGF.DESCRPROD,VGF.MARCA, 
+        TO_DATE(TRUNC(VGF.DTNEG,'MM'),'DD/MM/YYYY'),MET.QTDPREV
+        )
+        )
+        WHERE CODEMP = A.CODEMP AND CODPROD = A.CODPROD) / nullif(FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN),0)
+        
+        
+        
+        
+        ,0
+
+
+        ) AS GIRO_PREV, 
+
+
+
 
 
         NVL(FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) *
@@ -247,9 +377,53 @@
             AND CODEMP = A.CODEMP
             AND CODPROD = A.CODPROD
             AND CODTIPOPER IN (SELECT MAX(CODTIPOPER) CODTIPOPER FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
-        ) / FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN)),0)
-            AS EST_MIN
+        ) / nullif(FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN),0)),0)
+            AS EST_MIN,
 
+
+            NVL((
+            FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) *
+            ((
+            SELECT SUM(QTDPREVA) QTDPREV1
+            FROM (
+            SELECT CODEMP,CODPROD,DESCRPROD,MARCA,
+            DTNEG,
+            QTD,PARTICIPACAO_TOTAL,QTDPREV,
+            PARTICIPACAO_TOTAL*QTDPREV AS QTDPREVA
+            FROM(          
+            WITH MET AS (
+            SELECT DTREF,MARCA,SUM(QTDPREV) QTDPREV
+            FROM TGFMET
+            WHERE 
+            CODMETA = 4 AND DTREF BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+            GROUP BY
+            DTREF,MARCA
+            )
+            SELECT 
+            VGF.CODEMP,VGF.CODPROD,VGF.DESCRPROD,VGF.MARCA,
+            TO_DATE(TRUNC(VGF.DTNEG,'MM'),'DD/MM/YYYY') AS DTNEG,
+            SUM(VGF.QTD) AS QTD,
+            SUM(VGF.QTD) / SUM(SUM(VGF.QTD)) OVER (PARTITION BY TO_DATE(TRUNC(VGF.DTNEG,'MM'),'DD/MM/YYYY'),VGF.MARCA) AS PARTICIPACAO_TOTAL,
+            MET.QTDPREV
+            FROM 
+            VGF_VENDAS_SATIS VGF
+            LEFT JOIN MET ON TRUNC(VGF.DTNEG,'MM') = MET.DTREF AND VGF.MARCA = MET.MARCA
+            WHERE 
+            VGF.DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+            AND VGF.CODTIPOPER IN (SELECT MAX(CODTIPOPER) FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
+            
+            
+            GROUP BY 
+            VGF.CODEMP, VGF.CODPROD,VGF.DESCRPROD,VGF.MARCA, 
+            TO_DATE(TRUNC(VGF.DTNEG,'MM'),'DD/MM/YYYY'),MET.QTDPREV
+            )
+            )
+            WHERE CODEMP = A.CODEMP AND CODPROD = A.CODPROD) / nullif(FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN),0)
+            )),0) EST_MIN_PREV
+
+
+
+            
 
 
 
@@ -334,8 +508,6 @@
 </snk:query>
 
 <div style="display: flex; gap: 10px;">
-    <button class="overlay-button" style="position: static;" onclick="abrir1()">Abrir Por Meta</button>
-    <button class="overlay-button" style="position: static;" onclick="abrir()">Abrir Por Marca</button>
     <button class="overlay-button" style="position: static;" onclick="exportTableToExcel('tabela-dados', 'dados')">Exportar *.xlsx</button>
   </div>
   
@@ -397,10 +569,13 @@
                     <th>Marca</th>
 
                     <th title="Venda Período de Giro">Venda Per. Giro</th>
+                    <th class="column-header-highlight" title="Qtd. Prevista">Qtd. Prev.</th>
                     <th title="Dias Período de Giro">Dias Per. Giro</th>
                     <th title="Giro Período">Giro Período</th>
+                    <th class="column-header-highlight" title="Giro Previsto">Giro Previsto</th>
                     <th title="Dias Período Estoque">Dias Per. Est.</th>
                     <th title="Estoque Mínimo">Est. Mín.</th>
+                    <th class="column-header-highlight" title="Estoque Mínimo Previsto">Est. Mín. Prev.</th>
                     <th  title="Ajuste para Estoque Mínimo">Ajuste</th>
                     <th title="Estoque Mínimo Ajustado">Est. Mín. Ajustado</th>
                     <th>Estoque Atual</th>
@@ -416,12 +591,14 @@
                         <td>${row.DESCRPROD}</td>
                         <td>${row.MARCA}</td>
 
-                        
                         <td>${row.VENDA_PER_GIRO}</td>
+                        <td class="column-highlight">${row.QTDPREV}</td>
                         <td>${row.DU_GIRO}</td>
                         <td class="${row.GIRO == 0 ? 'highlight-zero' : ''}">${row.GIRO}</td>
+                        <td class="column-highlight">${row.GIRO_PREV}</td>
                         <td>${row.DU}</td>
                         <td>${row.EST_MIN}</td>
+                        <td class="column-highlight">${row.EST_MIN_PREV}</td>
                         <td class="btn-group">
                             <button class="btn btn-decrease">-</button>
                             <span class="var-escolha" data-est-min="${row.EST_MIN}">0.00</span>
@@ -438,14 +615,16 @@
 </div>
 
 <script>
-    const incrementValue = 0.01;
+
+
+    const incrementValue = 0.1;
     let ajusteGeral = 0;
 
     function updateCalculationEstMinVarEscolha(span, estMin) {
         const value = parseFloat(span.textContent);
         const estMinComVarEscolha = estMin * (1 + value + ajusteGeral);
-        const estoqueAtual = parseFloat(span.closest('tr').querySelector('td:nth-child(13)').textContent);
-        const statusCell = span.closest('tr').querySelector('td:nth-child(14)');
+        const estoqueAtual = parseFloat(span.closest('tr').querySelector('td:nth-child(16)').textContent);
+        const statusCell = span.closest('tr').querySelector('td:nth-child(17)');
 
         // Atualiza a célula do estoque ajustado
         span.closest('td').nextElementSibling.textContent = estMinComVarEscolha.toFixed(2);
@@ -460,8 +639,8 @@
     function updateCalculationEstMinVarEscolha1(span, estMinComVar) {
         const value = parseFloat(span.textContent);
         const estMinComVarEscolha1 = estMinComVar * (1 + value + ajusteGeral);
-        const estoqueAtual = parseFloat(span.closest('tr').querySelector('td:nth-child(13)').textContent);
-        const statusCell = span.closest('tr').querySelector('td:nth-child(14)');
+        const estoqueAtual = parseFloat(span.closest('tr').querySelector('td:nth-child(16)').textContent);
+        const statusCell = span.closest('tr').querySelector('td:nth-child(17)');
 
         // Atualiza a célula do estoque ajustado
         span.closest('td').nextElementSibling.textContent = estMinComVarEscolha1.toFixed(2);
@@ -534,14 +713,6 @@
                 var level = 'lvl_adzfz6k';
                 openLevel(level, params);
             }  
-
-    function abrir1() {
-        var params = '';//{'A_CODPARC' : parseInt(grupo)};
-        var level = 'lvl_amumjf5';
-        openLevel(level, params);
-    }            
-
-                        
 
     function exportTableToExcel(tableID, filename = '') {
             const downloadLink = document.createElement('a');
