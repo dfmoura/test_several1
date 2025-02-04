@@ -5,66 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inserir Dados no Banco</title>
     <style>
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
 
-.container {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 300px;
-}
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
 
-h1 {
-    text-align: center;
-    margin-bottom: 20px;
-}
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-.form-group {
-    margin-bottom: 15px;
-}
+        .form-group {
+            margin-bottom: 15px;
+        }
 
-label {
-    display: block;
-    margin-bottom: 5px;
-}
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
 
-input {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
 
-button {
-    width: 100%;
-    padding: 10px;
-    background-color: #28a745;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
 
-button:hover {
-    background-color: #218838;
-}
+        button:hover {
+            background-color: #218838;
+        }
 
-#message {
-    text-align: center;
-    margin-top: 15px;
-    color: #28a745;
-}        
+        #message {
+            text-align: center;
+            margin-top: 15px;
+            color: #28a745;
+        }
     </style>
 </head>
 <body>
@@ -85,33 +85,34 @@ button:hover {
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-// Configuração do Supabase
-const supabaseUrl = 'https://db.jdmgcvhcaulyllydvcob.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkbWdjdmhjYXVseWxseWR2Y29iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzE1NzI5MiwiZXhwIjoyMDUyNzMzMjkyfQ.kDuyGHJEJ7O2h4TL3dNQ2O59VoQfnro6fxsjKAYpJug'; // Substitua pela sua chave pública do Supabase
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        // Configuração do Supabase
+        const supabaseUrl = 'https://db.jdmgcvhcaulyllydvcob.supabase.co';
+        const supabaseKey = ''; // Substitua pela sua chave pública do Supabase
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-document.getElementById('dataForm').addEventListener('submit', async (event) => {
-    event.preventDefault();
+        document.getElementById('dataForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
 
-    const id = document.getElementById('id').value;
-    const nome = document.getElementById('nome').value;
+            const id = document.getElementById('id').value;
+            const nome = document.getElementById('nome').value;
 
-    try {
-        const { data, error } = await supabase
-            .from('DATA_TEST')
-            .insert([{ ID: id, NOME: nome }]);
+            try {
+                const { data, error } = await supabase
+                    .from('DATA_TEST')
+                    .insert([{ ID: id, NOME: nome }]);
 
-        if (error) {
-            throw error;
-        }
+                if (error) {
+                    throw error;
+                }
 
-        document.getElementById('message').textContent = 'Dados inseridos com sucesso!';
-        document.getElementById('message').style.color = 'green';
-    } catch (error) {
-        document.getElementById('message').textContent = 'Erro ao inserir dados: ' + error.message;
-        document.getElementById('message').style.color = 'red';
-    }
-});        
+                document.getElementById('message').textContent = 'Dados inseridos com sucesso!';
+                document.getElementById('message').style.color = 'green';
+            } catch (error) {
+                console.error('Erro ao inserir dados:', error);
+                document.getElementById('message').textContent = 'Erro ao inserir dados: ' + error.message;
+                document.getElementById('message').style.color = 'red';
+            }
+        });
     </script>
 </body>
 </html>
