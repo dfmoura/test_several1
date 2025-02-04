@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="SINTETICO_CR_5" language="groovy" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.7715610000000048"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="DTINI_BAI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt.Baixa - Inicial]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DTFIN_BAI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt.Baixa - Final]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODCENCUSPAI" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="DTINI_NEG" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt.Neg. - Inicio]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DTFIN_NEG" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt.Neg. - Final]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_RECDESP" class="java.math.BigDecimal">
+		<property name="NOMECAMPO" value="AD_TESTE1.RECDESP"/>
+		<parameterDescription><![CDATA[Receita/Despesa]]></parameterDescription>
+	</parameter>
+	<parameter name="P_TIPVLR" class="java.math.BigDecimal">
+		<property name="NOMECAMPO" value="AD_TESTE1.TIPVLR"/>
+		<parameterDescription><![CDATA[Usar valor de BAIXA?]]></parameterDescription>
+	</parameter>
+	<parameter name="P_GRAU" class="java.math.BigDecimal">
+		<property name="NOMECAMPO" value="AD_TESTE1.GRAUCR"/>
+		<parameterDescription><![CDATA[Detalhar C.R até o grau]]></parameterDescription>
+	</parameter>
+	<parameter name="P_CODEMP" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TSIEMP"/>
+		<parameterDescription><![CDATA[Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_PARCEIRO" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFPAR"/>
+		<parameterDescription><![CDATA[Parceiro]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODNAT1" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFNAT"/>
+		<parameterDescription><![CDATA[Natureza >= que:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODNAT2" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFNAT"/>
+		<parameterDescription><![CDATA[Natureza < que:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODNAT_DIF" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFNAT"/>
+		<parameterDescription><![CDATA[Naturezas diferentes de:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODCR" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TSICUS"/>
+		<parameterDescription><![CDATA[C.R >= que:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODCR2" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TSICUS"/>
+		<parameterDescription><![CDATA[C.R < que:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODCR_DIF" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TSICUS"/>
+		<parameterDescription><![CDATA[C.R diferentes de:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_IGNORAR" class="java.lang.String">
+		<property name="NOMECAMPO" value="AD_CONFIMARCAO.TIPO"/>
+		<parameterDescription><![CDATA[Ignorar Nat. Dev.Venda/Adiantamento?]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+CUS1.GRAU || ' / ' || CUS1.CODCENCUS || ' - ' || CUS1.DESCRCENCUS AS CR
+,CUS1.CODCENCUS
+,CASE WHEN NVL($P{P_TIPVLR},0) = 0 THEN SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRDESDOB ELSE 0 END) ELSE SUM(CASE WHEN X.RECDESP = 1 THEN X.VLRBAIXA ELSE 0 END)  END AS VLRREC
+,CASE WHEN NVL($P{P_TIPVLR},0) = 0 THEN SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRDESDOB ELSE 0 END) ELSE SUM(CASE WHEN X.RECDESP = -1 THEN X.VLRBAIXA  END) END AS VLRDESP
+,CASE WHEN NVL($P{P_TIPVLR},0) = 0 THEN SUM(X.VLRDESDOB) ELSE SUM(X.VLRBAIXA) END AS VLRLIQ
+,SUM(X.VLRJURO) AS VLRJURO
+,SUM(X.VLRMULTA) AS VLRMULTA
+,SUM(X.VLRDESC) AS VLRDESC
+FROM (
+SELECT * FROM VGF_RESULTADO_SATIS
+) X
+INNER JOIN TSICUS CUS1 ON ((X.CODCENCUSPAI=CUS1.CODCENCUS AND X.GRAU = 6) OR (CUS1.CODCENCUS=X.CODCENCUS AND X.GRAU = 5))
+WHERE (DTNEG BETWEEN $P{DTINI_NEG} AND $P{DTFIN_NEG} OR $P{DTINI_NEG} IS NULL)
+AND (DHBAIXA BETWEEN $P{DTINI_BAI} AND $P{DTFIN_BAI} OR $P{DTINI_BAI} IS NULL)
+AND CUS1.CODCENCUSPAI = $P{P_CODCENCUSPAI}
+AND CUS1.GRAU <= NVL($P{P_GRAU},7)
+AND (X.CODEMP = $P{P_CODEMP} OR $P{P_CODEMP} IS NULL)
+AND (X.CODPARC = $P{P_PARCEIRO} OR $P{P_PARCEIRO} IS NULL)
+AND (X.CODNAT <> $P{P_CODNAT_DIF} OR $P{P_CODNAT_DIF} IS NULL)
+AND (X.CODCENCUS <> $P{P_CODCR_DIF} OR $P{P_CODCR_DIF} IS NULL)
+AND (X.CODNAT >= $P{P_CODNAT1} OR $P{P_CODNAT1} IS NULL)
+AND (X.CODNAT < $P{P_CODNAT2} OR $P{P_CODNAT2} IS NULL)
+AND (X.CODCENCUS >= $P{P_CODCR} OR $P{P_CODCR} IS NULL)
+AND (X.CODCENCUS < $P{P_CODCR2} OR $P{P_CODCR2} IS NULL)
+AND (X.RECDESP = $P{P_RECDESP} OR NVL($P{P_RECDESP},0) = 0)
+GROUP BY
+CUS1.CODCENCUS
+,CUS1.DESCRCENCUS
+,CUS1.CODCENCUSPAI
+,CUS1.GRAU
+,CUS1.AD_APELIDO
+ORDER BY CUS1.CODCENCUS]]>
+	</queryString>
+	<field name="CR" class="java.lang.String"/>
+	<field name="VLRREC" class="java.math.BigDecimal"/>
+	<field name="VLRDESP" class="java.math.BigDecimal"/>
+	<field name="VLRLIQ" class="java.math.BigDecimal"/>
+	<field name="VLRJURO" class="java.math.BigDecimal"/>
+	<field name="VLRMULTA" class="java.math.BigDecimal"/>
+	<field name="VLRDESC" class="java.math.BigDecimal"/>
+	<field name="CODCENCUS" class="java.lang.String"/>
+	<variable name="TotalQtdVend" class="java.math.BigDecimal" resetType="Group" resetGroup="CR_1" calculation="Sum">
+		<variableExpression><![CDATA[]]></variableExpression>
+	</variable>
+	<variable name="TotalVlrVend" class="java.math.BigDecimal" resetType="Group" resetGroup="CR_1" calculation="Sum">
+		<variableExpression><![CDATA[]]></variableExpression>
+	</variable>
+	<variable name="TotalQtdGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[]]></variableExpression>
+	</variable>
+	<variable name="TotalVlrGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[]]></variableExpression>
+	</variable>
+	<group name="CR_1">
+		<groupExpression><![CDATA[$F{CR}]]></groupExpression>
+		<groupHeader>
+			<band height="12">
+				<textField pattern=" #,##0.00" isBlankWhenNull="true">
+					<reportElement mode="Transparent" x="415" y="0" width="70" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="Arial" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRDESP}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="0" y="0" width="324" height="12" isPrintWhenDetailOverflows="true" forecolor="#000000"/>
+					<textElement verticalAlignment="Middle">
+						<font fontName="Arial" size="9" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{CR}]]></textFieldExpression>
+				</textField>
+				<textField pattern=" #,##0.00" isBlankWhenNull="true">
+					<reportElement mode="Transparent" x="324" y="0" width="91" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="Arial" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRREC}]]></textFieldExpression>
+				</textField>
+				<textField pattern=" #,##0.00" isBlankWhenNull="true">
+					<reportElement mode="Transparent" x="485" y="0" width="70" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="Arial" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRLIQ}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="2" splitType="Stretch">
+			<subreport isUsingCache="true">
+				<reportElement key="SINTETICO_CR_NAT" x="0" y="0" width="555" height="2"/>
+				<subreportParameter name="P_CODCENCUSPAI">
+					<subreportParameterExpression><![CDATA[$F{CODCENCUS}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "SINTETICO_CR_5.jasper"]]></subreportExpression>
+			</subreport>
+			<subreport isUsingCache="true">
+				<reportElement key="SINTETICO_CR_NAT2" x="0" y="0" width="555" height="2"/>
+				<subreportParameter name="P_CODCENCUSPAI">
+					<subreportParameterExpression><![CDATA[$F{CODCENCUS}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "SINTETICO_CR_NAT2.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band/>
+	</columnFooter>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>
