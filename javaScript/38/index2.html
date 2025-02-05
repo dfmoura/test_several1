@@ -76,12 +76,6 @@
         .incorrect {
             color: red;
         }
-        .score {
-            font-size: 20px;
-            font-weight: bold;
-            margin-top: 10px;
-            color: #333;
-        }
     </style>
 </head>
 <body>
@@ -92,11 +86,10 @@
         <div class="timer" id="timer">Tempo: 10s</div>
         <button onclick="checkAnswer()">Verificar</button>
         <div class="message" id="message"></div>
-        <div class="score" id="score">Pontuação: 0</div>
     </div>
 
     <script>
-        let num1, num2, correctAnswer, timeLeft, score = 0;
+        let num1, num2, correctAnswer, timeLeft;
         let timerInterval;
 
         function generateEquation() {
@@ -119,8 +112,6 @@
                 if (timeLeft === 0) {
                     clearInterval(timerInterval);
                     showMessage('Tempo esgotado! Tente novamente.', 'incorrect');
-                    score = 0;
-                    updateScore();
                     setTimeout(generateEquation, 2000);
                 }
             }, 1000);
@@ -129,14 +120,10 @@
         function checkAnswer() {
             let userAnswer = parseInt(document.getElementById('answer').value);
             if (userAnswer === correctAnswer) {
-                score++;
                 showMessage('Correto! Vamos para a próxima.', 'correct');
-                updateScore();
                 setTimeout(generateEquation, 2000);
             } else {
                 showMessage('Errado! Tente novamente.', 'incorrect');
-                score = 0;
-                updateScore();
             }
         }
 
@@ -144,10 +131,6 @@
             let messageElement = document.getElementById('message');
             messageElement.innerText = text;
             messageElement.className = `message ${type}`;
-        }
-
-        function updateScore() {
-            document.getElementById('score').innerText = `Pontuação: ${score}`;
         }
 
         generateEquation();
