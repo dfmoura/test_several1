@@ -15,6 +15,8 @@ Será realizada a criação de **7 novos campos** no dicionário de dados da **T
 
 Cada um desses campos será relacionado ao **plano de contas**, permitindo ao usuário selecionar uma conta contábil de sua preferência.
 
+![Esquema da Demanda](https://github.com/dfmoura/test_several1/blob/main/oracle/1/0082_Automatiza_atualiza_CRxContaContabil/demanda.png)
+
 ---
 
 ## 🎯 Objetivo
@@ -75,6 +77,4 @@ A lógica responsável pelo preenchimento automático do detalhe **'CR x Conta C
 A implementação será realizada conforme cronograma estabelecido pela equipe de desenvolvimento, garantindo testes para assegurar a integridade dos dados. Sugere-se validação junto aos usuários antes da liberação em produção.
 
 ---
-
-✉️ **Contato para dúvidas e ajustes:** _[Adicionar responsável pelo projeto]_
 
