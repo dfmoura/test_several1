@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Soma</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .equation {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        input {
+            width: 80px;
+            font-size: 20px;
+            text-align: center;
+            padding: 5px;
+            margin-bottom: 15px;
+            border: 2px solid #764ba2;
+            border-radius: 5px;
+        }
+        button {
+            background: #764ba2;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #5a3e91;
+        }
+        .timer {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Jogo da Soma</h1>
+        <div class="equation" id="equation"></div>
+        <input type="number" id="answer" placeholder="Sua resposta">
+        <div class="timer" id="timer">Tempo: 10s</div>
+        <button onclick="checkAnswer()">Verificar</button>
+    </div>
+
+    <script>
+        let num1, num2, correctAnswer, timeLeft;
+        let timerInterval;
+
+        function generateEquation() {
+            num1 = Math.floor(Math.random() * 50) + 1;
+            num2 = Math.floor(Math.random() * 50) + 1;
+            correctAnswer = num1 + num2;
+            document.getElementById('equation').innerText = `${num1} + ${num2} = ?`;
+            document.getElementById('answer').value = '';
+            startTimer();
+        }
+
+        function startTimer() {
+            timeLeft = 10;
+            document.getElementById('timer').innerText = `Tempo: ${timeLeft}s`;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').innerText = `Tempo: ${timeLeft}s`;
+                if (timeLeft === 0) {
+                    clearInterval(timerInterval);
+                    alert('Tempo esgotado! Tente novamente.');
+                    generateEquation();
+                }
+            }, 1000);
+        }
+
+        function checkAnswer() {
+            let userAnswer = parseInt(document.getElementById('answer').value);
+            if (userAnswer === correctAnswer) {
+                alert('Correto! Vamos para a próxima.');
+                generateEquation();
+            } else {
+                alert('Errado! Tente novamente.');
+            }
+        }
+
+        generateEquation();
+    </script>
+</body>
+</html>
