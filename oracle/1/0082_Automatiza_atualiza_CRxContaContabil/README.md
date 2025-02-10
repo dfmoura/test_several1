@@ -78,3 +78,13 @@ A implementação será realizada conforme cronograma estabelecido pela equipe d
 
 ---
 
+
+
+
+Raphael Carvalho
+5:39 PM
+Criar campo AD do tipo lista na tela de Centro de Resultado, contendo uma opção para cada grupo de C.R.
+Esse campo deverá ser atualizado nos C.Rs que serão impactados pelo agendamento que atualiza a aba CR X NATUREZA
+Raphael Carvalho
+5:45 PM
+Nome do Campo AD: "Grupo p/ conta contábil 'aba C.R x Conta Contábil'"
