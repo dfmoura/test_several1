@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financeiro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .slider-container {
+            width: 80%;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+            width: 80%;
+        }
+        .quadrant {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        canvas {
+            width: 100% !important;
+            height: 250px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="slider-container">
+        <label for="scale-slider">Selecione o período:</label>
+        <input type="range" id="scale-slider" min="1" max="30" step="1" value="7">
+        <span id="scale-value">7 dias</span>
+    </div>
+    
+    <div class="dashboard">
+        <div class="quadrant">
+            <h3>Previsão Receita</h3>
+            <canvas id="chartReceita"></canvas>
+        </div>
+        <div class="quadrant">
+            <h3>Previsão Despesa Efetiva</h3>
+            <canvas id="chartDespesa"></canvas>
+        </div>
+        <div class="quadrant">
+            <h3>Previsão Ordem de Compra</h3>
+            <canvas id="chartOrdemCompra"></canvas>
+        </div>
+        <div class="quadrant">
+            <h3>Fluxo de Caixa</h3>
+            <canvas id="chartFluxoCaixa"></canvas>
+        </div>
+    </div>
+    
+    <script>
+        const slider = document.getElementById('scale-slider');
+        const scaleValue = document.getElementById('scale-value');
+        
+        slider.addEventListener('input', () => {
+            scaleValue.textContent = `${slider.value} dias`;
+            updateCharts(slider.value);
+        });
+
+        function generateData(days) {
+            let labels = Array.from({ length: days }, (_, i) => `Dia ${i + 1}`);
+            let dataCurrent = labels.map(() => Math.floor(Math.random() * 1000) + 100);
+            let dataPrevious = labels.map(() => Math.floor(Math.random() * 1000) + 100);
+            return { labels, dataCurrent, dataPrevious };
+        }
+
+        function createChart(ctx, label, data) {
+            return new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: label,
+                            data: data.dataCurrent,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Mês Anterior',
+                            type: 'line',
+                            data: data.dataPrevious,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderWidth: 2,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        let receitaChart = createChart(document.getElementById('chartReceita').getContext('2d'), 'Receita', generateData(7));
+        let despesaChart = createChart(document.getElementById('chartDespesa').getContext('2d'), 'Despesa', generateData(7));
+        let ordemCompraChart = createChart(document.getElementById('chartOrdemCompra').getContext('2d'), 'Ordem de Compra', generateData(7));
+        let fluxoCaixaChart = createChart(document.getElementById('chartFluxoCaixa').getContext('2d'), 'Fluxo de Caixa', generateData(7));
+
+        function updateCharts(days) {
+            let newData = generateData(days);
+            
+            receitaChart.data.labels = newData.labels;
+            receitaChart.data.datasets[0].data = newData.dataCurrent;
+            receitaChart.data.datasets[1].data = newData.dataPrevious;
+            receitaChart.update();
+
+            newData = generateData(days);
+            despesaChart.data.labels = newData.labels;
+            despesaChart.data.datasets[0].data = newData.dataCurrent;
+            despesaChart.data.datasets[1].data = newData.dataPrevious;
+            despesaChart.update();
+
+            newData = generateData(days);
+            ordemCompraChart.data.labels = newData.labels;
+            ordemCompraChart.data.datasets[0].data = newData.dataCurrent;
+            ordemCompraChart.data.datasets[1].data = newData.dataPrevious;
+            ordemCompraChart.update();
+
+            newData = generateData(days);
+            fluxoCaixaChart.data.labels = newData.labels;
+            fluxoCaixaChart.data.datasets[0].data = newData.dataCurrent;
+            fluxoCaixaChart.data.datasets[1].data = newData.dataPrevious;
+            fluxoCaixaChart.update();
+        }
+    </script>
+</body>
+</html>
