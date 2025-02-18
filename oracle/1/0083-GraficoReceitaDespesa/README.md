@@ -72,3 +72,27 @@ O **slider** permitirá selecionar um período específico (dias do mês) para v
 ## 🚀 Conclusão
 Esta página proporcionará uma experiência **fluida e interativa**, permitindo a análise **rápida e eficiente** dos dados ao longo do mês, com um design **limpo, responsivo e escalável**. 🔥
 
+
+
+
+📌 Atividades Realizadas
+
+🕒 13/02/2025 10:30 - 12:40
+
+Foi realizada a adequação da estrutura do HTML para a implementação no JSP do Sankhya. O código foi atualizado para carregar todo o conjunto de dados via SELECT, garantindo que a filtragem de dias fosse realizada dinamicamente pelo slider, proporcionando maior eficiência na renderização dos gráficos.
+
+🕒 13/02/2025 13:45 - 20:10
+
+Ajustamos o SELECT do primeiro gráfico para exibir os dados de forma estruturada, posicionando os valores do mês atual em colunas e os do mês anterior em linhas. Isso possibilitou uma comparação clara e intuitiva entre os períodos, melhorando a análise de tendências e variações de receita e despesas ao longo do tempo.
+
+🕒 14/02/2025 08:30 - 12:25
+
+Ajustamos a query fluxo_caixa para alimentar o gráfico fluxoChart, seguindo a mesma estrutura utilizada no gráfico de despesa. As séries incluídas foram: receita (vlr_receita) e despesa (vlr_despesa) como colunas, e saldo_acumulado como linha. Além disso, foi adicionado um label ao lado do slider para exibir seu valor dinamicamente conforme o usuário o movimenta.
+
+🕒 14/02/2025 13:50 - 16:00
+
+Adaptamos a query prev_oc para o gráfico compraChart, semelhante ao ajuste feito no gráfico de despesa. As séries adicionadas foram: atual (vlr_prov_S_ATUAL) como coluna e anterior (vlr_prov_S_ANT) como linha. Também foi realizada a atualização na query prev_rec, garantindo que os dados de receita sejam exibidos corretamente e adicionando bordas arredondadas e centralização dos títulos dos gráficos para uma melhor estética.
+
+🕒 14/02/2025 17:30 - 20:30
+
+Foi otimizada a query prev_rec e atualizado o código JavaScript, permitindo que o gráfico de receita tenha duas séries agrupadas nas mesmas colunas e uma terceira série representada por uma linha. No select do fluxo de caixa, foi acrescentada uma coluna para calcular a soma acumulada (vlr_receita - vlr_despesa). Além disso, criamos a função FUNC_OBTER_DATE para armazenar parâmetros de data no HTML5, permitindo que os selects utilizem a query corretamente sem falhas de leitura. Também foram implementadas melhorias no where das queries para considerar o parâmetro ou, caso nulo, utilizar o SYSDATE. Por fim, o título dos gráficos foi atualizado para exibir o nome completo do mês e o ano (exemplo: JANEIRO - 2025) e foi criada uma versão otimizada dos selects para cada gráfico, garantindo melhor desempenho sem alterar os resultados exibidos.
