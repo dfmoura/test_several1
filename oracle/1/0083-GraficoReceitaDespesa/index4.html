@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Caixa</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .cards {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 30%;
+            text-align: center;
+        }
+        
+        .card h2 {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .card p {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .filtros {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .filtros select {
+            width: 18%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        table th {
+            background-color: #f8f8f8;
+        }
+        
+        @media (max-width: 768px) {
+            .cards {
+                flex-direction: column;
+            }
+        
+            .card {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        
+            .filtros {
+                flex-direction: column;
+            }
+        
+            .filtros select {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Análise de Caixa</h1>
+        </header>
+
+        <div class="cards">
+            <div class="card">
+                <h2>Entradas</h2>
+                <p id="entradas">R$ 0,00</p>
+            </div>
+            <div class="card">
+                <h2>Saídas</h2>
+                <p id="saidas">R$ 0,00</p>
+            </div>
+            <div class="card">
+                <h2>Saldo</h2>
+                <p id="saldo">R$ 0,00</p>
+            </div>
+        </div>
+
+        <div class="filtros">
+            <select id="filtroData">
+                <option value="">Data</option>
+                <option value="2023-10-01">01/10/2023</option>
+                <option value="2023-10-02">02/10/2023</option>
+            </select>
+            <select id="filtroTipo">
+                <option value="">Tipo</option>
+                <option value="Entrada">Entrada</option>
+                <option value="Saida">Saída</option>
+            </select>
+            <select id="filtroNatureza">
+                <option value="">Natureza</option>
+                <option value="Venda">Venda</option>
+                <option value="Despesa">Despesa</option>
+            </select>
+            <select id="filtroEmpresa">
+                <option value="">Empresa</option>
+                <option value="Empresa A">Empresa A</option>
+                <option value="Empresa B">Empresa B</option>
+            </select>
+        </div>
+
+        <table id="tabela">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Valor</th>
+                    <th>Empresa</th>
+                    <th>Natureza</th>
+                    <th>Observação</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dados serão preenchidos via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dados = [
+        { data: "2023-10-01", tipo: "Entrada", valor: 1000, empresa: "Empresa A", natureza: "Venda", observacao: "Venda de produtos" },
+        { data: "2023-10-02", tipo: "Saida", valor: 500, empresa: "Empresa B", natureza: "Despesa", observacao: "Pagamento de despesas" },
+        { data: "2023-10-03", tipo: "Entrada", valor: 1500, empresa: "Empresa A", natureza: "Venda", observacao: "Venda de serviços" }
+    ];
+
+    const tabela = document.querySelector("#tabela tbody");
+    const filtroData = document.getElementById("filtroData");
+    const filtroTipo = document.getElementById("filtroTipo");
+    const filtroNatureza = document.getElementById("filtroNatureza");
+    const filtroEmpresa = document.getElementById("filtroEmpresa");
+
+    function atualizarTabela() {
+        const dataFiltro = filtroData.value;
+        const tipoFiltro = filtroTipo.value;
+        const naturezaFiltro = filtroNatureza.value;
+        const empresaFiltro = filtroEmpresa.value;
+
+        const dadosFiltrados = dados.filter(item => {
+            return (!dataFiltro || item.data === dataFiltro) &&
+                   (!tipoFiltro || item.tipo === tipoFiltro) &&
+                   (!naturezaFiltro || item.natureza === naturezaFiltro) &&
+                   (!empresaFiltro || item.empresa === empresaFiltro);
+        });
+
+        tabela.innerHTML = "";
+        dadosFiltrados.forEach(item => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${item.data}</td>
+                <td>${item.tipo}</td>
+                <td>R$ ${item.valor.toFixed(2)}</td>
+                <td>${item.empresa}</td>
+                <td>${item.natureza}</td>
+                <td>${item.observacao}</td>
+            `;
+            tabela.appendChild(row);
+        });
+
+        atualizarCards(dadosFiltrados);
+    }
+
+    function atualizarCards(dados) {
+        const entradas = dados.filter(item => item.tipo === "Entrada").reduce((sum, item) => sum + item.valor, 0);
+        const saidas = dados.filter(item => item.tipo === "Saida").reduce((sum, item) => sum + item.valor, 0);
+        const saldo = entradas - saidas;
+
+        document.getElementById("entradas").textContent = `R$ ${entradas.toFixed(2)}`;
+        document.getElementById("saidas").textContent = `R$ ${saidas.toFixed(2)}`;
+        document.getElementById("saldo").textContent = `R$ ${saldo.toFixed(2)}`;
+    }
+
+    filtroData.addEventListener("change", atualizarTabela);
+    filtroTipo.addEventListener("change", atualizarTabela);
+    filtroNatureza.addEventListener("change", atualizarTabela);
+    filtroEmpresa.addEventListener("change", atualizarTabela);
+
+    atualizarTabela();
+});        
+    </script>
+</body>
+</html>

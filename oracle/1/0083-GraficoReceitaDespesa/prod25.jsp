@@ -118,16 +118,14 @@
               SELECT 
                   NVL(dhbaixa, dtvenc) AS data_movimento,
                   PROVISAO,
-                  NVL(vlrbaixa, vlrdesdob) AS valor
+                  CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor,
               FROM tgffin
               WHERE 
                   recdesp = 1
                   AND (
-                      (dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) AND :P_TIT_ABERTOS = 'N')
-                      OR
-                      (:P_TIT_ABERTOS = 'S' AND dtvenc >= TRUNC(SYSDATE))
+                    ((dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) OR dtvenc >= TRUNC(SYSDATE)) AND :P_TIT_ABERTOS = 'N')
+                    OR (:P_TIT_ABERTOS = 'S' )
                   )
-                  AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))
           )
           SELECT 
               TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,
@@ -166,16 +164,14 @@
           SELECT 
               NVL(dhbaixa, dtvenc) AS data_movimento,
               PROVISAO,
-              NVL(vlrbaixa, vlrdesdob) AS valor
+              CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor,
           FROM tgffin
           WHERE 
               recdesp = -1
               AND (
-                  (dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) AND :P_TIT_ABERTOS = 'N')
-                  OR
-                  (:P_TIT_ABERTOS = 'S' AND dtvenc >= TRUNC(SYSDATE))
+                ((dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) OR dtvenc >= TRUNC(SYSDATE)) AND :P_TIT_ABERTOS = 'N')
+                OR (:P_TIT_ABERTOS = 'S' )
               )
-              AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))
       )
       SELECT 
           TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,
@@ -215,16 +211,14 @@
           SELECT 
               NVL(dhbaixa, dtvenc) AS data_movimento,
               PROVISAO,
-              NVL(vlrbaixa, vlrdesdob) AS valor
+              CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor,
           FROM tgffin
           WHERE 
               recdesp = -1
               AND (
-                  (dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) AND :P_TIT_ABERTOS = 'N')
-                  OR
-                  (:P_TIT_ABERTOS = 'S' AND dtvenc >= TRUNC(SYSDATE))
+                ((dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) OR dtvenc >= TRUNC(SYSDATE)) AND :P_TIT_ABERTOS = 'N')
+                OR (:P_TIT_ABERTOS = 'S' )
               )
-              AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))
       )
       SELECT 
           TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,
@@ -283,15 +277,13 @@
         NVL(dhbaixa, dtvenc) AS data_movimento,
         PROVISAO,
         RECDESP,
-        NVL(vlrbaixa, vlrdesdob) AS valor
+        CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor,
         FROM tgffin
         WHERE 
         (
-        (dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) AND :P_TIT_ABERTOS = 'N')
-        OR
-        (:P_TIT_ABERTOS = 'S' AND dtvenc >= TRUNC(SYSDATE))
+          ((dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) OR dtvenc >= TRUNC(SYSDATE)) AND :P_TIT_ABERTOS = 'N')
+          OR (:P_TIT_ABERTOS = 'S' )
         )
-        /*AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))*/
         )
         SELECT 
         TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,

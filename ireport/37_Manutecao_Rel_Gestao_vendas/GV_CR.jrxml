@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="GV_CR" language="groovy" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.5026296018031566"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DTFIM" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<parameter name="EMPRESA" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="NOMETABELA" value="TSIEMP"/>
+		<parameterDescription><![CDATA[Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODPARC" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFPAR"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Parceiro:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="TGFVEN"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Vendedor:]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="CODGRUPOPROD" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="MARCA" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="NOMETABELA" value="AD_VGFMARCA"/>
+		<parameterDescription><![CDATA[Marca]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="BONIFICACOES" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Analisar Bonificações?]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="APELIDO" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Apresenta o apelido do CR?]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CR" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="GRUPOSATIS" class="java.math.BigDecimal">
+		<property name="NOMETABELA" value="AD_GRUPOPRODSATIS"/>
+		<parameterDescription><![CDATA[Grupo Prod. Satis]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+VGF1.DESCRCENCUS || CASE WHEN $P{APELIDO}=1 THEN  CASE WHEN VGF1.AD_APELIDO IS NOT NULL THEN ' | Apelido: ' ||VGF1.AD_APELIDO ELSE '' END ELSE '' END AS DESCRCENCUS,
+SUM(VGF1.QTD) AS QTD,
+SUM(VGF1.VLR) AS VLR,
+CASE WHEN $P{BONIFICACOES}=1 THEN 'S' ELSE 'N' END AS BONIF
+FROM VGF_VENDAS_SATIS VGF1
+LEFT JOIN AD_ITENSGRUPOSATIS GRUS ON (GRUS.CODPROD=VGF1.CODPROD AND $P{GRUPOSATIS} IS NOT NULL)
+WHERE
+    TRUNC(VGF1.DTMOV) >= $P{DTINI}
+AND TRUNC(VGF1.DTMOV) <= $P{DTFIM}
+AND (VGF1.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+AND (VGF1.CODVEND = $P{P_CODVEND} OR $P{P_CODVEND} IS NULL)
+AND ((VGF1.ATUALFIN<>0 AND VGF1.TIPATUALFIN='I' AND $P{BONIFICACOES} = 0) OR (VGF1.CODTIPOPER IN (1112,1113)  AND $P{BONIFICACOES} = 0) OR ($P{BONIFICACOES} = 1 AND VGF1.BONIFICACAO='S'))
+AND (VGF1.CODEMP=$P{EMPRESA} OR $P{EMPRESA} IS NULL)
+AND (VGF1.MARCA = (SELECT MARCA FROM TGFPRO WHERE CODPROD=$P{MARCA}) OR $P{MARCA} IS NULL)
+AND (VGF1.CODGRUPOPROD = $P{CODGRUPOPROD} OR $P{CODGRUPOPROD} IS NULL)
+AND (VGF1.CODCENCUS = $P{P_CR} OR $P{P_CR} IS NULL)
+AND (GRUS.CODGRUPO = $P{GRUPOSATIS} OR $P{GRUPOSATIS} IS NULL)
+AND (
+    VGF1.CODVEND = (SELECT CODVEND FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO) 
+    OR VGF1.CODVEND IN (
+        SELECT VEN.CODVEND 
+        FROM TGFVEN VEN, TSIUSU USU 
+        WHERE USU.CODVEND = VEN.CODGER 
+        AND USU.CODUSU = STP_GET_CODUSULOGADO
+    )
+    OR VGF1.CODVEND IN (
+        SELECT VEN.CODVEND 
+        FROM TGFVEN VEN, TSIUSU USU 
+        WHERE USU.CODVEND = VEN.AD_COORDENADOR 
+        AND USU.CODUSU = STP_GET_CODUSULOGADO
+    )
+    OR (
+        SELECT AD_GESTOR_META 
+        FROM TSIUSU 
+        WHERE CODUSU = STP_GET_CODUSULOGADO
+    ) = 'S'
+)
+GROUP BY VGF1.DESCRCENCUS, VGF1.AD_APELIDO, VGF1.CODCENCUS
+ORDER BY VGF1.CODCENCUS]]>
+	</queryString>
+	<field name="QTD" class="java.math.BigDecimal"/>
+	<field name="VLR" class="java.math.BigDecimal"/>
+	<field name="DESCRCENCUS" class="java.lang.String"/>
+	<field name="BONIF" class="java.lang.String"/>
+	<variable name="TotalQtdGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{QTD}]]></variableExpression>
+	</variable>
+	<variable name="TotalVlrGeral" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLR}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="14" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="0" width="555" height="14" forecolor="#00CCAA" backcolor="#00CCAA"/>
+			</rectangle>
+			<staticText>
+				<reportElement mode="Transparent" x="204" y="0" width="73" height="12" forecolor="#FFFFFF" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total (R$)]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="277" y="-2" width="278" height="14" forecolor="#FFFFFF" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Ranking"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="0" width="128" height="14" forecolor="#FFFFFF" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Centros de Resultado"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="140" y="0" width="63" height="12" forecolor="#FFFFFF" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Volume]]></text>
+			</staticText>
+		</band>
+	</title>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="16" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="0" y="0" width="141" height="16" isPrintWhenDetailOverflows="true"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRCENCUS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="141" y="0" width="63" height="16" forecolor="#000000"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{QTD}]]></textFieldExpression>
+			</textField>
+			<textField pattern="¤ #,##0.00" isBlankWhenNull="true">
+				<reportElement x="204" y="0" width="73" height="16" forecolor="#000000"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLR}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band/>
+	</columnFooter>
+	<summary>
+		<band height="13">
+			<textField pattern="¤ #,##0.00;-#,##0.00" isBlankWhenNull="false">
+				<reportElement x="204" y="0" width="83" height="13"/>
+				<box>
+					<topPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TotalVlrGeral}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00;-#,##0.00" isBlankWhenNull="false">
+				<reportElement x="131" y="0" width="73" height="13"/>
+				<box>
+					<topPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TotalQtdGeral}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>
