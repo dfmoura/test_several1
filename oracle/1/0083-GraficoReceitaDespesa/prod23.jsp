@@ -99,206 +99,208 @@
 
   <snk:query var="prev_rec">
 
-      SELECT
-      DIA,
-      SUM(CASE WHEN A = 'ATUAL' THEN vlr_PROV_S END) vlr_prov_S_ATUAL,
-      SUM(CASE WHEN A = 'ATUAL' THEN vlr_PROV_N END) vlr_prov_N_ATUAL,
-      SUM(CASE WHEN A = 'ANTERIOR' THEN vlr_PROV_N END) vlr_prov_N_ANT
-      
-      FROM(
-      select
-      'ATUAL' A,
-      TO_CHAR(NVL(dhbaixa,dtvenc), 'dd') Dia,
-      sum(CASE WHEN PROVISAO = 'S' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_S,
-      sum(CASE WHEN PROVISAO = 'N' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_N
-      from tgffin
-      where recdesp = 1
-            and (
-            NVL(DHBAIXA,dtvenc) BETWEEN 
-            TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM')
-            AND 
-            LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'))
-            )
-      AND ((dhbaixa is not null and dtvenc < trunc(sysdate) and :P_TIT_ABERTOS =  'N')
-      or
-      ( :P_TIT_ABERTOS =  'S'  and dtvenc >= trunc(sysdate)))
-      GROUP BY
-      TO_CHAR(NVL(dhbaixa,dtvenc), 'dd')
-      
-      UNION ALL
-      
-      select
-      'ANTERIOR' A,
-      TO_CHAR(NVL(dhbaixa,dtvenc), 'dd') Dia,
-      sum(CASE WHEN PROVISAO = 'S' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_S,
-      sum(CASE WHEN PROVISAO = 'N' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_N
-      from tgffin
-      where recdesp = 1
-            and (DHBAIXA BETWEEN 
-            TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM')
-            AND 
-            LAST_DAY(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1))
-            )
+
+            WITH FIN AS (
+              SELECT 
+                  NVL(dhbaixa, dtvenc) AS data_movimento,
+                  PROVISAO,
+                  NVL(vlrbaixa, vlrdesdob) AS valor
+              FROM tgffin
+              WHERE 
+                  recdesp = 1
+                  AND (
+                      (dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) AND :P_TIT_ABERTOS = 'N')
+                      OR
+                      (:P_TIT_ABERTOS = 'S' AND dtvenc >= TRUNC(SYSDATE))
+                  )
+                  AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))
+          )
+          SELECT 
+              TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,
+              NVL(SUM(CASE WHEN FIN.PROVISAO = 'S' AND DAT.A = 'ATUAL' THEN FIN.valor END),0) AS vlr_prov_S_ATUAL,
+              NVL(SUM(CASE WHEN FIN.PROVISAO = 'N' AND DAT.A = 'ATUAL' THEN FIN.valor END),0) AS vlr_prov_N_ATUAL,
+              NVL(SUM(CASE WHEN FIN.PROVISAO = 'S' AND DAT.A = 'ANTERIOR' THEN FIN.valor END),0) AS vlr_prov_S_ANT,
+              NVL(SUM(CASE WHEN FIN.PROVISAO = 'N' AND DAT.A = 'ANTERIOR' THEN FIN.valor END),0) AS vlr_prov_N_ANT
+          FROM (
+              SELECT 
+                  'ANTERIOR' A, 
+                  TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM') + LEVEL - 1 AS data_do_mes
+              FROM dual
+              CONNECT BY LEVEL <= LAST_DAY(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1)) 
+                                  - TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM') + 1
+              UNION ALL
+              SELECT 
+                  'ATUAL' A, 
+                  TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + LEVEL - 1 AS data_do_mes
+              FROM dual
+              CONNECT BY LEVEL <= LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY')) 
+                                  - TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + 1
+          ) DAT
+          LEFT JOIN FIN ON FIN.data_movimento = DAT.data_do_mes
           
-      AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))
-      GROUP BY
-      TO_CHAR(NVL(dhbaixa,dtvenc), 'dd')
-      )
-      GROUP BY DIA
-      ORDER BY 1  
+          GROUP BY TO_CHAR(DAT.DATA_DO_MES, 'dd')
+          ORDER BY TO_NUMBER(TO_CHAR(DAT.DATA_DO_MES, 'dd'))      
+
 
   </snk:query>
 
     <snk:query var="prev_desp">
 
-        SELECT
+          
 
-        DIA,
-        
-        SUM(CASE WHEN A = 'ATUAL' THEN vlr_PROV_N END) vlr_prov_N_ATUAL,
-        SUM(CASE WHEN A = 'ANTERIOR' THEN vlr_PROV_N END) vlr_prov_N_ANT
-        
-        FROM(
-        select
-        'ATUAL' A,
-        TO_CHAR(NVL(dhbaixa,dtvenc), 'dd') Dia,
-        sum(CASE WHEN PROVISAO = 'S' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_S,
-        sum(CASE WHEN PROVISAO = 'N' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_N
-        from tgffin
-        where recdesp = -1
-              and (
-              NVL(DHBAIXA,dtvenc) BETWEEN 
-              TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM')
-              AND 
-              LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'))
+        WITH FIN AS (
+          SELECT 
+              NVL(dhbaixa, dtvenc) AS data_movimento,
+              PROVISAO,
+              NVL(vlrbaixa, vlrdesdob) AS valor
+          FROM tgffin
+          WHERE 
+              recdesp = -1
+              AND (
+                  (dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) AND :P_TIT_ABERTOS = 'N')
+                  OR
+                  (:P_TIT_ABERTOS = 'S' AND dtvenc >= TRUNC(SYSDATE))
               )
-        AND ((dhbaixa is not null and dtvenc < trunc(sysdate) and :P_TIT_ABERTOS =  'N')
-        or
-        ( :P_TIT_ABERTOS =  'S'  and dtvenc >= trunc(sysdate)))
-        GROUP BY
-        TO_CHAR(NVL(dhbaixa,dtvenc), 'dd')
-        
-        UNION ALL
-        
-        select
-        'ANTERIOR' A,
-        TO_CHAR(NVL(dhbaixa,dtvenc), 'dd') Dia,
-        sum(CASE WHEN PROVISAO = 'S' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_S,
-        sum(CASE WHEN PROVISAO = 'N' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_N
-        from tgffin
-        where recdesp = -1
-              and (DHBAIXA BETWEEN 
-              TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM')
-              AND 
-              LAST_DAY(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1))
-              )
-            
-        AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))
-        GROUP BY
-        TO_CHAR(NVL(dhbaixa,dtvenc), 'dd')
-        )
-        GROUP BY DIA
-        ORDER BY 1
+              AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))
+      )
+      SELECT 
+          TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,
+          NVL(SUM(CASE WHEN FIN.PROVISAO = 'S' AND DAT.A = 'ATUAL' THEN FIN.valor END),0) AS vlr_prov_S_ATUAL,
+          NVL(SUM(CASE WHEN FIN.PROVISAO = 'N' AND DAT.A = 'ATUAL' THEN FIN.valor END),0) AS vlr_prov_N_ATUAL,
+          NVL(SUM(CASE WHEN FIN.PROVISAO = 'S' AND DAT.A = 'ANTERIOR' THEN FIN.valor END),0) AS vlr_prov_S_ANT,
+          NVL(SUM(CASE WHEN FIN.PROVISAO = 'N' AND DAT.A = 'ANTERIOR' THEN FIN.valor END),0) AS vlr_prov_N_ANT
+      FROM (
+          SELECT 
+              'ANTERIOR' A, 
+              TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM') + LEVEL - 1 AS data_do_mes
+          FROM dual
+          CONNECT BY LEVEL <= LAST_DAY(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1)) 
+                              - TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM') + 1
+          UNION ALL
+          SELECT 
+              'ATUAL' A, 
+              TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + LEVEL - 1 AS data_do_mes
+          FROM dual
+          CONNECT BY LEVEL <= LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY')) 
+                              - TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + 1
+      ) DAT
+      LEFT JOIN FIN ON FIN.data_movimento = DAT.data_do_mes
+      
+      GROUP BY TO_CHAR(DAT.DATA_DO_MES, 'dd')
+      ORDER BY TO_NUMBER(TO_CHAR(DAT.DATA_DO_MES, 'dd'))     
+
+
 
 
     </snk:query>
 
     <snk:query var="prev_oc">
 
-        SELECT
+          
+        WITH FIN AS (
+          SELECT 
+              NVL(dhbaixa, dtvenc) AS data_movimento,
+              PROVISAO,
+              NVL(vlrbaixa, vlrdesdob) AS valor
+          FROM tgffin
+          WHERE 
+              recdesp = -1
+              AND (
+                  (dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) AND :P_TIT_ABERTOS = 'N')
+                  OR
+                  (:P_TIT_ABERTOS = 'S' AND dtvenc >= TRUNC(SYSDATE))
+              )
+              AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))
+      )
+      SELECT 
+          TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,
+          NVL(SUM(CASE WHEN FIN.PROVISAO = 'S' AND DAT.A = 'ATUAL' THEN FIN.valor END),0) AS vlr_prov_S_ATUAL,
+          NVL(SUM(CASE WHEN FIN.PROVISAO = 'N' AND DAT.A = 'ATUAL' THEN FIN.valor END),0) AS vlr_prov_N_ATUAL,
+          NVL(SUM(CASE WHEN FIN.PROVISAO = 'S' AND DAT.A = 'ANTERIOR' THEN FIN.valor END),0) AS vlr_prov_S_ANT,
+          NVL(SUM(CASE WHEN FIN.PROVISAO = 'N' AND DAT.A = 'ANTERIOR' THEN FIN.valor END),0) AS vlr_prov_N_ANT
+      FROM (
+          SELECT 
+              'ANTERIOR' A, 
+              TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM') + LEVEL - 1 AS data_do_mes
+          FROM dual
+          CONNECT BY LEVEL <= LAST_DAY(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1)) 
+                              - TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM') + 1
+          UNION ALL
+          SELECT 
+              'ATUAL' A, 
+              TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + LEVEL - 1 AS data_do_mes
+          FROM dual
+          CONNECT BY LEVEL <= LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY')) 
+                              - TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + 1
+      ) DAT
+      LEFT JOIN FIN ON FIN.data_movimento = DAT.data_do_mes
+      
+      GROUP BY TO_CHAR(DAT.DATA_DO_MES, 'dd')
+      ORDER BY TO_NUMBER(TO_CHAR(DAT.DATA_DO_MES, 'dd'))     
 
-        DIA,
-        
-        SUM(CASE WHEN A = 'ATUAL' THEN vlr_PROV_S END) vlr_prov_S_ATUAL,
-        SUM(CASE WHEN A = 'ANTERIOR' THEN vlr_PROV_S END) vlr_prov_S_ANT
-        
-        FROM(
-        select
-        'ATUAL' A,
-        TO_CHAR(NVL(dhbaixa,dtvenc), 'dd') Dia,
-        sum(CASE WHEN PROVISAO = 'S' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_S,
-        sum(CASE WHEN PROVISAO = 'N' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_N
-        from tgffin
-        where recdesp = -1
-              and (
-              NVL(DHBAIXA,dtvenc) BETWEEN 
-              TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM')
-              AND 
-              LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'))
-              )
-        AND ((dhbaixa is not null and dtvenc < trunc(sysdate) and :P_TIT_ABERTOS =  'N')
-        or
-        ( :P_TIT_ABERTOS =  'S'  and dtvenc >= trunc(sysdate)))
-        GROUP BY
-        TO_CHAR(NVL(dhbaixa,dtvenc), 'dd')
-        
-        UNION ALL
-        
-        select
-        'ANTERIOR' A,
-        TO_CHAR(NVL(dhbaixa,dtvenc), 'dd') Dia,
-        sum(CASE WHEN PROVISAO = 'S' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_S,
-        sum(CASE WHEN PROVISAO = 'N' THEN NVL(vlrbaixa,vlrdesdob)END)vlr_PROV_N
-        from tgffin
-        where recdesp = -1
-              and (DHBAIXA BETWEEN 
-              TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM')
-              AND 
-              LAST_DAY(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1))
-              )
-            
-        AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))
-        GROUP BY
-        TO_CHAR(NVL(dhbaixa,dtvenc), 'dd')
-        )
-        GROUP BY DIA
-        ORDER BY 1
+
+
     
     </snk:query>
 
     <snk:query var="fluxo_caixa">
 
-          SELECT
-          dia,
-          VLR_RECEITA,
-          vlr_despesa,
-          saldo_acumulado,
-          (vlr_receita / NULLIF(vlr_despesa, 0))*100 AS perc
-          FROM(
+            SELECT
+            dia,
+            VLR_RECEITA,
+            vlr_despesa,
+            saldo_acumulado,
+            NVL((vlr_receita / NULLIF(vlr_despesa, 0))*100,0) AS perc
+            FROM(
 
-          SELECT
-          dia,
-          SUM(vlr_receita) AS vlr_receita,
-          SUM(vlr_despesa) AS vlr_despesa,
-          SUM(SUM(vlr_receita) - SUM(vlr_despesa)) 
-          OVER (ORDER BY TO_NUMBER(dia) ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
-          AS saldo_acumulado
-          
-          FROM(
-          select
+            SELECT
+            dia,
+            SUM(vlr_receita) AS vlr_receita,
+            SUM(vlr_despesa) AS vlr_despesa,
+            SUM(SUM(vlr_receita) - SUM(vlr_despesa)) 
+            OVER (ORDER BY TO_NUMBER(dia) ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+            AS saldo_acumulado
+            
+            FROM(
 
-          TO_CHAR(NVL(dhbaixa,dtvenc), 'dd') Dia,
-          SUM(CASE WHEN recdesp = 1 THEN NVL(vlrbaixa, vlrdesdob) ELSE 0 END) AS vlr_receita,
-          SUM(CASE WHEN recdesp = -1 THEN NVL(vlrbaixa, vlrdesdob) ELSE 0 END) AS vlr_despesa
 
-          from tgffin
-          where 
-          (
-          NVL(DHBAIXA,dtvenc) BETWEEN 
-          TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM')
-          AND 
-          LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'))
-          )
-          AND ((dhbaixa is not null and dtvenc < trunc(sysdate) and :P_TIT_ABERTOS =  'N')
-          or
-          ( :P_TIT_ABERTOS =  'S'  and dtvenc >= trunc(sysdate)))
-          GROUP BY
-          TO_CHAR(NVL(dhbaixa,dtvenc), 'dd')
+        WITH FIN AS (
+        SELECT 
+        NVL(dhbaixa, dtvenc) AS data_movimento,
+        PROVISAO,
+        RECDESP,
+        NVL(vlrbaixa, vlrdesdob) AS valor
+        FROM tgffin
+        WHERE 
+        (
+        (dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) AND :P_TIT_ABERTOS = 'N')
+        OR
+        (:P_TIT_ABERTOS = 'S' AND dtvenc >= TRUNC(SYSDATE))
+        )
+        /*AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))*/
+        )
+        SELECT 
+        TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,
+        NVL(SUM(CASE WHEN FIN.RECDESP = 1 THEN FIN.valor END),0) AS vlr_receita,
+        NVL(SUM(CASE WHEN FIN.RECDESP = -1 THEN FIN.valor END),0) AS vlr_despesa
+        FROM (
+        SELECT 
+        'ATUAL' A, 
+        TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + LEVEL - 1 AS data_do_mes
+        FROM dual
+        CONNECT BY LEVEL <= LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY')) 
+        - TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + 1
+        ) DAT
+        LEFT JOIN FIN ON FIN.data_movimento = DAT.data_do_mes
 
-          )
-          GROUP BY DIA
-          )
-          ORDER BY 1    
+        GROUP BY TO_CHAR(DAT.DATA_DO_MES, 'dd')
+        ORDER BY TO_NUMBER(TO_CHAR(DAT.DATA_DO_MES, 'dd'))    
+
+        )
+        GROUP BY DIA
+        )
+        ORDER BY 1  
+
 
     </snk:query>
     
@@ -590,12 +592,12 @@
                     provisao = 1; // Dataset "ATUAL (Provisão N)"
                     movimento = 21;
                 } else if (datasetIndex === 1) {
-                    provisao = 2; // Dataset "ANTERIOR (Provisão N)"
+                    provisao = 1; // Dataset "ANTERIOR (Provisão N)"
                     movimento = 22;
                 }
 
                 // Chama a função com os parâmetros
-                //abrir_det(dia, mes, ano, provisao,recdesp,movimento);
+                abrir_det(dia, mes, ano, provisao,recdesp,movimento);
             }
         }
       }
@@ -648,7 +650,7 @@
                 let recdesp = -1;
                 let movimento = '';
                 if (datasetIndex === 0) {
-                    provisao = 1; // Dataset "ATUAL (Provisão S)"
+                    provisao = 2; // Dataset "ATUAL (Provisão S)"
                     movimento = 21;
                 } else if (datasetIndex === 1) {
                     provisao = 2; // Dataset "ANTERIOR (Provisão S)"
@@ -656,7 +658,7 @@
                 }
 
                 // Chama a função com os parâmetros
-                //abrir_det(dia, mes, ano, provisao,recdesp,movimento);
+                abrir_det(dia, mes, ano, provisao,recdesp,movimento);
             }
         }
       }
@@ -725,7 +727,7 @@
                 }
 
                 // Chama a função com os parâmetros
-                //abrir_det(dia, mes, ano, provisao,recdesp,movimento);
+                abrir_det1(dia, mes, ano, provisao,recdesp,movimento);
             }
         }
       }
@@ -762,6 +764,20 @@
         var level = 'lvl_e596g4';
         openLevel(level, params);
     }
+
+    
+    function abrir_det1(dia, mes, ano,provisao,recdesp,movimento) {
+        var params = {
+            'A_DIA': parseInt(dia),
+            'A_MES': parseInt(mes),
+            'A_ANO': parseInt(ano),
+            'A_PROVISAO': parseInt(provisao),
+            'A_RECDESP': parseInt(recdesp),
+            'A_MOVIMENTO': parseInt(movimento)
+        };
+        var level = 'lvl_f1kkgb';
+        openLevel(level, params);
+    }   
 
 
     // Funções para obter o mês e o ano da query mes_ref

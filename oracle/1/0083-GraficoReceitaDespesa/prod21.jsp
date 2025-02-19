@@ -241,11 +241,11 @@
               SUM(CASE WHEN dhbaixa IS NULL AND provisao = 'S' THEN vlrdesdob ELSE vlrbaixa END) AS vlrdesdob_prov_S
           FROM tgffin, periodos
           WHERE recdesp = -1
-          and provisao = 'S'
-          AND (
-            ( dhbaixa is not null and dtvenc < trunc(sysdate) and :P_TIT_ABERTOS =  'N' ) or ( :P_TIT_ABERTOS =  'S'  and dtvenc >= trunc(sysdate) )
-          )
           AND NVL(dhbaixa, dtvenc) BETWEEN periodos.inicio_mes_atual AND periodos.fim_mes_atual
+          
+          AND (
+            ( dhbaixa is not null and provisao = 'S' and dtvenc < trunc(sysdate) and :P_TIT_ABERTOS =  'N' ) or ( :P_TIT_ABERTOS =  'S'  and dtvenc >= trunc(sysdate) )
+          )
           GROUP BY TO_CHAR(NVL(dhbaixa,dtvenc), 'dd')
       ),
       dados_anterior AS (
@@ -256,7 +256,7 @@
               SUM(vlrdesdob) AS vlrdesdob_prov_S
           FROM tgffin, periodos
           WHERE recdesp = -1
-            AND provisao = 'N'
+            AND provisao = 'S'
             AND dtvenc BETWEEN periodos.inicio_mes_anterior AND periodos.fim_mes_anterior
             AND ((dhbaixa is null and :P_CHECK_BAIXA =  'S') OR (dhbaixa is not null and :P_CHECK_BAIXA =  'N'))
           GROUP BY TO_CHAR(NVL(dhbaixa,dtvenc), 'dd')
@@ -608,7 +608,7 @@
                 }
 
                 // Chama a função com os parâmetros
-                abrir_det(dia, mes, ano, provisao,recdesp,movimento);
+                //abrir_det(dia, mes, ano, provisao,recdesp,movimento);
             }
         }
       }
@@ -669,7 +669,7 @@
                 }
 
                 // Chama a função com os parâmetros
-                abrir_det(dia, mes, ano, provisao,recdesp,movimento);
+                //abrir_det(dia, mes, ano, provisao,recdesp,movimento);
             }
         }
       }
@@ -738,7 +738,7 @@
                 }
 
                 // Chama a função com os parâmetros
-                abrir_det(dia, mes, ano, provisao,recdesp,movimento);
+                //abrir_det(dia, mes, ano, provisao,recdesp,movimento);
             }
         }
       }
