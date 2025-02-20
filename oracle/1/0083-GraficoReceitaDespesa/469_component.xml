@@ -1,0 +1,137 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_MES_REF" description="Mês Referência" metadata="date" required="false" keep-last="true" keep-date="false" order="0" label="P_MES_REF : Data"/>
+    <parameter id="P_TIT_ABERTOS" description="Considerar títulos abertos e vencidos no mês selecionado?" metadata="boolean" required="false" keep-last="true" keep-date="false" default="false" order="1" label="P_TIT_ABERTOS : Verdadeiro/Falso"/>
+  </prompt-parameters>
+  <level id="lvl_e596d0" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <html5component id="html5_e596d9" entryPoint="prod25.jsp"/>
+    </container>
+  </level>
+  <level id="lvl_e596g4" description="det_cr">
+    <args>
+      <arg id="A_MES" type="integer" label="A_MES : Número Inteiro"/>
+      <arg id="A_DIA" type="integer" label="A_DIA : Número Inteiro"/>
+      <arg id="A_ANO" type="integer" label="A_ANO : Número Inteiro"/>
+      <arg id="A_PROVISAO" type="integer" label="A_PROVISAO : Número Inteiro"/>
+      <arg id="A_RECDESP" type="integer" label="A_RECDESP : Número Inteiro"/>
+      <arg id="A_MOVIMENTO" type="integer"/>
+    </args>
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <grid id="grd_f1kj5j" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT*FROM(            WITH FIN AS (              SELECT                   NVL(dhbaixa, dtvenc) AS data_movimento,				  TO_CHAR(NVL(fin.dhbaixa,fin.dtvenc), 'dd') Dia,				  NVL(fin.dhbaixa,fin.dtvenc) DATA,fin.recdesp,				  fin.nufin, fin.numnota, fin.codparc, par.nomeparc, fin.codemp, emp.nomefantasia, fin.dtneg, fin.dtvenc, fin.dhbaixa,				  fin.provisao,fin.desdobramento, fin.historico,  CASE WHEN fin.provisao = 'N' THEN 1 WHEN fin.provisao = 'S' THEN 2 ELSE NULL END AS PROV,				                    CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor              FROM tgffin fin, tgfpar par, tsiemp emp              WHERE                   				  fin.codparc = par.codparc and fin.codemp = emp.codemp                  AND (                    ((dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) OR dtvenc >= TRUNC(SYSDATE)) AND :P_TIT_ABERTOS = 'N')                    OR (:P_TIT_ABERTOS = 'S' )                  ))          SELECT               TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,DAT.SIT,			  fin.data,fin.nufin, fin.numnota, fin.codparc, fin.nomeparc, fin.codemp, fin.nomefantasia, fin.dtneg, fin.dtvenc, fin.dhbaixa,fin.recdesp,			  fin.provisao,fin.desdobramento, fin.historico, fin.PROV,              NVL(SUM(FIN.valor),0) AS valor          FROM (              SELECT                   'ANTERIOR' A,22 SIT,                   TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM') + LEVEL - 1 AS data_do_mes              FROM dual              CONNECT BY LEVEL <= LAST_DAY(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1))                                   - TRUNC(ADD_MONTHS(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), -1), 'MM') + 1              UNION ALL              SELECT                   'ATUAL' A, 21 SIT,                  TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + LEVEL - 1 AS data_do_mes              FROM dual              CONNECT BY LEVEL <= LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'))                                   - TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + 1          ) DAT          LEFT JOIN FIN ON FIN.data_movimento = DAT.data_do_mes                    GROUP BY TO_CHAR(DAT.DATA_DO_MES, 'dd'),DAT.SIT,fin.recdesp,			  fin.data,fin.nufin, fin.numnota, fin.codparc, fin.nomeparc, fin.codemp, fin.nomefantasia, fin.dtneg, fin.dtvenc, fin.dhbaixa,			  fin.provisao,fin.desdobramento, fin.historico, fin.PROV)WHEREDIA = LPAD(:A_DIA, 2, '0')AND TO_CHAR(PROV, 'FM00') = LPAD(:A_PROVISAO, 2, '0')AND TO_CHAR(SIT, 'FM00') = LPAD(:A_MOVIMENTO, 2)AND RECDESP = TO_NUMBER(:A_RECDESP)          ORDER BY TO_NUMBER(DIA)]]></expression>
+          <metadata>
+            <field name="DIA" label="DIA" type="S" visible="true" useFooter="false"/>
+            <field name="SIT" label="SIT" type="F" visible="true" useFooter="false"/>
+            <field name="DATA" label="Data" type="D" visible="true" useFooter="false"/>
+            <field name="NUFIN" label="NÚ. Unico" type="I" visible="true" useFooter="false"/>
+            <field name="NUMNOTA" label="Nro. Doc." type="I" visible="true" useFooter="false"/>
+            <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+            <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+            <field name="NOMEFANTASIA" label="Empresa" type="S" visible="true" useFooter="false"/>
+            <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+            <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+            <field name="DHBAIXA" label="Dh. Baixa" type="D" visible="true" useFooter="false"/>
+            <field name="RECDESP" label="R ou D" type="I" visible="true" useFooter="false"/>
+            <field name="PROVISAO" label="Provisão" type="S" visible="true" useFooter="false"/>
+            <field name="DESDOBRAMENTO" label="Desdobramento" type="S" visible="true" useFooter="false"/>
+            <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+            <field name="PROV" label="PROV" type="F" visible="true" useFooter="false"/>
+            <field name="VALOR" label="Valor" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          </metadata>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_f1kkgb" description="det_fc">
+    <args>
+      <arg id="A_MES" type="integer" label="A_MES : Número Inteiro"/>
+      <arg id="A_DIA" type="integer" label="A_DIA : Número Inteiro"/>
+      <arg id="A_ANO" type="integer" label="A_ANO : Número Inteiro"/>
+      <arg id="A_PROVISAO" type="integer" label="A_PROVISAO : Número Inteiro"/>
+      <arg id="A_RECDESP" type="integer" label="A_RECDESP : Número Inteiro"/>
+      <arg id="A_MOVIMENTO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_f1kkgc" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT*FROM(            WITH FIN AS (              SELECT                   NVL(dhbaixa, dtvenc) AS data_movimento,				  TO_CHAR(NVL(fin.dhbaixa,fin.dtvenc), 'dd') Dia,				  NVL(fin.dhbaixa,fin.dtvenc) DATA,fin.recdesp,				  fin.nufin, fin.numnota, fin.codparc, par.nomeparc, fin.codemp, emp.nomefantasia, fin.dtneg, fin.dtvenc, fin.dhbaixa,				  fin.provisao,fin.desdobramento, fin.historico,  CASE WHEN fin.provisao = 'N' THEN 1 WHEN fin.provisao = 'S' THEN 2 ELSE NULL END AS PROV,				                    CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor              FROM tgffin fin, tgfpar par, tsiemp emp              WHERE                   				  fin.codparc = par.codparc and fin.codemp = emp.codemp                  AND (                    ((dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) OR dtvenc >= TRUNC(SYSDATE)) AND :P_TIT_ABERTOS = 'N')                    OR (:P_TIT_ABERTOS = 'S' )                  )          )          SELECT               TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,DAT.SIT,			  fin.data,fin.nufin, fin.numnota, fin.codparc, fin.nomeparc, fin.codemp, fin.nomefantasia, fin.dtneg, fin.dtvenc, fin.dhbaixa,fin.recdesp,			  fin.provisao,fin.desdobramento, fin.historico, fin.PROV,              NVL(SUM(FIN.valor),0) AS valor          FROM (              SELECT                   'ATUAL' A, 21 SIT,                  TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + LEVEL - 1 AS data_do_mes              FROM dual              CONNECT BY LEVEL <= LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'))                                   - TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + 1          ) DAT          LEFT JOIN FIN ON FIN.data_movimento = DAT.data_do_mes                    GROUP BY TO_CHAR(DAT.DATA_DO_MES, 'dd'),DAT.SIT,fin.recdesp,			  fin.data,fin.nufin, fin.numnota, fin.codparc, fin.nomeparc, fin.codemp, fin.nomefantasia, fin.dtneg, fin.dtvenc, fin.dhbaixa,			  fin.provisao,fin.desdobramento, fin.historico, fin.PROV)WHEREDIA = LPAD(:A_DIA, 2, '0')AND RECDESP = TO_NUMBER(:A_RECDESP)          ORDER BY TO_NUMBER(DIA)]]></expression>
+        <metadata>
+          <field name="DIA" label="DIA" type="S" visible="false" useFooter="false"/>
+          <field name="SIT" label="SIT" type="F" visible="false" useFooter="false"/>
+          <field name="DATA" label="Data" type="D" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro. Doc." type="I" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+          <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+          <field name="NOMEFANTASIA" label="Empresa" type="S" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="DHBAIXA" label="Dh. Baixoa" type="D" visible="true" useFooter="false"/>
+          <field name="RECDESP" label="R ou D" type="I" visible="true" useFooter="false"/>
+          <field name="PROVISAO" label="Provisão" type="S" visible="true" useFooter="false"/>
+          <field name="DESDOBRAMENTO" label="Desdobramento" type="S" visible="true" useFooter="false"/>
+          <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+          <field name="PROV" label="PROV" type="F" visible="false" useFooter="false"/>
+          <field name="VALOR" label="Valor" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_hzis4m" description="det_extra">
+    <container orientacao="H" tamanhoRelativo="100">
+      <grid id="grd_hzis6y" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT    Dia,    DATA_MOV,    TIPO,    CODNAT,    DESCRNAT,    VALOR,    SUM(VALOR)     OVER (ORDER BY TO_NUMBER(dia),TIPO,CODNAT ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)    AS ACUMULADO,    PROVISAO,    CODEMP,    RAZAOSOCIALFROM (WITH     FIN AS (      SELECT           NVL(dhbaixa, dtvenc) AS data_movimento,          NUFIN,          PROVISAO,          RECDESP,          CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor,          DTNEG,          DTVENC,          VLRDESDOB,          DHBAIXA,          VLRBAIXA,          EMP.CODEMP,          EMP.RAZAOSOCIAL,          NAT.CODNAT,          NAT.DESCRNAT,          HISTORICO      FROM tgffin      LEFT JOIN TSIEMP EMP ON EMP.CODEMP = TGFFIN.CODEMP      LEFT JOIN TGFNAT NAT ON NAT.CODNAT = TGFFIN.CODNAT      WHERE           (              ((dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) OR dtvenc >= TRUNC(SYSDATE)) AND :P_TIT_ABERTOS = 'N')              OR (:P_TIT_ABERTOS = 'S' )          )          AND RECDESP <> 0    )SELECT     TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,    FIN.DATA_MOVIMENTO AS DATA_MOV,    CASE WHEN FIN.RECDESP = 1 THEN 'ENTRADA' WHEN FIN.RECDESP = -1 THEN 'SAIDA' ELSE '' END AS TIPO,    SUM(FIN.VALOR) AS VALOR,    FIN.PROVISAO,    FIN.CODEMP,    FIN.RAZAOSOCIAL,    FIN.CODNAT,    FIN.DESCRNATFROM (    SELECT         'ATUAL' A,         TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + LEVEL - 1 AS data_do_mes    FROM dual    CONNECT BY LEVEL <= LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'))                         - TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + 1) DATLEFT JOIN FIN ON FIN.data_movimento = DAT.data_do_mesGROUP BY        TO_CHAR(DAT.DATA_DO_MES, 'dd'),    FIN.DATA_MOVIMENTO,    CASE WHEN FIN.RECDESP = 1 THEN 'ENTRADA' WHEN FIN.RECDESP = -1 THEN 'SAIDA' ELSE '' END,    FIN.PROVISAO,    FIN.CODEMP,    FIN.RAZAOSOCIAL,    FIN.CODNAT,    FIN.DESCRNAT)where DATA_MOV IS NOT NULLORDER BY TO_NUMBER(dia),TIPO,CODNAT]]></expression>
+        <metadata>
+          <field name="DIA" label="DIA" type="S" visible="true" useFooter="false"/>
+          <field name="DATA_MOV" label="DATA_MOV" type="D" visible="true" useFooter="false"/>
+          <field name="TIPO" label="TIPO" type="S" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="CODNAT" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="DESCRNAT" type="S" visible="true" useFooter="false"/>
+          <field name="VALOR" label="VALOR" type="F" visible="true" useFooter="false"/>
+          <field name="ACUMULADO" label="ACUMULADO" type="I" visible="true" useFooter="false"/>
+          <field name="PROVISAO" label="PROVISAO" type="S" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="CODEMP" type="I" visible="true" useFooter="false"/>
+          <field name="RAZAOSOCIAL" label="RAZAOSOCIAL" type="S" visible="true" useFooter="false"/>
+        </metadata>
+        <on-click navigate-to="lvl_ibppt3">
+          <param id="A_CODNAT">$CODNAT</param>
+          <param id="A_DIA">$DIA</param>
+          <param id="A_TIPO">$TIPO</param>
+          <param id="A_CODEMP">$CODEMP</param>
+          <param id="A_PROVISAO">$PROVISAO</param>
+        </on-click>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_ibppt3" description="det_extra_1">
+    <args>
+      <arg id="A_CODNAT" type="integer"/>
+      <arg id="A_DIA" type="text"/>
+      <arg id="A_TIPO" type="text"/>
+      <arg id="A_CODEMP" type="integer"/>
+      <arg id="A_PROVISAO" type="text"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_ibppt4" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT    Dia,    DATA_MOV,    NUFIN,    TIPO,    VALOR,    SUM(VALOR)     OVER (ORDER BY TO_NUMBER(dia),NUFIN,TIPO,CODNAT ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)    AS ACUMULADO,    PROVISAO,    CODEMP,    RAZAOSOCIAL,    CODNAT,    DESCRNAT,    HISTORICOFROM (WITH     FIN AS (      SELECT           NVL(dhbaixa, dtvenc) AS data_movimento,          NUFIN,          PROVISAO,          RECDESP,          CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor,          DTNEG,          DTVENC,          VLRDESDOB,          DHBAIXA,          VLRBAIXA,          EMP.CODEMP,          EMP.RAZAOSOCIAL,          NAT.CODNAT,          NAT.DESCRNAT,          HISTORICO      FROM tgffin      LEFT JOIN TSIEMP EMP ON EMP.CODEMP = TGFFIN.CODEMP      LEFT JOIN TGFNAT NAT ON NAT.CODNAT = TGFFIN.CODNAT      WHERE           (              ((dhbaixa IS NOT NULL AND dtvenc < TRUNC(SYSDATE) OR dtvenc >= TRUNC(SYSDATE)) AND :P_TIT_ABERTOS = 'N')              OR (:P_TIT_ABERTOS = 'S' )          )          AND RECDESP <> 0    )SELECT     TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,    FIN.DATA_MOVIMENTO AS DATA_MOV,    FIN.NUFIN,    CASE WHEN FIN.RECDESP = 1 THEN 'ENTRADA' WHEN FIN.RECDESP = -1 THEN 'SAIDA' ELSE '' END AS TIPO,    FIN.VALOR AS VALOR,    SUM(VALOR) OVER (ORDER BY TO_NUMBER(TO_CHAR(DAT.DATA_DO_MES, 'dd')), NUFIN ) AS ACUMULADO,    FIN.PROVISAO,    FIN.CODEMP,    FIN.RAZAOSOCIAL,    FIN.CODNAT,    FIN.DESCRNAT,    FIN.HISTORICOFROM (    SELECT         'ATUAL' A,         TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + LEVEL - 1 AS data_do_mes    FROM dual    CONNECT BY LEVEL <= LAST_DAY(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'))                         - TRUNC(TO_DATE(FUNC_OBTER_DATE(:P_MES_REF), 'DD/MM/YYYY'), 'MM') + 1) DATLEFT JOIN FIN ON FIN.data_movimento = DAT.data_do_mesGROUP BY    TO_CHAR(DAT.DATA_DO_MES, 'dd'),    FIN.DATA_MOVIMENTO,    CASE WHEN FIN.RECDESP = 1 THEN 'ENTRADA' WHEN FIN.RECDESP = -1 THEN 'SAIDA' ELSE '' END,    FIN.NUFIN,    FIN.PROVISAO,    FIN.VALOR,    FIN.DTNEG,    FIN.DTVENC,    FIN.VLRDESDOB,    FIN.DHBAIXA,    FIN.VLRBAIXA,    FIN.CODEMP,    FIN.RAZAOSOCIAL,    FIN.CODNAT,    FIN.DESCRNAT,    FIN.HISTORICO)WHERE TIPO = :A_TIPO AND Dia = :A_DIA AND CODNAT = :A_CODNAT AND CODEMP = :A_CODEMP AND PROVISAO = :A_PROVISAOORDER BY TO_NUMBER(dia),NUFIN,TIPO,CODNAT]]></expression>
+        <metadata>
+          <field name="DIA" label="DIA" type="S" visible="true" useFooter="false"/>
+          <field name="DATA_MOV" label="DATA_MOV" type="D" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NUFIN" type="I" visible="true" useFooter="false"/>
+          <field name="TIPO" label="TIPO" type="S" visible="true" useFooter="false"/>
+          <field name="VALOR" label="VALOR" type="F" visible="true" useFooter="false"/>
+          <field name="ACUMULADO" label="ACUMULADO" type="F" visible="true" useFooter="false"/>
+          <field name="PROVISAO" label="PROVISAO" type="S" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="CODEMP" type="I" visible="true" useFooter="false"/>
+          <field name="RAZAOSOCIAL" label="RAZAOSOCIAL" type="S" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="CODNAT" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="DESCRNAT" type="S" visible="true" useFooter="false"/>
+          <field name="HISTORICO" label="HISTORICO" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>

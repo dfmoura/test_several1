@@ -118,7 +118,7 @@
               SELECT 
                   NVL(dhbaixa, dtvenc) AS data_movimento,
                   PROVISAO,
-                  CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor,
+                  CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor
               FROM tgffin
               WHERE 
                   recdesp = 1
@@ -164,7 +164,7 @@
           SELECT 
               NVL(dhbaixa, dtvenc) AS data_movimento,
               PROVISAO,
-              CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor,
+              CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor
           FROM tgffin
           WHERE 
               recdesp = -1
@@ -211,7 +211,7 @@
           SELECT 
               NVL(dhbaixa, dtvenc) AS data_movimento,
               PROVISAO,
-              CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor,
+              CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor
           FROM tgffin
           WHERE 
               recdesp = -1
@@ -277,7 +277,7 @@
         NVL(dhbaixa, dtvenc) AS data_movimento,
         PROVISAO,
         RECDESP,
-        CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor,
+        CASE WHEN NVL(vlrbaixa,0) = 0 THEN vlrdesdob ELSE vlrbaixa end AS valor
         FROM tgffin
         WHERE 
         (
