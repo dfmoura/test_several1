@@ -17,7 +17,7 @@ public class SupabaseConnection {
         // Substitua pelas suas credenciais do Supabase
         String url = "jdbc:postgresql://jdmgcvhcaulyllydvcob.supabase.co:5432/postgres?sslmode=require";
         String user = "postgres";
-        String password = "Buc110t@2025";
+        String password = "";
 
         try (Connection conn = DriverManager.getConnection(url, user, password);
              Statement stmt = conn.createStatement();

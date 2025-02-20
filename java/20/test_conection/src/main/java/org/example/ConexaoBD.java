@@ -10,7 +10,7 @@ public class ConexaoBD {
         // Configuração da conexão
         String url = "jdbc:postgresql://db.jdmgcvhcaulyllydvcob.supabase.co:5432/postgres";
         String usuario = "postgres";
-        String senha = "Buc110t@2025"; // Substitua pela senha correta
+        String senha = ""; // Substitua pela senha correta
 
         // Propriedades da conexão
         Properties props = new Properties();
