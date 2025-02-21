@@ -172,7 +172,15 @@
 
         .overlay-button:hover {
             background-color: green; 
-        }         
+        }   
+        .column-highlight {
+            color: orange; /* Define a cor da fonte como laranja */
+        }
+
+        .column-header-highlight {
+            font-weight: bold; /* Negrito para o cabeçalho */
+            color: orange; /* Cor laranja no cabeçalho também */
+        }                
     </style>
     <snk:load/>
 </head>
@@ -199,13 +207,37 @@
 </snk:query>
 
 <snk:query var="detalhe">
-	select 
-	D.CODEMP,D.NOMEFANTASIA,D.CODPROD,D.DESCRPROD,D.MARCA,
-	D.VENDA_PER_GIRO,D.DU,round(D.GIRO,2)GIRO,D.DU_GIRO,
+	
+
+CODEMP,NOMEFANTASIA,MARCA,
+ESTOQUE,VENDA_PER_GIRO,NVL(B.QTDNEG,0)QTDNEG,
+QTDPREV,GIRO_PREV,EST_MIN_PREV,DU,GIRO,DU_GIRO,EST_MIN
+
+
+    SELECT
+    D.CODEMP,D.NOMEFANTASIA,D.MARCA,
+    D.ESTOQUE,D.VENDA_PER_GIRO,NVL(B.QTDNEG,0)QTDNEG,
+    D.QTDPREV,D.GIRO_PREV,D.EST_MIN_PREV,D.DU,D.GIRO,D.DU_GIRO,D.EST_MIN
+
+    FROM(
+
+
+    SELECT
+    1 CODEMP,'SATIS ARAXA' NOMEFANTASIA,MARCA,
+    SUM(ESTOQUE) ESTOQUE,SUM(VENDA_PER_GIRO)VENDA_PER_GIRO,
+    QTDPREV,GIRO_PREV,EST_MIN_PREV
+    ,DU,SUM(GIRO)GIRO,DU_GIRO,SUM(EST_MIN)EST_MIN
+    FROM(
+    SELECT 
+	CODEMP,NOMEFANTASIA,MARCA,
+	ESTOQUE,VENDA_PER_GIRO,QTDPREV,
+    
+
     
     
-    ROUND((D.ESTOQUE - CASE WHEN NVL(:P_TRIANGULACAO, 'N') = 'N' THEN NVL(B.QTDNEG, 0) ELSE 0 END), 2) AS ESTOQUE,
-    ROUND((D.EST_MIN - CASE WHEN NVL(:P_TRIANGULACAO, 'N') = 'N' THEN NVL(B.QTDNEG, 0) ELSE 0 END), 2) AS EST_MIN
+    
+    DU,round(GIRO,2)GIRO,ROUND(GIRO_PREV,2)GIRO_PREV,DU_GIRO,round(EST_MIN,2)EST_MIN,
+    ROUND(EST_MIN_PREV,2)EST_MIN_PREV
 
     from(
 
@@ -230,6 +262,22 @@
         AND CODTIPOPER IN (SELECT MAX(CODTIPOPER) CODTIPOPER FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
         ),0) AS VENDA_PER_GIRO,
 
+
+
+
+   
+        NVL((
+            SELECT SUM(QTDPREV) QTDPREV
+            FROM TGFMET
+            WHERE 
+            CODMETA = 4 AND DTREF BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+            AND MARCA = A.MARCA
+            
+            ),0) AS QTDPREV,
+
+
+
+
         
         NVL((
             SELECT SUM(QTD) QTD
@@ -239,6 +287,19 @@
             AND CODPROD = A.CODPROD
             AND CODTIPOPER IN (SELECT MAX(CODTIPOPER) CODTIPOPER FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
         ) / FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN),0) AS GIRO,             
+
+
+
+        NVL(
+        (SELECT SUM(QTDPREV) QTDPREV
+        FROM TGFMET
+        WHERE 
+        CODMETA = 4 AND DTREF BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+        AND MARCA = A.MARCA)
+        / nullif(FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN),0)
+        ,0) AS GIRO_PREV,
+
+
 
 
         NVL(FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) *
@@ -251,8 +312,17 @@
             AND CODPROD = A.CODPROD
             AND CODTIPOPER IN (SELECT MAX(CODTIPOPER) CODTIPOPER FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
         ) / FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN)),0)
-            AS EST_MIN
+            AS EST_MIN,
 
+            NVL(
+            (FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO.INI, :P_PERIODO.FIN) *            
+
+            ((SELECT SUM(QTDPREV) QTDPREV
+            FROM TGFMET
+            WHERE 
+            CODMETA = 4 AND DTREF BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+            AND MARCA = A.MARCA)
+            / nullif(FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN),0))),0) EST_MIN_PREV
 
 
 
@@ -264,12 +334,15 @@
             PRO.CODGRUPOPROD,
             GRU.DESCRGRUPOPROD,
             EST.CODEMP,
-            SUM(EST.ESTOQUE) AS ESTOQUE,
+            SUM(EST.ESTOQUE * PRO.AD_QTDVOLLT) AS ESTOQUE,
             PRO.AD_QTDVOLLT,
             EST.CODLOCAL,
             LOC.DESCRLOCAL,
 
             EST.CONTROLE AS LOTE,
+
+
+            /*se eu tirar essa parte nao esta funcionando...... nao utilizo esta parte */
             (SUM(EST.ESTOQUE) -
              NVL((SELECT SUM(ITE.QTDNEG * ITE.ATUALESTOQUE)
                   FROM TGFITE ITE
@@ -304,16 +377,16 @@
     ) A
     INNER JOIN TSIEMP EMP ON A.CODEMP = EMP.CODEMP
     WHERE
-        (:P_CHECK_EMP = 'S' OR (A.CODEMP = :P_EMPRESA AND NVL(:P_CHECK_EMP,'N') = 'N')) AND
+        
         (:P_CHECK_EST = 'S' OR (A.ESTOQUE <> 0 AND NVL(:P_CHECK_EST,'N') = 'N')) AND
-        (A.CODPROD = :P_CODPROD OR :P_CODPROD IS NULL) AND
-        A.CODGRUPOPROD NOT IN (3010000,3020000,5000000,6000000)
-    AND ((NVL((
+        
+        
+    ((NVL((
         SELECT SUM(QTD) QTD
         FROM VGF_VENDAS_SATIS
         WHERE     DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
-        AND CODEMP = A.CODEMP
-        AND CODPROD = A.CODPROD
+        
+        AND MARCA = A.MARCA
     ), 0) != 0 AND NVL(:P_CHECK_GIRO,'N') = 'N') OR :P_CHECK_GIRO = 'S')
     AND A.MARCA IN (:P_MARCA)
     AND :P_PERIODO1.INI < SYSDATE
@@ -321,26 +394,28 @@
 
     GROUP BY
         A.CODEMP, EMP.NOMEFANTASIA, A.CODPROD, A.DESCRPROD, A.MARCA
+    )
+    )
+    GROUP BY MARCA,QTDPREV,GIRO_PREV,EST_MIN_PREV,DU_GIRO,DU
     )D
     LEFT JOIN (
         select 
-        CAB.CODEMP, ITE.CODPROD, PRO.MARCA, SUM(nvl(ITE.QTDNEG * AD_QTDVOLLT,0)) QTDNEG
+        CAB.CODEMP, ITE.CODPROD, PRO.MARCA, SUM(nvl(ITE.QTDNEG * AD_QTDVOLLT,0)) as QTDNEG
         from tgfcab cab
         INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
         INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
         WHERE 
-        /*Periodo de giro para abater*/
+        
         (cab.DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN) AND
-        /*Sempre que a empresa for diferente da empresa de origem, é operação triangular*/
+        
         CAB.CODEMP <> CAB.AD_CODEMPORIGEM
         GROUP BY CAB.CODEMP,ITE.CODPROD,PRO.MARCA
 ) B ON D.CODPROD = b.CODPROD AND D.CODEMP = B.CODEMP
-
 </snk:query>
 
 <div style="display: flex; gap: 10px;">
     
-    <button class="overlay-button" style="position: static;" onclick="abrir()">Abrir Por Marca/Meta</button>
+
     <button class="overlay-button" style="position: static;" onclick="exportTableToExcel('tabela-dados', 'dados')">Exportar *.xlsx</button>
   </div>
   
@@ -390,26 +465,28 @@
         </div>
     </c:forEach>
 
-    <h2 style="text-align:center; color:#333;">Dash Análise de Giro - Por Produto</h2>
+    <h2 style="text-align:center; color:#333;">Dash Análise de Giro - Por Marca e Meta</h2>
     <div class="table-container">
         <table id="tabela-dados">
             <thead>
                 <tr>
                     <th>Empresa</th>
                     <th>Nome Fantasia</th>
-                    <th>Código Produto</th>
-                    <th>Descrição</th>
+
                     <th>Marca</th>
 
-                    <th title="Venda Período de Giro">Venda Per. Giro</th>
+                    
+                    <th class="column-header-highlight" title="Qtd. Prevista">Qtd. Prev.(LT)</th>
                     <th title="Dias Período de Giro">Dias Per. Giro</th>
-                    <th title="Giro Período">Giro Período</th>
+                    
+                    <th class="column-header-highlight" title="Giro Previsto">Giro Previsto(LT/Dia)</th>
                     <th title="Dias Período Estoque">Dias Per. Est.</th>
-                    <th title="Estoque Mínimo">Est. Mín.</th>
+                    
+                    <th class="column-header-highlight" title="Estoque Mínimo Previsto">Est. Mín. Prev.(LT)</th>
                     <th  title="Ajuste para Estoque Mínimo">Ajuste</th>
-                    <th title="Estoque Mínimo Ajustado">Est. Mín. Ajustado</th>
-                    <th>Estoque Atual</th>
-                    <th title="Superávit ou Déficit">Saldo</th>
+                    <th title="Estoque Mínimo Ajustado">Est. Mín. Ajustado(LT)</th>
+                    <th>Estoque Atual(LT)</th>
+                    <th title="Superávit ou Déficit">Saldo(LT)</th>
                 </tr>
             </thead>
             <tbody>
@@ -417,19 +494,21 @@
                     <tr>
                         <td>${row.CODEMP}</td>
                         <td>${row.NOMEFANTASIA}</td>
-                        <td>${row.CODPROD}</td>
-                        <td>${row.DESCRPROD}</td>
+
                         <td>${row.MARCA}</td>
 
                         
-                        <td>${row.VENDA_PER_GIRO}</td>
+                        
+                        <td class="column-highlight">${row.QTDPREV}</td>
                         <td>${row.DU_GIRO}</td>
-                        <td class="${row.GIRO == 0 ? 'highlight-zero' : ''}">${row.GIRO}</td>
+                        
+                        <td class="column-highlight">${row.GIRO_PREV}</td>
                         <td>${row.DU}</td>
-                        <td>${row.EST_MIN}</td>
+                        
+                        <td class="column-highlight">${row.EST_MIN_PREV}</td>
                         <td class="btn-group">
                             <button class="btn btn-decrease">-</button>
-                            <span class="var-escolha" data-est-min="${row.EST_MIN}">0.00</span>
+                            <span class="var-escolha" data-est-min="${row.EST_MIN_PREV}">0.00</span>
                             <button class="btn">+</button>
                         </td>
                         <td class="calculation-cell"></td>
@@ -449,8 +528,8 @@
     function updateCalculationEstMinVarEscolha(span, estMin) {
         const value = parseFloat(span.textContent);
         const estMinComVarEscolha = estMin * (1 + value + ajusteGeral);
-        const estoqueAtual = parseFloat(span.closest('tr').querySelector('td:nth-child(13)').textContent);
-        const statusCell = span.closest('tr').querySelector('td:nth-child(14)');
+        const estoqueAtual = parseFloat(span.closest('tr').querySelector('td:nth-child(11)').textContent);
+        const statusCell = span.closest('tr').querySelector('td:nth-child(12)');
 
         // Atualiza a célula do estoque ajustado
         span.closest('td').nextElementSibling.textContent = estMinComVarEscolha.toFixed(2);
@@ -465,8 +544,8 @@
     function updateCalculationEstMinVarEscolha1(span, estMinComVar) {
         const value = parseFloat(span.textContent);
         const estMinComVarEscolha1 = estMinComVar * (1 + value + ajusteGeral);
-        const estoqueAtual = parseFloat(span.closest('tr').querySelector('td:nth-child(13)').textContent);
-        const statusCell = span.closest('tr').querySelector('td:nth-child(14)');
+        const estoqueAtual = parseFloat(span.closest('tr').querySelector('td:nth-child(11)').textContent);
+        const statusCell = span.closest('tr').querySelector('td:nth-child(12)');
 
         // Atualiza a célula do estoque ajustado
         span.closest('td').nextElementSibling.textContent = estMinComVarEscolha1.toFixed(2);
@@ -534,17 +613,6 @@
         updatePercentageDisplay();
     });
 
-    function abrir() {
-                var params = '';//{'A_CODPARC' : parseInt(grupo)};
-                var level = 'lvl_adzfz6k';
-                openLevel(level, params);
-            }  
-
-    function abrir1() {
-        var params = '';//{'A_CODPARC' : parseInt(grupo)};
-        var level = 'lvl_amumjf5';
-        openLevel(level, params);
-    }            
 
                         
 

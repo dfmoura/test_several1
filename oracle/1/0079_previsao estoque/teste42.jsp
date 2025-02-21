@@ -200,12 +200,14 @@
 
 <snk:query var="detalhe">
 	select 
-	D.CODEMP,D.NOMEFANTASIA,D.CODPROD,D.DESCRPROD,D.MARCA,
-	D.VENDA_PER_GIRO,D.DU,round(D.GIRO,2)GIRO,D.DU_GIRO,
+	CODEMP,NOMEFANTASIA,CODPROD,DESCRPROD,MARCA,
+	DU,round(GIRO,2)GIRO,DU_GIRO,ESTOQUE,
     
+
+    ROUND(VENDA_PER_GIRO,2) VENDA_PER_GIRO,
     
-    ROUND((D.ESTOQUE - CASE WHEN NVL(:P_TRIANGULACAO, 'N') = 'N' THEN NVL(B.QTDNEG, 0) ELSE 0 END), 2) AS ESTOQUE,
-    ROUND((D.EST_MIN - CASE WHEN NVL(:P_TRIANGULACAO, 'N') = 'N' THEN NVL(B.QTDNEG, 0) ELSE 0 END), 2) AS EST_MIN
+    round(EST_MIN,2)EST_MIN
+    
 
     from(
 
@@ -228,6 +230,24 @@
         AND CODEMP = A.CODEMP
         AND CODPROD = A.CODPROD
         AND CODTIPOPER IN (SELECT MAX(CODTIPOPER) CODTIPOPER FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
+        
+        AND 
+        (:P_TRIANGULACAO = 'S' OR
+        (NVL(:P_TRIANGULACAO,'N') = 'N' AND
+
+        NOT EXISTS (
+            SELECT 1
+            FROM tgfcab cab
+            INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+            WHERE 
+                (cab.DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN)
+                AND cab.CODEMP <> cab.AD_CODEMPORIGEM
+                AND cab.NUNOTA = VGF_VENDAS_SATIS.NUNOTA
+        )              
+        
+            ))
+        
+       
         ),0) AS VENDA_PER_GIRO,
 
         
@@ -238,6 +258,23 @@
             AND CODEMP = A.CODEMP
             AND CODPROD = A.CODPROD
             AND CODTIPOPER IN (SELECT MAX(CODTIPOPER) CODTIPOPER FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
+            
+            AND 
+            (:P_TRIANGULACAO = 'S' OR
+            (NVL(:P_TRIANGULACAO,'N') = 'N' AND
+
+            NOT EXISTS (
+                SELECT 1
+                FROM tgfcab cab
+                INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+                WHERE 
+                    (cab.DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN)
+                    AND cab.CODEMP <> cab.AD_CODEMPORIGEM
+                    AND cab.NUNOTA = VGF_VENDAS_SATIS.NUNOTA
+            )              
+            
+                ))
+
         ) / FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN),0) AS GIRO,             
 
 
@@ -250,6 +287,23 @@
             AND CODEMP = A.CODEMP
             AND CODPROD = A.CODPROD
             AND CODTIPOPER IN (SELECT MAX(CODTIPOPER) CODTIPOPER FROM TGFTOP WHERE AD_ANALISE_GIRO = 'S' GROUP BY CODTIPOPER)
+
+            AND 
+            (:P_TRIANGULACAO = 'S' OR
+            (NVL(:P_TRIANGULACAO,'N') = 'N' AND
+
+            NOT EXISTS (
+                SELECT 1
+                FROM tgfcab cab
+                INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+                WHERE 
+                    (cab.DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN)
+                    AND cab.CODEMP <> cab.AD_CODEMPORIGEM
+                    AND cab.NUNOTA = VGF_VENDAS_SATIS.NUNOTA
+            )              
+            
+                ))
+            
         ) / FUN_TOT_DIAS_UTE_SATIS(:P_PERIODO1.INI, :P_PERIODO1.FIN)),0)
             AS EST_MIN
 
@@ -321,20 +375,10 @@
 
     GROUP BY
         A.CODEMP, EMP.NOMEFANTASIA, A.CODPROD, A.DESCRPROD, A.MARCA
-    )D
-    LEFT JOIN (
-        select 
-        CAB.CODEMP, ITE.CODPROD, PRO.MARCA, SUM(nvl(ITE.QTDNEG * AD_QTDVOLLT,0)) QTDNEG
-        from tgfcab cab
-        INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
-        INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
-        WHERE 
-        /*Periodo de giro para abater*/
-        (cab.DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN) AND
-        /*Sempre que a empresa for diferente da empresa de origem, é operação triangular*/
-        CAB.CODEMP <> CAB.AD_CODEMPORIGEM
-        GROUP BY CAB.CODEMP,ITE.CODPROD,PRO.MARCA
-) B ON D.CODPROD = b.CODPROD AND D.CODEMP = B.CODEMP
+    )
+
+
+
 
 </snk:query>
 
