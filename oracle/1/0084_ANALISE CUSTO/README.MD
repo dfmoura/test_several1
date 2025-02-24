@@ -1,0 +1,59 @@
+ # 📊 **Tarefas para Implementação no Dashboard de Análise de Metas - Nível de Análise de Custo**
+
+## 📌 **Objetivo**
+Melhorar a experiência do usuário no nível de análise de custo do dashboard de análise de metas, garantindo maior flexibilidade, precisão e usabilidade na apresentação das despesas e responsáveis comerciais.
+
+---
+
+## 🛠 **Tarefas a serem Executadas**
+
+### 1️⃣ **Configuração de Parâmetros**
+✅ Criar parâmetro para que o usuário indique se a data das despesas a ser considerada será:
+   - **Data de baixa**
+   - **Data de entrada** (Campo: `TFGFIN.DTENTSAI`)
+
+✅ Criar parâmetro para que o usuário possa filtrar as **naturezas financeiras** das despesas na análise de custo.
+   - O filtro deve ser aplicado **em todos os painéis e níveis** da análise de custo.
+
+### 2️⃣ **Aprimoramento da Visualização e Navegação**
+✅ Criar um botão dentro do nível de análise de custo para acessar uma **tabela semelhante à planilha** disponibilizada pelo Gusmão.
+   - **Link da planilha** deve estar disponível no campo de observação.
+
+✅ Garantir a **apresentação do vendedor 0** na análise de custo:
+   - Alguns C.R.s podem ter despesas vinculadas, mas não serem exibidos para o Gusmão por não possuírem um vendedor responsável.
+   - **Solução**: Vincular automaticamente o **vendedor 0** a todo C.R. comercial que não possuir um responsável.
+   - **Considerar criar uma trigger** para atualizar os registros do C.R. conforme essa lógica.
+
+✅ Possibilitar a **alteração da visualização da análise de custo**:
+   - **Visão atual** será mantida como padrão.
+   - Nova opção para exibir uma visão **desmembrada por C.R.**.
+     - Nesse caso, um mesmo vendedor poderá ter vários registros, cada um referente a um C.R. sob sua responsabilidade.
+
+### 3️⃣ **Ajustes e Melhorias nas Informações Exibidas**
+✅ **Adicionar a coluna de apelido do C.R.** nos seguintes níveis:
+   - **Nível principal da análise de custo** → Utilizar `LISTAGG`, pois um vendedor pode ter vários C.R.s/apelidos.
+   - **Nível inferior (detalhe do vendedor)** → Exibir os apelidos correspondentes.
+
+✅ **Ajustar o nível 3 da análise de custo**:
+   - No **título dos painéis**, exibir o **nome do vendedor** selecionado pelo usuário.
+   - No **painel lateral de naturezas**, exibir o **nome do C.R.** selecionado.
+
+---
+
+## 🔄 **Próximos Passos**
+📅 **Definir prazos** para implementação de cada tarefa.<br>
+📝 **Revisar e validar** com o time antes da entrega final.<br>
+✅ **Testar todas as implementações** para garantir funcionalidade e usabilidade.
+
+
+
+📌 Execução realizada em 21/02, das 13:10 às 16:40. O parâmetro foi implementado com sucesso, 
+permitindo que o usuário selecione entre a data de baixa e a data de entrada das despesas. 
+Foram realizados testes para validar o correto funcionamento da funcionalidade, garantindo 
+que os filtros sejam aplicados conforme a escolha do usuário.
+
+📌 Execução realizada em 21/02, das 17:00 às 18:40. Implementamos o filtro de naturezas financeiras , 
+permitindo que o usuário refine a análise de custo conforme as categorias 
+desejadas. O filtro foi integrado a todos os painéis e níveis da análise, garantindo consistência na 
+aplicação dos critérios definidos. Foram realizados testes para validar a correta segmentação das 
+informações conforme os filtros aplicados.
