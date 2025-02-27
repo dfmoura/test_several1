@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Vendas</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        :root {
+            --primary-color: #6C63FF;
+            --secondary-color: #4A47A3;
+            --background-color: #F5F5F5;
+            --text-color: #2C3E50;
+            --card-background: #FFFFFF;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-header h1 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .dashboard-header p {
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
+
+        .metrics-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .metric-card {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .metric-card .icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .metric-card h2 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .metric-card .value {
+            font-size: 2rem;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+        }
+
+        .metric-card .subtext {
+            font-size: 1rem;
+            color: #7F8C8D;
+        }
+
+        .progress-bar {
+            background-color: #E0E0E0;
+            border-radius: 10px;
+            height: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-bar .progress {
+            background-color: var(--primary-color);
+            height: 100%;
+            border-radius: 10px;
+        }
+
+        .map-container {
+            margin-bottom: 40px;
+        }
+
+        .map-container h2 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        #map {
+            height: 500px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-card h2 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .details-container {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .details-container h2 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #E0E0E0;
+        }
+
+        table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        table tr:hover {
+            background-color: #F5F5F5;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>Dashboard de Vendas</h1>
+            <p>Volume de Vendas e Faturamento | Previsto vs Realizado</p>
+        </header>
+
+        <!-- Cards de Métricas -->
+        <section class="metrics-container">
+            <div class="metric-card">
+                <div class="icon">📊</div>
+                <h2>Volume de Vendas</h2>
+                <p class="value">R$ 1.234.567</p>
+                <p class="subtext">Previsto: R$ 1.200.000</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 85%;"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="icon">💵</div>
+                <h2>Faturamento</h2>
+                <p class="value">R$ 987.654</p>
+                <p class="subtext">Previsto: R$ 950.000</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 92%;"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="icon">👤</div>
+                <h2>Vendedor Top</h2>
+                <p class="value">João Silva</p>
+                <p class="subtext">R$ 123.456</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 78%;"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="icon">🏷️</div>
+                <h2>Marca Top</h2>
+                <p class="value">Marca X</p>
+                <p class="subtext">R$ 456.789</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 88%;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mapa Interativo -->
+        <section class="map-container">
+            <h2>Desempenho por Região</h2>
+            <div id="map"></div>
+        </section>
+
+        <!-- Gráficos -->
+        <section class="charts-container">
+            <div class="chart-card">
+                <h2>Volume de Vendas (Real vs Previsto)</h2>
+                <div id="salesVolumeChart"></div>
+            </div>
+            <div class="chart-card">
+                <h2>Faturamento (Real vs Previsto)</h2>
+                <div id="revenueChart"></div>
+            </div>
+        </section>
+
+        <!-- Tabela de Detalhes -->
+        <section class="details-container">
+            <h2>Detalhes por Vendedor</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vendedor</th>
+                            <th>Região</th>
+                            <th>Volume Real</th>
+                            <th>Volume Previsto</th>
+                            <th>Faturamento Real</th>
+                            <th>Faturamento Previsto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>João Silva</td>
+                            <td>São Paulo</td>
+                            <td>R$ 123.456</td>
+                            <td>R$ 120.000</td>
+                            <td>R$ 98.765</td>
+                            <td>R$ 95.000</td>
+                        </tr>
+                        <tr>
+                            <td>Maria Souza</td>
+                            <td>Rio de Janeiro</td>
+                            <td>R$ 110.000</td>
+                            <td>R$ 100.000</td>
+                            <td>R$ 88.000</td>
+                            <td>R$ 85.000</td>
+                        </tr>
+                        <!-- Adicione mais linhas conforme necessário -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mapa Interativo
+            const map = L.map('map').setView([-15.7801, -47.9292], 4); // Centralizado no Brasil
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Função para estilizar os estados
+            function styleState(feature) {
+                return {
+                    fillColor: '#6C63FF',
+                    weight: 2,
+                    opacity: 1,
+                    color: '#4A47A3',
+                    fillOpacity: 0.5
+                };
+            }
+
+            // Função para destacar o estado ao passar o mouse
+            function highlightFeature(e) {
+                const layer = e.target;
+                layer.setStyle({
+                    fillColor: '#FF6B6B',
+                    fillOpacity: 0.8
+                });
+            }
+
+            // Função para resetar o estilo do estado ao remover o mouse
+            function resetHighlight(e) {
+                geojson.resetStyle(e.target);
+            }
+
+            // Função para zoom no estado ao clicar
+            function zoomToFeature(e) {
+                map.fitBounds(e.target.getBounds());
+            }
+
+            // Função para adicionar interatividade aos estados
+            function onEachFeature(feature, layer) {
+                layer.on({
+                    mouseover: highlightFeature,
+                    mouseout: resetHighlight,
+                    click: zoomToFeature
+                });
+
+                // Adiciona um popup com o nome do estado
+                layer.bindPopup(`<b>${feature.properties.name}</b><br>Vendas: R$ 500.000`);
+            }
+
+            // Carrega o GeoJSON dos estados brasileiros
+            fetch('https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-100-mun.json')
+                .then(response => response.json())
+                .then(data => {
+                    // Adiciona os estados ao mapa
+                    const geojson = L.geoJSON(data, {
+                        style: styleState,
+                        onEachFeature: onEachFeature
+                    }).addTo(map);
+                })
+                .catch(error => console.error('Erro ao carregar o GeoJSON:', error));
+
+            // Gráfico de Volume de Vendas (Barras + Linhas)
+            const salesVolumeOptions = {
+                chart: {
+                    type: 'bar',
+                    height: 350,
+                },
+                series: [{
+                    name: 'Real',
+                    type: 'column',
+                    data: [120000, 150000, 80000, 200000],
+                }, {
+                    name: 'Previsto',
+                    type: 'line',
+                    data: [110000, 140000, 90000, 190000],
+                }],
+                xaxis: {
+                    categories: ['Vendedor A', 'Vendedor B', 'Vendedor C', 'Vendedor D'],
+                },
+                colors: ['#6C63FF', '#4A47A3'],
+            };
+
+            const salesVolumeChart = new ApexCharts(document.querySelector('#salesVolumeChart'), salesVolumeOptions);
+            salesVolumeChart.render();
+
+            // Gráfico de Faturamento (Área + Linhas)
+            const revenueOptions = {
+                chart: {
+                    type: 'area',
+                    height: 350,
+                },
+                series: [{
+                    name: 'Real',
+                    data: [50000, 60000, 70000, 80000, 90000, 100000],
+                }, {
+                    name: 'Previsto',
+                    data: [55000, 65000, 75000, 85000, 95000, 105000],
+                }],
+                xaxis: {
+                    categories: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+                },
+                colors: ['#6C63FF', '#4A47A3'],
+            };
+
+            const revenueChart = new ApexCharts(document.querySelector('#revenueChart'), revenueOptions);
+            revenueChart.render();
+        });
+    </script>
+</body>
+</html>

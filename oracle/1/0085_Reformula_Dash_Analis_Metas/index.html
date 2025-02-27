@@ -1,1 +1,105 @@
-ddd      dddddd
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Vendas</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>Dashboard de Vendas</h1>
+            <p>Volume de Vendas e Faturamento | Previsto vs Realizado</p>
+        </header>
+
+        <!-- Cards de Métricas -->
+        <section class="metrics-container">
+            <div class="metric-card">
+                <div class="icon">📊</div>
+                <h2>Volume de Vendas</h2>
+                <p class="value">R$ 1.234.567</p>
+                <p class="subtext">Previsto: R$ 1.200.000</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 85%;"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="icon">💵</div>
+                <h2>Faturamento</h2>
+                <p class="value">R$ 987.654</p>
+                <p class="subtext">Previsto: R$ 950.000</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 92%;"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="icon">👤</div>
+                <h2>Vendedor Top</h2>
+                <p class="value">João Silva</p>
+                <p class="subtext">R$ 123.456</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 78%;"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="icon">🏷️</div>
+                <h2>Marca Top</h2>
+                <p class="value">Marca X</p>
+                <p class="subtext">R$ 456.789</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: 88%;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gráficos -->
+        <section class="charts-container">
+            <div class="chart-card">
+                <h2>Volume de Vendas (Real vs Previsto)</h2>
+                <div id="salesVolumeChart"></div>
+            </div>
+            <div class="chart-card">
+                <h2>Faturamento (Real vs Previsto)</h2>
+                <div id="revenueChart"></div>
+            </div>
+        </section>
+
+        <!-- Tabela de Detalhes -->
+        <section class="details-container">
+            <h2>Detalhes por Vendedor</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Vendedor</th>
+                        <th>Volume Real</th>
+                        <th>Volume Previsto</th>
+                        <th>Faturamento Real</th>
+                        <th>Faturamento Previsto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>João Silva</td>
+                        <td>R$ 123.456</td>
+                        <td>R$ 120.000</td>
+                        <td>R$ 98.765</td>
+                        <td>R$ 95.000</td>
+                    </tr>
+                    <tr>
+                        <td>Maria Souza</td>
+                        <td>R$ 110.000</td>
+                        <td>R$ 100.000</td>
+                        <td>R$ 88.000</td>
+                        <td>R$ 85.000</td>
+                    </tr>
+                    <!-- Adicione mais linhas conforme necessário -->
+                </tbody>
+            </table>
+        </section>
+    </div>
+</body>
+</html>

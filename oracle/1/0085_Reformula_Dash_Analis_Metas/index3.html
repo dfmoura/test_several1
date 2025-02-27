@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Vendas</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        :root {
+            /* Light theme */
+            --primary-color: #2563eb;
+            --primary-light: #3b82f6;
+            --secondary-color: #64748b;
+            --background-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary-color: #3b82f6;
+                --primary-light: #60a5fa;
+                --secondary-color: #94a3b8;
+                --background-color: #0f172a;
+                --surface-color: #1e293b;
+                --text-primary: #f8fafc;
+                --text-secondary: #cbd5e1;
+                --border-color: #334155;
+                --success-color: #34d399;
+                --warning-color: #fbbf24;
+                --danger-color: #f87171;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .dashboard-header {
+            margin-bottom: 3rem;
+        }
+
+        .dashboard-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .metrics-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .metric-card {
+            background-color: var(--surface-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .metric-card .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            background-color: color-mix(in srgb, var(--primary-color) 15%, transparent);
+            color: var(--primary-color);
+        }
+
+        .metric-card h2 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .metric-card .value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-card .subtext {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .metric-card .trend-up {
+            color: var(--success-color);
+        }
+
+        .metric-card .trend-down {
+            color: var(--danger-color);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .chart-card {
+            background-color: var(--surface-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .chart-card h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .table-wrapper {
+            background-color: var(--surface-color);
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            margin-bottom: 3rem;
+        }
+
+        .table-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-header h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th {
+            background-color: var(--surface-color);
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 0.875rem;
+        }
+
+        table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        table tr:hover {
+            background-color: color-mix(in srgb, var(--surface-color) 97%, var(--primary-color) 3%);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .status-completed {
+            background-color: color-mix(in srgb, var(--success-color) 15%, transparent);
+            color: var(--success-color);
+        }
+
+        .status-pending {
+            background-color: color-mix(in srgb, var(--warning-color) 15%, transparent);
+            color: var(--warning-color);
+        }
+
+        .status-cancelled {
+            background-color: color-mix(in srgb, var(--danger-color) 15%, transparent);
+            color: var(--danger-color);
+        }
+
+        #map {
+            height: 500px;
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 1rem;
+            }
+
+            .metrics-container {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-card {
+                padding: 1rem;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Dashboard de Vendas</h1>
+            <p>Análise de vendas e desempenho</p>
+        </div>
+
+        <div class="metrics-container">
+            <div class="metric-card">
+                <div class="icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h2>Faturamento Total</h2>
+                <p class="value">R$ 1.234.567</p>
+                <p class="subtext">
+                    <i class="fas fa-arrow-up trend-up"></i>
+                    <span>12.5% vs. mês anterior</span>
+                </p>
+            </div>
+
+            <div class="metric-card">
+                <div class="icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <h2>Pedidos</h2>
+                <p class="value">1,543</p>
+                <p class="subtext">
+                    <i class="fas fa-arrow-up trend-up"></i>
+                    <span>8.2% vs. mês anterior</span>
+                </p>
+            </div>
+
+            <div class="metric-card">
+                <div class="icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h2>Novos Clientes</h2>
+                <p class="value">267</p>
+                <p class="subtext">
+                    <i class="fas fa-arrow-down trend-down"></i>
+                    <span>3.1% vs. mês anterior</span>
+                </p>
+            </div>
+
+            <div class="metric-card">
+                <div class="icon">
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <h2>Taxa de Conversão</h2>
+                <p class="value">3.42%</p>
+                <p class="subtext">
+                    <i class="fas fa-arrow-up trend-up"></i>
+                    <span>0.8% vs. mês anterior</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h2>Volume de Vendas</h2>
+                <div id="salesVolumeChart"></div>
+            </div>
+
+            <div class="chart-card">
+                <h2>Receita Mensal</h2>
+                <div id="revenueChart"></div>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <div class="table-header">
+                <h2>Últimas Vendas</h2>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID Pedido</th>
+                        <th>Cliente</th>
+                        <th>Valor</th>
+                        <th>Data</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>#12345</td>
+                        <td>João Silva</td>
+                        <td>R$ 1.234,56</td>
+                        <td>2024-02-15</td>
+                        <td><span class="status-badge status-completed">Concluído</span></td>
+                    </tr>
+                    <tr>
+                        <td>#12344</td>
+                        <td>Maria Santos</td>
+                        <td>R$ 2.345,67</td>
+                        <td>2024-02-14</td>
+                        <td><span class="status-badge status-pending">Pendente</span></td>
+                    </tr>
+                    <tr>
+                        <td>#12343</td>
+                        <td>Pedro Oliveira</td>
+                        <td>R$ 3.456,78</td>
+                        <td>2024-02-13</td>
+                        <td><span class="status-badge status-cancelled">Cancelado</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="chart-card">
+            <h2>Distribuição Geográfica de Vendas</h2>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Map configuration
+            const map = L.map('map').setView([-15.7801, -47.9292], 4);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Sample markers
+            const markers = [
+                { lat: -23.5505, lng: -46.6333, value: 'São Paulo: R$ 500.000' },
+                { lat: -22.9068, lng: -43.1729, value: 'Rio de Janeiro: R$ 300.000' },
+                { lat: -15.7801, lng: -47.9292, value: 'Brasília: R$ 200.000' }
+            ];
+
+            markers.forEach(marker => {
+                L.marker([marker.lat, marker.lng])
+                    .bindPopup(marker.value)
+                    .addTo(map);
+            });
+
+            // Chart Configurations
+            const chartDefaults = {
+                chart: {
+                    toolbar: {
+                        show: false
+                    },
+                    fontFamily: 'Inter, sans-serif',
+                    background: 'transparent',
+                },
+                grid: {
+                    borderColor: getComputedStyle(document.documentElement)
+                        .getPropertyValue('--border-color'),
+                    strokeDashArray: 4,
+                },
+                tooltip: {
+                    theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+                },
+                colors: ['#2563eb', '#64748b'],
+            };
+
+            // Sales Volume Chart
+            const salesVolumeOptions = {
+                ...chartDefaults,
+                chart: {
+                    ...chartDefaults.chart,
+                    type: 'bar',
+                    height: 350,
+                },
+                series: [{
+                    name: 'Real',
+                    type: 'column',
+                    data: [120000, 150000, 80000, 200000],
+                }, {
+                    name: 'Previsto',
+                    type: 'line',
+                    data: [110000, 140000, 90000, 190000],
+                }],
+                xaxis: {
+                    categories: ['Vendedor A', 'Vendedor B', 'Vendedor C', 'Vendedor D'],
+                },
+                stroke: {
+                    curve: 'smooth',
+                },
+                fill: {
+                    opacity: [0.85, 1],
+                },
+            };
+
+            // Revenue Chart
+            const revenueOptions = {
+                ...chartDefaults,
+                chart: {
+                    ...chartDefaults.chart,
+                    type: 'area',
+                    height: 350,
+                },
+                series: [{
+                    name: 'Real',
+                    data: [50000, 60000, 70000, 80000, 90000, 100000],
+                }, {
+                    name: 'Previsto',
+                    data: [55000, 65000, 75000, 85000, 95000, 105000],
+                }],
+                xaxis: {
+                    categories: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+                },
+                stroke: {
+                    curve: 'smooth',
+                    width: 2,
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.7,
+                        opacityTo: 0.2,
+                        stops: [0, 90, 100]
+                    }
+                },
+            };
+
+            const salesVolumeChart = new ApexCharts(
+                document.querySelector('#salesVolumeChart'), 
+                salesVolumeOptions
+            );
+            const revenueChart = new ApexCharts(
+                document.querySelector('#revenueChart'), 
+                revenueOptions
+            );
+
+            salesVolumeChart.render();
+            revenueChart.render();
+
+            // Handle dark mode changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                salesVolumeChart.updateOptions({ theme: { mode: isDarkMode() ? 'dark' : 'light' } });
+                revenueChart.updateOptions({ theme: { mode: isDarkMode() ? 'dark' : 'light' } });
+            });
+        });
+
+        function isDarkMode() {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+    </script>
+</body>
+</html>
+
