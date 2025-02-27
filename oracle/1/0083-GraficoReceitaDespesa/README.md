@@ -96,3 +96,8 @@ Adaptamos a query prev_oc para o gráfico compraChart, semelhante ao ajuste feit
 🕒 14/02/2025 17:30 - 20:30
 
 Foi otimizada a query prev_rec e atualizado o código JavaScript, permitindo que o gráfico de receita tenha duas séries agrupadas nas mesmas colunas e uma terceira série representada por uma linha. No select do fluxo de caixa, foi acrescentada uma coluna para calcular a soma acumulada (vlr_receita - vlr_despesa). Além disso, criamos a função FUNC_OBTER_DATE para armazenar parâmetros de data no HTML5, permitindo que os selects utilizem a query corretamente sem falhas de leitura. Também foram implementadas melhorias no where das queries para considerar o parâmetro ou, caso nulo, utilizar o SYSDATE. Por fim, o título dos gráficos foi atualizado para exibir o nome completo do mês e o ano (exemplo: JANEIRO - 2025) e foi criada uma versão otimizada dos selects para cada gráfico, garantindo melhor desempenho sem alterar os resultados exibidos.
+
+
+🕒 23/02/2025 14:00 - 18:00
+
+Foram realizadas atualizações nos componentes de despesa real, ajustando-os para trabalhar corretamente com a TOP 1200. Além disso, os componentes de despesa por ordem de compra foram ajustados para incluir as TOPs 101, 102 e 107. Por fim, foi implementado um filtro multilist de empresa, garantindo que a seleção refletisse em todos os componentes do dashboard, melhorando a usabilidade e a experiência do usuário na análise dos dados.

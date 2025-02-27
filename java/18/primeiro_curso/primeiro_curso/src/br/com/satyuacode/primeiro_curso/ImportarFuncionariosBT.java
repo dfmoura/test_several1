@@ -26,7 +26,20 @@ public class ImportarFuncionariosBT implements AcaoRotinaJava {
 
         //LER QUERY
         QueryExecutor query = contexto.getQuery();
-        query.nativeSelect("");
+        query.setParam("P_CODDEP",codDepartamento);
+        query.nativeSelect("SELECT CODFUNC, CODEMP FROM TFPFUN WHERE CODDEP = {P_CODDEP}");
+        while (query.next()){
+
+            ///
+            BigDecimal codFuncionario = query.getBigDecimal("CODFUNC");
+            BigDecimal codEmpresa = query.getBigDecimal("CODEMP");
+
+            System.out.println("Cód. Funcionário: "+ codFuncionario + " - Cód. Empresa: "+ codEmpresa );
+
+        }
+
+
+        query.close();
 
 
 
