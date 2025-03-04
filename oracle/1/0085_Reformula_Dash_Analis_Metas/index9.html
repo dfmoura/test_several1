@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Calor - Valor Faturado por Cidade</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        .leaflet-container {
+            background: #222;
+        }
+        .info {
+            padding: 6px 8px;
+            font: 14px/16px Arial, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+        .info h4 {
+            margin: 0 0 5px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/heatmap.js"></script>
+    <script>
+        // Dados de exemplo: valor faturado por cidade (latitude, longitude, valor)
+        const data = [
+            { lat: -23.5505, lng: -46.6333, value: 50000 }, // São Paulo
+            { lat: -22.9068, lng: -43.1729, value: 45000 }, // Rio de Janeiro
+            { lat: -19.9167, lng: -43.9345, value: 30000 }, // Belo Horizonte
+            { lat: -12.9714, lng: -38.5014, value: 25000 }, // Salvador
+            { lat: -15.7942, lng: -47.8822, value: 20000 }, // Brasília
+            { lat: -3.71839, lng: -38.5434, value: 15000 }, // Fortaleza
+            { lat: -8.05428, lng: -34.8813, value: 10000 }, // Recife
+            { lat: -25.4296, lng: -49.2719, value: 5000 },  // Curitiba
+        ];
+
+        // Inicializa o mapa
+        const map = L.map('map').setView([-15.7942, -47.8822], 4);
+
+        // Adiciona o tile layer do OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Configuração do heatmap
+        const cfg = {
+            radius: 0.05,
+            maxOpacity: 0.8,
+            scaleRadius: true,
+            useLocalExtrema: true,
+            latField: 'lat',
+            lngField: 'lng',
+            valueField: 'value',
+        };
+
+        const heatmapLayer = new HeatmapOverlay(cfg);
+
+        // Adiciona o heatmap ao mapa
+        heatmapLayer.setData({
+            max: 50000,
+            data: data
+        });
+
+        map.addLayer(heatmapLayer);
+
+        // Adiciona um controle de legenda
+        const info = L.control({ position: 'bottomright' });
+
+        info.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+
+        info.update = function (props) {
+            this._div.innerHTML = '<h4>Valor Faturado</h4>' + 
+                (props ? `<b>${props.name}</b><br />R$ ${props.value.toLocaleString()}` : 'Passe o mouse sobre o mapa');
+        };
+
+        info.addTo(map);
+    </script>
+</body>
+</html>
