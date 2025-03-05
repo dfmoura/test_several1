@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extrair Dados XML</title>
+
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dados da NFe</h1>
+    <table id="nfeTable">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>NCM</th>
+                <th>Cód.</th>
+                <th>Produto</th>
+                <th>Un. Trib.</th>
+                <th>Quantidade</th>
+                <th>Valor Unitário</th>
+                <th>Valor Total</th>
+                <th>CST</th>
+                <th>BC Icms</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Os dados serão inseridos aqui via JavaScript -->
+        </tbody>
+    </table>
+
+    <script>
+document.addEventListener("DOMContentLoaded", function() {
+    const xmlString = `
+    
+
+<NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+    <infNFe Id="NFe52250202677655000710550010000013741460247432" versao="4.00">
+        <ide>
+            <cUF>52</cUF>
+            <cNF>46024743</cNF>
+            <natOp>Vda merc adq ou rec terceiros</natOp>
+            <mod>55</mod>
+            <serie>1</serie>
+            <nNF>1374</nNF>
+            <dhEmi>2025-02-28T10:42:55-03:00</dhEmi>
+            <dhSaiEnt>2025-02-28T10:42:55-03:00</dhSaiEnt>
+            <tpNF>1</tpNF>
+            <idDest>1</idDest>
+            <cMunFG>5208004</cMunFG>
+            <tpImp>2</tpImp>
+            <tpEmis>1</tpEmis>
+            <cDV>2</cDV>
+            <tpAmb>1</tpAmb>
+            <finNFe>1</finNFe>
+            <indFinal>0</indFinal>
+            <indPres>0</indPres>
+            <procEmi>0</procEmi>
+            <verProc>4.31b111</verProc>
+        </ide>
+        <emit>
+            <CNPJ>02677655000710</CNPJ>
+            <xNome>SATIS INDUSTRIA E COMERCIO LTDA</xNome>
+            <xFant>SATIS FORMOSA</xFant>
+            <enderEmit>
+                <xLgr>Av TANCREDO NEVES</xLgr>
+                <nro>78</nro>
+                <xBairro>SETOR BOSQUE</xBairro>
+                <cMun>5208004</cMun>
+                <xMun>Formosa</xMun>
+                <UF>GO</UF>
+                <CEP>73802005</CEP>
+                <cPais>1058</cPais>
+                <xPais>Brasil</xPais>
+            </enderEmit>
+            <IE>107913224</IE>
+            <CRT>3</CRT>
+        </emit>
+        <dest>
+            <CNPJ>19908200000175</CNPJ>
+            <xNome>ATIVA SEMENTES E BIOTECNOLOGIAS LTDA</xNome>
+            <enderDest>
+                <xLgr>Av BRASILIA</xLgr>
+                <nro>1285</nro>
+                <xCpl>QUADRA32 LOTE 21</xCpl>
+                <xBairro>FORMOSINHA</xBairro>
+                <cMun>5208004</cMun>
+                <xMun>Formosa</xMun>
+                <UF>GO</UF>
+                <CEP>73813010</CEP>
+                <cPais>1058</cPais>
+                <xPais>Brasil</xPais>
+                <fone>06136421085</fone>
+            </enderDest>
+            <indIEDest>1</indIEDest>
+            <IE>105961833</IE>
+            <email>faturamento@ativabiotecnologia.com.br</email>
+        </dest>
+        <det nItem="1">
+            <prod>
+                <cProd>3</cProd>
+                <cEAN>7899478701778</cEAN>
+                <xProd>FULLAND BD 20L</xProd>
+                <NCM>31059090</NCM>
+                <cBenef>GO821005</cBenef>
+                <CFOP>5102</CFOP>
+                <uCom>UN</uCom>
+                <qCom>5</qCom>
+                <vUnCom>980</vUnCom>
+                <vProd>4900.00</vProd>
+                <cEANTrib>7899478701778</cEANTrib>
+                <uTrib>UN</uTrib>
+                <qTrib>5</qTrib>
+                <vUnTrib>980</vUnTrib>
+                <indTot>1</indTot>
+                <xPed>15250</xPed>
+                <nItemPed>1</nItemPed>
+            </prod>
+            <imposto>
+                <ICMS>
+                    <ICMS20>
+                        <orig>0</orig>
+                        <CST>20</CST>
+                        <modBC>3</modBC>
+                        <pRedBC>78.9500</pRedBC>
+                        <vBC>1031.45</vBC>
+                        <pICMS>19.00</pICMS>
+                        <vICMS>195.98</vICMS>
+                        <vICMSDeson>735.02</vICMSDeson>
+                        <motDesICMS>3</motDesICMS>
+                    </ICMS20>
+                </ICMS>
+                <IPI>
+                    <cEnq>999</cEnq>
+                    <IPITrib>
+                        <CST>99</CST>
+                        <vBC>0.00</vBC>
+                        <pIPI>0.00</pIPI>
+                        <vIPI>0.00</vIPI>
+                    </IPITrib>
+                </IPI>
+                <PIS>
+                    <PISNT>
+                        <CST>06</CST>
+                    </PISNT>
+                </PIS>
+                <COFINS>
+                    <COFINSNT>
+                        <CST>06</CST>
+                    </COFINSNT>
+                </COFINS>
+            </imposto>
+            <infAdProd>Lote: 181124-0208 D.Fab: 18/11/24 D.Val: 18/11/27 | MG 001650-0.000003 - FERTILIZANTE MINERAL SIMPLES (FOSFITO DE COBRE) - MODO APLICACAO: VIA FOLIAR/FERTIRRIGACAO - GARANTIA(S): Cu 3,5% (Nutriente soluvel em agua). Densidade: 1,34g/ml. Maior relacao soluto/solvente: 5,0 ml/l. Nat.Fisica: Solucao</infAdProd>
+        </det>
+        <det nItem="2">
+            <prod>
+                <cProd>227</cProd>
+                <cEAN>7899478701808</cEAN>
+                <xProd>HUMICBOR BD 20L</xProd>
+                <NCM>31059090</NCM>
+                <cBenef>GO821005</cBenef>
+                <CFOP>5102</CFOP>
+                <uCom>UN</uCom>
+                <qCom>3</qCom>
+                <vUnCom>800</vUnCom>
+                <vProd>2400.00</vProd>
+                <cEANTrib>7899478701808</cEANTrib>
+                <uTrib>UN</uTrib>
+                <qTrib>3</qTrib>
+                <vUnTrib>800</vUnTrib>
+                <indTot>1</indTot>
+                <xPed>15250</xPed>
+                <nItemPed>2</nItemPed>
+            </prod>
+            <imposto>
+                <ICMS>
+                    <ICMS20>
+                        <orig>0</orig>
+                        <CST>20</CST>
+                        <modBC>3</modBC>
+                        <pRedBC>78.9500</pRedBC>
+                        <vBC>505.20</vBC>
+                        <pICMS>19.00</pICMS>
+                        <vICMS>95.99</vICMS>
+                        <vICMSDeson>360.01</vICMSDeson>
+                        <motDesICMS>3</motDesICMS>
+                    </ICMS20>
+                </ICMS>
+                <IPI>
+                    <cEnq>999</cEnq>
+                    <IPITrib>
+                        <CST>99</CST>
+                        <vBC>0.00</vBC>
+                        <pIPI>0.00</pIPI>
+                        <vIPI>0.00</vIPI>
+                    </IPITrib>
+                </IPI>
+                <PIS>
+                    <PISNT>
+                        <CST>06</CST>
+                    </PISNT>
+                </PIS>
+                <COFINS>
+                    <COFINSNT>
+                        <CST>06</CST>
+                    </COFINSNT>
+                </COFINS>
+            </imposto>
+            <infAdProd>Lote: 141123-0211 D.Fab: 16/11/23 D.Val: 15/11/26 | MG 001650-0.000005 - FERTILIZANTE ORGANOMINERAL CLASSE A- MODO DE APLICACAO VIA SOLO - GARANTIA(S): K2O (H2O) 1,0% B (TOTAL) 9,0% COT 6,0%. Densidade: 1,34g/mL. Maior relacao soluto/solvente: 1,0 mL/L. Nat. Fisica: Suspensao</infAdProd>
+        </det>
+        <det nItem="3">
+            <prod>
+                <cProd>247</cProd>
+                <cEAN>7899478701839</cEAN>
+                <xProd>STURDY BD 20L</xProd>
+                <NCM>31059090</NCM>
+                <cBenef>GO821005</cBenef>
+                <CFOP>5102</CFOP>
+                <uCom>UN</uCom>
+                <qCom>5</qCom>
+                <vUnCom>980</vUnCom>
+                <vProd>4900.00</vProd>
+                <cEANTrib>7899478701839</cEANTrib>
+                <uTrib>UN</uTrib>
+                <qTrib>5</qTrib>
+                <vUnTrib>980</vUnTrib>
+                <indTot>1</indTot>
+                <xPed>15250</xPed>
+                <nItemPed>3</nItemPed>
+            </prod>
+            <imposto>
+                <ICMS>
+                    <ICMS20>
+                        <orig>0</orig>
+                        <CST>20</CST>
+                        <modBC>3</modBC>
+                        <pRedBC>78.9500</pRedBC>
+                        <vBC>1031.45</vBC>
+                        <pICMS>19.00</pICMS>
+                        <vICMS>195.98</vICMS>
+                        <vICMSDeson>735.02</vICMSDeson>
+                        <motDesICMS>3</motDesICMS>
+                    </ICMS20>
+                </ICMS>
+                <IPI>
+                    <cEnq>999</cEnq>
+                    <IPITrib>
+                        <CST>99</CST>
+                        <vBC>0.00</vBC>
+                        <pIPI>0.00</pIPI>
+                        <vIPI>0.00</vIPI>
+                    </IPITrib>
+                </IPI>
+                <PIS>
+                    <PISNT>
+                        <CST>06</CST>
+                    </PISNT>
+                </PIS>
+                <COFINS>
+                    <COFINSNT>
+                        <CST>06</CST>
+                    </COFINSNT>
+                </COFINS>
+            </imposto>
+            <infAdProd>Lote: 031224-0032 D.Fab: 03/12/24 D.Val: 03/12/27 | MG 001650-0.000009 - FERTILIZANTE MINERAL MISTO - MODO DE APLICACAO: VIA FOLIAR - GARANTIA(S): N 1% P2O5 30% (Nutrientes soluveis em agua). Densidade: 1,35 g/mL. Maior relacao soluto/solvente: 3,0 mL/L. Nat. Fisica: Solucao</infAdProd>
+        </det>
+        <total>
+            <ICMSTot>
+                <vBC>2568.10</vBC>
+                <vICMS>487.95</vICMS>
+                <vICMSDeson>1830.05</vICMSDeson>
+                <vFCP>0.00</vFCP>
+                <vBCST>0.00</vBCST>
+                <vST>0.00</vST>
+                <vFCPST>0.00</vFCPST>
+                <vFCPSTRet>0.00</vFCPSTRet>
+                <vProd>12200.00</vProd>
+                <vFrete>0.00</vFrete>
+                <vSeg>0.00</vSeg>
+                <vDesc>0.00</vDesc>
+                <vII>0.00</vII>
+                <vIPI>0.00</vIPI>
+                <vIPIDevol>0.00</vIPIDevol>
+                <vPIS>0.00</vPIS>
+                <vCOFINS>0.00</vCOFINS>
+                <vOutro>0.00</vOutro>
+                <vNF>12200.00</vNF>
+            </ICMSTot>
+        </total>
+        <transp>
+            <modFrete>0</modFrete>
+            <vol>
+                <qVol>13</qVol>
+                <pesoL>345.400</pesoL>
+                <pesoB>358.660</pesoB>
+            </vol>
+        </transp>
+        <cobr>
+            <fat>
+                <nFat>1374</nFat>
+                <vOrig>12200.00</vOrig>
+                <vDesc>0.00</vDesc>
+                <vLiq>12200.00</vLiq>
+            </fat>
+            <dup>
+                <nDup>001</nDup>
+                <dVenc>2025-03-28</dVenc>
+                <vDup>12200.00</vDup>
+            </dup>
+        </cobr>
+        <pag>
+            <detPag>
+                <indPag>1</indPag>
+                <tPag>15</tPag>
+                <vPag>12200.00</vPag>
+            </detPag>
+        </pag>
+        <infAdic>
+            <infAdFisco>REDUCAO BASE DE CALCULO DE 78,95%, CONFORME ARTIGO 9., INCISO XXXVIII, ALINEA "B", DO ANEXO IX DO RCTE/GO.</infAdFisco>
+            <infCpl>Pedidos de Origem: 114046 Estabelecimento produtor registrado no MAPA sob nro -</infCpl>
+        </infAdic>
+        <infRespTec>
+            <CNPJ>26314062000161</CNPJ>
+            <xContato>Fabio Tulio Felippe</xContato>
+            <email>marketing@sankhya.com.br</email>
+            <fone>3432390700</fone>
+        </infRespTec>
+    </infNFe>
+    <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+        <SignedInfo>
+            <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+            <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+            <Reference URI="#NFe52250202677655000710550010000013741460247432">
+                <Transforms>
+                    <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                    <Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+                </Transforms>
+                <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+                <DigestValue>nz8c3LaPgScGOqVpyXQh9qAIHkE=</DigestValue>
+            </Reference>
+        </SignedInfo>
+        <SignatureValue>podmr9/dSs8cGo6RrLLNI0WKKNUHG1xoHMiSNCdR/KjGy1IO/xCE1LSCDKSdMHNCF3e4CQq1+Q9tNJ+YW8TNo+Pn8zSms93VTCBHVGwO05ehI6oJaKRb7Qf3zGF0LFZz/JEIAhbYkRxwefNHxlQfJTfAO/Z5iaz25A/wHRA+KmjOg5fa/ZTcBVWSS0W1BRPeNTmplYYs+NNkywawq7seIERCRclLOdhIJ/s7VCRKAP6rBJTwCSPhG6PdQZrjaDIeepLFxgQBXDIPTlXdFJBmspFIXtXMubkGRZ669bLd1UDJ5wj19QSjBXEumnvufPqcyFbw8JBNziEJQCXF7PZ0Qg==</SignatureValue>
+        <KeyInfo>
+            <X509Data>
+                <X509Certificate>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</X509Certificate>
+            </X509Data>
+        </KeyInfo>
+    </Signature>
+</NFe>    
+
+
+    
+    `; // Insira o XML aqui
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+
+    const detElements = xmlDoc.getElementsByTagName("det");
+const tableBody = document.querySelector("#nfeTable tbody");
+
+for (let i = 0; i < detElements.length; i++) {
+    const det = detElements[i];
+    const prod = det.getElementsByTagName("prod")[0];
+    const imposto = det.getElementsByTagName("imposto")[0];
+
+    // Pegando CST do ICMS e vBC (Base de Cálculo)
+    let cstICMS = "";
+    let vBC = "";
+    const icmsElements = imposto.getElementsByTagName("ICMS")[0];
+
+    if (icmsElements) {
+        const icmsChildren = icmsElements.children;
+        for (let j = 0; j < icmsChildren.length; j++) {
+            const cstElement = icmsChildren[j].getElementsByTagName("CST")[0];
+            const vBCElement = icmsChildren[j].getElementsByTagName("vBC")[0];
+
+            if (cstElement) {
+                cstICMS = cstElement.textContent;
+            }
+            if (vBCElement) {
+                vBC = vBCElement.textContent;
+            }
+
+            if (cstICMS && vBC) break; // Para otimizar e sair do loop se já encontrou
+        }
+    }
+
+    const item = det.getAttribute("nItem");
+    const ncm = prod.getElementsByTagName("NCM")[0].textContent;
+    const codigoProduto = prod.getElementsByTagName("cProd")[0].textContent;
+    const produto = prod.getElementsByTagName("xProd")[0].textContent;
+    const uTrib = prod.getElementsByTagName("uTrib")[0].textContent;
+    const quantidade = prod.getElementsByTagName("qCom")[0].textContent;
+    const valorUnitario = prod.getElementsByTagName("vUnCom")[0].textContent;
+    const valorTotal = prod.getElementsByTagName("vProd")[0].textContent;
+
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+        <td>${item}</td>
+        <td>${ncm}</td>
+        <td>${codigoProduto}</td>
+        <td>${produto}</td>
+        <td>${uTrib}</td>
+        <td>${quantidade}</td>
+        <td>${valorUnitario}</td>
+        <td>${valorTotal}</td>
+        <td>${cstICMS}</td>  <!-- CST do ICMS -->
+        <td>${vBC}</td>      <!-- Base de Cálculo do ICMS -->
+    `;
+
+    tableBody.appendChild(row);
+}
+
+});  
+    </script>
+</body>
+</html>
