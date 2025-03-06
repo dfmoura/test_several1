@@ -49,54 +49,124 @@
         }
     </style>
 
-    <script>
-        function carregarDadosNFe() {
-            console.log("Função carregarDadosNFe chamada.");
-            
-            jx.consultar({
-                comando: "SELECT 'teste' xml from dual",
-                callback: function(dados) {
-                    console.log("Dados recebidos:", dados);
-                    
-                    let tabela = document.getElementById("nfeTableBody");
-                    tabela.innerHTML = "";
-                    
-                    if (dados && dados.length > 0) {
-                        dados.forEach(function(item) {
-                            let linha = document.createElement("tr");
-                            let coluna = document.createElement("td");
-                            coluna.textContent = item.XML;
-                            linha.appendChild(coluna);
-                            tabela.appendChild(linha);
-                        });
-                    } else {
-                        console.log("Nenhum dado recebido.");
-                        tabela.innerHTML = "<tr><td>Nenhum dado encontrado.</td></tr>";
-                    }
-                },
-                erro: function(erro) {
-                    console.error("Erro ao carregar os dados: ", erro);
-                }
-            });
-        }
-        
-        document.addEventListener("DOMContentLoaded", carregarDadosNFe);
-    </script>
     <snk:load/>
 </head>
 <body>
+    <snk:query var="nfe">
+        SELECT * FROM (
+            SELECT NUNOTA, XML 
+            FROM TGFNFE 
+            ORDER BY NUNOTA DESC
+        ) WHERE ROWNUM < 10
+    </snk:query>
+
     <h1>Dados da NFe</h1>
     <table id="nfeTable">
         <thead>
             <tr>
-                <th>XML</th>
+                <th>CNPJ</th>
+                <th>NF</th>
+                <th>Emissão</th>
+                <th>Modelo</th>
+                <th>Item</th>
+                <th>NCM</th>
+                <th>Cód.</th>
+                <th>Produto</th>
+                <th>Un. Trib.</th>
+                <th>Quantidade</th>
+                <th>Valor Unitário</th>
+                <th>Valor Total</th>
+                <th>CST</th>
+                <th>BC Icms</th>
+                <th>Aliq. Icms</th>
+                <th>Valor Icms</th>
             </tr>
         </thead>
         <tbody id="nfeTableBody">
-            <tr>
-                <td>Carregando...</td>
-            </tr>
         </tbody>
     </table>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const nfeList = [
+                <c:forEach items="${nfe.rows}" var="row" varStatus="status">
+                    decodeURIComponent(escape(atob('${snk:blobToBase64(row.XML)}')))${!status.last ? ',' : ''}
+                </c:forEach>
+            ];
+
+            // Processar cada XML da lista
+            nfeList.forEach(nfeXmlString => {
+                // Criar um objeto XML a partir da string
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(nfeXmlString, "application/xml");
+
+                const emitElement = xmlDoc.getElementsByTagName("emit")[0];
+                let cnpj = emitElement ? emitElement.getElementsByTagName("CNPJ")[0]?.textContent || "" : "";
+
+                const ideElement = xmlDoc.getElementsByTagName("ide")[0];
+                let numeroNF = ideElement ? ideElement.getElementsByTagName("nNF")[0]?.textContent || "" : "";
+                let dataEmissao = ideElement ? ideElement.getElementsByTagName("dhEmi")[0]?.textContent || "" : "";
+                let modeloNF = ideElement ? ideElement.getElementsByTagName("mod")[0]?.textContent || "" : "";
+
+                const detElements = xmlDoc.getElementsByTagName("det");
+                const tableBody = document.getElementById("nfeTableBody");
+
+                for (let i = 0; i < detElements.length; i++) {
+                    const det = detElements[i];
+                    const prod = det.getElementsByTagName("prod")[0];
+                    const imposto = det.getElementsByTagName("imposto")[0];
+
+                    let cstICMS = "", vBC = "", pICMS = "", vICMS = "";
+                    const icmsElements = imposto.getElementsByTagName("ICMS")[0];
+
+                    if (icmsElements) {
+                        const icmsChildren = icmsElements.children;
+                        for (let j = 0; j < icmsChildren.length; j++) {
+                            const cstElement = icmsChildren[j].getElementsByTagName("CST")[0];
+                            const vBCElement = icmsChildren[j].getElementsByTagName("vBC")[0];
+                            const pICMSElement = icmsChildren[j].getElementsByTagName("pICMS")[0];
+                            const vICMSElement = icmsChildren[j].getElementsByTagName("vICMS")[0];
+
+                            if (cstElement) cstICMS = cstElement.textContent;
+                            if (vBCElement) vBC = vBCElement.textContent;
+                            if (pICMSElement) pICMS = pICMSElement.textContent;
+                            if (vICMSElement) vICMS = vICMSElement.textContent;
+                            if (cstICMS && vBC && pICMS && vICMS) break;
+                        }
+                    }
+
+                    const item = det.getAttribute("nItem");
+                    const ncm = prod.getElementsByTagName("NCM")[0]?.textContent || "";
+                    const codigoProduto = prod.getElementsByTagName("cProd")[0]?.textContent || "";
+                    const produto = prod.getElementsByTagName("xProd")[0]?.textContent || "";
+                    const uTrib = prod.getElementsByTagName("uTrib")[0]?.textContent || "";
+                    const quantidade = prod.getElementsByTagName("qCom")[0]?.textContent || "";
+                    const valorUnitario = prod.getElementsByTagName("vUnCom")[0]?.textContent || "";
+                    const valorTotal = prod.getElementsByTagName("vProd")[0]?.textContent || "";
+
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${cnpj}</td>
+                        <td>${numeroNF}</td>
+                        <td>${dataEmissao}</td>
+                        <td>${modeloNF}</td>
+                        <td>${item}</td>
+                        <td>${ncm}</td>
+                        <td>${codigoProduto}</td>
+                        <td>${produto}</td>
+                        <td>${uTrib}</td>
+                        <td>${quantidade}</td>
+                        <td>${valorUnitario}</td>
+                        <td>${valorTotal}</td>
+                        <td>${cstICMS}</td>
+                        <td>${vBC}</td>
+                        <td>${pICMS}</td>
+                        <td>${vICMS}</td>
+                    `;
+                    tableBody.appendChild(row);
+                }
+            });
+        });
+    </script>
 </body>
 </html>

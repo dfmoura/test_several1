@@ -82,9 +82,17 @@
 
     <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Obter o conteúdo do XML da variável nfe diretamente
-        const nfeXmlString = '${nfe.xml}';  // Aqui o conteúdo do XML será passado pela variável 'nfe'
 
+        // Obter o conteúdo do XML da variável nfe diretamente
+
+        const nfeList = [
+            <c:forEach items="${nfe.rows}" var="row" varStatus="status">
+                decodeURIComponent(escape(atob('${snk:blobToBase64(row.XML)}')))${!status.last ? ',' : ''}
+            </c:forEach>
+        ];
+
+        // Processar cada XML da lista
+        nfeList.forEach(nfeXmlString => {
         // Criar um objeto XML a partir da string
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(nfeXmlString, "application/xml");
@@ -157,6 +165,7 @@
 
                 tableBody.appendChild(row);
             }
+        });
     });
     </script>
 </body>
