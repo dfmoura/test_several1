@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela Profissional</title>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f4f4;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        font-size: 12px;
+    }
+
+    th, td {
+        padding: 8px 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #007BFF;
+        color: white;
+        font-weight: bold;
+        font-size:12px;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+
+    tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    .highlight-red {
+        color: red;
+        font-weight: bold;
+    }
+
+    .group-color-1 {
+        background-color: #e3f2fd;
+    }
+
+    .group-color-2 {
+        background-color: #fff3e0;
+    }        
+    </style>
+</head>
+<body>
+    <div class="table-container">
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>Grupo</th>
+                    <th>Origem</th>
+                    <th>Chave</th>
+                    <th>Filial</th>
+                    <th>Nº Único</th>
+                    <th>Nro. Nota</th>
+                    <th>Dt. Emissão</th>
+                    <th>Cód. Parc.</th>
+                    <th>Parceiro</th>
+                    <th>UF</th>
+                    <th>CNPJ/CPF</th>
+                    <th>Seq.</th>
+                    <th>CFOP</th>
+                    <th>CST</th>
+                    <th>NCM</th>
+                    <th>Cód. Prod.</th>
+                    <th>Produto</th>
+                    <th>Cód. Vol.</th>
+                    <th>Qtd. Neg.</th>
+                    <th>Vlr. Unit.</th>
+                    <th>Vlr. Tot.</th>
+                    <th>BC ICMS</th>
+                    <th>Aliq. ICMS</th>
+                    <th>Vlr. ICMS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dados serão inseridos via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+
+
+            // script.js
+            const data = [
+                // Insira aqui os dados fornecidos como arrays de objetos
+                // Exemplo:
+                {
+                    Grupo: 1, Origem: "DADOS SISTEMA", Chave: "41250211436073000147550010008398881499312292", Filial: 1, "Nº Único": 110594, "Nro. Nota": 839888, "Dt. Emissão": "01/02/2025", "Cód. Parc.": 401, Parceiro: "ECONET PUBLICACOES PERIODICAS LTDA", UF: "PR", "CNPJ/CPF": "11436073000147", Seq: 1, CFOP: 2556, CST: 90, NCM: "49029000", "Cód. Prod.": 694, Produto: "BOLETIM INFORMATIVO", "Cód. Vol.": "UN", "Qtd. Neg.": 1.00, "Vlr. Unit.": 315.00, "Vlr. Tot.": 315.00, "BC ICMS": 0.00, "Aliq. ICMS": 0.00, "Vlr. ICMS": 0.00
+                },
+
+                {Grupo: 1, Origem: "DADOS XML", Chave: "41250211436073000147550010008398881499312292", Filial: 1, "Nº Único": 110594, "Nro. Nota": 839888, "Dt. Emissão": "45689", "Cód. Parc.": 401, Parceiro: "ECONET PUBLICACOES PERIODICAS LTDA", UF: "PR", "CNPJ/CPF": "11436073000147", Seq: 1, CFOP: 6101, CST: 41, NCM: "49029000", "Cód. Prod.": 001, Produto: "Boletim Informativo Completo Online, Periodo de 02", "Cód. Vol.": "UNID", "Qtd. Neg.": 1, "Vlr. Unit.": 315, "Vlr. Tot.": 315, "BC ICMS": 0, "Aliq. ICMS": 0, "Vlr. ICMS": 0
+                },
+                {Grupo: 2, Origem: "DADOS XML", Chave: "31250218468199000657550500000511241253352296", Filial: 1, "Nº Único": 111440, "Nro. Nota": 51124, "Dt. Emissão": "45689", "Cód. Parc.": 568, Parceiro: "SUPERMERCADO BERNARDAO LTDA", UF: "MG", "CNPJ/CPF": "18468199000657", Seq: 1, CFOP: 5102, CST: 40, NCM: "07031019", "Cód. Prod.": 1044, Produto: "Cebola Extra Kg KG", "Cód. Vol.": "KG", "Qtd. Neg.": 1.85, "Vlr. Unit.": 2.98, "Vlr. Tot.": 5.51, "BC ICMS": 0, "Aliq. ICMS": 0, "Vlr. ICMS": 0
+                },
+                {Grupo: 2, Origem: "DADOS SISTEMA", Chave: "31250218468199000657550500000511241253352296", Filial: 1, "Nº Único": 111440, "Nro. Nota": 51124, "Dt. Emissão": "45689", "Cód. Parc.": 568, Parceiro: "SUPERMERCADO BERNARDAO LTDA", UF: "MG", "CNPJ/CPF": "18468199000657", Seq: 1, CFOP: 1556, CST: 40, NCM: "21069029", "Cód. Prod.": 1316, Produto: "ITENS ALIMENTICIOS - USO E CONSUMO", "Cód. Vol.": "UN", "Qtd. Neg.": 1.85, "Vlr. Unit.": 2.98, "Vlr. Tot.": 5.51, "BC ICMS": 0, "Aliq. ICMS": 0, "Vlr. ICMS": 0
+                },
+
+                // Adicione os demais dados...
+            ];
+
+            function createTable(data) {
+                const tableBody = document.querySelector("#dataTable tbody");
+                let colorToggle = false; // Controla a alternância de cores
+
+                data.forEach((row, index) => {
+                    const tr = document.createElement("tr");
+
+                    // Alterna a cor a cada 2 linhas (1 grupo = 2 linhas)
+                    if (index % 2 === 0) {
+                        colorToggle = !colorToggle; // Alterna a cor apenas no início de cada grupo
+                    }
+
+                    // Aplica a classe de cor com base no toggle
+                    tr.classList.add(colorToggle ? "group-color-1" : "group-color-2");
+
+                    // Preenche as células da linha
+                    Object.values(row).forEach((value) => {
+                        const td = document.createElement("td");
+                        td.textContent = value;
+                        tr.appendChild(td);
+                    });
+
+                    tableBody.appendChild(tr);
+                });
+
+                highlightDifferences();
+            }
+
+            function highlightDifferences() {
+                const rows = document.querySelectorAll("#dataTable tbody tr");
+                const fieldsToCheck = ["CST", "NCM", "Qtd. Neg.", "Vlr. Unit.", "Vlr. Tot.", "BC ICMS", "Aliq. ICMS", "Vlr. ICMS"];
+
+                // Compara as linhas de cada grupo (2 em 2)
+                for (let i = 0; i < rows.length; i += 2) {
+                    const row1 = rows[i];
+                    const row2 = rows[i + 1];
+
+                    if (row1 && row2) {
+                        fieldsToCheck.forEach((field, fieldIndex) => {
+                            const cell1 = row1.cells[13 + fieldIndex]; // Ajuste o índice conforme necessário
+                            const cell2 = row2.cells[13 + fieldIndex];
+
+                            if (cell1.textContent !== cell2.textContent) {
+                                cell1.classList.add("highlight-red");
+                                cell2.classList.add("highlight-red");
+                            }
+                        });
+                    }
+                }
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+                createTable(data);
+            });
+
+
+    </script>
+    
+</body>
+</html>
