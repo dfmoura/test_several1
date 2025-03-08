@@ -133,7 +133,7 @@
             {Grupo: 3, Origem: "DADOS SISTEMA", Chave: "31250218468199000657550500000511241253352296", Filial: 1, "Nº Único": 111440, "Nro. Nota": 51124, "Dt. Emissão": "45689", "Cód. Parc.": 568, Parceiro: "SUPERMERCADO BERNARDAO LTDA", UF: "MG", "CNPJ/CPF": "18468199000657", Seq: 2, CFOP: 1556, CST: 40, NCM: "21069029", "Cód. Prod.": 1316, Produto: "ITENS ALIMENTICIOS - USO E CONSUMO", "Cód. Vol.": "UN", "Qtd. Neg.": 2.63, "Vlr. Unit.": 3.99, "Vlr. Tot.": 10.49, "BC ICMS": 0, "Aliq. ICMS": 0, "Vlr. ICMS": 0},
             {Grupo: 3, Origem: "DADOS XML", Chave: "31250218468199000657550500000511241253352296", Filial: 1, "Nº Único": 111440, "Nro. Nota": 51124, "Dt. Emissão": "45689", "Cód. Parc.": 568, Parceiro: "SUPERMERCADO BERNARDAO LTDA", UF: "MG", "CNPJ/CPF": "18468199000657", Seq: 2, CFOP: 5102, CST: 40, NCM: "07101000", "Cód. Prod.": 1026, Produto: "Batata Extra Kg Extra KG", "Cód. Vol.": "KG", "Qtd. Neg.": 2.63, "Vlr. Unit.": 3.99, "Vlr. Tot.": 10.49, "BC ICMS": 0, "Aliq. ICMS": 0, "Vlr. ICMS": 0},
             {Grupo: 4, Origem: "DADOS XML", Chave: "31250218468199000657550500000511241253352296", Filial: 1, "Nº Único": 111440, "Nro. Nota": 51124, "Dt. Emissão": "45689", "Cód. Parc.": 568, Parceiro: "SUPERMERCADO BERNARDAO LTDA", UF: "MG", "CNPJ/CPF": "18468199000657", Seq: 3, CFOP: 5102, CST: 0, NCM: "21041011", "Cód. Prod.": 489997, Produto: "Caldo Carne Knorr 114g Carne Knorr UN", "Cód. Vol.": "UN", "Qtd. Neg.": 1, "Vlr. Unit.": 4.49, "Vlr. Tot.": 4.49, "BC ICMS": 4.49, "Aliq. ICMS": 18, "Vlr. ICMS": 0.81},
-            {Grupo: 4, Origem: "DADOS SISTEMA", Chave: "31250218468199000657550500000511241253352296", Filial: 1, "Nº Único": 111440, "Nro. Nota": 51124, "Dt. Emissão": "45689", "Cód. Parc.": 568, Parceiro: "SUPERMERCADO BERNARDAO LTDA", UF: "MG", "CNPJ/CPF": "18468199000657", Seq: 3, CFOP: 1556, CST: 90, NCM: "21069029", "Cód. Prod.": 1316, Produto: "ITENS ALIMENTICIOS - USO E CONSUMO", "Cód. Vol.": "UN", "Qtd. Neg.": 1, "Vlr. Unit.": 4.49, "Vlr. Tot.": 4.49, "BC ICMS": 4.49, "Aliq. ICMS": 18, "Vlr. ICMS": 0.81},
+            {Grupo: 4, Origem: "DADOS SISTEMA", Chave: "31250218468199000657550500000511241253352296", Filial: 1, "Nº Único": 111440, "Nro. Nota": 51124, "Dt. Emissão": "45689", "Cód. Parc.": 568, Parceiro: "SUPERMERCADO BERNARDAO LTDA", UF: "MG", "CNPJ/CPF": "18468199000657", Seq: 3, CFOP: 1556, CST: 90, NCM: "21069029", "Cód. Prod.": 1316, Produto: "ITENS ALIMENTICIOS - USO E CONSUMO", "Cód. Vol.": "UN", "Qtd. Neg.": 1, "Vlr. Unit.": 4.49, "Vlr. Tot.": 4.49, "BC ICMS": 4.49, "Aliq. ICMS": 18, "Vlr. ICMS": 0.90},
         ];
 
         function createTable(data) {
@@ -169,6 +169,8 @@
         function highlightDifferences() {
             const rows = document.querySelectorAll("#dataTable tbody tr");
             const fieldsToCheck = ["CST", "NCM", "Qtd. Neg.", "Vlr. Unit.", "Vlr. Tot.", "BC ICMS", "Aliq. ICMS", "Vlr. ICMS"];
+            const headerRow = document.querySelector("#dataTable thead tr");
+            const headers = Array.from(headerRow.cells).map(cell => cell.textContent);
 
             for (let i = 0; i < rows.length; i += 2) {
                 if (i + 1 >= rows.length) break;
@@ -177,7 +179,7 @@
                 const row2 = rows[i + 1];
 
                 fieldsToCheck.forEach((field) => {
-                    const index = Array.from(row1.cells).findIndex(cell => cell.textContent === field);
+                    const index = headers.indexOf(field);
                     if (index === -1) return;
 
                     const value1 = row1.cells[index].textContent;
