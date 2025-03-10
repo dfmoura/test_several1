@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Sort Visualizado</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { display: flex; justify-content: center; margin-top: 20px; }
+        .bar { padding: 10px; margin: 5px; background-color: lightblue; border: 1px solid #000; transition: 0.5s; }
+        .highlight { background-color: orange; }
+        .swap { background-color: red; }
+    </style>
+</head>
+<body>
+    <h1>Bubble Sort Passo a Passo</h1>
+    <div class="container" id="array-container"></div>
+    <button onclick="startSort()">Iniciar</button>
+    <button onclick="resetArray()">Resetar</button>
+    <script>
+        let names = ["Lucas", "Ana", "Carlos", "Beatriz", "Fernando", "Eduarda"];
+        let container = document.getElementById("array-container");
+        
+        function displayArray(arr) {
+            container.innerHTML = "";
+            arr.forEach(name => {
+                let div = document.createElement("div");
+                div.className = "bar";
+                div.textContent = name;
+                container.appendChild(div);
+            });
+        }
+        
+        async function bubbleSort(arr) {
+            let bars = document.getElementsByClassName("bar");
+            for (let i = 0; i < arr.length - 1; i++) {
+                for (let j = 0; j < arr.length - i - 1; j++) {
+                    bars[j].classList.add("highlight");
+                    bars[j + 1].classList.add("highlight");
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    if (arr[j] > arr[j + 1]) {
+                        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+                        bars[j].classList.add("swap");
+                        bars[j + 1].classList.add("swap");
+                        displayArray(arr);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                    bars[j].classList.remove("highlight", "swap");
+                    bars[j + 1].classList.remove("highlight", "swap");
+                }
+            }
+        }
+        
+        function startSort() {
+            bubbleSort(names);
+        }
+        
+        function resetArray() {
+            names = ["Lucas", "Ana", "Carlos", "Beatriz", "Fernando", "Eduarda"];
+            displayArray(names);
+        }
+        
+        displayArray(names);
+    </script>
+</body>
+</html>

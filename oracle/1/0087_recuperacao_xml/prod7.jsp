@@ -54,21 +54,21 @@
     SELECT
     grupo,
     Origem,
-    chaveacesso,
+    nvl(chaveacesso,'0') chaveacesso,
     codemp,
-    nunota,
+    nvl(nunota,0) nunota,
     NUMNOTA,
     dhEmissao,
-    codparc,
-    razaosocial,
-    UF,
-    CNPJ_CPF,
+    nvl(codparc,0) codparc,
+    nvl(razaosocial,'0') razaosocial,
+    nvl(UF,'0') UF,
+    nvl(CNPJ_CPF,'0') CNPJ_CPF,
     sequencia,
     CFOP,
-    CST,
-    ncm,
-    codprod,
-    descrprod,
+    nvl(CST,0) CST,
+    nvl(ncm,'0') ncm,
+    nvl(codprod,0) codprod,
+    nvl(descrprod,'0') descrprod,
     codvol,
     qtdneg,
     vlrunit,
@@ -77,7 +77,7 @@
     aliqicms,
     vlricms
 
-    FROM VIEW_XML_SIS_SATIS
+    FROM AD_TEST_XMS_SIS_SATIS
     WHERE 
     dhemissao BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
     AND (nunota = :P_NUNOTA OR :P_NUNOTA IS NULL)
@@ -118,8 +118,8 @@
             <th>vlricms</th>
         </tr>
         </thead>
-        <c:forEach var="row" items="${nfe.rows}">
         <tbody>
+            <c:forEach var="row" items="${nfe.rows}">
         <tr>
             <td>${row.grupo}</td>
             <td>${row.Origem}</td>
@@ -146,8 +146,8 @@
             <td>${row.aliqicms}</td>
             <td>${row.vlricms}</td>
         </tr>
-    </tbody>
     </c:forEach>
+    </tbody>
         </table>
 
 

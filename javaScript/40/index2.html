@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador Bubble Sort</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .bar {
+            width: 40px;
+            margin: 2px;
+            background-color: steelblue;
+            display: inline-block;
+            transition: 0.3s;
+        }
+        .comparing {
+            background-color: orange !important;
+        }
+        .swapping {
+            background-color: red !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Visualizador Bubble Sort</h1>
+    <div class="container" id="bar-container"></div>
+    <input type="range" id="speed-slider" min="100" max="2000" value="500">
+    <button onclick="startSort()">Iniciar</button>
+    
+    <script>
+        const array = [50, 30, 70, 10, 90, 40];
+        const container = document.getElementById("bar-container");
+        const speedSlider = document.getElementById("speed-slider");
+        let delay = speedSlider.value;
+
+        function createBars() {
+            container.innerHTML = "";
+            array.forEach(value => {
+                const bar = document.createElement("div");
+                bar.classList.add("bar");
+                bar.style.height = `${value * 3}px`;
+                container.appendChild(bar);
+            });
+        }
+
+        async function bubbleSort() {
+            let bars = document.querySelectorAll(".bar");
+            for (let i = 0; i < array.length - 1; i++) {
+                for (let j = 0; j < array.length - 1 - i; j++) {
+                    bars[j].classList.add("comparing");
+                    bars[j + 1].classList.add("comparing");
+                    await sleep(delay);
+
+                    if (array[j] > array[j + 1]) {
+                        bars[j].classList.remove("comparing");
+                        bars[j + 1].classList.remove("comparing");
+                        bars[j].classList.add("swapping");
+                        bars[j + 1].classList.add("swapping");
+                        await sleep(delay);
+
+                        [array[j], array[j + 1]] = [array[j + 1], array[j]];
+                        createBars();
+                        bars = document.querySelectorAll(".bar");
+                    }
+                    bars[j].classList.remove("comparing", "swapping");
+                    bars[j + 1].classList.remove("comparing", "swapping");
+                }
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function startSort() {
+            bubbleSort();
+        }
+
+        speedSlider.addEventListener("input", (e) => {
+            delay = e.target.value;
+        });
+
+        createBars();
+    </script>
+</body>
+</html>

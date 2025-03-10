@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Sort Visualizer</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { display: flex; justify-content: center; align-items: flex-end; height: 300px; margin-top: 20px; }
+        .bar { width: 30px; margin: 2px; background-color: steelblue; transition: height 0.3s; }
+        .controls { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h2>Visualizador de Bubble Sort</h2>
+    <div class="container" id="barsContainer"></div>
+    <div class="controls">
+        <button onclick="shuffleArray()">Embaralhar</button>
+        <button onclick="bubbleSort()">Ordenar</button>
+        <label>Velocidade: <input type="range" id="speedSlider" min="50" max="1000" value="300"></label>
+    </div>
+    
+    <script>
+        let numbers = [50, 40, 30, 20, 10];
+        const barsContainer = document.getElementById("barsContainer");
+        const speedSlider = document.getElementById("speedSlider");
+
+        function renderBars() {
+            barsContainer.innerHTML = "";
+            numbers.forEach(num => {
+                const bar = document.createElement("div");
+                bar.classList.add("bar");
+                bar.style.height = num * 5 + "px";
+                barsContainer.appendChild(bar);
+            });
+        }
+
+        function shuffleArray() {
+            numbers.sort(() => Math.random() - 0.5);
+            renderBars();
+        }
+
+        async function bubbleSort() {
+            let bars = document.getElementsByClassName("bar");
+            for (let i = 0; i < numbers.length - 1; i++) {
+                for (let j = 0; j < numbers.length - i - 1; j++) {
+                    if (numbers[j] > numbers[j + 1]) {
+                        [numbers[j], numbers[j + 1]] = [numbers[j + 1], numbers[j]];
+                        bars[j].style.height = numbers[j] * 5 + "px";
+                        bars[j + 1].style.height = numbers[j + 1] * 5 + "px";
+                        bars[j].style.backgroundColor = "red";
+                        bars[j + 1].style.backgroundColor = "red";
+                        await new Promise(resolve => setTimeout(resolve, speedSlider.value));
+                        bars[j].style.backgroundColor = "steelblue";
+                        bars[j + 1].style.backgroundColor = "steelblue";
+                    }
+                }
+            }
+        }
+
+        renderBars();
+    </script>
+</body>
+</html>
