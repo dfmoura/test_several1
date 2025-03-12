@@ -1,3 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Sort Visualizador</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+        }
+        
+        .container { 
+            margin-top: 20px; 
+        }
+        
+        .array-container { 
+            display: flex; 
+            justify-content: center; 
+            gap: 10px; 
+        }
+        
+        .item { 
+            padding: 10px 15px; 
+            background: lightblue; 
+            border-radius: 5px; 
+        }
+        
+        .highlight { 
+            background: orange; 
+        }
+        
+        .swap { 
+            background: red; 
+            color: white; 
+        }
+        
+        .log { 
+            margin-top: 20px; 
+            white-space: pre-line; 
+            text-align: left; 
+            max-width: 600px; 
+            margin: auto; 
+        }
+        
+        .code-snippet {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 5px 0;
+            text-align: left;
+        }
+
+    </style>
+
+
+</head>
+<body>
+    <h1>Visualizador Bubble Sort</h1>
+    <button onclick="startSort()">Iniciar Bubble Sort</button>
+    <button onclick="reset()">Resetar</button>
+    <button onclick="nextStep()" id="nextStepBtn" disabled>Próximo Passo</button>
+    <div class="container">
+        <div class="array-container" id="arrayContainer"></div>
+        <div class="log" id="log"></div>
+    </div>
+
+
+    <script>
+
 
 let names = ["Ana", "Pedro", "Carlos", "Beatriz", "João", "Fernanda", "Marcos"];
 let originalArray = [...names];
@@ -123,3 +194,7 @@ function reset() {
 
 renderArray(names);
 
+
+    </script>
+</body>
+</html>
