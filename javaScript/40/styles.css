@@ -33,7 +33,11 @@ body {
     white-space: pre-line; 
     text-align: left; 
     max-width: 600px; 
-    margin: auto; 
+    margin: auto;
+    height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 15px;
 }
 
 .code-snippet {
