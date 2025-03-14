@@ -1,0 +1,179 @@
+<cteProc versao="4.00">
+	<CTe>
+		<infCte Id="CTe52250256108093000127570010000019441258575182" versao="4.00">
+			<ide>
+				<cUF>52</cUF>
+				<cCT>25857518</cCT>
+				<CFOP>6360</CFOP>
+				<natOp>Prestacao de servico de transporte a contribuinte substituto</natOp>
+				<mod>57</mod>
+				<serie>1</serie>
+				<nCT>1944</nCT>
+				<dhEmi>2025-02-24T13:42:58-03:00</dhEmi>
+				<tpImp>2</tpImp>
+				<tpEmis>1</tpEmis>
+				<cDV>2</cDV>
+				<tpAmb>1</tpAmb>
+				<tpCTe>0</tpCTe>
+				<procEmi>0</procEmi>
+				<verProc>2.0ct</verProc>
+				<cMunEnv>5208707</cMunEnv>
+				<xMunEnv>GOIANIA</xMunEnv>
+				<UFEnv>GO</UFEnv>
+				<modal>01</modal>
+				<tpServ>0</tpServ>
+				<cMunIni>5218805</cMunIni>
+				<xMunIni>RIO VERDE</xMunIni>
+				<UFIni>GO</UFIni>
+				<cMunFim>1709500</cMunFim>
+				<xMunFim>GURUPI</xMunFim>
+				<UFFim>TO</UFFim>
+				<retira>1</retira>
+				<indIEToma>1</indIEToma>
+				<toma3>
+					<toma>0</toma>
+				</toma3>
+			</ide>
+			<compl>
+				<xObs>OLA E UM PRAZER ESTAR TRANSPORTANDO PARA VOCE, SUA CARGA ESTA EM BOAS MAOS, Recolhimento do ICMS e de responsabilidade do remetente da mercadoria, na forma do art. 17-A, do Anexo VIII, do RCTE, (Documento emitido por ME e EPP Optante Pelo Simples Nacional, nao gera direito a credito fiscal de ICMS, IPI e ISS CCF. LC 123-2006) - conf. Art 7, Inciso XLI, Anexo IX, do RCTE</xObs>
+				<ObsCont xCampo="RASTREADO">
+					<xTexto>N</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="SUBC">
+					<xTexto>GYN2552</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="OPERACAO">
+					<xTexto>Normal</xTexto>
+				</ObsCont>
+			</compl>
+			<emit>
+				<CNPJ>56108093000127</CNPJ>
+				<IE>201723379</IE>
+				<xNome>AGILIZA CARGAS E ENCOMENDAS</xNome>
+				<xFant>AGILIZA CARGAS E ENCOMENDAS</xFant>
+				<enderEmit>
+					<xLgr>RUA 18 QD 90 LT 11</xLgr>
+					<nro>S/N</nro>
+					<xBairro>SETOR SANTOS DUMONT</xBairro>
+					<cMun>5208707</cMun>
+					<xMun>GOIANIA</xMun>
+					<CEP>74463640</CEP>
+					<UF>GO</UF>
+					<fone>62985872270</fone>
+				</enderEmit>
+				<CRT>1</CRT>
+			</emit>
+			<rem>
+				<CNPJ>02677655000558</CNPJ>
+				<IE>107097419</IE>
+				<xNome>SATIS INDUSTRIA E COMERCIO LTDA</xNome>
+				<fone>3432567400</fone>
+				<enderReme>
+					<xLgr>RUA TOCANTINS SN</xLgr>
+					<nro>S/N</nro>
+					<xBairro>PARQUE DAS PALMEIRAS</xBairro>
+					<cMun>5218805</cMun>
+					<xMun>RIO VERDE</xMun>
+					<CEP>75903001</CEP>
+					<UF>GO</UF>
+				</enderReme>
+			</rem>
+			<dest>
+				<CNPJ>33557614000128</CNPJ>
+				<IE>294955941</IE>
+				<xNome>CAMPO AGRO COMERCIO E REPRESENTACOES AGRICOLAS LTDA</xNome>
+				<fone>55633312506</fone>
+				<enderDest>
+					<xLgr>Av PARANA</xLgr>
+					<nro>2078</nro>
+					<xCpl>QUADRA370 LOTE 15</xCpl>
+					<xBairro>SETOR CENTRAL</xBairro>
+					<cMun>1709500</cMun>
+					<xMun>GURUPI</xMun>
+					<CEP>77403050</CEP>
+					<UF>TO</UF>
+				</enderDest>
+			</dest>
+			<vPrest>
+				<vTPrest>1600.00</vTPrest>
+				<vRec>1600.00</vRec>
+				<Comp>
+					<xNome>FRETE PESO</xNome>
+					<vComp>1600.00</vComp>
+				</Comp>
+			</vPrest>
+			<imp>
+				<ICMS>
+					<ICMS60>
+						<CST>60</CST>
+						<vBCSTRet>0.00</vBCSTRet>
+						<vICMSSTRet>0.00</vICMSSTRet>
+						<pICMSSTRet>0.00</pICMSSTRet>
+					</ICMS60>
+				</ICMS>
+			</imp>
+			<infCTeNorm>
+				<infCarga>
+					<vCarga>27625.00</vCarga>
+					<proPred>DIVERSOS</proPred>
+					<infQ>
+						<cUnid>01</cUnid>
+						<tpMed>PESO DECLARADO</tpMed>
+						<qCarga>312.0000</qCarga>
+					</infQ>
+					<infQ>
+						<cUnid>03</cUnid>
+						<tpMed>UNIDADE</tpMed>
+						<qCarga>26.0000</qCarga>
+					</infQ>
+				</infCarga>
+				<infDoc>
+					<infNFe>
+						<chave>52250202677655000558550010000025101865590109</chave>
+					</infNFe>
+				</infDoc>
+				<infModal versaoModal="4.00">
+					<rodo>
+						<RNTRC>00000000</RNTRC>
+					</rodo>
+				</infModal>
+			</infCTeNorm>
+		</infCte>
+		<infCTeSupl>
+			<qrCodCTe>https://dfe-portal.svrs.rs.gov.br/cte/qrCode?chCTe=52250256108093000127570010000019441258575182&amp;tpAmb=1</qrCodCTe>
+		</infCTeSupl>
+		<Signature
+			xmlns="http://www.w3.org/2000/09/xmldsig#">
+			<SignedInfo>
+				<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+				<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+				<Reference URI="#CTe52250256108093000127570010000019441258575182">
+					<Transforms>
+						<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+						<Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+					</Transforms>
+					<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+					<DigestValue>wWcmNByyU37cWqNVCGubd8EzASs=</DigestValue>
+				</Reference>
+			</SignedInfo>
+			<SignatureValue>Bxp/KD4/lQ2RrLatcUHz0d9Cyqw5RKNvyaRyPPP6Fq8FomaCEKgBL3VoPHqvQu/EAu/AgiLMJ9hB0XntQAq06jmWBOoI0XmysZG/d6bmDGOhhQU4E5jCC6sOMWWOzzj1dxx+roIAv6oUsU2a3hcZlz+lx7wjOkP9JAgN2ikn5jVS2WsQXHTzN9Y2akV90f4LcfudQtLAQQbocmv+VHIm1wh7b/YrayXBWBK4VhfA0SIKQrFnkl6/9kLydwDv1KcHN9xZDoxVWcXrZXDr/uisTKkRsyJ0RsxCescmhDKk14+/QSXHVaX5CZ26NCQdofYl5Hw+WYMEIeNx4Iy7Tc/YFg==</SignatureValue>
+			<KeyInfo>
+				<X509Data>
+					<X509Certificate>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</X509Certificate>
+				</X509Data>
+			</KeyInfo>
+		</Signature>
+	</CTe>
+	<protCTe versao="4.00">
+		<infProt Id="CTe352250019791015">
+			<tpAmb>1</tpAmb>
+			<verAplic>RS20250205143919</verAplic>
+			<chCTe>52250256108093000127570010000019441258575182</chCTe>
+			<dhRecbto>2025-02-24T13:42:59-03:00</dhRecbto>
+			<nProt>352250019791015</nProt>
+			<digVal>wWcmNByyU37cWqNVCGubd8EzASs=</digVal>
+			<cStat>100</cStat>
+			<xMotivo>Autorizado o uso do CT-e</xMotivo>
+		</infProt>
+	</protCTe>
+</cteProc>

@@ -1,0 +1,272 @@
+<cteProc versao="4.00">
+	<CTe>
+		<infCte Id="CTe51250333070814001042570030070525301016432120" versao="4.00">
+			<ide>
+				<cUF>51</cUF>
+				<cCT>01643212</cCT>
+				<CFOP>5352</CFOP>
+				<natOp>Transp a est industrial</natOp>
+				<mod>57</mod>
+				<serie>3</serie>
+				<nCT>7052530</nCT>
+				<dhEmi>2025-03-05T18:21:18-04:00</dhEmi>
+				<tpImp>1</tpImp>
+				<tpEmis>1</tpEmis>
+				<cDV>0</cDV>
+				<tpAmb>1</tpAmb>
+				<tpCTe>0</tpCTe>
+				<procEmi>0</procEmi>
+				<verProc>1.0</verProc>
+				<cMunEnv>5103403</cMunEnv>
+				<xMunEnv>CUIABA</xMunEnv>
+				<UFEnv>MT</UFEnv>
+				<modal>01</modal>
+				<tpServ>0</tpServ>
+				<cMunIni>5106224</cMunIni>
+				<xMunIni>NOVA MUTUM</xMunIni>
+				<UFIni>MT</UFIni>
+				<cMunFim>5107065</cMunFim>
+				<xMunFim>QUERENCIA</xMunFim>
+				<UFFim>MT</UFFim>
+				<retira>1</retira>
+				<indIEToma>1</indIEToma>
+				<toma3>
+					<toma>0</toma>
+				</toma3>
+			</ide>
+			<compl>
+				<Entrega>
+					<comData>
+						<tpPer>2</tpPer>
+						<dProg>2025-03-07</dProg>
+					</comData>
+					<semHora>
+						<tpHor>0</tpHor>
+					</semHora>
+				</Entrega>
+				<xObs>COTACAO COM FRETE FIXADO CST: 051 - Apolice seguro: 30.54.0016855.28 - Seguradora: 03502099000118 CHUBB SEGUROS BRASIL DIFERIMENTO CONF ART. 37 RICMS/MT, INCISO XIII</xObs>
+				<ObsCont xCampo="1">
+					<xTexto>COTACAO COM FRETE FIXADO</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="2">
+					<xTexto>CST: 051 - Apolice seguro: 30.54.0016855.28 - Seguradora: 03502099000118 CHUBB SEGUROS BRASIL</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="3">
+					<xTexto>DIFERIMENTO CONF ART. 37 RICMS/MT, INCISO XIII</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="RESPSEG">
+					<xTexto>33070814001042</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="5">
+					<xTexto>TABELA: COTACAO  - ROTA: NVTP/QRAP - TARIF: 120 - TIPO MERCAD: MERCADORIA. Conferente: LUIZ CARLOS CASAGRANDE</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="6">
+					<xTexto>Tratamento de dados pessoais pode ser dado para execucao de contrato de transporte (LGPD art. 7, V).</xTexto>
+				</ObsCont>
+			</compl>
+			<emit>
+				<CNPJ>33070814001042</CNPJ>
+				<IE>133409147</IE>
+				<xNome>CARVALIMA TRANSPORTES</xNome>
+				<enderEmit>
+					<xLgr>RODOVIA PALMIRO PAES DE BARROS</xLgr>
+					<nro>2700</nro>
+					<xBairro>PARQUE CUIABA</xBairro>
+					<cMun>5103403</cMun>
+					<xMun>CUIABA</xMun>
+					<CEP>78095295</CEP>
+					<UF>MT</UF>
+					<fone>6533163900</fone>
+				</enderEmit>
+				<CRT>3</CRT>
+			</emit>
+			<rem>
+				<CNPJ>02677655000477</CNPJ>
+				<IE>137033818</IE>
+				<xNome>SATIS IND E COM LTDA</xNome>
+				<fone>3436617089</fone>
+				<enderReme>
+					<xLgr>R DAS FIGUEIRAS</xLgr>
+					<nro>354</nro>
+					<xBairro>JOSE APARECIDO RIBEIRO</xBairro>
+					<cMun>5106224</cMun>
+					<xMun>NOVA MUTUM</xMun>
+					<CEP>78450000</CEP>
+					<UF>MT</UF>
+					<cPais>1058</cPais>
+					<xPais>BRASIL</xPais>
+				</enderReme>
+			</rem>
+			<exped>
+				<CNPJ>02677655000477</CNPJ>
+				<IE>137033818</IE>
+				<xNome>SATIS IND E COM LTDA</xNome>
+				<fone>3436617089</fone>
+				<enderExped>
+					<xLgr>R DAS FIGUEIRAS</xLgr>
+					<nro>354</nro>
+					<xBairro>JOSE APARECIDO RIBEIRO</xBairro>
+					<cMun>5106224</cMun>
+					<xMun>NOVA MUTUM</xMun>
+					<CEP>78450000</CEP>
+					<UF>MT</UF>
+					<cPais>1058</cPais>
+					<xPais>BRASIL</xPais>
+				</enderExped>
+			</exped>
+			<receb>
+				<CNPJ>15685042000180</CNPJ>
+				<IE>134571614</IE>
+				<xNome>AGROCENTRO COMERCIOS E RP AGRICOLA</xNome>
+				<fone>6635292337</fone>
+				<enderReceb>
+					<xLgr>AV SUL</xLgr>
+					<nro>1410</nro>
+					<xCpl>QUADRA 04 LOTE 11 B</xCpl>
+					<xBairro>SETOR C</xBairro>
+					<cMun>5107065</cMun>
+					<xMun>QUERENCIA</xMun>
+					<CEP>78643000</CEP>
+					<UF>MT</UF>
+					<cPais>1058</cPais>
+					<xPais>BRASIL</xPais>
+				</enderReceb>
+			</receb>
+			<dest>
+				<CNPJ>15685042000180</CNPJ>
+				<IE>134571614</IE>
+				<xNome>AGROCENTRO COMERCIOS E RP AGRICOLA</xNome>
+				<fone>6635292337</fone>
+				<enderDest>
+					<xLgr>AV SUL</xLgr>
+					<nro>1410</nro>
+					<xCpl>QUADRA 04 LOTE 11B</xCpl>
+					<xBairro>SETOR C</xBairro>
+					<cMun>5107065</cMun>
+					<xMun>QUERENCIA</xMun>
+					<CEP>78643000</CEP>
+					<UF>MT</UF>
+					<cPais>1058</cPais>
+					<xPais>BRASIL</xPais>
+				</enderDest>
+			</dest>
+			<vPrest>
+				<vTPrest>140.00</vTPrest>
+				<vRec>140.00</vRec>
+				<Comp>
+					<xNome>FRETE PESO</xNome>
+					<vComp>113.44</vComp>
+				</Comp>
+				<Comp>
+					<xNome>GRIS</xNome>
+					<vComp>25.32</vComp>
+				</Comp>
+				<Comp>
+					<xNome>PEDAGIO</xNome>
+					<vComp>1.24</vComp>
+				</Comp>
+			</vPrest>
+			<imp>
+				<ICMS>
+					<ICMS45>
+						<CST>51</CST>
+					</ICMS45>
+				</ICMS>
+				<vTotTrib>0.00</vTotTrib>
+				<ICMSUFFim>
+					<vBCUFFim>0.00</vBCUFFim>
+					<pFCPUFFim>0.00</pFCPUFFim>
+					<pICMSUFFim>0.00</pICMSUFFim>
+					<pICMSInter>0.00</pICMSInter>
+					<vFCPUFFim>0.00</vFCPUFFim>
+					<vICMSUFFim>0.00</vICMSUFFim>
+					<vICMSUFIni>0.00</vICMSUFIni>
+				</ICMSUFFim>
+			</imp>
+			<infCTeNorm>
+				<infCarga>
+					<vCarga>2531.90</vCarga>
+					<proPred>LIQ-D BB 5L</proPred>
+					<infQ>
+						<cUnid>03</cUnid>
+						<tpMed>UNIDADE</tpMed>
+						<qCarga>3</qCarga>
+					</infQ>
+					<infQ>
+						<cUnid>03</cUnid>
+						<tpMed>PARES</tpMed>
+						<qCarga>0</qCarga>
+					</infQ>
+					<infQ>
+						<cUnid>00</cUnid>
+						<tpMed>M3</tpMed>
+						<qCarga>0.0000</qCarga>
+					</infQ>
+					<infQ>
+						<cUnid>01</cUnid>
+						<tpMed>PESO REAL</tpMed>
+						<qCarga>70.0000</qCarga>
+					</infQ>
+					<infQ>
+						<cUnid>01</cUnid>
+						<tpMed>PESO BASE DE CALCULO</tpMed>
+						<qCarga>70.0000</qCarga>
+					</infQ>
+					<vCargaAverb>2531.90</vCargaAverb>
+				</infCarga>
+				<infDoc>
+					<infNFe>
+						<chave>51250302677655000477550010000012501281102641</chave>
+					</infNFe>
+				</infDoc>
+				<infModal versaoModal="4.00">
+					<rodo>
+						<RNTRC>02964359</RNTRC>
+					</rodo>
+				</infModal>
+			</infCTeNorm>
+			<infRespTec>
+				<CNPJ>01446320000132</CNPJ>
+				<xContato>Suporte SSW</xContato>
+				<email>suporte@ssw.inf.br</email>
+				<fone>04133360877</fone>
+			</infRespTec>
+		</infCte>
+		<infCTeSupl>
+			<qrCodCTe>https://www.sefaz.mt.gov.br/cte/qrcode?chCTe=51250333070814001042570030070525301016432120&amp;tpAmb=1</qrCodCTe>
+		</infCTeSupl>
+		<Signature
+			xmlns="http://www.w3.org/2000/09/xmldsig#">
+			<SignedInfo>
+				<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+				<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+				<Reference URI="#CTe51250333070814001042570030070525301016432120">
+					<Transforms>
+						<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+						<Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+					</Transforms>
+					<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+					<DigestValue>J5ZpDYG61FkslI6FLftwyFyt+i4=</DigestValue>
+				</Reference>
+			</SignedInfo>
+			<SignatureValue>S+jnCWkwwYRfmzKe8X9O2XK9s3I4nKOHUCq53ySHqWTDOcWVBzamgCOAOsBUXTnahBGIkNCxnELBzVxd7Bel1VOgpxrwKC+TY4dK5xysbZcaFS1KyNi/78KAOSi+Snuq0WCLRxOd4Llg6mHyEDb79oz0TFObcj0jDQUvI3G2disEanIkWPd836amQMcF5oKkU/FZuedfLnP6FbgAVp6YftZ+T9Hg4JvuW9HbTqYxd7WBVCPEqmLXD1kF0P1p/KyAmnl9LG0OAEK29lubCLPFkqYIe2BwTUHeIFdDiACRI0z7d6I1iK9e2OTQTkeAXjdRd51MeVGHenGo3cNgJGe6gQ==</SignatureValue>
+			<KeyInfo>
+				<X509Data>
+					<X509Certificate>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</X509Certificate>
+				</X509Data>
+			</KeyInfo>
+		</Signature>
+	</CTe>
+	<protCTe versao="4.00">
+		<infProt>
+			<tpAmb>1</tpAmb>
+			<verAplic>MT150423003</verAplic>
+			<chCTe>51250333070814001042570030070525301016432120</chCTe>
+			<dhRecbto>2025-03-05T18:20:03-04:00</dhRecbto>
+			<nProt>151250777504303</nProt>
+			<digVal>J5ZpDYG61FkslI6FLftwyFyt+i4=</digVal>
+			<cStat>100</cStat>
+			<xMotivo>Autorizado o Uso do CT-e</xMotivo>
+		</infProt>
+	</protCTe>
+</cteProc>

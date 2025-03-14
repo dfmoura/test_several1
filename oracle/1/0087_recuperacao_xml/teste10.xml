@@ -1,0 +1,258 @@
+<cteProc versao="4.00">
+	<CTe>
+		<infCte Id="CTe52241116041592006403570040000332251000010954" versao="4.00">
+			<ide>
+				<cUF>52</cUF>
+				<cCT>00001095</cCT>
+				<CFOP>6352</CFOP>
+				<natOp>Transp a est industrial</natOp>
+				<mod>57</mod>
+				<serie>4</serie>
+				<nCT>33225</nCT>
+				<dhEmi>2024-11-07T16:09:17-03:00</dhEmi>
+				<tpImp>1</tpImp>
+				<tpEmis>1</tpEmis>
+				<cDV>4</cDV>
+				<tpAmb>1</tpAmb>
+				<tpCTe>0</tpCTe>
+				<procEmi>0</procEmi>
+				<verProc>1.0</verProc>
+				<cMunEnv>5208707</cMunEnv>
+				<xMunEnv>GOIANIA</xMunEnv>
+				<UFEnv>GO</UFEnv>
+				<modal>01</modal>
+				<tpServ>0</tpServ>
+				<cMunIni>5208004</cMunIni>
+				<xMunIni>FORMOSA</xMunIni>
+				<UFIni>GO</UFIni>
+				<cMunFim>2903201</cMunFim>
+				<xMunFim>BARREIRAS</xMunFim>
+				<UFFim>BA</UFFim>
+				<retira>1</retira>
+				<indIEToma>1</indIEToma>
+				<toma3>
+					<toma>0</toma>
+				</toma3>
+			</ide>
+			<compl>
+				<Entrega>
+					<comData>
+						<tpPer>2</tpPer>
+						<dProg>2024-11-18</dProg>
+					</comData>
+					<semHora>
+						<tpHor>0</tpHor>
+					</semHora>
+				</Entrega>
+				<xObs>Transporte subcontratado/redespachado para SELIETE REGINA QUEIROZ DE OLIVEIRA, CNPJ 29.895.889/0001-02, IE: ISENTO. CST: 41 - Apolice seguro: 01 - Seguradora: 00000000000000 X</xObs>
+				<ObsCont xCampo="1">
+					<xTexto>Transporte subcontratado/redespachado para SELIETE REGINA QUEIROZ DE OLIVEIRA, CNPJ 29.895.889/0001-02, IE: ISENTO.</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="2">
+					<xTexto>CST: 41 - Apolice seguro: 01 - Seguradora: 00000000000000 X</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="RESPSEG">
+					<xTexto>16041592006403</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="4">
+					<xTexto>TABELA: INFORMADO  - ROTA: FRMP/BRAP - TARIF: 015 - TIPO MERCAD: EMTRAM</xTexto>
+				</ObsCont>
+				<ObsCont xCampo="5">
+					<xTexto>Tratamento de dados pessoais pode ser dado para execucao de contrato de transporte (LGPD art. 7, V).</xTexto>
+				</ObsCont>
+			</compl>
+			<emit>
+				<CNPJ>16041592006403</CNPJ>
+				<IE>102605653</IE>
+				<xNome>EMTRAM - EMPRESA TRANSPORTES MACAUBENSE LTDA</xNome>
+				<enderEmit>
+					<xLgr>TERMINAL RODOVIARIO</xLgr>
+					<nro>399</nro>
+					<xBairro>BAIRRO ST CENTRAL</xBairro>
+					<cMun>5208707</cMun>
+					<xMun>GOIANIA</xMun>
+					<CEP>74063920</CEP>
+					<UF>GO</UF>
+					<fone>1121468000</fone>
+				</enderEmit>
+				<CRT>3</CRT>
+			</emit>
+			<rem>
+				<CNPJ>02677655000710</CNPJ>
+				<IE>107913224</IE>
+				<xNome>SATIS INDUSTRIA E COMERCIO LTDA</xNome>
+				<fone>3436617089</fone>
+				<enderReme>
+					<xLgr>AVENIDA TANCREDO NEVES</xLgr>
+					<nro>78</nro>
+					<xBairro>SETOR BOSQUE</xBairro>
+					<cMun>5208004</cMun>
+					<xMun>FORMOSA</xMun>
+					<CEP>73802005</CEP>
+					<UF>GO</UF>
+					<cPais>1058</cPais>
+					<xPais>BRASIL</xPais>
+				</enderReme>
+			</rem>
+			<exped>
+				<CNPJ>02677655000710</CNPJ>
+				<IE>107913224</IE>
+				<xNome>SATIS INDUSTRIA E COMERCIO LTDA</xNome>
+				<fone>3436617089</fone>
+				<enderExped>
+					<xLgr>AVENIDA TANCREDO NEVES</xLgr>
+					<nro>78</nro>
+					<xBairro>SETOR BOSQUE</xBairro>
+					<cMun>5208004</cMun>
+					<xMun>FORMOSA</xMun>
+					<CEP>73802005</CEP>
+					<UF>GO</UF>
+					<cPais>1058</cPais>
+					<xPais>BRASIL</xPais>
+				</enderExped>
+			</exped>
+			<receb>
+				<CNPJ>45082555000168</CNPJ>
+				<IE>190170950</IE>
+				<xNome>BARREIRAS COMERCIO E PRODUCAO DE ALIMENTOS LTDA</xNome>
+				<enderReceb>
+					<xLgr>ROD ROD BA 447,SN-KM 8 PROJ. BARREIRAS NORTE LT104</xLgr>
+					<nro>SN</nro>
+					<xBairro>AREA RURAL DE BARREIRA</xBairro>
+					<cMun>2903201</cMun>
+					<xMun>BARREIRAS</xMun>
+					<CEP>47819899</CEP>
+					<UF>BA</UF>
+					<cPais>1058</cPais>
+					<xPais>BRASIL</xPais>
+				</enderReceb>
+			</receb>
+			<dest>
+				<CNPJ>45082555000168</CNPJ>
+				<IE>190170950</IE>
+				<xNome>BARREIRAS COMERCIO E PRODUCAO DE ALIMENTOS LTDA</xNome>
+				<enderDest>
+					<xLgr>ROD ROD BA 447</xLgr>
+					<nro>SN</nro>
+					<xCpl>KM 8 PROJ. BARREIRAS NORTE LT104</xCpl>
+					<xBairro>AREA RURAL DE BARREIRA</xBairro>
+					<cMun>2903201</cMun>
+					<xMun>BARREIRAS</xMun>
+					<CEP>47819899</CEP>
+					<UF>BA</UF>
+					<cPais>1058</cPais>
+					<xPais>BRASIL</xPais>
+				</enderDest>
+			</dest>
+			<vPrest>
+				<vTPrest>75.00</vTPrest>
+				<vRec>75.00</vRec>
+				<Comp>
+					<xNome>FRETE VALOR</xNome>
+					<vComp>75.00</vComp>
+				</Comp>
+			</vPrest>
+			<imp>
+				<ICMS>
+					<ICMS45>
+						<CST>41</CST>
+					</ICMS45>
+				</ICMS>
+				<vTotTrib>0.00</vTotTrib>
+				<ICMSUFFim>
+					<vBCUFFim>0.00</vBCUFFim>
+					<pFCPUFFim>0.00</pFCPUFFim>
+					<pICMSUFFim>0.00</pICMSUFFim>
+					<pICMSInter>0.00</pICMSInter>
+					<vFCPUFFim>0.00</vFCPUFFim>
+					<vICMSUFFim>0.00</vICMSUFFim>
+					<vICMSUFIni>0.00</vICMSUFIni>
+				</ICMSUFFim>
+			</imp>
+			<infCTeNorm>
+				<infCarga>
+					<vCarga>516.00</vCarga>
+					<proPred>LIQ-D BB 5L</proPred>
+					<infQ>
+						<cUnid>03</cUnid>
+						<tpMed>UNIDADE</tpMed>
+						<qCarga>1</qCarga>
+					</infQ>
+					<infQ>
+						<cUnid>03</cUnid>
+						<tpMed>PARES</tpMed>
+						<qCarga>0</qCarga>
+					</infQ>
+					<infQ>
+						<cUnid>00</cUnid>
+						<tpMed>M3</tpMed>
+						<qCarga>0.0000</qCarga>
+					</infQ>
+					<infQ>
+						<cUnid>01</cUnid>
+						<tpMed>PESO REAL</tpMed>
+						<qCarga>10.9800</qCarga>
+					</infQ>
+					<infQ>
+						<cUnid>01</cUnid>
+						<tpMed>PESO BASE DE CALCULO</tpMed>
+						<qCarga>10.9800</qCarga>
+					</infQ>
+					<vCargaAverb>516.00</vCargaAverb>
+				</infCarga>
+				<infDoc>
+					<infNFe>
+						<chave>52241102677655000710550010000012101784585524</chave>
+					</infNFe>
+				</infDoc>
+				<infModal versaoModal="4.00">
+					<rodo>
+						<RNTRC>03539748</RNTRC>
+					</rodo>
+				</infModal>
+			</infCTeNorm>
+			<infRespTec>
+				<CNPJ>01446320000132</CNPJ>
+				<xContato>Suporte SSW</xContato>
+				<email>suporte@ssw.inf.br</email>
+				<fone>04133360877</fone>
+			</infRespTec>
+		</infCte>
+		<infCTeSupl>
+			<qrCodCTe>https://dfe-portal.svrs.rs.gov.br/cte/qrCode?chCTe=52241116041592006403570040000332251000010954&amp;tpAmb=1</qrCodCTe>
+		</infCTeSupl>
+		<Signature
+			xmlns="http://www.w3.org/2000/09/xmldsig#">
+			<SignedInfo>
+				<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+				<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+				<Reference URI="#CTe52241116041592006403570040000332251000010954">
+					<Transforms>
+						<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+						<Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+					</Transforms>
+					<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+					<DigestValue>d7UY3+swBmTbh5UAzn/IWD1/obM=</DigestValue>
+				</Reference>
+			</SignedInfo>
+			<SignatureValue>qG5ZeIv3ZmhpKS6EV0isxDoNypIKPZJW+fJXyrO7yTjvHvcOrmFd5tUyMf1iuTi7V928UNbEs0a+roZXCq+wpvj6mKNJyWSzbwa1wtGorcOHsoVLu0AVMhZt4QKe5jTLU9+I9ElC1BKNGxHZ6RitYRLHyUqAbhvEcbWbOkZCwoR5pZg+jet2/0xNTSmTqaDCpCgtIQrbsChVBGAu2Rf68WbeVNOd0lLWDai7bMivaKoHkDcOCy6JZVijfijhaIZsj2beCMdr1D7qi2l4hj4v6j+fPUPiFm4SmhHRpGBBfBXO2/m1f+xUzadCmsRb2j5f1bXhyxcrU1+ocVohpqUy+g==</SignatureValue>
+			<KeyInfo>
+				<X509Data>
+					<X509Certificate>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</X509Certificate>
+				</X509Data>
+			</KeyInfo>
+		</Signature>
+	</CTe>
+	<protCTe versao="4.00">
+		<infProt Id="CTe352240079534584">
+			<tpAmb>1</tpAmb>
+			<verAplic>RS20241029120943</verAplic>
+			<chCTe>52241116041592006403570040000332251000010954</chCTe>
+			<dhRecbto>2024-11-07T16:09:18-03:00</dhRecbto>
+			<nProt>352240079534584</nProt>
+			<digVal>d7UY3+swBmTbh5UAzn/IWD1/obM=</digVal>
+			<cStat>100</cStat>
+			<xMotivo>Autorizado o uso do CT-e</xMotivo>
+		</infProt>
+	</protCTe>
+</cteProc>
