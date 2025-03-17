@@ -1,0 +1,7 @@
+<gadget>
+  <level id="lvl_02oxr4" description="Principal">
+    <container orientacao="H" tamanhoRelativo="100">
+      <html5component id="html5_8p0hti" entryPoint="prod32.jsp"/>
+    </container>
+  </level>
+</gadget>
