@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leitor de OFX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h2>Carregar Arquivo OFX</h2>
+    <input type="file" id="fileInput" accept=".ofx">
+    <table id="ofxTable">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                parseOFX(text);
+            };
+            reader.readAsText(file);
+        });
+
+        function parseOFX(ofxText) {
+            const transactions = [];
+            const regex = /<STMTTRN>(.*?)<\/STMTTRN>/gs;
+            let match;
+            while ((match = regex.exec(ofxText)) !== null) {
+                const transacao = match[1];
+                const date = transacao.match(/<DTPOSTED>(.*?)\d{4}/)?.[1] || '';
+                const description = transacao.match(/<MEMO>(.*?)<\/MEMO>/)?.[1] || 'Sem descrição';
+                const amount = transacao.match(/<TRNAMT>(.*?)<\/TRNAMT>/)?.[1] || '0.00';
+                
+                transactions.push({ date, description, amount });
+            }
+            
+            const tbody = document.querySelector('#ofxTable tbody');
+            tbody.innerHTML = '';
+            transactions.forEach(tr => {
+                const row = `<tr><td>${tr.date}</td><td>${tr.description}</td><td>${tr.amount}</td></tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+    </script>
+</body>
+</html>

@@ -51,7 +51,7 @@
                             <label for="CONCLUIDO">Concluído</label>
                             <select id="CONCLUIDO" class="form-control">
                                 <option value="S">Sim</option>
-                                <option value="N">Não</option>
+                                <option value="N" selected>Não</option>
                             </select>
                         </div>            
                     </div>
@@ -64,26 +64,26 @@
                 <div class="row row-spacing">
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="DTAINICIO">Data Início (dd/mm/yyyy)</label>
+                            <label for="DTAINICIO">Data Início</label>
                             <input type="date" id="DTAINICIO" class="form-control" placeholder="dd/mm/yyyy">
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="DTAFIM">Data Fim (dd/mm/yyyy)</label>
+                            <label for="DTAFIM">Data Fim</label>
                             <input type="date" id="DTAFIM" class="form-control" placeholder="dd/mm/yyyy">
                         </div>
                     </div>
                     
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="HRINI">Hora Início (hhmm)</label>
+                            <label for="HRINI">Hora Início</label>
                             <input type="text" id="HRINI" class="form-control" placeholder="digitar hhmm">
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label for="HRFIM">Hora Fim (hhmm)</label>
+                            <label for="HRFIM">Hora Fim</label>
                             <input type="text" id="HRFIM" class="form-control" placeholder="digitar hhmm">
                         </div>
                     </div>
@@ -92,19 +92,21 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="USUARIO">Usuário</label>
-                            <input type="text" id="USUARIO" class="form-control" readonly>
+                            <select id="USUARIO" class="form-control">
+                                <!-- Options will be populated dynamically -->
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="CORFUNDO">Cor Fundo</label>
-                            <input type="text" id="CORFUNDO" class="form-control" readonly>
+                            <input type="color" id="CORFUNDO" class="form-control" value="#FFFFFF">
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="CORFONTE">Cor Fonte</label>
-                            <input type="text" id="CORFONTE" class="form-control" readonly>
+                            <input type="color" id="CORFONTE" class="form-control" value="#FFFFFF">
                         </div>
                     </div>
                 </div>
@@ -144,14 +146,7 @@
                 CASE WHEN HRINI IS NULL THEN NULL ELSE TO_CHAR(LPAD(SUBSTR(TO_CHAR(HRINI), 1, LENGTH(TO_CHAR(HRINI)) - 2), 2, '0')) || ':' || SUBSTR(TO_CHAR(HRINI), -2) END HRINI,
                 CASE WHEN HRFIM IS NULL THEN NULL ELSE TO_CHAR(LPAD(SUBSTR(TO_CHAR(HRFIM), 1, LENGTH(TO_CHAR(HRFIM)) - 2), 2, '0')) || ':' || SUBSTR(TO_CHAR(HRFIM), -2) END HRFIM,
                 USUARIO,CORFUNDO,CORFONTE FROM AD_CALENDINOV 
-                WHERE USUARIO IN 
-                (SELECT STP_GET_CODUSULOGADO AS VALUE FROM DUAL
-                 INNER JOIN TSIUSU USU ON STP_GET_CODUSULOGADO = USU.CODUSU
-                 UNION ALL
-                 SELECT ATV.CODVISUALIZAR AS VALUE
-                 FROM AD_ATVOUTROS ATV
-                 INNER JOIN TSIUSU USU ON ATV.CODVISUALIZAR = USU.CODUSU
-                 WHERE ATV.CODUSU = STP_GET_CODUSULOGADO)
+
                 ORDER BY CODIGO DESC`
             ).then(function (data) {
                 const resultTable = document.getElementById('resultTable');
@@ -186,7 +181,7 @@
                     });
 
                     const btnExcluir = document.createElement('button');
-                    btnExcluir.textContent = 'Excluir';
+                    btnExcluir.innerHTML = '<i class="fas fa-trash"></i>';
                     btnExcluir.classList.add('btn', 'btn-danger');
                     btnExcluir.addEventListener('click', function () {
                         excluirRegistro(item.CODIGO);
@@ -209,6 +204,20 @@
                 });
             }).catch(function (error) {
                 console.error('Erro ao carregar os dados:', error);
+            });
+
+            // Fetch users for the dropdown
+            JX.consultar(`SELECT CODUSU, NOMEUSU FROM TSIUSU WHERE DTLIMACESSO IS NULL ORDER BY CODUSU`).then(function (users) {
+                const usuarioSelect = document.getElementById('USUARIO');
+                usuarioSelect.innerHTML = ''; // Clear existing options
+                users.forEach(function (user) {
+                    const option = document.createElement('option');
+                    option.value = user.CODUSU;
+                    option.textContent = user.NOMEUSU;
+                    usuarioSelect.appendChild(option);
+                });
+            }).catch(function (error) {
+                console.error('Erro ao carregar os usuários:', error);
             });
         }
 
@@ -273,6 +282,10 @@
             codigoAtual = null;
             document.getElementById('formCadastro').reset();
             document.getElementById('btnSalvar').textContent = 'Salvar';
+            // Retain the selected colors
+            // Removed resetting to default colors
+            // document.getElementById('CORFUNDO').value = '#008000'; // Default color or previously selected color
+            // document.getElementById('CORFONTE').value = '#FFFFFF'; // Default color or previously selected color
         }
 
         carregarDados();

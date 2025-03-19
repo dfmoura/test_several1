@@ -1,0 +1,23 @@
+{
+  "name": "41",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "javascript",
+    "nodejs"
+  ],
+  "author": "Your Name",
+  "license": "ISC",
+  "description": "A simple JavaScript project",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "ofx": "^0.5.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

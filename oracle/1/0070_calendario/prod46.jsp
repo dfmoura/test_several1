@@ -50,6 +50,10 @@
                 border-color: #76828E;
                 color: white;
             }
+            /* New CSS rule to increase dropdown height */
+            #usuarioSelect {
+                height: 400px; /* Adjust height as needed */
+            }
 
         </style>
     </head>
@@ -179,18 +183,14 @@
                     const usuarios = await JX.consultar(`
                     
                         SELECT VALUE,LABEL FROM (
-                        SELECT 
-                        STP_GET_CODUSULOGADO AS VALUE,
-                        STP_GET_CODUSULOGADO ||'-'||USU.NOMEUSU AS LABEL
-                        FROM DUAL
-                        INNER JOIN TSIUSU USU ON STP_GET_CODUSULOGADO = USU.CODUSU
-                        UNION ALL
-                        SELECT
-                        ATV.CODVISUALIZAR AS VALUE,
-                        ATV.CODVISUALIZAR ||'-'||USU.NOMEUSU AS LABEL
-                        FROM AD_ATVOUTROS ATV
-                        INNER JOIN TSIUSU USU ON ATV.CODVISUALIZAR = USU.CODUSU
-                        WHERE ATV.CODUSU = STP_GET_CODUSULOGADO
+                        select distinct
+                        nov.usuario value,
+                        usu.nomeusu label
+
+
+                        from AD_CALENDINOV nov
+                        inner join tsiusu usu on nov.usuario = usu.codusu
+                        where DTLIMACESSO is null order by 2
                         )
                     
                     

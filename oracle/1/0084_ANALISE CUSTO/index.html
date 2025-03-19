@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Vendas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            gap: 20px;
+        }
+
+        .left-panel, .right-panel {
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .left-panel {
+            flex: 1.2;
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-table {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .chart-container {
+            flex: 1;
+            padding-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Painel Esquerdo -->
+        <div class="left-panel">
+            <h2>Vendedores</h2>
+            <table id="vendedores-table">
+                <thead>
+                    <tr>
+                        <th>Cód. Vend.</th>
+                        <th>Vendedor</th>
+                        <th>Vlr. Prev.</th>
+                        <th>Vlr. Real</th>
+                        <th>%Real</th>
+                        <th>Vlr. Custo</th>
+                        <th>% Custo</th>
+                        <th>Apelidos CR's</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr data-vendedor="João">
+                        <td>101</td>
+                        <td>João</td>
+                        <td>50000</td>
+                        <td>48000</td>
+                        <td>96%</td>
+                        <td>20000</td>
+                        <td>40%</td>
+                        <td>CR1</td>
+                    </tr>
+                    <tr data-vendedor="Maria">
+                        <td>102</td>
+                        <td>Maria</td>
+                        <td>60000</td>
+                        <td>59000</td>
+                        <td>98%</td>
+                        <td>25000</td>
+                        <td>42%</td>
+                        <td>CR2</td>
+                    </tr>
+                    <tr data-vendedor="Carlos">
+                        <td>103</td>
+                        <td>Carlos</td>
+                        <td>55000</td>
+                        <td>53000</td>
+                        <td>96%</td>
+                        <td>23000</td>
+                        <td>43%</td>
+                        <td>CR3</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Painel Direito -->
+        <div class="right-panel">
+            <div class="top-table">
+                <h2>Natureza de Custos</h2>
+                <table id="natureza-table">
+                    <thead>
+                        <tr>
+                            <th>Cód. Nat.</th>
+                            <th>Natureza</th>
+                            <th>Vlr. Custo</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Os dados são preenchidos dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="chart-container">
+                <h2>Evolução Real x Custo</h2>
+                <canvas id="evolucaoChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const vendedoresTable = document.getElementById("vendedores-table");
+        const naturezaTableBody = document.querySelector("#natureza-table tbody");
+
+        const evolucaoChartCtx = document.getElementById('evolucaoChart').getContext('2d');
+        let evolucaoChart = new Chart(evolucaoChartCtx, {
+            type: 'line',
+            data: {
+                labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"],
+                datasets: [
+                    { label: "Vlr. Real", data: [], borderColor: "blue", fill: false },
+                    { label: "Vlr. Custo", data: [], borderColor: "red", fill: false }
+                ]
+            }
+        });
+
+        vendedoresTable.addEventListener("click", (event) => {
+            const row = event.target.closest("tr");
+            if (!row || row.dataset.vendedor === undefined) return;
+
+            const vendedor = row.dataset.vendedor;
+            const valores = Array.from(row.children).map(td => td.innerText);
+
+            const valorReal = parseInt(valores[3]);
+            const valorCusto = parseInt(valores[5]);
+
+            atualizarTabelaNatureza(vendedor);
+            atualizarGrafico(valorReal, valorCusto);
+        });
+
+        function atualizarTabelaNatureza(vendedor) {
+            const dadosNatureza = {
+                "João": [
+                    [201, "Salários", 12000, "60%"],
+                    [202, "Materiais", 8000, "40%"]
+                ],
+                "Maria": [
+                    [201, "Salários", 15000, "60%"],
+                    [202, "Materiais", 10000, "40%"]
+                ],
+                "Carlos": [
+                    [201, "Salários", 14000, "61%"],
+                    [202, "Materiais", 9000, "39%"]
+                ]
+            };
+
+            naturezaTableBody.innerHTML = "";
+            (dadosNatureza[vendedor] || []).forEach(row => {
+                const tr = document.createElement("tr");
+                row.forEach(cell => {
+                    const td = document.createElement("td");
+                    td.innerText = cell;
+                    tr.appendChild(td);
+                });
+                naturezaTableBody.appendChild(tr);
+            });
+        }
+
+        function atualizarGrafico(valorReal, valorCusto) {
+            evolucaoChart.data.datasets[0].data = [valorReal * 0.8, valorReal * 0.9, valorReal, valorReal * 1.05, valorReal * 1.1, valorReal * 1.2];
+            evolucaoChart.data.datasets[1].data = [valorCusto * 0.8, valorCusto * 0.9, valorCusto, valorCusto * 1.05, valorCusto * 1.1, valorCusto * 1.2];
+            evolucaoChart.update();
+        }
+    </script>
+
+</body>
+</html>

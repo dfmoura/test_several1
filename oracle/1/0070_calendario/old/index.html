@@ -5,144 +5,174 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css' rel='stylesheet' />
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js'></script>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales/pt-br.js'></script>
     <title>Calendário Responsivo com Compromissos</title>
     <style>
+        /* Estilos gerais */
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
+            background-color: #f4f4f4; /* Fundo claro */
+            margin: 0; /* Remove margem padrão */
+            padding: 0; /* Remove padding padrão */
         }
+
+        /* Container do calendário */
         #calendar {
-            width: 100%;
-            height: calc(100vh - 100px);
-            max-width: 1200px;
-            margin: 20px auto;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
+            width: 100%; /* Largura total */
+            height: calc(100vh - 100px); /* Altura total menos espaço para cabeçalho e botões */
+            max-width: 1200px; /* Largura máxima para telas grandes */
+            margin: 20px auto; /* Margem superior e centralizado */
+            background-color: #fff; /* Fundo branco para o calendário */
+            border-radius: 8px; /* Cantos arredondados */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra suave */
+            overflow: hidden; /* Oculta o excesso */
         }
+
+        /* Estilo do modal */
         #eventModal {
-            display: none;
-            position: fixed;
-            z-index: 1;
+            display: none; /* Oculto por padrão */
+            position: fixed; /* Fica fixo */
+            z-index: 1; /* Fica no topo */
             left: 0;
             top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
+            width: 100%; /* Largura total */
+            height: 100%; /* Altura total */
+            overflow: auto; /* Habilita scroll se necessário */
+            background-color: rgba(0, 0, 0, 0.4); /* Preto com opacidade */
         }
+
+        /* Conteúdo do modal */
         .modal-content {
             background-color: #fefefe;
-            margin: 15% auto;
-            padding: 15px;
+            margin: 15% auto; /* 15% do topo e centralizado */
+            padding: 20px;
             border: 1px solid #888;
-            width: 90%;
-            max-width: 400px;
-            border-radius: 8px;
+            width: 90%; /* Largura responsiva */
+            max-width: 600px; /* Largura máxima para telas grandes */
+            border-radius: 8px; /* Cantos arredondados */
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+
+        /* Botão de fechar */
         .close {
             color: #aaa;
             float: right;
             font-size: 28px;
             font-weight: bold;
         }
+
         .close:hover,
         .close:focus {
             color: black;
+            text-decoration: none;
             cursor: pointer;
         }
-        .modal-content label {
-            display: block;
-            margin: 8px 0 4px;
-        }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            justify-content: space-between;
-        }
-        .input-group input {
-            flex: 1;
-        }
+
+        /* Estilo dos campos de entrada */
         input[type="text"],
         input[type="date"],
         input[type="time"],
-        input[type="color"],
         select {
-            width: 100%;
-            padding: 8px;
-            margin: 4px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
+            width: 100%; /* Largura total */
+            padding: 12px 15px; /* Padding para campos de entrada */
+            margin: 10px 0; /* Margem para espaçamento */
+            border: 1px solid #ccc; /* Estilo da borda */
+            border-radius: 4px; /* Cantos arredondados */
+            box-sizing: border-box; /* Ajusta o modelo de caixa */
         }
+
+        /* Estilo dos botões */
         button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 8px 15px;
-            font-size: 14px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s;
+            background-color: #4CAF50; /* Verde */
+            border: none; /* Sem bordas */
+            color: white; /* Texto branco */
+            padding: 10px 20px; /* Padding */
+            text-align: center; /* Texto centralizado */
+            text-decoration: none; /* Sem sublinhado */
+            display: inline-block; /* Inline-block */
+            font-size: 16px; /* Tamanho da fonte */
+            margin: 4px 2px; /* Margem para espaçamento */
+            cursor: pointer; /* Cursor em forma de ponteiro ao passar o mouse */
+            border-radius: 5px; /* Cantos arredondados */
+            transition: background-color 0.3s; /* Transição suave */
         }
+
         button:hover {
-            background-color: #45a049;
+            background-color: #45a049; /* Verde mais escuro ao passar o mouse */
         }
+
         #deleteEventBtn {
-            background-color: #f44336;
+            background-color: #f44336; /* Vermelho */
         }
+
         #deleteEventBtn:hover {
-            background-color: #da190b;
+            background-color: #da190b; /* Vermelho mais escuro ao passar o mouse */
+        }
+
+        /* Consultas de mídia para responsividade */
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%; /* Largura total em telas pequenas */
+                padding: 10px; /* Menos padding */
+            }
+
+            input[type="text"],
+            input[type="date"],
+            input[type="time"],
+            select {
+                padding: 10px; /* Menos padding em campos */
+            }
+
+            button {
+                padding: 8px 15px; /* Botões menores */
+                font-size: 14px; /* Tamanho da fonte menor */
+            }
+
+            #calendar {
+                height: calc(100vh - 60px); /* Ajuste de altura em telas pequenas */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .modal-content {
+                margin: 10% auto; /* Ajusta a margem para telas muito pequenas */
+            }
+
+            button {
+                width: 100%; /* Botões com largura total */
+                margin: 5px 0; /* Margem para espaçamento */
+            }
         }
     </style>
 </head>
 <body>
+
     <div id="calendar"></div>
 
+    <!-- Modal para criar/editar compromissos -->
     <div id="eventModal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2 id="modalTitle">Novo Compromisso</h2>
-            
             <label for="eventTitle">Título:</label>
             <input type="text" id="eventTitle" placeholder="Digite o título do evento" required>
             
-            <div class="input-group">
-                <div>
-                    <label for="eventStartDate">Data de Início:</label>
-                    <input type="date" id="eventStartDate" required>
-                </div>
-                <div>
-                    <label for="eventStartTime">Hora de Início:</label>
-                    <input type="time" id="eventStartTime" required>
-                </div>
-            </div>
+            <label for="eventStartDate">Data de Início:</label>
+            <input type="date" id="eventStartDate" required>
             
-            <div class="input-group">
-                <div>
-                    <label for="eventEndDate">Data de Término:</label>
-                    <input type="date" id="eventEndDate" required>
-                </div>
-                <div>
-                    <label for="eventEndTime">Hora de Término:</label>
-                    <input type="time" id="eventEndTime" required>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <div>
-                    <label for="eventBackgroundColor">Cor de Fundo do Evento:</label>
-                    <input type="color" id="eventBackgroundColor" value="#3788d8">
-                </div>
-                <div>
-                    <label for="eventTextColor">Cor do Texto do Evento:</label>
-                    <input type="color" id="eventTextColor" value="#ffffff">
-                </div>
-            </div>
+            <label for="eventStartTime">Hora de Início:</label>
+            <input type="time" id="eventStartTime" required>
+            
+            <label for="eventEndDate">Data de Término:</label>
+            <input type="date" id="eventEndDate" required>
+            
+            <label for="eventEndTime">Hora de Término:</label>
+            <input type="time" id="eventEndTime" required>
+            
+            <label for="eventBackgroundColor">Cor de Fundo do Evento:</label>
+            <input type="color" id="eventBackgroundColor" value="#3788d8">
+            
+            <label for="eventTextColor">Cor do Texto do Evento:</label>
+            <input type="color" id="eventTextColor" value="#ffffff">
             
             <button id="saveEventBtn">Salvar</button>
             <button id="deleteEventBtn" style="display:none;">Excluir</button>
@@ -153,109 +183,135 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const calendarEl = document.getElementById('calendar');
-            let selectedEvent = null;
+            let selectedEvent = null; // Variável para armazenar o evento selecionado
 
+            // Configuração do calendário
             const calendar = new FullCalendar.Calendar(calendarEl, {
-                locale: 'pt-br',
-                initialView: 'dayGridMonth',
+                initialView: 'dayGridMonth', // Vista inicial do calendário
                 headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    left: 'prev,next today', // Botões de navegação
+                    center: 'title', // Título do calendário
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay' // Vistas do calendário
                 },
-                editable: true,
-                selectable: true,
-                events: [],
+                editable: true, // Permitir edição dos eventos
+                selectable: true, // Permitir seleção de datas
+                events: [], // Começar sem eventos
 
-                eventContent: function(info) {
-                    // Render apenas o título do evento sem horários
-                    return { html: `<div>${info.event.title}</div>` };
+                // Função para renderizar texto do evento
+                eventRender: function(info) {
+                    const startTime = info.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const eventTitle = info.event.title;
+                    const backgroundColor = info.event.backgroundColor;
+                    const textColor = info.event.textColor || '#ffffff'; // Usar cor de texto ou padrão
+                    info.el.style.backgroundColor = backgroundColor; // Define a cor de fundo
+                    info.el.style.color = textColor; // Define a cor do texto
+                    info.el.innerHTML = `${startTime} - ${eventTitle}`; // Exibe a hora e o título
                 },
 
+                // Abre o modal ao clicar na data
                 dateClick: function (info) {
                     openModal();
                     resetModal();
+                    // Define a data de início como a data clicada para novos compromissos
                     document.getElementById('eventStartDate').value = info.dateStr;
-                    document.getElementById('eventEndDate').value = info.dateStr;
+                    document.getElementById('eventEndDate').value = info.dateStr; // Término padrão como o mesmo dia
                 },
 
+                // Abre o modal ao clicar no evento
                 eventClick: function (info) {
-                    selectedEvent = info.event;
+                    selectedEvent = info.event; // Armazena o evento selecionado
                     const eventStart = new Date(info.event.start);
-                    const eventEnd = new Date(info.event.end || info.event.start);
-                    openModal(info.event.title, eventStart, eventEnd);
+                    const eventEnd = new Date(info.event.end); // Obtém a hora de término, se existir
+                    openModal(info.event.title, eventStart, eventEnd); // Passa as informações do evento para o modal
                 }
             });
 
+            // Inicializa o calendário
             calendar.render();
 
+            // Função para abrir o modal
             function openModal(title, start, end) {
-                document.getElementById('eventModal').style.display = 'block';
-                document.getElementById('modalTitle').innerText = title || 'Novo Compromisso';
+                document.getElementById('eventModal').style.display = 'block'; // Exibe o modal
+                document.getElementById('modalTitle').innerText = title || 'Novo Compromisso'; // Define o título do modal
                 if (start) {
-                    document.getElementById('eventStartDate').value = start.toISOString().split('T')[0];
-                    document.getElementById('eventStartTime').value = start.toISOString().split('T')[1].substring(0, 5);
+                    document.getElementById('eventStartDate').value = start.toISOString().split('T')[0]; // Data de início
+                    document.getElementById('eventStartTime').value = start.toISOString().split('T')[1].substring(0, 5); // Hora de início
                 }
                 if (end) {
-                    document.getElementById('eventEndDate').value = end.toISOString().split('T')[0];
-                    document.getElementById('eventEndTime').value = end.toISOString().split('T')[1].substring(0, 5);
+                    document.getElementById('eventEndDate').value = end.toISOString().split('T')[0]; // Data de término
+                    document.getElementById('eventEndTime').value = end.toISOString().split('T')[1].substring(0, 5); // Hora de término
                 }
-                document.getElementById('deleteEventBtn').style.display = title ? 'inline-block' : 'none';
+                document.getElementById('deleteEventBtn').style.display = title ? 'inline-block' : 'none'; // Exibe o botão de excluir se houver título
             }
 
+            // Função para resetar o modal
             function resetModal() {
-                document.getElementById('eventTitle').value = '';
-                document.getElementById('eventStartDate').value = '';
-                document.getElementById('eventStartTime').value = '';
-                document.getElementById('eventEndDate').value = '';
-                document.getElementById('eventEndTime').value = '';
-                document.getElementById('eventBackgroundColor').value = '#3788d8';
-                document.getElementById('eventTextColor').value = '#ffffff';
-                selectedEvent = null;
+                document.getElementById('eventTitle').value = ''; // Limpa o título
+                document.getElementById('eventStartDate').value = ''; // Limpa a data de início
+                document.getElementById('eventStartTime').value = ''; // Limpa a hora de início
+                document.getElementById('eventEndDate').value = ''; // Limpa a data de término
+                document.getElementById('eventEndTime').value = ''; // Limpa a hora de término
+                document.getElementById('eventBackgroundColor').value = '#3788d8'; // Reseta a cor de fundo
+                document.getElementById('eventTextColor').value = '#ffffff'; // Reseta a cor do texto
             }
 
+            // Fecha o modal ao clicar no botão de fechar
             document.querySelector('.close').onclick = function () {
-                document.getElementById('eventModal').style.display = 'none';
+                document.getElementById('eventModal').style.display = 'none'; // Oculta o modal
             };
 
+            // Salva o evento ao clicar em salvar
             document.getElementById('saveEventBtn').onclick = function () {
-                const title = document.getElementById('eventTitle').value;
-                const startDate = document.getElementById('eventStartDate').value;
-                const startTime = document.getElementById('eventStartTime').value;
-                const endDate = document.getElementById('eventEndDate').value;
-                const endTime = document.getElementById('eventEndTime').value;
-                const backgroundColor = document.getElementById('eventBackgroundColor').value;
-                const textColor = document.getElementById('eventTextColor').value;
+                const title = document.getElementById('eventTitle').value; // Obtém o título do evento
+                const startDate = document.getElementById('eventStartDate').value; // Obtém a data de início
+                const startTime = document.getElementById('eventStartTime').value; // Obtém a hora de início
+                const endDate = document.getElementById('eventEndDate').value; // Obtém a data de término
+                const endTime = document.getElementById('eventEndTime').value; // Obtém a hora de término
+                const backgroundColor = document.getElementById('eventBackgroundColor').value; // Obtém a cor de fundo
+                const textColor = document.getElementById('eventTextColor').value; // Obtém a cor do texto
 
+                // Validação para garantir que o título e as datas estão preenchidos
                 if (title && startDate && startTime && endDate && endTime) {
-                    const start = new Date(`${startDate}T${startTime}`);
-                    const end = new Date(`${endDate}T${endTime}`);
-                    
+                    const start = new Date(`${startDate}T${startTime}`); // Cria objeto de data para início
+                    const end = new Date(`${endDate}T${endTime}`); // Cria objeto de data para término
+
                     if (selectedEvent) {
-                        selectedEvent.setProp('title', title);
-                        selectedEvent.setStart(start);
-                        selectedEvent.setEnd(end);
-                        selectedEvent.setProp('backgroundColor', backgroundColor);
-                        selectedEvent.setProp('textColor', textColor);
+                        // Atualiza o evento existente
+                        selectedEvent.setProp('title', title); // Atualiza o título
+                        selectedEvent.setStart(start); // Atualiza a data de início
+                        selectedEvent.setEnd(end); // Atualiza a data de término
+                        selectedEvent.setProp('backgroundColor', backgroundColor); // Atualiza a cor de fundo
+                        selectedEvent.setProp('textColor', textColor); // Atualiza a cor do texto
                     } else {
+                        // Adiciona um novo evento
                         calendar.addEvent({
-                            title,
-                            start,
-                            end,
-                            backgroundColor,
-                            textColor
+                            title: title,
+                            start: start,
+                            end: end,
+                            backgroundColor: backgroundColor,
+                            textColor: textColor,
                         });
                     }
-
-                    document.getElementById('eventModal').style.display = 'none';
+                    resetModal(); // Reseta o modal após salvar
+                    document.getElementById('eventModal').style.display = 'none'; // Oculta o modal
+                } else {
+                    alert('Por favor, preencha todos os campos obrigatórios!'); // Alerta se campos estiverem vazios
                 }
             };
 
+            // Exclui o evento ao clicar em excluir
             document.getElementById('deleteEventBtn').onclick = function () {
                 if (selectedEvent) {
-                    selectedEvent.remove();
-                    document.getElementById('eventModal').style.display = 'none';
+                    selectedEvent.remove(); // Remove o evento
+                    resetModal(); // Reseta o modal após excluir
+                    document.getElementById('eventModal').style.display = 'none'; // Oculta o modal
                 }
+            };
+
+            // Abre o modal para um novo compromisso ao clicar no botão de novo compromisso
+            document.getElementById('insertBtn').onclick = function () {
+                openModal(); // Abre o modal
+                resetModal(); // Reseta o modal
             };
         });
     </script>

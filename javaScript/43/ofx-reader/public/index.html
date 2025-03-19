@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leitor de OFX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h2>Carregar Arquivo OFX</h2>
+    <input type="file" id="fileInput" accept=".ofx" multiple>
+    <button id="loadData">Carregar Dados</button>
+    <div id="tableContainer"></div>
+
+    <script>
+        document.getElementById('loadData').addEventListener('click', function() {
+            fetch('/ofx_files')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('tableContainer').innerHTML = data;
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        });
+    </script>
+</body>
+</html>

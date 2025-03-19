@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OFX File Processor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>OFX File Processor</h1>
+    <button id="processButton">Process OFX Files</button>
+    <div id="balanceDisplay">Balance: $0.00</div>
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>ORG</th>
+          <th>FID</th>
+          <th>BANKID</th>
+          <th>BRANCHID</th>
+          <th>ACCTID</th>
+          <th>ACCTTYPE</th>
+          <th>DTPOSTED</th>
+          <th>TRNTYPE</th>
+          <th>FITID</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Rows will be populated by JavaScript -->
+      </tbody>
+    </table>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

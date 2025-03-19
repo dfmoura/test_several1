@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Importações</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+
+        /* styles.css */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        main {
+            padding: 20px;
+        }
+        
+        #charts {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+        
+        .chart-container {
+            width: 80%;
+            max-width: 800px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        #data-table {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #333;
+            color: #fff;
+        }
+        
+        tr:hover {
+            background-color: #f1f1f1;
+        }        
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Dashboard de Importações</h1>
+    </header>
+    <main>
+        <section id="charts">
+            <div class="chart-container">
+                <canvas id="importChart"></canvas>
+            </div>
+        </section>
+        <section id="data-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>NCM</th>
+                        <th>Descrição</th>
+                        <th>Valor (USD)</th>
+                        <th>Quantidade</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Dados serão preenchidos aqui -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+
+<script>
+    // script.js
+document.addEventListener('DOMContentLoaded', function () {
+    const csvUrl = 'https://balanca.economia.gov.br/balanca/bd/comexstat-bd/ncm/IMP_2025.csv';
+    const tableBody = document.getElementById('table-body');
+    const ctx = document.getElementById('importChart').getContext('2d');
+
+    let chart;
+
+    axios.get(csvUrl)
+        .then(response => {
+            const data = parseCSV(response.data);
+            renderTable(data);
+            renderChart(data);
+        })
+        .catch(error => {
+            console.error('Erro ao carregar os dados:', error);
+        });
+
+    function parseCSV(csv) {
+        const lines = csv.split('\n');
+        const headers = lines[0].split(';');
+        const rows = lines.slice(1).map(line => {
+            const values = line.split(';');
+            return headers.reduce((obj, header, index) => {
+                obj[header] = values[index];
+                return obj;
+            }, {});
+        });
+        return rows;
+    }
+
+    function renderTable(data) {
+        tableBody.innerHTML = '';
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${row['CO_NCM']}</td>
+                <td>${row['CO_UNID']}</td>
+                <td>${row['VL_FOB']}</td>
+                <td>${row['QT_ESTAT']}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    }
+
+    function renderChart(data) {
+        const labels = data.map(row => row['CO_NCM']);
+        const values = data.map(row => parseFloat(row['VL_FOB']));
+
+        if (chart) {
+            chart.destroy();
+        }
+
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Valor FOB (USD)',
+                    data: values,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+
+</body>
+</html>

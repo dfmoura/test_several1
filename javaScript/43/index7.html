@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leitor de OFX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        #saldo {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Carregar Arquivo OFX</h2>
+    <input type="file" id="fileInput" accept=".ofx" multiple>
+    <p id="saldo">Saldo: R$ 0,00</p>
+    <table id="ofxTable">
+        <thead>
+            <tr>
+                <th>ORG</th>
+                <th>FID</th>
+                <th>BANKID</th>
+                <th>BRANCHID</th>
+                <th>ACCTID</th>
+                <th>ACCTTYPE</th>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>ID</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+
+            let fileIndex = 0;
+
+            function readNextFile() {
+                if (fileIndex < files.length) {
+                    const file = files[fileIndex];
+                    console.log(`Processing file: ${file.name}`);
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const text = e.target.result;
+                        parseOFX(text);
+                        fileIndex++;
+                        readNextFile(); // Read the next file
+                    };
+                    reader.readAsText(file);
+                } else {
+                    console.log('All files processed.');
+                }
+            }
+
+            readNextFile(); // Start reading the first file
+        });
+
+        function formatDate(ofxDate) {
+            const match = ofxDate.match(/(\d{4})(\d{2})(\d{2})/);
+            return match ? `${match[3]}/${match[2]}/${match[1]}` : 'Data inválida';
+        }
+
+        const transactions = [];
+
+        function parseOFX(ofxText) {
+            let saldo = 0;
+            
+            const org = ofxText.match(/<ORG>(.*?)<\/ORG>/)?.[1] || 'N/A';
+            const fid = ofxText.match(/<FID>(.*?)<\/FID>/)?.[1] || 'N/A';
+            const bankid = ofxText.match(/<BANKID>(.*?)<\/BANKID>/)?.[1] || 'N/A';
+            const branchid = ofxText.match(/<BRANCHID>(.*?)<\/BRANCHID>/)?.[1] || 'N/A';
+            const acctid = ofxText.match(/<ACCTID>(.*?)<\/ACCTID>/)?.[1] || 'N/A';
+            const accttype = ofxText.match(/<ACCTTYPE>(.*?)<\/ACCTTYPE>/)?.[1] || 'N/A';
+            
+            const regex = /<STMTTRN>(.*?)<\/STMTTRN>/gs;
+            let match;
+            while ((match = regex.exec(ofxText)) !== null) {
+                const transacao = match[1];
+                const rawDate = transacao.match(/<DTPOSTED>(\d{8})/)?.[1] || '';
+                const date = formatDate(rawDate);
+                const type = transacao.match(/<TRNTYPE>(.*?)<\/TRNTYPE>/)?.[1] || 'Desconhecido';
+                const id = transacao.match(/<FITID>(.*?)<\/FITID>/)?.[1] || 'Sem ID';
+                const description = transacao.match(/<MEMO>(.*?)<\/MEMO>/)?.[1] || 'Sem descrição';
+                const amount = parseFloat(transacao.match(/<TRNAMT>(.*?)<\/TRNAMT>/)?.[1] || '0.00');
+                
+                saldo += amount;
+                transactions.push({ org, fid, bankid, branchid, acctid, accttype, date, type, id, description, amount });
+            }
+            
+            const tbody = document.querySelector('#ofxTable tbody');
+            tbody.innerHTML = '';
+            transactions.forEach(tr => {
+                const row = `<tr><td>${tr.org}</td><td>${tr.fid}</td><td>${tr.bankid}</td><td>${tr.branchid}</td><td>${tr.acctid}</td><td>${tr.accttype}</td><td>${tr.date}</td><td>${tr.type}</td><td>${tr.id}</td><td>${tr.description}</td><td>R$ ${tr.amount.toFixed(2)}</td></tr>`;
+                tbody.innerHTML += row;
+            });
+            
+            document.getElementById('saldo').textContent = `Saldo: R$ ${saldo.toFixed(2)}`;
+        }
+    </script>
+</body>
+</html>
