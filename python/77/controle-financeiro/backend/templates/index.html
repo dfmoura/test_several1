@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Financeiro</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #f4f4f4;
+            margin-bottom: 5px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Controle Financeiro Pessoal</h1>
+
+        <!-- Formulário para cadastrar categorias -->
+        <h2>Cadastrar Categoria</h2>
+        <form id="categoriaForm">
+            <div class="form-group">
+                <label for="nomeCategoria">Nome da Categoria:</label>
+                <input type="text" id="nomeCategoria" name="nomeCategoria" required>
+            </div>
+            <button type="submit">Salvar Categoria</button>
+        </form>
+
+        <!-- Lista de categorias cadastradas -->
+        <h2>Categorias Cadastradas</h2>
+        <ul id="categoriasList"></ul>
+
+        <!-- Formulário para adicionar movimentações -->
+        <h2>Adicionar Movimentação</h2>
+        <form id="movimentacaoForm">
+            <div class="form-group">
+                <label for="descricao">Descrição:</label>
+                <input type="text" id="descricao" name="descricao" required>
+            </div>
+            <div class="form-group">
+                <label for="valor">Valor:</label>
+                <input type="number" id="valor" name="valor" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="tipo">Tipo:</label>
+                <select id="tipo" name="tipo" required>
+                    <option value="receita">Receita</option>
+                    <option value="despesa">Despesa</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="categoria_id">Categoria:</label>
+                <select id="categoria_id" name="categoria_id" required></select>
+            </div>
+            <button type="submit">Adicionar Movimentação</button>
+        </form>
+
+        <!-- Lista de movimentações -->
+        <h2>Movimentações</h2>
+        <ul id="movimentacoesList"></ul>
+    </div>
+
+    <script>
+        // Função para buscar e exibir categorias
+        async function fetchCategorias() {
+            const response = await fetch('/categorias');
+            const categorias = await response.json();
+            const select = document.getElementById('categoria_id');
+            const ul = document.getElementById('categoriasList');
+            select.innerHTML = '';
+            ul.innerHTML = '';
+            categorias.forEach(categoria => {
+                // Adiciona ao select do formulário de movimentações
+                const option = document.createElement('option');
+                option.value = categoria.id;
+                option.textContent = categoria.nome;
+                select.appendChild(option);
+
+                // Adiciona à lista de categorias cadastradas
+                const li = document.createElement('li');
+                li.textContent = categoria.nome;
+                ul.appendChild(li);
+            });
+        }
+
+        // Função para cadastrar uma nova categoria
+        document.getElementById('categoriaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nomeCategoria = document.getElementById('nomeCategoria').value;
+            await fetch('/categorias', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nome: nomeCategoria })
+            });
+            document.getElementById('nomeCategoria').value = ''; // Limpa o campo
+            fetchCategorias(); // Atualiza a lista de categorias
+            // Adiciona a nova categoria ao select de movimentações
+            const select = document.getElementById('categoria_id');
+            const option = document.createElement('option');
+            option.value = categoria.id; // Use the ID of the newly created category
+            option.textContent = nomeCategoria; // Use the name of the newly created category
+            select.appendChild(option); // Add the new option to the select
+        });
+
+        // Função para buscar e exibir movimentações
+        async function fetchMovimentacoes() {
+            const response = await fetch('/movimentacoes');
+            const movimentacoes = await response.json();
+            const ul = document.getElementById('movimentacoesList');
+            ul.innerHTML = '';
+            movimentacoes.forEach(mov => {
+                const li = document.createElement('li');
+                li.textContent = `${mov.descricao} - ${mov.valor} (${mov.tipo} - ${mov.categoria})`;
+                ul.appendChild(li);
+            });
+        }
+
+        // Função para adicionar uma nova movimentação
+        document.getElementById('movimentacaoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = {
+                descricao: document.getElementById('descricao').value,
+                valor: parseFloat(document.getElementById('valor').value),
+                tipo: document.getElementById('tipo').value,
+                categoria_id: parseInt(document.getElementById('categoria_id').value)
+            };
+            await fetch('/movimentacoes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            document.getElementById('descricao').value = ''; // Limpa o campo
+            document.getElementById('valor').value = ''; // Limpa o campo
+            fetchMovimentacoes(); // Atualiza a lista de movimentações
+        });
+    </script>
+</body>
+</html>

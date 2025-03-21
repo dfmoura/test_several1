@@ -127,6 +127,7 @@
                     OR (:P_TIT_ABERTOS = 'S' )
                   )
                   AND CODEMP IN (:P_EMPRESA) 
+                  AND ((PROVISAO = 'S' AND DHBAIXA IS NULL) OR (PROVISAO = 'N'))
           )
           SELECT 
               TO_CHAR(DAT.DATA_DO_MES, 'dd') AS Dia,

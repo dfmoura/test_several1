@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:13
+    container_name: financify_db
+    environment:
+      POSTGRES_USER: financify_user
+      POSTGRES_PASSWORD: financify_password
+      POSTGRES_DB: financify_db
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    container_name: financify_backend
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: db
+      DB_USER: financify_user
+      DB_PASSWORD: financify_password
+      DB_NAME: financify_db
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: financify_frontend
+    ports:
+      - "3001:3001"
+    environment:
+      REACT_APP_API_URL: http://localhost:3000
+    depends_on:
+      - backend
