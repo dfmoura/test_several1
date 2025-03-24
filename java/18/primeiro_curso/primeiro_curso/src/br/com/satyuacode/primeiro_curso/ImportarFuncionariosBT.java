@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 public class ImportarFuncionariosBT implements AcaoRotinaJava {
     @Override
     public void doAction(ContextoAcao contexto) throws Exception {
-        System.out.println("ImportarFuncionarioBT INICIO");
+        System.out.println("ImportarFuncionario BT INICIO");
 
 
         //LER PARAMETRO
