@@ -61,9 +61,10 @@ def ofx_to_dict(ofx_content):
 
 def process_ofx_files(ofx_directory, json_file_path):
     """
-    Processa todos os arquivos OFX em um diretório e consolida em um único JSON.
+    Processa todos os arquivos OFX em um diretório e consolida em um único JSON, evitando duplicatas.
     """
     consolidated_data = []
+    seen_content = set()  # Set to track unique content
 
     # Lista todos os arquivos OFX no diretório
     for filename in os.listdir(ofx_directory):
@@ -77,8 +78,13 @@ def process_ofx_files(ofx_directory, json_file_path):
             # Converte o OFX para um dicionário
             ofx_dict = ofx_to_dict(ofx_content)
 
-            # Adiciona o dicionário à lista consolidada
-            consolidated_data.append(ofx_dict)
+            # Serialize the dictionary to a JSON string for comparison
+            ofx_dict_serialized = json.dumps(ofx_dict, sort_keys=True, ensure_ascii=False)
+
+            # Check for duplicates
+            if ofx_dict_serialized not in seen_content:
+                seen_content.add(ofx_dict_serialized)  # Add to seen set
+                consolidated_data.append(ofx_dict)  # Add to consolidated data
 
     # Salva o JSON consolidado
     with open(json_file_path, 'w', encoding='utf-8') as json_file:

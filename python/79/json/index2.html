@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Saldo Inicial</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #gerarJson {
+            margin-top: 10px;
+            background-color: #007bff;
+        }
+
+        #gerarJson:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cadastro de Saldo Inicial</h1>
+        <form id="saldoForm">
+            <label for="data">Data:</label>
+            <input type="text" id="data" placeholder="dd/mm/yyyy" required>
+
+            <label for="banco">Banco:</label>
+            <input type="text" id="banco" placeholder="Nome do Banco" required>
+
+            <label for="conta">Conta:</label>
+            <input type="text" id="conta" placeholder="Número da Conta" required>
+
+            <label for="agencia">Agência:</label>
+            <input type="text" id="agencia" placeholder="Número da Agência" required>
+
+            <label for="valor">Valor:</label>
+            <input type="number" id="valor" placeholder="Valor" step="0.01" required>
+
+            <button type="submit">Cadastrar</button>
+        </form>
+        <button id="gerarJson">Gerar JSON</button>
+    </div>
+
+    <script>
+        // Função para carregar registros do localStorage
+        function carregarRegistros() {
+            const registros = localStorage.getItem('registros');
+            return registros ? JSON.parse(registros) : [];
+        }
+
+        // Função para salvar registros no localStorage
+        function salvarRegistros(registros) {
+            localStorage.setItem('registros', JSON.stringify(registros));
+        }
+
+        // Adicionar um novo registro
+        document.getElementById('saldoForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const data = document.getElementById('data').value;
+            const banco = document.getElementById('banco').value;
+            const conta = document.getElementById('conta').value;
+            const agencia = document.getElementById('agencia').value;
+            const valor = parseFloat(document.getElementById('valor').value);
+
+            const novoRegistro = {
+                data: data,
+                banco: banco,
+                conta: conta,
+                agencia: agencia,
+                valor: valor
+            };
+
+            // Carregar registros existentes
+            const registros = carregarRegistros();
+            // Adicionar o novo registro
+            registros.push(novoRegistro);
+            // Salvar no localStorage
+            salvarRegistros(registros);
+
+            alert('Registro cadastrado com sucesso!');
+            document.getElementById('saldoForm').reset(); // Limpar o formulário
+        });
+
+        // Gerar JSON com todos os registros
+        document.getElementById('gerarJson').addEventListener('click', function() {
+            const registros = carregarRegistros();
+
+            if (registros.length > 0) {
+                const jsonStr = JSON.stringify(registros, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'saldo_inicial.json';
+                a.click();
+
+                URL.revokeObjectURL(url);
+            } else {
+                alert('Nenhum registro cadastrado para gerar JSON.');
+            }
+        });
+    </script>
+</body>
+</html>

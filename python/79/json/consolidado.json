@@ -6,7 +6,532 @@
                     "CODE": "0",
                     "SEVERITY": "INFO"
                 },
-                "DTSERVER": "20250315013018[0:GMT]",
+                "DTSERVER": "20250323023703[0:GMT]",
+                "LANGUAGE": "POR",
+                "FI": {
+                    "ORG": "NU PAGAMENTOS S.A.",
+                    "FID": "260"
+                }
+            }
+        },
+        "BANKMSGSRSV1": {
+            "STMTTRNRS": {
+                "TRNUID": "1",
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "STMTRS": {
+                    "CURDEF": "BRL",
+                    "BANKACCTFROM": {
+                        "BANKID": "0260",
+                        "BRANCHID": "1",
+                        "ACCTID": "7823270-6",
+                        "ACCTTYPE": "CHECKING"
+                    },
+                    "BANKTRANLIST": {
+                        "DTSTART": "20240801000000[-3:BRT]",
+                        "DTEND": "20240831000000[-3:BRT]",
+                        "STMTTRN": [
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240807000000[-3:BRT]",
+                                "TRNAMT": "1490.79",
+                                "FITID": "66b3c6f9-fce7-42f7-b602-4bc62caffb34",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240807000000[-3:BRT]",
+                                "TRNAMT": "-1490.79",
+                                "FITID": "66b3c72f-bb2e-49aa-abcd-ed0850932acc",
+                                "MEMO": "Pagamento de fatura"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240813000000[-3:BRT]",
+                                "TRNAMT": "4287.48",
+                                "FITID": "66bb540a-3df5-4534-af8b-200ee0ee9ae1",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240814000000[-3:BRT]",
+                                "TRNAMT": "-4284.90",
+                                "FITID": "66bca12e-c1ee-4fdc-b2b1-1d5e63cf285f",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240814000000[-3:BRT]",
+                                "TRNAMT": "6.00",
+                                "FITID": "66bcab86-fba6-4bd2-9ed0-1aeec4335d30",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240815000000[-3:BRT]",
+                                "TRNAMT": "0.20",
+                                "FITID": "66bdf12d-17dc-4a1f-b089-d95d09776de9",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240815000000[-3:BRT]",
+                                "TRNAMT": "3.03",
+                                "FITID": "66bdf12d-9bab-4691-ba4c-f3fdbd49b202",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240816000000[-3:BRT]",
+                                "TRNAMT": "0.04",
+                                "FITID": "66bf4ccf-3c52-41f4-9b62-54641a809df6",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240819000000[-3:BRT]",
+                                "TRNAMT": "6.74",
+                                "FITID": "66c336e0-84b6-4970-b95d-4fa89cff467d",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240819000000[-3:BRT]",
+                                "TRNAMT": "1.69",
+                                "FITID": "66c336e0-b439-43a1-8def-a063c2c1923c",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240821000000[-3:BRT]",
+                                "TRNAMT": "-20.00",
+                                "FITID": "66c637bf-b6e1-4b73-82b8-bbe2a2dcaa70",
+                                "MEMO": "Transferência enviada pelo Pix - Debora Resende Teixeira - •••.422.606-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 3880 Conta: 1288000000961430095-2"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240822000000[-3:BRT]",
+                                "TRNAMT": "20.00",
+                                "FITID": "66c78062-4ff9-4a92-a18e-d8efd381633c",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240828000000[-3:BRT]",
+                                "TRNAMT": "4630.00",
+                                "FITID": "66cf6ba4-1bc0-4f0b-869f-34ab4bd256c4",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240828000000[-3:BRT]",
+                                "TRNAMT": "4577.47",
+                                "FITID": "66cf6c73-e57b-4439-8c2b-bcfcd106b1f8",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240828000000[-3:BRT]",
+                                "TRNAMT": "-4577.47",
+                                "FITID": "66cf6c73-e57b-4439-8c2b-bcfcd106b1f8",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240828000000[-3:BRT]",
+                                "TRNAMT": "-4650.40",
+                                "FITID": "66cf727e-cda0-4929-a655-6461542f964b",
+                                "MEMO": "Transferência enviada pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 1288000000755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240830000000[-3:BRT]",
+                                "TRNAMT": "10.46",
+                                "FITID": "66d1bacc-3c98-4df2-9b6f-382b3997bc93",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            }
+                        ]
+                    },
+                    "LEDGERBAL": {
+                        "BALAMT": "10.46",
+                        "DTASOF": "20240831000000[-3:BRT]"
+                    },
+                    "BALLIST": {
+                        "BAL": {
+                            "NAME": "RENDIMENTO LIQUIDO",
+                            "DESC": "RENDIMENTO LIQUIDO NO PERIODO",
+                            "BALTYPE": "NUMBER",
+                            "VALUE": "0.00"
+                        }
+                    }
+                }
+            }
+        },
+        "OFXHEADER": {
+            "OFXHEADER": "100",
+            "DATA": "OFXSGML",
+            "VERSION": "102",
+            "SECURITY": "NONE",
+            "ENCODING": "UTF-8",
+            "CHARSET": "NONE",
+            "COMPRESSION": "NONE",
+            "OLDFILEUID": "NONE",
+            "NEWFILEUID": "NONE"
+        }
+    },
+    {
+        "SIGNONMSGSRSV1": {
+            "SONRS": {
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "DTSERVER": "20250323023655[0:GMT]",
+                "LANGUAGE": "POR",
+                "FI": {
+                    "ORG": "NU PAGAMENTOS S.A.",
+                    "FID": "260"
+                }
+            }
+        },
+        "BANKMSGSRSV1": {
+            "STMTTRNRS": {
+                "TRNUID": "1",
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "STMTRS": {
+                    "CURDEF": "BRL",
+                    "BANKACCTFROM": {
+                        "BANKID": "0260",
+                        "BRANCHID": "1",
+                        "ACCTID": "7823270-6",
+                        "ACCTTYPE": "CHECKING"
+                    },
+                    "BANKTRANLIST": {
+                        "DTSTART": "20240901000000[-3:BRT]",
+                        "DTEND": "20240930000000[-3:BRT]",
+                        "STMTTRN": [
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240909000000[-3:BRT]",
+                                "TRNAMT": "1256.68",
+                                "FITID": "66df2104-b60c-4c14-8c58-3beedbd59769",
+                                "MEMO": "Transferência Recebida - TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA - 53.369.941/0001-63 - NU PAGAMENTOS - IP (0260) Agência: 1 Conta: 82129824-7"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240909000000[-3:BRT]",
+                                "TRNAMT": "-80.00",
+                                "FITID": "66df248c-87d5-4662-adea-fde1bbe34c2a",
+                                "MEMO": "Transferência enviada pelo Pix - Mayane Raimundo Silva - •••.657.126-•• - MERCADO PAGO IP LTDA. (0323) Agência: 1 Conta: 3700234052-4"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240909000000[-3:BRT]",
+                                "TRNAMT": "-65.00",
+                                "FITID": "66df28d2-457a-40eb-a8bb-9d7526150bb9",
+                                "MEMO": "Transferência enviada pelo Pix - CONDOMINIO R V D R I - 21.325.579/0001-32 - BANCO INTER (0077) Agência: 1 Conta: 23889919-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240909000000[-3:BRT]",
+                                "TRNAMT": "-118.11",
+                                "FITID": "66df292d-13cf-4c0b-badd-9c0dc43c1ec5",
+                                "MEMO": "Transferência enviada pelo Pix - ALGAR TELECOM S/A - 71.208.516/0001-74 - BANCO BTG PACTUAL S.A. (0208) Agência: 30 Conta: 475292-9"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240909000000[-3:BRT]",
+                                "TRNAMT": "-246.66",
+                                "FITID": "66df2a06-f0b2-4c2e-b234-b04c88ec4d94",
+                                "MEMO": "Transferência enviada pelo Pix - CEMIG DISTRIBUICAO S A - 06.981.180/0001-16 - BCO SANTANDER (BRASIL) S.A. (0033) Agência: 3337 Conta: 13065587-1"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240909000000[-3:BRT]",
+                                "TRNAMT": "-302.33",
+                                "FITID": "66df2ab6-2fa6-41e4-a633-84196c26fbe4",
+                                "MEMO": "Pagamento de boleto efetuado - CONSELHO REGIONAL DOS CORRETORES DE IMOV"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240912000000[-3:BRT]",
+                                "TRNAMT": "1280.45",
+                                "FITID": "66e38c71-da85-41d9-b619-e0758395d472",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240912000000[-3:BRT]",
+                                "TRNAMT": "-1725.03",
+                                "FITID": "66e38ca2-8c29-442a-8a5e-81aef34dff38",
+                                "MEMO": "Pagamento de fatura"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240928000000[-3:BRT]",
+                                "TRNAMT": "-1.50",
+                                "FITID": "66f80464-201c-4c60-b41e-c712245eff37",
+                                "MEMO": "Compra no débito - Cofep"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240930000000[-3:BRT]",
+                                "TRNAMT": "6.97",
+                                "FITID": "66fa9568-43af-4e9c-87ea-68a293294fb9",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240930000000[-3:BRT]",
+                                "TRNAMT": "0.62",
+                                "FITID": "66fa9568-536d-49ad-98d7-0cdd8978c8f8",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            }
+                        ]
+                    },
+                    "LEDGERBAL": {
+                        "BALAMT": "16.55",
+                        "DTASOF": "20240930000000[-3:BRT]"
+                    },
+                    "BALLIST": {
+                        "BAL": {
+                            "NAME": "RENDIMENTO LIQUIDO",
+                            "DESC": "RENDIMENTO LIQUIDO NO PERIODO",
+                            "BALTYPE": "NUMBER",
+                            "VALUE": "0.00"
+                        }
+                    }
+                }
+            }
+        },
+        "OFXHEADER": {
+            "OFXHEADER": "100",
+            "DATA": "OFXSGML",
+            "VERSION": "102",
+            "SECURITY": "NONE",
+            "ENCODING": "UTF-8",
+            "CHARSET": "NONE",
+            "COMPRESSION": "NONE",
+            "OLDFILEUID": "NONE",
+            "NEWFILEUID": "NONE"
+        }
+    },
+    {
+        "SIGNONMSGSRSV1": {
+            "SONRS": {
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "DTSERVER": "20250323022746[0:GMT]",
+                "LANGUAGE": "POR",
+                "FI": {
+                    "ORG": "NU PAGAMENTOS S.A.",
+                    "FID": "260"
+                }
+            }
+        },
+        "BANKMSGSRSV1": {
+            "STMTTRNRS": {
+                "TRNUID": "1",
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "STMTRS": {
+                    "CURDEF": "BRL",
+                    "BANKACCTFROM": {
+                        "BANKID": "0260",
+                        "BRANCHID": "1",
+                        "ACCTID": "7823270-6",
+                        "ACCTTYPE": "CHECKING"
+                    },
+                    "BANKTRANLIST": {
+                        "DTSTART": "20250101000000[-3:BRT]",
+                        "DTEND": "20250131000000[-3:BRT]",
+                        "STMTTRN": [
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20250102000000[-3:BRT]",
+                                "TRNAMT": "-886.29",
+                                "FITID": "67768d07-0775-4405-bd24-2cc5fded543f",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250102000000[-3:BRT]",
+                                "TRNAMT": "17.00",
+                                "FITID": "67769221-c920-4042-aee1-67967e510e6b",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250103000000[-3:BRT]",
+                                "TRNAMT": "0.04",
+                                "FITID": "67781fd8-cfaa-4401-9bc0-eec241eb6867",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250109000000[-3:BRT]",
+                                "TRNAMT": "2145.24",
+                                "FITID": "677ff666-52ce-44f6-af7e-259c374bf04c",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20250109000000[-3:BRT]",
+                                "TRNAMT": "-2145.24",
+                                "FITID": "677ff6ad-8e05-420d-9de5-12440dfb0d17",
+                                "MEMO": "Pagamento de fatura"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250116000000[-3:BRT]",
+                                "TRNAMT": "302.33",
+                                "FITID": "67892e16-5af1-425f-a846-bec5e8daba27",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20250116000000[-3:BRT]",
+                                "TRNAMT": "-302.33",
+                                "FITID": "67892e44-e01d-44ab-92b7-f03571e867d8",
+                                "MEMO": "Pagamento de boleto efetuado - CONSELHO REGIONAL DOS CORRETORES DE IMOV"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250116000000[-3:BRT]",
+                                "TRNAMT": "1695.00",
+                                "FITID": "67893108-0851-4867-ae4f-ba6a36eac3b5",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20250116000000[-3:BRT]",
+                                "TRNAMT": "-1000.32",
+                                "FITID": "67893150-2c5a-47e2-907f-c96f7bc631fe",
+                                "MEMO": "Compra de Ações - CMIN3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250116000000[-3:BRT]",
+                                "TRNAMT": "8.00",
+                                "FITID": "67893151-1de6-46bf-9a49-024dd9031d88",
+                                "MEMO": "Compra de Ações - CMIN3"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20250116000000[-3:BRT]",
+                                "TRNAMT": "-787.26",
+                                "FITID": "6789317c-82be-40ab-9eb8-91c9800c13b4",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250116000000[-3:BRT]",
+                                "TRNAMT": "7.00",
+                                "FITID": "6789317d-788b-4555-b602-7e743c0d9a32",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250117000000[-3:BRT]",
+                                "TRNAMT": "0.06",
+                                "FITID": "678a945f-e887-4894-8b52-766c8263acff",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250120000000[-3:BRT]",
+                                "TRNAMT": "20.00",
+                                "FITID": "678e7534-bcf0-4ab6-a764-77236c59cd15",
+                                "MEMO": "Transferência recebida pelo Pix - lucas gambardella chaud - •••.191.886-•• - CLOUDWALK IP LTDA (0542) Agência: 1 Conta: 7191031-7"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250124000000[-3:BRT]",
+                                "TRNAMT": "25.00",
+                                "FITID": "6793dab5-9a5b-4b7d-94ce-35af9bba3e3c",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20250124000000[-3:BRT]",
+                                "TRNAMT": "-20.00",
+                                "FITID": "6793db32-a9e4-4ed6-87dc-2fa2415a3624",
+                                "MEMO": "Recarga de celular"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250131000000[-3:BRT]",
+                                "TRNAMT": "3250.00",
+                                "FITID": "679d0fd9-b7ca-4156-81f3-c4018e93bff2",
+                                "MEMO": "Transferência recebida pelo Pix - IARA APARECIDA FERREIRA MOURA - •••.960.486-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 3026 Conta: 768312555-6"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250131000000[-3:BRT]",
+                                "TRNAMT": "20.00",
+                                "FITID": "679d131b-1d55-4b93-873b-f2fd2fc7da7d",
+                                "MEMO": "Transferência recebida pelo Pix - DEBORA RESENDE TEIXEIRA - •••.422.606-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 3880 Conta: 961430095-2"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250131000000[-3:BRT]",
+                                "TRNAMT": "664.00",
+                                "FITID": "679d23a4-b6fc-4ec3-8eef-8351325b414f",
+                                "MEMO": "Transferência recebida pelo Pix - IARA APARECIDA FERREIRA MOURA - •••.960.486-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 3026 Conta: 768312555-6"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20250131000000[-3:BRT]",
+                                "TRNAMT": "-3914.00",
+                                "FITID": "679d24ac-c074-43b6-8301-2dabc178f4c4",
+                                "MEMO": "Transferência enviada pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 1288000000755602979-5"
+                            }
+                        ]
+                    },
+                    "LEDGERBAL": {
+                        "BALAMT": "65.85",
+                        "DTASOF": "20250131000000[-3:BRT]"
+                    },
+                    "BALLIST": {
+                        "BAL": {
+                            "NAME": "RENDIMENTO LIQUIDO",
+                            "DESC": "RENDIMENTO LIQUIDO NO PERIODO",
+                            "BALTYPE": "NUMBER",
+                            "VALUE": "0.00"
+                        }
+                    }
+                }
+            }
+        },
+        "OFXHEADER": {
+            "OFXHEADER": "100",
+            "DATA": "OFXSGML",
+            "VERSION": "102",
+            "SECURITY": "NONE",
+            "ENCODING": "UTF-8",
+            "CHARSET": "NONE",
+            "COMPRESSION": "NONE",
+            "OLDFILEUID": "NONE",
+            "NEWFILEUID": "NONE"
+        }
+    },
+    {
+        "SIGNONMSGSRSV1": {
+            "SONRS": {
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "DTSERVER": "20250323023026[0:GMT]",
                 "LANGUAGE": "POR",
                 "FI": {
                     "ORG": "NU PAGAMENTOS S.A.",
@@ -31,7 +556,7 @@
                     },
                     "BANKTRANLIST": {
                         "DTSTART": "20250301000000[-3:BRT]",
-                        "DTEND": "20250313000000[-3:BRT]",
+                        "DTEND": "20250321000000[-3:BRT]",
                         "STMTTRN": [
                             {
                                 "TRNTYPE": "CREDIT",
@@ -60,12 +585,33 @@
                                 "TRNAMT": "-1427.50",
                                 "FITID": "67d2b830-f5e7-465f-9c46-32f222ecf543",
                                 "MEMO": "Pagamento de fatura"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250314000000[-3:BRT]",
+                                "TRNAMT": "0.02",
+                                "FITID": "67d41dac-1827-4616-a1bc-8c8559276ab1",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20250314000000[-3:BRT]",
+                                "TRNAMT": "0.39",
+                                "FITID": "67d41dac-5650-4d80-90a7-6f71de6cfba3",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20250319000000[-3:BRT]",
+                                "TRNAMT": "-29.84",
+                                "FITID": "67db530d-3502-40d3-9c1f-a60bb256e4ed",
+                                "MEMO": "Compra no débito - Supermercado Lunasa"
                             }
                         ]
                     },
                     "LEDGERBAL": {
-                        "BALAMT": "78.36",
-                        "DTASOF": "20250313000000[-3:BRT]"
+                        "BALAMT": "48.93",
+                        "DTASOF": "20250321000000[-3:BRT]"
                     },
                     "BALLIST": {
                         "BAL": {
@@ -209,7 +755,7 @@
                     "CODE": "0",
                     "SEVERITY": "INFO"
                 },
-                "DTSERVER": "20250315013018[0:GMT]",
+                "DTSERVER": "20250323023636[0:GMT]",
                 "LANGUAGE": "POR",
                 "FI": {
                     "ORG": "NU PAGAMENTOS S.A.",
@@ -233,42 +779,658 @@
                         "ACCTTYPE": "CHECKING"
                     },
                     "BANKTRANLIST": {
-                        "DTSTART": "20250301000000[-3:BRT]",
-                        "DTEND": "20250313000000[-3:BRT]",
+                        "DTSTART": "20241101000000[-3:BRT]",
+                        "DTEND": "20241130000000[-3:BRT]",
                         "STMTTRN": [
                             {
                                 "TRNTYPE": "CREDIT",
-                                "DTPOSTED": "20250312000000[-3:BRT]",
-                                "TRNAMT": "1.62",
-                                "FITID": "67d17a83-bae2-4fc5-99ff-28b666491a47",
-                                "MEMO": "Transferência de saldo NuInvest"
-                            },
-                            {
-                                "TRNTYPE": "CREDIT",
-                                "DTPOSTED": "20250312000000[-3:BRT]",
-                                "TRNAMT": "0.11",
-                                "FITID": "67d17a83-f4a4-4cb5-bea7-e8dc0e33f0c5",
-                                "MEMO": "Transferência de saldo NuInvest"
-                            },
-                            {
-                                "TRNTYPE": "CREDIT",
-                                "DTPOSTED": "20250313000000[-3:BRT]",
-                                "TRNAMT": "1427.50",
-                                "FITID": "67d2b800-1c2f-46f7-9b6e-1b0cf632295f",
+                                "DTPOSTED": "20241112000000[-3:BRT]",
+                                "TRNAMT": "1814.74",
+                                "FITID": "67339321-e2c0-48e1-bac0-e845a2977d5e",
                                 "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
                             },
                             {
                                 "TRNTYPE": "DEBIT",
-                                "DTPOSTED": "20250313000000[-3:BRT]",
-                                "TRNAMT": "-1427.50",
-                                "FITID": "67d2b830-f5e7-465f-9c46-32f222ecf543",
+                                "DTPOSTED": "20241112000000[-3:BRT]",
+                                "TRNAMT": "-1814.74",
+                                "FITID": "67339349-1bb4-4bd0-b340-71bdc69da5a5",
                                 "MEMO": "Pagamento de fatura"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241113000000[-3:BRT]",
+                                "TRNAMT": "24.00",
+                                "FITID": "6734aa04-f310-4652-8ed8-199162e21c3e",
+                                "MEMO": "Transferência recebida pelo Pix - FILIPE ALVIM MALUF - •••.785.557-•• - BCO BRADESCO S.A. (0237) Agência: 3832 Conta: 707-2"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241115000000[-3:BRT]",
+                                "TRNAMT": "24.00",
+                                "FITID": "67376939-b8d3-4f37-8322-b667f4900d86",
+                                "MEMO": "Transferência recebida pelo Pix - LEILA SILVA DOS SANTOS - •••.727.807-•• - BCO BRADESCO S.A. (0237) Agência: 358 Conta: 73713-5"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241119000000[-3:BRT]",
+                                "TRNAMT": "302.00",
+                                "FITID": "673c8bda-0154-4767-ac1a-e2b531292b15",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241119000000[-3:BRT]",
+                                "TRNAMT": "-302.33",
+                                "FITID": "673c8c99-e51c-4083-9743-4c27051f53ff",
+                                "MEMO": "Pagamento de boleto efetuado - CONSELHO REGIONAL DOS CORRETORES DE IMOV"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241121000000[-3:BRT]",
+                                "TRNAMT": "4540.00",
+                                "FITID": "673f0dd6-111d-4943-b5a1-77634f879af7",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241121000000[-3:BRT]",
+                                "TRNAMT": "-2987.97",
+                                "FITID": "673f0e5c-5b6c-4c97-a173-f15ee2081e6b",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241121000000[-3:BRT]",
+                                "TRNAMT": "-1592.81",
+                                "FITID": "673f0eb4-6df2-4176-b4bb-e4d5f919ce31",
+                                "MEMO": "Compra de Ações - CMIN3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241121000000[-3:BRT]",
+                                "TRNAMT": "2.67",
+                                "FITID": "673f2701-2b71-4686-85a5-3b7f8cdcabcb",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241121000000[-3:BRT]",
+                                "TRNAMT": "0.17",
+                                "FITID": "673f2701-7bbc-4145-869b-77d26307ee46",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241121000000[-3:BRT]",
+                                "TRNAMT": "19.98",
+                                "FITID": "673f305f-53c9-4ccd-b037-2acf050e6922",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241121000000[-3:BRT]",
+                                "TRNAMT": "24.05",
+                                "FITID": "673f3102-bb74-4794-af6a-52bf58bfba63",
+                                "MEMO": "Compra de Ações - CMIN3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241122000000[-3:BRT]",
+                                "TRNAMT": "0.04",
+                                "FITID": "6740c0ec-4c8e-4c9b-8fa3-52aaa2bb7990",
+                                "MEMO": "Transferência de saldo NuInvest"
                             }
                         ]
                     },
                     "LEDGERBAL": {
-                        "BALAMT": "78.36",
-                        "DTASOF": "20250313000000[-3:BRT]"
+                        "BALAMT": "61.51",
+                        "DTASOF": "20241130000000[-3:BRT]"
+                    },
+                    "BALLIST": {
+                        "BAL": {
+                            "NAME": "RENDIMENTO LIQUIDO",
+                            "DESC": "RENDIMENTO LIQUIDO NO PERIODO",
+                            "BALTYPE": "NUMBER",
+                            "VALUE": "0.00"
+                        }
+                    }
+                }
+            }
+        },
+        "OFXHEADER": {
+            "OFXHEADER": "100",
+            "DATA": "OFXSGML",
+            "VERSION": "102",
+            "SECURITY": "NONE",
+            "ENCODING": "UTF-8",
+            "CHARSET": "NONE",
+            "COMPRESSION": "NONE",
+            "OLDFILEUID": "NONE",
+            "NEWFILEUID": "NONE"
+        }
+    },
+    {
+        "SIGNONMSGSRSV1": {
+            "SONRS": {
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "DTSERVER": "20250323023645[0:GMT]",
+                "LANGUAGE": "POR",
+                "FI": {
+                    "ORG": "NU PAGAMENTOS S.A.",
+                    "FID": "260"
+                }
+            }
+        },
+        "BANKMSGSRSV1": {
+            "STMTTRNRS": {
+                "TRNUID": "1",
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "STMTRS": {
+                    "CURDEF": "BRL",
+                    "BANKACCTFROM": {
+                        "BANKID": "0260",
+                        "BRANCHID": "1",
+                        "ACCTID": "7823270-6",
+                        "ACCTTYPE": "CHECKING"
+                    },
+                    "BANKTRANLIST": {
+                        "DTSTART": "20241001000000[-3:BRT]",
+                        "DTEND": "20241031000000[-3:BRT]",
+                        "STMTTRN": [
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241001000000[-3:BRT]",
+                                "TRNAMT": "6255.00",
+                                "FITID": "66fbd1bd-0670-4b3c-8d4a-0874df65cd25",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241001000000[-3:BRT]",
+                                "TRNAMT": "-6266.01",
+                                "FITID": "66fbd2be-b2cd-4d90-ad26-75f240561d9f",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241002000000[-3:BRT]",
+                                "TRNAMT": "0.14",
+                                "FITID": "66fd8382-9c20-4f88-97f4-99379ee61d97",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241014000000[-3:BRT]",
+                                "TRNAMT": "1847.82",
+                                "FITID": "670daef0-199c-4c42-b797-7f72776ebcdc",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241014000000[-3:BRT]",
+                                "TRNAMT": "-1847.82",
+                                "FITID": "670daf37-c4a6-428a-912c-a363c7290a96",
+                                "MEMO": "Pagamento de fatura"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241018000000[-3:BRT]",
+                                "TRNAMT": "3095.00",
+                                "FITID": "67125d93-c53c-438e-9028-cb2e4da619ac",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241018000000[-3:BRT]",
+                                "TRNAMT": "-3098.64",
+                                "FITID": "67125e56-69a0-4657-9a86-1a2b2de1b0d0",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241021000000[-3:BRT]",
+                                "TRNAMT": "0.08",
+                                "FITID": "6716908d-edae-45f2-86d6-76b284152bd1",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241025000000[-3:BRT]",
+                                "TRNAMT": "444.84",
+                                "FITID": "671b8be3-c7f1-4828-9105-102a6a2194ad",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241025000000[-3:BRT]",
+                                "TRNAMT": "-443.91",
+                                "FITID": "671bbbd5-e3b1-42ca-a659-4715fd1b8489",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241025000000[-3:BRT]",
+                                "TRNAMT": "1.29",
+                                "FITID": "671bbbd6-ca3b-4fb1-afda-9e72de83c989",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241028000000[-3:BRT]",
+                                "TRNAMT": "0.02",
+                                "FITID": "671f8626-cf4b-4dbe-8c68-553b1c18ec9f",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241029000000[-3:BRT]",
+                                "TRNAMT": "2068.00",
+                                "FITID": "6720d8f3-93b0-48b4-8626-1d8bce941a23",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241029000000[-3:BRT]",
+                                "TRNAMT": "-2070.67",
+                                "FITID": "6720d993-4b0d-4606-8286-29fe8829d123",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241029000000[-3:BRT]",
+                                "TRNAMT": "6.00",
+                                "FITID": "6720dd00-bc55-47f0-8db5-a4dedb0ba638",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241030000000[-3:BRT]",
+                                "TRNAMT": "0.02",
+                                "FITID": "67226e04-f9e2-4cba-86dd-6c4a09e089b4",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            }
+                        ]
+                    },
+                    "LEDGERBAL": {
+                        "BALAMT": "7.71",
+                        "DTASOF": "20241031000000[-3:BRT]"
+                    },
+                    "BALLIST": {
+                        "BAL": {
+                            "NAME": "RENDIMENTO LIQUIDO",
+                            "DESC": "RENDIMENTO LIQUIDO NO PERIODO",
+                            "BALTYPE": "NUMBER",
+                            "VALUE": "0.00"
+                        }
+                    }
+                }
+            }
+        },
+        "OFXHEADER": {
+            "OFXHEADER": "100",
+            "DATA": "OFXSGML",
+            "VERSION": "102",
+            "SECURITY": "NONE",
+            "ENCODING": "UTF-8",
+            "CHARSET": "NONE",
+            "COMPRESSION": "NONE",
+            "OLDFILEUID": "NONE",
+            "NEWFILEUID": "NONE"
+        }
+    },
+    {
+        "SIGNONMSGSRSV1": {
+            "SONRS": {
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "DTSERVER": "20250323023034[0:GMT]",
+                "LANGUAGE": "POR",
+                "FI": {
+                    "ORG": "NU PAGAMENTOS S.A.",
+                    "FID": "260"
+                }
+            }
+        },
+        "BANKMSGSRSV1": {
+            "STMTTRNRS": {
+                "TRNUID": "1",
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "STMTRS": {
+                    "CURDEF": "BRL",
+                    "BANKACCTFROM": {
+                        "BANKID": "0260",
+                        "BRANCHID": "1",
+                        "ACCTID": "7823270-6",
+                        "ACCTTYPE": "CHECKING"
+                    },
+                    "BANKTRANLIST": {
+                        "DTSTART": "20241201000000[-3:BRT]",
+                        "DTEND": "20241231000000[-3:BRT]",
+                        "STMTTRN": [
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241210000000[-3:BRT]",
+                                "TRNAMT": "1649.97",
+                                "FITID": "67585cfd-8cb8-48a9-be93-6d74d1b77b23",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241210000000[-3:BRT]",
+                                "TRNAMT": "-1649.97",
+                                "FITID": "67585d85-3e5e-4ddb-83fe-dc237150fbbf",
+                                "MEMO": "Pagamento de fatura"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241211000000[-3:BRT]",
+                                "TRNAMT": "85.00",
+                                "FITID": "6759e1f8-2e73-44df-8053-c5428ffb971a",
+                                "MEMO": "Transferência recebida pelo Pix - IARA APARECIDA FERREIRA MOURA - •••.960.486-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 3026 Conta: 768312555-6"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241212000000[-3:BRT]",
+                                "TRNAMT": "3696.00",
+                                "FITID": "675ad161-80e1-4bf0-972f-7ea96ed69c79",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241212000000[-3:BRT]",
+                                "TRNAMT": "-2876.63",
+                                "FITID": "675ad277-6b04-40d3-9b25-bda3e090119f",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241212000000[-3:BRT]",
+                                "TRNAMT": "-965.88",
+                                "FITID": "675ad2f2-ef96-49c9-97cc-8cb23da32bcf",
+                                "MEMO": "Transferência enviada pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 1288000000755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241212000000[-3:BRT]",
+                                "TRNAMT": "32.90",
+                                "FITID": "675adf25-9ab4-47c3-b849-77a4a4f891fc",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241213000000[-3:BRT]",
+                                "TRNAMT": "1827.00",
+                                "FITID": "675c3ca2-27ec-4b4d-989d-69421acdd3d0",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241213000000[-3:BRT]",
+                                "TRNAMT": "-1854.60",
+                                "FITID": "675c3cfb-6e9a-48ab-923e-daf3dcf6e0e1",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241213000000[-3:BRT]",
+                                "TRNAMT": "20.00",
+                                "FITID": "675c3cfc-7528-4548-ba75-51431eaff4cd",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241216000000[-3:BRT]",
+                                "TRNAMT": "0.09",
+                                "FITID": "67606452-d084-4c33-812a-ca2fcc075064",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241220000000[-3:BRT]",
+                                "TRNAMT": "1864.00",
+                                "FITID": "676595e9-17d7-4c6e-9482-5f28d17297a4",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241220000000[-3:BRT]",
+                                "TRNAMT": "-899.29",
+                                "FITID": "6765963b-fa4b-42ec-bcc7-db5220a49020",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241220000000[-3:BRT]",
+                                "TRNAMT": "7.00",
+                                "FITID": "6765963c-4ac2-4779-8855-ae6fb5a05836",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241220000000[-3:BRT]",
+                                "TRNAMT": "-986.32",
+                                "FITID": "67659678-5478-48e6-8c05-21c8d8abe32d",
+                                "MEMO": "Compra de Ações - BRSR6"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241220000000[-3:BRT]",
+                                "TRNAMT": "9.00",
+                                "FITID": "67659679-fcda-427b-b0c7-ece574a0ea3d",
+                                "MEMO": "Compra de Ações - BRSR6"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241220000000[-3:BRT]",
+                                "TRNAMT": "84.00",
+                                "FITID": "6765a8aa-f3e5-444d-a057-9983d6afb294",
+                                "MEMO": "Transferência recebida pelo Pix - DEBORA RESENDE TEIXEIRA - •••.422.606-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 3880 Conta: 961430095-2"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241220000000[-3:BRT]",
+                                "TRNAMT": "25.00",
+                                "FITID": "6765ba30-972b-4445-ab56-a717c01f5564",
+                                "MEMO": "Transferência recebida pelo Pix - DEBORA RESENDE TEIXEIRA - •••.422.606-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 3880 Conta: 961430095-2"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241220000000[-3:BRT]",
+                                "TRNAMT": "-109.00",
+                                "FITID": "6765baac-717d-4567-8d3a-39f964c1ce27",
+                                "MEMO": "Transferência enviada pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 1288000000755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241220000000[-3:BRT]",
+                                "TRNAMT": "109.00",
+                                "FITID": "6765baac-717d-4567-8d3a-39f964c1ce27:reversal",
+                                "MEMO": "Estorno - Transferência enviada pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 1288000000755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20241220000000[-3:BRT]",
+                                "TRNAMT": "-109.00",
+                                "FITID": "6765bc01-3d0c-41a0-be9a-a57a48607e54",
+                                "MEMO": "Transferência enviada pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 1288000000755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241223000000[-3:BRT]",
+                                "TRNAMT": "0.06",
+                                "FITID": "67699f4f-038c-42a9-bd80-efc0e6f1b6b6",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241230000000[-3:BRT]",
+                                "TRNAMT": "127.84",
+                                "FITID": "67728ef9-3cac-48eb-a6dc-843238ebc46c",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241230000000[-3:BRT]",
+                                "TRNAMT": "51.75",
+                                "FITID": "67728efa-5a94-4346-9e78-e3e0776fc7f3",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20241230000000[-3:BRT]",
+                                "TRNAMT": "768.19",
+                                "FITID": "67728efa-dbc5-4d9c-baa8-ea37d41aa1a5",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            }
+                        ]
+                    },
+                    "LEDGERBAL": {
+                        "BALAMT": "967.62",
+                        "DTASOF": "20241231000000[-3:BRT]"
+                    },
+                    "BALLIST": {
+                        "BAL": {
+                            "NAME": "RENDIMENTO LIQUIDO",
+                            "DESC": "RENDIMENTO LIQUIDO NO PERIODO",
+                            "BALTYPE": "NUMBER",
+                            "VALUE": "0.00"
+                        }
+                    }
+                }
+            }
+        },
+        "OFXHEADER": {
+            "OFXHEADER": "100",
+            "DATA": "OFXSGML",
+            "VERSION": "102",
+            "SECURITY": "NONE",
+            "ENCODING": "UTF-8",
+            "CHARSET": "NONE",
+            "COMPRESSION": "NONE",
+            "OLDFILEUID": "NONE",
+            "NEWFILEUID": "NONE"
+        }
+    },
+    {
+        "SIGNONMSGSRSV1": {
+            "SONRS": {
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "DTSERVER": "20250323023715[0:GMT]",
+                "LANGUAGE": "POR",
+                "FI": {
+                    "ORG": "NU PAGAMENTOS S.A.",
+                    "FID": "260"
+                }
+            }
+        },
+        "BANKMSGSRSV1": {
+            "STMTTRNRS": {
+                "TRNUID": "1",
+                "STATUS": {
+                    "CODE": "0",
+                    "SEVERITY": "INFO"
+                },
+                "STMTRS": {
+                    "CURDEF": "BRL",
+                    "BANKACCTFROM": {
+                        "BANKID": "0260",
+                        "BRANCHID": "1",
+                        "ACCTID": "7823270-6",
+                        "ACCTTYPE": "CHECKING"
+                    },
+                    "BANKTRANLIST": {
+                        "DTSTART": "20240701000000[-3:BRT]",
+                        "DTEND": "20240731000000[-3:BRT]",
+                        "STMTTRN": [
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240708000000[-3:BRT]",
+                                "TRNAMT": "1434.40",
+                                "FITID": "668c27f0-a6e3-482b-b5a7-0cf0f0288444",
+                                "MEMO": "Transferência recebida pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240708000000[-3:BRT]",
+                                "TRNAMT": "-1434.40",
+                                "FITID": "668c2823-c905-4304-a6f8-bfe3ef4ad389",
+                                "MEMO": "Pagamento de fatura"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240719000000[-3:BRT]",
+                                "TRNAMT": "-169.68",
+                                "FITID": "669aafd9-8730-402b-999c-781a67313e71",
+                                "MEMO": "Compra de Ações - CMIN3"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240722000000[-3:BRT]",
+                                "TRNAMT": "0.02",
+                                "FITID": "669e9774-dda0-42c9-89df-611ec213b112",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240725000000[-3:BRT]",
+                                "TRNAMT": "6.49",
+                                "FITID": "66a28c30-d858-4953-a611-8cdc63f1c5da",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240725000000[-3:BRT]",
+                                "TRNAMT": "6400.00",
+                                "FITID": "66a291d8-daed-4fe0-a6fe-ee3ea6a6d7d4",
+                                "MEMO": "Transferência Recebida - TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA - 53.369.941/0001-63 - NU PAGAMENTOS - IP (0260) Agência: 1 Conta: 82129824-7"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240725000000[-3:BRT]",
+                                "TRNAMT": "-2418.78",
+                                "FITID": "66a2937b-dd1b-401d-9a03-8d4c980cbc8e",
+                                "MEMO": "Compra de Ações - AURE3"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240725000000[-3:BRT]",
+                                "TRNAMT": "-2515.81",
+                                "FITID": "66a29418-16d4-4455-9b32-769bb91afd53",
+                                "MEMO": "Compra de Ações - CMIN3"
+                            },
+                            {
+                                "TRNTYPE": "DEBIT",
+                                "DTPOSTED": "20240725000000[-3:BRT]",
+                                "TRNAMT": "-1476.58",
+                                "FITID": "66a29527-5759-4882-bfe8-17d39819f2ab",
+                                "MEMO": "Transferência enviada pelo Pix - DIOGO FERREIRA MOURA - •••.161.826-•• - CAIXA ECONOMICA FEDERAL (0104) Agência: 162 Conta: 1288000000755602979-5"
+                            },
+                            {
+                                "TRNTYPE": "CREDIT",
+                                "DTPOSTED": "20240726000000[-3:BRT]",
+                                "TRNAMT": "0.12",
+                                "FITID": "66a3dd78-f851-4183-8281-f13812da1822",
+                                "MEMO": "Transferência de saldo NuInvest"
+                            }
+                        ]
+                    },
+                    "LEDGERBAL": {
+                        "BALAMT": "0.12",
+                        "DTASOF": "20240731000000[-3:BRT]"
                     },
                     "BALLIST": {
                         "BAL": {

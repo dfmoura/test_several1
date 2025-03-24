@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listagem de Arquivos OFX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background-color: #fff;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        a {
+            text-decoration: none;
+            color: #007BFF;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Arquivos na Pasta /ofx</h1>
+    <ul id="file-list"></ul>
+
+    <script>
+        // Função para carregar a lista de arquivos
+        function loadFileList() {
+            fetch('/ofx')
+                .then(response => response.json())
+                .then(files => {
+                    const fileList = document.getElementById('file-list');
+                    fileList.innerHTML = ''; // Limpa a lista atual
+
+                    files.forEach(file => {
+                        const listItem = document.createElement('li');
+                        const link = document.createElement('a');
+                        link.href = `/ofx/${file}`;
+                        link.textContent = file;
+                        listItem.appendChild(link);
+                        fileList.appendChild(listItem);
+                    });
+                })
+                .catch(error => console.error('Erro ao carregar a lista de arquivos:', error));
+        }
+
+        // Carrega a lista de arquivos quando a página é carregada
+        window.onload = loadFileList;
+    </script>
+</body>
+</html>

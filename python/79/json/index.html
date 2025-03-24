@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>JSON Visualizer</title>
+</head>
+<body>
+    <h1>Transações Financeiras</h1>
+    <div>
+        <label for="start-date">Data Inicial:</label>
+        <input type="text" id="start-date" placeholder="DD/MM/YYYY">
+        <label for="end-date">Data Final:</label>
+        <input type="text" id="end-date" placeholder="DD/MM/YYYY">
+        <button id="filter-button">Filtrar</button>
+    </div>
+    <div id="balance-container">
+        <h2>Saldo:</h2>
+        <div id="balance">0.00</div>
+    </div>
+    <table id="transactions-table">
+        <thead>
+            <tr>
+                <th>Banco</th>
+                <th>Agência</th>
+                <th>Conta</th>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+                <th>Descrição</th>
+                <th>Chave</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be populated here -->
+        </tbody>
+    </table>
+    <script src="script.js"></script>
+</body>
+</html>

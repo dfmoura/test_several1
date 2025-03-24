@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Categorias</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Gerenciamento de Categorias</h2>
+
+<form id="categoryForm">
+    <label for="categoryName">Nome da Categoria:</label>
+    <input type="text" id="categoryName" name="categoryName" required>
+    
+    <label for="categoryType">Tipo:</label>
+    <input type="text" id="categoryType" name="categoryType" required>
+    
+    <button type="submit">Adicionar Categoria</button>
+</form>
+
+<table id="categoryTable">
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>Tipo</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Dados serão carregados aqui -->
+    </tbody>
+</table>
+
+<button onclick="exportToJson()">Exportar para JSON</button>
+
+<script>
+    let categories = [];
+
+    // Carregar dados do localStorage ao abrir a tela
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedCategories = localStorage.getItem('categories');
+        if (savedCategories) {
+            categories = JSON.parse(savedCategories);
+            loadTable();
+        }
+    });
+
+    // Função para carregar os dados na tabela
+    function loadTable() {
+        const tbody = document.querySelector('#categoryTable tbody');
+        tbody.innerHTML = '';
+        categories.forEach((category, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${category.name}</td>
+                <td>${category.type}</td>
+                <td>
+                    <button onclick="editCategory(${index})">Editar</button>
+                    <button onclick="deleteCategory(${index})">Deletar</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Função para adicionar ou atualizar uma categoria
+    document.getElementById('categoryForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('categoryName').value;
+        const type = document.getElementById('categoryType').value;
+
+        const editIndex = document.getElementById('categoryForm').dataset.editIndex;
+
+        if (editIndex !== undefined) {
+            // Atualizar categoria existente
+            categories[editIndex] = { name, type };
+            delete document.getElementById('categoryForm').dataset.editIndex;
+        } else {
+            // Adicionar nova categoria
+            categories.push({ name, type });
+        }
+
+        localStorage.setItem('categories', JSON.stringify(categories));
+        loadTable();
+        document.getElementById('categoryForm').reset();
+    });
+
+    // Função para editar uma categoria
+    function editCategory(index) {
+        const category = categories[index];
+        document.getElementById('categoryName').value = category.name;
+        document.getElementById('categoryType').value = category.type;
+        document.getElementById('categoryForm').dataset.editIndex = index;
+    }
+
+    // Função para deletar uma categoria
+    function deleteCategory(index) {
+        categories.splice(index, 1);
+        localStorage.setItem('categories', JSON.stringify(categories));
+        loadTable();
+    }
+
+    // Função para exportar os dados para JSON
+    function exportToJson() {
+        const dataStr = JSON.stringify(categories, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+        const exportFileDefaultName = 'categorias.json';
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+    }
+</script>
+
+</body>
+</html>
