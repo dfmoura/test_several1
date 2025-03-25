@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfico de Safras - Análise Comparativa</title>
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --primary-light: #7a9ff7;
+            --success-color: #1cc88a;
+            --warning-color: #f6c23e;
+            --secondary-color: #858796;
+            --text-color: #5a5c69;
+            --bg-color: #f8f9fc;
+            --card-bg: #ffffff;
+            --grid-line: #e3e6f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 20px;
+            border: none;
+            overflow: hidden;
+        }
+
+        .card-header {
+            border-bottom: 1px solid var(--grid-line);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .legend-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            margin-right: 8px;
+            display: inline-block;
+        }
+
+        .data-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            fill: var(--text-color);
+        }
+
+        .grid-line {
+            stroke: var(--grid-line);
+            stroke-width: 1;
+        }
+
+        .axis-label {
+            font-size: 0.8rem;
+            fill: var(--secondary-color);
+        }
+
+        .tooltip {
+            position: absolute;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            border: 1px solid var(--grid-line);
+            z-index: 10;
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+
+        .tooltip-value {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Comparativo de Safras</h2>
+            </div>
+            <div class="chart-container" id="chart"></div>
+            <div class="legend">
+                <div class="legend-item">
+                    <span class="legend-icon" style="background-color: var(--primary-light);"></span>
+                    <span>Previsto (Safra Atual)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-icon" style="background-color: var(--primary-color);"></span>
+                    <span>Realizado (Safra Atual)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-icon" style="background-color: var(--success-color);"></span>
+                    <span>Realizado (Fat. Safra Anterior)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-icon" style="background-color: var(--secondary-color);"></span>
+                    <span>Realizado (Safra Anterior)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dados de exemplo - substitua com seus dados reais
+            const data = [
+                { category: 'Soja', currentPlanned: 120, currentActual: 115, lastFatActual: 105, lastActual: 98 },
+                { category: 'Milho', currentPlanned: 85, currentActual: 80, lastFatActual: 78, lastActual: 72 },
+                { category: 'Café', currentPlanned: 65, currentActual: 70, lastFatActual: 68, lastActual: 62 },
+                { category: 'Trigo', currentPlanned: 50, currentActual: 48, lastFatActual: 45, lastActual: 42 },
+                { category: 'Arroz', currentPlanned: 40, currentActual: 42, lastFatActual: 38, lastActual: 35 },
+                { category: 'Feijão', currentPlanned: 30, currentActual: 32, lastFatActual: 28, lastActual: 25 }
+            ];
+
+            // Configurações do gráfico
+            const margin = { top: 30, right: 30, bottom: 60, left: 50 };
+            const width = document.getElementById('chart').clientWidth - margin.left - margin.right;
+            const height = document.getElementById('chart').clientHeight - margin.top - margin.bottom;
+
+            // Criação do SVG
+            const svg = d3.select('#chart')
+                .append('svg')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+                .append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            // Escalas
+            const x0 = d3.scaleBand()
+                .domain(data.map(d => d.category))
+                .range([0, width])
+                .paddingInner(0.2)
+                .paddingOuter(0.2);
+
+            const x1 = d3.scaleBand()
+                .domain(['currentPlanned', 'currentActual', 'lastFatActual', 'lastActual'])
+                .range([0, x0.bandwidth()])
+                .padding(0.1);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(data, d => Math.max(d.currentPlanned, d.currentActual, d.lastFatActual, d.lastActual) * 1.2)])
+                .range([height, 0])
+                .nice();
+
+            // Eixos
+            svg.append('g')
+                .attr('class', 'grid-line')
+                .call(d3.axisLeft(y)
+                .tickSize(-width)
+                .tickFormat('')
+                .tickValues(y.ticks().slice(1)));
+
+            svg.append('g')
+                .attr('class', 'axis-label')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(x0))
+                .selectAll('text')
+                .style('text-anchor', 'middle');
+
+            svg.append('text')
+                .attr('class', 'axis-label')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', -margin.left + 15)
+                .attr('x', -height / 2)
+                .attr('dy', '1em')
+                .style('text-anchor', 'middle')
+                .text('Toneladas');
+
+            // Barras
+            const groups = svg.selectAll('.category-group')
+                .data(data)
+                .enter()
+                .append('g')
+                .attr('class', 'category-group')
+                .attr('transform', d => `translate(${x0(d.category)},0)`);
+
+            // Safra Atual - Previsto
+            groups.append('rect')
+                .attr('x', x1('currentPlanned'))
+                .attr('y', d => y(d.currentPlanned))
+                .attr('width', x1.bandwidth())
+                .attr('height', d => height - y(d.currentPlanned))
+                .attr('fill', 'var(--primary-light)')
+                .attr('rx', 3)
+                .attr('ry', 3)
+                .on('mouseover', function(event, d) {
+                    showTooltip(event, d, 'Previsto (Safra Atual)', d.currentPlanned);
+                    d3.select(this).attr('opacity', 0.8);
+                })
+                .on('mouseout', function() {
+                    hideTooltip();
+                    d3.select(this).attr('opacity', 1);
+                });
+
+            // Safra Atual - Realizado
+            groups.append('rect')
+                .attr('x', x1('currentActual'))
+                .attr('y', d => y(d.currentActual))
+                .attr('width', x1.bandwidth())
+                .attr('height', d => height - y(d.currentActual))
+                .attr('fill', 'var(--primary-color)')
+                .attr('rx', 3)
+                .attr('ry', 3)
+                .on('mouseover', function(event, d) {
+                    showTooltip(event, d, 'Realizado (Safra Atual)', d.currentActual);
+                    d3.select(this).attr('opacity', 0.8);
+                })
+                .on('mouseout', function() {
+                    hideTooltip();
+                    d3.select(this).attr('opacity', 1);
+                });
+
+            // Fat. Safra Anterior - Realizado
+            groups.append('rect')
+                .attr('x', x1('lastFatActual'))
+                .attr('y', d => y(d.lastFatActual))
+                .attr('width', x1.bandwidth())
+                .attr('height', d => height - y(d.lastFatActual))
+                .attr('fill', 'var(--success-color)')
+                .attr('rx', 3)
+                .attr('ry', 3)
+                .on('mouseover', function(event, d) {
+                    showTooltip(event, d, 'Realizado (Fat. Safra Anterior)', d.lastFatActual);
+                    d3.select(this).attr('opacity', 0.8);
+                })
+                .on('mouseout', function() {
+                    hideTooltip();
+                    d3.select(this).attr('opacity', 1);
+                });
+
+            // Safra Anterior - Realizado
+            groups.append('rect')
+                .attr('x', x1('lastActual'))
+                .attr('y', d => y(d.lastActual))
+                .attr('width', x1.bandwidth())
+                .attr('height', d => height - y(d.lastActual))
+                .attr('fill', 'var(--secondary-color)')
+                .attr('rx', 3)
+                .attr('ry', 3)
+                .on('mouseover', function(event, d) {
+                    showTooltip(event, d, 'Realizado (Safra Anterior)', d.lastActual);
+                    d3.select(this).attr('opacity', 0.8);
+                })
+                .on('mouseout', function() {
+                    hideTooltip();
+                    d3.select(this).attr('opacity', 1);
+                });
+
+            // Rótulos de dados
+            groups.selectAll('.data-label')
+                .data(d => [
+                    { value: d.currentPlanned, type: 'currentPlanned' },
+                    { value: d.currentActual, type: 'currentActual' },
+                    { value: d.lastFatActual, type: 'lastFatActual' },
+                    { value: d.lastActual, type: 'lastActual' }
+                ])
+                .enter()
+                .append('text')
+                .attr('class', 'data-label')
+                .attr('x', d => x1(d.type) + x1.bandwidth() / 2)
+                .attr('y', d => y(d.value) - 5)
+                .attr('text-anchor', 'middle')
+                .text(d => d.value);
+
+            // Tooltip
+            const tooltip = d3.select('#tooltip');
+
+            function showTooltip(event, d, title, value) {
+                tooltip
+                    .html(`
+                        <div class="tooltip-title">${d.category} - ${title}</div>
+                        <div class="tooltip-value">${value} toneladas</div>
+                    `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px')
+                    .style('opacity', 1);
+            }
+
+            function hideTooltip() {
+                tooltip.style('opacity', 0);
+            }
+
+            // Responsividade
+            window.addEventListener('resize', function() {
+                const newWidth = document.getElementById('chart').clientWidth - margin.left - margin.right;
+                x0.range([0, newWidth]);
+                x1.range([0, x0.bandwidth()]);
+                
+                svg.selectAll('.grid-line').call(d3.axisLeft(y).tickSize(-newWidth));
+                
+                // Atualiza posições dos elementos
+                svg.selectAll('.category-group')
+                    .attr('transform', d => `translate(${x0(d.category)},0)`);
+                
+                // Atualiza largura das barras
+                svg.selectAll('.category-group rect')
+                    .attr('x', d => {
+                        const type = d3.select(this).attr('data-type');
+                        return x1(type);
+                    })
+                    .attr('width', x1.bandwidth());
+                
+                // Atualiza posição dos rótulos
+                svg.selectAll('.data-label')
+                    .attr('x', d => x1(d.type) + x1.bandwidth() / 2);
+            });
+        });
+    </script>
+</body>
+</html>

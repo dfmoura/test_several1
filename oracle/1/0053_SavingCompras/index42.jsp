@@ -575,7 +575,7 @@
                                 var ganhoNegociacao = parseFloat(document.querySelector('.card-number[data-type="ganho_negociacao"]').textContent.replace(/[^0-9.-]+/g, ""));
 
                                 // Calcula o total
-                                var total = ((isNaN(saving) ? 0 : saving) + (isNaN(ganhoEvolucao) ? 0 : ganhoEvolucao) + (isNaN(ganhoNegociacao) ? 0 : ganhoNegociacao))*1000;
+                                var total = ((isNaN(saving) ? 0 : saving) + (isNaN(ganhoEvolucao) ? 0 : ganhoEvolucao) + (isNaN(ganhoNegociacao) ? 0 : ganhoNegociacao));
 
                                 // Atualiza o conteúdo do elemento com o ID totalNumber
                                 //document.getElementById('totalNumber').textContent = total.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
