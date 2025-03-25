@@ -1,0 +1,22 @@
+adapatar o codigo para
+
+criar tela em html css js com um autoremensionamento para qualquer dispositivo e tela,
+de um grafico de barras verticais
+
+Sendo 
+um grupo de 'Safra Atual' contendo as colunas de Previsto e Realizado
+um grupo 'Fat. Safra Anterior' contendo a coluna de Realizado
+um grupo 'Safra Anterior' contendo a coluna de Realizado
+
+
+tentar fazer com um estilo bem profissional , clean e moderno
+
+uma legenda com icones modernos para representar os valores seria interessante
+
+
+
+
+melhorar pois deve ficar 
+um grupo de 'Safra Atual' contendo as colunas de Previsto e Realizado as colunas devem ficar uma do lado da outra.
+nao colocaram um grupo 'Fat. Safra Anterior' contendo a coluna de Realizado
+manter este que colocaram um grupo 'Safra Anterior' contendo a coluna de Realizado
