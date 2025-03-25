@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>As Posses de Guilherme</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 48px;
+            color: #FF5733;
+            margin-bottom: 40px;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .item {
+            background-color: #fff;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            width: 280px;
+            overflow: hidden;
+            text-align: center;
+            padding: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .item img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        .item:hover {
+            transform: scale(1.05);
+        }
+
+        .item h3 {
+            font-size: 24px;
+            color: #333;
+            margin: 15px 0;
+        }
+
+        .item p {
+            font-size: 18px;
+            color: #777;
+            margin-bottom: 10px;
+        }
+
+        .item .price {
+            font-size: 22px;
+            color: #FF5733;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 16px;
+            color: #555;
+        }
+
+        .footer a {
+            color: #FF5733;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>As Posses de Guilherme</h1>
+
+    <div class="container">
+        <!-- Helicóptero -->
+        <div class="item">
+            <img src="https://example.com/helicoptero.jpg" alt="Helicóptero">
+            <h3>Helicóptero Privado</h3>
+            <p>Luxo e agilidade no ar, sempre com a melhor experiência.</p>
+            <p class="price">Valor: $5.000.000</p>
+        </div>
+
+        <!-- Ferrari -->
+        <div class="item">
+            <img src="https://example.com/ferrari.jpg" alt="Ferrari">
+            <h3>Ferrari 488 GTB</h3>
+            <p>Velocidade, performance e design inigualáveis.</p>
+            <p class="price">Valor: $350.000</p>
+        </div>
+
+        <!-- Rolex -->
+        <div class="item">
+            <img src="https://example.com/rolex.jpg" alt="Rolex">
+            <h3>Rolex Submariner</h3>
+            <p>Elegância e precisão em cada segundo.</p>
+            <p class="price">Valor: $12.000</p>
+        </div>
+
+        <!-- Trator -->
+        <div class="item">
+            <img src="https://example.com/trator.jpg" alt="Trator">
+            <h3>Trator de Alta Performance</h3>
+            <p>Potência e resistência para o trabalho no campo.</p>
+            <p class="price">Valor: $50.000</p>
+        </div>
+
+        <!-- Lavouras -->
+        <div class="item">
+            <img src="https://example.com/lavouras.jpg" alt="Lavouras">
+            <h3>Lavouras Produtivas</h3>
+            <p>Grande extensão de terras agrícolas de alta produtividade.</p>
+            <p class="price">Valor: Inestimável</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Conheça mais sobre as posses de Guilherme. <a href="#">Clique aqui</a> para saber mais.</p>
+    </div>
+
+</body>
+</html>

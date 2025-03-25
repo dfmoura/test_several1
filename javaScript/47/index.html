@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donos do Mundo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Reset de margem e padding */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #121212;
+            color: #fff;
+            font-family: 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 36px;
+            color: #FFCC00;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 40px;
+            text-align: center;
+            text-shadow: 2px 2px 10px rgba(255, 204, 0, 0.8);
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 700px;
+            margin-top: 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            background-color: #1a1a1a;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+
+        .legend {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .legend span {
+            font-size: 14px;
+            color: #fff;
+            margin-right: 15px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <h1>Donos do Mundo</h1>
+    <div class="chart-container">
+        <canvas id="myChart"></canvas>
+    </div>
+    <div class="legend">
+        <span style="color: #FF5733;">• Guilherlhe</span>
+        <span style="color: #33FF57;">• Outros</span>
+        <span style="color: #3333FF;">• Black Rock</span>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Guilherlhe', 'Outros', 'Black Rock'],
+                datasets: [{
+                    label: 'Participação Global',
+                    data: [60, 30, 10],  // Ajuste de dados
+                    backgroundColor: ['#FF5733', '#33FF57', '#3333FF'],  // Cores refinadas
+                    borderColor: ['#1a1a1a', '#1a1a1a', '#1a1a1a'],
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#fff',
+                            font: {
+                                size: 16,
+                                family: 'Helvetica Neue',
+                                weight: '600'
+                            },
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#333',
+                        titleColor: '#FFCC00',
+                        bodyColor: '#fff',
+                        bodyFont: {
+                            size: 14,
+                        },
+                    },
+                },
+                elements: {
+                    arc: {
+                        borderWidth: 5
+                    }
+                },
+                animation: {
+                    animateRotate: true,
+                    animateScale: true
+                }
+            }
+        });
+    </script>
+</body>
+</html>
