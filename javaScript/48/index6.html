@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ER Diagram Generator</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        window.mermaid = mermaid;
+        mermaid.initialize({ startOnLoad: false });
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #controls {
+            width: 100%;
+            padding: 10px;
+            background: #f8f8f8;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        textarea {
+            width: 80%;
+            height: 80px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+        }
+        #zoomControl {
+            margin-top: 10px;
+        }
+        #diagram-container {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+            overflow: hidden;
+            position: relative;
+        }
+        #diagram {
+            transform-origin: center;
+            transition: transform 0.2s ease-in-out;
+            cursor: grab;
+            position: absolute;
+        }
+        #diagram:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h2>Gerador de Diagrama ER</h2>
+        <textarea id="sqlInput" placeholder="Digite seu SELECT..."></textarea>
+        <br>
+        <button onclick="generateDiagram()">Gerar Diagrama</button>
+        <br>
+        <input id="zoomControl" type="range" min="0.5" max="2" step="0.1" value="1" oninput="updateZoom(this.value)">
+    </div>
+    <div id="diagram-container">
+        <div id="diagram"></div>
+    </div>
+
+    <script>
+        let isDragging = false;
+        let startX, startY;
+        let offsetX = 0, offsetY = 0;
+        let scale = 1;
+
+        function extractTablesAndFields(sql) {
+            const tables = {};
+            const tableRegex = /CREATE TABLE (\w+) \(([^;]+)\)/gi;
+            let match;
+
+            while ((match = tableRegex.exec(sql)) !== null) {
+                const tableName = match[1];
+                const fields = match[2].split(',').map(field => field.trim().split(' ')[0]);
+                tables[tableName] = fields;
+            }
+            return tables;
+        }
+
+        function generateDiagram() {
+            const sql = document.getElementById("sqlInput").value;
+            const tables = extractTablesAndFields(sql);
+            let diagramDefinition = "erDiagram\n";
+            
+            Object.keys(tables).forEach(table => {
+                diagramDefinition += `  ${table} {\n`;
+                tables[table].forEach(field => {
+                    diagramDefinition += `    ${field} VARCHAR\n`;
+                });
+                diagramDefinition += `  }\n`;
+            });
+            
+            Object.keys(tables).forEach((table, index, array) => {
+                array.forEach((relatedTable, relIndex) => {
+                    if (index !== relIndex && Math.random() > 0.5) {
+                        let relationshipType = (index + relIndex) % 2 === 0 ? '||--o|' : '||--||';
+                        diagramDefinition += `  ${table} ${relationshipType} ${relatedTable} : relaciona\n`;
+                    }
+                });
+            });
+
+            document.getElementById("diagram").innerHTML = `<div class='mermaid'>${diagramDefinition}</div>`;
+            mermaid.run();
+        }
+
+        function updateZoom(value) {
+            scale = value;
+            document.getElementById("diagram").style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        }
+
+        const diagram = document.getElementById("diagram");
+        const container = document.getElementById("diagram-container");
+
+        container.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            startX = e.clientX - offsetX;
+            startY = e.clientY - offsetY;
+        });
+
+        container.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            offsetX = e.clientX - startX;
+            offsetY = e.clientY - startY;
+            diagram.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        });
+
+        container.addEventListener("mouseup", () => {
+            isDragging = false;
+        });
+
+        container.addEventListener("mouseleave", () => {
+            isDragging = false;
+        });
+    </script>
+</body>
+</html>

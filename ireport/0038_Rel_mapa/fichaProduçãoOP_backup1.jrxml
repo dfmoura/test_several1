@@ -62,7 +62,7 @@ WHERE OP.IDIPROC = $P{IDIPROC} ORDER BY DHINICIO]]>
                         , INITCAP(PROMP.DESCRPROD) MP
                         , ATVFX.DESCRICAO ETAPA
                         , MP.CODVOL VOLUME
-                        , MP.QTDMISTURA*1000 QUANTIDADE
+                        , MP.QTDMISTURA QUANTIDADE
                         , NVL(ITE.CONTROLE, 'Ausente') LOTE
                         , PA.QTDPRODUZIR * MP.QTDMISTURA PREVISTO
                         , PA.QTDPRODUZIR * MP.QTDMISTURA / 1000 AS PREVISTO_1000
@@ -84,7 +84,7 @@ WHERE OP.IDIPROC = $P{IDIPROC} ORDER BY DHINICIO]]>
                     LEFT JOIN TGFCAB CAB ON CAB.IDIPROC = PA.IDIPROC AND CAB.TIPMOV = 'F'
                     LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA AND ITE.USOPROD = 'M' AND PROMP.CODPROD = ITE.CODPROD
                     WHERE PA.IDIPROC = $P{IDIPROC}
-		AND PROMP.USOPROD NOT IN ('E','O')
+ 		AND PROMP.USOPROD = 'M'
                     ORDER BY INITCAP(PROMP.DESCRPROD)]]>
 		</queryString>
 		<field name="IDEFX" class="java.math.BigDecimal"/>
@@ -269,7 +269,7 @@ ORDER BY 10]]>
                         , INITCAP(PROMP.DESCRPROD) MP
                         , ATVFX.DESCRICAO ETAPA
                         , MP.CODVOL VOLUME
-                        , MP.QTDMISTURA*1000 QUANTIDADE
+                        , MP.QTDMISTURA QUANTIDADE
                         , NVL(ITE.CONTROLE, 'Ausente') LOTE
                         , PA.QTDPRODUZIR * MP.QTDMISTURA PREVISTO
     			,(SELECT SUM(MP.QTD)
@@ -522,14 +522,14 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRPROC}]]></textFieldExpression>
 			</textField>
-			<textField pattern="#,##0.00" isBlankWhenNull="true">
+			<textField pattern="#,##0.00">
 				<reportElement x="374" y="104" width="164" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="10"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{ROUND(AP.QTDAPONTADA)}]]></textFieldExpression>
 			</textField>
-			<textField isBlankWhenNull="true">
+			<textField>
 				<reportElement x="374" y="119" width="164" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="10"/>
@@ -797,7 +797,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 									</staticText>
 								</jr:columnHeader>
 								<jr:detailCell style="table_TD" height="18" rowSpan="1">
-									<textField isBlankWhenNull="true">
+									<textField>
 										<reportElement x="0" y="0" width="64" height="18"/>
 										<textElement textAlignment="Center" verticalAlignment="Middle"/>
 										<textFieldExpression class="java.lang.Double"><![CDATA[$F{QUANTIDADE}]]></textFieldExpression>
@@ -824,7 +824,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 									</staticText>
 								</jr:columnHeader>
 								<jr:detailCell style="table_TD" height="18" rowSpan="1">
-									<textField isBlankWhenNull="true">
+									<textField>
 										<reportElement x="0" y="0" width="73" height="18"/>
 										<textElement textAlignment="Center" verticalAlignment="Middle"/>
 										<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{REALIZADOTOT}]]></textFieldExpression>
@@ -986,7 +986,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 								</staticText>
 							</jr:columnHeader>
 							<jr:detailCell style="table_TD" height="18" rowSpan="1">
-								<textField pattern="#,##0.000000" isBlankWhenNull="true">
+								<textField pattern="#,##0.000000">
 									<reportElement x="0" y="0" width="73" height="18"/>
 									<textElement textAlignment="Center" verticalAlignment="Middle"/>
 									<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{REALIZADOTOT}]]></textFieldExpression>
@@ -1087,7 +1087,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 			<line>
 				<reportElement x="121" y="47" width="341" height="1"/>
 			</line>
-			<textField isBlankWhenNull="true">
+			<textField>
 				<reportElement x="300" y="28" width="162" height="20"/>
 				<textElement verticalAlignment="Middle">
 					<font isBold="true"/>
@@ -1101,7 +1101,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 				</textElement>
 				<text><![CDATA[Responsável pelo Encerramento - Data e Hora]]></text>
 			</staticText>
-			<textField isBlankWhenNull="true">
+			<textField>
 				<reportElement x="126" y="27" width="162" height="20"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font isBold="true"/>
