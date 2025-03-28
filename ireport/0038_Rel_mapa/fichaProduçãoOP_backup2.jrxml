@@ -779,7 +779,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 							</jr:column>
 							<jr:column width="64">
 								<jr:tableFooter height="20" rowSpan="1">
-									<textField pattern="#,##0.00">
+									<textField pattern="###0.000000">
 										<reportElement x="0" y="0" width="64" height="20"/>
 										<textElement textAlignment="Center" verticalAlignment="Middle">
 											<font isBold="true"/>
@@ -797,7 +797,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 									</staticText>
 								</jr:columnHeader>
 								<jr:detailCell style="table_TD" height="18" rowSpan="1">
-									<textField pattern="#,##0.00" isBlankWhenNull="true">
+									<textField isBlankWhenNull="true">
 										<reportElement x="0" y="0" width="64" height="18"/>
 										<textElement textAlignment="Center" verticalAlignment="Middle"/>
 										<textFieldExpression class="java.lang.Double"><![CDATA[$F{QUANTIDADE}]]></textFieldExpression>
@@ -806,7 +806,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 							</jr:column>
 							<jr:column width="73">
 								<jr:tableFooter style="table_TD" height="20" rowSpan="1">
-									<textField pattern="#,##0.00">
+									<textField pattern="###0.000000">
 										<reportElement x="0" y="0" width="73" height="20"/>
 										<textElement textAlignment="Center" verticalAlignment="Middle">
 											<font isBold="true"/>
@@ -824,7 +824,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 									</staticText>
 								</jr:columnHeader>
 								<jr:detailCell style="table_TD" height="18" rowSpan="1">
-									<textField pattern="#,##0.00" isBlankWhenNull="true">
+									<textField isBlankWhenNull="true">
 										<reportElement x="0" y="0" width="73" height="18"/>
 										<textElement textAlignment="Center" verticalAlignment="Middle"/>
 										<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{REALIZADOTOT}]]></textFieldExpression>
@@ -940,7 +940,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 						</jr:column>
 						<jr:column width="64">
 							<jr:tableFooter style="table_TD" height="20" rowSpan="1">
-								<textField pattern="#,##0.00">
+								<textField pattern="###0.000000">
 									<reportElement x="0" y="0" width="64" height="20"/>
 									<textElement textAlignment="Center" verticalAlignment="Middle">
 										<font isBold="true"/>
@@ -958,7 +958,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 								</staticText>
 							</jr:columnHeader>
 							<jr:detailCell style="table_TD" height="18" rowSpan="1">
-								<textField pattern="#,##0.00" isBlankWhenNull="true">
+								<textField pattern="###0.000000" isBlankWhenNull="true">
 									<reportElement x="0" y="0" width="64" height="18"/>
 									<box rightPadding="3"/>
 									<textElement textAlignment="Center" verticalAlignment="Middle"/>
@@ -968,7 +968,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 						</jr:column>
 						<jr:column width="73">
 							<jr:tableFooter style="table_TD" height="20" rowSpan="1">
-								<textField pattern="#,##0.00">
+								<textField pattern="###0.000000">
 									<reportElement x="0" y="0" width="73" height="20"/>
 									<textElement textAlignment="Center" verticalAlignment="Middle">
 										<font isBold="true"/>
@@ -986,7 +986,7 @@ AND OP.IDIPROC = $P{PK_IDIPROC}]]>
 								</staticText>
 							</jr:columnHeader>
 							<jr:detailCell style="table_TD" height="18" rowSpan="1">
-								<textField pattern="#,##0.00" isBlankWhenNull="true">
+								<textField pattern="#,##0.000000" isBlankWhenNull="true">
 									<reportElement x="0" y="0" width="73" height="18"/>
 									<textElement textAlignment="Center" verticalAlignment="Middle"/>
 									<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{REALIZADOTOT}]]></textFieldExpression>
