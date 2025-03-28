@@ -28,7 +28,7 @@
         }
         textarea {
             width: 80%;
-            height: 80px;
+            height: 100px;
         }
         button {
             margin-top: 10px;
@@ -71,7 +71,7 @@
         <br>
         <button onclick="generateDiagram()">Gerar Diagrama</button>
         <br>
-        <input id="zoomControl" type="range" min="0.5" max="2" step="0.1" value="1" oninput="updateZoom(this.value)">
+        <input id="zoomControl" type="range" min="0.5" max="20" step="0.1" value="1" oninput="updateZoom(this.value)">
     </div>
     <div id="diagram-container">
         <div id="diagram"></div>
@@ -84,38 +84,95 @@
         let scale = 1;
 
         function extractTablesAndFields(sql) {
-            const tables = {};
-            const tableRegex = /CREATE TABLE (\w+) \(([^;]+)\)/gi;
+            // Extrair tabelas e seus aliases
+            const tableRegex = /(?:FROM|JOIN)\s+(\w+)\s+(\w+)/gi;
             let match;
-
+            const tables = {};
+            
             while ((match = tableRegex.exec(sql)) !== null) {
                 const tableName = match[1];
-                const fields = match[2].split(',').map(field => field.trim().split(' ')[0]);
-                tables[tableName] = fields;
+                const tableAlias = match[2];
+                tables[tableAlias] = tableName;
             }
-            return tables;
+            
+            // Extrair campos do SELECT
+            const selectRegex = /SELECT\s+([\s\S]+?)\s+FROM/i;
+            const selectMatch = sql.match(selectRegex);
+            const fieldsMap = {};
+            
+            if (selectMatch && selectMatch[1]) {
+                const fields = selectMatch[1].split(',').map(f => f.trim().replace(/\s+/g, ' '));
+                
+                fields.forEach(field => {
+                    const parts = field.split('.');
+                    if (parts.length === 2) {
+                        const tableAlias = parts[0];
+                        const fieldName = parts[1];
+                        
+                        if (!fieldsMap[tableAlias]) {
+                            fieldsMap[tableAlias] = new Set();
+                        }
+                        fieldsMap[tableAlias].add(fieldName);
+                    }
+                });
+            }
+            
+            // Extrair relacionamentos dos JOINs
+            const joinRegex = /JOIN\s+\w+\s+\w+\s+ON\s+([\w.]+)\s*=\s*([\w.]+)/gi;
+            let joinMatch;
+            const relationships = [];
+            
+            while ((joinMatch = joinRegex.exec(sql)) !== null) {
+                const leftSide = joinMatch[1].split('.');
+                const rightSide = joinMatch[2].split('.');
+                
+                relationships.push({
+                    leftTable: leftSide[0],
+                    leftField: leftSide[1],
+                    rightTable: rightSide[0],
+                    rightField: rightSide[1]
+                });
+            }
+            
+            return {
+                tables: tables,
+                fields: fieldsMap,
+                relationships: relationships
+            };
         }
 
         function generateDiagram() {
             const sql = document.getElementById("sqlInput").value;
-            const tables = extractTablesAndFields(sql);
+            const { tables, fields, relationships } = extractTablesAndFields(sql);
             let diagramDefinition = "erDiagram\n";
             
-            Object.keys(tables).forEach(table => {
-                diagramDefinition += `  ${table} {\n`;
-                tables[table].forEach(field => {
-                    diagramDefinition += `    ${field} VARCHAR\n`;
-                });
-                diagramDefinition += `  }\n`;
-            });
-            
-            Object.keys(tables).forEach((table, index, array) => {
-                array.forEach((relatedTable, relIndex) => {
-                    if (index !== relIndex && Math.random() > 0.5) {
-                        let relationshipType = (index + relIndex) % 2 === 0 ? '||--o|' : '||--||';
-                        diagramDefinition += `  ${table} ${relationshipType} ${relatedTable} : relaciona\n`;
+            // Adicionar tabelas e campos
+            for (const [alias, tableName] of Object.entries(tables)) {
+                diagramDefinition += `  ${tableName} {\n`;
+                
+                // Adicionar campos específicos se existirem
+                if (fields[alias]) {
+                    fields[alias].forEach(field => {
+                        diagramDefinition += `    ${field} VARCHAR\n`;
+                    });
+                }
+                
+                // Adicionar campos usados nos JOINs que não estão no SELECT
+                relationships.forEach(rel => {
+                    if (rel.leftTable === alias && !fields[alias]?.has(rel.leftField)) {
+                        diagramDefinition += `    ${rel.leftField} INT\n`;
+                    }
+                    if (rel.rightTable === alias && !fields[alias]?.has(rel.rightField)) {
+                        diagramDefinition += `    ${rel.rightField} INT\n`;
                     }
                 });
+                
+                diagramDefinition += `  }\n`;
+            }
+            
+            // Adicionar relacionamentos
+            relationships.forEach(rel => {
+                diagramDefinition += `  ${tables[rel.leftTable]} ||--o{ ${tables[rel.rightTable]} : "${rel.leftField} = ${rel.rightField}"\n`;
             });
 
             document.getElementById("diagram").innerHTML = `<div class='mermaid'>${diagramDefinition}</div>`;
@@ -133,7 +190,7 @@
         container.addEventListener("mousedown", (e) => {
             isDragging = true;
             startX = e.clientX - offsetX;
-            startY = e.clientY - offsetY;
+            startY = e.clientY - startY;
         });
 
         container.addEventListener("mousemove", (e) => {
@@ -150,6 +207,9 @@
         container.addEventListener("mouseleave", () => {
             isDragging = false;
         });
+
+        // Gerar diagrama inicial
+        window.onload = generateDiagram;
     </script>
 </body>
 </html>
