@@ -1,231 +1,0 @@
-<gadget>
-  <prompt-parameters>
-    <parameter id="P_PERIODO" description="Dt. Movimentação" metadata="datePeriod" required="false" keep-last="true" keep-date="false" order="0"/>
-  </prompt-parameters>
-  <level id="lvl_fonk0i" description="Principal">
-    <args>
-      <arg id="A_NOMESETOR" type="text"/>
-    </args>
-    <container orientacao="V" tamanhoRelativo="100">
-      <html5component id="html5_fonk0j" entryPoint="card.jsp"/>
-    </container>
-  </level>
-  <level id="lvl_fonk0l" description="Pedidos">
-    <args>
-      <arg id="A_NOMEUSU" type="text"/>
-    </args>
-    <container orientacao="V" tamanhoRelativo="100">
-      <container orientacao="H" tamanhoRelativo="100">
-        <container orientacao="V" tamanhoRelativo="100">
-          <chart id="cht_fonlbq" type="pizza">
-            <title><![CDATA[Pedidos Incluídos por Usuário]]></title>
-            <expression type="sql" data-source="MGEDS"><![CDATA[WITH BAS AS (SELECTROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS ORDEM,USU.NOMEUSU AS COMPRADOR,COUNT(*) AS TOTAL_PEDIDOSFROM(/*ESSES PEDIDOS SAO O NUNOTAORIG PARA ENCONTRAR AS NOTAS DECOMPRA DA CAB*//*PEDIDOS COM COTACAO*/SELECT*FROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))UNION ALL/*PEDIDOS SEM COTACAO*/SELECT*FROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN(SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))))AINNER JOIN TSIUSU USU ON A.CODUSUINC = USU.CODUSUGROUP BY USU.NOMEUSUORDER BY 3 DESC)SELECT COMPRADOR,TOTAL_PEDIDOS FROM BAS WHERE ORDEM <=4UNION ALL SELECT 'OUTROS' AS COMPRADOR, SUM(TOTAL_PEDIDOS) AS TOTAL_PEDIDOS FROM BAS WHERE ORDEM >4]]></expression>
-            <metadata>
-              <field name="COMPRADOR" label="Comprador" type="S" visible="true" useFooter="false"/>
-              <field name="TOTAL_PEDIDOS" label="Total Pedidos" type="I" visible="true" useFooter="false"/>
-            </metadata>
-            <series>
-              <serie type="pizza">
-                <field>$TOTAL_PEDIDOS</field>
-                <nameField>$COMPRADOR</nameField>
-                <refresh-details ui-list="grd_kj5chg">
-                  <param id="A_NOMEUSU">$COMPRADOR</param>
-                </refresh-details>
-              </serie>
-            </series>
-          </chart>
-        </container>
-        <container orientacao="H" tamanhoRelativo="141">
-          <grid id="grd_kj5chg" useNewGrid="S">
-            <args>
-              <arg id="A_NOMEUSU" type="text"/>
-            </args>
-            <title><![CDATA[<b style="font-size: 22px; border: 0px solid black; padding: 5px;">Detalhamento</b>]]></title>
-            <expression type="sql" data-source="MGEDS"><![CDATA[SELECTA.NUNOTA,A.CODEMP,A.CODCENCUS,A.CODNAT,A.CODPROJ,A.NUMNOTA,A.DTNEG,A.DTMOV,A.CODPARC,PAR.RAZAOSOCIAL,A.CODTIPOPER,TOP.DESCROPER,A.DHTIPOPER,A.TIPMOV,A.NUMCOTACAO,A.VLRNOTA,A.AD_NUNOTAORIG,A.CODUSUINC,USU.NOMEUSU,A.PEDIDOSFROM(/*ESSES PEDIDOS SAO O NUNOTAORIG PARA ENCONTRAR AS NOTAS DECOMPRA DA CAB*//*PEDIDOS COM COTACAO*/SELECTCAB.NUNOTA,CAB.CODEMP,CAB.CODCENCUS,CAB.CODNAT,CAB.CODPROJ,CAB.NUMNOTA,CAB.DTNEG,CAB.DTMOV,CAB.CODPARC,CAB.CODTIPOPER,CAB.DHTIPOPER,F_DESCROPC('TGFCAB','TIPMOV',CAB.TIPMOV) AS TIPMOV,CAB.NUMCOTACAO,CAB.VLRNOTA,CAB.AD_NUNOTAORIG,CAB.CODUSUINC,(CASE WHEN CAB.NUMCOTACAO IS NULL THEN 'SEM COTACAO' ELSE 'COM COTACAO' END) AS PEDIDOS,'PRINCIPAL' AS VERIFFROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN) )UNION ALL/*PEDIDOS SEM COTACAO*/SELECTCAB.NUNOTA,CAB.CODEMP,CAB.CODCENCUS,CAB.CODNAT,CAB.CODPROJ,CAB.NUMNOTA,CAB.DTNEG,CAB.DTMOV,CAB.CODPARC,CAB.CODTIPOPER,CAB.DHTIPOPER,F_DESCROPC('TGFCAB','TIPMOV',CAB.TIPMOV) AS TIPMOV,CAB.NUMCOTACAO,CAB.VLRNOTA,CAB.AD_NUNOTAORIG,CAB.CODUSUINC,(CASE WHEN CAB.NUMCOTACAO IS NULL THEN 'SEM COTACAO' ELSE 'COM COTACAO' END) AS PEDIDOS,'OUTROS' AS VERIFFROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND CAB.NUNOTA NOT IN(SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN) )))AINNER JOIN TGFTOP TOP ON ( A.CODTIPOPER = TOP.CODTIPOPER AND A.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )INNER JOIN TSIUSU USU ON A.CODUSUINC = USU.CODUSUINNER JOIN TGFPAR PAR ON A.CODPARC = PAR.CODPARCWHERE (USU.NOMEUSU = :A_NOMEUSU) OR (:A_NOMEUSU = 'OUTROS' AND USU.NOMEUSU NOT IN (WITH BAS AS (SELECT ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS ORDEM, USU.NOMEUSU AS COMPRADOR, COUNT(*) AS TOTAL_PEDIDOSFROM(/*ESSES PEDIDOS SAO O NUNOTAORIG PARA ENCONTRAR AS NOTAS DECOMPRA DA CAB*//*PEDIDOS COM COTACAO*/SELECT*FROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.NUMCOTACAO IN(SELECT COT.NUMCOTACAO FROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))UNION ALL/*PEDIDOS SEM COTACAO*/SELECT*FROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN(SELECT CAB.NUNOTA FROM TGFCAB CAB WHERE CAB.NUMCOTACAO IN(SELECT COT.NUMCOTACAO FROM TGFCOT COT WHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))))AINNER JOIN TSIUSU USU ON A.CODUSUINC = USU.CODUSUGROUP BY USU.NOMEUSUORDER BY 3 DESC)SELECT COMPRADOR FROM BAS WHERE ORDEM <= 4))]]></expression>
-            <metadata>
-              <field name="NUNOTA" label="NÚ. Nota" type="I" visible="true" useFooter="false"/>
-              <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
-              <field name="CODCENCUS" label="CR" type="I" visible="true" useFooter="false"/>
-              <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
-              <field name="CODPROJ" label="Cód. Proj." type="I" visible="true" useFooter="false"/>
-              <field name="NUMNOTA" label="Nro. Doc." type="I" visible="true" useFooter="false"/>
-              <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
-              <field name="DTMOV" label="Dt. Mov." type="D" visible="true" useFooter="false"/>
-              <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
-              <field name="RAZAOSOCIAL" label="RAZAOSOCIAL" type="S" visible="true" useFooter="false"/>
-              <field name="CODTIPOPER" label="Top" type="I" visible="true" useFooter="false"/>
-              <field name="DESCROPER" label="Desc. Top." type="S" visible="true" useFooter="false"/>
-              <field name="DHTIPOPER" label="Dt. Top" type="D" visible="true" useFooter="false"/>
-              <field name="TIPMOV" label="Tip. Mov." type="S" visible="true" useFooter="false"/>
-              <field name="NUMCOTACAO" label="Nro. Cotação" type="I" visible="true" useFooter="false"/>
-              <field name="VLRNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
-              <field name="AD_NUNOTAORIG" label="NÚ. Nota Orig." type="I" visible="true" useFooter="false"/>
-              <field name="CODUSUINC" label="Cód. Usuário" type="I" visible="true" useFooter="false"/>
-              <field name="NOMEUSU" label="Usuário Inclusão" type="S" visible="true" useFooter="false"/>
-              <field name="PEDIDOS" label="Situação Pedido" type="S" visible="true" useFooter="false"/>
-            </metadata>
-            <on-click-launcher resource-id="br.com.sankhya.mgecom.mov.PortalCompras">
-              <NUNOTA>$NUNOTA</NUNOTA>
-            </on-click-launcher>
-          </grid>
-        </container>
-      </container>
-    </container>
-  </level>
-  <level id="lvl_j1baux" description="Requisicoes">
-    <args>
-      <arg id="A_NOMESETOR" type="text"/>
-    </args>
-    <container orientacao="H" tamanhoRelativo="100">
-      <container orientacao="V" tamanhoRelativo="50">
-        <chart id="cht_j1bavd" type="pizza">
-          <title><![CDATA[Requisições por Setor]]></title>
-          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT (CASE WHEN SETO.NOMESETOR IS NULL THEN 'NAO INFORMADO' ELSE SETO.NOMESETOR END) AS NOMESETOR,COUNT(*) AS TOTAL_REQUISICOESFROM TGFCAB CABINNER JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSULEFT JOIN AD_SETORES SETO ON USU.AD_CODSETOR = SETO.CODSETORWHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINGROUP BY (CASE WHEN SETO.NOMESETOR IS NULL THEN 'NAO INFORMADO' ELSE SETO.NOMESETOR END)]]></expression>
-          <metadata>
-            <field name="NOMESETOR" label="Nome Setor" type="S" visible="true" useFooter="false"/>
-            <field name="TOTAL_REQUISICOES" label="Total Requisição" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
-          </metadata>
-          <series>
-            <serie type="pizza">
-              <field>$TOTAL_REQUISICOES</field>
-              <nameField>$NOMESETOR</nameField>
-              <refresh-details ui-list="grd_j1ba0w">
-                <param id="A_NOMESETOR">$NOMESETOR</param>
-              </refresh-details>
-            </serie>
-          </series>
-        </chart>
-      </container>
-      <container orientacao="V" tamanhoRelativo="50">
-        <container orientacao="V" tamanhoRelativo="100">
-          <grid id="grd_j1ba0w" useNewGrid="S">
-            <args>
-              <arg id="A_NOMESETOR" type="text"/>
-            </args>
-            <title><![CDATA[Detalhamento]]></title>
-            <expression type="sql" data-source="MGEDS"><![CDATA[SELECTDTMOV,NUNOTA,NUMNOTA,CODEMP,CODTIPOPER,DESCROPER,TIPMOV,VLRNOTA,CODUSUINC,NOMEUSU,AD_CODSETOR,NOMESETORFROM(SELECT CAB.DTMOV,CAB.NUNOTA,CAB.NUMNOTA,CAB.CODEMP,CAB.CODCENCUS,CAB.CODTIPOPER,TOP.DESCROPER,F_DESCROPC('TGFCAB','TIPMOV',CAB.TIPMOV) AS TIPMOV,CAB.VLRNOTA,CAB.CODUSUINC,USU.NOMEUSU,USU.AD_CODSETOR,(CASE WHEN SETO.NOMESETOR IS NULL THEN 'NAO INFORMADO' ELSE SETO.NOMESETOR END) AS NOMESETOR,CAB.NUMCOTACAOFROM TGFCAB CABINNER JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSULEFT JOIN AD_SETORES SETO ON USU.AD_CODSETOR = SETO.CODSETORINNER JOIN TGFTOP TOP ON (CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER))WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)WHERE NOMESETOR = :A_NOMESETOR]]></expression>
-            <metadata>
-              <field name="DTMOV" label="Dt. Mov." type="D" visible="true" useFooter="false"/>
-              <field name="NUNOTA" label="NÚ. Único" type="I" visible="true" useFooter="false"/>
-              <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
-              <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
-              <field name="CODTIPOPER" label="Cód. TOP" type="I" visible="true" useFooter="false"/>
-              <field name="DESCROPER" label="TOP" type="S" visible="true" useFooter="false"/>
-              <field name="TIPMOV" label="Tp. Mov." type="S" visible="true" useFooter="false"/>
-              <field name="VLRNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
-              <field name="CODUSUINC" label="Cód. Usuario Inclusão" type="I" visible="true" useFooter="false"/>
-              <field name="NOMEUSU" label="Nome" type="S" visible="true" useFooter="false"/>
-              <field name="AD_CODSETOR" label="Cód. Setor" type="I" visible="true" useFooter="false"/>
-              <field name="NOMESETOR" label="Setor" type="S" visible="true" useFooter="false"/>
-            </metadata>
-          </grid>
-        </container>
-      </container>
-    </container>
-  </level>
-  <level id="lvl_j1ba4y" description="Cotacoes">
-    <args>
-      <arg id="A_NOMEUSU" type="text"/>
-    </args>
-    <container orientacao="H" tamanhoRelativo="100">
-      <container orientacao="V" tamanhoRelativo="50">
-        <chart id="cht_j1ba4z" type="pizza">
-          <title><![CDATA[Cotações por Compradores]]></title>
-          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTUSU.NOMEUSU,COUNT(*) AS TOTAL_COTACOESFROM TGFCOT COTINNER JOIN TSIUSU USU ON COT.CODUSUREQ = USU.CODUSUWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)GROUP BY USU.NOMEUSU]]></expression>
-          <metadata>
-            <field name="NOMEUSU" label="Comprador" type="S" visible="true" useFooter="false"/>
-            <field name="TOTAL_COTACOES" label="Total" type="I" visible="true" useFooter="false"/>
-          </metadata>
-          <series>
-            <serie type="pizza">
-              <field>TOTAL_COTACOES</field>
-              <nameField>NOMEUSU</nameField>
-              <refresh-details ui-list="grd_j1ba5s">
-                <param id="A_NOMEUSU">$NOMEUSU</param>
-              </refresh-details>
-            </serie>
-          </series>
-        </chart>
-      </container>
-      <container orientacao="V" tamanhoRelativo="50">
-        <grid id="grd_j1ba5s" useNewGrid="S">
-          <args>
-            <arg id="A_NOMEUSU" type="text"/>
-          </args>
-          <title><![CDATA[Detalhamento]]></title>
-          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTNUMCOTACAO,DHINIC, SITUACAO, CODUSUREQ,NOMEUSU,DTALTER,CODNAT,CODCENCUS,CODPROJ,CODEMP,OBSERVACAO,NUNOTAORIG,NUMNOTAORIGFROM(SELECTCOT.NUMCOTACAO, COT.DHINIC,F_DESCROPC('TGFCOT','SITUACAO',COT.SITUACAO) AS SITUACAO,COT.CODUSUREQ,USU.NOMEUSU,COT.DTALTER,COT.CODNAT,COT.CODCENCUS,COT.CODPROJ,COT.CODEMP,COT.OBSERVACAO,COT.NUNOTAORIG,COT.NUMNOTAORIGFROM TGFCOT COTINNER JOIN TSIUSU USU ON COT.CODUSUREQ = USU.CODUSUWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))WHERE NOMEUSU = :A_NOMEUSU]]></expression>
-          <metadata>
-            <field name="NUMCOTACAO" label="Nro. Cotação" type="I" visible="true" useFooter="false"/>
-            <field name="DHINIC" label="Dt. Início" type="D" visible="true" useFooter="false"/>
-            <field name="SITUACAO" label="Sitação" type="S" visible="true" useFooter="false"/>
-            <field name="CODUSUREQ" label="Cód. Comprador" type="I" visible="true" useFooter="false"/>
-            <field name="NOMEUSU" label="Comprador" type="S" visible="true" useFooter="false"/>
-            <field name="DTALTER" label="Dt. Alter." type="D" visible="true" useFooter="false"/>
-            <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
-            <field name="CODCENCUS" label="CR" type="I" visible="true" useFooter="false"/>
-            <field name="CODPROJ" label="Cód. Proj." type="I" visible="true" useFooter="false"/>
-            <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
-            <field name="OBSERVACAO" label="Obs." type="S" visible="true" useFooter="false"/>
-            <field name="NUNOTAORIG" label="NÚ. Único Origem" type="I" visible="true" useFooter="false"/>
-            <field name="NUMNOTAORIG" label="Nro. Nota Origem" type="I" visible="true" useFooter="false"/>
-          </metadata>
-        </grid>
-      </container>
-    </container>
-  </level>
-  <level id="lvl_kj5cgy" description="Nota">
-    <args>
-      <arg id="A_NOMEUSU" type="text"/>
-    </args>
-    <container orientacao="H" tamanhoRelativo="100">
-      <container orientacao="V" tamanhoRelativo="50">
-        <chart id="cht_kj5cjd" type="pizza">
-          <title><![CDATA[Notas Incluídas por Usuário]]></title>
-          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTNOMEUSU,SUM(TOTAL_NOTAS) AS TOTAL_NOTASFROM (SELECTCASE WHEN ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) <= 4 THEN ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) ELSE 5 END  AS ORDEM, CASE WHEN ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) <= 4 THEN USU.NOMEUSU ELSE 'OUTROS' END  AS NOMEUSU,COUNT(*) TOTAL_NOTASFROM(/*********** NOTA SEM PEDIDO **************/SELECT CAB.NUNOTA,CAB.CODEMP,CAB.CODCENCUS,CAB.CODNAT,CAB.CODPROJ,CAB.NUMNOTA,CAB.DTNEG,CAB.DTMOV,CAB.CODPARC,CAB.CODTIPOPER,CAB.DHTIPOPER,CAB.TIPMOV,CAB.NUMCOTACAO,CAB.VLRNOTA,CAB.AD_NUNOTAORIG,CAB.CODUSUINC,'NOTA SEM PEDIDO' AS VERIFICACAOFROM TGFCAB CABWHERE CAB.TIPMOV='C'AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN (WITH VAR AS (SELECT DISTINCT NUNOTA,NUNOTAORIG FROM TGFVAR)SELECT CAB.NUNOTAFROM TGFCAB CABINNER JOIN VAR ON CAB.NUNOTA = VAR.NUNOTAWHERE CAB.TIPMOV='C'AND VAR.NUNOTAORIG IN (/*PEDIDOS COM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))UNION ALL/*PEDIDOS SEM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN(SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)))))UNION ALL/****************************** NOTA COM PEDIDO ***********************************/SELECT B.NUNOTA,B.CODEMP,B.CODCENCUS,B.CODNAT,B.CODPROJ,B.NUMNOTA,B.DTNEG,B.DTMOV,B.CODPARC,B.CODTIPOPER,B.DHTIPOPER,B.TIPMOV,B.NUMCOTACAO,B.VLRNOTA,B.AD_NUNOTAORIG,B.CODUSUINC,'NOTA COM PEDIDO' AS VERIFICACAOFROM(WITH VAR AS (SELECT DISTINCT NUNOTA,NUNOTAORIG FROM TGFVAR)SELECT CAB.*FROM TGFCAB CABINNER JOIN VAR ON CAB.NUNOTA = VAR.NUNOTAWHERE CAB.TIPMOV='C'AND VAR.NUNOTAORIG IN (/*PEDIDOS COM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))UNION ALL/*PEDIDOS SEM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN(SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)))))B)AINNER JOIN TGFTOP TOP ON ( A.CODTIPOPER = TOP.CODTIPOPER AND A.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )INNER JOIN TSIUSU USU ON A.CODUSUINC = USU.CODUSUINNER JOIN TGFPAR PAR ON A.CODPARC = PAR.CODPARCGROUP BY NOMEUSU)GROUP BY NOMEUSUORDER BY 2 DESC]]></expression>
-          <metadata>
-            <field name="NOMEUSU" label="Usuário" type="S" visible="true" useFooter="false"/>
-            <field name="TOTAL_NOTAS" label="Total Notas" type="I" visible="true" useFooter="false"/>
-          </metadata>
-          <series>
-            <serie type="pizza">
-              <field>TOTAL_NOTAS</field>
-              <nameField>NOMEUSU</nameField>
-              <refresh-details ui-list="grd_kj5cka">
-                <param id="A_NOMEUSU">$NOMEUSU</param>
-              </refresh-details>
-            </serie>
-          </series>
-        </chart>
-      </container>
-      <container orientacao="V" tamanhoRelativo="50">
-        <grid id="grd_kj5cka" useNewGrid="S">
-          <args>
-            <arg id="A_NOMEUSU" type="text"/>
-          </args>
-          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTA.NUNOTA,A.CODEMP,A.CODCENCUS,A.CODNAT,A.CODPROJ,A.NUMNOTA,A.DTNEG,A.DTMOV,A.CODPARC,PAR.RAZAOSOCIAL,A.CODTIPOPER,TOP.DESCROPER,A.DHTIPOPER,A.TIPMOV,A.VLRNOTA,A.AD_NUNOTAORIG,A.CODUSUINC,USU.NOMEUSU,A.VERIFICACAOFROM(/*********** NOTA SEM PEDIDO **************/SELECT CAB.NUNOTA,CAB.CODEMP,CAB.CODCENCUS,CAB.CODNAT,CAB.CODPROJ,CAB.NUMNOTA,CAB.DTNEG,CAB.DTMOV,CAB.CODPARC,CAB.CODTIPOPER,CAB.DHTIPOPER,CAB.TIPMOV,CAB.NUMCOTACAO,CAB.VLRNOTA,CAB.AD_NUNOTAORIG,CAB.CODUSUINC,'NOTA SEM PEDIDO' AS VERIFICACAOFROM TGFCAB CABWHERE CAB.TIPMOV='C'AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN (WITH VAR AS (SELECT DISTINCT NUNOTA,NUNOTAORIG FROM TGFVAR)SELECT CAB.NUNOTAFROM TGFCAB CABINNER JOIN VAR ON CAB.NUNOTA = VAR.NUNOTAWHERE CAB.TIPMOV='C'AND VAR.NUNOTAORIG IN (/*PEDIDOS COM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))UNION ALL/*PEDIDOS SEM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN(SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)))))UNION ALL/****************************** NOTA COM PEDIDO ***********************************/SELECT B.NUNOTA,B.CODEMP,B.CODCENCUS,B.CODNAT,B.CODPROJ,B.NUMNOTA,B.DTNEG,B.DTMOV,B.CODPARC,B.CODTIPOPER,B.DHTIPOPER,B.TIPMOV,B.NUMCOTACAO,B.VLRNOTA,B.AD_NUNOTAORIG,B.CODUSUINC,'NOTA COM PEDIDO' AS VERIFICACAOFROM(WITH VAR AS (SELECT DISTINCT NUNOTA,NUNOTAORIG FROM TGFVAR)SELECT CAB.*FROM TGFCAB CABINNER JOIN VAR ON CAB.NUNOTA = VAR.NUNOTAWHERE CAB.TIPMOV='C'AND VAR.NUNOTAORIG IN (/*PEDIDOS COM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))UNION ALL/*PEDIDOS SEM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN(SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)))))B)AINNER JOIN TGFTOP TOP ON ( A.CODTIPOPER = TOP.CODTIPOPER AND A.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )INNER JOIN TSIUSU USU ON A.CODUSUINC = USU.CODUSUINNER JOIN TGFPAR PAR ON A.CODPARC = PAR.CODPARCWHERE (USU.NOMEUSU = :A_NOMEUSU) OR (:A_NOMEUSU = 'OUTROS' AND USU.NOMEUSU NOT IN (------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------SELECTNOMEUSUFROM (SELECTCASE WHEN ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) <= 4 THEN ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) ELSE 5 END  AS ORDEM, CASE WHEN ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) <= 4 THEN USU.NOMEUSU ELSE 'OUTROS' END  AS NOMEUSU,COUNT(*) TOTAL_NOTASFROM(/*********** NOTA SEM PEDIDO **************/SELECT CAB.NUNOTA,CAB.CODEMP,CAB.CODCENCUS,CAB.CODNAT,CAB.CODPROJ,CAB.NUMNOTA,CAB.DTNEG,CAB.DTMOV,CAB.CODPARC,CAB.CODTIPOPER,CAB.DHTIPOPER,CAB.TIPMOV,CAB.NUMCOTACAO,CAB.VLRNOTA,CAB.AD_NUNOTAORIG,CAB.CODUSUINC,'NOTA SEM PEDIDO' AS VERIFICACAOFROM TGFCAB CABWHERE CAB.TIPMOV='C'AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN (WITH VAR AS (SELECT DISTINCT NUNOTA,NUNOTAORIG FROM TGFVAR)SELECT CAB.NUNOTAFROM TGFCAB CABINNER JOIN VAR ON CAB.NUNOTA = VAR.NUNOTAWHERE CAB.TIPMOV='C'AND VAR.NUNOTAORIG IN (/*PEDIDOS COM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))UNION ALL/*PEDIDOS SEM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN(SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)))))UNION ALL/****************************** NOTA COM PEDIDO ***********************************/SELECT B.NUNOTA,B.CODEMP,B.CODCENCUS,B.CODNAT,B.CODPROJ,B.NUMNOTA,B.DTNEG,B.DTMOV,B.CODPARC,B.CODTIPOPER,B.DHTIPOPER,B.TIPMOV,B.NUMCOTACAO,B.VLRNOTA,B.AD_NUNOTAORIG,B.CODUSUINC,'NOTA COM PEDIDO' AS VERIFICACAOFROM(WITH VAR AS (SELECT DISTINCT NUNOTA,NUNOTAORIG FROM TGFVAR)SELECT CAB.*FROM TGFCAB CABINNER JOIN VAR ON CAB.NUNOTA = VAR.NUNOTAWHERE CAB.TIPMOV='C'AND VAR.NUNOTAORIG IN (/*PEDIDOS COM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN))UNION ALL/*PEDIDOS SEM COTACAO*/SELECTCAB.NUNOTAFROM TGFCAB CABWHERE TIPMOV IN ('O') AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FINAND CAB.NUNOTA NOT IN(SELECTCAB.NUNOTAFROM TGFCAB CABWHERE CAB.NUMCOTACAO IN(SELECTCOT.NUMCOTACAOFROM TGFCOT COTWHERE COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)))))B)AINNER JOIN TGFTOP TOP ON ( A.CODTIPOPER = TOP.CODTIPOPER AND A.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )INNER JOIN TSIUSU USU ON A.CODUSUINC = USU.CODUSUINNER JOIN TGFPAR PAR ON A.CODPARC = PAR.CODPARCGROUP BY NOMEUSU)WHERE ORDEM < 5GROUP BY NOMEUSU------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------))]]></expression>
-          <metadata>
-            <field name="NUNOTA" label="NÚ. Único" type="I" visible="true" useFooter="false"/>
-            <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
-            <field name="CODCENCUS" label="CR" type="I" visible="true" useFooter="false"/>
-            <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
-            <field name="CODPROJ" label="Cód. Proj." type="I" visible="true" useFooter="false"/>
-            <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
-            <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
-            <field name="DTMOV" label="Dt. Mov." type="D" visible="true" useFooter="false"/>
-            <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
-            <field name="RAZAOSOCIAL" label="Parceiro" type="S" visible="true" useFooter="false"/>
-            <field name="CODTIPOPER" label="Cód. TOP" type="I" visible="true" useFooter="false"/>
-            <field name="DESCROPER" label="Top" type="S" visible="true" useFooter="false"/>
-            <field name="DHTIPOPER" label="Dt. Top" type="D" visible="true" useFooter="false"/>
-            <field name="TIPMOV" label="Tip. Mov." type="S" visible="true" useFooter="false"/>
-            <field name="VLRNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
-            <field name="AD_NUNOTAORIG" label="NÚ. Nota Orig." type="I" visible="true" useFooter="false"/>
-            <field name="CODUSUINC" label="Cód. Usuario Inclusão" type="I" visible="true" useFooter="false"/>
-            <field name="NOMEUSU" label="Usuario Inclusão" type="S" visible="true" useFooter="false"/>
-            <field name="VERIFICACAO" label="Verificação" type="S" visible="true" useFooter="false"/>
-          </metadata>
-        </grid>
-      </container>
-    </container>
-  </level>
-</gadget>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ER Diagram Generator</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        window.mermaid = mermaid;
+        mermaid.initialize({ startOnLoad: false });
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #controls {
+            width: 100%;
+            padding: 10px;
+            background: #f8f8f8;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        textarea {
+            width: 80%;
+            height: 100px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+        }
+        #zoomControl {
+            margin-top: 10px;
+        }
+        #diagram-container {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+            overflow: hidden;
+            position: relative;
+        }
+        #diagram {
+            transform-origin: center;
+            transition: transform 0.2s ease-in-out;
+            cursor: grab;
+            position: absolute;
+        }
+        #diagram:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h2>Gerador de Diagrama ER</h2>
+        <textarea id="sqlInput" placeholder="Digite seu SELECT..."></textarea>
+        <br>
+        <button onclick="generateDiagram()">Gerar Diagrama</button>
+        <br>
+        <input id="zoomControl" type="range" min="0.5" max="20" step="0.1" value="1" oninput="updateZoom(this.value)">
+    </div>
+    <div id="diagram-container">
+        <div id="diagram"></div>
+    </div>
+
+    <script>
+        let isDragging = false;
+        let startX, startY;
+        let offsetX = 0, offsetY = 0;
+        let scale = 1;
+
+        function extractTablesAndFields(sql) {
+            // Extrair tabelas e seus aliases
+            const tableRegex = /(?:FROM|JOIN)\s+(\w+)(?:\s+AS)?\s+(\w+)|(?:FROM|JOIN)\s+(\w+)(?:\s+(\w+))?/gi;
+            let match;
+            const tables = {};
+            
+            while ((match = tableRegex.exec(sql)) !== null) {
+                let tableName, tableAlias;
+                
+                if (match[1]) {
+                    tableName = match[1];
+                    tableAlias = match[2];
+                } else if (match[3]) {
+                    tableName = match[3];
+                    tableAlias = match[4] || match[3]; // Se não houver alias, usa o nome da tabela
+                }
+                
+                if (tableName && tableAlias) {
+                    tables[tableAlias] = tableName;
+                }
+            }
+            
+            // Extrair campos do SELECT
+            const selectRegex = /SELECT\s+([\s\S]+?)\s+FROM/i;
+            const selectMatch = sql.match(selectRegex);
+            const fieldsMap = {};
+            const joinFields = new Set(); // Campos usados em JOINs
+            
+            // Primeiro identificar campos usados em JOINs
+            const joinRegex = /JOIN\s+\w+(?:\s+AS)?\s+\w+\s+ON\s+([\w.]+)\s*=\s*([\w.]+)/gi;
+            let joinMatch;
+            const relationships = [];
+            
+            while ((joinMatch = joinRegex.exec(sql)) !== null) {
+                const leftSide = joinMatch[1].split('.');
+                const rightSide = joinMatch[2].split('.');
+                
+                if (leftSide.length === 2 && rightSide.length === 2) {
+                    relationships.push({
+                        leftTable: leftSide[0],
+                        leftField: leftSide[1],
+                        rightTable: rightSide[0],
+                        rightField: rightSide[1]
+                    });
+                    
+                    // Adicionar campos de JOIN ao conjunto
+                    joinFields.add(`${leftSide[0]}.${leftSide[1]}`);
+                    joinFields.add(`${rightSide[0]}.${rightSide[1]}`);
+                }
+            }
+            
+            // Agora processar campos do SELECT
+            if (selectMatch && selectMatch[1]) {
+                const fieldItems = selectMatch[1].split(',').map(f => f.trim());
+                
+                fieldItems.forEach(field => {
+                    // Remover aliases de campos (se houver)
+                    const fieldWithoutAlias = field.replace(/\s+AS\s+\w+/i, '').trim();
+                    
+                    // Verificar se o campo tem notação de tabela (alias.campo)
+                    const dotIndex = fieldWithoutAlias.indexOf('.');
+                    if (dotIndex > -1) {
+                        const tableAlias = fieldWithoutAlias.substring(0, dotIndex);
+                        const fieldName = fieldWithoutAlias.substring(dotIndex + 1);
+                        
+                        // Processar múltiplos aliases (caso de tabela1.campo1, tabela2.campo2)
+                        const aliases = tableAlias.split(',').map(a => a.trim());
+                        
+                        aliases.forEach(tableAlias => {
+                            // Remover parênteses e funções (como COUNT, SUM, etc.)
+                            const cleanFieldName = fieldName.replace(/^[\w\(\)]+\./, '').replace(/^[\(\w]+\(/, '').replace(/[\)\s].*$/, '');
+                            
+                            if (!fieldsMap[tableAlias]) {
+                                fieldsMap[tableAlias] = new Set();
+                            }
+                            if (cleanFieldName !== '*' && cleanFieldName) {
+                                fieldsMap[tableAlias].add(cleanFieldName);
+                            }
+                        });
+                    }
+                });
+            }
+            
+            return {
+                tables: tables,
+                fields: fieldsMap,
+                relationships: relationships,
+                joinFields: joinFields
+            };
+        }
+
+        function generateDiagram() {
+            const sql = document.getElementById("sqlInput").value;
+            const { tables, fields, relationships, joinFields } = extractTablesAndFields(sql);
+            let diagramDefinition = "erDiagram\n";
+            
+            // Adicionar tabelas e campos
+            for (const [alias, tableName] of Object.entries(tables)) {
+                diagramDefinition += `  ${tableName} {\n`;
+                
+                // Adicionar campos específicos se existirem
+                if (fields[alias]) {
+                    fields[alias].forEach(field => {
+                        // Verificar se o campo é usado em JOIN
+                        const isJoinField = joinFields.has(`${alias}.${field}`);
+                        const fieldType = isJoinField ? "INT" : "VARCHAR";
+                        diagramDefinition += `    ${field} ${fieldType}\n`;
+                    });
+                }
+                
+                // Adicionar campos usados nos JOINs que não estão no SELECT
+                relationships.forEach(rel => {
+                    if (rel.leftTable === alias && (!fields[alias] || !fields[alias].has(rel.leftField))) {
+                        diagramDefinition += `    ${rel.leftField} INT\n`;
+                    }
+                    if (rel.rightTable === alias && (!fields[alias] || !fields[alias].has(rel.rightField))) {
+                        diagramDefinition += `    ${rel.rightField} INT\n`;
+                    }
+                });
+                
+                diagramDefinition += `  }\n`;
+            }
+            
+            // Adicionar relacionamentos
+            relationships.forEach(rel => {
+                if (tables[rel.leftTable] && tables[rel.rightTable]) {
+                    diagramDefinition += `  ${tables[rel.leftTable]} ||--o{ ${tables[rel.rightTable]} : "${rel.leftField} = ${rel.rightField}"\n`;
+                }
+            });
+
+            document.getElementById("diagram").innerHTML = `<div class='mermaid'>${diagramDefinition}</div>`;
+            mermaid.run();
+        }
+
+        function updateZoom(value) {
+            scale = value;
+            document.getElementById("diagram").style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        }
+
+        const diagram = document.getElementById("diagram");
+        const container = document.getElementById("diagram-container");
+
+        container.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            startX = e.clientX - offsetX;
+            startY = e.clientY - offsetY;
+        });
+
+        container.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            offsetX = e.clientX - startX;
+            offsetY = e.clientY - startY;
+            diagram.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        });
+
+        container.addEventListener("mouseup", () => {
+            isDragging = false;
+        });
+
+        container.addEventListener("mouseleave", () => {
+            isDragging = false;
+        });
+
+        // Gerar diagrama inicial
+        window.onload = generateDiagram;
+    </script>
+</body>
+</html>

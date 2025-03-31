@@ -32,6 +32,7 @@
 			justify-content: center;
 			text-align: center;
 			cursor: pointer;
+			position: relative; /* Adiciona essa linha para tornar o card o contexto de posicionamento */			
 		}
 
 		.card:hover {
@@ -39,24 +40,40 @@
 		}
 
 		.card svg {
-			width: 50px;
-			height: 50px;
-			margin-bottom: 10px;
+			width: 30px;
+			height: 30px;
+			margin-bottom: 5px;
 		}
 
 		p {
-			font-size: 35px;
+			font-size: 25px;
 			font-weight: bold;
+			margin-bottom: 5px;
+			margin-top: 5px;
 		}
 
 		p2 {
 			font-size: 18px;
 			font-weight: bold;
+			
 		}
+
+
+        .overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 2;
+        }
 
 		.header-card {
 			grid-column: span 2;
-			padding: 15px 20px;
+			padding: 10px 15px;
 			background-color: #2ca025;
 			border-radius: 10px;
 			display: flex;
@@ -73,9 +90,9 @@
 		.header-card h3 {
 			display: flex;
 			align-items: center;
-			gap: 10px;
+			gap: 5px;
 			margin: 0;
-			font-size: 1.5em;
+			font-size: 1.1em;
 		}
 
 		.header-card svg {
@@ -88,8 +105,8 @@
 			display: flex;
 			align-items: center;
 			gap: 20px;
-			font-size: 1.2em;
-			margin-left: 10px;
+			font-size: 1.0em;
+			margin-left: 5px;
 		}
 
 		.lead-time-details span {
@@ -97,6 +114,38 @@
 			padding: 5px 10px;
 			border-radius: 5px;
 		}
+		
+		.header-card-left {
+			flex-grow: 4;
+			padding: 15px 20px;
+			background-color: #2ca025;
+			border-radius: 10px 0 0 10px;
+			display: flex;
+			align-items: center;
+			justify-content: left;
+			color: white;
+			transition: background-color 0.3s ease;
+		}
+
+		.header-card-left:hover {
+			background-color: #028001;
+		}
+
+		.header-card-right {
+			flex-grow: 1;
+			padding: 15px 20px;
+			background-color: #1e7d1e;
+			border-radius: 0 10px 10px 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			transition: background-color 0.3s ease;
+		}
+
+		.header-card-right:hover {
+			background-color: #145814;
+		}		
 		
 </style>
         
@@ -106,6 +155,7 @@
 <body>
     
 <snk:query var="dias">    
+
 
 SELECT 
 SUM(TOTAL_REQUISICOES) AS TOTAL_REQUISICOES,
@@ -124,7 +174,12 @@ SUM(NOTA_SEM_PEDIDO) AS NOTA_SEM_PEDIDO,
 AVG(REQ_TO_COT) AS REQ_TO_COT,
 AVG(COT_TO_PED) AS COT_TO_PED,
 AVG(PED_TO_NOTA) AS PED_TO_NOTA,
-AVG(TOTAL_DIAS) AS TOTAL_DIAS
+AVG(TOTAL_DIAS) AS TOTAL_DIAS,
+SUM(VLRFRETE_POR_ITEM_MP) AS VLRFRETE_POR_ITEM_MP,
+ROUND(AVG(PERC_VLRFRETE_POR_ITEM_NA_NOTA_MP),2) AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_MP,
+SUM(VLRFRETE_POR_ITEM_EMB) AS VLRFRETE_POR_ITEM_EMB,
+ROUND(AVG(PERC_VLRFRETE_POR_ITEM_NA_NOTA_EMB),2) AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_EMB,
+ROUND(SUM(ESTORNO),2) AS ESTORNO
 FROM
 (
 SELECT 
@@ -144,7 +199,12 @@ NULL AS NOTA_SEM_PEDIDO,
 NULL AS REQ_TO_COT,
 NULL AS COT_TO_PED,
 NULL AS PED_TO_NOTA,
-NULL AS TOTAL_DIAS
+NULL AS TOTAL_DIAS,
+NULL AS VLRFRETE_POR_ITEM_MP,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_MP,
+NULL AS VLRFRETE_POR_ITEM_EMB,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_EMB,
+NULL AS ESTORNO
 
 
 FROM TGFCAB CAB
@@ -169,7 +229,12 @@ NULL AS NOTA_SEM_PEDIDO,
 NULL AS REQ_TO_COT,
 NULL AS COT_TO_PED,
 NULL AS PED_TO_NOTA,
-NULL AS TOTAL_DIAS
+NULL AS TOTAL_DIAS,
+NULL AS VLRFRETE_POR_ITEM_MP,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_MP,
+NULL AS VLRFRETE_POR_ITEM_EMB,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_EMB,
+NULL AS ESTORNO
 FROM TGFCOT COT
 WHERE 
 COT.NUMCOTACAO IN (SELECT CAB.NUMCOTACAO FROM TGFCAB CAB WHERE CAB.TIPMOV ='J' AND CAB.STATUSNOTA = 'L' AND CAB.DTMOV BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
@@ -197,7 +262,12 @@ NULL AS NOTA_SEM_PEDIDO,
 NULL AS REQ_TO_COT,
 NULL AS COT_TO_PED,
 NULL AS PED_TO_NOTA,
-NULL AS TOTAL_DIAS
+NULL AS TOTAL_DIAS,
+NULL AS VLRFRETE_POR_ITEM_MP,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_MP,
+NULL AS VLRFRETE_POR_ITEM_EMB,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_EMB,
+NULL AS ESTORNO
 FROM
 (
 
@@ -261,7 +331,12 @@ SUM(NOTA_SEM_PEDIDO) AS NOTA_SEM_PEDIDO,
 NULL AS REQ_TO_COT,
 NULL AS COT_TO_PED,
 NULL AS PED_TO_NOTA,
-NULL AS TOTAL_DIAS
+NULL AS TOTAL_DIAS,
+NULL AS VLRFRETE_POR_ITEM_MP,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_MP,
+NULL AS VLRFRETE_POR_ITEM_EMB,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_EMB,
+NULL AS ESTORNO
 FROM(
 /*********** NOTA SEM PEDIDO **************/
 SELECT 
@@ -386,7 +461,12 @@ NULL AS NOTA_SEM_PEDIDO,
 ROUND(AVG(REQ_TO_COT),0) AS REQ_TO_COT,
 ROUND(AVG(COT_TO_PED),0) AS COT_TO_PED,
 ROUND(AVG(PED_TO_NOTA),0) AS PED_TO_NOTA,
-ROUND(AVG(TOTAL_DIAS),0) AS TOTAL_DIAS
+ROUND(AVG(TOTAL_DIAS),0) AS TOTAL_DIAS,
+NULL AS VLRFRETE_POR_ITEM_MP,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_MP,
+NULL AS VLRFRETE_POR_ITEM_EMB,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_EMB,
+NULL AS ESTORNO
 FROM
 (
 
@@ -477,32 +557,146 @@ LEFT JOIN NOTA ON PED.NUNOTA = NOTA.NUNOTAORIG
 )
 
 
+UNION ALL
 
+
+/*************************FRETE***************************/
+
+SELECT 
+NULL AS TOTAL_REQUISICOES,
+NULL AS SEM_COTACAO,
+NULL AS COM_COTACAO,
+NULL AS TOTAL_COTACOES,
+NULL AS COTACAO_FINALIZADA,
+NULL AS COTACAO_ABERTO,
+NULL AS COTACAO_CANCELADA,
+NULL AS TOTAL_PEDIDOS,
+NULL AS PEDIDOS_COM_COTACAO,
+NULL AS PEDIDOS_SEM_COTACAO,
+NULL AS TOTAL_NOTA, 
+NULL AS NOTA_COM_PEDIDO,
+NULL AS NOTA_SEM_PEDIDO,
+NULL AS REQ_TO_COT,
+NULL AS COT_TO_PED,
+NULL AS PED_TO_NOTA,
+NULL AS TOTAL_DIAS,
+SUM(CASE WHEN CODGRUPOPROD = 3010000 THEN ROUND(VLRFRETE_POR_ITEM,2) END) AS VLRFRETE_POR_ITEM_MP,
+AVG(CASE WHEN CODGRUPOPROD = 3010000 THEN ROUND(PERC_VLRFRETE_POR_ITEM_NA_NOTA,2) END) AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_MP,
+SUM(CASE WHEN CODGRUPOPROD = 3020000 THEN ROUND(VLRFRETE_POR_ITEM,2) END) AS VLRFRETE_POR_ITEM_EMB,
+AVG(CASE WHEN CODGRUPOPROD = 3020000 THEN ROUND(PERC_VLRFRETE_POR_ITEM_NA_NOTA,2) END) AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_EMB,
+NULL AS ESTORNO
+
+FROM
+(
+SELECT
+ITE.NUNOTA,
+ITE.SEQUENCIA,
+CAB.NUMNOTA,
+F_DESCROPC('TGFCAB','TIPMOV',CAB.TIPMOV) AS TIPMOV,
+CAB.CIF_FOB||' - '||F_DESCROPC('TGFCAB','CIF_FOB',CAB.CIF_FOB) AS CIF_FOB,
+CAB.CODTIPOPER,
+TOP.DESCROPER,
+CAB.CODCENCUS,
+CUS.DESCRCENCUS,
+CAB.DTNEG,
+TO_CHAR(CAB.DTNEG,'MM-YYYY') AS MES_ANO,
+CAB.CODPARC,
+PAR.RAZAOSOCIAL,
+ITE.CODPROD,
+PRO.DESCRPROD,
+PRO.CODGRUPOPROD,
+GRU.DESCRGRUPOPROD,
+ITE.QTDNEG,
+ITE.VLRUNIT,
+ITE.VLRTOT,
+(((ITE.VLRTOT-ITE.VLRDESC)/NULLIF(CAB.VLRNOTA, 0))*CAB.VLRFRETE) VLRFRETE_POR_ITEM,
+	((((ITE.VLRTOT-ITE.VLRDESC)/NULLIF(CAB.VLRNOTA, 0))*CAB.VLRFRETE)/NULLIF(CAB.VLRNOTA, 0))*100 PERC_VLRFRETE_POR_ITEM_NA_NOTA
+
+FROM TGFCAB CAB
+INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = ( SELECT MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )
+INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
+INNER JOIN TSICUS CUS ON CAB.CODCENCUS = CUS.CODCENCUS
+INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+WHERE CAB.TIPMOV = 'C'
+AND CAB.STATUSNOTA = 'L'
+AND CAB.VLRNOTA > 0 
+AND CAB.VLRFRETE  > 0
+AND CUS.DESCRCENCUS LIKE '%IND%'
+AND PRO.CODGRUPOPROD IN (3010000,3020000)
+AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
 )
 
+UNION ALL
+
+
+/*************************ESTORNO***************************/
+
+SELECT 
+NULL AS TOTAL_REQUISICOES,
+NULL AS SEM_COTACAO,
+NULL AS COM_COTACAO,
+NULL AS TOTAL_COTACOES,
+NULL AS COTACAO_FINALIZADA,
+NULL AS COTACAO_ABERTO,
+NULL AS COTACAO_CANCELADA,
+NULL AS TOTAL_PEDIDOS,
+NULL AS PEDIDOS_COM_COTACAO,
+NULL AS PEDIDOS_SEM_COTACAO,
+NULL AS TOTAL_NOTA, 
+NULL AS NOTA_COM_PEDIDO,
+NULL AS NOTA_SEM_PEDIDO,
+NULL AS REQ_TO_COT,
+NULL AS COT_TO_PED,
+NULL AS PED_TO_NOTA,
+NULL AS TOTAL_DIAS,
+NULL AS VLRFRETE_POR_ITEM_MP,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_MP,
+NULL AS VLRFRETE_POR_ITEM_EMB,
+NULL AS PERC_VLRFRETE_POR_ITEM_NA_NOTA_EMB,
+ROUND(ESTORNO,2) AS ESTORNO
+FROM
+(
+SELECT COUNT(*) AS ESTORNO FROM AD_ESTORNOPED
+WHERE DATAESTORNO BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN    
+)
+)
 
 </snk:query>    
 
 <c:forEach items="${dias.rows}" var="row">    
 
-		<div class="header-card" onclick="abrir_lead()">
-			<h3>
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-					<path d="M15.91 13.34l2.636-4.026-.454-.406-3.673 3.099c-.675-.138-1.402.068-1.894.618-.736.823-.665 2.088.159 2.824.824.736 2.088.665 2.824-.159.492-.55.615-1.295.402-1.95zm-3.91-10.646v-2.694h4v2.694c-1.439-.243-2.592-.238-4 0zm8.851 2.064l1.407-1.407 1.414 1.414-1.321 1.321c-.462-.484-.964-.927-1.5-1.328zm-18.851 4.242h8v2h-8v-2zm-2 4h8v2h-8v-2zm3 4h7v2h-7v-2zm21-3c0 5.523-4.477 10-10 10-2.79 0-5.3-1.155-7.111-3h3.28c1.138.631 2.439 1 3.831 1 4.411 0 8-3.589 8-8s-3.589-8-8-8c-1.392 0-2.693.369-3.831 1h-3.28c1.811-1.845 4.321-3 7.111-3 5.523 0 10 4.477 10 10z"/>
-				</svg>
-				Lead Time (Dias Médio): 
-			</h3>
-			<div class="lead-time-details">
-				<span><u>Requisições</u>: ${row.REQ_TO_COT} dia(s)</span>
-				<span><u>Cotações</u>: ${row.COT_TO_PED} dia(s)</span>
-				<span><u>Pedidos</u>: ${row.PED_TO_NOTA} dia(s)</span>
-				<span><u>Nota</u> = Total: ${row.TOTAL_DIAS} dia(s)</span>
+		<div class="header-card" >
+		
+			<div class="header-card-left" onclick="abrir_lead()">
+
+					<p>
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+							<path d="M15.91 13.34l2.636-4.026-.454-.406-3.673 3.099c-.675-.138-1.402.068-1.894.618-.736.823-.665 2.088.159 2.824.824.736 2.088.665 2.824-.159.492-.55.615-1.295.402-1.95zm-3.91-10.646v-2.694h4v2.694c-1.439-.243-2.592-.238-4 0zm8.851 2.064l1.407-1.407 1.414 1.414-1.321 1.321c-.462-.484-.964-.927-1.5-1.328zm-18.851 4.242h8v2h-8v-2zm-2 4h8v2h-8v-2zm3 4h7v2h-7v-2zm21-3c0 5.523-4.477 10-10 10-2.79 0-5.3-1.155-7.111-3h3.28c1.138.631 2.439 1 3.831 1 4.411 0 8-3.589 8-8s-3.589-8-8-8c-1.392 0-2.693.369-3.831 1h-3.28c1.811-1.845 4.321-3 7.111-3 5.523 0 10 4.477 10 10z"/>
+						</svg>
+						Lead Time: 
+					</p>
+						<div class="lead-time-details">
+							<span><u>Requisições</u>: ${row.REQ_TO_COT} dia(s)</span>
+							<span><u>Cotações</u>: ${row.COT_TO_PED} dia(s)</span>
+							<span><u>Pedidos</u>: ${row.PED_TO_NOTA} dia(s)</span>
+							<span><u>Nota</u> = Total: ${row.TOTAL_DIAS} dia(s)</span>
+						</div>
 			</div>
 			
-
-			
-			
-			
+			<div class="header-card-right"  onclick="abrir_fre()">
+				<!-- Você pode adicionar algum conteúdo ou informação relevante aqui -->
+				<p>
+					<svg width="32" height="32" xmlns="http://www.w3.org/2000/svg" ><path d="M5 11v1h8v-7h-10v-1c0-.552.448-1 1-1h10c.552 0 1 .448 1 1v2h4.667c1.117 0 1.6.576 1.936 1.107.594.94 1.536 2.432 2.109 3.378.188.312.288.67.288 1.035v4.48c0 1.089-.743 2-2 2h-1c0 1.656-1.344 3-3 3s-3-1.344-3-3h-4c0 1.656-1.344 3-3 3s-3-1.344-3-3h-1c-.552 0-1-.448-1-1v-6h-2v-2h7v2h-3zm3 5.8c.662 0 1.2.538 1.2 1.2 0 .662-.538 1.2-1.2 1.2-.662 0-1.2-.538-1.2-1.2 0-.662.538-1.2 1.2-1.2zm10 0c.662 0 1.2.538 1.2 1.2 0 .662-.538 1.2-1.2 1.2-.662 0-1.2-.538-1.2-1.2 0-.662.538-1.2 1.2-1.2zm-3-2.8h-10v2h.765c.549-.614 1.347-1 2.235-1 .888 0 1.686.386 2.235 1h5.53c.549-.614 1.347-1 2.235-1 .888 0 1.686.386 2.235 1h1.765v-4.575l-1.711-2.929c-.179-.307-.508-.496-.863-.496h-4.426v6zm1-5v3h5l-1.427-2.496c-.178-.312-.509-.504-.868-.504h-2.705zm-16-3h8v2h-8v-2z"/>
+				</svg>
+				</p>
+				<div class="lead-time-details">
+					<span>Frete M.P.: <br>$ ${row.VLRFRETE_POR_ITEM_MP} | % ${row.PERC_VLRFRETE_POR_ITEM_NA_NOTA_MP} </span>
+					<span>Frete Emb.: <br>$ ${row.VLRFRETE_POR_ITEM_EMB} | % ${row.PERC_VLRFRETE_POR_ITEM_NA_NOTA_EMB} </span>
+				</div>
+			</div>
+							
 		</div>
     
 
@@ -526,12 +720,18 @@ LEFT JOIN NOTA ON PED.NUNOTA = NOTA.NUNOTAORIG
     </div>
 
     <!-- Terceiro Card -->
-    <div class="card" onclick="abrir_ped()">
+    <div class="card">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
             <path d="M20 0v2h-18v18h-2v-20h20zm-7.281 20.497l-.719 3.503 3.564-.658-2.845-2.845zm8.435-8.436l2.846 2.845-7.612 7.612-2.845-2.845 7.611-7.612zm-17.154-8.061v20h6v-2h-4v-16h16v4.077l2 2v-8.077h-20z"/></svg>
-		<h3>Total de Pedidos</h3>
-        <p>${row.TOTAL_PEDIDOS}</p>
+		<h3>Total de Pedidos do Compras</h3>
+        <p onclick="abrir_ped()">${row.TOTAL_PEDIDOS}</p>
         <p2>Sem Cotação: ${row.PEDIDOS_SEM_COTACAO} | Com Cotação: ${row.PEDIDOS_COM_COTACAO}</p2>
+
+	<!-- Overlay de Estorno -->
+	
+		<div class="overlay" onclick="abrir_est()">Estorno: ${row.ESTORNO}</div>
+		
+
     </div>
 
     <!-- Quarto Card -->
@@ -550,8 +750,7 @@ LEFT JOIN NOTA ON PED.NUNOTA = NOTA.NUNOTAORIG
 				var level = 'lvl_j1baux';
 				openLevel(level, params);
 			}
-			
-			
+						
 
 			function abrir_cot(){
 				var params = '';
@@ -576,7 +775,20 @@ LEFT JOIN NOTA ON PED.NUNOTA = NOTA.NUNOTAORIG
 				var level = 'lvl_noencs';
 				openLevel(level, params);
 			}
-		
+			
+			function abrir_fre(){
+				var params = '';
+				var level = 'lvl_tr5hig';
+				openLevel(level, params);
+			}
+
+			function abrir_est(){
+				var params = '';
+				var level = 'lvl_i1eson';
+				openLevel(level, params);
+			}				
+
+
 		</script> 
 		
 		

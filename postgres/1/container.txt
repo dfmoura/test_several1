@@ -1,0 +1,50 @@
+docker run --name postgres-container \
+  -e POSTGRES_USER=meuusuario1 \
+  -e POSTGRES_PASSWORD=123456senha \
+  -e POSTGRES_DB=meubanco1 \
+  -p 5432:5432 \
+  -v /caminho/para/dados/postgres:/var/lib/postgresql/data \
+  --restart unless-stopped \
+  -d postgres:latest
+
+
+docker-compose up -d
+
+
+5. Conectando ao banco de dados
+
+Você pode conectar usando:
+
+    Host: localhost ou IP do servidor
+
+    Porta: 5432
+
+    Usuário/senha: os que você definiu
+
+Dicas importantes:
+
+    Backup de dados: O volume mapeado (-v) garante que os dados persistem mesmo se o container for removido.
+
+    Segurança:
+
+        Altere meuusuario e minhasenha para credenciais seguras
+
+        Considere usar um arquivo de environment para credenciais sensíveis
+
+    Atualização: Para atualizar a imagem PostgreSQL, pare o container, puxe a nova imagem e recrie:
+
+bash
+Copy
+
+docker stop postgres-container
+docker pull postgres:latest
+docker start postgres-container
+
+    Monitoramento: Você pode ver os logs com:
+
+bash
+Copy
+
+docker logs postgres-container
+
+Com esta configuração, o PostgreSQL continuará ativo mesmo após reinicializações do sistema Linux.  

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Categorias</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Cadastro de Categorias</h1>
+
+  <form id="categoria-form">
+    <input type="text" id="nome" placeholder="Nome da Categoria" required>
+    <select id="tipo" required>
+      <option value="receita">Receita</option>
+      <option value="despesa">Despesa</option>
+    </select>
+    <button type="submit">Adicionar</button>
+  </form>
+
+  <h2>Categorias Cadastradas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Tipo</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="categoria-list">
+      <!-- As categorias serão listadas aqui -->
+    </tbody>
+  </table>
+
+  <script src="script.js"></script>
+  <script>
+    // Chamar a função para carregar categorias ao iniciar
+    loadCategorias();
+  </script>
+</body>
+</html>

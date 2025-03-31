@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atribuição de Endereço IP - Visual</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Atribuição de Endereço IP</h1>
+
+        <label for="ipType">Escolha o tipo de atribuição de IP:</label>
+        <select id="ipType">
+            <option value="manual">Manual (Estático)</option>
+            <option value="automatic">Automático (Dinâmico)</option>
+        </select>
+
+        <div id="manualIpSection" class="ip-section">
+            <label for="manualIp">Digite o endereço IP:</label>
+            <input type="text" id="manualIp" placeholder="Ex: 192.168.1.10">
+        </div>
+
+        <button onclick="assignIp()">Atribuir IP</button>
+
+        <h2>Computadores na Rede</h2>
+        <div class="network">
+            <div class="computer" id="computer1">
+                <!-- Ícone de Computador 1 (SVG embutido) -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><g><path d="M16 4v40h32V4H16zm30 2v36H18V6h28zM18 50v8h28v-8H18z"></path></g></svg>
+                <p id="ip1">IP: Nenhum atribuído</p>
+            </div>
+            <div class="computer" id="computer2">
+                <!-- Ícone de Computador 2 (SVG embutido) -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><g><path d="M16 4v40h32V4H16zm30 2v36H18V6h28zM18 50v8h28v-8H18z"></path></g></svg>
+                <p id="ip2">IP: Nenhum atribuído</p>
+            </div>
+        </div>
+
+        <h2>Endereço IP Atribuído:</h2>
+        <p id="assignedIp">Nenhum IP atribuído</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
