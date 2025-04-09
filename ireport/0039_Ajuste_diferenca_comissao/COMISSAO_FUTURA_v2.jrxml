@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="COMISSAO" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="PK_NUFECH" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND" class="java.math.BigDecimal">
+		<property name="PESQUISA" value="TRUE"/>
+		<property name="NOMETABELA" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Vendedor]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+CODVEND,
+APELIDO,
+NUNOTA,
+TIPO,
+NUMNOTA,
+CODEMP,
+CODPARC,
+NOMEPARC AS RAZAOSOCIAL,
+DTNEG,
+NUFIN,
+DTVENC AS DTVENCIMENTO,
+DHBAIXA,
+VLRDESDOB_ABERTO,
+VLRDESC,
+VLRBAIXA,
+VLRICMS_PROP AS DESCICMS,
+REDUCAO_BASE AS DESCCOMISSAO,
+PERCCOM,
+VLRCOM
+
+FROM (
+    --RECEITAS RENEGOCIADAS EM ABERTO NA DATA BASE
+    SELECT
+    CAB.NUNOTA
+    ,CAB.TIPMOV AS TIPO
+    , CAB.CODEMP
+    , EMP.NOMEFANTASIA
+    , CAB.NUMNOTA
+    , CAB.CODTIPOPER
+    , TPO.DESCROPER
+    , CAB.DTNEG
+    , CAB.CODPARC
+    , PAR.NOMEPARC
+    , CCM.CODVEND
+    , VEN.APELIDO
+    , VEN.AD_DESLIGADO2 AS VEND_DESLIGADO
+    , CAB.TIPMOV
+    , FIN.NUFIN
+    , LISTAGG(V.NUFIN, ' - ') AS NUFIN_ORIG
+    , CASE WHEN FIN.NURENEG IS NOT NULL THEN 'SIM' ELSE 'NÃO' END AS RENEG
+    , FIN.DTVENC
+    , FIN.DHBAIXA
+    , SUM(V.VLRPROP_ABERTO * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRDESDOB_ABERTO
+    , FIN.VLRDESC * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END AS VLRDESC
+    , FIN.VLRJURO * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END AS VLRJURO
+    , FIN.VLRMULTA * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END AS VLRMULTA
+    , SUM(V.VLRPROP * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRBAIXA
+
+    , SUM(V.VLRICMS * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRICMS_PROP
+    ,0 AS REDUCAO_BASE
+    ,CCM.PERCCOM
+
+    ,           SUM(ROUND(
+                (CASE WHEN NVL(V.VLRPROP,0) = 0 THEN V.VLRPROP_ABERTO - V.VLRICMS ELSE V.VLRPROP - V.VLRICMS END)
+                * CCM.PERCCOM / 100,6)
+                * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END) AS VLRCOM
+    ,(SELECT LISTAGG('Vlr.Prov: '||F.VLRDESDOB || '-Vend: '||F.CODVEND||'-Nú.Provisão: '||F.NUFIN, ' / ') FROM TGFFIN F WHERE (F.AD_NUFINPROV = FIN.NUFIN) AND F.CODVEND = VEN.CODVEND) AS VLRCOM_PROVFIN
+
+    , CASE WHEN CAB.TIPMOV = 'D' THEN 'RED' WHEN FIN.NURENEG <> 0 THEN 'PURPLE' ELSE 'BLUE' END AS FGCOLOR
+    FROM TGFCAB CAB, TGFPAR PAR, TGFFIN FIN, TSIEMP EMP, TGFTOP TPO, TGFVEN VEN, TGFCCM CCM, VRENEG V
+    WHERE
+    CAB.CODPARC = PAR.CODPARC
+    AND CAB.NUNOTA = V.NUNOTA
+    AND CAB.CODEMP = EMP.CODEMP
+    AND CAB.CODTIPOPER = TPO.CODTIPOPER
+    AND CAB.DHTIPOPER = TPO.DHALTER
+    AND CAB.NUNOTA = CCM.NUNOTA (+)
+    AND CCM.CODVEND = VEN.CODVEND (+)
+    AND FIN.NUFIN = V.NUFINNOVO
+    AND TPO.ATUALCOM = 'C'
+    AND NOT EXISTS ( SELECT 1 FROM AD_DBFECHCOMNOTAS ITE, AD_DBFECHCOM CAB WHERE CAB.NUFECH = ITE.NUFECH AND ITE.NUFIN = FIN.NUFIN AND ITE.CODVEND = CCM.CODVEND )
+    AND (VEN.ATIVO = 'S')
+    AND FIN.NURENEG IS NOT NULL
+    AND FIN.RECDESP <> 0
+    --AND VEN.CODVEND = 38
+    --AND CAB.CODPARC = 1149
+    GROUP BY
+    CAB.NUNOTA
+    , CAB.CODEMP
+    , EMP.NOMEFANTASIA
+    , CAB.NUMNOTA
+    , CAB.CODTIPOPER
+    , TPO.DESCROPER
+    , CAB.DTNEG
+    , CAB.CODPARC
+    , PAR.NOMEPARC
+    , CCM.CODVEND
+    , VEN.APELIDO
+    , VEN.AD_DESLIGADO2
+    , CAB.TIPMOV
+    , FIN.NUFIN
+    , CASE WHEN FIN.NURENEG IS NOT NULL THEN 'SIM' ELSE 'NÃO' END
+    , FIN.DTVENC
+    , FIN.DHBAIXA
+    , FIN.VLRDESC * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END
+    , FIN.VLRJURO * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END
+    , FIN.VLRMULTA * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END
+    , CCM.PERCCOM
+    , CASE WHEN CAB.TIPMOV = 'D' THEN 'RED' WHEN FIN.NURENEG <> 0 THEN 'PURPLE' ELSE 'BLUE' END
+    , VEN.CODVEND
+
+    UNION ALL
+
+    --RECEITAS NORMAIS EM ABERTO NA DATA BASE
+    SELECT
+    CAB.NUNOTA
+    ,CAB.TIPMOV AS TIPO
+    , CAB.CODEMP
+    , EMP.NOMEFANTASIA
+    , CAB.NUMNOTA
+    , CAB.CODTIPOPER
+    , TPO.DESCROPER
+    , CAB.DTNEG
+    , CAB.CODPARC
+    , PAR.NOMEPARC
+    , CCM.CODVEND
+    , VEN.APELIDO
+    , VEN.AD_DESLIGADO2 AS VEND_DESLIGADO
+    , CAB.TIPMOV
+    , FIN.NUFIN
+    , NULL AS NUFIN_ORIG
+    , CASE WHEN FIN.NURENEG IS NOT NULL THEN 'SIM' ELSE 'NÃO' END AS RENEG
+    , FIN.DTVENC
+    , FIN.DHBAIXA
+    , FIN.VLRDESDOB * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END AS VLRDESDOB_ABERTO
+    , FIN.VLRDESC * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END AS VLRDESC
+    , FIN.VLRJURO * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END AS VLRJURO
+    , FIN.VLRMULTA * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END AS VLRMULTA
+    , CASE WHEN NVL(FIN.VLRBAIXA,0) = 0 THEN 0 ELSE ((FIN.VLRBAIXA - FIN.VLRJURO - FIN.VLRMULTA) - ((CAB.VLRICMS / (SELECT SUM(VLRDESDOB) FROM TGFFIN WHERE NUNOTA = CAB.NUNOTA)) * FIN.VLRDESDOB)) END * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END AS VLRBAIXA
+
+    , ((CAB.VLRICMS / (SELECT SUM(VLRDESDOB) FROM TGFFIN WHERE NUNOTA = CAB.NUNOTA)) * FIN.VLRDESDOB) * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END AS VLRICMS_PROP
+    ,NVL((CASE WHEN CCM.AD_DIMINUIBASE = 'S' THEN 0 ELSE ((CAB.VLRNOTA - CAB.VLRICMS) * (SELECT SUM(PERCCOM) FROM TGFCCM WHERE NUNOTA = CAB.NUNOTA AND AD_DIMINUIBASE = 'S')/100) / (SELECT SUM(VLRDESDOB) FROM TGFFIN WHERE NUNOTA = CAB.NUNOTA) * FIN.VLRDESDOB END),0) AS REDUCAO_BASE
+    ,CCM.PERCCOM
+
+    ,             ROUND(
+                    ((CASE WHEN NVL(FIN.VLRBAIXA,0) = 0 THEN FIN.VLRDESDOB ELSE FIN.VLRBAIXA - FIN.VLRJURO - FIN.VLRMULTA END)
+                    - ((CAB.VLRICMS / (SELECT SUM(VLRDESDOB) FROM TGFFIN WHERE NUNOTA = CAB.NUNOTA)) * FIN.VLRDESDOB)
+                    - NVL((CASE WHEN CCM.AD_DIMINUIBASE = 'S' THEN 0 ELSE ((CAB.VLRNOTA - CAB.VLRICMS) * (SELECT SUM(PERCCOM) FROM TGFCCM WHERE NUNOTA = CAB.NUNOTA AND AD_DIMINUIBASE = 'S')/100) / (SELECT SUM(VLRDESDOB) FROM TGFFIN WHERE NUNOTA = CAB.NUNOTA) * FIN.VLRDESDOB END),0)
+                    ) * CCM.PERCCOM / 100
+                ,6) * CASE WHEN CAB.TIPMOV = 'D' THEN -1 ELSE 1 END AS VLRCOM
+    ,(SELECT LISTAGG('Vlr.Prov: '||F.VLRDESDOB || '-Vend: '||F.CODVEND||'-Nú.Provisão: '||F.NUFIN, ' / ') FROM TGFFIN F WHERE AD_NUFINPROV = FIN.NUFIN AND CODVEND = VEN.CODVEND) AS VLRCOM_PROVFIN
+
+    , CASE WHEN CAB.TIPMOV = 'D' THEN 'RED' WHEN FIN.NURENEG <> 0 THEN 'PURPLE' ELSE 'BLUE' END AS FGCOLOR
+    FROM TGFCAB CAB, TGFPAR PAR, TGFFIN FIN, TSIEMP EMP, TGFTOP TPO, TGFVEN VEN, TGFCCM CCM
+    WHERE
+    CAB.CODPARC = PAR.CODPARC
+    AND CAB.NUNOTA = FIN.NUNOTA
+    AND CAB.CODEMP = EMP.CODEMP
+    AND CAB.CODTIPOPER = TPO.CODTIPOPER
+    AND CAB.DHTIPOPER = TPO.DHALTER
+    AND CAB.NUNOTA = CCM.NUNOTA (+)
+    AND CCM.CODVEND = VEN.CODVEND (+)
+    AND TPO.ATUALCOM = 'C'
+    AND NOT EXISTS ( SELECT 1 FROM AD_DBFECHCOMNOTAS ITE, AD_DBFECHCOM CAB WHERE CAB.NUFECH = ITE.NUFECH AND ITE.NUFIN = FIN.NUFIN AND ITE.CODVEND = CCM.CODVEND )
+    AND (VEN.ATIVO = 'S')
+    AND FIN.NURENEG IS NULL
+    --AND VEN.CODVEND = 38
+    --AND CAB.CODPARC = 1149
+) X
+WHERE (CODVEND = $P{P_CODVEND} OR $P{P_CODVEND} IS NULL)
+ORDER BY "CODVEND", CODEMP, CODPARC, "DHBAIXA", "DTNEG"
+]]>
+	</queryString>
+	<field name="CODVEND" class="java.math.BigDecimal"/>
+	<field name="APELIDO" class="java.lang.String"/>
+	<field name="NUMNOTA" class="java.math.BigDecimal"/>
+	<field name="CODPARC" class="java.math.BigDecimal"/>
+	<field name="RAZAOSOCIAL" class="java.lang.String"/>
+	<field name="NUFIN" class="java.math.BigDecimal"/>
+	<field name="DTVENCIMENTO" class="java.sql.Timestamp"/>
+	<field name="DHBAIXA" class="java.sql.Timestamp"/>
+	<field name="VLRBAIXA" class="java.math.BigDecimal"/>
+	<field name="VLRCOM" class="java.math.BigDecimal"/>
+	<variable name="VLRBAIXA_1" class="java.math.BigDecimal" resetType="Group" resetGroup="CODVEND" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLRBAIXA}]]></variableExpression>
+	</variable>
+	<variable name="VLRCOM_1" class="java.math.BigDecimal" resetType="Group" resetGroup="CODVEND" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLRCOM}]]></variableExpression>
+	</variable>
+	<group name="CODVEND" isStartNewPage="true">
+		<groupExpression><![CDATA[$F{CODVEND}]]></groupExpression>
+		<groupHeader>
+			<band height="14">
+				<rectangle>
+					<reportElement x="0" y="0" width="555" height="14" forecolor="#CCCCCC" backcolor="#CCCCCC"/>
+				</rectangle>
+				<textField>
+					<reportElement x="145" y="0" width="100" height="14"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODVEND}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="245" y="0" width="191" height="14"/>
+					<textElement verticalAlignment="Middle">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{APELIDO}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="20">
+				<textField pattern="#,##0.00;-#,##0.00">
+					<reportElement x="411" y="0" width="74" height="20"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLRBAIXA_1}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00;-#,##0.00">
+					<reportElement x="485" y="0" width="70" height="20"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLRCOM_1}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="86" splitType="Stretch">
+			<image hAlign="Center" vAlign="Middle">
+				<reportElement key="image-1" x="0" y="0" width="99" height="79"/>
+				<box>
+					<topPen lineWidth="0.0"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "Logo.bmp"]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="110" y="15" width="388" height="29"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Comissão Futura"]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="82" width="555" height="1"/>
+			</line>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="14" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="40" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Nota]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="40" y="0" width="40" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Cód.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="80" y="0" width="165" height="14"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Parceiro]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="245" y="0" width="49" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Nro Único]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="294" y="0" width="60" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Vencimento]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="354" y="0" width="64" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Dt. Baixa]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="418" y="0" width="67" height="14"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Vlr. Baixa]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="485" y="0" width="70" height="14"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Vlr. Comissão]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="14" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="40" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUMNOTA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="40" y="0" width="40" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPARC}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="80" y="0" width="165" height="14"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOSOCIAL}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="245" y="0" width="49" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUFIN}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="294" y="0" width="60" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTVENCIMENTO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="354" y="0" width="60" height="14"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DHBAIXA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00;-#,##0.00">
+				<reportElement x="415" y="0" width="70" height="14"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRBAIXA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00;-#,##0.00">
+				<reportElement x="485" y="0" width="70" height="14"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRCOM}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="18" splitType="Stretch"/>
+	</summary>
+</jasperReport>
