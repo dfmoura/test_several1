@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="ImportadorLista:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/ImportadorLista_jar</output-path>
+    <root id="archive" name="ImportadorLista.jar">
+      <element id="module-output" name="ImportadorLista" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/mge-modelcore-4.28b37.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/Libs Teste/Libs Teste/jape.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/Libs Teste/Libs Teste/jape-4.6b523.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/Libs Teste/Libs Teste/SankhyaW-extensions.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/Libs Teste/Libs Teste/sanutil.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

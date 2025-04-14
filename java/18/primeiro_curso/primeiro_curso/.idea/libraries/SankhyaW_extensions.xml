@@ -4,6 +4,9 @@
       <root url="jar://$USER_HOME$/Downloads/Libs Teste/Libs Teste/SankhyaW-extensions.jar!/" />
       <root url="jar://$USER_HOME$/Downloads/Libs Teste/Libs Teste/sanutil.jar!/" />
       <root url="jar://$USER_HOME$/Downloads/bibliotecas/sanutil.jar!/" />
+      <root url="jar://$USER_HOME$/Downloads/Libs Teste/Libs Teste/Libs/jape.jar!/" />
+      <root url="jar://$USER_HOME$/Downloads/Libs Teste/Libs Teste/Libs/jape-4.6b523.jar!/" />
+      <root url="jar://$USER_HOME$/Downloads/Libs Teste/Libs Teste/Libs/mge-modelcore-4.28b37.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
