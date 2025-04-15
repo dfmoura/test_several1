@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Resumo de Materiais</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .table-container {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    th, td {
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 p-6">
+  <div class="max-w-screen-xl mx-auto relative">
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center">
+        <i data-feather="bar-chart-2" class="text-blue-600 w-6 h-6 mr-2"></i>
+        <h1 class="text-2xl font-bold text-gray-800">Dashboard Resumo de Materiais</h1>
+      </div>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition">Resumo Material</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Parte Esquerda -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">Resumo por CR</h2>
+        <div class="table-container bg-white shadow-md rounded-lg overflow-hidden">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="p-3">Cód. CR</th>
+                <th class="p-3">Cód. Produto</th>
+                <th class="p-3">Descr. Produto</th>
+                <th class="p-3">Qtd. Negociada</th>
+                <th class="p-3">Qtd. Pendente</th>
+                <th class="p-3">Saldo</th>
+              </tr>
+            </thead>
+            <tbody id="table-left" class="divide-y divide-gray-100">
+              <!-- Dados gerados via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Parte Direita -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">Detalhamento</h2>
+        <div class="table-container bg-white shadow-md rounded-lg overflow-hidden">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="p-3">NÚ. Único</th>
+                <th class="p-3">Nro. Nota</th>
+                <th class="p-3">Cód. Produto</th>
+                <th class="p-3">Descr. Produto</th>
+                <th class="p-3">Qtd. Negociada</th>
+                <th class="p-3">Qtd. Pendente</th>
+                <th class="p-3">Saldo</th>
+              </tr>
+            </thead>
+            <tbody id="table-right" class="divide-y divide-gray-100">
+              <!-- Detalhes renderizados dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dadosResumo = [
+      { cr: 'CR001', produto: 'PRD001', descricao: 'Produto A', negociada: 100, pendente: 30, saldo: 70 },
+      { cr: 'CR002', produto: 'PRD002', descricao: 'Produto B', negociada: 200, pendente: 50, saldo: 150 },
+    ];
+
+    const detalhes = {
+      'CR001': [
+        { unico: 'U001', nota: 'NF001', produto: 'PRD001', descricao: 'Produto A', negociada: 50, pendente: 20, saldo: 30 },
+        { unico: 'U002', nota: 'NF002', produto: 'PRD001', descricao: 'Produto A', negociada: 50, pendente: 10, saldo: 40 },
+      ],
+      'CR002': [
+        { unico: 'U003', nota: 'NF003', produto: 'PRD002', descricao: 'Produto B', negociada: 100, pendente: 25, saldo: 75 },
+        { unico: 'U004', nota: 'NF004', produto: 'PRD002', descricao: 'Produto B', negociada: 100, pendente: 25, saldo: 75 },
+      ]
+    };
+
+    const tabelaEsquerda = document.getElementById('table-left');
+    const tabelaDireita = document.getElementById('table-right');
+
+    function renderResumo() {
+      tabelaEsquerda.innerHTML = '';
+      dadosResumo.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.classList.add('hover:bg-blue-50', 'cursor-pointer');
+        tr.innerHTML = `
+          <td class="p-3">${item.cr}</td>
+          <td class="p-3">${item.produto}</td>
+          <td class="p-3">${item.descricao}</td>
+          <td class="p-3">${item.negociada}</td>
+          <td class="p-3">${item.pendente}</td>
+          <td class="p-3">${item.saldo}</td>
+        `;
+        tr.addEventListener('click', () => renderDetalhamento(item.cr));
+        tabelaEsquerda.appendChild(tr);
+      });
+    }
+
+    function renderDetalhamento(cr) {
+      tabelaDireita.innerHTML = '';
+      (detalhes[cr] || []).forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-3">${item.unico}</td>
+          <td class="p-3">${item.nota}</td>
+          <td class="p-3">${item.produto}</td>
+          <td class="p-3">${item.descricao}</td>
+          <td class="p-3">${item.negociada}</td>
+          <td class="p-3">${item.pendente}</td>
+          <td class="p-3">${item.saldo}</td>
+        `;
+        tabelaDireita.appendChild(tr);
+      });
+    }
+
+    feather.replace();
+    renderResumo();
+  </script>
+</body>
+</html>

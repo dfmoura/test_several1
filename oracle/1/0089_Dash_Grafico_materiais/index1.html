@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tabela de Notas Fiscais por Produto</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-width: 100%;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 1000px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #007BFF;
+      color: white;
+    }
+
+    thead tr:nth-child(2) th {
+      background-color: #3399ff;
+      font-size: 0.85em;
+      font-weight: normal;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    tfoot tr {
+      font-weight: bold;
+      background-color: #e0e0e0;
+    }
+
+    .saldo-verde {
+      color: green;
+    }
+
+    .saldo-laranja {
+      color: orange;
+    }
+
+    .saldo-vermelho {
+      color: red;
+    }
+
+    .export-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s;
+    }
+
+    .export-btn:hover {
+      background-color: #0056b3;
+    }
+
+    @media screen and (max-width: 768px) {
+      th, td {
+        padding: 6px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Distribuição de Peso por Nota Fiscal</h1>
+  <button class="export-btn" onclick="exportTableToExcel('tabelaFinal', 'Tabela_Notas_Fiscais')">Exportar para Excel</button>
+  <div class="table-container">
+    <table id="tabelaFinal">
+      <thead id="tableHeader"></thead>
+      <tbody id="tableBody"></tbody>
+      <tfoot id="tableFooter"></tfoot>
+    </table>
+  </div>
+
+  <!-- Importando a biblioteca xlsx.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+
+  <script>
+    const produtos = [
+      { perfil: "Tubo 50x50x2", material: "Alumínio", qtde_m: 36, qtde_pcs: 6, peso_unit: 1.20, peso_total: 43.20 },
+      { perfil: "Cantoneira 30x30x3", material: "Aço Galvanizado", qtde_m: 18, qtde_pcs: 3, peso_unit: 2.50, peso_total: 45.00 },
+      { perfil: "Chapa 1/8", material: "Inox", qtde_m: 12, qtde_pcs: 2, peso_unit: 7.85, peso_total: 94.20 },
+      { perfil: "Barra Redonda Ø20", material: "Bronze", qtde_m: 24, qtde_pcs: 4, peso_unit: 3.10, peso_total: 74.40 },
+      { perfil: "Perfil U 40x20x2", material: "Alumínio", qtde_m: 30, qtde_pcs: 5, peso_unit: 1.05, peso_total: 31.50 },
+      { perfil: "Tubo Ø40x2", material: "Aço Carbono", qtde_m: 60, qtde_pcs: 10, peso_unit: 2.00, peso_total: 120.00 },
+      { perfil: "Perfil L 25x25x3", material: "Ferro Fundido", qtde_m: 6, qtde_pcs: 1, peso_unit: 2.80, peso_total: 16.80 },
+    ];
+
+    const notasFiscais = [
+      { perfil: "Tubo 50x50x2", material: "Alumínio", nf: "NF001", peso: 20.00 },
+      { perfil: "Tubo 50x50x2", material: "Alumínio", nf: "NF005", peso: 23.20 },
+      { perfil: "Cantoneira 30x30x3", material: "Aço Galvanizado", nf: "NF002", peso: 25.00 },
+      { perfil: "Cantoneira 30x30x3", material: "Aço Galvanizado", nf: "NF006", peso: 20.00 },
+      { perfil: "Chapa 1/8", material: "Inox", nf: "NF003", peso: 60.00 },
+      { perfil: "Chapa 1/8", material: "Inox", nf: "NF007", peso: 34.20 },
+      { perfil: "Barra Redonda Ø20", material: "Bronze", nf: "NF004", peso: 30.00 },
+      { perfil: "Barra Redonda Ø20", material: "Bronze", nf: "NF009", peso: 44.40 },
+      { perfil: "Perfil U 40x20x2", material: "Alumínio", nf: "NF005", peso: 31.50 },
+      { perfil: "Tubo Ø40x2", material: "Aço Carbono", nf: "NF010", peso: 60.00 },
+      { perfil: "Tubo Ø40x2", material: "Aço Carbono", nf: "NF011", peso: 60.00 },
+      { perfil: "Perfil L 25x25x3", material: "Ferro Fundido", nf: "NF008", peso: 16.80 },
+    ];
+
+    const fornecedores = {
+      NF001: "Fornecedor A",
+      NF002: "Fornecedor B",
+      NF003: "Fornecedor C",
+      NF004: "Fornecedor D",
+      NF005: "Fornecedor A",
+      NF006: "Fornecedor B",
+      NF007: "Fornecedor C",
+      NF008: "Fornecedor D",
+      NF009: "Fornecedor D",
+      NF010: "Fornecedor E",
+      NF011: "Fornecedor E",
+    };
+
+    const nfsUnicas = [...new Set(notasFiscais.map(nf => nf.nf))];
+
+    const thead = document.getElementById("tableHeader");
+
+    const headerTop = document.createElement("tr");
+    const colunasFixas = ["Perfil", "Material", "QTDE (m)", "QTDE (pç 6.00m)", "Peso Unitário (kg/m)", "Peso Total (kg)"];
+    colunasFixas.forEach(h => {
+      const th = document.createElement("th");
+      th.rowSpan = 2;
+      th.innerText = h;
+      headerTop.appendChild(th);
+    });
+
+    nfsUnicas.forEach(nf => {
+      const th = document.createElement("th");
+      th.innerText = nf;
+      headerTop.appendChild(th);
+    });
+
+    const thSaldo = document.createElement("th");
+    thSaldo.rowSpan = 2;
+    thSaldo.innerText = "Saldo";
+    headerTop.appendChild(thSaldo);
+
+    thead.appendChild(headerTop);
+
+    const headerBottom = document.createElement("tr");
+    nfsUnicas.forEach(nf => {
+      const th = document.createElement("th");
+      th.innerText = fornecedores[nf] || "-";
+      headerBottom.appendChild(th);
+    });
+    thead.appendChild(headerBottom);
+
+    const tbody = document.getElementById("tableBody");
+    const totaisNFs = Array(nfsUnicas.length).fill(0);
+    let totalPeso = 0;
+    let totalSaldo = 0;
+
+    produtos.forEach(prod => {
+      const row = document.createElement("tr");
+      const baseData = [prod.perfil, prod.material, prod.qtde_m, prod.qtde_pcs, prod.peso_unit.toFixed(2), prod.peso_total.toFixed(2)];
+      baseData.forEach(d => {
+        const td = document.createElement("td");
+        td.innerText = d;
+        row.appendChild(td);
+      });
+
+      let somaPesos = 0;
+
+      nfsUnicas.forEach((nf, idx) => {
+        const found = notasFiscais.find(item =>
+          item.perfil === prod.perfil &&
+          item.material === prod.material &&
+          item.nf === nf
+        );
+        const peso = found ? found.peso : 0;
+        totaisNFs[idx] += peso;
+        somaPesos += peso;
+
+        const td = document.createElement("td");
+        td.innerText = peso.toFixed(2);
+        row.appendChild(td);
+      });
+
+      const saldo = somaPesos - prod.peso_total;
+      totalPeso += prod.peso_total;
+      totalSaldo += saldo;
+
+      const tdSaldo = document.createElement("td");
+      tdSaldo.innerText = saldo.toFixed(2);
+      tdSaldo.className = saldo === 0 ? "saldo-verde" : saldo > 0 ? "saldo-laranja" : "saldo-vermelho";
+      row.appendChild(tdSaldo);
+
+      tbody.appendChild(row);
+    });
+
+    const tfoot = document.getElementById("tableFooter");
+    const totalRow = document.createElement("tr");
+
+    const tdTotalLabel = document.createElement("td");
+    tdTotalLabel.colSpan = 5;
+    tdTotalLabel.innerText = "TOTAL";
+    totalRow.appendChild(tdTotalLabel);
+
+    const tdTotalPeso = document.createElement("td");
+    tdTotalPeso.innerText = totalPeso.toFixed(2);
+    totalRow.appendChild(tdTotalPeso);
+
+    totaisNFs.forEach(totalNF => {
+      const td = document.createElement("td");
+      td.innerText = totalNF.toFixed(2);
+      totalRow.appendChild(td);
+    });
+
+    const tdTotalSaldo = document.createElement("td");
+    tdTotalSaldo.innerText = totalSaldo.toFixed(2);
+    tdTotalSaldo.className = totalSaldo === 0 ? "saldo-verde" : totalSaldo > 0 ? "saldo-laranja" : "saldo-vermelho";
+    totalRow.appendChild(tdTotalSaldo);
+
+    tfoot.appendChild(totalRow);
+
+    function exportTableToExcel(tableID, filename = '') {
+      const wb = XLSX.utils.table_to_book(document.getElementById(tableID), {sheet: "Notas Fiscais"});
+      XLSX.writeFile(wb, filename + ".xlsx");
+    }
+  </script>
+</body>
+</html>
