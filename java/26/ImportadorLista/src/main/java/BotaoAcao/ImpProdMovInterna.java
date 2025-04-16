@@ -132,65 +132,72 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
             }
             NativeSql.releaseResources(sql);
 
-            // Processa cada linha do CSV (ignora cabeçalho na linha 0)
+            // Processa cada linha do CSV (ignora as linhas 0 e 1)
             while ((linha = reader.readLine()) != null) {
-                if (linhaNum == 0) {
+                if (linhaNum == 0 || linhaNum == 1) {
                     linha = linha.replace("\uFEFF", ""); // Remove BOM (Byte Order Mark) se houver
-                } else {
-                    String[] colunas = linha.split(SEPARADOR);
-                    if (colunas.length >= 3) {
-                        String perfil = colunas[0].trim();
-                        String material = colunas[1].trim();
-                        String valorOriginal = colunas[2].trim();
-
-                        // Utiliza BigDecimal para garantir precisão nas operações numéricas (boas práticas financeiras)
-                        BigDecimal qtdNeg = new BigDecimal(valorOriginal);
-
-                        // Busca o código do produto a partir do perfil e material
-                        BigDecimal codProd = buscarCodProd(jdbc, perfil, material);
-                        if (codProd == null) {
-                            erros.add(perfil + "-" + material + " ||| ");
-                            continue;
-                        }
-
-                        // Busca dados adicionais do produto como uso (USOPROD) e unidade (CODVOL)
-                        sql = new NativeSql(jdbc);
-                        sql.appendSql("SELECT USOPROD, CODVOL FROM TGFPRO WHERE CODPROD = :CODPROD");
-                        sql.setNamedParameter("CODPROD", codProd);
-                        ResultSet rsAux = sql.executeQuery();
-
-                        String usoProd = " ";
-                        String codVol = "UN"; // Unidade padrão
-
-                        if (rsAux.next()) {
-                            usoProd = rsAux.getString("USOPROD");
-                            codVol = rsAux.getString("CODVOL");
-                        }
-                        NativeSql.releaseResources(sql);
-
-                        // Monta o comando de inserção no grid de itens da requisição (TGFITE)
-                        insertSql = new NativeSql(jdbc);
-                        insertSql.appendSql(
-                                "INSERT INTO TGFITE (NUNOTA, SEQUENCIA, CODEMP, CODPROD, CODLOCALORIG, CONTROLE, USOPROD, CODCFO, " +
-                                        "QTDNEG, QTDENTREGUE, QTDCONFERIDA, VLRUNIT, VLRTOT, VLRCUS, BASEIPI, VLRIPI, BASEICMS, VLRICMS, " +
-                                        "VLRDESC, BASESUBSTIT, VLRSUBST, PENDENTE, CODVOL, ATUALESTOQUE, RESERVA, STATUSNOTA, CODVEND, CODEXEC, " +
-                                        "FATURAR, VLRREPRED, VLRDESCBONIF, PERCDESC) " +
-                                        "VALUES (:NUNOTA, :SEQUENCIA, :CODEMP, :CODPROD, 0, ' ', :USOPROD, 0, :QTDNEG, 0, 0, 0, 0, 0, " +
-                                        "0, 0, 0, 0, 0, 0, 0, 'S', :CODVOL, 0, 'N', 'A', 0, 0, 'N', 0, 0, 0)");
-
-                        // Parâmetros da inserção
-                        insertSql.setNamedParameter("NUNOTA", nunota);
-                        insertSql.setNamedParameter("SEQUENCIA", BigDecimal.valueOf(sequencia));
-                        insertSql.setNamedParameter("CODEMP", codEmp);
-                        insertSql.setNamedParameter("CODPROD", codProd);
-                        insertSql.setNamedParameter("USOPROD", usoProd);
-                        insertSql.setNamedParameter("CODVOL", codVol);
-                        insertSql.setNamedParameter("QTDNEG", qtdNeg);
-
-                        insertSql.executeUpdate();
-                        sequencia++; // Incrementa sequência para o próximo item
-                    }
+                    linhaNum++;
+                    continue;
                 }
+
+                String[] colunas = linha.split(SEPARADOR);
+                if (colunas.length >= 5) {
+                    String perfil = colunas[0].trim();
+                    String material = colunas[1].trim();
+                    String valorOriginal = colunas[4].trim();
+
+                    BigDecimal qtdNeg;
+                    try {
+                        qtdNeg = new BigDecimal(valorOriginal);
+                    } catch (NumberFormatException e) {
+                        throw new Exception("Coluna de Peso Total (kg) não está com formato numérico na linha " + (linhaNum + 1));
+                    }
+
+                    // Busca o código do produto a partir do perfil e material
+                    BigDecimal codProd = buscarCodProd(jdbc, perfil, material);
+                    if (codProd == null) {
+                        erros.add(perfil + "-" + material + " ||| ");
+                        linhaNum++;
+                        continue;
+                    }
+
+                    // Busca dados adicionais do produto como uso (USOPROD) e unidade (CODVOL)
+                    sql = new NativeSql(jdbc);
+                    sql.appendSql("SELECT USOPROD, CODVOL FROM TGFPRO WHERE CODPROD = :CODPROD");
+                    sql.setNamedParameter("CODPROD", codProd);
+                    ResultSet rsAux = sql.executeQuery();
+
+                    String usoProd = " ";
+                    String codVol = "UN"; // Unidade padrão
+
+                    if (rsAux.next()) {
+                        usoProd = rsAux.getString("USOPROD");
+                        codVol = rsAux.getString("CODVOL");
+                    }
+                    NativeSql.releaseResources(sql);
+
+                    // Monta o comando de inserção no grid de itens da requisição (TGFITE)
+                    insertSql = new NativeSql(jdbc);
+                    insertSql.appendSql(
+                            "INSERT INTO TGFITE (NUNOTA, SEQUENCIA, CODEMP, CODPROD, CODLOCALORIG, CONTROLE, USOPROD, CODCFO, " +
+                                    "QTDNEG, QTDENTREGUE, QTDCONFERIDA, VLRUNIT, VLRTOT, VLRCUS, BASEIPI, VLRIPI, BASEICMS, VLRICMS, " +
+                                    "VLRDESC, BASESUBSTIT, VLRSUBST, PENDENTE, CODVOL, ATUALESTOQUE, RESERVA, STATUSNOTA, CODVEND, CODEXEC, " +
+                                    "FATURAR, VLRREPRED, VLRDESCBONIF, PERCDESC) " +
+                                    "VALUES (:NUNOTA, :SEQUENCIA, :CODEMP, :CODPROD, 0, ' ', :USOPROD, 0, :QTDNEG, 0, 0, 0, 0, 0, " +
+                                    "0, 0, 0, 0, 0, 0, 0, 'S', :CODVOL, 0, 'N', 'A', 0, 0, 'N', 0, 0, 0)");
+
+                    insertSql.setNamedParameter("NUNOTA", nunota);
+                    insertSql.setNamedParameter("SEQUENCIA", BigDecimal.valueOf(sequencia));
+                    insertSql.setNamedParameter("CODEMP", codEmp);
+                    insertSql.setNamedParameter("CODPROD", codProd);
+                    insertSql.setNamedParameter("USOPROD", usoProd);
+                    insertSql.setNamedParameter("CODVOL", codVol);
+                    insertSql.setNamedParameter("QTDNEG", qtdNeg);
+
+                    insertSql.executeUpdate();
+                    sequencia++;
+                }
+
                 linhaNum++;
             }
 
@@ -204,7 +211,6 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
             }
 
         } finally {
-            // Finaliza recursos e fecha sessão
             NativeSql.releaseResources(insertSql);
             JdbcWrapper.closeSession(jdbc);
             reader.close();
