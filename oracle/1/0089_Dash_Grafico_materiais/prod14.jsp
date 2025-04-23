@@ -21,6 +21,7 @@
             padding: 2px 4px;
             white-space: nowrap;
             border: 1px solid #d1d5db;
+            vertical-align: top;
         }
         #materialTable th {
             position: sticky;
@@ -52,8 +53,7 @@ function carregarDados() {
 
     const query = `
         select
-            cab.codcencus as cr,
-            cus.descrcencus as cr_descr,
+
             cab.tipmov,                    
             cab.nunota,
             LPAD(SUBSTR(par.razaosocial, 1, 6), 6) as fornecedor,
@@ -69,8 +69,8 @@ function carregarDados() {
         from tgfcab cab
         inner join tgfite ite on cab.nunota = ite.nunota
         inner join tgfpro pro on ite.codprod = pro.codprod
-        inner join tgfpar par on cab.codparc = par.codparc
-        inner join tsicus cus on cab.codcencus = cus.codcencus
+        left join tgfpar par on cab.codparc = par.codparc
+
         where cab.codcencus = ${codCencus} and cab.tipmov in ('J','O','C')
     `;
 
@@ -78,6 +78,7 @@ function carregarDados() {
         const grouped = {};
         const pedidos = new Set();
         const compras = new Set();
+        const fornecedorMap = {};
 
         result.forEach(row => {
             const key = `${row.CODPROD}-${row.DESCRPROD}-${row.AD_PERFIL}-${row.AD_MATERIAL}-${row.AD_PESO_UNITARIO}`;
@@ -96,15 +97,18 @@ function carregarDados() {
             }
 
             const item = grouped[key];
+
             if (row.TIPMOV === 'J') {
                 item.qtdTotalM += parseFloat(row.QTDE_M || 0);
                 item.pesoRequisicao += parseFloat(row.QTDREQUISICAO || 0);
             } else if (row.TIPMOV === 'O') {
                 pedidos.add(row.NUNOTA);
                 item.pedidos[row.NUNOTA] = (item.pedidos[row.NUNOTA] || 0) + parseFloat(row.QTDPEDIDO || 0);
+                fornecedorMap[`P-${row.NUNOTA}`] = row.FORNECEDOR;
             } else if (row.TIPMOV === 'C') {
                 compras.add(row.NUNOTA);
                 item.compras[row.NUNOTA] = (item.compras[row.NUNOTA] || 0) + parseFloat(row.QTDCOMPRA || 0);
+                fornecedorMap[`C-${row.NUNOTA}`] = row.FORNECEDOR;
             }
         });
 
@@ -125,11 +129,13 @@ function carregarDados() {
             '<th>Peso Total Requisição</th>';
 
         pedidoList.forEach(p => {
-            headHtml += `<th class="bg-orange-200">Pedido - ${p}</th>`;
+            const fornecedor = fornecedorMap[`P-${p}`] || '';
+            headHtml += `<th class="bg-orange-200">Pedido - ${p}<br><span class="text-gray-600">${fornecedor}</span></th>`;
         });
 
         compraList.forEach(c => {
-            headHtml += `<th class="bg-green-200">Compra - ${c}</th>`;
+            const fornecedor = fornecedorMap[`C-${c}`] || '';
+            headHtml += `<th class="bg-green-200">Compra - ${c}<br><span class="text-gray-600">${fornecedor}</span></th>`;
         });
 
         headHtml += '<th class="bg-blue-200">Saldo</th></tr>';
@@ -190,7 +196,6 @@ function carregarDados() {
         });
 
         totalHtml += `<td class="text-blue-800">${totalSaldo.toFixed(2)}</td></tr>`;
-
         tbody.innerHTML += totalHtml;
     }).catch(function (error) {
         console.error('Erro ao carregar os dados:', error);

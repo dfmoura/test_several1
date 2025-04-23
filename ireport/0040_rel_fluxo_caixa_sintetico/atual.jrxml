@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="atual" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.6105100000000008"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\sayajin\\Documents\\GitHub\\test_several1\\ireport\\0040_rel_fluxo_caixa_sintetico\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DTFIM" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[WITH BASE_DADOS AS (
+  SELECT
+    CODCTABCOINT AS CONTA,
+    DTVENC,
+    RECDESP,
+    PROVISAO,
+    VLRDESDOB
+  FROM TGFFIN
+  WHERE
+    TRUNC(DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+
+
+    AND DHBAIXA IS NULL
+
+  UNION ALL
+
+  SELECT
+    AD_SIMULACAO_CONTA AS CONTA,
+    AD_SIMULACAO_DTVENC AS DTVENC,
+    AD_SIMULACAO_RECDESP AS RECDESP,
+    AD_SIMULACAO_PROVISAO AS PROVISAO,
+    AD_SIMULACAO_VLRDESDOB AS VLRDESDOB
+  FROM TGAPEA
+  WHERE
+    TRUNC(AD_SIMULACAO_DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+    AND AD_SIMULACAO_STATUS = 1
+)
+
+SELECT
+  NVL(CONTA, 0) CONTA,
+  CASE WHEN NVL(CONTA, 0) = 0 THEN 'SEM CADASTRO' ELSE CODCTABCO || '-' || DESCRICAO END DESCRICAO,
+  NVL(SUM(CASE WHEN RECDESP = 1 AND PROVISAO = 'S' THEN VLRDESDOB END), 0) AS A_RECEBER_PROV_S,
+  NVL(SUM(CASE WHEN RECDESP = 1 AND NVL(PROVISAO, 'N') = 'N' THEN VLRDESDOB END), 0) AS A_RECEBER_PROV_N,
+  NVL(SUM(CASE WHEN RECDESP = -1 AND PROVISAO = 'S' THEN -1 * VLRDESDOB END), 0) AS A_PAGAR_PROV_S,
+  NVL(SUM(CASE WHEN RECDESP = -1 AND NVL(PROVISAO, 'N') = 'N' THEN -1 * VLRDESDOB END), 0) AS A_PAGAR_PROV_N,
+
+  -- DIFERENÇA DO DIA
+  NVL(SUM(CASE WHEN RECDESP = 1 THEN VLRDESDOB END), 0) -
+  NVL(SUM(CASE WHEN RECDESP = -1 THEN VLRDESDOB END), 0) AS DIFERENCA,
+
+  -- ACUMULADO
+  SUM(
+    NVL(SUM(CASE WHEN RECDESP = 1 THEN VLRDESDOB END), 0) -
+    NVL(SUM(CASE WHEN RECDESP = -1 THEN VLRDESDOB END), 0)
+  ) OVER (ORDER BY CONTA ROWS UNBOUNDED PRECEDING) AS DIFERENCA_ACUMULADA
+
+FROM BASE_DADOS BAS
+LEFT JOIN TSICTA CTA ON BAS.CONTA = CTA.CODCTABCOINT
+GROUP BY CONTA, CODCTABCO, DESCRICAO
+ORDER BY CONTA]]>
+	</queryString>
+	<field name="CONTA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Conta]]></fieldDescription>
+	</field>
+	<field name="DESCRICAO" class="java.lang.String">
+		<fieldDescription><![CDATA[Descrição]]></fieldDescription>
+	</field>
+	<field name="A_RECEBER_PROV_S" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='S']]></fieldDescription>
+	</field>
+	<field name="A_RECEBER_PROV_N" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='N']]></fieldDescription>
+	</field>
+	<field name="A_PAGAR_PROV_S" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Pagar Prov='S']]></fieldDescription>
+	</field>
+	<field name="A_PAGAR_PROV_N" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='N']]></fieldDescription>
+	</field>
+	<field name="DIFERENCA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Diferença]]></fieldDescription>
+	</field>
+	<field name="DIFERENCA_ACUMULADA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Acumulado]]></fieldDescription>
+	</field>
+	<group name="CONTA">
+		<groupExpression><![CDATA[$F{CONTA}]]></groupExpression>
+		<groupHeader>
+			<band/>
+		</groupHeader>
+		<groupFooter>
+			<band/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="146" splitType="Stretch">
+			<subreport>
+				<reportElement key="anterior" x="0" y="58" width="555" height="19"/>
+				<subreportParameter name="DTFIM">
+					<subreportParameterExpression><![CDATA[$P{DTFIM}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DTINI">
+					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "anterior.jasper"]]></subreportExpression>
+			</subreport>
+			<staticText>
+				<reportElement x="0" y="0" width="555" height="27"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Fluxo de Caixa Sintético]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="27" width="555" height="20"/>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression class="java.lang.String"><![CDATA["Período de: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{DTINI}) + " até: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{DTFIM})]]></textFieldExpression>
+			</textField>
+			<subreport>
+				<reportElement key="resumo" x="0" y="98" width="555" height="30"/>
+				<subreportParameter name="SUBREPORT_DIR"/>
+				<subreportParameter name="DTINI">
+					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DTFIM">
+					<subreportParameterExpression><![CDATA[$P{DTFIM}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "resumo.jasper"]]></subreportExpression>
+			</subreport>
+			<staticText>
+				<reportElement x="0" y="83" width="100" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Resumo:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="82" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="38" splitType="Stretch">
+			<line>
+				<reportElement x="0" y="0" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement x="0" y="24" width="33" height="12"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Conta]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="33" y="24" width="160" height="12"/>
+				<textElement verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Descrição]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="253" y="24" width="60" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A Receb Prov='N']]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="313" y="24" width="60" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A Pagar Prov='S']]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="372" y="24" width="60" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A Pagar Prov='N']]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="431" y="24" width="60" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Diferença]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="491" y="24" width="60" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Acumulado]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="193" y="24" width="60" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A Receb Prov='S']]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="1" width="100" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Detalhamento:]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="59" splitType="Stretch">
+			<rectangle>
+				<reportElement mode="Opaque" x="0" y="0" width="555" height="15" backcolor="#E3E3E3"/>
+				<graphicElement>
+					<pen lineWidth="0.0"/>
+				</graphicElement>
+			</rectangle>
+			<line>
+				<reportElement x="0" y="0" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<textField>
+				<reportElement x="0" y="0" width="33" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CONTA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="33" y="0" width="160" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="193" y="0" width="60" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_RECEBER_PROV_S}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="253" y="0" width="60" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_RECEBER_PROV_N}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="313" y="0" width="60" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_PAGAR_PROV_S}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="372" y="0" width="60" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_PAGAR_PROV_N}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="431" y="0" width="60" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DIFERENCA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="491" y="0" width="60" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DIFERENCA_ACUMULADA}]]></textFieldExpression>
+			</textField>
+			<subreport>
+				<reportElement key="detalhe" x="0" y="20" width="555" height="37"/>
+				<subreportParameter name="DTFIM">
+					<subreportParameterExpression><![CDATA[$P{DTFIM}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DTINI">
+					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="P_CONTA">
+					<subreportParameterExpression><![CDATA[$F{CONTA}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "detalhe.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+		<band/>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="34" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="42" splitType="Stretch"/>
+	</summary>
+</jasperReport>

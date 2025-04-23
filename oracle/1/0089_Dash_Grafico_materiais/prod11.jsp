@@ -13,21 +13,24 @@
             max-height: 600px;
             overflow-y: auto;
         }
+        .table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
         #materialTable {
             font-size: 8px;
-            width: 100%;
         }
         #materialTable th, #materialTable td {
             padding: 2px 4px;
-            white-space: nowrap;
-            border: 1px solid #d1d5db;
-            vertical-align: top;
         }
-        #materialTable th {
+        /* Cabeçalho fixo */
+        #materialTable thead th {
             position: sticky;
             top: 0;
+            background-color: #f7fafc; /* Tailwind bg-gray-100 */
             z-index: 10;
-            background-color: #f3f4f6;
         }
     </style>
     <snk:load/>
@@ -36,8 +39,8 @@
 <div class="container mx-auto p-4">
     <h1 class="text-2xl font-bold mb-4">Resumo Consolidado de Materiais</h1>
     <div class="table-container">
-        <table id="materialTable" class="bg-white border border-gray-300">
-            <thead id="tableHead"></thead>
+        <table id="materialTable" class="min-w-full bg-white border border-gray-300">
+            <thead id="tableHead" class="bg-gray-100"></thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
@@ -49,12 +52,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function carregarDados() {
-    const codCencus = parseInt(JX.getParametro("P_CODCENCUS")) || 0;
-
     const query = `
         select
-            cab.codcencus as cr,
-            cus.descrcencus as cr_descr,
             cab.tipmov,                    
             cab.nunota,
             LPAD(SUBSTR(par.razaosocial, 1, 6), 6) as fornecedor,
@@ -71,15 +70,13 @@ function carregarDados() {
         inner join tgfite ite on cab.nunota = ite.nunota
         inner join tgfpro pro on ite.codprod = pro.codprod
         inner join tgfpar par on cab.codparc = par.codparc
-        inner join tsicus cus on cab.codcencus = cus.codcencus
-        where cab.codcencus = ${codCencus} and cab.tipmov in ('J','O','C')
+        where cab.codcencus = 524036001 and cab.tipmov in ('J','O','C')
     `;
 
     JX.consultar(query).then(function (result) {
         const grouped = {};
         const pedidos = new Set();
         const compras = new Set();
-        const fornecedorMap = {};
 
         result.forEach(row => {
             const key = `${row.CODPROD}-${row.DESCRPROD}-${row.AD_PERFIL}-${row.AD_MATERIAL}-${row.AD_PESO_UNITARIO}`;
@@ -98,18 +95,15 @@ function carregarDados() {
             }
 
             const item = grouped[key];
-
             if (row.TIPMOV === 'J') {
                 item.qtdTotalM += parseFloat(row.QTDE_M || 0);
                 item.pesoRequisicao += parseFloat(row.QTDREQUISICAO || 0);
             } else if (row.TIPMOV === 'O') {
                 pedidos.add(row.NUNOTA);
                 item.pedidos[row.NUNOTA] = (item.pedidos[row.NUNOTA] || 0) + parseFloat(row.QTDPEDIDO || 0);
-                fornecedorMap[`P-${row.NUNOTA}`] = row.FORNECEDOR;
             } else if (row.TIPMOV === 'C') {
                 compras.add(row.NUNOTA);
                 item.compras[row.NUNOTA] = (item.compras[row.NUNOTA] || 0) + parseFloat(row.QTDCOMPRA || 0);
-                fornecedorMap[`C-${row.NUNOTA}`] = row.FORNECEDOR;
             }
         });
 
@@ -117,87 +111,87 @@ function carregarDados() {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
 
-        const pedidoList = [...pedidos].sort();
-        const compraList = [...compras].sort();
-
         let headHtml = '<tr>' +
-            '<th>Código</th>' +
-            '<th>Descrição</th>' +
-            '<th>Perfil</th>' +
-            '<th>Material</th>' +
-            '<th>Qtd. (m)</th>' +
-            '<th>Peso Unit. (kg/m)</th>' +
-            '<th>Peso Total Requisição</th>';
+            '<th class="px-2 py-1 border">Código</th>' +
+            '<th class="px-2 py-1 border">Descrição</th>' +
+            '<th class="px-2 py-1 border">Perfil</th>' +
+            '<th class="px-2 py-1 border">Material</th>' +
+            '<th class="px-2 py-1 border">Qtd. (m)</th>' +
+            '<th class="px-2 py-1 border">Peso Unit. (kg/m)</th>' +
+            '<th class="px-2 py-1 border">Peso Total Requisição</th>';
 
-        pedidoList.forEach(p => {
-            const fornecedor = fornecedorMap[`P-${p}`] || '';
-            headHtml += `<th class="bg-orange-200">Pedido - ${p}<br><span class="text-gray-600">${fornecedor}</span></th>`;
+        const pedidoArray = [...pedidos].sort();
+        const compraArray = [...compras].sort();
+
+        pedidoArray.forEach(p => {
+            headHtml += `<th class="px-2 py-1 border bg-orange-200">Pedido - ${p}</th>`;
         });
 
-        compraList.forEach(c => {
-            const fornecedor = fornecedorMap[`C-${c}`] || '';
-            headHtml += `<th class="bg-green-200">Compra - ${c}<br><span class="text-gray-600">${fornecedor}</span></th>`;
+        compraArray.forEach(c => {
+            headHtml += `<th class="px-2 py-1 border bg-green-200">Compra - ${c}</th>`;
         });
 
-        headHtml += '<th class="bg-blue-200">Saldo</th></tr>';
+        headHtml += '<th class="px-2 py-1 border bg-blue-200">Saldo</th></tr>';
         thead.innerHTML = headHtml;
 
-        let totalPesoRequisicao = 0;
-        let totalPedidos = new Array(pedidoList.length).fill(0);
-        let totalCompras = new Array(compraList.length).fill(0);
-        let totalSaldo = 0;
         let totalRegistros = 0;
+        let totalPesoReq = 0;
+        let totalPedidos = {};
+        let totalCompras = {};
+        let totalSaldo = 0;
 
         Object.values(grouped).forEach(prod => {
             totalRegistros++;
+            totalPesoReq += prod.pesoRequisicao;
+
             let rowHtml = `<tr>
-                <td>${prod.codigo}</td>
-                <td>${prod.descricao}</td>
-                <td>${prod.perfil}</td>
-                <td>${prod.material}</td>
-                <td>${prod.qtdTotalM.toFixed(2)}</td>
-                <td>${prod.pesoUnit.toFixed(2)}</td>
-                <td>${prod.pesoRequisicao.toFixed(2)}</td>`;
+                <td class="px-2 py-1 border">${prod.codigo}</td>
+                <td class="px-2 py-1 border">${prod.descricao}</td>
+                <td class="px-2 py-1 border">${prod.perfil}</td>
+                <td class="px-2 py-1 border">${prod.material}</td>
+                <td class="px-2 py-1 border">${prod.qtdTotalM.toFixed(2)}</td>
+                <td class="px-2 py-1 border">${prod.pesoUnit.toFixed(2)}</td>
+                <td class="px-2 py-1 border">${prod.pesoRequisicao.toFixed(2)}</td>`;
 
-            totalPesoRequisicao += prod.pesoRequisicao;
-
-            let somaPedidos = 0;
-            pedidoList.forEach((p, i) => {
+            let subtotalPedidos = 0;
+            pedidoArray.forEach(p => {
                 const val = prod.pedidos[p] || 0;
-                totalPedidos[i] += val;
-                somaPedidos += val;
-                rowHtml += `<td class="text-right">${val ? val.toFixed(2) : '-'}</td>`;
+                subtotalPedidos += val;
+                totalPedidos[p] = (totalPedidos[p] || 0) + val;
+                rowHtml += `<td class="px-2 py-1 border text-right">${val ? val.toFixed(2) : '-'}</td>`;
             });
 
-            let somaCompras = 0;
-            compraList.forEach((c, i) => {
+            let subtotalCompras = 0;
+            compraArray.forEach(c => {
                 const val = prod.compras[c] || 0;
-                totalCompras[i] += val;
-                somaCompras += val;
-                rowHtml += `<td class="text-right">${val ? val.toFixed(2) : '-'}</td>`;
+                subtotalCompras += val;
+                totalCompras[c] = (totalCompras[c] || 0) + val;
+                rowHtml += `<td class="px-2 py-1 border text-right">${val ? val.toFixed(2) : '-'}</td>`;
             });
 
-            const saldo = prod.pesoRequisicao - somaPedidos - somaCompras;
+            const saldo = prod.pesoRequisicao - subtotalPedidos - subtotalCompras;
             totalSaldo += saldo;
 
-            rowHtml += `<td class="font-bold text-blue-700">${saldo.toFixed(2)}</td></tr>`;
+            rowHtml += `<td class="px-2 py-1 border font-bold text-blue-700">${saldo.toFixed(2)}</td></tr>`;
             tbody.innerHTML += rowHtml;
         });
 
-        let totalHtml = `<tr class="bg-gray-200 font-bold">
-            <td colspan="6" class="text-center">Total (${totalRegistros} registros)</td>
-            <td>${totalPesoRequisicao.toFixed(2)}</td>`;
+        // Linha de Totais com fonte 8px
+        let totalRow = `<tr class="bg-gray-200 font-bold text-[8px] text-right">
+            <td class="px-2 py-1 border" colspan="6">TOTAL (${totalRegistros} registros)</td>
+            <td class="px-2 py-1 border text-right">${totalPesoReq.toFixed(2)}</td>`;
 
-        totalPedidos.forEach(val => {
-            totalHtml += `<td class="text-right">${val.toFixed(2)}</td>`;
+        pedidoArray.forEach(p => {
+            totalRow += `<td class="px-2 py-1 border text-right">${(totalPedidos[p] || 0).toFixed(2)}</td>`;
         });
 
-        totalCompras.forEach(val => {
-            totalHtml += `<td class="text-right">${val.toFixed(2)}</td>`;
+        compraArray.forEach(c => {
+            totalRow += `<td class="px-2 py-1 border text-right">${(totalCompras[c] || 0).toFixed(2)}</td>`;
         });
 
-        totalHtml += `<td class="text-blue-800">${totalSaldo.toFixed(2)}</td></tr>`;
-        tbody.innerHTML += totalHtml;
+        totalRow += `<td class="px-2 py-1 border text-blue-700">${totalSaldo.toFixed(2)}</td></tr>`;
+        tbody.innerHTML += totalRow;
+
     }).catch(function (error) {
         console.error('Erro ao carregar os dados:', error);
     });
