@@ -47,7 +47,7 @@
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
 	<parameter name="P_CONSID_SALDO" class="java.lang.Boolean">
-		<parameterDescription><![CDATA[Considera saldo das contas no acum. pendentes   ]]></parameterDescription>
+		<parameterDescription><![CDATA[Considera saldo das contas no acum. pendentes]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
 	<queryString>
@@ -140,14 +140,14 @@ ORDER BY   DTVENC]]>
 	<title>
 		<band height="299" splitType="Stretch">
 			<staticText>
-				<reportElement x="0" y="0" width="555" height="27"/>
+				<reportElement positionType="Float" x="0" y="0" width="555" height="27"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="14" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Fluxo de Caixa Agrion]]></text>
 			</staticText>
 			<textField>
-				<reportElement x="0" y="27" width="555" height="20"/>
+				<reportElement positionType="Float" x="0" y="27" width="555" height="20"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression class="java.lang.String"><![CDATA["Período de: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{DTINI}) + " até: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{DTFIM})]]></textFieldExpression>
 			</textField>
@@ -164,7 +164,7 @@ ORDER BY   DTVENC]]>
 				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "resumo.jasper"]]></subreportExpression>
 			</subreport>
 			<staticText>
-				<reportElement x="0" y="69" width="555" height="15"/>
+				<reportElement positionType="Float" x="0" y="69" width="555" height="15"/>
 				<textElement>
 					<font isBold="true"/>
 				</textElement>
@@ -192,7 +192,7 @@ ORDER BY   DTVENC]]>
 				<text><![CDATA[]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="0" y="150" width="555" height="15"/>
+				<reportElement positionType="Float" x="0" y="150" width="555" height="15"/>
 				<textElement>
 					<font isBold="true"/>
 				</textElement>

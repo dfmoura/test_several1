@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="resumo" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
-	<property name="ireport.zoom" value="1.4641000000000015"/>
+	<property name="ireport.zoom" value="1.6105100000000019"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<style name="DefaultStyle" forecolor="#FF0033" pattern="">
@@ -156,51 +156,51 @@ ORDER BY razaoabrev, DESCRICAO]]>
 		<band splitType="Stretch"/>
 	</pageHeader>
 	<columnHeader>
-		<band height="21" splitType="Stretch">
+		<band height="25" splitType="Stretch">
 			<staticText>
-				<reportElement x="0" y="4" width="62" height="15"/>
+				<reportElement x="0" y="4" width="40" height="17"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Empresa]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="62" y="4" width="308" height="15"/>
+				<reportElement x="40" y="4" width="330" height="17"/>
 				<textElement verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Descrição]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="430" y="4" width="60" height="15"/>
+				<reportElement x="430" y="4" width="60" height="17"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Saldo Real]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="491" y="4" width="60" height="15"/>
+				<reportElement x="491" y="4" width="60" height="17"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Saldo Banco]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="370" y="4" width="30" height="15"/>
+				<reportElement x="370" y="4" width="30" height="17"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Banco]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="400" y="4" width="30" height="15"/>
+				<reportElement x="400" y="4" width="30" height="17"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Agência]]></text>
 			</staticText>
 			<line>
-				<reportElement x="0" y="18" width="551" height="1"/>
+				<reportElement x="0" y="22" width="551" height="1"/>
 				<graphicElement>
 					<pen lineWidth="0.5"/>
 				</graphicElement>
@@ -210,14 +210,14 @@ ORDER BY razaoabrev, DESCRICAO]]>
 	<detail>
 		<band height="8" splitType="Stretch">
 			<textField isBlankWhenNull="true">
-				<reportElement x="0" y="0" width="62" height="8"/>
+				<reportElement x="0" y="0" width="40" height="8"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOABREV}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="62" y="0" width="308" height="8"/>
+				<reportElement x="40" y="0" width="330" height="8"/>
 				<textElement verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
@@ -263,7 +263,7 @@ ORDER BY razaoabrev, DESCRICAO]]>
 	<summary>
 		<band height="15" splitType="Stretch">
 			<textField pattern="#,##0.00">
-				<reportElement style="DefaultStyle2" x="430" y="2" width="60" height="12"/>
+				<reportElement style="DefaultStyle2" x="430" y="2" width="60" height="13"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
@@ -276,7 +276,7 @@ ORDER BY razaoabrev, DESCRICAO]]>
 				</graphicElement>
 			</line>
 			<textField>
-				<reportElement x="312" y="2" width="116" height="12"/>
+				<reportElement x="312" y="2" width="116" height="13"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
@@ -290,14 +290,14 @@ ORDER BY razaoabrev, DESCRICAO]]>
     )]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="0" y="2" width="312" height="12"/>
+				<reportElement x="0" y="2" width="312" height="13"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[]]></text>
 			</staticText>
 			<textField pattern="#,##0.00">
-				<reportElement style="DefaultStyle2" x="491" y="2" width="60" height="12"/>
+				<reportElement style="DefaultStyle2" x="491" y="2" width="60" height="13"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>

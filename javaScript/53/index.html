@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Conectar API Sankhya</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+        display: flex;
+        height: 100vh;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .container {
+        background: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        text-align: center;
+      }
+      
+      #loginButton {
+        background-color: #0066cc;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      
+      #loginButton:hover {
+        background-color: #005bb5;
+      }
+      
+      #result {
+        margin-top: 20px;
+        text-align: left;
+      }
+      
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Consulta Parceiro - Sankhya API</h1>
+    <button id="loginButton">Login e Buscar Parceiro</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+
+const loginUrl = 'https://api.sandbox.sankhya.com.br/login';
+const parceiroUrl = 'https://api.sandbox.sankhya.com.br/gateway/v1/mge/service.sbr?serviceName=CRUDServiceProvider.loadRecords&outputType=json';
+
+// Dados de login
+const loginData = {
+  token: "e9be5881-84dd-426b-96b0-d7963fd7db84",
+  appkey: "9250975a-bcf3-4d27-84ab-ee8244866b1e",
+  username: "diogomou@gmail.com",
+  password: "Buc110t@20251"
+};
+
+// Corpo da requisição para buscar o parceiro
+const parceiroData = {
+  serviceName: "CRUDServiceProvider.loadRecords",
+  requestBody: {
+    dataSet: {
+      rootEntity: "Parceiro",
+      includePresentationFields: "N",
+      offsetPage: "0",
+      criteria: {
+        expression: {
+          $: "this.CLIENTE = ? and this.CODPARC = ?"
+        },
+        parameter: [
+          { $: "S", type: "S" },
+          { $: "77", type: "I" }
+        ]
+      },
+      entity: {
+        fieldset: {
+          list: "CODPARC,NOMEPARC,FORNECEDOR,CLIENTE,CODCID,CLIENTE,CLASSIFICMS"
+        }
+      }
+    }
+  }
+};
+
+async function loginAndFetchParceiro() {
+  try {
+    const loginResponse = await fetch(loginUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(loginData)
+    });
+
+    if (!loginResponse.ok) {
+      throw new Error('Erro ao fazer login');
+    }
+
+    const loginResult = await loginResponse.json();
+    const bearerToken = loginResult.token; // o token vem no campo 'token'
+
+    console.log('Token recebido:', bearerToken);
+
+    // Agora busca o parceiro com o Bearer Token
+    const parceiroResponse = await fetch(parceiroUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${bearerToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(parceiroData)
+    });
+
+    if (!parceiroResponse.ok) {
+      throw new Error('Erro ao buscar parceiro');
+    }
+
+    const parceiroResult = await parceiroResponse.json();
+    console.log('Dados do Parceiro:', parceiroResult);
+
+    document.getElementById('result').innerText = JSON.stringify(parceiroResult, null, 2);
+
+  } catch (error) {
+    console.error('Erro:', error);
+    document.getElementById('result').innerText = `Erro: ${error.message}`;
+  }
+}
+
+document.getElementById('loginButton').addEventListener('click', loginAndFetchParceiro);
+
+
+
+  </script>
+</body>
+</html>
