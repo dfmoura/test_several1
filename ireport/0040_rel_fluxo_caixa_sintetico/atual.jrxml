@@ -47,7 +47,13 @@
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
 	<parameter name="P_CONSID_SALDO" class="java.lang.Boolean">
-		<parameterDescription><![CDATA[Considera saldo das contas no acum. pendentes   ]]></parameterDescription>
+		<parameterDescription><![CDATA[Considera saldo das contas no acum. pendentes]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_EMPRESA" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
 	<queryString>
@@ -76,7 +82,7 @@
   FROM TGAPEA
   WHERE
     TRUNC(AD_SIMULACAO_DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
-    AND AD_SIMULACAO_STATUS = 1
+    AND AD_SIMULACAO_PROVISAO = 'S'
 )
 
 SELECT

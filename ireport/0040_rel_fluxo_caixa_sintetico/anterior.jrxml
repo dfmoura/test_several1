@@ -13,6 +13,12 @@
 		<parameterDescription><![CDATA[Data Saldo até]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
+	<parameter name="P_EMPRESA" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
 	<queryString>
 		<![CDATA[SELECT
 SUM(A_RECEBER_PROV_S) A_RECEBER_PROV_S,
@@ -36,6 +42,7 @@ WITH BASE_DADOS AS (
   WHERE
     TRUNC(DTVENC) < $P{DTINI}
     AND DHBAIXA IS NULL
+    AND ($P{P_EMPRESA} IS NULL OR CODEMP = $P{P_EMPRESA})
 )
 
 SELECT
@@ -51,7 +58,6 @@ SELECT
 
 FROM BASE_DADOS BAS
 LEFT JOIN TSICTA CTA ON BAS.CONTA = CTA.CODCTABCOINT
-
 
 
 GROUP BY DTVENC

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="detalhe" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
-	<property name="ireport.zoom" value="1.4641000000000022"/>
-	<property name="ireport.x" value="0"/>
+	<property name="ireport.zoom" value="2.5937424601000054"/>
+	<property name="ireport.x" value="133"/>
 	<property name="ireport.y" value="0"/>
 	<style name="DefaultStyle" forecolor="#FF0033" pattern="">
 		<conditionalStyle>
@@ -37,8 +37,17 @@
 		<parameterDescription><![CDATA[Data Saldo até]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
+	<parameter name="P_EMPRESA" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
 	<queryString>
 		<![CDATA[SELECT
+    CODEMP,
+    RAZAOABREV,
+    DESCRNAT,
     DTVENC,
     NUFIN,
     DESDOBRAMENTO,
@@ -61,10 +70,14 @@ FROM (
 
 
 
-
-
+SELECT
+CODEMP,RAZAOABREV,DESCRNAT,DTVENC,NUFIN,DESDOBRAMENTO,CODPARC,RAZAOSOCIAL,A_RECEBER_PROV_S,A_RECEBER_PROV_N,A_PAGAR_PROV_S,A_PAGAR_PROV_N,DIFERENCA,SUM(SALDO_INI)SALDO_INI
+FROM(
 
 SELECT
+    CODEMP,
+    RAZAOABREV,
+    'Saldo' DESCRNAT,
     NVL($P{DT_ESCOLHA}, $P{DTINI}) DTVENC,
     1 NUFIN,
     '1' DESDOBRAMENTO,
@@ -79,9 +92,12 @@ SELECT
 FROM (
   -- SALDO REFERÊNCIA
   SELECT
+      CTA.CODEMP,
+      EMP.RAZAOABREV,
       sbc.SALDOREAL
   FROM tgfsbc sbc
   LEFT JOIN tsicta cta ON sbc.CODCTABCOINT = cta.CODCTABCOINT
+  LEFT JOIN TSIEMP EMP ON cta.CODEMP = EMP.CODEMP
   WHERE
     SBC.REFERENCIA = (
       SELECT MAX(REFERENCIA)
@@ -89,32 +105,46 @@ FROM (
       WHERE T2.CODCTABCOINT = SBC.CODCTABCOINT
         AND T2.REFERENCIA <= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
     )
+    AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+    AND cta.CODEMP IS NOT NULL
+
 
   UNION ALL
 
   -- MOVIMENTAÇÃO SALDO REAL
   SELECT
+      CTA.CODEMP,
+      EMP.RAZAOABREV,
       NVL(MBC.VLRLANC * MBC.RECDESP, 0) AS SALDOREAL
   FROM TGFMBC MBC
   LEFT JOIN tsicta cta ON MBC.CODCTABCOINT = cta.CODCTABCOINT
+  LEFT JOIN TSIEMP EMP ON cta.CODEMP = EMP.CODEMP
   WHERE
     MBC.DTLANC >= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
     AND MBC.DTLANC <= NVL($P{DT_ESCOLHA}, $P{DTINI})
+    AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+    AND cta.CODEMP IS NOT NULL
 
 
   UNION ALL
 
   -- MOVIMENTAÇÃO SALDO BANCO (IGNORADA NO SOMATÓRIO)
   SELECT
+      CTA.CODEMP,
+      EMP.RAZAOABREV,
       0 AS SALDOREAL
   FROM TGFMBC MBC
   LEFT JOIN tsicta cta ON MBC.CODCTABCOINT = cta.CODCTABCOINT
+  LEFT JOIN TSIEMP EMP ON cta.CODEMP = EMP.CODEMP
   WHERE
     MBC.DTLANC >= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
     AND MBC.DTLANC <= NVL($P{DT_ESCOLHA}, $P{DTINI})
     AND MBC.CONCILIADO = 'S'
-)
+    AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+    AND cta.CODEMP IS NOT NULL
 
+)GROUP BY CODEMP,  RAZAOABREV
+)GROUP BY CODEMP,RAZAOABREV,DESCRNAT,DTVENC,NUFIN,DESDOBRAMENTO,CODPARC,RAZAOSOCIAL,A_RECEBER_PROV_S,A_RECEBER_PROV_N,A_PAGAR_PROV_S,A_PAGAR_PROV_N,DIFERENCA
 
 
 
@@ -126,6 +156,9 @@ UNION ALL
 
 
 SELECT
+CODEMP,
+RAZAOABREV,
+DESCRNAT,
 DTVENC,
 NUFIN,
 DESDOBRAMENTO,
@@ -146,6 +179,9 @@ WITH BASE_DADOS AS (
   SELECT
     FIN.NUFIN,
     FIN.DESDOBRAMENTO DESDOBRAMENTO,
+    FIN.CODEMP,
+    EMP.RAZAOABREV,
+    NAT.DESCRNAT,
     FIN.CODPARC,
     PAR.RAZAOSOCIAL,
     FIN.CODCTABCOINT AS CONTA,
@@ -155,29 +191,54 @@ WITH BASE_DADOS AS (
     FIN.VLRDESDOB
   FROM TGFFIN FIN
   LEFT JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+  LEFT JOIN TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
+  LEFT JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
   WHERE
     TRUNC(FIN.DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
     AND FIN.DHBAIXA IS NULL
 
+    AND FIN.CODTIPOPER NOT IN (1602,1652)
+    AND ($P{P_EMPRESA} IS NULL OR FIN.CODEMP = $P{P_EMPRESA})
+    AND (FIN.NUNOTA IS NULL OR FIN.NUNOTA IN (
+    SELECT
+    FIN.NUNOTA
+    FROM TGFFIN FIN
+    LEFT JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTA
+    WHERE FIN.DTVENC BETWEEN $P{DTINI} AND $P{DTFIM}
+    AND CAB.STATUSNOTA = 'L'))
+
+
   UNION ALL
+
 
   SELECT
     99999999 AS NUFIN,
     '1' AS DESDOBRAMENTO,
-    99999999 AS CODPARC,
-    'SIMULAÇÃO' AS RAZAOSOCIAL,
-    AD_SIMULACAO_CONTA AS CONTA,
-    AD_SIMULACAO_DTVENC AS DTVENC,
-    AD_SIMULACAO_RECDESP AS RECDESP,
-    AD_SIMULACAO_PROVISAO AS PROVISAO,
-    AD_SIMULACAO_VLRDESDOB AS VLRDESDOB
-  FROM TGAPEA
+    PEA.AD_SIMULACAO_EMPRESA CODEMP,
+    EMP.RAZAOABREV,
+    NAT.DESCRNAT,
+    PEA.AD_SIMULACAO_PARCEIRO AS CODPARC,
+    PAR.RAZAOSOCIAL AS RAZAOSOCIAL,
+    PEA.AD_SIMULACAO_CONTA AS CONTA,
+    PEA.AD_SIMULACAO_DTVENC AS DTVENC,
+    PEA.AD_SIMULACAO_RECDESP AS RECDESP,
+    PEA.AD_SIMULACAO_PROVISAO AS PROVISAO,
+    PEA.AD_SIMULACAO_VLRDESDOB AS VLRDESDOB
+  FROM TGAPEA PEA
+  LEFT JOIN TGFPAR PAR ON PEA.AD_SIMULACAO_PARCEIRO = PAR.CODPARC
+  LEFT JOIN TSIEMP EMP ON PEA.AD_SIMULACAO_EMPRESA = EMP.CODEMP
+  LEFT JOIN TGFNAT NAT ON PEA.AD_SIMULACAO_NAT = NAT.CODNAT
   WHERE
-    TRUNC(AD_SIMULACAO_DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
-    AND AD_SIMULACAO_STATUS = 1
+    TRUNC(PEA.AD_SIMULACAO_DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+    AND PEA.AD_SIMULACAO_PROVISAO = 'S'
+    AND ($P{P_EMPRESA} IS NULL OR PEA.AD_SIMULACAO_EMPRESA = $P{P_EMPRESA})
+
 )
 
 SELECT
+  BAS.CODEMP,
+  BAS.RAZAOABREV,
+  BAS.DESCRNAT,
   BAS.DTVENC,
   BAS.NUFIN,
   BAS.DESDOBRAMENTO,
@@ -195,9 +256,14 @@ SELECT
 
 FROM BASE_DADOS BAS
 LEFT JOIN TSICTA CTA ON BAS.CONTA = CTA.CODCTABCOINT
-GROUP BY BAS.DTVENC,BAS.NUFIN,BAS.DESDOBRAMENTO,BAS.CODPARC,BAS.RAZAOSOCIAL
+
+
+GROUP BY   BAS.CODEMP,BAS.RAZAOABREV,  BAS.DESCRNAT,BAS.DTVENC,BAS.NUFIN,BAS.DESDOBRAMENTO,BAS.CODPARC,BAS.RAZAOSOCIAL
 )
 GROUP BY
+CODEMP,
+RAZAOABREV,
+DESCRNAT,
 DTVENC,
 NUFIN,
 DESDOBRAMENTO,
@@ -205,7 +271,7 @@ CODPARC,
 RAZAOSOCIAL
 
 )
-GROUP BY DTVENC,NUFIN,DESDOBRAMENTO,CODPARC,RAZAOSOCIAL
+GROUP BY CODEMP,RAZAOABREV,DESCRNAT,DTVENC,NUFIN,DESDOBRAMENTO,CODPARC,RAZAOSOCIAL
 ORDER BY DTVENC,NUFIN]]>
 	</queryString>
 	<field name="DTVENC" class="java.util.Date">
@@ -238,6 +304,15 @@ ORDER BY DTVENC,NUFIN]]>
 	<field name="DIFERENCA_ACUMULADA" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Acumulado]]></fieldDescription>
 	</field>
+	<field name="CODEMP" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Emp.]]></fieldDescription>
+	</field>
+	<field name="RAZAOABREV" class="java.lang.String">
+		<fieldDescription><![CDATA[Empresa]]></fieldDescription>
+	</field>
+	<field name="DESCRNAT" class="java.lang.String">
+		<fieldDescription><![CDATA[Natureza]]></fieldDescription>
+	</field>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
@@ -257,42 +332,42 @@ ORDER BY DTVENC,NUFIN]]>
 				<text><![CDATA[Dt. Venc.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="192" y="4" width="60" height="15"/>
+				<reportElement x="312" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[A Receb Prov]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="252" y="4" width="60" height="15"/>
+				<reportElement x="352" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[A Receb Real]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="312" y="4" width="60" height="15"/>
+				<reportElement x="392" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[A Pagar Prov]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="372" y="4" width="60" height="15"/>
+				<reportElement x="432" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[A Pagar Real]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="430" y="4" width="60" height="15"/>
+				<reportElement x="472" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Diferença]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="491" y="4" width="60" height="15"/>
+				<reportElement x="512" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
@@ -306,7 +381,7 @@ ORDER BY DTVENC,NUFIN]]>
 				<text><![CDATA[NÚ. Fin.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="70" y="4" width="122" height="15"/>
+				<reportElement x="180" y="4" width="132" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
@@ -318,10 +393,24 @@ ORDER BY DTVENC,NUFIN]]>
 					<pen lineWidth="0.5" lineStyle="Solid"/>
 				</graphicElement>
 			</line>
+			<staticText>
+				<reportElement x="70" y="4" width="55" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Empresa]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="125" y="4" width="55" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Natureza]]></text>
+			</staticText>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="12" splitType="Stretch">
+		<band height="10" splitType="Stretch">
 			<textField pattern="dd/MM/yyyy">
 				<reportElement x="0" y="0" width="40" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
@@ -330,42 +419,42 @@ ORDER BY DTVENC,NUFIN]]>
 				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTVENC}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="192" y="0" width="60" height="10" forecolor="#3333FF"/>
+				<reportElement x="312" y="0" width="40" height="10" forecolor="#3333FF"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_RECEBER_PROV_S}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="252" y="0" width="60" height="10" forecolor="#3333FF"/>
+				<reportElement x="352" y="0" width="40" height="10" forecolor="#3333FF"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_RECEBER_PROV_N}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="312" y="0" width="60" height="10" forecolor="#FF0033"/>
+				<reportElement x="392" y="0" width="40" height="10" forecolor="#FF0033"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_PAGAR_PROV_S}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="372" y="0" width="60" height="10" forecolor="#FF0033"/>
+				<reportElement x="432" y="0" width="40" height="10" forecolor="#FF0033"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_PAGAR_PROV_N}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement style="DefaultStyle" x="430" y="0" width="60" height="10"/>
+				<reportElement style="DefaultStyle" x="472" y="0" width="40" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DIFERENCA}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement style="DefaultStyle1" x="491" y="0" width="60" height="10"/>
+				<reportElement style="DefaultStyle1" x="512" y="0" width="40" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
@@ -379,11 +468,25 @@ ORDER BY DTVENC,NUFIN]]>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUFIN}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="70" y="0" width="122" height="10"/>
+				<reportElement x="180" y="0" width="132" height="10"/>
 				<textElement verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODPARC} +" - " + $F{RAZAOSOCIAL}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="70" y="0" width="55" height="10"/>
+				<textElement verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODEMP} +" - " + $F{RAZAOABREV}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="125" y="0" width="55" height="10"/>
+				<textElement verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRNAT}]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>
