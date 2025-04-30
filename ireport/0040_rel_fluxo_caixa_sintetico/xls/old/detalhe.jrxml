@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="detalhe" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.4641000000000022"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<style name="DefaultStyle" forecolor="#FF0033" pattern="">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{DIFERENCA} != null && $F{DIFERENCA}.doubleValue() >= 0]]></conditionExpression>
+			<style forecolor="#3333FF"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{DIFERENCA} != null && $F{DIFERENCA}.doubleValue() < 0]]></conditionExpression>
+			<style forecolor="#FF0033"/>
+		</conditionalStyle>
+	</style>
+	<style name="DefaultStyle1">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{DIFERENCA_ACUMULADA} != null && $F{DIFERENCA_ACUMULADA}.doubleValue() >= 0]]></conditionExpression>
+			<style forecolor="#3333FF"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{DIFERENCA_ACUMULADA} != null && $F{DIFERENCA_ACUMULADA}.doubleValue() < 0]]></conditionExpression>
+			<style forecolor="#FF0033"/>
+		</conditionalStyle>
+	</style>
+	<style name="table">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<subDataset name="Table Dataset 1"/>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DTFIM" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<parameter name="P_CONSID_SALDO" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Considera saldo das contas no acum. pendentes]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DT_ESCOLHA" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Saldo até]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_EMPRESA" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+    TO_CHAR(DTVENC,'DD/MM/YYYY') DTVENC,
+    NUFIN,
+    DESDOBRAMENTO,
+    CODPARC,
+    RAZAOSOCIAL,
+    SUM(A_RECEBER_PROV_S)A_RECEBER_PROV_S,
+    SUM(A_RECEBER_PROV_N)A_RECEBER_PROV_N,
+    SUM(A_PAGAR_PROV_S) A_PAGAR_PROV_S,
+    SUM(A_PAGAR_PROV_N)A_PAGAR_PROV_N,
+    SUM(DIFERENCA)DIFERENCA,
+  -- ACUMULADO
+  SUM(
+    SUM(DIFERENCA)+SUM(SALDO_INI)
+  ) OVER (ORDER BY DTVENC,NUFIN,DESDOBRAMENTO ROWS UNBOUNDED PRECEDING) AS DIFERENCA_ACUMULADA
+
+
+
+FROM (
+
+SELECT
+    NVL($P{DT_ESCOLHA}, $P{DTINI}) DTVENC,
+    1 NUFIN,
+    '1' DESDOBRAMENTO,
+    0 CODPARC,
+    'Saldo das Contas' RAZAOSOCIAL,
+    0 A_RECEBER_PROV_S,
+    0 A_RECEBER_PROV_N,
+    0 A_PAGAR_PROV_S,
+    0 A_PAGAR_PROV_N,
+    0 DIFERENCA,
+    sum(CASE WHEN $P{P_CONSID_SALDO} = 1 then SALDOREAL else 0 end) SALDO_INI
+FROM (
+  -- SALDO REFERÊNCIA
+  SELECT
+      sbc.SALDOREAL
+  FROM tgfsbc sbc
+  LEFT JOIN tsicta cta ON sbc.CODCTABCOINT = cta.CODCTABCOINT
+  WHERE
+    SBC.REFERENCIA = (
+      SELECT MAX(REFERENCIA)
+      FROM TGFSBC T2
+      WHERE T2.CODCTABCOINT = SBC.CODCTABCOINT
+        AND T2.REFERENCIA <= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
+    )
+    AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+
+  UNION ALL
+
+  -- MOVIMENTAÇÃO SALDO REAL
+  SELECT
+      NVL(MBC.VLRLANC * MBC.RECDESP, 0) AS SALDOREAL
+  FROM TGFMBC MBC
+  LEFT JOIN tsicta cta ON MBC.CODCTABCOINT = cta.CODCTABCOINT
+  WHERE
+    MBC.DTLANC >= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
+    AND MBC.DTLANC <= NVL($P{DT_ESCOLHA}, $P{DTINI})
+    AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+
+  UNION ALL
+
+  -- MOVIMENTAÇÃO SALDO BANCO (IGNORADA NO SOMATÓRIO)
+  SELECT
+      0 AS SALDOREAL
+  FROM TGFMBC MBC
+  LEFT JOIN tsicta cta ON MBC.CODCTABCOINT = cta.CODCTABCOINT
+  WHERE
+    MBC.DTLANC >= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
+    AND MBC.DTLANC <= NVL($P{DT_ESCOLHA}, $P{DTINI})
+    AND MBC.CONCILIADO = 'S'
+    AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+)
+
+
+UNION ALL
+
+
+SELECT
+DTVENC,
+NUFIN,
+DESDOBRAMENTO,
+CODPARC,
+RAZAOSOCIAL,
+SUM(A_RECEBER_PROV_S)A_RECEBER_PROV_S,
+SUM(A_RECEBER_PROV_N)A_RECEBER_PROV_N,
+SUM(A_PAGAR_PROV_S) A_PAGAR_PROV_S,
+SUM(A_PAGAR_PROV_N)A_PAGAR_PROV_N,
+SUM(DIFERENCA)DIFERENCA,
+0 SALDO_INI
+
+
+FROM (
+
+
+WITH BASE_DADOS AS (
+  SELECT
+    FIN.NUFIN,
+    FIN.DESDOBRAMENTO DESDOBRAMENTO,
+    FIN.CODPARC,
+    PAR.RAZAOSOCIAL,
+    FIN.CODCTABCOINT AS CONTA,
+    FIN.DTVENC,
+    FIN.RECDESP,
+    FIN.PROVISAO,
+    FIN.VLRDESDOB
+  FROM TGFFIN FIN
+  LEFT JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+  WHERE
+    TRUNC(FIN.DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+    AND FIN.DHBAIXA IS NULL
+    AND FIN.CODTIPOPER NOT IN (1602,1652)
+    AND ($P{P_EMPRESA} IS NULL OR FIN.CODEMP = $P{P_EMPRESA})
+    AND (FIN.NUNOTA IS NULL OR FIN.NUNOTA IN (
+    SELECT
+    FIN.NUNOTA
+    FROM TGFFIN FIN
+    LEFT JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTA
+    WHERE FIN.DTVENC BETWEEN $P{DTINI} AND $P{DTFIM}
+    AND CAB.STATUSNOTA = 'L'))
+
+  UNION ALL
+
+  SELECT
+    99999999 AS NUFIN,
+    '1' AS DESDOBRAMENTO,
+    99999999 AS CODPARC,
+    'SIMULAÇÃO' AS RAZAOSOCIAL,
+    AD_SIMULACAO_CONTA AS CONTA,
+    AD_SIMULACAO_DTVENC AS DTVENC,
+    AD_SIMULACAO_RECDESP AS RECDESP,
+    AD_SIMULACAO_PROVISAO AS PROVISAO,
+    AD_SIMULACAO_VLRDESDOB AS VLRDESDOB
+  FROM TGAPEA
+  WHERE
+    TRUNC(AD_SIMULACAO_DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+    AND AD_SIMULACAO_PROVISAO = 'S'
+    AND ($P{P_EMPRESA} IS NULL OR AD_SIMULACAO_EMPRESA = $P{P_EMPRESA})
+
+)
+
+SELECT
+  BAS.DTVENC,
+  BAS.NUFIN,
+  BAS.DESDOBRAMENTO,
+  BAS.CODPARC,
+  UPPER(BAS.RAZAOSOCIAL) RAZAOSOCIAL,
+  NVL(SUM(CASE WHEN BAS.RECDESP = 1 AND BAS.PROVISAO = 'S' THEN BAS.VLRDESDOB END), 0) AS A_RECEBER_PROV_S,
+  NVL(SUM(CASE WHEN BAS.RECDESP = 1 AND NVL(BAS.PROVISAO, 'N') = 'N' THEN BAS.VLRDESDOB END), 0) AS A_RECEBER_PROV_N,
+  NVL(SUM(CASE WHEN BAS.RECDESP = -1 AND BAS.PROVISAO = 'S' THEN -1 * BAS.VLRDESDOB END), 0) AS A_PAGAR_PROV_S,
+  NVL(SUM(CASE WHEN BAS.RECDESP = -1 AND NVL(BAS.PROVISAO, 'N') = 'N' THEN -1 * BAS.VLRDESDOB END), 0) AS A_PAGAR_PROV_N,
+
+  -- DIFERENÇA DO DIA
+  NVL(SUM(CASE WHEN BAS.RECDESP = 1 THEN BAS.VLRDESDOB END), 0) -
+  NVL(SUM(CASE WHEN BAS.RECDESP = -1 THEN BAS.VLRDESDOB END), 0) AS DIFERENCA
+
+
+FROM BASE_DADOS BAS
+LEFT JOIN TSICTA CTA ON BAS.CONTA = CTA.CODCTABCOINT
+
+
+GROUP BY BAS.DTVENC,BAS.NUFIN,BAS.DESDOBRAMENTO,BAS.CODPARC,BAS.RAZAOSOCIAL
+
+)
+GROUP BY
+DTVENC,
+NUFIN,
+DESDOBRAMENTO,
+CODPARC,
+RAZAOSOCIAL
+
+)
+GROUP BY DTVENC,NUFIN,DESDOBRAMENTO,CODPARC,RAZAOSOCIAL
+ORDER BY TO_DATE(DTVENC,'DD/MM/YYYY'),NUFIN]]>
+	</queryString>
+	<field name="DTVENC" class="java.lang.String">
+		<fieldDescription><![CDATA[Dt. Venc.]]></fieldDescription>
+	</field>
+	<field name="NUFIN" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[NÚ. Fin.]]></fieldDescription>
+	</field>
+	<field name="CODPARC" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Parc.]]></fieldDescription>
+	</field>
+	<field name="RAZAOSOCIAL" class="java.lang.String">
+		<fieldDescription><![CDATA[Parceiro]]></fieldDescription>
+	</field>
+	<field name="A_RECEBER_PROV_S" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='S']]></fieldDescription>
+	</field>
+	<field name="A_RECEBER_PROV_N" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='N']]></fieldDescription>
+	</field>
+	<field name="A_PAGAR_PROV_S" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Pagar Prov='S']]></fieldDescription>
+	</field>
+	<field name="A_PAGAR_PROV_N" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Pagar Prov='N']]></fieldDescription>
+	</field>
+	<field name="DIFERENCA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Diferença]]></fieldDescription>
+	</field>
+	<field name="DIFERENCA_ACUMULADA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Acumulado]]></fieldDescription>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="22" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="4" width="40" height="16"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Dt. Venc.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="192" y="4" width="60" height="16"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A Receb Prov]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="252" y="4" width="60" height="16"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A Receb Real]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="312" y="4" width="60" height="16"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A Pagar Prov]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="372" y="4" width="60" height="16"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A Pagar Real]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="433" y="4" width="60" height="16"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Diferença]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="494" y="4" width="60" height="16"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Acumulado]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="40" y="4" width="30" height="16"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[NÚ. Fin.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="70" y="4" width="122" height="16"/>
+				<textElement verticalAlignment="Middle">
+					<font size="5" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Parceiro]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="21" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Solid"/>
+				</graphicElement>
+			</line>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="10" splitType="Stretch">
+			<textField pattern="">
+				<reportElement x="0" y="0" width="40" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DTVENC}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="192" y="0" width="60" height="10" forecolor="#3333FF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_RECEBER_PROV_S}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="252" y="0" width="60" height="10" forecolor="#3333FF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_RECEBER_PROV_N}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="312" y="0" width="60" height="10" forecolor="#FF0033"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_PAGAR_PROV_S}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="372" y="0" width="60" height="10" forecolor="#FF0033"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_PAGAR_PROV_N}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement style="DefaultStyle" x="433" y="0" width="60" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DIFERENCA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement style="DefaultStyle1" x="494" y="0" width="60" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DIFERENCA_ACUMULADA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0">
+				<reportElement x="40" y="0" width="30" height="10"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUFIN}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="70" y="0" width="122" height="10"/>
+				<textElement verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODPARC} +" - " + $F{RAZAOSOCIAL}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>
