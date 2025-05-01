@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Conectar API Sankhya</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+        display: flex;
+        height: 100vh;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .container {
+        background: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        text-align: center;
+      }
+      
+      #loginButton {
+        background-color: #0066cc;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      
+      #loginButton:hover {
+        background-color: #005bb5;
+      }
+      
+      #result {
+        margin-top: 20px;
+        text-align: left;
+      }
+      
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Consulta Parceiro - Sankhya API</h1>
+    <button id="loginButton">Login e Buscar Parceiro</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    async function loginAndFetchParceiro() {
+      try {
+        // Requisição para o servidor Node.js que irá fazer a requisição para a API Sankhya
+        const response = await fetch('/api/consultar-parceiro', {
+          method: 'POST'
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao consultar parceiro');
+        }
+
+        // Processa a resposta da API
+        const data = await response.json();
+        document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+      } catch (error) {
+        console.error('Erro:', error);
+        document.getElementById('result').innerText = `Erro: ${error.message}`;
+      }
+    }
+
+    // Adiciona evento de clique ao botão de login
+    document.getElementById('loginButton').addEventListener('click', loginAndFetchParceiro);
+  </script>
+</body>
+</html>
