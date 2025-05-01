@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="sintetico" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
-	<property name="ireport.zoom" value="1.6105100000000017"/>
+	<property name="ireport.zoom" value="1.3310000000000015"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<style name="DefaultStyle" forecolor="#FF0033" pattern="">
@@ -56,9 +56,15 @@
 		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
+	<parameter name="P_TPNAT" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Selecione o tipo de natureza: Marcado (Natureza grau 2)  ou  Desmarcado (natureza análitica)]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
 	<queryString>
 		<![CDATA[SELECT
+    ORDEM,
     DTVENC,
+    AGRUPADOR,
     SUM(A_RECEBER_PROV_S)A_RECEBER_PROV_S,
     SUM(A_RECEBER_PROV_N)A_RECEBER_PROV_N,
     SUM(A_PAGAR_PROV_S)A_PAGAR_PROV_S,
@@ -68,14 +74,18 @@
   -- ACUMULADO
   SUM(
     SUM(DIFERENCA)+SUM(SALDO_INI)
-  ) OVER (ORDER BY   DTVENC ROWS UNBOUNDED PRECEDING) AS DIFERENCA_ACUMULADA
+  ) OVER (ORDER BY ORDEM ROWS UNBOUNDED PRECEDING) AS DIFERENCA_ACUMULADA
+
+
 
 FROM (
 
 
 
 SELECT
+    1 ORDEM,
     NVL($P{DT_ESCOLHA}, $P{DTINI}) DTVENC,
+    '1-Saldo Inicial' AGRUPADOR,
     0 A_RECEBER_PROV_S,
     0 A_RECEBER_PROV_N,
     0 A_PAGAR_PROV_S,
@@ -139,7 +149,10 @@ FROM (
 UNION ALL
 
 SELECT
+
+    ROW_NUMBER() OVER (ORDER BY DTVENC ASC, A_RECEBER_PROV_N DESC, A_RECEBER_PROV_S DESC) + 1 AS ORDEM,
     DTVENC,
+    AGRUPADOR,
     A_RECEBER_PROV_S,
     A_RECEBER_PROV_N,
     A_PAGAR_PROV_S,
@@ -147,30 +160,35 @@ SELECT
     DIFERENCA,
     0 SALDO_INI
 
-
 FROM(
 WITH BASE_DADOS AS (
   SELECT
-    CODCTABCOINT AS CONTA,
-    DTVENC,
-    RECDESP,
-    PROVISAO,
-    VLRDESDOB
-  FROM TGFFIN
+    FIN.CODCTABCOINT AS CONTA,
+    FIN.DTVENC,
+    CASE
+    WHEN FIN.RECDESP = 1 THEN FIN.CODPARC||'-'||PAR.RAZAOSOCIAL
+    WHEN FIN.RECDESP = -1 AND $P{P_TPNAT} = 1 THEN (SELECT NAT1.DESCRNAT FROM TGFNAT NAT INNER JOIN TGFNAT NAT1 ON NAT.CODNATPAI = NAT1.CODNAT WHERE NAT.CODNAT = FIN.CODNAT)
+    WHEN FIN.RECDESP = -1 AND $P{P_TPNAT} = 0 THEN (SELECT DESCRNAT FROM TGFNAT WHERE CODNAT = FIN.CODNAT) END AS AGRUPADOR,
+    FIN.RECDESP,
+    FIN.PROVISAO,
+    FIN.VLRDESDOB
+  FROM TGFFIN FIN
+  LEFT JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
+  LEFT JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
   WHERE
-    TRUNC(DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
-    AND DHBAIXA IS NULL
+    TRUNC(FIN.DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+    AND FIN.DHBAIXA IS NULL
+    AND FIN.RECDESP <> 0
+    AND FIN.CODTIPOPER NOT IN (1602,1652)
+    AND ($P{P_EMPRESA} IS NULL OR FIN.CODEMP = $P{P_EMPRESA})
 
-    AND CODTIPOPER NOT IN (1602,1652)
-    AND ($P{P_EMPRESA} IS NULL OR CODEMP = $P{P_EMPRESA})
-
-    AND (NUNOTA IS NULL OR NUNOTA IN (
+    AND (FIN.NUNOTA IS NULL OR FIN.NUNOTA IN (
     SELECT
-    FIN.NUNOTA
-    FROM TGFFIN FIN
-    LEFT JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTA
-    WHERE FIN.DTVENC BETWEEN $P{DTINI} AND $P{DTFIM}
-    AND (FIN.NUNOTA IS NULL OR CAB.STATUSNOTA = 'L')))
+    FIN1.NUNOTA
+    FROM TGFFIN FIN1
+    LEFT JOIN TGFCAB CAB ON FIN1.NUNOTA = CAB.NUNOTA
+    WHERE FIN1.DTVENC BETWEEN $P{DTINI} AND $P{DTFIM}
+    AND (FIN1.NUNOTA IS NULL OR CAB.STATUSNOTA = 'L')))
 
 
 
@@ -179,21 +197,28 @@ WITH BASE_DADOS AS (
   UNION ALL
 
   SELECT
-    AD_SIMULACAO_CONTA AS CONTA,
-    AD_SIMULACAO_DTVENC AS DTVENC,
-    AD_SIMULACAO_RECDESP AS RECDESP,
-    AD_SIMULACAO_PROVISAO AS PROVISAO,
-    AD_SIMULACAO_VLRDESDOB AS VLRDESDOB
-  FROM TGAPEA
+    PEA.AD_SIMULACAO_CONTA AS CONTA,
+    PEA.AD_SIMULACAO_DTVENC AS DTVENC,
+    CASE
+    WHEN PEA.AD_SIMULACAO_RECDESP = 1 THEN PEA.AD_SIMULACAO_PARCEIRO||'-'||PAR.RAZAOSOCIAL
+    WHEN PEA.AD_SIMULACAO_RECDESP = -1 AND $P{P_TPNAT} = 1 THEN (SELECT NAT1.DESCRNAT FROM TGFNAT NAT INNER JOIN TGFNAT NAT1 ON NAT.CODNATPAI = NAT1.CODNAT WHERE NAT.CODNAT = PEA.AD_SIMULACAO_NAT)
+    WHEN PEA.AD_SIMULACAO_RECDESP = -1 AND $P{P_TPNAT} = 0 THEN (SELECT DESCRNAT FROM TGFNAT WHERE CODNAT = PEA.AD_SIMULACAO_NAT) END AS AGRUPADOR,
+    PEA.AD_SIMULACAO_RECDESP AS RECDESP,
+    PEA.AD_SIMULACAO_PROVISAO AS PROVISAO,
+    PEA.AD_SIMULACAO_VLRDESDOB AS VLRDESDOB
+  FROM TGAPEA PEA
+  LEFT JOIN TGFNAT NAT ON PEA.AD_SIMULACAO_NAT = NAT.CODNAT
+  LEFT JOIN TGFPAR PAR ON PEA.AD_SIMULACAO_PARCEIRO = PAR.CODPARC
   WHERE
-    TRUNC(AD_SIMULACAO_DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
-    AND AD_SIMULACAO_PROVISAO = 'S'
-    AND ($P{P_EMPRESA} IS NULL OR AD_SIMULACAO_EMPRESA = $P{P_EMPRESA})
+    TRUNC(PEA.AD_SIMULACAO_DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+    AND PEA.AD_SIMULACAO_PROVISAO = 'S'
+    AND ($P{P_EMPRESA} IS NULL OR PEA.AD_SIMULACAO_EMPRESA = $P{P_EMPRESA})
 
 )
 
 SELECT
   DTVENC,
+  AGRUPADOR,
   NVL(SUM(CASE WHEN RECDESP = 1 AND PROVISAO = 'S' THEN VLRDESDOB END), 0) AS A_RECEBER_PROV_S,
   NVL(SUM(CASE WHEN RECDESP = 1 AND NVL(PROVISAO, 'N') = 'N' THEN VLRDESDOB END), 0) AS A_RECEBER_PROV_N,
   NVL(SUM(CASE WHEN RECDESP = -1 AND PROVISAO = 'S' THEN -1 * VLRDESDOB END), 0) AS A_PAGAR_PROV_S,
@@ -205,22 +230,15 @@ SELECT
 
 
 FROM BASE_DADOS BAS
-GROUP BY   DTVENC
-)
-
+GROUP BY DTVENC,AGRUPADOR
 
 )
 
-GROUP BY   DTVENC
-ORDER BY   DTVENC
 
+)
 
-
-
-
-
-
-]]>
+GROUP BY   ORDEM,DTVENC,AGRUPADOR
+ORDER BY   ORDEM]]>
 	</queryString>
 	<field name="DTVENC" class="java.util.Date">
 		<fieldDescription><![CDATA[Dt. Venc.]]></fieldDescription>
@@ -242,6 +260,9 @@ ORDER BY   DTVENC
 	</field>
 	<field name="DIFERENCA_ACUMULADA" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Acumulado]]></fieldDescription>
+	</field>
+	<field name="AGRUPADOR" class="java.lang.String">
+		<fieldDescription><![CDATA[Agrupador]]></fieldDescription>
 	</field>
 	<variable name="A_REC_PROV" class="java.math.BigDecimal" calculation="Sum">
 		<variableExpression><![CDATA[$F{A_RECEBER_PROV_S}]]></variableExpression>
@@ -323,10 +344,10 @@ ORDER BY   DTVENC
 			</line>
 			<staticText>
 				<reportElement x="40" y="4" width="272" height="15"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="5" isBold="true"/>
+				<textElement verticalAlignment="Middle">
+					<font size="4" isBold="true"/>
 				</textElement>
-				<text><![CDATA[]]></text>
+				<text><![CDATA[Agrupador]]></text>
 			</staticText>
 		</band>
 	</columnHeader>
@@ -381,13 +402,13 @@ ORDER BY   DTVENC
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DIFERENCA_ACUMULADA}]]></textFieldExpression>
 			</textField>
-			<staticText>
+			<textField pattern="">
 				<reportElement x="40" y="0" width="272" height="12"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="5" isBold="true"/>
+				<textElement verticalAlignment="Middle">
+					<font size="4"/>
 				</textElement>
-				<text><![CDATA[]]></text>
-			</staticText>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AGRUPADOR}]]></textFieldExpression>
+			</textField>
 		</band>
 	</detail>
 	<summary>

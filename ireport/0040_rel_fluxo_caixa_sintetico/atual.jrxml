@@ -56,6 +56,10 @@
 		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
+	<parameter name="P_TPNAT" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Selecione o tipo de natureza: Marcado (Natureza grau 2)  ou  Desmarcado (natureza análitica)]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
 	<queryString>
 		<![CDATA[WITH BASE_DADOS AS (
   SELECT
