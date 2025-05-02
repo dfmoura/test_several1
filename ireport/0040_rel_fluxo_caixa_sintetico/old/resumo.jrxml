@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="resumo" language="groovy" pageWidth="802" pageHeight="555" orientation="Landscape" columnWidth="802" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
-	<property name="ireport.zoom" value="1.210000000000001"/>
+	<property name="ireport.zoom" value="1.3310000000000013"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<style name="DefaultStyle" forecolor="#FF0033" pattern="">
@@ -181,91 +181,91 @@ ORDER BY razaoabrev, DESCRICAO]]>
 				<text><![CDATA[Empresa]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="62" y="4" width="498" height="15"/>
+				<reportElement x="62" y="4" width="330" height="15"/>
 				<textElement verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Descrição]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="680" y="4" width="60" height="15"/>
+				<reportElement x="720" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Saldo Real]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="740" y="4" width="60" height="15"/>
+				<reportElement x="760" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Saldo Banco]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="620" y="4" width="60" height="13"/>
+				<reportElement x="640" y="4" width="40" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Banco]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="680" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Agência]]></text>
 			</staticText>
 			<line>
-				<reportElement x="0" y="18" width="799" height="1"/>
+				<reportElement x="0" y="18" width="800" height="1"/>
 				<graphicElement>
 					<pen lineWidth="0.5"/>
 				</graphicElement>
 			</line>
-			<staticText>
-				<reportElement x="560" y="4" width="60" height="15"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Banco]]></text>
-			</staticText>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="15" splitType="Stretch">
+		<band height="8" splitType="Stretch">
 			<textField isBlankWhenNull="true">
-				<reportElement x="0" y="0" width="62" height="15"/>
+				<reportElement x="0" y="0" width="62" height="8"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOABREV}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="62" y="0" width="498" height="15"/>
+				<reportElement x="62" y="0" width="330" height="8"/>
 				<textElement verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement style="DefaultStyle" x="680" y="0" width="60" height="15"/>
+				<reportElement style="DefaultStyle" x="720" y="0" width="40" height="8"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{SALDOREAL}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement style="DefaultStyle1" x="740" y="0" width="60" height="15"/>
+				<reportElement style="DefaultStyle1" x="760" y="0" width="40" height="8"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{SALDOBCO}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="620" y="0" width="60" height="15"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="5"/>
-				</textElement>
-				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODAGE}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="560" y="0" width="60" height="15"/>
+				<reportElement x="640" y="0" width="40" height="8"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODBCO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="680" y="0" width="40" height="8"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODAGE}]]></textFieldExpression>
 			</textField>
 		</band>
 		<band/>
@@ -279,22 +279,22 @@ ORDER BY razaoabrev, DESCRICAO]]>
 	<summary>
 		<band height="15" splitType="Stretch">
 			<textField pattern="#,##0.00">
-				<reportElement style="DefaultStyle2" x="680" y="2" width="60" height="12"/>
+				<reportElement style="DefaultStyle2" x="720" y="2" width="40" height="12"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{SALDO}]]></textFieldExpression>
 			</textField>
 			<line>
-				<reportElement x="0" y="1" width="799" height="1"/>
+				<reportElement x="0" y="1" width="800" height="1"/>
 				<graphicElement>
 					<pen lineWidth="0.5"/>
 				</graphicElement>
 			</line>
 			<textField>
-				<reportElement x="0" y="2" width="680" height="12"/>
+				<reportElement x="560" y="2" width="160" height="12"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA["Saldo até " +
     new java.text.SimpleDateFormat("dd/MM/yyyy").format(
@@ -313,7 +313,7 @@ ORDER BY razaoabrev, DESCRICAO]]>
 				<text><![CDATA[]]></text>
 			</staticText>
 			<textField pattern="#,##0.00">
-				<reportElement style="DefaultStyle2" x="740" y="2" width="60" height="12"/>
+				<reportElement style="DefaultStyle2" x="760" y="2" width="40" height="12"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5" isBold="true"/>
 				</textElement>

@@ -43,6 +43,16 @@ WITH BASE_DADOS AS (
     TRUNC(DTVENC) < $P{DTINI}
     AND DHBAIXA IS NULL
     AND ($P{P_EMPRESA} IS NULL OR CODEMP = $P{P_EMPRESA})
+    AND RECDESP <> 0
+    AND CODTIPOPER NOT IN (1602,1652)
+    AND (NUNOTA IS NULL OR NUNOTA IN (
+    SELECT
+    FIN1.NUNOTA
+    FROM TGFFIN FIN1
+    LEFT JOIN TGFCAB CAB ON FIN1.NUNOTA = CAB.NUNOTA
+    WHERE FIN1.DTVENC < $P{DTINI}
+    AND (FIN1.NUNOTA IS NULL OR CAB.STATUSNOTA = 'L')))
+
 )
 
 SELECT
@@ -95,9 +105,21 @@ ORDER BY DTVENC
 		<band splitType="Stretch"/>
 	</columnHeader>
 	<detail>
-		<band height="20" splitType="Stretch">
+		<band height="31" splitType="Stretch">
+			<line>
+				<reportElement x="0" y="0" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="0" y="30" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
 			<textField>
-				<reportElement x="0" y="0" width="555" height="20"/>
+				<reportElement x="0" y="5" width="555" height="20"/>
 				<textElement verticalAlignment="Middle">
 					<font size="8" isBold="true"/>
 				</textElement>
@@ -114,18 +136,6 @@ ORDER BY DTVENC
     "  Total: " +
     new java.text.DecimalFormat("#,##0.00").format($F{A_RECEBER_TOT})]]></textFieldExpression>
 			</textField>
-			<line>
-				<reportElement x="0" y="0" width="555" height="1"/>
-				<graphicElement>
-					<pen lineWidth="0.5" lineStyle="Dashed"/>
-				</graphicElement>
-			</line>
-			<line>
-				<reportElement x="0" y="19" width="555" height="1"/>
-				<graphicElement>
-					<pen lineWidth="0.5" lineStyle="Dashed"/>
-				</graphicElement>
-			</line>
 		</band>
 	</detail>
 	<columnFooter>
