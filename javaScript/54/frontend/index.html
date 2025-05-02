@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Consulta de Cliente Sankhya</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Consulta de Cliente</h1>
+
+    <button id="loginBtn">Fazer Login</button>
+
+    <div id="consultaForm" style="display: none;">
+      <label for="codparc">Código do Cliente (CODPARC):</label>
+      <input type="number" id="codparc" />
+      <button onclick="consultarCliente()">Consultar</button>
+    </div>
+
+    <pre id="resultado"></pre>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
