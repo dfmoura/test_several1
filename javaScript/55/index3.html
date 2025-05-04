@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Bancário</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .logo-wrapper {
+      background-color: #f1f1f1;
+      padding: 0.5rem;
+      border-radius: 0.75rem;
+    }
+    .logo-img {
+      max-height: 40px;
+      filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(90%) contrast(90%);
+    }
+    .logo-img.white-logo {
+      background-color: #ffffff;
+      padding: 5px;
+      border-radius: 0.5rem;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen p-4">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4 text-center">Resumo Bancário</h1>
+
+    <div id="bank-container" class="grid md:grid-cols-2 gap-6"></div>
+
+    <div class="bg-white rounded-xl shadow-md p-6 mt-6 text-center">
+      <h2 class="text-xl font-semibold mb-2">Saldo Bancário Total</h2>
+      <p id="saldoTotal" class="text-3xl font-bold text-green-600">R$ 0,00</p>
+      <p id="percentGarantia" class="mt-2 text-sm text-gray-600"></p>
+      <p id="dataConciliado" class="mt-1 text-xs text-gray-500 italic"></p>
+    </div>
+  </div>
+
+  <script>
+    const bancos = [
+      {
+        nome: "Sicoob",
+        logo: "https://www.shoppingconquistasul.com.br/wp-content/uploads/2023/04/sicoob-logo.png",
+        corrente: 12000,
+        investimento: 8000,
+        garantia: 2000
+      },
+      {
+        nome: "Daycoval",
+        logo: "https://www.daycoval.com.br/assets/img/logo/logo-daycoval-dark.png",
+        corrente: 15000,
+        investimento: 5000,
+        garantia: 1000
+      },
+      {
+        nome: "Itaú",
+        logo: "https://www.itau.com.br/media/dam/m/59ca6000bfbf59d6/original/ITAU_LOGO_HEX_48X48.png",
+        corrente: 10000,
+        investimento: 12000,
+        garantia: 4000,
+        whiteLogo: true
+      },
+      {
+        nome: "Banco do Brasil",
+        logo: "https://logospng.org/download/banco-do-brasil/logo-banco-do-brasil-4096.png",
+        corrente: 11000,
+        investimento: 4000,
+        garantia: 0
+      },
+      {
+        nome: "Santander",
+        logo: "https://abrasuaconta.santander.com.br/contacartao/assets/img/logo/logo-santander-red.svg",
+        corrente: 8000,
+        investimento: 3000,
+        garantia: 500
+      },
+      {
+        nome: "Caixa",
+        logo: "https://www.caixa.gov.br/PublishingImages/nova-home/icones/x-volume-positiva-54-v2.png",
+        corrente: 9000,
+        investimento: 6000,
+        garantia: 1500
+      },
+    ];
+
+    const container = document.getElementById("bank-container");
+    let totalCorrente = 0, totalInvest = 0, totalGarantia = 0;
+
+    bancos.forEach(banco => {
+      const saldoBanco = banco.corrente + banco.investimento;
+      totalCorrente += banco.corrente;
+      totalInvest += banco.investimento;
+      totalGarantia += banco.garantia;
+
+      const logoClass = banco.whiteLogo ? "logo-img white-logo" : "logo-img";
+
+      container.innerHTML += `
+        <div class="bg-white rounded-xl shadow p-4 flex items-center space-x-4">
+          <div class="logo-wrapper">
+            <img src="${banco.logo}" alt="${banco.nome}" class="${logoClass}">
+          </div>
+          <div>
+            <h3 class="font-bold text-lg">${banco.nome}</h3>
+            <p>Conta Corrente: <span class="font-semibold text-gray-700">R$ ${banco.corrente.toLocaleString()}</span></p>
+            <p>Investimento: <span class="font-semibold text-blue-600">R$ ${banco.investimento.toLocaleString()}</span></p>
+          </div>
+        </div>
+      `;
+    });
+
+    const saldoTotal = totalCorrente + totalInvest;
+    const garantiaPercent = ((totalGarantia / totalInvest) * 100).toFixed(2);
+    const dataHoje = new Date().toLocaleDateString("pt-BR");
+
+    document.getElementById("saldoTotal").textContent = `R$ ${saldoTotal.toLocaleString()}`;
+    document.getElementById("percentGarantia").textContent = `Garantia sobre investimentos: ${garantiaPercent}%`;
+    document.getElementById("dataConciliado").textContent = `Conciliado até: ${dataHoje}`;
+  </script>
+</body>
+</html>

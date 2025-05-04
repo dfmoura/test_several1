@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resumo Bancário</title>
+  <style>
+    :root {
+      --primary: #2e2e2e;
+      --secondary: #f0f0f0;
+      --highlight: #2b8ae2;
+      --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: #ffffff;
+      color: var(--primary);
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+
+    .summary {
+      background: var(--secondary);
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .summary h2 {
+      margin: 0.5rem 0;
+      font-size: 1.5rem;
+      color: var(--highlight);
+    }
+
+    .banks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .bank-card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      flex: 1 1 250px;
+      padding: 1rem;
+      max-width: 300px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .bank-card img {
+      height: 40px;
+      margin-bottom: 1rem;
+    }
+
+    .bank-info {
+      text-align: center;
+    }
+
+    .bank-info p {
+      margin: 0.3rem 0;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: #888;
+    }
+
+    @media (max-width: 600px) {
+      .bank-card {
+        flex: 1 1 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Resumo Bancário</h1>
+  </header>
+
+  <section class="summary">
+    <h2>Saldo Bancário Total: R$ <span id="saldoTotal">0,00</span></h2>
+    <p>Consolidado até: <strong id="dataConciliacao">--/--/----</strong></p>
+  </section>
+
+  <section class="banks" id="banksContainer">
+    <!-- Cards serão inseridos aqui -->
+  </section>
+
+  <div class="footer">
+    &copy; 2025 - Painel de Contas
+  </div>
+
+  <script>
+    const bancos = [
+      {
+        nome: "Sicoob",
+        logo: "https://www.sicoob.com.br/image/layout_set_logo?img_id=1284127&t=1746252278151",
+        corrente: 2500.00,
+        investimento: 5000.00,
+        garantia: 2000.00,
+      },
+      {
+        nome: "Daycoval",
+        logo: "https://www.daycoval.com.br/assets/img/logo/logo-daycoval-dark.png",
+        corrente: 1200.00,
+        investimento: 3000.00,
+        garantia: 1000.00,
+      },
+      {
+        nome: "Itaú",
+        logo: "https://www.itau.com.br/media/dam/m/59ca6000bfbf59d6/original/ITAU_LOGO_HEX_48X48.png",
+        corrente: 1800.00,
+        investimento: 4000.00,
+        garantia: 1500.00,
+      },
+      {
+        nome: "Banco do Brasil",
+        logo: "https://www2.bb.com.br/aapf/imagens/logo-login.jpg",
+        corrente: 3000.00,
+        investimento: 2000.00,
+        garantia: 500.00,
+      },
+      {
+        nome: "Santander",
+        logo: "https://abrasuaconta.santander.com.br/contacartao/assets/img/logo/logo-santander-red.svg",
+        corrente: 1000.00,
+        investimento: 1500.00,
+        garantia: 600.00,
+      },
+      {
+        nome: "Caixa",
+        logo: "https://www.caixa.gov.br/PublishingImages/nova-home/icones/x-volume-positiva-54-v2.png",
+        corrente: 2200.00,
+        investimento: 2800.00,
+        garantia: 800.00,
+      },
+    ];
+
+    const dataConciliacao = "03/05/2025";
+    document.getElementById("dataConciliacao").textContent = dataConciliacao;
+
+    let saldoTotal = 0;
+    const container = document.getElementById("banksContainer");
+
+    bancos.forEach(banco => {
+      const saldoBanco = banco.corrente + banco.investimento;
+      saldoTotal += saldoBanco;
+
+      const garantiaPct = ((banco.garantia / banco.investimento) * 100).toFixed(1);
+
+      const card = document.createElement("div");
+      card.className = "bank-card";
+      card.innerHTML = `
+        <img src="${banco.logo}" alt="${banco.nome}">
+        <div class="bank-info">
+          <p><strong>${banco.nome}</strong></p>
+          <p>Corrente: R$ ${banco.corrente.toFixed(2)}</p>
+          <p>Investimento: R$ ${banco.investimento.toFixed(2)}</p>
+          <p>Garantia: ${garantiaPct}%</p>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    document.getElementById("saldoTotal").textContent = saldoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace("R$", "").trim();
+  </script>
+
+</body>
+</html>
