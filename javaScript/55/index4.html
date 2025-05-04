@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Saldo Bancário</title>
+
+  <style>
+    * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+    background-color: #f7f9fb;
+    color: #333;
+    padding: 1rem;
+    }
+
+    .container {
+    max-width: 900px;
+    margin: auto;
+    padding: 1rem;
+    }
+
+    header {
+    text-align: center;
+    margin-bottom: 2rem;
+    }
+
+    .saldo-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+    }
+
+    .card {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    }
+
+    .card.total {
+    background-color: #007bff;
+    color: white;
+    }
+
+    .card p {
+    font-size: 1.4rem;
+    font-weight: bold;
+    }
+
+    .logo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    }
+
+    .logo-grid img {
+    width: 80px;
+    height: auto;
+    object-fit: contain;
+    background: white;
+    border-radius: 8px;
+    padding: 0.5rem;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Resumo Bancário</h1>
+      <p id="data-conciliacao">Conciliado até: --/--/----</p>
+    </header>
+
+    <section class="saldo-section">
+      <div class="card">
+        <h2>Saldo Conta Corrente</h2>
+        <p id="saldo-corrente">R$ 0,00</p>
+      </div>
+      <div class="card">
+        <h2>Saldo Conta Investimento</h2>
+        <p id="saldo-investimento">R$ 0,00</p>
+        <small><span id="percentual-garantia">0%</span> em garantia</small>
+      </div>
+      <div class="card total">
+        <h2>Saldo Bancário Total</h2>
+        <p id="saldo-total">R$ 0,00</p>
+      </div>
+    </section>
+
+    <section class="logos">
+      <h3>Logos dos Bancos</h3>
+      <div class="logo-grid" id="logo-grid"></div>
+    </section>
+  </div>
+
+  <script>
+
+// Dados de exemplo
+const saldoContaCorrente = 3500.75;
+const saldoContaInvestimento = 10000.00;
+const valorEmGarantia = 2500.00;
+const dataConciliacao = '04/05/2025';
+
+// Atualiza dados
+document.getElementById("saldo-corrente").textContent = formatarMoeda(saldoContaCorrente);
+document.getElementById("saldo-investimento").textContent = formatarMoeda(saldoContaInvestimento);
+document.getElementById("saldo-total").textContent = formatarMoeda(saldoContaCorrente + saldoContaInvestimento);
+document.getElementById("percentual-garantia").textContent = `${((valorEmGarantia / saldoContaInvestimento) * 100).toFixed(1)}%`;
+document.getElementById("data-conciliacao").textContent = `Conciliado até: ${dataConciliacao}`;
+
+// Carrega logos dos bancos dinamicamente
+const bancos = [
+  "itau", "bradesco", "santander", "nubank", "caixa", "bb", "inter"
+];
+const logoContainer = document.getElementById("logo-grid");
+
+bancos.forEach(banco => {
+  const img = document.createElement("img");
+  img.src = `https://raw.githubusercontent.com/dfmoura/test_several1/main/logos_bancos/${banco}.png`;
+  img.alt = `Logo ${banco}`;
+  logoContainer.appendChild(img);
+});
+
+// Utilitário para formatar valores
+function formatarMoeda(valor) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+:root {
+    --primary: #1e1e2f;
+    --secondary: #2e2e3e;
+    --accent: #4db6ac;
+    --text: #f0f0f0;
+    --card-bg: #26263a;
+    --positive: #81c784;
+    --negative: #e57373;
+  }
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: "Segoe UI", sans-serif;
+    background: var(--primary);
+    color: var(--text);
+    padding: 2rem;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: auto;
+  }
+  
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  #banks, #extrato-container {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+  }
+  
+  .bank-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease;
+  }
+  
+  .bank-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .bank-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .bank-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+  
+  .bank-name {
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+  
+  .saldo-info {
+    line-height: 1.6;
+  }
+  
+  .saldo-info a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  
+  .saldo-info a:hover {
+    text-decoration: underline;
+  }
+  
+  .garantia {
+    color: var(--accent);
+  }
+  
+  .conciliado {
+    font-size: 0.85rem;
+    color: #ccc;
+    margin-top: auto;
+  }
+  
+  .extrato-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .extrato-data {
+    font-size: 0.9rem;
+    color: #aaa;
+  }
+  
+  .extrato-descricao {
+    font-weight: bold;
+  }
+  
+  .extrato-valor {
+    font-weight: bold;
+    font-size: 1rem;
+  }
+  
+  .credito {
+    color: var(--positive);
+  }
+  
+  .debito {
+    color: var(--negative);
+  }
+  

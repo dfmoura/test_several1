@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saldos Bancários</title>
+<style>
+:root {
+  --primary: #1e1e2f;
+  --secondary: #2e2e3e;
+  --accent: #4db6ac;
+  --text: #f0f0f0;
+  --card-bg: #26263a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: var(--primary);
+  color: var(--text);
+  padding: 2rem;
+}
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+#banks {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.bank-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease;
+}
+
+.bank-card:hover {
+  transform: translateY(-5px);
+}
+
+.bank-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.bank-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  transition: filter 0.3s ease;
+}
+
+
+.bank-name {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.saldo-info {
+  line-height: 1.6;
+}
+
+.garantia {
+  color: var(--accent);
+}
+
+.conciliado {
+  font-size: 0.85rem;
+  color: #ccc;
+  margin-top: auto;
+}
+
+</style>
+</head>
+<body>
+  <main class="container">
+    <h1>Saldos Bancários</h1>
+    <div id="banks"></div>
+  </main>
+  <script>
+const bancos = [
+  {
+    nome: "Banco do Brasil",
+    logo: "https://raw.githubusercontent.com/dfmoura/test_several1/dbad911c5f2ff4b4dee9a474fe190761609d938a/logos_bancos/bb.svg",
+    saldoCorrente: 1_200_000.50,
+    saldoInvestimento: 800_000.00,
+    garantiaPercentual: 35,
+    conciliadoAte: "04/05/2025"
+  },
+  {
+    nome: "Caixa",
+    logo: "https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/caixa.svg",
+    saldoCorrente: 4_500_000.75,
+    saldoInvestimento: 1_500_000.25,
+    garantiaPercentual: 20,
+    conciliadoAte: "04/05/2025"
+  },
+  {
+    nome: "Itaú",
+    logo: "https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/itau.svg",
+    saldoCorrente: 9_050_000.00,
+    saldoInvestimento: 5_600_000.00,
+    garantiaPercentual: 60,
+    conciliadoAte: "04/05/2025"
+  },
+  {
+    nome: "Daycoval",
+    logo: "https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/daycoval.svg",
+    saldoCorrente: 2_300_000.00,
+    saldoInvestimento: 1_700_000.00,
+    garantiaPercentual: 15,
+    conciliadoAte: "04/05/2025"
+  },
+  {
+    nome: "Sicoob",
+    logo: "https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/sicoob.svg",
+    saldoCorrente: 3_500_000.00,
+    saldoInvestimento: 4_000_000.00,
+    garantiaPercentual: 50,
+    conciliadoAte: "04/05/2025"
+  }
+];
+
+
+function formatCurrency(value) {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function renderBanks() {
+  const container = document.getElementById("banks");
+  bancos.forEach(banco => {
+    const total = banco.saldoCorrente + banco.saldoInvestimento;
+    const garantia = banco.garantiaPercentual;
+    const card = document.createElement("div");
+    card.className = "bank-card";
+    card.innerHTML = `
+      <div class="bank-header">
+        <img src="${banco.logo}" alt="${banco.nome}" class="bank-logo" />
+        <span class="bank-name">${banco.nome}</span>
+      </div>
+      <div class="saldo-info">
+        <p><strong>Saldo Bancário:</strong> ${formatCurrency(total)}</p>
+        <p>Conta Corrente: ${formatCurrency(banco.saldoCorrente)}</p>
+        <p>Conta Investimento: ${formatCurrency(banco.saldoInvestimento)}</p>
+        <p class="garantia">${garantia}% do investimento está em garantia</p>
+      </div>
+      <div class="conciliado">Conciliado até: <strong>${banco.conciliadoAte}</strong></div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+renderBanks();
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resumo Bancário</title>
+  <style>
+    * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f9f9f9;
+  color: #333;
+  padding: 20px;
+}
+
+.container {
+  max-width: 600px;
+  margin: auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.bank-logo {
+  width: 48px;
+  height: 48px;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.saldo-total {
+  text-align: center;
+}
+
+.saldo-total p {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #2e7d32;
+}
+
+.saldos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.card {
+  flex: 1 1 48%;
+  background-color: #f1f1f1;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.05);
+}
+
+.card h3 {
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.card p {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+footer {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="logos_bancos/itau.svg" alt="Logo Banco" class="bank-logo" />
+      <h1>Resumo Bancário</h1>
+    </header>
+
+    <main>
+      <div class="saldo-total">
+        <h2>Saldo Bancário Total</h2>
+        <p id="saldo-total">R$ 0,00</p>
+      </div>
+
+      <div class="saldos">
+        <div class="card">
+          <h3>Conta Corrente</h3>
+          <p id="saldo-corrente">R$ 0,00</p>
+        </div>
+        <div class="card">
+          <h3>Conta Investimento</h3>
+          <p id="saldo-investimento">R$ 0,00</p>
+          <small id="percentual-garantia">Garantia: 0%</small>
+        </div>
+      </div>
+
+      <footer>
+        <p id="data-conciliacao">Conciliado até: --/--/----</p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+// Simulação de dados dinâmicos
+const saldoContaCorrente = 3500.25;
+const saldoContaInvestimento = 12500.75;
+const percentualGarantia = 40;
+const dataConciliacao = '03/05/2025';
+
+const saldoTotal = saldoContaCorrente + saldoContaInvestimento;
+
+// Atualizar a UI
+document.getElementById('saldo-total').innerText = `R$ ${saldoTotal.toFixed(2)}`;
+document.getElementById('saldo-corrente').innerText = `R$ ${saldoContaCorrente.toFixed(2)}`;
+document.getElementById('saldo-investimento').innerText = `R$ ${saldoContaInvestimento.toFixed(2)}`;
+document.getElementById('percentual-garantia').innerText = `Garantia: ${percentualGarantia}%`;
+document.getElementById('data-conciliacao').innerText = `Conciliado até: ${dataConciliacao}`;
+
+  </script>
+</body>
+</html>

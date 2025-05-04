@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Bancário</title>
+  <style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: #f5f7fa;
+  color: #333;
+  padding: 2rem;
+}
+
+.dashboard {
+  max-width: 800px;
+  margin: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.saldo h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+#saldoTotal {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #2e86de;
+  margin-bottom: 1rem;
+}
+
+.detalhes-saldo {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.detalhes-saldo div {
+  width: 48%;
+}
+
+.detalhes-saldo h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.detalhes-saldo p {
+  font-size: 1.5rem;
+  color: #27ae60;
+}
+
+.detalhes-saldo small {
+  display: block;
+  margin-top: 0.5rem;
+  color: #888;
+}
+
+.conciliado {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.logos {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.logos img {
+  height: 40px;
+  margin: 0.5rem;
+  filter: grayscale(100%);
+  transition: filter 0.3s;
+}
+
+.logos img:hover {
+  filter: grayscale(0%);
+}
+
+@media (max-width: 600px) {
+  .detalhes-saldo {
+    flex-direction: column;
+  }
+
+  .detalhes-saldo div {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .logos {
+    flex-direction: column;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <main class="dashboard">
+    <section class="saldo">
+      <h1>Saldo Bancário</h1>
+      <p id="saldoTotal">R$ 0,00</p>
+      <div class="detalhes-saldo">
+        <div>
+          <h2>Conta Corrente</h2>
+          <p id="saldoCorrente">R$ 0,00</p>
+        </div>
+        <div>
+          <h2>Conta Investimento</h2>
+          <p id="saldoInvestimento">R$ 0,00</p>
+          <small id="percentualGarantia">0% em garantia</small>
+        </div>
+      </div>
+      <p class="conciliado">Conciliado até: <span id="dataConciliacao">--/--/----</span></p>
+    </section>
+    <section class="logos">
+      <img src="https://raw.githubusercontent.com/dfmoura/test_several1/main/logos_bancos/bb.svg" alt="Banco do Brasil" />
+      <img src="https://raw.githubusercontent.com/dfmoura/test_several1/main/logos_bancos/caixa.svg" alt="Caixa Econômica Federal" />
+      <img src="https://raw.githubusercontent.com/dfmoura/test_several1/main/logos_bancos/daycoval.svg" alt="Daycoval" />
+      <img src="https://raw.githubusercontent.com/dfmoura/test_several1/main/logos_bancos/itau.svg" alt="Itaú" />
+      <img src="https://raw.githubusercontent.com/dfmoura/test_several1/main/logos_bancos/sicoob.svg" alt="Sicoob" />
+    </section>
+  </main>
+  <script>
+// Dados simulados
+const saldoCorrente = 2500.00;
+const saldoInvestimento = 5000.00;
+const percentualGarantia = 40; // em porcentagem
+const dataConciliacao = '03/05/2025';
+
+// Cálculos
+const saldoTotal = saldoCorrente + saldoInvestimento;
+
+// Atualização do DOM
+document.getElementById('saldoCorrente').textContent = `R$ ${saldoCorrente.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+document.getElementById('saldoInvestimento').textContent = `R$ ${saldoInvestimento.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+document.getElementById('percentualGarantia').textContent = `${percentualGarantia}% em garantia`;
+document.getElementById('saldoTotal').textContent = `R$ ${saldoTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+document.getElementById('dataConciliacao').textContent = dataConciliacao;
+    
+  </script>
+</body>
+</html>

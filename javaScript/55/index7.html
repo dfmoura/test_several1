@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Bancário</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-6 text-center">Resumo Financeiro</h1>
+
+    <div id="banks" class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- Cards dos bancos gerados dinamicamente -->
+    </div>
+  </div>
+
+  <script>
+    const banksData = [
+      {
+        nome: "Banco do Brasil",
+        logo: "https://raw.githubusercontent.com/dfmoura/test_several1/dbad911c5f2ff4b4dee9a474fe190761609d938a/logos_bancos/bb.svg",
+        saldoCorrente: 12000.50,
+        saldoInvestimento: 8000.00,
+        garantiaPercentual: 25,
+        conciliadoAte: "2025-05-03"
+      },
+      {
+        nome: "Caixa Econômica",
+        logo: "https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/caixa.svg",
+        saldoCorrente: 9500.00,
+        saldoInvestimento: 5000.00,
+        garantiaPercentual: 30,
+        conciliadoAte: "2025-05-02"
+      },
+      {
+        nome: "Daycoval",
+        logo: "https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/daycoval.svg",
+        saldoCorrente: 20000.00,
+        saldoInvestimento: 15000.00,
+        garantiaPercentual: 40,
+        conciliadoAte: "2025-05-01"
+      },
+      {
+        nome: "Itaú",
+        logo: "https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/itau.svg",
+        saldoCorrente: 10000.00,
+        saldoInvestimento: 7000.00,
+        garantiaPercentual: 35,
+        conciliadoAte: "2025-05-03"
+      }
+    ];
+
+    function formatCurrency(value) {
+      return value.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+    }
+
+    const container = document.getElementById("banks");
+
+    banksData.forEach(bank => {
+      const totalSaldo = bank.saldoCorrente + bank.saldoInvestimento;
+      const garantiaValor = (bank.saldoInvestimento * bank.garantiaPercentual) / 100;
+
+      const card = document.createElement("div");
+      card.className = "bg-white rounded-2xl shadow p-6 flex flex-col";
+
+      card.innerHTML = `
+        <div class="flex items-center space-x-4 mb-4">
+          <img src="${bank.logo}" alt="${bank.nome}" class="w-12 h-12 object-contain">
+          <h2 class="text-xl font-semibold">${bank.nome}</h2>
+        </div>
+        <div class="text-gray-700 space-y-1">
+          <p><strong>Saldo Conta Corrente:</strong> ${formatCurrency(bank.saldoCorrente)}</p>
+          <p><strong>Saldo Investimento:</strong> ${formatCurrency(bank.saldoInvestimento)}</p>
+          <p><strong>Saldo Total:</strong> ${formatCurrency(totalSaldo)}</p>
+          <p><strong>Garantia em Investimentos:</strong> ${bank.garantiaPercentual}% (${formatCurrency(garantiaValor)})</p>
+          <p class="text-sm text-gray-500 mt-2">Conciliado até: <strong>${new Date(bank.conciliadoAte).toLocaleDateString()}</strong></p>
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+  </script>
+</body>
+</html>
