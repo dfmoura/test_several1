@@ -75,6 +75,17 @@ const bancos = [
       saldoInvestimento: 2_600_000.00,
       garantiaPercentual: 60,
       conciliadoAte: "04/05/2025"
+    },
+    {
+      id: "jpmorgan",
+      nome: "jpmorgan",
+      logo: "https://cdn.worldvectorlogo.com/logos/jp-morgan.svg",
+      agencia: "8848-1",
+      conta: "5001325-9",
+      saldoCorrente: 35_000.00,
+      saldoInvestimento: 2_600_000.00,
+      garantiaPercentual: 60,
+      conciliadoAte: "04/05/2025"
     }
   ];
   
