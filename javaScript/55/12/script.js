@@ -86,6 +86,17 @@ const bancos = [
       saldoInvestimento: 2_600_000.00,
       garantiaPercentual: 60,
       conciliadoAte: "04/05/2025"
+    },
+    {
+      id: "societe-generale",
+      nome: "societe-generale",
+      logo: "https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/SocieteGenerale.svg",
+      agencia: "3199-2",
+      conta: "9985251-9",
+      saldoCorrente: 12_000.00,
+      saldoInvestimento: 700_000.00,
+      garantiaPercentual: 60,
+      conciliadoAte: "04/05/2025"
     }
   ];
   
