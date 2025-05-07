@@ -40,7 +40,7 @@ const bancos = [
       conta: "474114-8",
       saldoCorrente: 10_000.00,
       saldoInvestimento: 2_000_000.00,
-      garantiaPercentual: 60,
+      garantiaPercentual: 25,
       conciliadoAte: "04/05/2025"
     },
     {
@@ -51,7 +51,7 @@ const bancos = [
       conta: "12154-2",
       saldoCorrente: 18_000.00,
       saldoInvestimento: 3_500_000.00,
-      garantiaPercentual: 60,
+      garantiaPercentual: 8,
       conciliadoAte: "04/05/2025"
     },
     {
@@ -62,7 +62,7 @@ const bancos = [
       conta: "0815411423-0",
       saldoCorrente: 30_000.00,
       saldoInvestimento: 7_300_000.00,
-      garantiaPercentual: 60,
+      garantiaPercentual: 41,
       conciliadoAte: "04/05/2025"
     },
     {
@@ -73,18 +73,18 @@ const bancos = [
       conta: "5001325-9",
       saldoCorrente: 35_000.00,
       saldoInvestimento: 2_600_000.00,
-      garantiaPercentual: 60,
+      garantiaPercentual: 15,
       conciliadoAte: "04/05/2025"
     },
     {
-      id: "jpmorgan",
-      nome: "jpmorgan",
-      logo: "https://cdn.worldvectorlogo.com/logos/jp-morgan.svg",
+      id: "btgpactual",
+      nome: "btgpactual",
+      logo: "https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/Btg.svg",
       agencia: "8848-1",
       conta: "5001325-9",
-      saldoCorrente: 35_000.00,
-      saldoInvestimento: 2_600_000.00,
-      garantiaPercentual: 60,
+      saldoCorrente: 19_000.00,
+      saldoInvestimento: 700_000.00,
+      garantiaPercentual: 5,
       conciliadoAte: "04/05/2025"
     },
     {
@@ -95,7 +95,7 @@ const bancos = [
       conta: "9985251-9",
       saldoCorrente: 12_000.00,
       saldoInvestimento: 700_000.00,
-      garantiaPercentual: 60,
+      garantiaPercentual: 23,
       conciliadoAte: "04/05/2025"
     }
   ];
@@ -217,4 +217,12 @@ const bancos = [
   }
   
   renderDashboard();
+
+  
+  let tamanhoFonte = 100;
+
+function ajustarFonte(delta) {
+  tamanhoFonte = Math.max(70, Math.min(150, tamanhoFonte + delta * 10));
+  document.body.style.fontSize = `${tamanhoFonte}%`;
+}
   

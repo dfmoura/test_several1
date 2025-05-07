@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="atual" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
-	<property name="ireport.zoom" value="1.2100000000000006"/>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="atual" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.3310000000000006"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<style name="DefaultStyle" forecolor="#FF0033" pattern="">
@@ -148,28 +148,21 @@ ORDER BY   DTVENC]]>
 		<variableExpression><![CDATA[$F{DIFERENCA}]]></variableExpression>
 	</variable>
 	<title>
-		<band height="283" splitType="Stretch">
+		<band height="355" splitType="Stretch">
 			<staticText>
-				<reportElement positionType="Float" x="0" y="0" width="802" height="27"/>
+				<reportElement positionType="Float" x="0" y="0" width="555" height="27"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="14" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Fluxo de Caixa Agrion]]></text>
 			</staticText>
 			<textField>
-				<reportElement positionType="Float" x="0" y="27" width="802" height="20"/>
+				<reportElement positionType="Float" x="0" y="27" width="555" height="20"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression class="java.lang.String"><![CDATA["Período de: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{DTINI}) + " até: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{DTFIM})]]></textFieldExpression>
 			</textField>
-			<staticText>
-				<reportElement positionType="Float" x="0" y="47" width="802" height="15"/>
-				<textElement>
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[Saldos de Contas]]></text>
-			</staticText>
 			<subreport>
-				<reportElement key="resumo" positionType="Float" x="0" y="64" width="802" height="30"/>
+				<reportElement key="resumo" positionType="Float" x="0" y="86" width="555" height="30"/>
 				<subreportParameter name="SUBREPORT_DIR"/>
 				<subreportParameter name="DTINI">
 					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
@@ -180,26 +173,64 @@ ORDER BY   DTVENC]]>
 				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
 				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "resumo.jasper"]]></subreportExpression>
 			</subreport>
-			<subreport>
-				<reportElement key="anterior" positionType="Float" x="0" y="109" width="802" height="19"/>
-				<subreportParameter name="DTINI">
-					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
-				</subreportParameter>
-				<subreportParameter name="DTFIM">
-					<subreportParameterExpression><![CDATA[$P{DTFIM}]]></subreportParameterExpression>
-				</subreportParameter>
-				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
-				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "anterior.jasper"]]></subreportExpression>
-			</subreport>
 			<staticText>
-				<reportElement positionType="Float" x="0" y="144" width="802" height="15"/>
+				<reportElement positionType="Float" x="0" y="69" width="555" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Saldos de Contas]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="221" width="555" height="15"/>
 				<textElement>
 					<font isBold="true"/>
 				</textElement>
 				<text><![CDATA[Fluxo de Caixa Sintético]]></text>
 			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="291" width="555" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Fluxo de Caixa Análitico]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="116" width="555" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="206" width="555" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="276" width="555" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
 			<subreport>
-				<reportElement key="sintetico" positionType="Float" x="0" y="159" width="802" height="40"/>
+				<reportElement key="anterior" positionType="Float" x="0" y="147" width="555" height="44"/>
+				<subreportParameter name="SUBREPORT_DIR">
+					<subreportParameterExpression><![CDATA[]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DTFIM">
+					<subreportParameterExpression><![CDATA[$P{DTFIM}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DTINI">
+					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "anterior.jasper"]]></subreportExpression>
+			</subreport>
+			<subreport>
+				<reportElement key="sintetico" positionType="Float" x="0" y="236" width="555" height="40"/>
 				<subreportParameter name="SUBREPORT_DIR"/>
 				<subreportParameter name="DTINI">
 					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
@@ -210,15 +241,8 @@ ORDER BY   DTVENC]]>
 				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
 				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "sintetico.jasper"]]></subreportExpression>
 			</subreport>
-			<staticText>
-				<reportElement key="" positionType="Float" x="0" y="219" width="802" height="15"/>
-				<textElement>
-					<font isBold="true"/>
-				</textElement>
-				<text><![CDATA[Fluxo de Caixa Análitico]]></text>
-			</staticText>
 			<subreport>
-				<reportElement key="detalhe" positionType="Float" x="0" y="234" width="802" height="49"/>
+				<reportElement key="detalhe" positionType="Float" x="0" y="306" width="555" height="49"/>
 				<subreportParameter name="DTINI">
 					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
 				</subreportParameter>
@@ -228,6 +252,20 @@ ORDER BY   DTVENC]]>
 				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
 				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "detalhe.jasper"]]></subreportExpression>
 			</subreport>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="191" width="555" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="131" width="555" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Saldo Anterior]]></text>
+			</staticText>
 		</band>
 	</title>
 	<pageHeader>
@@ -236,4 +274,7 @@ ORDER BY   DTVENC]]>
 	<columnHeader>
 		<band splitType="Stretch"/>
 	</columnHeader>
+	<pageFooter>
+		<band/>
+	</pageFooter>
 </jasperReport>

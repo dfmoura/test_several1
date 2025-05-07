@@ -105,22 +105,32 @@
   /* Extrato */
   
   .extrato-container {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin-top: 1.5rem;
+    max-height: 70vh;
+    overflow-y: auto;
+    border: 1px solid #444;
+    border-radius: 10px;
   }
   
   .extrato-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1rem;
+    table-layout: fixed;
   }
   
-  .extrato-table th, .extrato-table td {
+  .extrato-table thead {
+    position: sticky;
+    top: 0;
+    background-color: #222;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+  
+  .extrato-table th,
+  .extrato-table td {
     padding: 0.75rem;
     border-bottom: 1px solid #444;
     text-align: left;
+    font-size: 0.95rem;
   }
   
   .credito {
@@ -136,5 +146,29 @@
     margin-top: 1rem;
     color: var(--accent);
     cursor: pointer;
+  }
+  
+  .font-control {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 1000;
+  }
+  
+  .font-control button {
+    background-color: #333;
+    color: #fff;
+    border: none;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .font-control button:hover {
+    background-color: #555;
   }
   

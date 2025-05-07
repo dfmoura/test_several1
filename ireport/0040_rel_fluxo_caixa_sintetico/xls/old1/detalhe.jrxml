@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="detalhe" language="groovy" pageWidth="802" pageHeight="555" orientation="Landscape" columnWidth="802" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
-	<property name="ireport.zoom" value="1.0000000000000018"/>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="detalhe" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.4641000000000022"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<style name="DefaultStyle" forecolor="#FF0033" pattern="">
@@ -77,7 +77,7 @@ FROM(
 SELECT
     9999 CODEMP,
     'Saldo' RAZAOABREV,
-    '1-Saldo' DESCRNAT,
+    'Saldo' DESCRNAT,
     NVL($P{DT_ESCOLHA}, $P{DTINI}) DTVENC,
     1 NUFIN,
     '1' DESDOBRAMENTO,
@@ -181,7 +181,7 @@ WITH BASE_DADOS AS (
     FIN.DESDOBRAMENTO DESDOBRAMENTO,
     FIN.CODEMP,
     EMP.RAZAOABREV,
-    FIN.CODNAT || ' - '|| NAT.DESCRNAT DESCRNAT,
+    NAT.DESCRNAT,
     FIN.CODPARC,
     PAR.RAZAOSOCIAL,
     FIN.CODCTABCOINT AS CONTA,
@@ -216,7 +216,7 @@ WITH BASE_DADOS AS (
     '1' AS DESDOBRAMENTO,
     PEA.AD_SIMULACAO_EMPRESA CODEMP,
     EMP.RAZAOABREV,
-    PEA.AD_SIMULACAO_NAT || ' - '|| NAT.DESCRNAT DESCRNAT,
+    NAT.DESCRNAT,
     PEA.AD_SIMULACAO_PARCEIRO AS CODPARC,
     PAR.RAZAOSOCIAL AS RAZAOSOCIAL,
     PEA.AD_SIMULACAO_CONTA AS CONTA,
@@ -332,157 +332,157 @@ ORDER BY TO_DATE(DTVENC,'DD/MM/YYYY'),NUFIN]]>
 				<text><![CDATA[Dt. Venc.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="440" y="4" width="60" height="15"/>
+				<reportElement x="312" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[A Receb Prov]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="500" y="4" width="60" height="15"/>
+				<reportElement x="352" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[A Receb Real]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="560" y="4" width="60" height="15"/>
+				<reportElement x="392" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[A Pagar Prov]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="620" y="4" width="60" height="15"/>
+				<reportElement x="432" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[A Pagar Real]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="680" y="4" width="60" height="15"/>
+				<reportElement x="472" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Diferença]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="740" y="4" width="60" height="15"/>
+				<reportElement x="512" y="4" width="40" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Acumulado]]></text>
 			</staticText>
 			<staticText>
 				<reportElement x="40" y="4" width="30" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[NÚ. Fin.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="271" y="4" width="169" height="15"/>
+				<reportElement x="180" y="4" width="132" height="15"/>
 				<textElement verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Parceiro]]></text>
 			</staticText>
 			<line>
-				<reportElement x="0" y="20" width="800" height="1"/>
+				<reportElement x="0" y="20" width="555" height="1"/>
 				<graphicElement>
 					<pen lineWidth="0.5" lineStyle="Solid"/>
 				</graphicElement>
 			</line>
 			<staticText>
-				<reportElement x="70" y="4" width="73" height="15"/>
+				<reportElement x="70" y="4" width="55" height="15"/>
 				<textElement verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Empresa]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="143" y="4" width="128" height="15"/>
+				<reportElement x="125" y="4" width="55" height="15"/>
 				<textElement verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
+					<font size="5" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Natureza]]></text>
 			</staticText>
 		</band>
 	</columnHeader>
 	<detail>
-		<band height="13" splitType="Stretch">
+		<band height="10" splitType="Stretch">
 			<textField pattern="">
-				<reportElement x="0" y="1" width="40" height="12"/>
+				<reportElement x="0" y="0" width="40" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{DTVENC}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="440" y="1" width="60" height="12" forecolor="#3333FF"/>
+				<reportElement x="312" y="0" width="40" height="10" forecolor="#3333FF"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_RECEBER_PROV_S}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="500" y="1" width="60" height="12" forecolor="#3333FF"/>
+				<reportElement x="352" y="0" width="40" height="10" forecolor="#3333FF"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_RECEBER_PROV_N}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="560" y="1" width="60" height="12" forecolor="#FF0033"/>
+				<reportElement x="392" y="0" width="40" height="10" forecolor="#FF0033"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_PAGAR_PROV_S}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement x="620" y="1" width="60" height="12" forecolor="#FF0033"/>
+				<reportElement x="432" y="0" width="40" height="10" forecolor="#FF0033"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{A_PAGAR_PROV_N}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement style="DefaultStyle" x="680" y="1" width="60" height="12"/>
+				<reportElement style="DefaultStyle" x="472" y="0" width="40" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DIFERENCA}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00">
-				<reportElement style="DefaultStyle1" x="740" y="1" width="60" height="12"/>
+				<reportElement style="DefaultStyle1" x="512" y="0" width="40" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DIFERENCA_ACUMULADA}]]></textFieldExpression>
 			</textField>
 			<textField pattern="###0">
-				<reportElement x="40" y="1" width="30" height="12"/>
+				<reportElement x="40" y="0" width="30" height="10"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUFIN}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="271" y="1" width="169" height="12"/>
+				<reportElement x="180" y="0" width="132" height="10"/>
 				<textElement verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODPARC} +" - " + $F{RAZAOSOCIAL}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="70" y="1" width="73" height="12"/>
+				<reportElement x="70" y="0" width="55" height="10"/>
 				<textElement verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODEMP} +" - " + $F{RAZAOABREV}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="143" y="1" width="128" height="12"/>
+				<reportElement x="125" y="0" width="55" height="10"/>
 				<textElement verticalAlignment="Middle">
 					<font size="5"/>
 				</textElement>
