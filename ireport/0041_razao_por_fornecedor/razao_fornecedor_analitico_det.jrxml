@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="razao_fornecedor_analitico_det" language="groovy" pageWidth="762" pageHeight="515" orientation="Landscape" columnWidth="762" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
 	<property name="ireport.zoom" value="1.210000000000001"/>
-	<property name="ireport.x" value="0"/>
+	<property name="ireport.x" value="65"/>
 	<property name="ireport.y" value="0"/>
 	<parameter name="DTREFERENCIA" class="java.sql.Timestamp">
 		<parameterDescription><![CDATA[Referência]]></parameterDescription>
@@ -23,45 +23,65 @@
 		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
 	</parameter>
 	<queryString>
-		<![CDATA[WITH PARCEIROS AS (
-    SELECT DISTINCT
-        CAB.NUNOTA AS NUNICO,
-        CAB.CODPARC,
-        DECODE(NVL(PAR.NOMEPARC, '<SEM PARCEIRO>'), '<SEM PARCEIRO>', 'SEM REGISTRO', PAR.NOMEPARC) AS NOMEPARC,
-        'PORTAL' ORI
-    FROM TGFCAB CAB
-    INNER JOIN TCBINT IT ON CAB.NUNOTA = IT.NUNICO AND IT.ORIGEM = 'E'
-    LEFT JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-    WHERE TRUNC(CAB.DTNEG, 'MM') IN ($P{DTREFERENCIA})
+		<![CDATA[/* Razão Auxilar das Contas*/
+SELECT	P.CODEMP,
+		P.CODCTACTB,
+		P.CTACTB,
+		P.DESCRCTA,
+        P.CODPARC,
+        CASE
+            WHEN PAR.NOMEPARC IS NULL OR TRIM(PAR.NOMEPARC) = '<SEM PARCEIRO>'
+            THEN 'SEM REGISTRO'
+            ELSE PAR.NOMEPARC
+        END AS NOMEPARC,
+        P.REFERENCIA,
+        P.NUMLOTE,
+        P.NUMLANC,
+        P.TIPLANC,
+        SUM(P.SALDOANT) AS SALDOANT,
+		CASE WHEN SUM(P.DEBITO) < 0 THEN SUM(P.DEBITO)*-1 ELSE SUM(P.DEBITO) END AS DEBITO,
+		CASE WHEN SUM(P.CREDITO) < 0 THEN SUM(P.CREDITO)*-1 ELSE SUM(P.CREDITO) END AS CREDITO,
+		CASE WHEN SUM(P.SALDOANT) + SUM(P.DEBITO) + SUM(P.CREDITO) < 0
+		THEN (SUM(P.SALDOANT) + SUM(P.DEBITO) + SUM(P.CREDITO))*-1
+		ELSE (SUM(P.SALDOANT) + SUM(P.DEBITO) + SUM(P.CREDITO)) END AS SALDOATUAL,
+		CASE WHEN P.CTACTB < '2'
+			 THEN CASE WHEN (SUM(P.SALDOANT) + SUM(P.DEBITO) + SUM(P.CREDITO)) >= 0
+			      THEN 'D'
+				  ELSE 'C'
+				  END
+			 ELSE CASE WHEN P.CTACTB >= '2' AND P.CTACTB < '3'
+				  THEN CASE WHEN (SUM(P.SALDOANT) + SUM(P.DEBITO) + SUM(P.CREDITO)) <= 0
+							THEN 'C'
+							ELSE 'D'
+							END
+				  END
+			 END AS DC,
+        P.DTMOV,
+        P.CODHISTCTB,
+        P.COMPLHIST,
+        P.NUMDOC,
+        P.VENCIMENTO,
+        P.LIBERADO,
+        P.CODUSU,
+        P.CODPROJ,
+        P.SEQUENCIA,
+        P.NUNICO
 
-    UNION ALL
+FROM
 
-    SELECT DISTINCT
-        FIN.NUFIN AS NUNICO,
-        FIN.CODPARC,
-        DECODE(NVL(PAR.NOMEPARC, '<SEM PARCEIRO>'), '<SEM PARCEIRO>', 'SEM REGISTRO', PAR.NOMEPARC) AS NOMEPARC,
-        'FINANCEIRO' ORI
-    FROM TGFFIN FIN
-    INNER JOIN TCBINT IT ON FIN.NUFIN = IT.NUNICO AND IT.ORIGEM IN ('F','B','R')
-    LEFT JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
-    WHERE TRUNC(FIN.DTNEG, 'MM') IN ($P{DTREFERENCIA})
-),
-
-LANCAMENTOS AS (
-    SELECT
-        LAN.CODEMP,
+(/* Pega as Contas de Ativo */
+SELECT	LAN.CODEMP,
+		LAN.CODCTACTB,
+		PLA.CTACTB,
+		PLA.DESCRCTA,
+        COALESCE(CAB.CODPARC, FIN.CODPARC, 0) AS CODPARC,
         LAN.REFERENCIA,
         LAN.NUMLOTE,
         LAN.NUMLANC,
         LAN.TIPLANC,
-
-        LAN.CODCTACTB,
-        PLA.CTACTB,
-        PLA.DESCRCTA,
-        NVL(P.CODPARC, 0) AS CODPARC,
-        NVL(P.NOMEPARC, 'SEM REGISTRO') AS NOMEPARC,
-        CASE WHEN LAN.REFERENCIA = $P{DTREFERENCIA} AND LAN.TIPLANC = 'D' THEN LAN.VLRLANC ELSE 0 END AS DEBITO,
-        CASE WHEN LAN.REFERENCIA = $P{DTREFERENCIA} AND LAN.TIPLANC = 'R' THEN LAN.VLRLANC * -1 ELSE 0 END AS CREDITO,
+		NVL(SUM(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END), 0) + NVL(SUM(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END), 0) AS SALDOANT,
+		0 AS DEBITO,
+		0 AS CREDITO,
         LAN.DTMOV,
         LAN.CODHISTCTB,
         LAN.COMPLHIST,
@@ -71,79 +91,269 @@ LANCAMENTOS AS (
         LAN.CODUSU,
         LAN.CODPROJ,
         LAN.SEQUENCIA,
-        IT.NUNICO,
-        P.ORI
+        IT.NUNICO
 
-    FROM TCBLAN LAN
-    INNER JOIN TCBPLA PLA ON PLA.CODCTACTB = LAN.CODCTACTB
-    LEFT JOIN TCBINT IT ON (
-        IT.CODEMP = LAN.CODEMP AND
-        IT.REFERENCIA = LAN.REFERENCIA AND
-        IT.NUMLANC = LAN.NUMLANC AND
-        IT.TIPLANC = LAN.TIPLANC AND
-        IT.NUMLOTE = LAN.NUMLOTE AND
-        IT.SEQUENCIA = LAN.SEQUENCIA
-    )
-    LEFT JOIN PARCEIROS P ON IT.NUNICO = P.NUNICO
-    WHERE LAN.CODEMP = $P{CODEMP}
-      AND LAN.CODCTACTB = $P{CODCTACTB}
-      AND LAN.REFERENCIA IN ($P{DTREFERENCIA})
+
+FROM	TCBLAN LAN
+INNER JOIN TCBPLA PLA ON PLA.CODCTACTB = LAN.CODCTACTB
+LEFT JOIN TCBINT IT ON (
+    IT.CODEMP = LAN.CODEMP AND
+    IT.REFERENCIA = LAN.REFERENCIA AND
+    IT.NUMLANC = LAN.NUMLANC AND     -- Garantir que NUMLANC é usado para a junção
+    IT.TIPLANC = LAN.TIPLANC AND     -- Garantir que TIPLANC é usado para a junção
+    IT.NUMLOTE = LAN.NUMLOTE AND
+    IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
 )
+LEFT JOIN TGFCAB CAB ON IT.NUNICO = CAB.NUNOTA
+LEFT JOIN TGFFIN FIN ON IT.NUNICO = FIN.NUFIN
 
-SELECT
-    LAN.CODEMP,
-    LAN.CODPARC,
-    LAN.NOMEPARC,
-    LAN.REFERENCIA,
-    LAN.NUMLOTE,
-    LAN.NUMLANC,
-    LAN.TIPLANC,
-    LAN.CODCTACTB,
-    LAN.CTACTB,
-    DESCRCTA,
-    SUM(LAN.DEBITO) AS DEBITO,
-    SUM(LAN.CREDITO) AS CREDITO,
-    LAN.DTMOV,
-    LAN.CODHISTCTB,
-    LAN.COMPLHIST,
-    LAN.NUMDOC,
-    LAN.VENCIMENTO,
-    LAN.LIBERADO,
-    LAN.CODUSU,
-    LAN.CODPROJ,
-    LAN.SEQUENCIA,
-    LAN.NUNICO,
-    LAN.ORI
 
-FROM LANCAMENTOS LAN
+WHERE	LAN.REFERENCIA < $P{DTREFERENCIA}
+AND		LAN.CODEMP = $P{CODEMP}
+AND		LAN.CODCTACTB = $P{CODCTACTB}
+AND		PLA.CTACTB >= '1'
+AND		PLA.CTACTB < '2'
 
-WHERE ($P{P_CODPARC} IS NULL OR LAN.CODPARC = $P{P_CODPARC})
+GROUP BY 	LAN.CODEMP,
+			LAN.CODCTACTB,
+			PLA.CTACTB,
+			PLA.DESCRCTA,
+            CAB.CODPARC,
+            FIN.CODPARC,
+            LAN.REFERENCIA,
+            LAN.NUMLOTE,
+            LAN.NUMLANC,
+            LAN.TIPLANC,
+            LAN.DTMOV,
+            LAN.CODHISTCTB,
+            LAN.COMPLHIST,
+            LAN.NUMDOC,
+            LAN.VENCIMENTO,
+            LAN.LIBERADO,
+            LAN.CODUSU,
+            LAN.CODPROJ,
+            LAN.SEQUENCIA,
+            IT.NUNICO
 
-GROUP BY
-    LAN.CODEMP,
-    LAN.CODPARC,
-    LAN.NOMEPARC,
-    LAN.REFERENCIA,
-    LAN.NUMLOTE,
-    LAN.NUMLANC,
-    LAN.TIPLANC,
-    LAN.CODCTACTB,
-    LAN.CTACTB,
-    LAN.DESCRCTA,
-    LAN.DTMOV,
-    LAN.CODHISTCTB,
-    LAN.COMPLHIST,
-    LAN.NUMDOC,
-    LAN.VENCIMENTO,
-    LAN.LIBERADO,
-    LAN.CODUSU,
-    LAN.CODPROJ,
-    LAN.SEQUENCIA,
-    LAN.NUNICO,
-    LAN.ORI
-ORDER BY
-    LAN.CODEMP,
-    LAN.CODPARC]]>
+UNION ALL
+
+SELECT	LAN.CODEMP,
+		LAN.CODCTACTB,
+		PLA.CTACTB,
+		PLA.DESCRCTA,
+        COALESCE(CAB.CODPARC, FIN.CODPARC, 0) AS CODPARC,
+        LAN.REFERENCIA,
+        LAN.NUMLOTE,
+        LAN.NUMLANC,
+        LAN.TIPLANC,
+		0 AS SALDOANT,
+		NVL(SUM(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END), 0) AS DEBITO,
+		NVL(SUM(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END), 0) AS CREDITO,
+        LAN.DTMOV,
+        LAN.CODHISTCTB,
+        LAN.COMPLHIST,
+        LAN.NUMDOC,
+        LAN.VENCIMENTO,
+        LAN.LIBERADO,
+        LAN.CODUSU,
+        LAN.CODPROJ,
+        LAN.SEQUENCIA,
+        IT.NUNICO
+
+
+FROM	TCBLAN LAN
+INNER JOIN TCBPLA PLA ON PLA.CODCTACTB = LAN.CODCTACTB
+LEFT JOIN TCBINT IT ON (
+    IT.CODEMP = LAN.CODEMP AND
+    IT.REFERENCIA = LAN.REFERENCIA AND
+    IT.NUMLANC = LAN.NUMLANC AND     -- Garantir que NUMLANC é usado para a junção
+    IT.TIPLANC = LAN.TIPLANC AND     -- Garantir que TIPLANC é usado para a junção
+    IT.NUMLOTE = LAN.NUMLOTE AND
+    IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
+)
+LEFT JOIN TGFCAB CAB ON IT.NUNICO = CAB.NUNOTA
+LEFT JOIN TGFFIN FIN ON IT.NUNICO = FIN.NUFIN
+WHERE	LAN.REFERENCIA = $P{DTREFERENCIA}
+AND		LAN.CODEMP = $P{CODEMP}
+AND		LAN.CODCTACTB = $P{CODCTACTB}
+AND		PLA.CTACTB >= '1'
+AND		PLA.CTACTB < '2'
+
+GROUP BY 	LAN.CODEMP,
+			LAN.CODCTACTB,
+			PLA.CTACTB,
+			PLA.DESCRCTA,
+            CAB.CODPARC,
+            FIN.CODPARC,
+            LAN.REFERENCIA,
+            LAN.NUMLOTE,
+            LAN.NUMLANC,
+            LAN.TIPLANC,
+            LAN.DTMOV,
+            LAN.CODHISTCTB,
+            LAN.COMPLHIST,
+            LAN.NUMDOC,
+            LAN.VENCIMENTO,
+            LAN.LIBERADO,
+            LAN.CODUSU,
+            LAN.CODPROJ,
+            LAN.SEQUENCIA,
+            IT.NUNICO
+
+UNION ALL
+
+/* Pega as Contas de Passivo */
+SELECT	LAN.CODEMP,
+		LAN.CODCTACTB,
+		PLA.CTACTB,
+		PLA.DESCRCTA,
+        COALESCE(CAB.CODPARC, FIN.CODPARC, 0) AS CODPARC,
+        LAN.REFERENCIA,
+        LAN.NUMLOTE,
+        LAN.NUMLANC,
+        LAN.TIPLANC,
+		NVL(SUM(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END), 0) + NVL(SUM(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END), 0) AS SALDOANT,
+		0 AS DEBITO,
+		0 AS CREDITO,
+        LAN.DTMOV,
+        LAN.CODHISTCTB,
+        LAN.COMPLHIST,
+        LAN.NUMDOC,
+        LAN.VENCIMENTO,
+        LAN.LIBERADO,
+        LAN.CODUSU,
+        LAN.CODPROJ,
+        LAN.SEQUENCIA,
+        IT.NUNICO
+
+
+FROM	TCBLAN LAN
+INNER JOIN TCBPLA PLA ON PLA.CODCTACTB = LAN.CODCTACTB
+LEFT JOIN TCBINT IT ON (
+    IT.CODEMP = LAN.CODEMP AND
+    IT.REFERENCIA = LAN.REFERENCIA AND
+    IT.NUMLANC = LAN.NUMLANC AND     -- Garantir que NUMLANC é usado para a junção
+    IT.TIPLANC = LAN.TIPLANC AND     -- Garantir que TIPLANC é usado para a junção
+    IT.NUMLOTE = LAN.NUMLOTE AND
+    IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
+)
+LEFT JOIN TGFCAB CAB ON IT.NUNICO = CAB.NUNOTA
+LEFT JOIN TGFFIN FIN ON IT.NUNICO = FIN.NUFIN
+WHERE	LAN.REFERENCIA < $P{DTREFERENCIA}
+AND		LAN.CODEMP = $P{CODEMP}
+AND		LAN.CODCTACTB = $P{CODCTACTB}
+AND		PLA.CTACTB >= '2'
+AND		PLA.CTACTB < '3'
+
+GROUP BY 	LAN.CODEMP,
+			LAN.CODCTACTB,
+			PLA.CTACTB,
+			PLA.DESCRCTA,
+            CAB.CODPARC,
+            FIN.CODPARC,
+            LAN.REFERENCIA,
+            LAN.NUMLOTE,
+            LAN.NUMLANC,
+            LAN.TIPLANC,
+            LAN.DTMOV,
+            LAN.CODHISTCTB,
+            LAN.COMPLHIST,
+            LAN.NUMDOC,
+            LAN.VENCIMENTO,
+            LAN.LIBERADO,
+            LAN.CODUSU,
+            LAN.CODPROJ,
+            LAN.SEQUENCIA,
+            IT.NUNICO
+
+UNION ALL
+
+SELECT	LAN.CODEMP,
+		LAN.CODCTACTB,
+		PLA.CTACTB,
+		PLA.DESCRCTA,
+        COALESCE(CAB.CODPARC, FIN.CODPARC, 0) AS CODPARC,
+        LAN.REFERENCIA,
+        LAN.NUMLOTE,
+        LAN.NUMLANC,
+        LAN.TIPLANC,
+		0 AS SALDOANT,
+		NVL(SUM(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END), 0) AS DEBITO,
+		NVL(SUM(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END), 0) AS CREDITO,
+        LAN.DTMOV,
+        LAN.CODHISTCTB,
+        LAN.COMPLHIST,
+        LAN.NUMDOC,
+        LAN.VENCIMENTO,
+        LAN.LIBERADO,
+        LAN.CODUSU,
+        LAN.CODPROJ,
+        LAN.SEQUENCIA,
+        IT.NUNICO
+
+
+FROM	TCBLAN LAN
+INNER JOIN TCBPLA PLA ON PLA.CODCTACTB = LAN.CODCTACTB
+LEFT JOIN TCBINT IT ON (
+    IT.CODEMP = LAN.CODEMP AND
+    IT.REFERENCIA = LAN.REFERENCIA AND
+    IT.NUMLANC = LAN.NUMLANC AND     -- Garantir que NUMLANC é usado para a junção
+    IT.TIPLANC = LAN.TIPLANC AND     -- Garantir que TIPLANC é usado para a junção
+    IT.NUMLOTE = LAN.NUMLOTE AND
+    IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
+)
+LEFT JOIN TGFCAB CAB ON IT.NUNICO = CAB.NUNOTA
+LEFT JOIN TGFFIN FIN ON IT.NUNICO = FIN.NUFIN
+WHERE	LAN.REFERENCIA = $P{DTREFERENCIA}
+AND		LAN.CODEMP = $P{CODEMP}
+AND		LAN.CODCTACTB = $P{CODCTACTB}
+AND		PLA.CTACTB >= '2'
+AND		PLA.CTACTB < '3'
+
+GROUP BY 	LAN.CODEMP,
+			LAN.CODCTACTB,
+			PLA.CTACTB,
+			PLA.DESCRCTA,
+            CAB.CODPARC,
+            FIN.CODPARC,
+            LAN.REFERENCIA,
+            LAN.NUMLOTE,
+            LAN.NUMLANC,
+            LAN.TIPLANC,
+            LAN.DTMOV,
+            LAN.CODHISTCTB,
+            LAN.COMPLHIST,
+            LAN.NUMDOC,
+            LAN.VENCIMENTO,
+            LAN.LIBERADO,
+            LAN.CODUSU,
+            LAN.CODPROJ,
+            LAN.SEQUENCIA,
+            IT.NUNICO
+) P
+LEFT JOIN TGFPAR PAR ON P.CODPARC = PAR.CODPARC
+WHERE (P.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+GROUP BY 	P.CODEMP,
+			P.CODCTACTB,
+			P.CTACTB,
+			P.DESCRCTA,
+            P.CODPARC,
+            PAR.NOMEPARC,
+            P.REFERENCIA,
+            P.NUMLOTE,
+            P.NUMLANC,
+            P.TIPLANC,
+            P.DTMOV,
+            P.CODHISTCTB,
+            P.COMPLHIST,
+            P.NUMDOC,
+            P.VENCIMENTO,
+            P.LIBERADO,
+            P.CODUSU,
+            P.CODPROJ,
+            P.SEQUENCIA,
+            P.NUNICO
+ORDER BY 2]]>
 	</queryString>
 	<field name="CODEMP" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Cód. Empresa]]></fieldDescription>
@@ -198,9 +408,6 @@ ORDER BY
 	</field>
 	<field name="CODPROJ" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Cód. Proj.]]></fieldDescription>
-	</field>
-	<field name="ORI" class="java.lang.String">
-		<fieldDescription><![CDATA[Origem]]></fieldDescription>
 	</field>
 	<field name="SEQUENCIA" class="java.math.BigDecimal">
 		<fieldDescription><![CDATA[Seq.]]></fieldDescription>
@@ -325,13 +532,6 @@ ORDER BY
 				</textElement>
 				<text><![CDATA[Cód. Usu.]]></text>
 			</staticText>
-			<staticText>
-				<reportElement x="627" y="0" width="40" height="15"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="6" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Origem]]></text>
-			</staticText>
 			<line>
 				<reportElement x="0" y="16" width="761" height="1"/>
 				<graphicElement>
@@ -346,14 +546,14 @@ ORDER BY
 				<text><![CDATA[Compl. Hist.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="667" y="0" width="20" height="15"/>
+				<reportElement x="628" y="0" width="20" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Seq.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="687" y="0" width="35" height="15"/>
+				<reportElement x="648" y="0" width="35" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6" isBold="true"/>
 				</textElement>
@@ -469,13 +669,6 @@ ORDER BY
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODUSU}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="627" y="0" width="40" height="12"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font size="6"/>
-				</textElement>
-				<textFieldExpression class="java.lang.String"><![CDATA[$F{ORI}]]></textFieldExpression>
-			</textField>
-			<textField isBlankWhenNull="true">
 				<reportElement x="347" y="0" width="161" height="12"/>
 				<textElement verticalAlignment="Middle">
 					<font size="6"/>
@@ -483,14 +676,14 @@ ORDER BY
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{COMPLHIST}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="667" y="0" width="20" height="12"/>
+				<reportElement x="628" y="0" width="20" height="12"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{SEQUENCIA}]]></textFieldExpression>
 			</textField>
 			<textField isBlankWhenNull="true">
-				<reportElement x="687" y="0" width="35" height="12"/>
+				<reportElement x="648" y="0" width="35" height="12"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font size="6"/>
 				</textElement>
