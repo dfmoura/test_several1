@@ -29,12 +29,8 @@ SELECT
 		P.CODCTACTB,
 		P.CTACTB,
 		P.DESCRCTA,
-        P.AD_CODPARC CODPARC,
-        CASE
-            WHEN PAR.NOMEPARC IS NULL OR TRIM(PAR.NOMEPARC) = '<SEM PARCEIRO>'
-            THEN 'SEM REGISTRO'
-            ELSE PAR.NOMEPARC
-        END AS NOMEPARC,
+        P.AD_CODPARC,
+        PAR.NOMEPARC,
         SUM(P.SALDOANT) AS SALDOANT,
 		CASE WHEN SUM(P.DEBITO) < 0 THEN SUM(P.DEBITO)*-1 ELSE SUM(P.DEBITO) END AS DEBITO,
 		CASE WHEN SUM(P.CREDITO) < 0 THEN SUM(P.CREDITO)*-1 ELSE SUM(P.CREDITO) END AS CREDITO,
@@ -197,13 +193,13 @@ GROUP BY 	LAN.CODEMP,
 
 ) P
 LEFT JOIN TGFPAR PAR ON P.AD_CODPARC = PAR.CODPARC
-WHERE (P.AD_CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+WHERE (P.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
 GROUP BY 	P.CODEMP,
-			P.CODCTACTB,
-			P.CTACTB,
-			P.DESCRCTA,
-            P.AD_CODPARC,
-            PAR.NOMEPARC
+	P.CODCTACTB,
+	P.CTACTB,
+	P.DESCRCTA,
+          P.AD_CODPARC,
+          PAR.NOMEPARC
 ORDER BY 2]]>
 	</queryString>
 	<field name="CODEMP" class="java.math.BigDecimal">
@@ -261,14 +257,14 @@ ORDER BY 2]]>
 		<band height="74" splitType="Stretch">
 			<staticText>
 				<reportElement x="0" y="5" width="555" height="20"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
+				<textElement textAlignment="Center">
 					<font size="12" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Razão Auxiliar Fornecedor - Sintético]]></text>
 			</staticText>
 			<textField>
 				<reportElement x="0" y="25" width="555" height="20"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textElement textAlignment="Center"/>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODCTACTB}+" - "+ $F{CTACTB}+" - " +$F{DESCRCTA}]]></textFieldExpression>
 			</textField>
 			<textField>

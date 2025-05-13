@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="razao_forncedor_analitico" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
-	<property name="ireport.zoom" value="0.9090909090909105"/>
+	<property name="ireport.zoom" value="1.1000000000000019"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
 	<style name="table">
@@ -486,17 +486,17 @@ ORDER BY 2
 	</parameter>
 	<queryString>
 		<![CDATA[/* Razão Auxilar das Contas*/
-SELECT
-    	P.CODEMP,
+SELECT	P.CODEMP,
 		P.CODCTACTB,
 		P.CTACTB,
 		P.DESCRCTA,
-        P.AD_CODPARC CODPARC,
+        P.CODPARC,
         CASE
             WHEN PAR.NOMEPARC IS NULL OR TRIM(PAR.NOMEPARC) = '<SEM PARCEIRO>'
             THEN 'SEM REGISTRO'
             ELSE PAR.NOMEPARC
         END AS NOMEPARC,
+        --CASE WHEN SUM(P.SALDOANT) < 0 THEN SUM(P.SALDOANT) ELSE SUM(P.SALDOANT) END AS SALDOANT,
         SUM(P.SALDOANT) AS SALDOANT,
 		CASE WHEN SUM(P.DEBITO) < 0 THEN SUM(P.DEBITO)*-1 ELSE SUM(P.DEBITO) END AS DEBITO,
 		CASE WHEN SUM(P.CREDITO) < 0 THEN SUM(P.CREDITO)*-1 ELSE SUM(P.CREDITO) END AS CREDITO,
@@ -513,15 +513,15 @@ SELECT
 							END
 				  END
 			 END AS DC
+
 FROM
 
-(
-/* Pega as Contas de Ativo */
+(/* Pega as Contas de Ativo */
 SELECT	LAN.CODEMP,
 		LAN.CODCTACTB,
 		PLA.CTACTB,
 		PLA.DESCRCTA,
-        LAN.AD_CODPARC,
+        COALESCE(CAB.CODPARC, FIN.CODPARC, 0) AS CODPARC,
 		NVL(SUM(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END), 0) + NVL(SUM(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END), 0) AS SALDOANT,
 		0 AS DEBITO,
 		0 AS CREDITO
@@ -537,6 +537,8 @@ LEFT JOIN TCBINT IT ON (
     IT.NUMLOTE = LAN.NUMLOTE AND
     IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
 )
+LEFT JOIN TGFCAB CAB ON IT.NUNICO = CAB.NUNOTA
+LEFT JOIN TGFFIN FIN ON IT.NUNICO = FIN.NUFIN
 
 
 WHERE	LAN.REFERENCIA < $P{DTREFERENCIA}
@@ -549,7 +551,7 @@ GROUP BY 	LAN.CODEMP,
 			LAN.CODCTACTB,
 			PLA.CTACTB,
 			PLA.DESCRCTA,
-            LAN.AD_CODPARC
+            CAB.CODPARC, FIN.CODPARC
 
 UNION ALL
 
@@ -557,7 +559,7 @@ SELECT	LAN.CODEMP,
 		LAN.CODCTACTB,
 		PLA.CTACTB,
 		PLA.DESCRCTA,
-        LAN.AD_CODPARC,
+        COALESCE(CAB.CODPARC, FIN.CODPARC, 0) AS CODPARC,
 		0 AS SALDOANT,
 		NVL(SUM(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END), 0) AS DEBITO,
 		NVL(SUM(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END), 0) AS CREDITO
@@ -573,7 +575,8 @@ LEFT JOIN TCBINT IT ON (
     IT.NUMLOTE = LAN.NUMLOTE AND
     IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
 )
-
+LEFT JOIN TGFCAB CAB ON IT.NUNICO = CAB.NUNOTA
+LEFT JOIN TGFFIN FIN ON IT.NUNICO = FIN.NUFIN
 WHERE	LAN.REFERENCIA = $P{DTREFERENCIA}
 AND		LAN.CODEMP = $P{CODEMP}
 AND		LAN.CODCTACTB = $P{CODCTACTB}
@@ -584,7 +587,7 @@ GROUP BY 	LAN.CODEMP,
 			LAN.CODCTACTB,
 			PLA.CTACTB,
 			PLA.DESCRCTA,
-            LAN.AD_CODPARC
+            CAB.CODPARC, FIN.CODPARC
 
 UNION ALL
 
@@ -593,7 +596,7 @@ SELECT	LAN.CODEMP,
 		LAN.CODCTACTB,
 		PLA.CTACTB,
 		PLA.DESCRCTA,
-        LAN.AD_CODPARC,
+        COALESCE(CAB.CODPARC, FIN.CODPARC, 0) AS CODPARC,
 		NVL(SUM(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END), 0) + NVL(SUM(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END), 0) AS SALDOANT,
 		0 AS DEBITO,
 		0 AS CREDITO
@@ -609,7 +612,8 @@ LEFT JOIN TCBINT IT ON (
     IT.NUMLOTE = LAN.NUMLOTE AND
     IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
 )
-
+LEFT JOIN TGFCAB CAB ON IT.NUNICO = CAB.NUNOTA
+LEFT JOIN TGFFIN FIN ON IT.NUNICO = FIN.NUFIN
 WHERE	LAN.REFERENCIA < $P{DTREFERENCIA}
 AND		LAN.CODEMP = $P{CODEMP}
 AND		LAN.CODCTACTB = $P{CODCTACTB}
@@ -620,7 +624,7 @@ GROUP BY 	LAN.CODEMP,
 			LAN.CODCTACTB,
 			PLA.CTACTB,
 			PLA.DESCRCTA,
-            LAN.AD_CODPARC
+            CAB.CODPARC, FIN.CODPARC
 
 UNION ALL
 
@@ -628,7 +632,7 @@ SELECT	LAN.CODEMP,
 		LAN.CODCTACTB,
 		PLA.CTACTB,
 		PLA.DESCRCTA,
-        LAN.AD_CODPARC,
+        COALESCE(CAB.CODPARC, FIN.CODPARC, 0) AS CODPARC,
 		0 AS SALDOANT,
 		NVL(SUM(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END), 0) AS DEBITO,
 		NVL(SUM(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END), 0) AS CREDITO
@@ -644,6 +648,8 @@ LEFT JOIN TCBINT IT ON (
     IT.NUMLOTE = LAN.NUMLOTE AND
     IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
 )
+LEFT JOIN TGFCAB CAB ON IT.NUNICO = CAB.NUNOTA
+LEFT JOIN TGFFIN FIN ON IT.NUNICO = FIN.NUFIN
 WHERE	LAN.REFERENCIA = $P{DTREFERENCIA}
 AND		LAN.CODEMP = $P{CODEMP}
 AND		LAN.CODCTACTB = $P{CODCTACTB}
@@ -654,17 +660,15 @@ GROUP BY 	LAN.CODEMP,
 			LAN.CODCTACTB,
 			PLA.CTACTB,
 			PLA.DESCRCTA,
-            LAN.AD_CODPARC
-
-
+            CAB.CODPARC, FIN.CODPARC
 ) P
-LEFT JOIN TGFPAR PAR ON P.AD_CODPARC = PAR.CODPARC
-WHERE (P.AD_CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+LEFT JOIN TGFPAR PAR ON P.CODPARC = PAR.CODPARC
+WHERE (P.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
 GROUP BY 	P.CODEMP,
 			P.CODCTACTB,
 			P.CTACTB,
 			P.DESCRCTA,
-            P.AD_CODPARC,
+            P.CODPARC,
             PAR.NOMEPARC
 ORDER BY 2]]>
 	</queryString>
@@ -723,14 +727,14 @@ ORDER BY 2]]>
 		<band height="74" splitType="Stretch">
 			<staticText>
 				<reportElement x="0" y="5" width="802" height="20"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle">
+				<textElement textAlignment="Center">
 					<font size="12" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Razão Auxiliar Fornecedor - Analítico]]></text>
 			</staticText>
 			<textField>
 				<reportElement x="0" y="25" width="802" height="20"/>
-				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<textElement textAlignment="Center"/>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODCTACTB}+" - "+ $F{CTACTB}+" - " +$F{DESCRCTA}]]></textFieldExpression>
 			</textField>
 			<textField>
@@ -910,17 +914,17 @@ ORDER BY 2]]>
 			</textField>
 			<subreport>
 				<reportElement key="razao_fornecedor_analitico_det" positionType="Float" x="0" y="19" width="802" height="16"/>
-				<subreportParameter name="CODEMP">
-					<subreportParameterExpression><![CDATA[$P{CODEMP}]]></subreportParameterExpression>
-				</subreportParameter>
-				<subreportParameter name="P_CODPARC">
-					<subreportParameterExpression><![CDATA[$F{CODPARC}]]></subreportParameterExpression>
-				</subreportParameter>
 				<subreportParameter name="DTREFERENCIA">
 					<subreportParameterExpression><![CDATA[$P{DTREFERENCIA}]]></subreportParameterExpression>
 				</subreportParameter>
+				<subreportParameter name="CODEMP">
+					<subreportParameterExpression><![CDATA[$P{CODEMP}]]></subreportParameterExpression>
+				</subreportParameter>
 				<subreportParameter name="CODCTACTB">
 					<subreportParameterExpression><![CDATA[$P{CODCTACTB}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="P_CODPARC">
+					<subreportParameterExpression><![CDATA[$F{CODPARC}]]></subreportParameterExpression>
 				</subreportParameter>
 				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
 				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "razao_fornecedor_analitico_det.jasper"]]></subreportExpression>
