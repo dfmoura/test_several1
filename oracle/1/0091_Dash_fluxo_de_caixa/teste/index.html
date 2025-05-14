@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detalhamento</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    #search-container {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    #quick-search {
+      flex: 1;
+      min-width: 250px;
+      padding: 0.5rem;
+      font-size: 1rem;
+      margin-right: 1rem;
+    }
+
+    #export-btn {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    #wrapper {
+      overflow-x: auto;
+    }
+
+    .gridjs-container {
+      max-height: 70vh;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Detalhamento</h1>
+
+  <div id="search-container">
+    <input type="text" id="quick-search" placeholder="Filtro rápido..." />
+    <button id="export-btn">Exportar para Excel</button>
+  </div>
+
+  <div id="wrapper">
+    <div id="tabela"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    const colunas = [
+      "ANO", "MES", "MES_ANO", "DESCRNAT", "DTNEG", "ORIGEM", "NUFIN",
+      "CODPARC", "NOMEPARC", "CODPROJ", "DTVENC", "VLRDESDO", "RECDESP",
+      "VLRBAIXA", "CODNAT", "PROVISAO", "CONTA_BAIXA", "NOME_CONTA_BAIXA",
+      "FINANCEIRO", "VLRLIQUIDO", "TIPO", "MULTIPLICACAO_RECEITA_ANTERIOR"
+    ];
+
+    const dados = [
+      [2024, "01", "01/2024", "Natureza 1", "2024-01-10", "WEB", 1001, 201, "Cliente A", 301, "2024-01-30", 500.00, "Receita", 480.00, "NAT001", "Sim", "123", "Conta 1", "Sim", 470.00, "Crédito", 1.10],
+      [2024, "01", "01/2024", "Natureza 2", "2024-01-11", "APP", 1002, 202, "Cliente B", 302, "2024-02-01", 510.00, "Despesa", 495.00, "NAT002", "Não", "124", "Conta 2", "Não", 490.00, "Débito", 1.20],
+      [2024, "02", "02/2024", "Natureza 3", "2024-02-12", "API", 1003, 203, "Cliente C", 303, "2024-02-20", 520.00, "Receita", 500.00, "NAT003", "Sim", "125", "Conta 3", "Sim", 495.00, "Crédito", 1.30],
+      [2024, "02", "02/2024", "Natureza 4", "2024-02-15", "WEB", 1004, 204, "Cliente D", 304, "2024-03-01", 530.00, "Despesa", 510.00, "NAT004", "Não", "126", "Conta 4", "Não", 500.00, "Débito", 1.40],
+      [2024, "03", "03/2024", "Natureza 5", "2024-03-05", "APP", 1005, 205, "Cliente E", 305, "2024-03-25", 540.00, "Receita", 520.00, "NAT005", "Sim", "127", "Conta 5", "Sim", 510.00, "Crédito", 1.50],
+      [2024, "03", "03/2024", "Natureza 6", "2024-03-10", "API", 1006, 206, "Cliente F", 306, "2024-04-01", 550.00, "Despesa", 530.00, "NAT006", "Não", "128", "Conta 6", "Não", 520.00, "Débito", 1.60],
+      [2024, "04", "04/2024", "Natureza 7", "2024-04-12", "WEB", 1007, 207, "Cliente G", 307, "2024-04-20", 560.00, "Receita", 540.00, "NAT007", "Sim", "129", "Conta 7", "Sim", 530.00, "Crédito", 1.70],
+      [2024, "04", "04/2024", "Natureza 8", "2024-04-18", "APP", 1008, 208, "Cliente H", 308, "2024-05-01", 570.00, "Despesa", 550.00, "NAT008", "Não", "130", "Conta 8", "Não", 540.00, "Débito", 1.80],
+      [2024, "05", "05/2024", "Natureza 9", "2024-05-01", "API", 1009, 209, "Cliente I", 309, "2024-05-25", 580.00, "Receita", 560.00, "NAT009", "Sim", "131", "Conta 9", "Sim", 550.00, "Crédito", 1.90],
+      [2024, "05", "05/2024", "Natureza 10", "2024-05-10", "WEB", 1010, 210, "Cliente J", 310, "2024-06-01", 590.00, "Despesa", 570.00, "NAT010", "Não", "132", "Conta 10", "Não", 560.00, "Débito", 2.00],
+      [2024, "06", "06/2024", "Natureza 11", "2024-06-01", "APP", 1011, 211, "Cliente K", 311, "2024-06-20", 600.00, "Receita", 580.00, "NAT011", "Sim", "133", "Conta 11", "Sim", 570.00, "Crédito", 2.10],
+      [2024, "06", "06/2024", "Natureza 12", "2024-06-11", "API", 1012, 212, "Cliente L", 312, "2024-07-01", 610.00, "Despesa", 590.00, "NAT012", "Não", "134", "Conta 12", "Não", 580.00, "Débito", 2.20],
+      [2024, "07", "07/2024", "Natureza 13", "2024-07-10", "WEB", 1013, 213, "Cliente M", 313, "2024-07-30", 620.00, "Receita", 600.00, "NAT013", "Sim", "135", "Conta 13", "Sim", 590.00, "Crédito", 2.30],
+      [2024, "07", "07/2024", "Natureza 14", "2024-07-18", "APP", 1014, 214, "Cliente N", 314, "2024-08-01", 630.00, "Despesa", 610.00, "NAT014", "Não", "136", "Conta 14", "Não", 600.00, "Débito", 2.40],
+      [2024, "08", "08/2024", "Natureza 15", "2024-08-05", "API", 1015, 215, "Cliente O", 315, "2024-08-25", 640.00, "Receita", 620.00, "NAT015", "Sim", "137", "Conta 15", "Sim", 610.00, "Crédito", 2.50],
+      [2024, "08", "08/2024", "Natureza 16", "2024-08-12", "WEB", 1016, 216, "Cliente P", 316, "2024-09-01", 650.00, "Despesa", 630.00, "NAT016", "Não", "138", "Conta 16", "Não", 620.00, "Débito", 2.60],
+      [2024, "09", "09/2024", "Natureza 17", "2024-09-01", "APP", 1017, 217, "Cliente Q", 317, "2024-09-20", 660.00, "Receita", 640.00, "NAT017", "Sim", "139", "Conta 17", "Sim", 630.00, "Crédito", 2.70],
+      [2024, "09", "09/2024", "Natureza 18", "2024-09-15", "API", 1018, 218, "Cliente R", 318, "2024-10-01", 670.00, "Despesa", 650.00, "NAT018", "Não", "140", "Conta 18", "Não", 640.00, "Débito", 2.80],
+      [2024, "10", "10/2024", "Natureza 19", "2024-10-05", "WEB", 1019, 219, "Cliente S", 319, "2024-10-25", 680.00, "Receita", 660.00, "NAT019", "Sim", "141", "Conta 19", "Sim", 650.00, "Crédito", 2.90],
+      [2024, "10", "10/2024", "Natureza 20", "2024-10-20", "APP", 1020, 220, "Cliente T", 320, "2024-11-01", 690.00, "Despesa", 670.00, "NAT020", "Não", "142", "Conta 20", "Não", 660.00, "Débito", 3.00]
+    ];
+
+    const grid = new gridjs.Grid({
+      columns: colunas,
+      data: dados,
+      search: true,
+      sort: true,
+      pagination: {
+        limit: 10
+      },
+      fixedHeader: true,
+      height: "500px"
+    }).render(document.getElementById("tabela"));
+
+    document.getElementById("quick-search").addEventListener("input", function (e) {
+      grid.updateConfig({
+        search: { keyword: e.target.value }
+      }).forceRender();
+    });
+
+    document.getElementById("export-btn").addEventListener("click", function () {
+      const ws_data = [colunas, ...dados];
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Detalhamento");
+      XLSX.writeFile(wb, "detalhamento.xlsx");
+    });
+  </script>
+</body>
+</html>

@@ -85,68 +85,89 @@
 </head>
 <body>
     <snk:query var="receita_baixada">
-        SELECT  SUM(VLRBAIXA) AS VLTOTANT
-        FROM
-        (-- PROVISÃO DO QUE É RECEITAS E DESPESAS
 
+    SELECT  SUM(VLRBAIXA_CALC) AS VLTOTANT
+    FROM
+    (-- PROVISÃO DO QUE É RECEITAS E DESPESAS
+    WITH BASE AS (
         SELECT
-            TO_CHAR(FIN.DTVENC,'YYYY') AS ANO,
-            TO_CHAR(FIN.DTVENC,'MM') AS MES,
-            TO_CHAR(FIN.DTVENC,'MM-DD') AS MES_ANO,
-            NAT.DESCRNAT,
+            FIN.NUFIN,
+            FIN.DTVENC,
+            TO_CHAR(FIN.DTVENC, 'YYYY') AS ANO,
+            TO_CHAR(FIN.DTVENC, 'MM') AS MES,
+            TO_CHAR(FIN.DTVENC, 'MM-DD') AS MES_ANO,
             FIN.DTNEG,
             FIN.ORIGEM,
-            FIN.NUFIN,
-            FIN.CODPARC, 
-            PAR.NOMEPARC,
-            FIN.CODPROJ, 
-            FIN.DTVENC,
-            FIN.VLRDESDOB * FIN.RECDESP AS VLRDESDO,
+            FIN.CODPARC,
+            FIN.CODPROJ,
+            FIN.VLRDESDOB,
             FIN.RECDESP,
-            FIN.VLRBAIXA * FIN.RECDESP AS VLRBAIXA,
+            FIN.VLRBAIXA,
             FIN.CODNAT,
             FIN.PROVISAO,
-            (SELECT TSICTA.CODCTABCOINT 
-             FROM TSICTA, TGFMBC, TGFFIN  
-             WHERE TGFMBC.NUBCO = FIN.NUBCO 
-               AND TSICTA.CODCTABCOINT = TGFMBC.CODCTABCOINT 
-               AND TGFFIN.NUFIN = FIN.NUFIN 
-               AND TSICTA.CODCTABCOINT <> 0) AS CONTA_BAIXA,
-            (SELECT TSICTA.DESCRICAO 
-             FROM TSICTA, TGFMBC, TGFFIN  
-             WHERE TGFMBC.NUBCO = FIN.NUBCO 
-               AND TSICTA.CODCTABCOINT = TGFMBC.CODCTABCOINT 
-               AND TGFFIN.NUFIN = FIN.NUFIN 
-               AND TSICTA.CODCTABCOINT <> 0) AS NOME_CONTA_BAIXA,
-            CASE WHEN FIN.DHBAIXA IS NULL THEN 'Provisão'
-                 WHEN FIN.DHBAIXA IS NOT NULL THEN 'Real'
-            END AS FINANCEIRO,
-            VFIN.VLRLIQUIDO,
-            CASE WHEN FIN.RECDESP = 1 THEN 'Receita'
-                 WHEN FIN.RECDESP = -1 THEN 'Despesa'
-            END AS TIPO,
-            (SELECT SUM(VLRBAIXA) 
-             FROM TGFFIN FIN_SUB 
-             WHERE FIN_SUB.DTVENC BETWEEN '01/06/2024' AND '30/06/2024'
-               AND FIN_SUB.PROVISAO = FIN.PROVISAO
-               
-               AND EXISTS (SELECT 1 
-                           FROM TSICTA, TGFMBC 
-                           WHERE TGFMBC.NUBCO = FIN_SUB.NUBCO 
-                             AND TSICTA.CODCTABCOINT = TGFMBC.CODCTABCOINT)) 
-            + FIN.VLRBAIXA AS MULTIPLICACAO_RECEITA_ANTERIOR
-            
+            FIN.NUBCO,
+            FIN.DHBAIXA,
+            FIN.VLRDESDOB * FIN.RECDESP AS VLRDESDO,
+            FIN.VLRBAIXA * FIN.RECDESP AS VLRBAIXA_CALC
         FROM TGFFIN FIN
-        LEFT JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
-        LEFT JOIN VGFFIN VFIN ON FIN.NUFIN = VFIN.NUFIN
-        LEFT JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
         WHERE FIN.PROVISAO = 'N'
           AND FIN.DTVENC BETWEEN :P_BAIXA.INI AND :P_BAIXA.FIN
-          AND FIN.RECDESP IN (1)
-        ) 
-        WHERE CODNAT IN (:P_NATUREZA)
-        AND CONTA_BAIXA <> 0 AND  CONTA_BAIXA IS NOT NULL
-        AND CONTA_BAIXA IN (:P_CONTA)
+          AND FIN.RECDESP = 1
+    ),
+    CONTA_BAIXA AS (
+        SELECT 
+            F.NUFIN,
+            C.CODCTABCOINT,
+            C.DESCRICAO
+        FROM TGFFIN F
+        JOIN TGFMBC B ON F.NUBCO = B.NUBCO
+        JOIN TSICTA C ON B.CODCTABCOINT = C.CODCTABCOINT
+        WHERE C.CODCTABCOINT <> 0
+    ),
+    MULT_RECEITA_ANT AS (
+        SELECT 
+            FIN_SUB.PROVISAO,
+            SUM(FIN_SUB.VLRBAIXA) AS SUM_VLRBAIXA
+        FROM TGFFIN FIN_SUB
+        JOIN TGFMBC B ON FIN_SUB.NUBCO = B.NUBCO
+        JOIN TSICTA C ON B.CODCTABCOINT = C.CODCTABCOINT
+        WHERE FIN_SUB.DTVENC BETWEEN '01/06/2024' AND '30/06/2024'
+        GROUP BY FIN_SUB.PROVISAO
+    )
+    SELECT
+        B.ANO,
+        B.MES,
+        B.MES_ANO,
+        NAT.DESCRNAT,
+        B.DTNEG,
+        B.ORIGEM,
+        B.NUFIN,
+        B.CODPARC,
+        PAR.NOMEPARC,
+        B.CODPROJ,
+        B.DTVENC,
+        B.VLRDESDO,
+        B.RECDESP,
+        B.VLRBAIXA_CALC,
+        B.CODNAT,
+        B.PROVISAO,
+        NVL(CB.CODCTABCOINT,0) AS CONTA_BAIXA,
+        NVL(CB.DESCRICAO,'SEM REGISTRO') AS NOME_CONTA_BAIXA,
+        CASE 
+            WHEN B.DHBAIXA IS NULL THEN 'Provisão'
+            ELSE 'Real'
+        END AS FINANCEIRO,
+        VFIN.VLRLIQUIDO,
+        'Receita' AS TIPO,
+        NVL(MR.SUM_VLRBAIXA, 0) + B.VLRBAIXA AS MULTIPLICACAO_RECEITA_ANTERIOR
+    FROM BASE B
+    LEFT JOIN TGFNAT NAT ON B.CODNAT = NAT.CODNAT
+    LEFT JOIN VGFFIN VFIN ON B.NUFIN = VFIN.NUFIN
+    LEFT JOIN TGFPAR PAR ON B.CODPARC = PAR.CODPARC
+    LEFT JOIN CONTA_BAIXA CB ON B.NUFIN = CB.NUFIN
+    LEFT JOIN MULT_RECEITA_ANT MR ON B.PROVISAO = MR.PROVISAO
+    ) 
+   
         
     </snk:query>
 
@@ -356,7 +377,7 @@
     <div class="container">
         <!-- Primeira Seção: Cards -->
         <div class="card-container">
-            <div class="card receita-baixada">
+            <div class="card receita-baixada"onclick=" abrir_rec_bai_per()" style="cursor: pointer;">
                 <c:forEach items="${receita_baixada.rows}" var="row">
                 <td><h2><fmt:formatNumber value="${row.VLTOTANT}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></h2></td>
             </c:forEach>
@@ -408,6 +429,13 @@
 <!-- Inclusão da Biblioteca Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+
+function abrir_rec_bai_per(){
+        var params = '';
+        var level = 'lvl_auvlsbz';
+        openLevel(level, params);
+    }
+
 
 function abrir_nivel(){
         var params = '';
