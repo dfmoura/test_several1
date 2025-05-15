@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tabela com Filtro</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-title {
+      font-size: 24px;
+      cursor: pointer;
+      background: #3498db;
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 250px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      z-index: 1;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .dropdown-content label {
+      display: block;
+      margin: 8px 0 4px;
+      font-weight: bold;
+    }
+
+    .dropdown-content select {
+      width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+
+    .show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dropdown">
+    <div class="dropdown-title" onclick="toggleDropdown()">Tabela ⬇</div>
+    <div class="dropdown-content" id="filterDropdown">
+      <label for="filterNome">Nome</label>
+      <select id="filterNome" multiple></select>
+
+      <label for="filterIdade">Idade</label>
+      <select id="filterIdade" multiple></select>
+
+      <label for="filterCidade">Cidade</label>
+      <select id="filterCidade" multiple></select>
+    </div>
+  </div>
+
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Idade</th>
+        <th>Cidade</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>João</td><td>30</td><td>São Paulo</td></tr>
+      <tr><td>Maria</td><td>25</td><td>Rio de Janeiro</td></tr>
+      <tr><td>Ana</td><td>30</td><td>Curitiba</td></tr>
+      <tr><td>Carlos</td><td>40</td><td>São Paulo</td></tr>
+      <tr><td>Julia</td><td>25</td><td>Belo Horizonte</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    const dropdown = document.getElementById("filterDropdown");
+    const table = document.getElementById("dataTable");
+    const filters = {
+      Nome: document.getElementById("filterNome"),
+      Idade: document.getElementById("filterIdade"),
+      Cidade: document.getElementById("filterCidade")
+    };
+
+    function toggleDropdown() {
+      dropdown.classList.toggle("show");
+    }
+
+    function getUniqueValues(columnIndex) {
+      const rows = table.querySelectorAll("tbody tr");
+      const values = new Set();
+      rows.forEach(row => values.add(row.children[columnIndex].textContent));
+      return Array.from(values);
+    }
+
+    function populateFilters() {
+      const columns = ["Nome", "Idade", "Cidade"];
+      columns.forEach((col, index) => {
+        const select = filters[col];
+        getUniqueValues(index).forEach(value => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.appendChild(option);
+        });
+        select.addEventListener("change", applyFilters);
+      });
+    }
+
+    function applyFilters() {
+      const rows = table.querySelectorAll("tbody tr");
+      rows.forEach(row => {
+        let visible = true;
+        Object.entries(filters).forEach(([col, select], colIndex) => {
+          const selected = Array.from(select.selectedOptions).map(opt => opt.value);
+          const cellText = row.children[colIndex].textContent;
+          if (selected.length && !selected.includes(cellText)) {
+            visible = false;
+          }
+        });
+        row.style.display = visible ? "" : "none";
+      });
+    }
+
+    // Init
+    populateFilters();
+  </script>
+
+</body>
+</html>

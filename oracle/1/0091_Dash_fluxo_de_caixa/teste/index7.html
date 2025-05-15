@@ -1,4 +1,3 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -7,9 +6,22 @@
   <title>Detalhamento</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" />
   <style>
-    body {
+    :root {
+      --font-title: 1.5rem;
+      --font-body: 1rem;
+    }
+
+    html, body {
       margin: 0;
+      padding: 0;
+      height: 100%;
       font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
       padding: 1rem;
       box-sizing: border-box;
     }
@@ -17,7 +29,7 @@
     h1 {
       text-align: center;
       margin-bottom: 1rem;
-      font-size: var(--font-title, 1.5rem);
+      font-size: var(--font-title);
     }
 
     #search-container {
@@ -41,29 +53,53 @@
       cursor: pointer;
     }
 
+    #filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.9rem;
+    }
+
+    .filter-group label {
+      margin-bottom: 0.2rem;
+    }
+
+    .filter-group select {
+      min-width: 150px;
+    }
+
     #wrapper {
-      overflow-x: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .gridjs-container {
-      max-height: 70vh;
-      overflow: auto;
-      font-size: var(--font-body, 1rem);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      font-size: var(--font-body);
+    }
+
+    .gridjs-wrapper {
+      flex: 1;
+      overflow: auto !important;
+      max-height: none !important;
+    }
+
+    .gridjs-footer {
+      flex-shrink: 0;
     }
 
     .gridjs-search {
       display: none !important;
-    }
-
-    .resize-handle {
-      cursor: col-resize;
-      width: 5px;
-      background: #ccc;
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      z-index: 10;
     }
 
     #font-controls {
@@ -88,19 +124,21 @@
   </style>
 </head>
 <body>
-  <h1>Detalhamento - Receitas Baixadas no Período</h1>
+  <h1>Detalhamento</h1>
 
   <div id="search-container">
     <input type="text" id="quick-search" placeholder="Filtro rápido (use || para filtrar vários termos)..." />
     <button id="export-btn">Exportar para Excel</button>
   </div>
 
+  <div id="filters"></div>
+
   <div id="wrapper">
     <div id="tabela"></div>
   </div>
 
   <div id="font-controls">
-    Tamanho Fonte: 
+    Tamanho Fonte:
     <button onclick="alterarFonte('menor')">A-</button>
     <button onclick="alterarFonte('maior')">A+</button>
   </div>
@@ -137,33 +175,58 @@
       [2024, "10", "10/2024", "Natureza 19", "2024-10-05", "WEB", 1019, 219, "Cliente S", 319, "2024-10-25", 680.00, "Receita", 660.00, "NAT019", "Sim", "141", "Conta 19", "Sim", 650.00, "Crédito", 2.90],
       [2024, "10", "10/2024", "Natureza 20", "2024-10-20", "APP", 1020, 220, "Cliente T", 320, "2024-11-01", 690.00, "Despesa", 670.00, "NAT020", "Não", "142", "Conta 20", "Não", 660.00, "Débito", 3.00]
     ];
-
     let dadosFiltrados = [...dados];
 
     const grid = new gridjs.Grid({
-      columns: colunas.map(c => ({
-        name: c,
-        id: c,
-        formatter: (cell) => cell,
-        resizable: true
-      })),
+      columns: colunas.map(c => ({ name: c, id: c, formatter: cell => cell, resizable: true })),
       data: () => dadosFiltrados,
       search: false,
       sort: true,
-      pagination: {
-        limit: 10
-      },
+      pagination: { limit: 10 },
       fixedHeader: true,
-      height: "500px"
+      height: "100%"
     }).render(document.getElementById("tabela"));
 
-    document.getElementById("quick-search").addEventListener("input", function (e) {
-      const termos = e.target.value.toLowerCase().split("||").map(s => s.trim()).filter(Boolean);
+    function criarFiltros() {
+      const container = document.getElementById("filters");
+      colunas.forEach((col, i) => {
+        const valoresUnicos = [...new Set(dados.map(l => l[i]))].sort();
+        const div = document.createElement("div");
+        div.className = "filter-group";
+        const label = document.createElement("label");
+        label.innerText = col;
+        const select = document.createElement("select");
+        select.multiple = true;
+        valoresUnicos.forEach(v => {
+          const option = document.createElement("option");
+          option.value = v;
+          option.text = v;
+          select.appendChild(option);
+        });
+        select.addEventListener("change", aplicarFiltros);
+        div.appendChild(label);
+        div.appendChild(select);
+        container.appendChild(div);
+      });
+    }
+
+    function aplicarFiltros() {
+      const filtrosSelecionados = Array.from(document.querySelectorAll("#filters select")).map(s => {
+        return Array.from(s.selectedOptions).map(opt => opt.value);
+      });
       dadosFiltrados = dados.filter(linha =>
-        termos.every(termo => linha.some(cell => cell.toString().toLowerCase().includes(termo)))
+        linha.every((valor, i) => filtrosSelecionados[i].length === 0 || filtrosSelecionados[i].includes(valor))
       );
+      const termos = document.getElementById("quick-search").value.toLowerCase().split("||").map(s => s.trim()).filter(Boolean);
+      if (termos.length) {
+        dadosFiltrados = dadosFiltrados.filter(linha =>
+          termos.every(termo => linha.some(cell => cell.toString().toLowerCase().includes(termo)))
+        );
+      }
       grid.updateConfig({ data: () => dadosFiltrados }).forceRender();
-    });
+    }
+
+    document.getElementById("quick-search").addEventListener("input", aplicarFiltros);
 
     document.getElementById("export-btn").addEventListener("click", function () {
       const ws_data = [colunas, ...dadosFiltrados];
@@ -185,6 +248,8 @@
         root.style.setProperty('--font-title', Math.max(0.5, atualTitle - 0.1) + 'rem');
       }
     }
+
+    criarFiltros();
   </script>
 </body>
 </html>

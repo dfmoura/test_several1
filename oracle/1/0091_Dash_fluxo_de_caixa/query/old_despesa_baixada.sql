@@ -1,0 +1,118 @@
+        SELECT  SUM(VLRBAIXA) AS VLTOTANT2
+        FROM
+        (-- PROVISÃO DO QUE É RECEITAS E DESPESAS
+        /*SELECT
+            TO_CHAR(FIN.DTVENC,'YYYY') AS ANO,
+            TO_CHAR(FIN.DTVENC,'MM') AS MES,
+            TO_CHAR(FIN.DTVENC,'MM-DD') AS MES_ANO,
+            NAT.DESCRNAT,
+            FIN.DTNEG,
+            FIN.ORIGEM,
+            FIN.NUFIN,
+            FIN.CODPARC, 
+            PAR.NOMEPARC,
+            FIN.CODPROJ, 
+            FIN.DTVENC,
+            FIN.VLRDESDOB * FIN.RECDESP AS VLRDESDO,
+            FIN.RECDESP,
+            FIN.VLRBAIXA * FIN.RECDESP AS VLRBAIXA,
+            FIN.CODNAT,
+            FIN.PROVISAO,
+            (SELECT TSICTA.CODCTABCOINT 
+             FROM TSICTA, TGFMBC, TGFFIN  
+             WHERE TGFMBC.NUBCO = FIN.NUBCO 
+               AND TSICTA.CODCTABCOINT = TGFMBC.CODCTABCOINT 
+               AND TGFFIN.NUFIN = FIN.NUFIN 
+               AND TSICTA.CODCTABCOINT <> 0) AS CONTA_BAIXA,
+            (SELECT TSICTA.DESCRICAO 
+             FROM TSICTA, TGFMBC, TGFFIN  
+             WHERE TGFMBC.NUBCO = FIN.NUBCO 
+               AND TSICTA.CODCTABCOINT = TGFMBC.CODCTABCOINT 
+               AND TGFFIN.NUFIN = FIN.NUFIN 
+               AND TSICTA.CODCTABCOINT <> 0) AS NOME_CONTA_BAIXA,
+            CASE WHEN FIN.DHBAIXA IS NULL  THEN 'Provisão' 
+                 WHEN FIN.DHBAIXA IS NOT NULL THEN 'Real' 
+            END AS FINANCEIRO,
+            VFIN.VLRLIQUIDO,
+            CASE WHEN FIN.RECDESP = 1 THEN 'Receita'
+                 WHEN FIN.RECDESP = -1 THEN 'Despesa'
+            END AS TIPO,
+            (SELECT SUM(VLRBAIXA) 
+             FROM TGFFIN FIN_SUB 
+             WHERE  FIN_SUB.DTVENC BETWEEN '01/06/2024' AND '30/06/2024'
+               AND FIN_SUB.PROVISAO = FIN.PROVISAO
+               
+               AND EXISTS (SELECT 1 
+                           FROM TSICTA, TGFMBC 
+                           WHERE TGFMBC.NUBCO = FIN_SUB.NUBCO 
+                             AND TSICTA.CODCTABCOINT = TGFMBC.CODCTABCOINT)) 
+            +FIN.VLRBAIXA AS MULTIPLICACAO_RECEITA_ANTERIOR
+            
+        FROM TGFFIN FIN
+        LEFT JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
+        INNER JOIN VGFFIN VFIN ON FIN.NUFIN = VFIN.NUFIN
+        LEFT JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+        WHERE FIN.PROVISAO = 'N'
+          AND FIN.DTVENC BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+        
+        UNION ALL
+        
+        -- REAL DO QUE É RECEITAS E DESPESAS */
+        SELECT
+            TO_CHAR(FIN.DTVENC,'YYYY') AS ANO,
+            TO_CHAR(FIN.DTVENC,'MM') AS MES,
+            TO_CHAR(FIN.DTVENC,'MM-DD') AS MES_ANO,
+            NAT.DESCRNAT,
+            FIN.DTNEG,
+            FIN.ORIGEM,
+            FIN.NUFIN,
+            FIN.CODPARC, 
+            PAR.NOMEPARC,
+            FIN.CODPROJ, 
+            FIN.DTVENC,
+            FIN.VLRDESDOB * FIN.RECDESP AS VLRDESDO,
+            FIN.RECDESP,
+            FIN.VLRBAIXA * FIN.RECDESP AS VLRBAIXA,
+            FIN.CODNAT,
+            FIN.PROVISAO,
+            (SELECT TSICTA.CODCTABCOINT 
+             FROM TSICTA, TGFMBC, TGFFIN  
+             WHERE TGFMBC.NUBCO = FIN.NUBCO 
+               AND TSICTA.CODCTABCOINT = TGFMBC.CODCTABCOINT 
+               AND TGFFIN.NUFIN = FIN.NUFIN 
+               AND TSICTA.CODCTABCOINT <> 0) AS CONTA_BAIXA,
+            (SELECT TSICTA.DESCRICAO 
+             FROM TSICTA, TGFMBC, TGFFIN  
+             WHERE TGFMBC.NUBCO = FIN.NUBCO 
+               AND TSICTA.CODCTABCOINT = TGFMBC.CODCTABCOINT 
+               AND TGFFIN.NUFIN = FIN.NUFIN 
+               AND TSICTA.CODCTABCOINT <> 0) AS NOME_CONTA_BAIXA,
+            CASE WHEN FIN.DHBAIXA IS NULL THEN 'Provisão'
+                 WHEN FIN.DHBAIXA IS NOT NULL THEN 'Real'
+            END AS FINANCEIRO,
+            VFIN.VLRLIQUIDO,
+            CASE WHEN FIN.RECDESP = 1 THEN 'Receita'
+                 WHEN FIN.RECDESP = -1 THEN 'Despesa'
+            END AS TIPO,
+            (SELECT SUM(VLRBAIXA) 
+             FROM TGFFIN FIN_SUB 
+             WHERE FIN_SUB.DTVENC BETWEEN '01/06/2024' AND '30/06/2024'
+               AND FIN_SUB.PROVISAO = FIN.PROVISAO
+               
+               AND EXISTS (SELECT 1 
+                           FROM TSICTA, TGFMBC 
+                           WHERE TGFMBC.NUBCO = FIN_SUB.NUBCO 
+                             AND TSICTA.CODCTABCOINT = TGFMBC.CODCTABCOINT)) 
+            + FIN.VLRBAIXA AS MULTIPLICACAO_RECEITA_ANTERIOR
+            
+        FROM TGFFIN FIN
+        LEFT JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
+        INNER JOIN VGFFIN VFIN ON FIN.NUFIN = VFIN.NUFIN
+        LEFT JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+        WHERE FIN.PROVISAO = 'N'
+          AND FIN.DTVENC BETWEEN :P_BAIXA.INI AND :P_BAIXA.FIN
+          AND FIN.RECDESP IN (-1)
+        )WHERE CODNAT IN (:P_NATUREZA)
+        AND CONTA_BAIXA <> 0 AND  CONTA_BAIXA IS NOT NULL
+        AND CONTA_BAIXA IN (:P_CONTA)
+        
