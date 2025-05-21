@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <meta name="description" content="Login seguro - Trigger Intelligence">
+  <title>Login - Trigger Intelligence</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container" role="main">
+    <img 
+      src="https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/javaScript/56/logo_trigger.svg" 
+      alt="Logo da Trigger Intelligence" 
+      class="logo"
+    />
+
+    <h1>ACESSO CORPORATIVO</h1>
+    <p>Plataforma de Inteligência e Tecnologia.</p>
+
+    <form id="loginForm" autocomplete="off" novalidate>
+      <label for="username">Usuário</label>
+      <input type="text" id="username" name="username" required aria-required="true"/>
+
+      <label for="password">Senha</label>
+      <input type="password" id="password" name="password" required aria-required="true"/>
+
+      <button type="submit">ENTRAR</button>
+    </form>
+
+    <footer class="footer">
+      © <span id="year"></span> Trigger Intelligence. Todos os direitos reservados.
+    </footer>
+  </main>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
