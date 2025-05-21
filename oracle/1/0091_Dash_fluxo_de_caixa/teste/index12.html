@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Tabela com Filtros por Coluna</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th select {
+      width: 100%;
+      margin-top: 5px;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Tabela com Filtros em Cada Coluna</h2>
+
+<table id="tabela">
+  <thead>
+    <tr>
+      <th>
+        Nome<br>
+        <select onchange="filtrarTabela()" data-col="0" multiple size="4"></select>
+      </th>
+      <th>
+        Cargo<br>
+        <select onchange="filtrarTabela()" data-col="1" multiple size="4"></select>
+      </th>
+      <th>
+        Departamento<br>
+        <select onchange="filtrarTabela()" data-col="2" multiple size="4"></select>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Ana</td><td>Analista</td><td>TI</td></tr>
+    <tr><td>Bruno</td><td>Gerente</td><td>RH</td></tr>
+    <tr><td>Carla</td><td>Analista</td><td>Financeiro</td></tr>
+    <tr><td>Daniel</td><td>Estagiário</td><td>TI</td></tr>
+    <tr><td>Eduarda</td><td>Gerente</td><td>Financeiro</td></tr>
+    <tr><td>Felipe</td><td>Analista</td><td>RH</td></tr>
+  </tbody>
+</table>
+
+<script>
+  const tabela = document.getElementById('tabela');
+  const linhasOriginais = Array.from(tabela.querySelectorAll('tbody tr'));
+
+  function preencherFiltros() {
+    const colunas = tabela.querySelectorAll('thead select');
+
+    colunas.forEach((select, colIndex) => {
+      const valoresUnicos = [...new Set(
+        linhasOriginais.map(row => row.cells[colIndex].textContent)
+      )];
+
+      valoresUnicos.sort().forEach(valor => {
+        const option = document.createElement('option');
+        option.value = valor;
+        option.textContent = valor;
+        option.selected = true; // selecionado por padrão
+        select.appendChild(option);
+      });
+    });
+  }
+
+  function filtrarTabela() {
+    const colunas = tabela.querySelectorAll('thead select');
+    const filtros = Array.from(colunas).map(select => {
+      return Array.from(select.selectedOptions).map(opt => opt.value);
+    });
+
+    const corpo = tabela.querySelector('tbody');
+    corpo.innerHTML = '';
+
+    linhasOriginais.forEach(row => {
+      const mostrar = filtros.every((valores, colIndex) =>
+        valores.includes(row.cells[colIndex].textContent)
+      );
+
+      if (mostrar) {
+        corpo.appendChild(row);
+      }
+    });
+  }
+
+  preencherFiltros();
+</script>
+
+</body>
+</html>

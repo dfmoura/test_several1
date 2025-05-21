@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Tabela com Filtros</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    th {
+      position: relative;
+      background-color: #f2f2f2;
+    }
+
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: white;
+      border: 1px solid #ccc;
+      z-index: 10;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .dropdown label {
+      display: block;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    .dropdown input {
+      margin-right: 5px;
+    }
+
+    .filter-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    th:hover .dropdown {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Tabela com Filtros por Coluna</h2>
+
+<table id="dataTable">
+  <thead>
+    <tr>
+      <th>
+        Nome
+        <div class="dropdown" data-column="0"></div>
+      </th>
+      <th>
+        Cargo
+        <div class="dropdown" data-column="1"></div>
+      </th>
+      <th>
+        Departamento
+        <div class="dropdown" data-column="2"></div>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Ana</td><td>Analista</td><td>TI</td></tr>
+    <tr><td>Bruno</td><td>Gerente</td><td>RH</td></tr>
+    <tr><td>Carla</td><td>Analista</td><td>Financeiro</td></tr>
+    <tr><td>Daniel</td><td>Estagiário</td><td>TI</td></tr>
+    <tr><td>Eduarda</td><td>Gerente</td><td>Financeiro</td></tr>
+    <tr><td>Felipe</td><td>Analista</td><td>RH</td></tr>
+  </tbody>
+</table>
+
+<script>
+  const table = document.getElementById('dataTable');
+  const tbody = table.querySelector('tbody');
+  const originalRows = Array.from(tbody.rows);
+
+  // Gera os filtros de cada coluna
+  function gerarFiltros() {
+    const colCount = table.rows[0].cells.length;
+    for (let col = 0; col < colCount; col++) {
+      const dropdown = table.querySelector(`.dropdown[data-column="${col}"]`);
+      const valoresUnicos = [...new Set(originalRows.map(row => row.cells[col].textContent))];
+
+      dropdown.innerHTML = '';
+      valoresUnicos.forEach(valor => {
+        const id = `filter-${col}-${valor}`;
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" id="${id}" value="${valor}" checked> ${valor}`;
+        dropdown.appendChild(label);
+      });
+
+      dropdown.addEventListener('change', aplicarFiltros);
+    }
+  }
+
+  function aplicarFiltros() {
+    const colCount = table.rows[0].cells.length;
+    const filtrosSelecionados = [];
+
+    for (let col = 0; col < colCount; col++) {
+      const dropdown = table.querySelector(`.dropdown[data-column="${col}"]`);
+      const checks = Array.from(dropdown.querySelectorAll('input[type="checkbox"]'));
+      const selecionados = checks.filter(c => c.checked).map(c => c.value);
+      filtrosSelecionados[col] = selecionados;
+    }
+
+    tbody.innerHTML = '';
+    originalRows.forEach(row => {
+      const mostrar = row.cells.length === filtrosSelecionados.length &&
+        filtrosSelecionados.every((valores, col) =>
+          valores.includes(row.cells[col].textContent)
+        );
+      if (mostrar) tbody.appendChild(row);
+    });
+  }
+
+  gerarFiltros();
+</script>
+
+</body>
+</html>

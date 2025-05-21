@@ -199,19 +199,19 @@
             </c:forEach>
                 <p><b>Receitas Baixadas no Período</b></p>
             </div>
-            <div class="card despesa-baixada">
+            <div class="card despesa-baixada" onclick="abrir_des_bai_per()" style="cursor: pointer;">
                 <c:forEach items="${despesa_baixada.rows}" var="row">
                     <td><h2><fmt:formatNumber value="${row.VLTOTANT2}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></h2></td>
                 </c:forEach>
                     <p><b>Despesas Baixadas no Período</b></p>
             </div>
-            <div class="card previsto-receita">
+            <div class="card previsto-receita" onclick="abrir_det_prev_rec()" style="cursor: pointer;">
                 <c:forEach items="${previsto_receita.rows}" var="row">
                     <td><h2><fmt:formatNumber value="${row.TOTALPROVISAO}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></h2></td>
                 </c:forEach>
                     <p><b>Previsto de Receitas do Periodo</b></p>
             </div>
-            <div class="card previsto-despesa">
+            <div class="card previsto-despesa" onclick="abrir_det_prev_des()" style="cursor: pointer;">
                 <c:forEach items="${previsto_despesa.rows}" var="row">
                     <td><h2><fmt:formatNumber value="${row.TOTAL_PROVISAO_REC}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></h2></td>
                 </c:forEach>
@@ -251,7 +251,27 @@ function abrir_rec_bai_per(){
         var level = 'lvl_auvlsbz';
         openLevel(level, params);
     }
+    
+    function abrir_des_bai_per(){
+        var params = '';
+        var level = 'lvl_a110b8b';
+        openLevel(level, params);
+    }    
 
+    function abrir_det_prev_rec(){
+        var params = '';
+        var level = 'lvl_a110b9g';
+        openLevel(level, params);
+    }    
+
+    function abrir_det_prev_des(){
+        var params = '';
+        var level = 'lvl_a110cbn';
+        openLevel(level, params);
+    }        
+
+    
+    
 
 function abrir_nivel(){
         var params = '';

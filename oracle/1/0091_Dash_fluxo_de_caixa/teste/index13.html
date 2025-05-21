@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Tabela com Combo Box Múltiplo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+      position: relative;
+    }
+
+    .combo-box {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .combo-box-toggle {
+      padding: 5px;
+      border: 1px solid #ccc;
+      width: 100%;
+      background-color: #fff;
+      cursor: pointer;
+    }
+
+    .combo-options {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      max-height: 150px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .combo-options label {
+      display: block;
+      padding: 5px 10px;
+    }
+
+    .combo-box.open .combo-options {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Tabela com Combo Box de Filtro por Coluna</h2>
+
+<table id="tabela">
+  <thead>
+    <tr>
+      <th>
+        Nome
+        <div class="combo-box" data-col="0"></div>
+      </th>
+      <th>
+        Cargo
+        <div class="combo-box" data-col="1"></div>
+      </th>
+      <th>
+        Departamento
+        <div class="combo-box" data-col="2"></div>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Ana</td><td>Analista</td><td>TI</td></tr>
+    <tr><td>Bruno</td><td>Gerente</td><td>RH</td></tr>
+    <tr><td>Carla</td><td>Analista</td><td>Financeiro</td></tr>
+    <tr><td>Daniel</td><td>Estagiário</td><td>TI</td></tr>
+    <tr><td>Eduarda</td><td>Gerente</td><td>Financeiro</td></tr>
+    <tr><td>Felipe</td><td>Analista</td><td>RH</td></tr>
+  </tbody>
+</table>
+
+<script>
+  const tabela = document.getElementById("tabela");
+  const tbody = tabela.querySelector("tbody");
+  const linhasOriginais = Array.from(tbody.rows);
+
+  function criarComboBox(colIndex) {
+    const valoresUnicos = [...new Set(
+      linhasOriginais.map(row => row.cells[colIndex].textContent)
+    )];
+
+    const container = tabela.querySelector(`.combo-box[data-col="${colIndex}"]`);
+    const toggle = document.createElement("div");
+    toggle.className = "combo-box-toggle";
+    toggle.textContent = "Filtrar...";
+    container.appendChild(toggle);
+
+    const options = document.createElement("div");
+    options.className = "combo-options";
+
+    valoresUnicos.forEach(valor => {
+      const label = document.createElement("label");
+      label.innerHTML = `<input type="checkbox" value="${valor}" checked> ${valor}`;
+      options.appendChild(label);
+    });
+
+    container.appendChild(options);
+
+    // Toggle
+    toggle.addEventListener("click", () => {
+      document.querySelectorAll(".combo-box").forEach(cb => {
+        if (cb !== container) cb.classList.remove("open");
+      });
+      container.classList.toggle("open");
+    });
+
+    // Filtro ao mudar
+    options.addEventListener("change", filtrarTabela);
+  }
+
+  function filtrarTabela() {
+    const colunas = tabela.querySelectorAll(".combo-box");
+    const filtros = Array.from(colunas).map(combo => {
+      const checks = combo.querySelectorAll("input[type='checkbox']");
+      return Array.from(checks)
+        .filter(chk => chk.checked)
+        .map(chk => chk.value);
+    });
+
+    tbody.innerHTML = "";
+    linhasOriginais.forEach(row => {
+      const mostrar = filtros.every((valores, i) =>
+        valores.includes(row.cells[i].textContent)
+      );
+      if (mostrar) tbody.appendChild(row);
+    });
+  }
+
+  // Fecha dropdown ao clicar fora
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".combo-box")) {
+      document.querySelectorAll(".combo-box").forEach(cb => cb.classList.remove("open"));
+    }
+  });
+
+  // Inicializa combos
+  [0, 1, 2].forEach(col => criarComboBox(col));
+</script>
+
+</body>
+</html>

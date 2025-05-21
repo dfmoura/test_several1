@@ -1,14 +1,14 @@
-<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="UTF-8"  isELIgnored ="false"%>
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" isELIgnored="false" %>
 <%@ page import="java.util.*" %>
-<%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Detalhamento</title>
+  <title>Resumo Financeiro</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs/dist/theme/mermaid.min.css" />
   <style>
     :root {
@@ -78,14 +78,6 @@
       max-height: none !important;
     }
 
-    .gridjs-footer {
-      flex-shrink: 0;
-    }
-
-    .gridjs-search {
-      display: none !important;
-    }
-
     #font-controls {
       position: fixed;
       bottom: 10px;
@@ -106,25 +98,13 @@
       padding: 5px 10px;
     }
   </style>
+  <snk:load />
 </head>
 <body>
-<snk:query var="base">
-    SELECT 
-      ANO, MES, MES_ANO, DESCRNAT, DTNEG, ORIGEM, NUFIN,
-      CODPARC, NOMEPARC, CODPROJ, DTVENC, VLRDESDO, RECDESP,
-      TIPO, VLRBAIXA_CALC, CODNAT, PROVISAO, CONTA_BAIXA,
-      NOME_CONTA_BAIXA, FINANCEIRO, VLRLIQUIDO, MULTIPLICACAO_RECEITA_ANTERIOR
-    FROM VW_FIN_RESUMO_SATIS
-    WHERE RECDESP = 1
-      AND PROVISAO = 'N'
-      AND DTVENC BETWEEN :P_BAIXA.INI AND :P_BAIXA.FIN
-</snk:query>
-
-  
-  <h1>Detalhamento</h1>
+  <h1>Resumo Financeiro</h1>
 
   <div id="search-container">
-    <input type="text" id="quick-search" placeholder="Filtro rápido (use || para filtrar vários termos)..." />
+    <input type="text" id="quick-search" placeholder="Filtro rápido (use || para múltiplos termos)..." />
     <button id="export-btn">Exportar para Excel</button>
   </div>
 
@@ -133,10 +113,20 @@
   </div>
 
   <div id="font-controls">
-    Tamanho Fonte: 
+    Tamanho Fonte:
     <button onclick="alterarFonte('menor')">A-</button>
     <button onclick="alterarFonte('maior')">A+</button>
   </div>
+
+  <snk:query var="receita_baixada">
+    SELECT 
+      ANO, MES, MES_ANO, DESCRNAT, DTNEG, ORIGEM, NUFIN,
+      CODPARC, NOMEPARC, CODPROJ, DTVENC, VLRDESDO, RECDESP,
+      TIPO, VLRBAIXA_CALC, CODNAT, PROVISAO, CONTA_BAIXA,
+      NOME_CONTA_BAIXA, FINANCEIRO, VLRLIQUIDO, MULTIPLICACAO_RECEITA_ANTERIOR
+    FROM VW_FIN_RESUMO_SATIS
+    WHERE RECDESP = 1 AND PROVISAO = 'N' AND DTVENC BETWEEN :P_BAIXA.INI AND :P_BAIXA.FIN
+  </snk:query>
 
   <script src="https://cdn.jsdelivr.net/npm/gridjs/dist/gridjs.umd.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -144,37 +134,30 @@
     const colunas = [
       "ANO", "MES", "MES_ANO", "DESCRNAT", "DTNEG", "ORIGEM", "NUFIN",
       "CODPARC", "NOMEPARC", "CODPROJ", "DTVENC", "VLRDESDO", "RECDESP",
-      "VLRBAIXA", "CODNAT", "PROVISAO", "CONTA_BAIXA", "NOME_CONTA_BAIXA",
-      "FINANCEIRO", "VLRLIQUIDO", "TIPO", "MULTIPLICACAO_RECEITA_ANTERIOR"
+      "TIPO", "VLRBAIXA_CALC", "CODNAT", "PROVISAO", "CONTA_BAIXA",
+      "NOME_CONTA_BAIXA", "FINANCEIRO", "VLRLIQUIDO", "MULTIPLICACAO_RECEITA_ANTERIOR"
     ];
 
-  const dados = [
-    <c:forEach var="row" items="${base.rows}">
-      [
-        "${row.ANO}", "${row.MES}", "${row.MES_ANO}", "${row.DESCRNAT}", "${row.DTNEG}", "${row.ORIGEM}",
-        "${row.NUFIN}", "${row.CODPARC}", "${row.NOMEPARC}", "${row.CODPROJ}", "${row.DTVENC}",
-        ${row.VLRDESDO}, "${row.RECDESP}", ${row.VLRBAIXA_CALC}, "${row.CODNAT}", "${row.PROVISAO}",
-        "${row.CONTA_BAIXA}", "${row.NOME_CONTA_BAIXA}", "${row.FINANCEIRO}", ${row.VLRLIQUIDO},
-        "${row.TIPO}", ${row.MULTIPLICACAO_RECEITA_ANTERIOR}
-      ]<c:if test="${!rowStatus.last}">,</c:if>
-    </c:forEach>
-  ];
+    // Exemplo: substitua esta lista com os dados reais via AJAX ou JSP embedding
+    const dados = [
+      <c:forEach var="row" items="${receita_baixada.rows}">
+        [
+          "${row.ANO}", "${row.MES}", "${row.MES_ANO}", "${row.DESCRNAT}", "${row.DTNEG}", "${row.ORIGEM}", "${row.NUFIN}",
+          "${row.CODPARC}", "${row.NOMEPARC}", "${row.CODPROJ}", "${row.DTVENC}", "${row.VLRDESDO}", "${row.RECDESP}",
+          "${row.TIPO}", "${row.VLRBAIXA_CALC}", "${row.CODNAT}", "${row.PROVISAO}", "${row.CONTA_BAIXA}",
+          "${row.NOME_CONTA_BAIXA}", "${row.FINANCEIRO}", "${row.VLRLIQUIDO}", "${row.MULTIPLICACAO_RECEITA_ANTERIOR}"
+        ]<c:if test="${!rowStatus.last}">,</c:if>
+      </c:forEach>
+    ];
 
     let dadosFiltrados = [...dados];
 
     const grid = new gridjs.Grid({
-      columns: colunas.map(c => ({
-        name: c,
-        id: c,
-        formatter: (cell) => cell,
-        resizable: true
-      })),
+      columns: colunas.map(c => ({ name: c, id: c, formatter: (cell) => cell, resizable: true })),
       data: () => dadosFiltrados,
       search: false,
       sort: true,
-      pagination: {
-        limit: 10
-      },
+      pagination: { limit: 10 },
       fixedHeader: true,
       height: "100%"
     }).render(document.getElementById("tabela"));
@@ -191,8 +174,8 @@
       const ws_data = [colunas, ...dadosFiltrados];
       const ws = XLSX.utils.aoa_to_sheet(ws_data);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Detalhamento");
-      XLSX.writeFile(wb, "detalhamento_filtrado.xlsx");
+      XLSX.utils.book_append_sheet(wb, ws, "Resumo");
+      XLSX.writeFile(wb, "resumo_financeiro.xlsx");
     });
 
     function alterarFonte(acao) {
