@@ -103,12 +103,14 @@
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <snk:load/>
 </head>
 <body>
 <snk:query var="valoresnat">
     SELECT 
     TO_CHAR(REFERENCIA,'MM-YYYY') AS NUMES,
+    TO_CHAR(REFERENCIA,'MMYYYY') AS MESANO,
     SUM(CASE WHEN DET.TIPOMOV = 'DESPESA' THEN DET.VLRDESDOB ELSE 0 END) AS PROVISAO_DESPESA,
     SUM(CASE WHEN DET.TIPOMOV = 'RECEITA' THEN DET.VLRDESDOB ELSE 0 END) AS PROVISAO_RECEITA,
     DET.MES||' - '||TO_CHAR(DET.REFERENCIA,'YYYY') AS MES,
@@ -175,6 +177,7 @@
             <thead>
                 <tr>
                     <th>Mês</th>
+                    <th>Verificação</th>
                     <th>Provisionado Receita</th>
                     <th>Realizado em Receita</th>
                     <th>Provisionado Despesa</th>
@@ -186,7 +189,11 @@
             <tbody id="tableBody">
                 <c:forEach items="${valoresnat.rows}" var="row">
                     <tr data-mes="${row.MES}">
-                        <td class="clickable" onclick="abrirNivel2('${row.NUMES}')">${row.MES}</td>
+                        <td>${row.MES}</td>
+                        <td>
+                            <i class="fas fa-chart-pie clickable" style="color: #4CAF50; margin-right: 10px;" title="Sintético" onclick="abrir_det_nat_sintetico('${row.MESANO}')"></i>
+                            <i class="fas fa-chart-line clickable" style="color: #2196F3;" title="Analítico" onclick="abrir_det_nat_analitico('${row.MESANO}')"></i>
+                        </td>
                         <td><fmt:formatNumber value="${row.PROVISAO_RECEITA}" type="currency" currencySymbol="R$" /></td>
                         <td><fmt:formatNumber value="${row.REAL_RECEITA}" type="currency" currencySymbol="R$" /></td>
                         <td><fmt:formatNumber value="${row.PROVISAO_DESPESA}" type="currency" currencySymbol="R$" /></td>
@@ -201,14 +208,39 @@
 </div>
 
 <div class="footer">
-    <button onclick="abrir_nivel('lvl_ccy8vw', '')">Detalhamento por dias</button>
-    <button onclick="abrir_nivel2('lvl_akpljcj', '')">Resumo por Naturezas</button>
-    <button onclick="abrir_nivel3('lvl_ccy8wm', '')">Detalhamento Analítico por naturezas</button>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
 <script>
+
+
+    function abrir_det_real_desp_bai(mesano) {
+        var params = {'A_MESANO': parseInt(mesano)};
+        var level = 'lvl_a46a90p';
+        openLevel(level, params);
+    }
+
+    function abrir_det_real_rec_bai(mesano) {
+        var params = {'A_MESANO': parseInt(mesano)};
+        var level = 'lvl_a46a95l';
+        openLevel(level, params);
+    }
+
+    function abrir_det_nat_sintetico(mesano) {
+        var params = {'A_MESANO': parseInt(mesano)};
+        var level = 'lvl_a46a975';
+        openLevel(level, params);
+    }
+    
+    function abrir_det_nat_analitico(mesano) {
+        var params = {'A_MESANO': parseInt(mesano)};
+        var level = 'lvl_a46a995';
+        openLevel(level, params);
+    }    
+
+
     const allData = [];
     const labels = [];
     const provisaoreceita = [];
@@ -228,6 +260,7 @@
         divergenciareceita.push(${row.DIVERGENCIA_RECEITA});
         allData.push({
             mes: '${row.MES}',
+            mesano: '${row.MESANO}',
             provisaoReceita: ${row.PROVISAO_RECEITA},
             realReceita: ${row.REAL_RECEITA},
             provisaoDespesa: ${row.PROVISAO_DESPESA},
@@ -253,7 +286,7 @@
                     stack: 'Receita'
                 },
                 {
-                    label: 'Receita Realizada',
+                    label: 'Realizado Receita',
                     data: realreceita,
                     backgroundColor: 'rgba(10, 175, 160)',
                     hoverBackgroundColor: 'rgba(0, 140, 130)',
@@ -264,9 +297,9 @@
                 {
                     label: 'Divergência de Receita',
                     data: divergenciareceita,
-                    backgroundColor: 'rgba(60, 70, 150, 0)',
-                    hoverBackgroundColor: 'rgba(60, 70, 150, 0.2)',
-                    borderColor: 'rgba(60, 70, 150, 0)',
+                    backgroundColor: 'rgba(60, 70, 150, 0.7)',
+                    hoverBackgroundColor: 'rgba(60, 70, 150, 0.9)',
+                    borderColor: 'rgba(60, 70, 150, 0.7)',
                     borderWidth: 1,
                     stack: 'Receita'
                 },
@@ -280,7 +313,7 @@
                     stack: 'Despesa'
                 },
                 {
-                    label: 'Realizado de Despesa',
+                    label: 'Realizado Despesa',
                     data: realdespesa,
                     backgroundColor: 'rgba(215,220,35)',
                     hoverBackgroundColor: 'rgba(180,180,10)',
@@ -322,6 +355,22 @@
                 title: {
                     display: true,
                     text: 'Receitas e Despesas'
+                }
+            },
+            onClick: (event, elements) => {
+                if (elements && elements.length > 0) {
+                    const datasetIndex = elements[0].datasetIndex;
+                    const dataIndex = elements[0].index;
+                    const dataset = chart.data.datasets[datasetIndex];
+                    
+                    if (dataset.label === 'Realizado Despesa') {
+                        const mesano = allData[dataIndex].mesano;
+                        abrir_det_real_desp_bai(mesano);
+                    }
+                    if (dataset.label === 'Realizado Receita') {
+                        mesano = allData[dataIndex].mesano;
+                        abrir_det_real_rec_bai(mesano);
+                    }
                 }
             }
         }

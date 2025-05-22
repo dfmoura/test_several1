@@ -132,9 +132,9 @@
             background-color: #e6e6e6;
         }
         .chart-container {
-         height: 400px;
-         width: 100%;
-         position: relative;
+            height: calc(100vh - 120px); /* Updated to take full height */
+            width: 100%;
+            position: relative;
         }
 
          #columnChart {
@@ -258,36 +258,6 @@
             <div class="chart-container">
                 <canvas id="columnChart"></canvas>
             </div>
-            <div class="cards-container">
-                <div class="cards-column">
-                    <div class="card card-revenue" id="cardProvisaoReceita">
-                        <h3 id="provisaoReceita">0</h3>
-                        <p>Provisão de Receita</p>
-                    </div>
-                    <div class="card card-revenue" id="cardRealReceita">
-                        <h3 id="realReceita">0</h3>
-                        <p>Real de Receita</p>
-                    </div>
-                    <div class="card card-revenue" id="cardDivergenciaReceita">
-                        <h3 id="divergenciaReceita">0</h3>
-                        <p>Divergência de Receita</p>
-                    </div>
-                </div>
-                <div class="cards-column">
-                    <div class="card card-expense" id="cardProvisaoDespesa">
-                        <h3 id="provisaoDespesa">0</h3>
-                        <p>Provisão de Despesa</p>
-                    </div>
-                    <div class="card card-expense" id="cardRealDespesa">
-                        <h3 id="realDespesa">0</h3>
-                        <p>Real de Despesa</p>
-                    </div>
-                    <div class="card card-expense" id="cardDivergenciaDespesa">
-                        <h3 id="divergenciaDespesa">0</h3>
-                        <p>Divergência de Despesa</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -378,12 +348,7 @@
             const selectedData = Array.from(document.querySelectorAll('#valoresnat tr')).find(row => row.cells[0].textContent === selectedNatureza);
 
             if (selectedData) {
-                document.getElementById('provisaoReceita').textContent = selectedData.cells[1].textContent;
-                document.getElementById('realReceita').textContent = selectedData.cells[2].textContent;
-                document.getElementById('divergenciaReceita').textContent = selectedData.cells[3].textContent;
-                document.getElementById('provisaoDespesa').textContent = selectedData.cells[4].textContent;
-                document.getElementById('realDespesa').textContent = selectedData.cells[5].textContent;
-                document.getElementById('divergenciaDespesa').textContent = selectedData.cells[6].textContent;
+                updateChartWithSelectedNatureza();
             }
         }
 
