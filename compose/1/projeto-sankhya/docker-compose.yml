@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  oracle:
+    image: diogomou/oracle-xe-sankhya:latest
+    container_name: oracle-xe-sankhya
+    ports:
+      - "31521:1521"   # Porta do Oracle DB
+      - "8082:8080"   # APEX ou outro frontend se existir
+    environment:
+      - ORACLE_ALLOW_REMOTE=true
+      - ORACLE_PASSWORD=oracle
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'SELECT 1 FROM DUAL;' | sqlplus -s system/oracle@localhost:1521/XE"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  wildfly:
+    image: diogomou/sandbox-wildfly-sankhya:latest
+    container_name: wildfly-sankhya
+    ports:
+      - "8180:8080"   # Porta externa para acessar o Wildfly
+    depends_on:
+      oracle:
+        condition: service_healthy
+    environment:
+      - DB_HOST=oracle
+      - DB_PORT=1521
+      - DB_NAME=XE
+      - DB_USER=system
+      - DB_PASSWORD=oracle
+
+volumes:
+  oracle_data:

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Enquete - Linguagens de Programação</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    .option {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      margin: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+
+    .option:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Qual sua linguagem de programação favorita?</h2>
+    <button class="option">JavaScript</button>
+    <button class="option">Python</button>
+    <button class="option">Java</button>
+    <button class="option">C#</button>
+    <button class="option">C++</button>
+  </div>
+
+  <script>
+    // Seleciona todos os botões com a classe "option"
+    const options = document.querySelectorAll('.option');
+
+    // Adiciona um listener para cada botão
+    options.forEach(button => {
+      button.addEventListener('click', () => {
+        alert(`Você escolheu: ${button.textContent}`);
+      });
+    });
+  </script>
+</body>
+</html>
