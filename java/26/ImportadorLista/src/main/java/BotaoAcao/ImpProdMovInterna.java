@@ -28,6 +28,12 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
         Registro cabecalho = contexto.getLinhaPai();
         BigDecimal nunota = (BigDecimal) cabecalho.getCampo("NUNOTA");
 
+        // Verificação na TGFITE
+        if (!existeRegistroTgfite(nunota)) {
+            contexto.setMensagemRetorno("Validar lista complementar para seguir com importação de lista.");
+            return;
+        }
+
         byte[] blobData = getBlobFromTSIATA(nunota);
         if (blobData == null) {
             contexto.setMensagemRetorno("Arquivo não encontrado. Certifique-se de anexar o arquivo com nome 'lista'.");
@@ -36,6 +42,31 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
 
         processarCSV(blobData, nunota);
         contexto.setMensagemRetorno("Importação concluída com sucesso.");
+    }
+
+    private boolean existeRegistroTgfite(BigDecimal nunota) throws Exception {
+        JdbcWrapper jdbc = null;
+        NativeSql sql = null;
+        boolean existe = false;
+
+        try {
+            jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
+            jdbc.openSession();
+
+            sql = new NativeSql(jdbc);
+            sql.appendSql("SELECT 1 FROM TGFITE WHERE NUNOTA = :NUNOTA");
+            sql.setNamedParameter("NUNOTA", nunota);
+
+            ResultSet rs = sql.executeQuery();
+            if (rs.next()) {
+                existe = true;
+            }
+        } finally {
+            NativeSql.releaseResources(sql);
+            JdbcWrapper.closeSession(jdbc);
+        }
+
+        return existe;
     }
 
     private byte[] getBlobFromTSIATA(BigDecimal nunota) throws Exception {
@@ -79,7 +110,7 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
             jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
             jdbc.openSession();
 
-            // Buscar código da empresa a partir da TGFCAB
+            // Buscar código da empresa
             NativeSql sql = new NativeSql(jdbc);
             sql.appendSql("SELECT CODEMP FROM TGFCAB WHERE NUNOTA = :NUNOTA");
             sql.setNamedParameter("NUNOTA", nunota);
@@ -93,7 +124,7 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
             }
             NativeSql.releaseResources(sql);
 
-            // Verificar última sequência já inserida
+            // Verificar sequência inicial
             int sequencia = 1;
             sql = new NativeSql(jdbc);
             sql.appendSql("SELECT MAX(SEQUENCIA) AS SEQUENCIA FROM TGFITE WHERE NUNOTA = :NUNOTA");
@@ -108,7 +139,7 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
                 linha = linha.replace("\uFEFF", "");
                 linhaNum++;
 
-                if (linhaNum <= 2) continue; // Ignorar cabeçalhos
+                if (linhaNum <= 2) continue;
 
                 String[] colunas = linha.split(SEPARADOR);
                 if (colunas.length < 5) continue;

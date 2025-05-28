@@ -1,0 +1,5 @@
+fazer a verificação
+Se para este NUNOTA atual nao existir registro na 'TGFITE' não seguir com o insert, e enviar uma mensagem: 'Validar lista complementar para seguir com importação de lista'.
+caso contrario seguir com o insert....
+
+
