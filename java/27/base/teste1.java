@@ -28,8 +28,8 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
         Registro cabecalho = contexto.getLinhaPai();
         BigDecimal nunota = (BigDecimal) cabecalho.getCampo("NUNOTA");
 
-        // Verificação na TGFITE
-        if (!existeRegistroTgfite(nunota)) {
+        // VERIFICAÇÃO INICIAL NA TGFITE
+        if (existeItensParaNunota(nunota)) {
             contexto.setMensagemRetorno("Validar lista complementar para seguir com importação de lista.");
             return;
         }
@@ -44,7 +44,7 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
         contexto.setMensagemRetorno("Importação concluída com sucesso.");
     }
 
-    private boolean existeRegistroTgfite(BigDecimal nunota) throws Exception {
+    private boolean existeItensParaNunota(BigDecimal nunota) throws Exception {
         JdbcWrapper jdbc = null;
         NativeSql sql = null;
         boolean existe = false;
@@ -54,13 +54,14 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
             jdbc.openSession();
 
             sql = new NativeSql(jdbc);
-            sql.appendSql("SELECT 1 FROM TGFITE WHERE NUNOTA = :NUNOTA");
+            sql.appendSql("SELECT COUNT(*) AS TOTAL FROM TGFITE WHERE NUNOTA = :NUNOTA");
             sql.setNamedParameter("NUNOTA", nunota);
 
             ResultSet rs = sql.executeQuery();
-            if (rs.next()) {
+            if (rs.next() && rs.getInt("TOTAL") > 0) {
                 existe = true;
             }
+
         } finally {
             NativeSql.releaseResources(sql);
             JdbcWrapper.closeSession(jdbc);
@@ -110,7 +111,6 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
             jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
             jdbc.openSession();
 
-            // Buscar código da empresa
             NativeSql sql = new NativeSql(jdbc);
             sql.appendSql("SELECT CODEMP FROM TGFCAB WHERE NUNOTA = :NUNOTA");
             sql.setNamedParameter("NUNOTA", nunota);
@@ -124,7 +124,6 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
             }
             NativeSql.releaseResources(sql);
 
-            // Verificar sequência inicial
             int sequencia = 1;
             sql = new NativeSql(jdbc);
             sql.appendSql("SELECT MAX(SEQUENCIA) AS SEQUENCIA FROM TGFITE WHERE NUNOTA = :NUNOTA");

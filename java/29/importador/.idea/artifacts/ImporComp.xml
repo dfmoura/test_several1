@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="ImporComp">
+    <output-path>$PROJECT_DIR$/out/artifacts/ImporComp</output-path>
+    <root id="archive" name="ImporComp.jar">
+      <element id="module-output" name="importador" />
+    </root>
+  </artifact>
+</component>

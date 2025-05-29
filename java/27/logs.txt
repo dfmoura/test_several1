@@ -3,3 +3,63 @@ Se para este NUNOTA atual nao existir registro na 'TGFITE' não seguir com o ins
 caso contrario seguir com o insert....
 
 
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+na sequencia da inserção na 'TGFITE' fazer uma inserção na tabela 'AD_CONTROLELISTA'
+'AD_CONTROLELISTA':
+CODIGO	PK	NUMBER
+TP_LISTA		VARCHAR2
+PERFIL		VARCHAR2
+MATERIAL		VARCHAR2
+PESO_TOTAL		FLOAT
+CODUSU NUMBER
+
+o 'CODIGO' é sequencial de modo que se nao tiver nenhum registro utilizara o primeiro, caso contrario utilizar o proximo da sequencia.
+o 'TP_LISTA' deixar chapado lista inicial
+o 'PERFIL' será o 0 da lista importada
+o 'MATERIAL' será o 1 da lista importada
+o 'PESO_TOTAL' será o 4 da lista importada
+O 'CODUSU' utilizar o ContextoAcao.class para utilizar o  BigDecimal getUsuarioLogado();
+
+
+
+
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+quando entrar neste
+
+        if (existeItensParaNunota(nunota)) {
+            contexto.setMensagemRetorno("Validar lista substituta para seguir com importação de lista.");
+            return;
+        }
+		
+fazer tambem uma inserção na tabela 'AD_CONTROLELISTA'
+'AD_CONTROLELISTA':
+CODIGO	PK	NUMBER
+TP_LISTA		VARCHAR2
+PERFIL		VARCHAR2
+MATERIAL		VARCHAR2
+PESO_TOTAL		FLOAT
+CODUSU NUMBER
+
+o 'CODIGO' é sequencial de modo que se nao tiver nenhum registro utilizara o primeiro, caso contrario utilizar o proximo da sequencia.
+o 'TP_LISTA' deixar chapado lista inicial
+o 'PERFIL' será o 0 da lista importada
+o 'MATERIAL' será o 1 da lista importada
+o 'PESO_TOTAL' será o 4 da lista importada
+O 'CODUSU' utilizar o ContextoAcao.class para utilizar o  BigDecimal getUsuarioLogado();
+
+
+**** redigitar o codigo completo com esta ataulização
+
+
+
+
+**********************************************************************
+
+apos importar o csv fazer um tratamento nos dados para quando encontrar registro iguais na coluna '0' e '1' agrupa-los e agrupar somando a coluna '4' para os registro respectivos
+
+
+========================================================================
+
