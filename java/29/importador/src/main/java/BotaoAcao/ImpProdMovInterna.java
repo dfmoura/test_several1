@@ -28,9 +28,66 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
         Registro cabecalho = contexto.getLinhaPai();
         BigDecimal nunota = (BigDecimal) cabecalho.getCampo("NUNOTA");
 
-        // VERIFICAÇÃO INICIAL NA TGFITE
         if (existeItensParaNunota(nunota)) {
-            contexto.setMensagemRetorno("Validar lista complementar para seguir com importação de lista.");
+            byte[] blobData = getBlobFromTSIATA(nunota);
+            if (blobData != null) {
+                InputStream inputStream = new ByteArrayInputStream(blobData);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+
+                String linha;
+                int linhaNum = 0;
+
+                while ((linha = reader.readLine()) != null) {
+                    linhaNum++;
+                    if (linhaNum <= 2) continue;
+
+                    String[] colunas = linha.split(SEPARADOR);
+                    if (colunas.length < 5) break;
+
+                    String perfil = colunas[0].trim();
+                    String material = colunas[1].trim();
+                    String pesoTotalStr = colunas[4].trim().replace("\"", "").replace(".", "").replace(",", ".");
+
+                    BigDecimal pesoTotal = BigDecimal.ZERO;
+                    try {
+                        pesoTotal = new BigDecimal(pesoTotalStr);
+                    } catch (NumberFormatException e) {
+                        pesoTotal = BigDecimal.ZERO;
+                    }
+
+                    JdbcWrapper jdbc = null;
+                    NativeSql insertSql = null;
+                    try {
+                        jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
+                        jdbc.openSession();
+
+                        BigDecimal codUsu = contexto.getUsuarioLogado();
+                        BigDecimal proximoCodigo = getProximoCodigoControleLista(jdbc);
+
+                        insertSql = new NativeSql(jdbc);
+                        insertSql.appendSql("INSERT INTO AD_CONTROLELISTA (CODIGO, TP_LISTA, PERFIL, MATERIAL, PESO_TOTAL, CODUSU, NUNOTA, DTATUAL) " +
+                                "VALUES (:CODIGO, :TP_LISTA, :PERFIL, :MATERIAL, :PESO_TOTAL, :CODUSU, :NUNOTA, CURRENT_DATE)");
+                        insertSql.setNamedParameter("CODIGO", proximoCodigo);
+                        insertSql.setNamedParameter("TP_LISTA", "lista substituta");
+                        insertSql.setNamedParameter("PERFIL", perfil);
+                        insertSql.setNamedParameter("MATERIAL", material);
+                        insertSql.setNamedParameter("PESO_TOTAL", pesoTotal);
+                        insertSql.setNamedParameter("CODUSU", codUsu);
+                        insertSql.setNamedParameter("NUNOTA", nunota);
+                        insertSql.executeUpdate();
+
+                    } finally {
+                        NativeSql.releaseResources(insertSql);
+                        JdbcWrapper.closeSession(jdbc);
+                    }
+
+                    break; // processa só a primeira linha útil
+                }
+
+                reader.close();
+            }
+
+            contexto.setMensagemRetorno("Validar lista substituta para seguir com importação de lista.");
             return;
         }
 
@@ -40,8 +97,9 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
             return;
         }
 
-        processarCSV(blobData, nunota);
+        processarCSV(blobData, nunota, contexto);
         contexto.setMensagemRetorno("Importação concluída com sucesso.");
+        System.out.println("Fim da importação.");
     }
 
     private boolean existeItensParaNunota(BigDecimal nunota) throws Exception {
@@ -96,7 +154,7 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
         return conteudo;
     }
 
-    private void processarCSV(byte[] blobData, BigDecimal nunota) throws Exception {
+    private void processarCSV(byte[] blobData, BigDecimal nunota, ContextoAcao contexto) throws Exception {
         InputStream inputStream = new ByteArrayInputStream(blobData);
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
 
@@ -133,6 +191,8 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
                 sequencia = rs.getBigDecimal("SEQUENCIA").intValue() + 1;
             }
             NativeSql.releaseResources(sql);
+
+            BigDecimal codUsu = contexto.getUsuarioLogado();
 
             while ((linha = reader.readLine()) != null) {
                 linha = linha.replace("\uFEFF", "");
@@ -182,7 +242,6 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
                                 "FATURAR, VLRREPRED, VLRDESCBONIF, PERCDESC) " +
                                 "VALUES (:NUNOTA, :SEQUENCIA, :CODEMP, :CODPROD, 0, ' ', :USOPROD, 0, :QTDNEG, 0, 0, 0, 0, 0, " +
                                 "0, 0, 0, 0, 0, 0, 0, 'S', :CODVOL, 0, 'N', 'A', 0, 0, 'N', 0, 0, 0)");
-
                 insertSql.setNamedParameter("NUNOTA", nunota);
                 insertSql.setNamedParameter("SEQUENCIA", BigDecimal.valueOf(sequencia));
                 insertSql.setNamedParameter("CODEMP", codEmp);
@@ -190,13 +249,27 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
                 insertSql.setNamedParameter("USOPROD", usoProd);
                 insertSql.setNamedParameter("CODVOL", codVol);
                 insertSql.setNamedParameter("QTDNEG", qtdNeg);
-
                 insertSql.executeUpdate();
+
+                // Inserção na AD_CONTROLELISTA com NUNOTA e DTATUAL
+                BigDecimal codigo = getProximoCodigoControleLista(jdbc);
+                NativeSql insertControle = new NativeSql(jdbc);
+                insertControle.appendSql("INSERT INTO AD_CONTROLELISTA (CODIGO, TP_LISTA, PERFIL, MATERIAL, PESO_TOTAL, CODUSU, NUNOTA, DTATUAL) " +
+                        "VALUES (:CODIGO, :TP_LISTA, :PERFIL, :MATERIAL, :PESO_TOTAL, :CODUSU, :NUNOTA, CURRENT_DATE)");
+                insertControle.setNamedParameter("CODIGO", codigo);
+                insertControle.setNamedParameter("TP_LISTA", "lista inicial");
+                insertControle.setNamedParameter("PERFIL", perfil);
+                insertControle.setNamedParameter("MATERIAL", material);
+                insertControle.setNamedParameter("PESO_TOTAL", qtdNeg);
+                insertControle.setNamedParameter("CODUSU", codUsu);
+                insertControle.setNamedParameter("NUNOTA", nunota);
+                insertControle.executeUpdate();
+
                 sequencia++;
             }
 
             if (!erros.isEmpty()) {
-                StringBuilder erroMsg = new StringBuilder("Produtos não encontrados no cadastro:\n");
+                StringBuilder erroMsg = new StringBuilder("Produtos não encontrados:\n");
                 for (String erro : erros) erroMsg.append(erro).append("\n");
                 throw new Exception(erroMsg.toString());
             }
@@ -228,5 +301,23 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
         }
 
         return codProd;
+    }
+
+    private BigDecimal getProximoCodigoControleLista(JdbcWrapper jdbc) throws Exception {
+        NativeSql sql = null;
+        BigDecimal proximoCodigo = BigDecimal.ONE;
+
+        try {
+            sql = new NativeSql(jdbc);
+            sql.appendSql("SELECT MAX(CODIGO) AS MAX_CODIGO FROM AD_CONTROLELISTA");
+            ResultSet rs = sql.executeQuery();
+            if (rs.next() && rs.getBigDecimal("MAX_CODIGO") != null) {
+                proximoCodigo = rs.getBigDecimal("MAX_CODIGO").add(BigDecimal.ONE);
+            }
+        } finally {
+            NativeSql.releaseResources(sql);
+        }
+
+        return proximoCodigo;
     }
 }

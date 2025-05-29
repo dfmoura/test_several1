@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="ImporLista">
+    <output-path>$PROJECT_DIR$/out/artifacts/ImporLista</output-path>
+    <root id="archive" name="ImporLista.jar">
+      <element id="module-output" name="importador" />
+    </root>
+  </artifact>
+</component>

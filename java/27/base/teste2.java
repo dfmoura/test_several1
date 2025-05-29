@@ -28,9 +28,8 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
         Registro cabecalho = contexto.getLinhaPai();
         BigDecimal nunota = (BigDecimal) cabecalho.getCampo("NUNOTA");
 
-        // VERIFICAÇÃO INICIAL NA TGFITE
         if (existeItensParaNunota(nunota)) {
-            contexto.setMensagemRetorno("Validar lista complementar para seguir com importação de lista.");
+            contexto.setMensagemRetorno("Validar lista substituta para seguir com importação de lista.");
             return;
         }
 
@@ -40,8 +39,9 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
             return;
         }
 
-        processarCSV(blobData, nunota);
+        processarCSV(blobData, nunota, contexto);
         contexto.setMensagemRetorno("Importação concluída com sucesso.");
+        System.out.println("Fim da importação.");
     }
 
     private boolean existeItensParaNunota(BigDecimal nunota) throws Exception {
@@ -96,7 +96,7 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
         return conteudo;
     }
 
-    private void processarCSV(byte[] blobData, BigDecimal nunota) throws Exception {
+    private void processarCSV(byte[] blobData, BigDecimal nunota, ContextoAcao contexto) throws Exception {
         InputStream inputStream = new ByteArrayInputStream(blobData);
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
 
@@ -133,6 +133,8 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
                 sequencia = rs.getBigDecimal("SEQUENCIA").intValue() + 1;
             }
             NativeSql.releaseResources(sql);
+
+            BigDecimal codUsu = contexto.getUsuarioLogado();
 
             while ((linha = reader.readLine()) != null) {
                 linha = linha.replace("\uFEFF", "");
@@ -174,6 +176,7 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
                 }
                 NativeSql.releaseResources(sql);
 
+                // Inserção na TGFITE
                 insertSql = new NativeSql(jdbc);
                 insertSql.appendSql(
                         "INSERT INTO TGFITE (NUNOTA, SEQUENCIA, CODEMP, CODPROD, CODLOCALORIG, CONTROLE, USOPROD, CODCFO, " +
@@ -190,8 +193,24 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
                 insertSql.setNamedParameter("USOPROD", usoProd);
                 insertSql.setNamedParameter("CODVOL", codVol);
                 insertSql.setNamedParameter("QTDNEG", qtdNeg);
-
                 insertSql.executeUpdate();
+
+                // Inserção na AD_CONTROLELISTA (agora com NUNOTA incluso)
+                BigDecimal proximoCodigo = getProximoCodigoControleLista(jdbc);
+
+                NativeSql insertControle = new NativeSql(jdbc);
+                insertControle.appendSql(
+                        "INSERT INTO AD_CONTROLELISTA (CODIGO, TP_LISTA, PERFIL, MATERIAL, PESO_TOTAL, CODUSU, NUNOTA) " +
+                                "VALUES (:CODIGO, :TP_LISTA, :PERFIL, :MATERIAL, :PESO_TOTAL, :CODUSU, :NUNOTA)");
+                insertControle.setNamedParameter("CODIGO", proximoCodigo);
+                insertControle.setNamedParameter("TP_LISTA", "lista inicial");
+                insertControle.setNamedParameter("PERFIL", perfil);
+                insertControle.setNamedParameter("MATERIAL", material);
+                insertControle.setNamedParameter("PESO_TOTAL", qtdNeg);
+                insertControle.setNamedParameter("CODUSU", codUsu);
+                insertControle.setNamedParameter("NUNOTA", nunota);
+                insertControle.executeUpdate();
+
                 sequencia++;
             }
 
@@ -228,5 +247,23 @@ public class ImpProdMovInterna implements AcaoRotinaJava {
         }
 
         return codProd;
+    }
+
+    private BigDecimal getProximoCodigoControleLista(JdbcWrapper jdbc) throws Exception {
+        NativeSql sql = null;
+        BigDecimal proximoCodigo = BigDecimal.ONE;
+
+        try {
+            sql = new NativeSql(jdbc);
+            sql.appendSql("SELECT MAX(CODIGO) AS MAX_CODIGO FROM AD_CONTROLELISTA");
+            ResultSet rs = sql.executeQuery();
+            if (rs.next() && rs.getBigDecimal("MAX_CODIGO") != null) {
+                proximoCodigo = rs.getBigDecimal("MAX_CODIGO").add(BigDecimal.ONE);
+            }
+        } finally {
+            NativeSql.releaseResources(sql);
+        }
+
+        return proximoCodigo;
     }
 }
