@@ -2,13 +2,8 @@
   <library name="Libs Teste">
     <CLASSES>
       <root url="jar://$USER_HOME$/Downloads/mge-modelcore-4.28b37.jar!/" />
-      <root url="file://$USER_HOME$/Downloads/jdk1.8.0_202/lib" />
     </CLASSES>
     <JAVADOC />
-    <NATIVE>
-      <root url="file://$USER_HOME$/Downloads/jdk1.8.0_202/bin" />
-    </NATIVE>
     <SOURCES />
-    <jarDirectory url="file://$USER_HOME$/Downloads/jdk1.8.0_202/lib" recursive="false" />
   </library>
 </component>
