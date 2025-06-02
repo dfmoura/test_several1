@@ -27,6 +27,8 @@ O 'CODUSU' utilizar o ContextoAcao.class para utilizar o  BigDecimal getUsuarioL
 
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 quando entrar neste
 
         if (existeItensParaNunota(nunota)) {
@@ -51,8 +53,33 @@ o 'PESO_TOTAL' será o 4 da lista importada
 O 'CODUSU' utilizar o ContextoAcao.class para utilizar o  BigDecimal getUsuarioLogado();
 
 
-**** redigitar o codigo completo com esta ataulização
 
+
+
+
+utilizar texto abaixo como ideia para criar  texto tecnico de no sentido de  atividade em andamento (sem encher linguaça ser objetivo e claro , sem palavras que possam mascarar a situação, ser simples e objetivo), 
+
+
+
+
+
+em 9 paragrafos detalhado:
+ 
+ 29/05/25
+ primeiro paragrafo 9:00 as 12:10
+  segundo paragrafo 14:10 as 16:40
+    terceiro paragrafo 17:00 as 19:10
+ 30/05/25 
+quarto paragrafo 8:50 as 12:20
+quinto paragrafo 14:10 as 16:50
+    sexto paragrafo 17:20 as 19:20
+
+01/06/25
+setimo paragrafo 14:00 as 17:20
+
+08/06/25
+oitavo paragrafo 14:00 as 18:00
+nono paragrafo 20:00 as 22:00
 
 
 
@@ -62,4 +89,125 @@ apos importar o csv fazer um tratamento nos dados para quando encontrar registro
 
 
 ========================================================================
+
+
+
+
+
+
+
+=================================================
+
+fEITO DASH DE lista comparativa com os dados da tabela AD_CONTROLELISTA
+
+nivel superior do dash:
+select sta.nunota,sta.versao,sta.dtatual,sta.codusu,usu.nomeusu
+from AD_CONTROLELISTA sta
+inner join tsiusu usu on sta.codusu = usu.codusu
+where sta.tp_lista = 'tgfite'
+group by sta.nunota,sta.versao,sta.dtatual,sta.codusu,usu.nomeusu
+order by sta.nunota,sta.versao
+
+
+nivel inferior:
+SELECT
+NUNOTA,
+VERSAO,
+CODPROD,
+PERFIL,
+MATERIAL,
+
+SUM(CASE WHEN TP_LISTA = 'tgfite' THEN PESO_TOTAL END) AS PESO_TOTAL_ITE,
+SUM(CASE WHEN TP_LISTA = 'lista' THEN PESO_TOTAL END) AS PESO_TOTAL_LIS,
+SUM(CASE WHEN TP_LISTA = 'tgfite' THEN QTDENTREGUE END) AS QTDENTREGUE,
+
+CASE 
+    WHEN 
+        SUM(CASE WHEN TP_LISTA = 'tgfite' THEN QTDENTREGUE END) > 
+        SUM(CASE WHEN TP_LISTA = 'lista' THEN PESO_TOTAL END)
+    THEN 0
+    ELSE 1
+END AS VALIDACAO_1,
+CASE 
+    WHEN 
+        SUM(CASE WHEN TP_LISTA = 'tgfite' THEN QTDENTREGUE END) > 
+        SUM(CASE WHEN TP_LISTA = 'lista' THEN PESO_TOTAL END)
+    THEN 'Qte. Entregue Sistema > Peso Total Lista'
+    ELSE 'Liberado'
+END AS HIST_VALIDACAO_1,
+
+
+
+CASE
+    WHEN 
+        COUNT(CASE WHEN TP_LISTA = 'tgfite' THEN 1 END) > 0 AND
+        COUNT(CASE WHEN TP_LISTA = 'lista' THEN 1 END) = 0 AND
+        SUM(CASE WHEN TP_LISTA = 'tgfite' THEN QTDENTREGUE END) > 0
+    THEN 0
+    ELSE 1
+END AS VALIDACAO_2,
+CASE
+    WHEN 
+        COUNT(CASE WHEN TP_LISTA = 'tgfite' THEN 1 END) > 0 AND
+        COUNT(CASE WHEN TP_LISTA = 'lista' THEN 1 END) = 0 AND
+        SUM(CASE WHEN TP_LISTA = 'tgfite' THEN QTDENTREGUE END) > 0
+    THEN 'Item no Sistem e fora Lista e Possui Qtd. Entregue'
+    ELSE 'Liberado'
+END AS HIST_VALIDACAO_2
+
+FROM AD_CONTROLELISTA
+WHERE
+NUNOTA = :A_NUNOTA
+AND VERSAO = :A_VERSAO
+
+GROUP BY
+NUNOTA,
+VERSAO,
+CODPROD,
+PERFIL,
+MATERIAL
+ORDER BY NUNOTA,VERSAO
+
+================================================
+
+QUEBRAR O A VERIFICAÇÃO DO BOTAO 'Importar Produtos' em 3 verificações
+
+--- a) se não existir produtos na ite seguir com a importação da lista. = feito
+
+
+--- b) se existir produtos na ite e estiver divergencia no dash, importar nova lista comparativa. = pendente
+
+--- c) se existir produtos na ite e não estiver divergencia no dash, seguir fluxo. = pendente
+
+
+==============================================
+
+
+criar fluxo para seguir de c)
+
+
+CONTINUAR O PROCESSO DESTE ELSE:
+
+else {
+                contexto.setMensagemRetorno("Seguiremos o fluxo do processo.");
+            }
+
+VAMOS CAPTURAR AS VARIAVIES DESTE SELECT, JA EXISTE PARAMETROS DO SELECT NO CODIGO:
+
+
+SELECT NUNOTA,CODPROD,SUM(PESO_TOTAL) AS QTDNEG
+FROM AD_CONTROLELISTA
+WHERE NUNOTA = :NUNOTA AND VERSAO = :VERSAO AND TP_LISTA = 'lista'
+GROUP BY NUNOTA,VERSAO,CODPROD
+
+
+A PARTIR DESTE SELECT VAMOS ORGANIZAR O QUE FALTA PARA SEGUIR COM UM INSERT/UPDATE OU DELETE NA TGFITE
+1) NO SELECT ANTERIOR QUANDO NAO TER UM PRODUTO QUE TEM NA TGFITE (SELECT CODPROD FROM TGFITE WHERE NUNOTA = :NUNOTA) = DELETE
+2) NO SELECT ANTERIOR QUANDO TEM UM PRODUTO QUE TEM NA TGFITE (SELECT CODPROD FROM TGFITE WHERE NUNOTA = :NUNOTA) = UPDATE QTDNEG PARA O PRODUTO RESPECTIVO
+2) NO SELECT ANTERIOR QUANDO TEM UM PRODUTO QUE NAO TEM NA TGFITE (SELECT CODPROD FROM TGFITE WHERE NUNOTA = :NUNOTA) = INSERT
+
+*LEMBRANDO EU O CAMPO SEQUENCIO É SEMPRE O PRIMEIRO QUANDO NAO TEM E O PROXIMO QUANDO TEM FILTRADO PELO NUNOTA.
+
+
+
 

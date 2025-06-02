@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Controle de Demandas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.38.0/supabase.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Login Styles */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header h1 {
+            color: #4a5568;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-edit {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #dd6b20;
+        }
+
+        /* Dashboard Styles */
+        .dashboard {
+            display: none;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header h1 {
+            color: #4a5568;
+            font-size: 1.8rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f7fafc;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #4a5568;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-realizado {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-pendente {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            margin: 50px auto;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .modal-header h2 {
+            color: #4a5568;
+        }
+
+        .close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #a0aec0;
+        }
+
+        .close:hover {
+            color: #4a5568;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #feb2b2;
+        }
+
+        .alert-success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .search-box {
+                min-width: 100%;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Sistema de Demandas</h1>
+                <p>Faça login para acessar o sistema</p>
+            </div>
+            
+            <div id="loginAlert"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">E-mail</label>
+                    <input type="email" id="loginEmail" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Senha</label>
+                    <input type="password" id="loginPassword" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Entrar</button>
+                <button type="button" class="btn btn-secondary" onclick="toggleRegister()">Criar Conta</button>
+            </form>
+            
+            <form id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label for="registerName">Nome Completo</label>
+                    <input type="text" id="registerName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">E-mail</label>
+                    <input type="email" id="registerEmail" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Senha</label>
+                    <input type="password" id="registerPassword" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmar Senha</label>
+                    <input type="password" id="confirmPassword" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Criar Conta</button>
+                <button type="button" class="btn btn-secondary" onclick="toggleRegister()">Voltar ao Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Principal -->
+    <div id="dashboard" class="dashboard">
+        <div class="container">
+            <div class="header">
+                <h1>Controle de Demandas</h1>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">Usuário</span>
+                    <button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Pesquisar demandas...">
+                    <span class="search-icon">🔍</span>
+                </div>
+                <button class="btn btn-success" onclick="openModal()">+ Nova Demanda</button>
+            </div>
+
+            <div class="table-container">
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando demandas...</p>
+                </div>
+                <table id="demandsTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Solicitação</th>
+                            <th>Departamento</th>
+                            <th>Desenvolvedor</th>
+                            <th>Custo</th>
+                            <th>Status Pagamento</th>
+                            <th>Data Entrega</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="demandsBody">
+                        <!-- Dados serão inseridos aqui -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para CRUD -->
+    <div id="demandModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Nova Demanda</h2>
+                <button class="close" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <div id="modalAlert"></div>
+            
+            <form id="demandForm">
+                <input type="hidden" id="demandId">
+                
+                <div class="form-group">
+                    <label for="solicitacao">Solicitação</label>
+                    <input type="text" id="solicitacao" class="form-control" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="departamento">Departamento</label>
+                        <select id="departamento" class="form-control" required>
+                            <option value="">Selecione...</option>
+                            <option value="TI">TI</option>
+                            <option value="RH">RH</option>
+                            <option value="Financeiro">Financeiro</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Vendas">Vendas</option>
+                            <option value="Operações">Operações</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="desenvolvedor">Desenvolvedor</label>
+                        <input type="text" id="desenvolvedor" class="form-control" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="custo">Custo (R$)</label>
+                        <input type="number" id="custo" class="form-control" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="statusPagamento">Status Pagamento</label>
+                        <select id="statusPagamento" class="form-control" required>
+                            <option value="">Selecione...</option>
+                            <option value="Pendente">Pendente</option>
+                            <option value="Realizado">Realizado</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dataEntrega">Data de Entrega</label>
+                    <input type="date" id="dataEntrega" class="form-control" required>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">Salvar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
+        // Inicialização do cliente Supabase
+        let supabase;
+        let currentUser = null;
+        let demands = [];
+
+        // Inicializar aplicação
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar se as credenciais do Supabase foram configuradas
+            if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+                showAlert('loginAlert', 'Para usar este sistema, configure as credenciais do Supabase no código JavaScript.', 'error');
+                return;
+            }
+            
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                checkAuthState();
+            } catch (error) {
+                console.error('Erro ao inicializar Supabase:', error);
+                showAlert('loginAlert', 'Erro ao conectar com o banco de dados.', 'error');
+            }
+        });
+
+        // Verificar estado de autenticação
+        async function checkAuthState() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    currentUser = user;
+                    showDashboard();
+                    loadDemands();
+                } else {
+                    showLogin();
+                }
+            } catch (error) {
+                console.error('Erro ao verificar autenticação:', error);
+                showLogin();
+            }
+        }
+
+        // Alternar entre login e registro
+        function toggleRegister() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            
+            if (loginForm.style.display === 'none') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+            }
+            clearAlert('loginAlert');
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) throw error;
+                
+                currentUser = data.user;
+                showDashboard();
+                loadDemands();
+                
+            } catch (error) {
+                console.error('Erro no login:', error);
+                showAlert('loginAlert', error.message, 'error');
+            }
+        });
+
+        // Registro
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                showAlert('loginAlert', 'As senhas não coincidem.', 'error');
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: name
+                        }
+                    }
+                });
+                
+                if (error) throw error;
+                
+                showAlert('loginAlert', 'Conta criada com sucesso! Verifique seu e-mail para confirmar.', 'success');
+                toggleRegister();
+                
+            } catch (error) {
+                console.error('Erro no registro:', error);
+                showAlert('loginAlert', error.message, 'error');
+            }
+        });
+
+        // Logout
+        async function logout() {
+            try {
+                await supabase.auth.signOut();
+                currentUser = null;
+                showLogin();
+                clearForms();
+            } catch (error) {
+                console.error('Erro no logout:', error);
+            }
+        }
+
+        // Mostrar tela de login
+        function showLogin() {
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('dashboard').style.display = 'none';
+        }
+
+        // Mostrar dashboard
+        function showDashboard() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            
+            // Atualizar informações do usuário
+            if (currentUser) {
+                const userName = currentUser.user_metadata?.full_name || currentUser.email;
+                document.getElementById('userName').textContent = userName;
+                document.getElementById('userAvatar').textContent = userName.charAt(0).toUpperCase();
+            }
+        }
+
+        // Carregar demandas
+        async function loadDemands() {
+            showLoading(true);
+            
+            try {
+                const { data, error } = await supabase
+                    .from('demandas')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                demands = data || [];
+                renderDemands(demands);
+                
+            } catch (error) {
+                console.error('Erro ao carregar demandas:', error);
+                showAlert('', 'Erro ao carregar demandas. Verifique se a tabela "demandas" existe no Supabase.', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Renderizar tabela de demandas
+        function renderDemands(demandsToRender) {
+            const tbody = document.getElementById('demandsBody');
+            tbody.innerHTML = '';
+            
+            if (demandsToRender.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #a0aec0;">Nenhuma demanda encontrada</td></tr>';
+                return;
+            }
+            
+            demandsToRender.forEach(demand => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${demand.solicitacao}</td>
+                    <td>${demand.departamento}</td>
+                    <td>${demand.desenvolvedor}</td>
+                    <td>R$ ${parseFloat(demand.custo).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td>
+                        <span class="status-badge ${demand.status_pagamento.toLowerCase() === 'realizado' ? 'status-realizado' : 'status-pendente'}">
+                            ${demand.status_pagamento}
+                        </span>
+                    </td>
+                    <td>${new Date(demand.data_entrega).toLocaleDateString('pt-BR')}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-edit btn-sm" onclick="editDemand(${demand.id})">Editar</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteDemand(${demand.id})">Excluir</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Abrir modal
+        function openModal(demand = null) {
+            const modal = document.getElementById('demandModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('demandForm');
+            
+            clearAlert('modalAlert');
+            form.reset();
+            
+            if (demand) {
+                title.textContent = 'Editar Demanda';
+                document.getElementById('demandId').value = demand.id;
+                document.getElementById('solicitacao').value = demand.solicitacao;
+                document.getElementById('departamento').value = demand.departamento;
+                document.getElementById('desenvolvedor').value = demand.desenvolvedor;
+                document.getElementById('custo').value = demand.custo;
+                document.getElementById('statusPagamento').value = demand.status_pagamento;
+                document.getElementById('dataEntrega').value = demand.data_entrega;
+            } else {
+                title.textContent = 'Nova Demanda';
+                document.getElementById('demandId').value = '';
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        // Fechar modal
+        function closeModal() {
+            document.getElementById('demandModal').style.display = 'none';
+        }
+
+        // Editar demanda
+        function editDemand(id) {
+            const demand = demands.find(d => d.id === id);
+            if (demand) {
+                openModal(demand);
+            }
+        }
+
+        // Excluir demanda
+        async function deleteDemand(id) {
+            if (!confirm('Tem certeza que deseja excluir esta demanda?')) {
+                return;
+            }
+            
+            try {
+                const { error } = await supabase
+                    .from('demandas')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                
+                await loadDemands();
+                
+            } catch (error) {
+                console.error('Erro ao excluir demanda:', error);
+                alert('Erro ao excluir demanda.');
+            }
+        }
+
+        // Salvar demanda
+        document.getElementById('demandForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const demandId = document.getElementById('demandId').value;
+            const demandData = {
+                solicitacao: document.getElementById('solicitacao').value,
+                departamento: document.getElementById('departamento').value,
+                desenvolvedor: document.getElementById('desenvolvedor').value,
+                custo: parseFloat(document.getElementById('custo').value),
+                status_pagamento: document.getElementById('statusPagamento').value,
+                data_entrega: document.getElementById('dataEntrega').value,
+                user_id: currentUser.id
+            };
+            
+            try {
+                let result;
+                
+                if (demandId) {
+                    // Atualizar
+                    result = await supabase
+                        .from('demandas')
+                        .update(demandData)
+                        .eq('id', demandId);
+                } else {
+                    // Criar
+                    result = await supabase
+                        .from('demandas')
+                        .insert([demandData]);
+                }
+                
+                if (result.error) throw result.error;
+                
+                closeModal();
+                await loadDemands();
+                
+            } catch (error) {
+                console.error('Erro ao salvar demanda:', error);
+                showAlert('modalAlert', error.message, 'error');
+            }
+        });
+
+        // Pesquisa
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            if (!searchTerm) {
+                renderDemands(demands);
+                return;
+            }
+            
+            const filteredDemands = demands.filter(demand => 
+                demand.solicitacao.toLowerCase().includes(searchTerm) ||
+                demand.departamento.toLowerCase().includes(searchTerm) ||
+                demand.desenvolvedor.toLowerCase().includes(searchTerm) ||
+                demand.status_pagamento.toLowerCase().includes(searchTerm)
+            );
+            
+            renderDemands(filteredDemands);
+        });
+
+        // Utilitários
+        function showAlert(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+        }
+
+        function clearAlert(containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '';
+            }
+        }
+
+        function showLoading(show) {
+            const loadingElement = document.getElementById('loading');
+            const tableElement = document.getElementById('demandsTable');
+            
+            if (show) {
+                loadingElement.style.display = 'block';
+                tableElement.style.display = 'none';
+            } else {
+                loadingElement.style.display = 'none';
+                tableElement.style.display = 'table';
+            }
+        }
+
+        function clearForms() {
+            document.getElementById('loginForm').reset();
+            document.getElementById('registerForm').reset();
+            document.getElementById('demandForm').reset();
+            clearAlert('loginAlert');
+            clearAlert('modalAlert');
+        }
+
+        // Fechar modal ao clicar fora
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('demandModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Formatação automática de valores monetários
+        document.getElementById('custo').addEventListener('blur', function(e) {
+            const value = parseFloat(e.target.value);
+            if (!isNaN(value)) {
+                e.target.value = value.toFixed(2);
+            }
+        });
+    </script>
+</body>
+</html>            

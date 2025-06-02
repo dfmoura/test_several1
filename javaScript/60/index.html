@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloomberg Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #ff6600;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Tela de Login */
+        .login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
+        }
+
+        .login-container {
+            background: #000;
+            border: 2px solid #ff6600;
+            padding: 40px;
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255, 102, 0, 0.3);
+        }
+
+        .login-title {
+            color: #ff6600;
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            color: #ff6600;
+            margin-bottom: 5px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #000;
+            border: 1px solid #ff6600;
+            color: #ff6600;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #ffaa00;
+            box-shadow: 0 0 5px rgba(255, 102, 0, 0.5);
+        }
+
+        .login-btn {
+            background: #ff6600;
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn:hover {
+            background: #ffaa00;
+            box-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
+        }
+
+        /* Terminal Principal */
+        .terminal-screen {
+            display: none;
+            height: 100vh;
+            background: #000;
+            color: #ff6600;
+        }
+
+        .terminal-header {
+            background: #ff6600;
+            color: #000;
+            padding: 10px 20px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-item {
+            background: #000;
+            color: #ff6600;
+            padding: 5px 15px;
+            cursor: pointer;
+            border: 1px solid #ff6600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover {
+            background: #ff6600;
+            color: #000;
+        }
+
+        .terminal-content {
+            display: flex;
+            height: calc(100vh - 50px);
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #111;
+            border-right: 1px solid #ff6600;
+            padding: 20px;
+        }
+
+        .sidebar h3 {
+            color: #ff6600;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            font-size: 14px;
+        }
+
+        .menu-item {
+            padding: 8px 0;
+            cursor: pointer;
+            border-bottom: 1px solid #333;
+            transition: color 0.3s ease;
+        }
+
+        .menu-item:hover {
+            color: #ffaa00;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .data-card {
+            background: #111;
+            border: 1px solid #ff6600;
+            padding: 15px;
+        }
+
+        .data-card h4 {
+            color: #ff6600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .data-row:last-child {
+            border-bottom: none;
+        }
+
+        .positive {
+            color: #00ff00;
+        }
+
+        .negative {
+            color: #ff0000;
+        }
+
+        .terminal-input {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #000;
+            border-top: 1px solid #ff6600;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .terminal-input span {
+            color: #ff6600;
+            margin-right: 10px;
+        }
+
+        .terminal-input input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #ff6600;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            outline: none;
+        }
+
+        /* Animações */
+        .blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .typing-animation {
+            overflow: hidden;
+            white-space: nowrap;
+            animation: typing 2s steps(40, end);
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        .status-bar {
+            background: #333;
+            color: #ff6600;
+            padding: 5px 20px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela de Login -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-container">
+            <div class="login-title">Bloomberg Terminal</div>
+            <form class="login-form" id="loginForm">
+                <div class="form-group">
+                    <label for="username">Usuário:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="login-btn">Conectar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Terminal Principal -->
+    <div class="terminal-screen" id="terminalScreen">
+        <div class="terminal-header">
+            <div>BLOOMBERG TERMINAL - VERSÃO 2025</div>
+            <div class="terminal-nav">
+                <div class="nav-item">MERCADOS</div>
+                <div class="nav-item">NOTÍCIAS</div>
+                <div class="nav-item">ANÁLISE</div>
+                <div class="nav-item">PORTFÓLIO</div>
+            </div>
+            <div id="currentTime"></div>
+        </div>
+
+        <div class="terminal-content">
+            <div class="sidebar">
+                <h3>Menu Principal</h3>
+                <div class="menu-item">Índices Globais</div>
+                <div class="menu-item">Ações</div>
+                <div class="menu-item">Commodities</div>
+                <div class="menu-item">Moedas</div>
+                <div class="menu-item">Bonds</div>
+                <div class="menu-item">Derivatives</div>
+                <div class="menu-item">Crypto</div>
+                <div class="menu-item">News Feed</div>
+                <div class="menu-item">Analytics</div>
+                <div class="menu-item">Portfolio</div>
+            </div>
+
+            <div class="main-content">
+                <div class="typing-animation">
+                    <h2>BEM-VINDO AO BLOOMBERG TERMINAL</h2>
+                </div>
+                
+                <div class="data-grid">
+                    <div class="data-card">
+                        <h4>Índices Principais</h4>
+                        <div class="data-row">
+                            <span>S&P 500</span>
+                            <span class="positive">+1.25%</span>
+                        </div>
+                        <div class="data-row">
+                            <span>NASDAQ</span>
+                            <span class="positive">+2.10%</span>
+                        </div>
+                        <div class="data-row">
+                            <span>DOW JONES</span>
+                            <span class="negative">-0.45%</span>
+                        </div>
+                        <div class="data-row">
+                            <span>IBOVESPA</span>
+                            <span class="positive">+0.85%</span>
+                        </div>
+                    </div>
+
+                    <div class="data-card">
+                        <h4>Moedas</h4>
+                        <div class="data-row">
+                            <span>USD/BRL</span>
+                            <span class="negative">5.1234</span>
+                        </div>
+                        <div class="data-row">
+                            <span>EUR/USD</span>
+                            <span class="positive">1.0856</span>
+                        </div>
+                        <div class="data-row">
+                            <span>GBP/USD</span>
+                            <span class="positive">1.2645</span>
+                        </div>
+                        <div class="data-row">
+                            <span>USD/JPY</span>
+                            <span class="negative">149.25</span>
+                        </div>
+                    </div>
+
+                    <div class="data-card">
+                        <h4>Commodities</h4>
+                        <div class="data-row">
+                            <span>OURO</span>
+                            <span class="positive">$2,045.50</span>
+                        </div>
+                        <div class="data-row">
+                            <span>PETRÓLEO</span>
+                            <span class="negative">$78.25</span>
+                        </div>
+                        <div class="data-row">
+                            <span>PRATA</span>
+                            <span class="positive">$24.85</span>
+                        </div>
+                        <div class="data-row">
+                            <span>COBRE</span>
+                            <span class="positive">$8,456</span>
+                        </div>
+                    </div>
+
+                    <div class="data-card">
+                        <h4>Crypto</h4>
+                        <div class="data-row">
+                            <span>BITCOIN</span>
+                            <span class="positive">$67,850</span>
+                        </div>
+                        <div class="data-row">
+                            <span>ETHEREUM</span>
+                            <span class="positive">$3,245</span>
+                        </div>
+                        <div class="data-row">
+                            <span>BNB</span>
+                            <span class="negative">$585.50</span>
+                        </div>
+                        <div class="data-row">
+                            <span>SOLANA</span>
+                            <span class="positive">$145.25</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-card">
+                    <h4>Feed de Notícias</h4>
+                    <div class="data-row">
+                        <span>12:45</span>
+                        <span>FED mantém taxa de juros em 5.25%</span>
+                    </div>
+                    <div class="data-row">
+                        <span>12:30</span>
+                        <span>Petrobras anuncia novo dividendo extraordinário</span>
+                    </div>
+                    <div class="data-row">
+                        <span>12:15</span>
+                        <span>Vale supera expectativas no Q4</span>
+                    </div>
+                    <div class="data-row">
+                        <span>12:00</span>
+                        <span>Inflação nos EUA atinge 3.2% em maio</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span>STATUS: CONECTADO</span>
+            <span>USUÁRIO: <span id="loggedUser"></span></span>
+            <span>LATÊNCIA: 15ms</span>
+        </div>
+
+        <div class="terminal-input">
+            <span>></span>
+            <input type="text" id="terminalInput" placeholder="Digite um comando...">
+            <span class="blink">_</span>
+        </div>
+    </div>
+
+    <script>
+        // Elementos DOM
+        const loginScreen = document.getElementById('loginScreen');
+        const terminalScreen = document.getElementById('terminalScreen');
+        const loginForm = document.getElementById('loginForm');
+        const currentTimeEl = document.getElementById('currentTime');
+        const loggedUserEl = document.getElementById('loggedUser');
+        const terminalInput = document.getElementById('terminalInput');
+
+        // Função de login
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Simulação de autenticação (aceita qualquer usuário/senha)
+            if (username && password) {
+                loginScreen.style.display = 'none';
+                terminalScreen.style.display = 'block';
+                loggedUserEl.textContent = username.toUpperCase();
+                startTerminal();
+            } else {
+                alert('Por favor, preencha todos os campos');
+            }
+        });
+
+        // Atualizar relógio
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('pt-BR', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            currentTimeEl.textContent = timeString;
+        }
+
+        // Iniciar terminal
+        function startTerminal() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            // Simular atualizações de dados
+            setInterval(updateMarketData, 5000);
+        }
+
+        // Atualizar dados do mercado (simulação)
+        function updateMarketData() {
+            const positiveElements = document.querySelectorAll('.positive');
+            const negativeElements = document.querySelectorAll('.negative');
+            
+            positiveElements.forEach(el => {
+                if (Math.random() > 0.7) {
+                    const currentValue = parseFloat(el.textContent.replace(/[^0-9.-]/g, ''));
+                    if (!isNaN(currentValue)) {
+                        const change = (Math.random() - 0.5) * 0.1;
+                        const newValue = (currentValue + change).toFixed(2);
+                        if (el.textContent.includes('%')) {
+                            el.textContent = `+${newValue}%`;
+                        } else if (el.textContent.includes('$')) {
+                            el.textContent = `$${newValue}`;
+                        } else {
+                            el.textContent = newValue;
+                        }
+                    }
+                }
+            });
+        }
+
+        // Terminal input handler
+        terminalInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const command = this.value.toLowerCase().trim();
+                processCommand(command);
+                this.value = '';
+            }
+        });
+
+        // Processar comandos do terminal
+        function processCommand(command) {
+            const mainContent = document.querySelector('.main-content');
+            
+            switch(command) {
+                case 'help':
+                    showHelp();
+                    break;
+                case 'clear':
+                    clearScreen();
+                    break;
+                case 'status':
+                    showStatus();
+                    break;
+                case 'time':
+                    alert(`Horário atual: ${new Date().toLocaleString('pt-BR')}`);
+                    break;
+                default:
+                    if (command) {
+                        alert(`Comando não reconhecido: ${command}\nDigite 'help' para ver os comandos disponíveis.`);
+                    }
+            }
+        }
+
+        function showHelp() {
+            alert(`Comandos disponíveis:
+            
+HELP - Mostra esta ajuda
+CLEAR - Limpa a tela
+STATUS - Mostra status do sistema
+TIME - Mostra horário atual`);
+        }
+
+        function clearScreen() {
+            const mainContent = document.querySelector('.main-content');
+            mainContent.innerHTML = '<div class="typing-animation"><h2>TELA LIMPA</h2></div>';
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        }
+
+        function showStatus() {
+            alert(`STATUS DO SISTEMA:
+            
+Conexão: ATIVA
+Latência: 15ms
+Feeds: 12 ATIVOS
+Última atualização: ${new Date().toLocaleTimeString('pt-BR')}`);
+        }
+
+        // Menu interativo
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const itemName = this.textContent;
+                alert(`Carregando módulo: ${itemName}\n\nEste é um protótipo. Funcionalidade será implementada em breve.`);
+            });
+        });
+
+        // Navegação do header
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const section = this.textContent;
+                alert(`Acessando seção: ${section}\n\nRedirecionamento em desenvolvimento.`);
+            });
+        });
+    </script>

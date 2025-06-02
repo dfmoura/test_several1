@@ -1,3 +1,4 @@
+// Pacote e imports
 package BotaoAcao;
 
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
@@ -15,10 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.util.*;
 
-/**
- * Classe responsável por importar dados de itens da nota fiscal e/ou de arquivo CSV
- * e inseri-los na tabela AD_CONTROLELISTA para controle posterior.
- */
 public class ImportarItensParaControleLista implements AcaoRotinaJava {
 
     private static final String SEPARADOR = ";";
@@ -38,27 +35,27 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
             jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
             jdbc.openSession();
 
-            // 1. Processa os itens da nota TGFITE
-            processarItensNota(jdbc, nunota, contexto);
+            // CORRIGIDO: passar nunota para buscar versão por nota
+            BigDecimal versao = getProximaVersao(jdbc, nunota);
 
-            // 2. Processa o conteúdo do CSV, caso exista
+            processarItensNota(jdbc, nunota, contexto, versao);
+
             byte[] csvData = buscarCSVPorNota(jdbc, nunota);
             if (csvData != null) {
-                processarCSVComAgrupamento(jdbc, csvData, nunota, contexto);
+                processarCSVComAgrupamento(jdbc, csvData, nunota, contexto, versao);
             } else {
                 System.out.println("Nenhum arquivo CSV encontrado para a nota: " + nunota);
             }
 
-            contexto.setMensagemRetorno("Importação concluída com sucesso.");
+            atualizarStatusLista(jdbc, nunota);
+
+            contexto.setMensagemRetorno("Importação concluída com sucesso. Versão: " + versao);
         } finally {
             JdbcWrapper.closeSession(jdbc);
         }
     }
 
-    /**
-     * Processa os itens da nota fiscal e os insere na tabela AD_CONTROLELISTA.
-     */
-    private void processarItensNota(JdbcWrapper jdbc, BigDecimal nunota, ContextoAcao contexto) throws Exception {
+    private void processarItensNota(JdbcWrapper jdbc, BigDecimal nunota, ContextoAcao contexto, BigDecimal versao) throws Exception {
         NativeSql query = null;
         ResultSet rs = null;
 
@@ -89,7 +86,8 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
                         nunota,
                         rs.getBigDecimal("PESO_TOTAL"),
                         rs.getBigDecimal("QTDENTREGUE"),
-                        usuarioLogado
+                        usuarioLogado,
+                        versao
                 );
             }
         } finally {
@@ -98,33 +96,7 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
         }
     }
 
-    /**
-     * Lê o CSV da tabela TSIATA associado à nota fiscal.
-     */
-    private byte[] buscarCSVPorNota(JdbcWrapper jdbc, BigDecimal nunota) throws Exception {
-        NativeSql query = null;
-        ResultSet rs = null;
-
-        try {
-            query = new NativeSql(jdbc);
-            query.appendSql("SELECT CONTEUDO FROM TSIATA WHERE CODATA = :NUNOTA AND LOWER(DESCRICAO) = 'lista'");
-            query.setNamedParameter("NUNOTA", nunota);
-            rs = query.executeQuery();
-
-            if (rs.next()) {
-                return rs.getBytes("CONTEUDO");
-            }
-        } finally {
-            if (rs != null) rs.close();
-            NativeSql.releaseResources(query);
-        }
-        return null;
-    }
-
-    /**
-     * Processa o CSV agrupando linhas com mesmo perfil e material, somando os pesos correspondentes.
-     */
-    private void processarCSVComAgrupamento(JdbcWrapper jdbc, byte[] csvData, BigDecimal nunota, ContextoAcao contexto) throws Exception {
+    private void processarCSVComAgrupamento(JdbcWrapper jdbc, byte[] csvData, BigDecimal nunota, ContextoAcao contexto, BigDecimal versao) throws Exception {
         Map<String, BigDecimal> agrupamento = new HashMap<>();
         List<String> erros = new ArrayList<>();
 
@@ -134,8 +106,6 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
 
             while ((linha = reader.readLine()) != null) {
                 numeroLinha++;
-
-                // Pula cabeçalhos
                 if (numeroLinha <= 2) continue;
 
                 String[] colunas = linha.split(SEPARADOR);
@@ -152,7 +122,6 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
                     String pesoFormatado = colunas[4].trim().replace("\"", "").replace(".", "").replace(",", ".");
                     BigDecimal peso = new BigDecimal(pesoFormatado);
 
-                    // Soma pesos agrupando por perfil|material
                     agrupamento.merge(chave, peso, BigDecimal::add);
                 } catch (NumberFormatException e) {
                     erros.add("Erro ao converter peso na linha " + numeroLinha + ": " + e.getMessage());
@@ -168,7 +137,6 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
             String material = chave[1];
             BigDecimal pesoTotal = entrada.getValue();
 
-            // Busca código do produto correspondente ao par perfil/material
             BigDecimal codProd = buscarCodigoProduto(jdbc, perfil, material);
             if (codProd == null) {
                 erros.add("Produto não encontrado para perfil '" + perfil + "' e material '" + material + "'");
@@ -177,7 +145,6 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
 
             BigDecimal codigo = getProximoCodigo(jdbc);
 
-            // Insere registro agrupado
             inserirControleLista(
                     jdbc,
                     codigo,
@@ -188,7 +155,8 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
                     nunota,
                     pesoTotal,
                     BigDecimal.ZERO,
-                    usuarioLogado
+                    usuarioLogado,
+                    versao
             );
         }
 
@@ -201,9 +169,76 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
         }
     }
 
-    /**
-     * Busca o código do produto com base no perfil e material.
-     */
+    private void inserirControleLista(JdbcWrapper jdbc,
+                                      BigDecimal codigo,
+                                      String tipoLista,
+                                      BigDecimal codProd,
+                                      String perfil,
+                                      String material,
+                                      BigDecimal nunota,
+                                      BigDecimal pesoTotal,
+                                      BigDecimal qtdEntregue,
+                                      BigDecimal codUsu,
+                                      BigDecimal versao) throws Exception {
+        NativeSql insert = null;
+        try {
+            insert = new NativeSql(jdbc);
+            insert.appendSql(
+                    "INSERT INTO AD_CONTROLELISTA (CODIGO, DTATUAL, TP_LISTA, CODPROD, PERFIL, MATERIAL, NUNOTA, PESO_TOTAL, QTDENTREGUE, CODUSU, VERSAO) " +
+                            "VALUES (:CODIGO, CURRENT_DATE, :TP_LISTA, :CODPROD, :PERFIL, :MATERIAL, :NUNOTA, :PESO_TOTAL, :QTDENTREGUE, :CODUSU, :VERSAO)"
+            );
+            insert.setNamedParameter("CODIGO", codigo);
+            insert.setNamedParameter("TP_LISTA", tipoLista);
+            insert.setNamedParameter("CODPROD", codProd);
+            insert.setNamedParameter("PERFIL", perfil);
+            insert.setNamedParameter("MATERIAL", material);
+            insert.setNamedParameter("NUNOTA", nunota);
+            insert.setNamedParameter("PESO_TOTAL", pesoTotal);
+            insert.setNamedParameter("QTDENTREGUE", qtdEntregue);
+            insert.setNamedParameter("CODUSU", codUsu);
+            insert.setNamedParameter("VERSAO", versao);
+
+            insert.executeUpdate();
+        } finally {
+            NativeSql.releaseResources(insert);
+        }
+    }
+
+    private void atualizarStatusLista(JdbcWrapper jdbc, BigDecimal nunota) throws Exception {
+        NativeSql update = null;
+        try {
+            update = new NativeSql(jdbc);
+            update.appendSql("UPDATE tgfcab SET AD_STATUS_LISTA = 'LISTA SUBSTITUTA' WHERE nunota = :NUNOTA");
+            update.setNamedParameter("NUNOTA", nunota);
+            update.executeUpdate();
+        } finally {
+            NativeSql.releaseResources(update);
+        }
+    }
+
+    // CORRIGIDO: Agora a versão é reiniciada por NUNOTA
+    private BigDecimal getProximaVersao(JdbcWrapper jdbc, BigDecimal nunota) throws Exception {
+        NativeSql query = null;
+        ResultSet rs = null;
+        BigDecimal proximaVersao = BigDecimal.ONE;
+
+        try {
+            query = new NativeSql(jdbc);
+            query.appendSql("SELECT MAX(VERSAO) AS MAX_VERSAO FROM AD_CONTROLELISTA WHERE NUNOTA = :NUNOTA");
+            query.setNamedParameter("NUNOTA", nunota);
+            rs = query.executeQuery();
+
+            if (rs.next() && rs.getBigDecimal("MAX_VERSAO") != null) {
+                proximaVersao = rs.getBigDecimal("MAX_VERSAO").add(BigDecimal.ONE);
+            }
+        } finally {
+            if (rs != null) rs.close();
+            NativeSql.releaseResources(query);
+        }
+
+        return proximaVersao;
+    }
+
     private BigDecimal buscarCodigoProduto(JdbcWrapper jdbc, String perfil, String material) throws Exception {
         NativeSql query = null;
         ResultSet rs = null;
@@ -225,9 +260,6 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
         return null;
     }
 
-    /**
-     * Obtém o próximo valor de código da tabela AD_CONTROLELISTA.
-     */
     private BigDecimal getProximoCodigo(JdbcWrapper jdbc) throws Exception {
         NativeSql query = null;
         ResultSet rs = null;
@@ -248,39 +280,23 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
         return proximo;
     }
 
-    /**
-     * Insere um registro na tabela AD_CONTROLELISTA com os dados fornecidos.
-     */
-    private void inserirControleLista(JdbcWrapper jdbc,
-                                      BigDecimal codigo,
-                                      String tipoLista,
-                                      BigDecimal codProd,
-                                      String perfil,
-                                      String material,
-                                      BigDecimal nunota,
-                                      BigDecimal pesoTotal,
-                                      BigDecimal qtdEntregue,
-                                      BigDecimal codUsu) throws Exception {
-        NativeSql insert = null;
-        try {
-            insert = new NativeSql(jdbc);
-            insert.appendSql(
-                    "INSERT INTO AD_CONTROLELISTA (CODIGO, DTATUAL, TP_LISTA, CODPROD, PERFIL, MATERIAL, NUNOTA, PESO_TOTAL, QTDENTREGUE, CODUSU) " +
-                            "VALUES (:CODIGO, CURRENT_DATE, :TP_LISTA, :CODPROD, :PERFIL, :MATERIAL, :NUNOTA, :PESO_TOTAL, :QTDENTREGUE, :CODUSU)"
-            );
-            insert.setNamedParameter("CODIGO", codigo);
-            insert.setNamedParameter("TP_LISTA", tipoLista);
-            insert.setNamedParameter("CODPROD", codProd);
-            insert.setNamedParameter("PERFIL", perfil);
-            insert.setNamedParameter("MATERIAL", material);
-            insert.setNamedParameter("NUNOTA", nunota);
-            insert.setNamedParameter("PESO_TOTAL", pesoTotal);
-            insert.setNamedParameter("QTDENTREGUE", qtdEntregue);
-            insert.setNamedParameter("CODUSU", codUsu);
+    private byte[] buscarCSVPorNota(JdbcWrapper jdbc, BigDecimal nunota) throws Exception {
+        NativeSql query = null;
+        ResultSet rs = null;
 
-            insert.executeUpdate();
+        try {
+            query = new NativeSql(jdbc);
+            query.appendSql("SELECT CONTEUDO FROM TSIATA WHERE CODATA = :NUNOTA AND LOWER(DESCRICAO) = 'lista'");
+            query.setNamedParameter("NUNOTA", nunota);
+            rs = query.executeQuery();
+
+            if (rs.next()) {
+                return rs.getBytes("CONTEUDO");
+            }
         } finally {
-            NativeSql.releaseResources(insert);
+            if (rs != null) rs.close();
+            NativeSql.releaseResources(query);
         }
+        return null;
     }
 }

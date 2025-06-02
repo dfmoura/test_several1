@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="ImpLista">
+    <output-path>$PROJECT_DIR$/out/artifacts/ImpLista</output-path>
+    <root id="archive" name="ImpLista.jar">
+      <element id="module-output" name="importador" />
+    </root>
+  </artifact>
+</component>

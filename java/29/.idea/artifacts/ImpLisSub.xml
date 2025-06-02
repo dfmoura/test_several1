@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="ImpLisSub">
+    <output-path>$PROJECT_DIR$/out/artifacts/ImpLisSub</output-path>
+    <root id="archive" name="ImpLisSub.jar">
+      <element id="module-output" name="importador" />
+    </root>
+  </artifact>
+</component>
