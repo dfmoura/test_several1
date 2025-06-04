@@ -14,15 +14,6 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- Add Flatpickr CSS and JS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
-    <!-- Add SheetJS library -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-            
 
     <style>
         body {
@@ -127,44 +118,6 @@
         .pdf-button.right {
             right: 20px;
         }
-        .export-buttons {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-            display: flex;
-            gap: 10px;
-        }
-
-        .export-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            color: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-
-        .export-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        .pdf-btn {
-            background: linear-gradient(135deg, #dc3545, #c82333);
-        }
-
-        .excel-btn {
-            background: linear-gradient(135deg, #28a745, #1e7e34);
-        }
-
-
     </style>
 
     <snk:load />
@@ -367,21 +320,6 @@
         )
     </snk:query>
 
-<!-- Adicionar no <body> logo após a tag de abertura -->
-    <div class="export-buttons">
-        <button class="export-btn pdf-btn" onclick="gerarPDFCompleto()" title="Exportar PDF Completo">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" viewBox="0 0 24 24">
-                <path d="M6 2a2 2 0 0 0-2 2v16c0 1.104.896 2 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 1.5L18.5 9H13V3.5zM7 13h1v-1h1.5a1 1 0 0 1 0 2H8v1H7v-3zm4.5 0H12v3h-1v-3zm2.5 0h2a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-2v-3zm1 1v1h1v-1h-1z"/>
-            </svg>
-        </button>
-        
-        <button class="export-btn excel-btn" onclick="exportarExcelCompleto()" title="Exportar Excel Completo">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="green" viewBox="0 0 24 24" style="vertical-align: middle;">
-                <path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 1.5L18.5 9H13V3.5zM8.6 12l-1.6 2.3L5.4 12H4.2l2.2 3L4.2 18h1.2l1.6-2.3L8.6 18h1.2l-2.2-3 2.2-3H8.6zM11 12h1v6h-1v-6zm2.5 0h1.1l.9 1.6.9-1.6h1.1l-1.5 2.6 1.5 2.4h-1.1l-1-1.6-1 1.6h-1.1l1.5-2.4-1.5-2.6z"/>
-            </svg>
-        </button>
-    </div>   
-
     <div class="container-fluid tables-container">
         <div class="table-container">
             <!-- Primeira Tabela -->
@@ -482,10 +420,10 @@
         </div>
     </div>
 
-    <!-- Botões para gerar PDF 
+    <!-- Botões para gerar PDF -->
     <button class="pdf-button left" onclick="gerarPDFTabela1()">Gerar PDF Tabela 1</button>
     <button class="pdf-button right" onclick="gerarPDFTabela2()">Gerar PDF Tabela 2</button>
-        -->
+
     <script>
         // Inicializa o jsPDF
         const { jsPDF } = window.jspdf;
@@ -502,143 +440,57 @@
             openApp(level, params);
         }
 
-// Função para gerar PDF com ambas as tabelas
-function gerarPDFCompleto() {
-    const doc = new jsPDF('l', 'pt');
-    const tabela1 = document.getElementById('tabela1');
-    const tabela2 = document.getElementById('tabela2');
-    
-    // Título principal
-    doc.setFontSize(16);
-    doc.text("Relatório de Ganho de Negociação", 40, 40);
-    
-    // Primeira tabela
-    doc.setFontSize(12);
-    doc.text("Detalhamento Saving e Evolução de Preço", 40, 70);
-    
-    doc.autoTable({
-        html: tabela1,
-        startY: 90,
-        styles: {
-            fontSize: 8,
-            cellPadding: 3,
-            overflow: 'linebreak'
-        },
-        headStyles: {
-            fillColor: [40, 167, 69],
-            textColor: 255
-        }
-    });
-    
-    // Segunda tabela
-    const finalY1 = doc.lastAutoTable.finalY || 90;
-    doc.text("Detalhamento Ganho Condição de Pagamento", 40, finalY1 + 30);
-    
-    doc.autoTable({
-        html: tabela2,
-        startY: finalY1 + 50,
-        styles: {
-            fontSize: 8,
-            cellPadding: 3,
-            overflow: 'linebreak'
-        },
-        headStyles: {
-            fillColor: [40, 167, 69],
-            textColor: 255
-        }
-    });
-    
-    doc.save('relatorio_geral_pdf.pdf');
-}
-
-
-function exportarExcelCompleto() {
-    try {
-        // Verifica se a biblioteca está disponível
-        if (!window.XLSX) {
-            alert("A biblioteca SheetJS não foi carregada corretamente!");
-            return;
-        }
-
-        // Cria uma nova pasta de trabalho
-        const workbook = XLSX.utils.book_new();
-
-        // Processa a primeira tabela (Saving e Evolução)
-        const table1 = document.getElementById('tabela1');
-        if (table1) {
-            // Converte a tabela HTML para worksheet mantendo os textos exatos
-            const worksheet1 = XLSX.utils.table_to_sheet(table1, {raw: true});
+        function gerarPDFTabela1() {
+            const doc = new jsPDF('l', 'pt');
+            const tabela = document.getElementById('tabela1');
             
-            // Adiciona o título na primeira linha
-            XLSX.utils.sheet_add_aoa(worksheet1, [["Detalhamento Saving e Evolução de Preço"]], {origin: 'A1'});
+            // Título do PDF
+            doc.text("Relatório de Ganho de Negociação - Tabela 1", 40, 40);
             
-            // Força o formato de texto para as colunas de data (Dt. Neg.)
-            const dateCols1 = [5]; // Índice da coluna F (Dt. Neg.)
-            for (let row = 2; ; row++) {
-                const cell = XLSX.utils.encode_cell({c: 5, r: row});
-                if (!worksheet1[cell]) break;
-                worksheet1[cell].t = 's'; // Tipo string
-            }
-            
-            // Formata as colunas numéricas
-            worksheet1['!cols'] = [
-                {}, {}, {}, {}, {},           // Colunas A-E
-                {},                          // Coluna F (já tratada como texto)
-                { numFmt: '#,##0.00' },      // Coluna G (Saving)
-                { numFmt: '#,##0.00' }       // Coluna H (Ev. Preço)
-            ];
-            
-            // Formata o título em negrito
-            worksheet1['A1'].s = { font: { bold: true } };
-            
-            // Adiciona a planilha ao workbook
-            XLSX.utils.book_append_sheet(workbook, worksheet1, "Saving e Evolução");
-        }
-
-        // Processa a segunda tabela (Condição Pagamento)
-        const table2 = document.getElementById('tabela2');
-        if (table2) {
-            // Converte a tabela HTML para worksheet mantendo os textos exatos
-            const worksheet2 = XLSX.utils.table_to_sheet(table2, {raw: true});
-            
-            // Adiciona o título na primeira linha
-            XLSX.utils.sheet_add_aoa(worksheet2, [["Detalhamento Ganho Condição de Pagamento"]], {origin: 'A1'});
-            
-            // Força o formato de texto para as colunas de data (Dt. Neg., Dt. Venc., Dt. Baixa.)
-            const dateCols2 = [4, 5, 6]; // Índices das colunas E, F, G
-            dateCols2.forEach(col => {
-                for (let row = 2; ; row++) {
-                    const cell = XLSX.utils.encode_cell({c: col, r: row});
-                    if (!worksheet2[cell]) break;
-                    worksheet2[cell].t = 's'; // Tipo string
+            // Adiciona a tabela ao PDF
+            doc.autoTable({
+                html: tabela,
+                startY: 60,
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 3,
+                    overflow: 'linebreak'
+                },
+                headStyles: {
+                    fillColor: [40, 167, 69],
+                    textColor: 255
                 }
             });
             
-            // Formata as colunas numéricas
-            worksheet2['!cols'] = [
-                {}, {}, {}, {},               // Colunas A-D
-                {},                          // Coluna E (texto)
-                {},                          // Coluna F (texto)
-                {},                          // Coluna G (texto)
-                { numFmt: '#,##0.00' }       // Coluna H (Gan. Con. Pgto.)
-            ];
-            
-            // Formata o título em negrito
-            worksheet2['A1'].s = { font: { bold: true } };
-            
-            // Adiciona a planilha ao workbook
-            XLSX.utils.book_append_sheet(workbook, worksheet2, "Condição Pagamento");
+            // Salva o PDF
+            doc.save('relatorio_ganho_negociacao_tabela1.pdf');
         }
 
-        // Gera o arquivo Excel
-        XLSX.writeFile(workbook, 'relatorio_ganho_negociacao.xlsx');
-
-    } catch (error) {
-        console.error("Erro ao exportar para Excel:", error);
-        alert("Erro ao exportar: " + error.message);
-    }
-}
-
-</script>
+        function gerarPDFTabela2() {
+            const doc = new jsPDF('l', 'pt');
+            const tabela = document.getElementById('tabela2');
+            
+            // Título do PDF
+            doc.text("Relatório de Ganho de Negociação - Tabela 2", 40, 40);
+            
+            // Adiciona a tabela ao PDF
+            doc.autoTable({
+                html: tabela,
+                startY: 60,
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 3,
+                    overflow: 'linebreak'
+                },
+                headStyles: {
+                    fillColor: [40, 167, 69],
+                    textColor: 255
+                }
+            });
+            
+            // Salva o PDF
+            doc.save('relatorio_ganho_negociacao_tabela2.pdf');
+        }
+    </script>
 </body>
 </html>
