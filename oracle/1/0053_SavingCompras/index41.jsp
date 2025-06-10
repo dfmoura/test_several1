@@ -129,7 +129,7 @@
         }
         .export-buttons {
             position: fixed;
-            top: 20px;
+            bottom: 20px;
             left: 20px;
             z-index: 1000;
             display: flex;
@@ -172,211 +172,240 @@
 
 <body>
     <snk:query var="ganho_negcociacao_detalhe">
-        SELECT
-        CODEMP,
-        PARCEIRO,
-        CODPROD,
-        PRODUTO,
-        NUNOTA,
-        TO_CHAR(DTNEG,'DD-MM-YYYY') DTNEG,
-        COMPRADOR,
-        SAVING,
-        GANHO_EVOLUCAO
-        FROM(
 
-        SELECT
-        CODEMP,
-        PARCEIRO,
-        PRODUTO,
-        CODPROD,
-        GRUPO,
-        CODGRUPOPROD,
-        UN,
-        NUNOTA,
-        TIPMOV,
-        DTNEG,
-        COMPRADOR,
-        USUARIO_INC,
-        QTDNEG,
-        VLRTOT,
-        SAVING,
-        (SAVING / NULLIF(VLRTOT,0)) * 100 AS PERC_SAVING,
-        (VLRTOT) / NULLIF(QTDNEG,0) AS PRECO_COMPRA_UN,
-        (VLRTOT - SAVING) / NULLIF(QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
-        GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) AS PRECO_COMPRA_UN_LIQ_ANT_MED,
-        CASE
-        WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
-        NULLIF(QTDNEG,0)))>0
-        AND CODGRUPOPROD IN(3020000,3010000)
-        THEN
-        ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
-        NULLIF(QTDNEG,0)))
-        ELSE 0 END GANHO_EVOLUCAO_UN,
 
-        CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
-        NULLIF(QTDNEG,0)))>0
-        AND CODGRUPOPROD IN(3020000,3010000)
-        THEN
-        ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
-        NULLIF(QTDNEG,0))) *
-        QTDNEG ELSE 0 END GANHO_EVOLUCAO,
+    SELECT 
+    CODEMP,CODPARC,PARCEIRO,PRODUTO,NUFIN,NUNOTA,DTNEG,DTVENC,DHBAIXA,COMPRADOR, 
+    SUM(SAVING)SAVING,SUM(GANHO_EVOLUCAO)GANHO_EVOLUCAO,SUM(GANHO_NEGOCIACAO)GANHO_NEGOCIACAO,
+    SUM(TOTAL_ECONOMIA)TOTAL_ECONOMIA
+    FROM (
 
-        CASE
-        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG,
-        0))
-        > 0 THEN 'REDUCAO'
-        WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG,
-        0))
-        < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) <> 0 THEN 'AUMENTO'
-            WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) /
-            NULLIF(QTDNEG,
-            0)) < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)=0 THEN 'SEM ALTERACAO'
-                ELSE 'MANTEVE' END AS SITUACAO_PRECO, (CASE WHEN
-                GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) /
-                NULLIF(QTDNEG, 0)) < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)=0 THEN
-                0 ELSE ABS(ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING)
-                / NULLIF(QTDNEG,0)))/NULLIF(((VLRTOT - SAVING) / NULLIF(QTDNEG,0)),0))*100 END) AS
-                PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ, SAVING + CASE WHEN
-                (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
-                NULLIF(QTDNEG,0)))>0
-                AND CODGRUPOPROD IN(3020000,3010000)
-                THEN ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
-                NULLIF(QTDNEG,0))) * QTDNEG ELSE 0 END
+    SELECT 
+    CODEMP,CODPARC,PARCEIRO,PRODUTO,NUFIN,NUNOTA,DTNEG,DTVENC,DHBAIXA,COMPRADOR, SAVING,GANHO_EVOLUCAO,GANHO_NEGOCIACAO,SAVING+GANHO_EVOLUCAO+GANHO_NEGOCIACAO TOTAL_ECONOMIA
+    FROM (
+    
+    SELECT 
+    CODEMP,SUBSTR(PARCEIRO, 1, INSTR(PARCEIRO, '-') - 1) AS CODPARC,PARCEIRO,PRODUTO,NUFIN,NUNOTA,DTNEG,DTVENC,DHBAIXA,COMPRADOR, SAVING,GANHO_EVOLUCAO,GANHO_NEGOCIACAO
+    FROM (
+            SELECT
+            CODEMP,
+            PARCEIRO,
+            PRODUTO,
+            NULL NUFIN,
+            NUNOTA,
+            TO_CHAR(DTNEG,'DD-MM-YYYY') DTNEG,
+            NULL DTVENC,
+            NULL DHBAIXA,
+            COMPRADOR,
+            SAVING,
+            GANHO_EVOLUCAO,
+            0 GANHO_NEGOCIACAO
+            FROM(
+            SELECT
+            CODEMP,
+            PARCEIRO,
+            PRODUTO,
+            CODPROD,
+            GRUPO,
+            CODGRUPOPROD,
+            UN,
+            NUNOTA,
+            TIPMOV,
+            DTNEG,
+            COMPRADOR,
+            USUARIO_INC,
+            QTDNEG,
+            VLRTOT,
+            SAVING,
+            (SAVING / NULLIF(VLRTOT,0)) * 100 AS PERC_SAVING,
+            (VLRTOT) / NULLIF(QTDNEG,0) AS PRECO_COMPRA_UN,
+            (VLRTOT - SAVING) / NULLIF(QTDNEG,0) AS PRECO_COMPRA_UN_LIQ,
+            GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) AS PRECO_COMPRA_UN_LIQ_ANT_MED,
+            CASE
+            WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
+            NULLIF(QTDNEG,0)))>0
+            AND CODGRUPOPROD IN(3020000,3010000)
+            THEN
+            ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
+            NULLIF(QTDNEG,0)))
+            ELSE 0 END GANHO_EVOLUCAO_UN,
+        
+            CASE WHEN (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
+            NULLIF(QTDNEG,0)))>0
+            AND CODGRUPOPROD IN(3020000,3010000)
+            THEN
+            ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
+            NULLIF(QTDNEG,0))) *
+            QTDNEG ELSE 0 END GANHO_EVOLUCAO,
+        
+            CASE
+            WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG,
+            0))
+            > 0 THEN 'REDUCAO'
+            WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) / NULLIF(QTDNEG,
+            0))
+            < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) <> 0 THEN 'AUMENTO'
+                WHEN GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) /
+                NULLIF(QTDNEG,
+                0)) < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)=0 THEN 'SEM ALTERACAO'
+                    ELSE 'MANTEVE' END AS SITUACAO_PRECO, (CASE WHEN
+                    GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL) - ((VLRTOT - SAVING) /
+                    NULLIF(QTDNEG, 0)) < 0 AND GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)=0 THEN
+                    0 ELSE ABS(ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING)
+                    / NULLIF(QTDNEG,0)))/NULLIF(((VLRTOT - SAVING) / NULLIF(QTDNEG,0)),0))*100 END) AS
+                    PERC_DIF_PRECO_ULT_COMPRA_UN_LIQ_MED_POR_COMPRA_UN_ATUAL_LIQ, SAVING + CASE WHEN
+                    (GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
+                    NULLIF(QTDNEG,0)))>0
+                    AND CODGRUPOPROD IN(3020000,3010000)
+                    THEN ABS(GET_PRECMED_ANT_PROD_COMP_SAT(DTNEG,CODPROD,NULL)-((VLRTOT - SAVING) /
+                    NULLIF(QTDNEG,0))) * QTDNEG ELSE 0 END
+        
+                    AS ECONOMIA_COMPRA
+        
+                    FROM(
+                    WITH
+                    USU AS (SELECT CODUSU,NOMEUSU,AD_USUCOMPRADOR FROM TSIUSU)
+                    SELECT CAB.CODEMP,
+                    SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL), 1, 20) AS PARCEIRO,
+                    SUBSTR(ITE.CODPROD||'-'||PRO.DESCRPROD,1,15) AS PRODUTO,
+                    PRO.CODPROD,
+                    SUBSTR(PRO.CODGRUPOPROD||'-'|| GRU.DESCRGRUPOPROD,1,15) AS GRUPO,
+                    PRO.CODGRUPOPROD,
+                    ITE.CODVOL AS UN,
+                    ITE.NUNOTA AS NUNOTA,
+                    CAB.TIPMOV AS TIPMOV,
+                    CAB.DTNEG,
+                    SUBSTR(VEN.CODVEND||'-'||VEN.APELIDO,1,10) AS COMPRADOR,
+                    SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,10) AS USUARIO_INC,
+                    CASE WHEN ITE.CODVOL = 'MI'
+                    THEN GET_QTDNEG_SATIS(ITE.NUNOTA,ITE.SEQUENCIA,ITE.CODPROD)
+                    ELSE ITE.QTDNEG END AS QTDNEG,
+                    ITE.VLRTOT,
+                    ITE.VLRDESC AS SAVING
+                    FROM TGFITE ITE
+                    INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
+                    INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
+                    INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
+                    SELECT
+                    MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )
+                    INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
+                    INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+                    INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
+                    INNER JOIN USU ON CAB.CODUSUINC = USU.CODUSU
+                    WHERE CAB.TIPMOV = 'O'
+                    AND CAB.STATUSNOTA = 'L'
+                    AND USU.AD_USUCOMPRADOR = 'S'
+                    AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+        
+                    )
+                    )
+    
+    UNION ALL
+    
+            SELECT
+            CODEMP,
+            PARCEIRO,
+            NULL PRODUTO,
+            NUFIN,
+            NUNOTA,
+            DTNEG,
+            DTVENC,
+            DHBAIXA,
+            NULL COMPRADOR,
+            0 SAVING,
+            0 GANHO_EVOLUCAO,
+            ABS(GANHO_NEGOCIACAO)GANHO_NEGOCIACAO
+            FROM(
+            SELECT
+            CODEMP,
+            NUFIN,
+            NUNOTA,
+            CODPARC||'-'||NOMEPARC PARCEIRO,
+            TO_CHAR(DTNEG,'DD-MM-YYYY')DTNEG,
+            TO_CHAR(DTVENC,'DD-MM-YYYY')DTVENC,
+            TO_CHAR(DHBAIXA,'DD-MM-YYYY')DHBAIXA,
+            CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END AS DIAS,
+            VLRLIQ,
+    
+            CASE
+            WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) = 30 THEN
+            VLRLIQ * 0.01
+            WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) > 30 THEN
+            VLRLIQ * 0.01 + VLRLIQ * 0.00033 * ((CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE
+            DHBAIXA
+            - DTNEG END) - 30)
+            ELSE
+            0
+            END AS GANHO_NEGOCIACAO,
+            CASE
+            WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) = 30 THEN
+            VLRLIQ * 1.01
+            WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) > 30 THEN
+            VLRLIQ * 1.01 + VLRLIQ * 0.00033 * ((CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE
+            DHBAIXA
+            - DTNEG END) - 30)
+            ELSE
+            VLRLIQ
+            END AS VLRLIQ_COM_JUROS
+            FROM
+            (
+    
+            SELECT
+            FIN.CODEMP,
+            FIN.NUFIN,
+            FIN.CODPARC,
+            SUBSTR(UPPER(PAR.NOMEPARC), 1, 15) AS NOMEPARC,
+            FIN.NUNOTA,
+            FIN.DTNEG,
+            FIN.DTVENC,
+            FIN.DHBAIXA,
+            FIN.DESDOBRAMENTO,
+            (NVL(FIN.VLRDESDOB,0) + (CASE WHEN FIN.TIPMULTA = '1' THEN NVL(FIN.VLRMULTA,0) ELSE 0 END) +
+            (CASE WHEN FIN.TIPJURO = '1' THEN NVL(FIN.VLRJURO,0) ELSE 0 END) + NVL(FIN.DESPCART,0) +
+            NVL(FIN.VLRVENDOR,0) - NVL(FIN.VLRDESC,0) - (CASE WHEN FIN.IRFRETIDO = 'S' THEN
+            NVL(FIN.VLRIRF,0) ELSE 0 END) - (CASE WHEN FIN.ISSRETIDO = 'S' THEN NVL(FIN.VLRISS,0) ELSE 0
+            END) - (CASE WHEN FIN.INSSRETIDO = 'S' THEN NVL(FIN.VLRINSS,0) ELSE 0 END) -
+            NVL(FIN.CARTAODESC,0) + NVL((SELECT ROUND(SUM(I.VALOR * I.TIPIMP),2) FROM TGFIMF I WHERE
+            I.NUFIN
+            = FIN.NUFIN),0) + NVL(FIN.VLRMULTANEGOC,0) + NVL(FIN.VLRJURONEGOC,0) -
+            NVL(FIN.VLRMULTALIB,0) -
+            NVL(FIN.VLRJUROLIB,0) + NVL(FIN.VLRVARCAMBIAL,0)) * NVL(FIN.RECDESP,0) VLRLIQ,
+            CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.DTVENC - FIN.DTNEG ELSE FIN.DHBAIXA - FIN.DTNEG END
+            AS
+            DIAS
+            FROM TGFFIN FIN
+            INNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTA
+            INNER JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSU
+            INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+            WHERE
+            FIN.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+            AND FIN.RECDESP = -1
+            AND FIN.NUNOTA IS NOT NULL
+            AND CAB.TIPMOV = 'O'
+            AND CAB.STATUSNOTA = 'L'
+            AND USU.AD_USUCOMPRADOR = 'S'
+            )
+            )
+    )
 
-                AS ECONOMIA_COMPRA
+    
+    )
+    )
+    WHERE TOTAL_ECONOMIA > 0
+    GROUP BY CODEMP,CODPARC,PARCEIRO,PRODUTO,NUFIN,NUNOTA,DTNEG,DTVENC,DHBAIXA,COMPRADOR
 
-                FROM(
-                WITH
-                USU AS (SELECT CODUSU,NOMEUSU,AD_USUCOMPRADOR FROM TSIUSU)
-                SELECT CAB.CODEMP,
-                SUBSTR(CAB.CODPARC||'-'||UPPER(PAR.RAZAOSOCIAL), 1, 20) AS PARCEIRO,
-                SUBSTR(ITE.CODPROD||'-'||PRO.DESCRPROD,1,15) AS PRODUTO,
-                PRO.CODPROD,
-                SUBSTR(PRO.CODGRUPOPROD||'-'|| GRU.DESCRGRUPOPROD,1,15) AS GRUPO,
-                PRO.CODGRUPOPROD,
-                ITE.CODVOL AS UN,
-                ITE.NUNOTA AS NUNOTA,
-                CAB.TIPMOV AS TIPMOV,
-                CAB.DTNEG,
-                SUBSTR(VEN.CODVEND||'-'||VEN.APELIDO,1,10) AS COMPRADOR,
-                SUBSTR(CAB.CODUSUINC||'-'||USU.NOMEUSU,1,10) AS USUARIO_INC,
-                CASE WHEN ITE.CODVOL = 'MI'
-                THEN GET_QTDNEG_SATIS(ITE.NUNOTA,ITE.SEQUENCIA,ITE.CODPROD)
-                ELSE ITE.QTDNEG END AS QTDNEG,
-                ITE.VLRTOT,
-                ITE.VLRDESC AS SAVING
-                FROM TGFITE ITE
-                INNER JOIN TGFPRO PRO ON (ITE.CODPROD = PRO.CODPROD)
-                INNER JOIN TGFCAB CAB ON (ITE.NUNOTA = CAB.NUNOTA)
-                INNER JOIN TGFTOP TOP ON ( CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = (
-                SELECT
-                MAX (TOP.DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER ) )
-                INNER JOIN TGFVEN VEN ON (CAB.CODVEND = VEN.CODVEND)
-                INNER JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
-                INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
-                INNER JOIN USU ON CAB.CODUSUINC = USU.CODUSU
-                WHERE CAB.TIPMOV = 'O'
-                AND CAB.STATUSNOTA = 'L'
-                AND USU.AD_USUCOMPRADOR = 'S'
-                AND CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-
-                )
-                )
-    </snk:query>
-
-    <snk:query var="ganho_neg_detalhe">
-        SELECT
-        CODEMP,
-        NUFIN,
-        NUNOTA,
-        PARCEIRO,
-        DTNEG,
-        DTVENC,
-        DHBAIXA,
-        ABS(GANHO_NEGOCIACAO)GANHO_NEGOCIACAO
-        FROM(
-        SELECT
-        CODEMP,
-        NUFIN,
-        NUNOTA,
-        CODPARC||'-'||NOMEPARC PARCEIRO,
-        TO_CHAR(DTNEG,'DD-MM-YYYY')DTNEG,
-        TO_CHAR(DTVENC,'DD-MM-YYYY')DTVENC,
-        TO_CHAR(DHBAIXA,'DD-MM-YYYY')DHBAIXA,
-        CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END AS DIAS,
-        VLRLIQ,
-
-        CASE
-        WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) = 30 THEN
-        VLRLIQ * 0.01
-        WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) > 30 THEN
-        VLRLIQ * 0.01 + VLRLIQ * 0.00033 * ((CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE
-        DHBAIXA
-        - DTNEG END) - 30)
-        ELSE
-        0
-        END AS GANHO_NEGOCIACAO,
-        CASE
-        WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) = 30 THEN
-        VLRLIQ * 1.01
-        WHEN (CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE DHBAIXA - DTNEG END) > 30 THEN
-        VLRLIQ * 1.01 + VLRLIQ * 0.00033 * ((CASE WHEN DHBAIXA IS NULL THEN DTVENC - DTNEG ELSE
-        DHBAIXA
-        - DTNEG END) - 30)
-        ELSE
-        VLRLIQ
-        END AS VLRLIQ_COM_JUROS
-        FROM
-        (
-
-        SELECT
-        FIN.CODEMP,
-        FIN.NUFIN,
-        FIN.CODPARC,
-        SUBSTR(UPPER(PAR.NOMEPARC), 1, 15) AS NOMEPARC,
-        FIN.NUNOTA,
-        FIN.DTNEG,
-        FIN.DTVENC,
-        FIN.DHBAIXA,
-        FIN.DESDOBRAMENTO,
-        (NVL(FIN.VLRDESDOB,0) + (CASE WHEN FIN.TIPMULTA = '1' THEN NVL(FIN.VLRMULTA,0) ELSE 0 END) +
-        (CASE WHEN FIN.TIPJURO = '1' THEN NVL(FIN.VLRJURO,0) ELSE 0 END) + NVL(FIN.DESPCART,0) +
-        NVL(FIN.VLRVENDOR,0) - NVL(FIN.VLRDESC,0) - (CASE WHEN FIN.IRFRETIDO = 'S' THEN
-        NVL(FIN.VLRIRF,0) ELSE 0 END) - (CASE WHEN FIN.ISSRETIDO = 'S' THEN NVL(FIN.VLRISS,0) ELSE 0
-        END) - (CASE WHEN FIN.INSSRETIDO = 'S' THEN NVL(FIN.VLRINSS,0) ELSE 0 END) -
-        NVL(FIN.CARTAODESC,0) + NVL((SELECT ROUND(SUM(I.VALOR * I.TIPIMP),2) FROM TGFIMF I WHERE
-        I.NUFIN
-        = FIN.NUFIN),0) + NVL(FIN.VLRMULTANEGOC,0) + NVL(FIN.VLRJURONEGOC,0) -
-        NVL(FIN.VLRMULTALIB,0) -
-        NVL(FIN.VLRJUROLIB,0) + NVL(FIN.VLRVARCAMBIAL,0)) * NVL(FIN.RECDESP,0) VLRLIQ,
-        CASE WHEN FIN.DHBAIXA IS NULL THEN FIN.DTVENC - FIN.DTNEG ELSE FIN.DHBAIXA - FIN.DTNEG END
-        AS
-        DIAS
-        FROM TGFFIN FIN
-        INNER JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTA
-        INNER JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSU
-        INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
-        WHERE
-        FIN.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
-        AND FIN.RECDESP = -1
-        AND FIN.NUNOTA IS NOT NULL
-        AND CAB.TIPMOV = 'O'
-        AND CAB.STATUSNOTA = 'L'
-        AND USU.AD_USUCOMPRADOR = 'S'
-        )
-        )
-    </snk:query>
+</snk:query>
 
 <!-- Adicionar no <body> logo após a tag de abertura -->
     <div class="export-buttons">
         <button class="export-btn pdf-btn" onclick="gerarPDFCompleto()" title="Exportar PDF Completo">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" viewBox="0 0 24 24">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
                 <path d="M6 2a2 2 0 0 0-2 2v16c0 1.104.896 2 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 1.5L18.5 9H13V3.5zM7 13h1v-1h1.5a1 1 0 0 1 0 2H8v1H7v-3zm4.5 0H12v3h-1v-3zm2.5 0h2a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-2v-3zm1 1v1h1v-1h-1z"/>
             </svg>
         </button>
         
-        <button class="export-btn excel-btn" onclick="exportarExcelCompleto()" title="Exportar Excel Completo">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="green" viewBox="0 0 24 24" style="vertical-align: middle;">
+        <button class="export-btn excel-btn" onclick="exportarExcelPersonalizado()" title="Exportar Excel Completo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="white" viewBox="0 0 24 24" style="vertical-align: middle;">
                 <path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 1.5L18.5 9H13V3.5zM8.6 12l-1.6 2.3L5.4 12H4.2l2.2 3L4.2 18h1.2l1.6-2.3L8.6 18h1.2l-2.2-3 2.2-3H8.6zM11 12h1v6h-1v-6zm2.5 0h1.1l.9 1.6.9-1.6h1.1l-1.5 2.6 1.5 2.4h-1.1l-1-1.6-1 1.6h-1.1l1.5-2.4-1.5-2.6z"/>
             </svg>
         </button>
@@ -390,12 +419,17 @@
                     <tr>
                         <th>Emp.</th>
                         <th>Parceiro</th>
-                        <th>Comprador</th>
                         <th>Produto</th>
-                        <th>Único</th>
+                        <th>NÚ. Fin.</th>
+                        <th>NÚ. Único</th>
                         <th>Dt. Neg.</th>
+                        <th>Dt. Venc.</th>
+                        <th>Dt. Baixa.</th>
+                        <th>Comprador</th>
                         <th>Saving</th>
-                        <th>Ev. Preço</th>
+                        <th>Gan. Ev. Preço</th>
+                        <th>Gan. Negociação</th>
+                        <th>Total Economia</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -403,10 +437,13 @@
                         <tr>
                             <td>${row.CODEMP}</td>
                             <td>${row.PARCEIRO}</td>
-                            <td>${row.COMPRADOR}</td>
                             <td>${row.PRODUTO}</td>
+                            <td onclick="abrir_mov('${row.NUFIN}')">${row.NUFIN}</td>
                             <td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
                             <td>${row.DTNEG}</td>
+                            <td>${row.DTVENC}</td>
+                            <td>${row.DHBAIXA}</td>
+                            <td>${row.COMPRADOR}</td>
                             <td>
                                 <fmt:formatNumber value="${row.SAVING}" type="number"
                                     maxFractionDigits="2" groupingUsed="true" />
@@ -415,71 +452,46 @@
                                 <fmt:formatNumber value="${row.GANHO_EVOLUCAO}" type="number"
                                     maxFractionDigits="2" groupingUsed="true" />
                             </td>
+                            <td>
+                                <fmt:formatNumber value="${row.GANHO_NEGOCIACAO}" type="number"
+                                    maxFractionDigits="2" groupingUsed="true" />
+                            </td>   
+                            <td>
+                                <fmt:formatNumber value="${row.TOTAL_ECONOMIA}" type="number"
+                                    maxFractionDigits="2" groupingUsed="true" />
+                            </td>                                                         
                         </tr>
                         <c:set var="totalSaving" value="${totalSaving + row.SAVING}" />
-                        <c:set var="totalVlrGanNeg" value="${totalVlrGanNeg + row.GANHO_EVOLUCAO}" />
+                        <c:set var="totalVlrGanEvo" value="${totalVlrGanEvo + row.GANHO_EVOLUCAO}" />
+                        <c:set var="totalVlrGanNeg" value="${totalVlrGanNeg + row.GANHO_NEGOCIACAO}" />                        
+                        <c:set var="totalVlrTotEco" value="${totalVlrTotEco + row.TOTAL_ECONOMIA}" />                        
                     </c:forEach>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="6"><strong>Total:</strong></td>
+                        <td colspan="9"><strong>Total:</strong></td>
                         <td class="total-column">
                             <fmt:formatNumber value="${totalSaving}" type="currency"
                                 maxFractionDigits="2" groupingUsed="true" />
                         </td>
                         <td class="total-column">
+                            <fmt:formatNumber value="${totalVlrGanEvo}" type="currency"
+                                maxFractionDigits="2" groupingUsed="true" />
+                        </td>                        
+                        <td class="total-column">
                             <fmt:formatNumber value="${totalVlrGanNeg}" type="currency"
                                 maxFractionDigits="2" groupingUsed="true" />
                         </td>
+                        <td class="total-column">
+                            <fmt:formatNumber value="${totalVlrTotEco}" type="currency"
+                                maxFractionDigits="2" groupingUsed="true" />
+                        </td>                        
                     </tr>
                 </tfoot>
             </table>
         </div>
     
-        <div class="table-container">
-            <!-- Segunda Tabela -->
-            <table id="tabela2" class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Cód. Emp.</th>
-                        <th>Parceiro</th>
-                        <th>NÚ. Fin.</th>
-                        <th>NÚ. Ún.</th>
-                        <th>Dt. Neg.</th>
-                        <th>Dt. Venc.</th>
-                        <th>Dt. Baixa.</th>
-                        <th>Gan. Con. Pgto.</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:forEach items="${ganho_neg_detalhe.rows}" var="row">
-                        <tr>
-                            <td>${row.CODEMP}</td>
-                            <td>${row.PARCEIRO}</td>                                               
-                            <td onclick="abrir_mov('${row.NUFIN}')">${row.NUFIN}</td>
-                            <td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
-                            <td>${row.DTNEG}</td>
-                            <td>${row.DTVENC}</td>
-                            <td>${row.DHBAIXA}</td>
-                            <td>
-                                <fmt:formatNumber value="${row.GANHO_NEGOCIACAO}" type="number"
-                                    maxFractionDigits="2" groupingUsed="true" />
-                            </td>
-                        </tr>
-                        <c:set var="totalGanNeg" value="${totalGanNeg + row.GANHO_NEGOCIACAO}" />
-                    </c:forEach>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="7"><strong>Total:</strong></td>
-                        <td class="total-column">
-                            <fmt:formatNumber value="${totalGanNeg}" type="currency"
-                                maxFractionDigits="2" groupingUsed="true" />
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
+
     </div>
 
     <!-- Botões para gerar PDF 
@@ -506,15 +518,15 @@
 function gerarPDFCompleto() {
     const doc = new jsPDF('l', 'pt');
     const tabela1 = document.getElementById('tabela1');
-    const tabela2 = document.getElementById('tabela2');
+    
     
     // Título principal
     doc.setFontSize(16);
-    doc.text("Relatório de Ganho de Negociação", 40, 40);
+    doc.text("Relatório Total Economia", 40, 40);
     
     // Primeira tabela
     doc.setFontSize(12);
-    doc.text("Detalhamento Saving e Evolução de Preço", 40, 70);
+    doc.text("Detalhamento Saving + Evolução de Preço + Ganho Negociação = Total Economia", 40, 70);
     
     doc.autoTable({
         html: tabela1,
@@ -530,115 +542,44 @@ function gerarPDFCompleto() {
         }
     });
     
-    // Segunda tabela
-    const finalY1 = doc.lastAutoTable.finalY || 90;
-    doc.text("Detalhamento Ganho Condição de Pagamento", 40, finalY1 + 30);
     
-    doc.autoTable({
-        html: tabela2,
-        startY: finalY1 + 50,
-        styles: {
-            fontSize: 8,
-            cellPadding: 3,
-            overflow: 'linebreak'
-        },
-        headStyles: {
-            fillColor: [40, 167, 69],
-            textColor: 255
-        }
+    doc.save('relatorio_total_economia.pdf');
+}
+
+
+function exportarExcelPersonalizado() {
+    // Defina o título
+    const titulo = ["Detalhamento Total Economia: Saving + Evolução de Preço + Ganho Negociação"];
+
+    // Captura o cabeçalho da tabela
+    const cabecalho = [];
+    document.querySelectorAll(".table thead th").forEach(th => {
+        cabecalho.push(th.innerText.trim());
     });
-    
-    doc.save('relatorio_geral_pdf.pdf');
+
+    // Captura o corpo da tabela
+    const corpo = [];
+    document.querySelectorAll(".table tbody tr").forEach(tr => {
+        const linha = [];
+        tr.querySelectorAll("td").forEach(td => {
+            linha.push(td.innerText.trim());
+        });
+        corpo.push(linha);
+    });
+    // Montar os dados com quebras de linha
+    const dados = [];
+    dados.push(titulo);        // Linha 1: título
+    dados.push([]);            // Linha 2: em branco
+    dados.push(cabecalho);     // Linha 3: cabeçalho
+    dados.push([]);            // Linha 4: em branco
+    dados.push(...corpo);      // A partir da linha 5: corpo da tabela
+    // Criar planilha
+    const worksheet = XLSX.utils.aoa_to_sheet(dados);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "total_economia");
+    // Exportar
+    XLSX.writeFile(workbook, "total_economia.xlsx");
 }
-
-
-function exportarExcelCompleto() {
-    try {
-        // Verifica se a biblioteca está disponível
-        if (!window.XLSX) {
-            alert("A biblioteca SheetJS não foi carregada corretamente!");
-            return;
-        }
-
-        // Cria uma nova pasta de trabalho
-        const workbook = XLSX.utils.book_new();
-
-        // Processa a primeira tabela (Saving e Evolução)
-        const table1 = document.getElementById('tabela1');
-        if (table1) {
-            // Converte a tabela HTML para worksheet mantendo os textos exatos
-            const worksheet1 = XLSX.utils.table_to_sheet(table1, {raw: true});
-            
-            // Adiciona o título na primeira linha
-            XLSX.utils.sheet_add_aoa(worksheet1, [["Detalhamento Saving e Evolução de Preço"]], {origin: 'A1'});
-            
-            // Força o formato de texto para as colunas de data (Dt. Neg.)
-            const dateCols1 = [5]; // Índice da coluna F (Dt. Neg.)
-            for (let row = 2; ; row++) {
-                const cell = XLSX.utils.encode_cell({c: 5, r: row});
-                if (!worksheet1[cell]) break;
-                worksheet1[cell].t = 's'; // Tipo string
-            }
-            
-            // Formata as colunas numéricas
-            worksheet1['!cols'] = [
-                {}, {}, {}, {}, {},           // Colunas A-E
-                {},                          // Coluna F (já tratada como texto)
-                { numFmt: '#,##0.00' },      // Coluna G (Saving)
-                { numFmt: '#,##0.00' }       // Coluna H (Ev. Preço)
-            ];
-            
-            // Formata o título em negrito
-            worksheet1['A1'].s = { font: { bold: true } };
-            
-            // Adiciona a planilha ao workbook
-            XLSX.utils.book_append_sheet(workbook, worksheet1, "Saving e Evolução");
-        }
-
-        // Processa a segunda tabela (Condição Pagamento)
-        const table2 = document.getElementById('tabela2');
-        if (table2) {
-            // Converte a tabela HTML para worksheet mantendo os textos exatos
-            const worksheet2 = XLSX.utils.table_to_sheet(table2, {raw: true});
-            
-            // Adiciona o título na primeira linha
-            XLSX.utils.sheet_add_aoa(worksheet2, [["Detalhamento Ganho Condição de Pagamento"]], {origin: 'A1'});
-            
-            // Força o formato de texto para as colunas de data (Dt. Neg., Dt. Venc., Dt. Baixa.)
-            const dateCols2 = [4, 5, 6]; // Índices das colunas E, F, G
-            dateCols2.forEach(col => {
-                for (let row = 2; ; row++) {
-                    const cell = XLSX.utils.encode_cell({c: col, r: row});
-                    if (!worksheet2[cell]) break;
-                    worksheet2[cell].t = 's'; // Tipo string
-                }
-            });
-            
-            // Formata as colunas numéricas
-            worksheet2['!cols'] = [
-                {}, {}, {}, {},               // Colunas A-D
-                {},                          // Coluna E (texto)
-                {},                          // Coluna F (texto)
-                {},                          // Coluna G (texto)
-                { numFmt: '#,##0.00' }       // Coluna H (Gan. Con. Pgto.)
-            ];
-            
-            // Formata o título em negrito
-            worksheet2['A1'].s = { font: { bold: true } };
-            
-            // Adiciona a planilha ao workbook
-            XLSX.utils.book_append_sheet(workbook, worksheet2, "Condição Pagamento");
-        }
-
-        // Gera o arquivo Excel
-        XLSX.writeFile(workbook, 'relatorio_ganho_negociacao.xlsx');
-
-    } catch (error) {
-        console.error("Erro ao exportar para Excel:", error);
-        alert("Erro ao exportar: " + error.message);
-    }
-}
-
 </script>
 </body>
 </html>

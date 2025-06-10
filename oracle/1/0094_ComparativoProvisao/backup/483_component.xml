@@ -1,0 +1,318 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_MES" description="Periodo" metadata="datePeriod" required="true" keep-last="true" keep-date="false" order="0"/>
+  </prompt-parameters>
+  <level id="lvl_ccy8ux" description="Principal">
+    <args>
+      <arg id="A_NUMES" type="date"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <html5component id="html5_ccy8uy" entryPoint="Fluxo Comparativo Satis9.jsp"/>
+    </container>
+  </level>
+  <level id="lvl_ccy8vw" description="Analise por Dias">
+    <container orientacao="V" tamanhoRelativo="100">
+      <html5component id="html5_ccy8vx" entryPoint="nivel inferior.jsp"/>
+    </container>
+  </level>
+  <level id="lvl_ccy8v8" description="Analise por Naturezas">
+    <args>
+      <arg id="A_MES" type="integer"/>
+      <arg id="A_ANO" type="integer"/>
+      <arg id="A_MESANO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <html5component id="html5_ccy8v9" entryPoint="Nivel Inferior Naturezas6.jsp"/>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_ccy8wm" description="Analitco de Naturezas Provisão">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_ccy8wn" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT DESCRNAT,NUFIN,TIPOMOV,CODPARC,NOMEPARC,MES,VLRDESDOB,DESCROPER,DTVENC,DHMOV,REFERENCIAFROM AD_PROVISAODETALHE WHERE REFERENCIA BETWEEN :P_MES.INI AND :P_MES.FIN]]></expression>
+        <metadata>
+          <field name="DESCRNAT" label="natureza" type="S" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="Nro Financeiro" type="I" visible="true" useFooter="false"/>
+          <field name="TIPOMOV" label="Tipo de Movimento" type="S" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="Cod de parceiro" type="I" visible="true" useFooter="false"/>
+          <field name="NOMEPARC" label="Nome Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="MES" label="Mes " type="S" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Vlr de desdobramento" type="F" visible="true" useFooter="SUM" mask="R$ #.##0,00"/>
+          <field name="DESCROPER" label="Tipo de Operaçãp" type="S" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt de Vencimento " type="D" visible="true" useFooter="false"/>
+          <field name="DHMOV" label="Dt de movimento " type="D" visible="true" useFooter="false"/>
+          <field name="REFERENCIA" label="Referencia" type="D" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_ccy8w2" description="Analitico Naturezas Divergencias">
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="50">
+        <grid id="grd_ccy8w3" useNewGrid="S">
+          <title><![CDATA[<b>Titulos Pós fechamento de Provisões não baixados </b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT FIN.NUFIN,FIN.CODPARC,PAR.NOMEPARC,FIN.VLRDESDOB,FIN.VLRBAIXA,NAT.DESCRNAT,FIN.CODNAT,FIN.CODCENCUS,FIN.VLRBAIXA,FIN.DTVENC,FIN.DHMOV,FIN.DHBAIXA,CASE WHEN FIN.RECDESP = 1 THEN 'RECEITA'      WHEN FIN.RECDESP = -1 THEN 'DESPESA'     END AS TIPO              FROM TGFFIN FIN               INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC             INNER JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT             WHERE FIN.DTVENC BETWEEN :P_MES.INI AND :P_MES.FIN               AND FIN.CODCTABCOINT IS NOT NULL               AND FIN.DHBAIXA IS NULL               AND FIN.VLRDESDOB <>0               AND NOT EXISTS (SELECT NUFIN FROM AD_PROVISAODETALHE WHERE NUFIN = FIN.NUFIN AND DTVENC BETWEEN :P_MES.INI AND :P_MES.FIN )           ]]></expression>
+          <metadata>
+            <field name="NUFIN" label="Nro Financeiro" type="I" visible="true" useFooter="false"/>
+            <field name="CODPARC" label="Cod de parceiro" type="I" visible="true" useFooter="false"/>
+            <field name="NOMEPARC" label="Nome parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="VLRDESDOB" label="Vlr de Desdobramento" type="F" visible="true" useFooter="SUM" mask="R$ #.##0,00"/>
+            <field name="VLRBAIXA" label="Vlr de Baixa" type="F" visible="true" useFooter="SUM" mask="R$ #.##0,00"/>
+            <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+            <field name="CODNAT" label="Cod de natureza" type="I" visible="true" useFooter="false"/>
+            <field name="CODCENCUS" label="Centro de Custo" type="I" visible="true" useFooter="false"/>
+            <field name="DTVENC" label="Dt de Vencimento " type="D" visible="true" useFooter="false"/>
+            <field name="DHMOV" label="Dt de movimento " type="D" visible="true" useFooter="false"/>
+            <field name="DHBAIXA" label="Dt de Baixa" type="D" visible="true" useFooter="false"/>
+            <field name="TIPO" label="Tipo de movimento" type="S" visible="true" useFooter="false"/>
+          </metadata>
+        </grid>
+      </container>
+      <container orientacao="V" tamanhoRelativo="50">
+        <grid id="grd_ccy8w4" useNewGrid="S">
+          <title><![CDATA[<b>Titulos Pós fechamento de Provisões baixados </b>]]></title>
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT FIN.NUFIN,FIN.CODPARC,PAR.NOMEPARC,FIN.VLRDESDOB,FIN.VLRBAIXA,NAT.DESCRNAT,FIN.CODNAT,FIN.CODCENCUS,FIN.VLRBAIXA,FIN.DTVENC,FIN.DHMOV,FIN.DHBAIXA,CASE WHEN FIN.RECDESP = 1 THEN 'RECEITA'      WHEN FIN.RECDESP = -1 THEN 'DESPESA'     END AS TIPO              FROM TGFFIN FIN               INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC             INNER JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT             WHERE FIN.DTVENC BETWEEN :P_MES.INI AND :P_MES.FIN            /* AND (FIN.CODNAT = (SELECT CODNAT FROM TGFNAT WHERE DESCRNAT = :NNAT AND ANALITICA = 'S')) OR (:NNAT IS NULL)*/               AND FIN.CODCTABCOINT IS NOT NULL               AND FIN.PROVISAO = 'N'               AND FIN.DHBAIXA IS NOT NULL               AND NOT EXISTS (SELECT NUFIN FROM AD_PROVISAODETALHE WHERE NUFIN = FIN.NUFIN AND DTVENC BETWEEN :P_MES.INI AND :P_MES.FIN )]]></expression>
+          <metadata>
+            <field name="NUFIN" label="Nro Financeiro" type="I" visible="true" useFooter="false"/>
+            <field name="CODPARC" label="Cod Parceiro" type="I" visible="true" useFooter="false"/>
+            <field name="NOMEPARC" label="Nome parceiro" type="S" visible="true" useFooter="false"/>
+            <field name="VLRDESDOB" label="Vlr Desdobramento " type="F" visible="true" useFooter="SUM" mask="R$ #.##0,00"/>
+            <field name="VLRBAIXA" label="Vlr BAixa" type="F" visible="true" useFooter="SUM" mask="R$ #.##0,00"/>
+            <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+            <field name="CODNAT" label="Cod de Natureza" type="I" visible="true" useFooter="false"/>
+            <field name="CODCENCUS" label="Centro de Custo " type="I" visible="true" useFooter="false"/>
+            <field name="DTVENC" label="Dt de Vencimento " type="D" visible="true" useFooter="false"/>
+            <field name="DHMOV" label="Dt Movimento " type="D" visible="true" useFooter="false"/>
+            <field name="DHBAIXA" label="Dt de baixa" type="D" visible="true" useFooter="false"/>
+            <field name="TIPO" label="Tipo de Movimento" type="S" visible="true" useFooter="false"/>
+          </metadata>
+          <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+            <NUFIN>$NUFIN</NUFIN>
+          </on-click-launcher>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_akpljcj" description="Geral por Natureza">
+    <container orientacao="V" tamanhoRelativo="100">
+      <html5component id="html5_akpljck" entryPoint="RESUMO_TOT_NATUREZA2.jsp"/>
+    </container>
+  </level>
+  <level id="lvl_a46a90p" description="Det_Real_Desp">
+    <args>
+      <arg id="A_MESANO" type="integer"/>
+    </args>
+    <container orientacao="H" tamanhoRelativo="100">
+      <grid id="grd_a46a92m" useNewGrid="S">
+        <title><![CDATA[Detalhamento - Realizado de Despesas Baixadas no Período :A_MESANO]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[ SELECT    TO_CHAR(FIN2.DTVENC,'MM') MES,    TO_CHAR(FIN2.DTVENC,'YYYY') ANO,    FIN2.CODEMP, FIN2.CODNAT, NAT.DESCRNAT, FIN2.CODCENCUS, FIN2.CODPROJ,    FIN2.CODCTABCOINT, FIN2.NUFIN, FIN2.NUMNOTA, FIN2.SERIENOTA, FIN2.DTNEG,    FIN2.DESDOBRAMENTO, FIN2.DHMOV, FIN2.DTVENC, FIN2.DHBAIXA, FIN2.HISTORICO,    FIN2.VLRDESDOB, FIN2.VLRBAIXA        FROM TGFFIN FIN2    INNER JOIN VGFFIN FINN ON FIN2.NUFIN = FINN.NUFIN    INNER JOIN TGFNAT NAT ON FIN2.CODNAT = NAT.CODNAT    WHERE FIN2.RECDESP = -1    AND  FIN2.PROVISAO = 'N'    AND TO_NUMBER(TO_CHAR(FIN2.DTVENC,'MMYYYY')) = TO_NUMBER(:A_MESANO)    AND FIN2.CODCTABCOINT IS NOT NULL]]></expression>
+        <metadata>
+          <field name="MES" label="Mês" type="S" visible="true" useFooter="false"/>
+          <field name="ANO" label="Ano" type="S" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Descr. Nat." type="S" visible="true" useFooter="false"/>
+          <field name="CODCENCUS" label="Cód. Cen. Cus." type="I" visible="true" useFooter="false"/>
+          <field name="CODPROJ" label="Cód. Proj." type="I" visible="true" useFooter="false"/>
+          <field name="CODCTABCOINT" label="Cod. Cta. Ctb. Int." type="I" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="SERIENOTA" label="Serie Nota" type="S" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+          <field name="DESDOBRAMENTO" label="Desdob." type="S" visible="true" useFooter="false"/>
+          <field name="DHMOV" label="Dt. Mov." type="D" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="DHBAIXA" label="Dt. Baixa" type="D" visible="true" useFooter="false"/>
+          <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Vlr. Desdob." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+          <NUFIN>$NUFIN</NUFIN>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_a46a95l" description="Det_Real_Rec">
+    <args>
+      <arg id="A_MESANO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_a46a95v" useNewGrid="S">
+        <title><![CDATA[Detalhamento - Realizado de Receita Baixadas no Período :A_MESANO]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[ SELECT    TO_CHAR(FIN2.DTVENC,'MM') MES,    TO_CHAR(FIN2.DTVENC,'YYYY') ANO,    FIN2.CODEMP, FIN2.CODNAT, NAT.DESCRNAT, FIN2.CODCENCUS, FIN2.CODPROJ,    FIN2.CODCTABCOINT, FIN2.NUFIN, FIN2.NUMNOTA, FIN2.SERIENOTA, FIN2.DTNEG,    FIN2.DESDOBRAMENTO, FIN2.DHMOV, FIN2.DTVENC, FIN2.DHBAIXA, FIN2.HISTORICO,    FIN2.VLRDESDOB, FIN2.VLRBAIXA        FROM TGFFIN FIN2    INNER JOIN VGFFIN FINN ON FIN2.NUFIN = FINN.NUFIN    INNER JOIN TGFNAT NAT ON FIN2.CODNAT = NAT.CODNAT    WHERE FIN2.RECDESP = 1    AND  FIN2.PROVISAO = 'N'    AND TO_NUMBER(TO_CHAR(FIN2.DTVENC,'MMYYYY')) = TO_NUMBER(:A_MESANO)    AND FIN2.CODCTABCOINT IS NOT NULL]]></expression>
+        <metadata>
+          <field name="MES" label="Mês" type="S" visible="true" useFooter="false"/>
+          <field name="ANO" label="Ano" type="S" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Descr. Nat." type="S" visible="true" useFooter="false"/>
+          <field name="CODCENCUS" label="Cód. Cen. Cus." type="I" visible="true" useFooter="false"/>
+          <field name="CODPROJ" label="Cód. Proj." type="I" visible="true" useFooter="false"/>
+          <field name="CODCTABCOINT" label="Cod. Cta. Ctb. Int." type="I" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="SERIENOTA" label="Serie Nota" type="S" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+          <field name="DESDOBRAMENTO" label="Desdob." type="S" visible="true" useFooter="false"/>
+          <field name="DHMOV" label="Dt. Mov." type="D" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="DHBAIXA" label="Dt. Baixa" type="D" visible="true" useFooter="false"/>
+          <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Vlr. Desdob." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRBAIXA" label="Vlr. Baixa" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+          <NUFIN>$NUFIN</NUFIN>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_a46a975" description="Det_Nat_Sintetico">
+    <args>
+      <arg id="A_MESANO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_a46a976" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[ SELECT    TO_CHAR(FIN2.DTVENC,'MMYYYY') MESANO,        FIN2.CODNAT, NAT.DESCRNAT,     SUM(CASE WHEN FIN2.RECDESP = 1 THEN FIN2.VLRBAIXA END) REC_BAIXADA,     SUM(CASE WHEN FIN2.RECDESP = -1 THEN FIN2.VLRBAIXA*FIN2.RECDESP END) DESP_BAIXADA        FROM TGFFIN FIN2    INNER JOIN VGFFIN FINN ON FIN2.NUFIN = FINN.NUFIN    INNER JOIN TGFNAT NAT ON FIN2.CODNAT = NAT.CODNAT    WHERE FIN2.RECDESP IN ( 1,-1)    AND  FIN2.PROVISAO = 'N'    AND TO_NUMBER(TO_CHAR(FIN2.DTVENC,'MMYYYY')) = TO_NUMBER(:A_MESANO)    AND FIN2.CODCTABCOINT IS NOT NULL    GROUP BY TO_CHAR(FIN2.DTVENC,'MMYYYY'), FIN2.CODNAT, NAT.DESCRNAT    ORDER BY 2,4]]></expression>
+        <metadata>
+          <field name="MESANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Descr. Nat." type="S" visible="true" useFooter="false"/>
+          <field name="REC_BAIXADA" label="Rec. Baixada" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="DESP_BAIXADA" label="Desp. Baixada" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_a46a995" description="Det_Nat_Analítico">
+    <args>
+      <arg id="A_MESANO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_a46a997" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[ SELECT    TO_CHAR(FIN2.DTVENC,'MMYYYY') MESANO,        FIN2.CODEMP, FIN2.CODNAT, NAT.DESCRNAT, FIN2.CODCENCUS, FIN2.CODPROJ,    FIN2.CODCTABCOINT, FIN2.NUFIN, FIN2.NUMNOTA, FIN2.SERIENOTA, FIN2.DTNEG,    FIN2.DESDOBRAMENTO, FIN2.DHMOV, FIN2.DTVENC, FIN2.DHBAIXA, FIN2.HISTORICO,    CASE WHEN FIN2.RECDESP = 1 THEN FIN2.VLRBAIXA END REC_BAIXADA,     CASE WHEN FIN2.RECDESP = -1 THEN FIN2.VLRBAIXA*FIN2.RECDESP END DESP_BAIXADA    FROM TGFFIN FIN2    INNER JOIN VGFFIN FINN ON FIN2.NUFIN = FINN.NUFIN    INNER JOIN TGFNAT NAT ON FIN2.CODNAT = NAT.CODNAT    WHERE FIN2.RECDESP IN ( 1,-1)    AND  FIN2.PROVISAO = 'N'    AND TO_NUMBER(TO_CHAR(FIN2.DTVENC,'MMYYYY')) = TO_NUMBER(:A_MESANO)    AND FIN2.CODCTABCOINT IS NOT NULL]]></expression>
+        <metadata>
+          <field name="MESANO" label="Mês / Ano" type="S" visible="true" useFooter="false"/>
+          <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Descr. Nat." type="S" visible="true" useFooter="false"/>
+          <field name="CODCENCUS" label="Cód. CR" type="I" visible="true" useFooter="false"/>
+          <field name="CODPROJ" label="Cód. Proj." type="I" visible="true" useFooter="false"/>
+          <field name="CODCTABCOINT" label="CODCTABCOINT" type="I" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="SERIENOTA" label="Serie Nota" type="S" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="Dt. Neg." type="D" visible="true" useFooter="false"/>
+          <field name="DESDOBRAMENTO" label="Desdob." type="S" visible="true" useFooter="false"/>
+          <field name="DHMOV" label="Dt. Mov." type="D" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="DHBAIXA" label="Dt. Baixa" type="D" visible="true" useFooter="false"/>
+          <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+          <field name="REC_BAIXADA" label="Rec. Baixada" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="DESP_BAIXADA" label="Desp. Baixada" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+          <NUFIN>$NUFIN</NUFIN>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_a514boq" description="Det_Prov_Desp">
+    <args>
+      <arg id="A_MESANO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_a514bor" useNewGrid="S">
+        <title><![CDATA[Detalhamento Provisão Receita - :A_MESANO]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT NUFIN,TIPOMOV,CODPARC,NOMEPARC,CODNAT,DESCRNAT,DTVENC,VLRDESDOBFROM AD_PROVISAODETALHE DETWHERE TO_NUMBER(TO_CHAR(DET.DTVENC,'MMYYYY')) = TO_NUMBER(:A_MESANO) AND DET.TIPOMOV='DESPESA'AND EXISTS (SELECT 1 FROM TGFFIN FIN WHERE FIN.NUFIN = DET.NUFIN)]]></expression>
+        <metadata>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="TIPOMOV" label="Tipo" type="S" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+          <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Vlr. Desdob." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+          <NUFIN>$NUFIN</NUFIN>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_a514bo4" description="Det_Prov_Rec">
+    <args>
+      <arg id="A_MESANO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_a514bqe" useNewGrid="S">
+        <title><![CDATA[Detalhamento Provisão Receita - :A_MESANO]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT NUFIN,TIPOMOV,CODPARC,NOMEPARC,CODNAT,DESCRNAT,DTVENC,VLRDESDOBFROM AD_PROVISAODETALHE DETWHERE TO_NUMBER(TO_CHAR(DET.DTVENC,'MMYYYY')) = TO_NUMBER(:A_MESANO) AND DET.TIPOMOV='RECEITA'AND EXISTS (SELECT 1 FROM TGFFIN FIN WHERE FIN.NUFIN = DET.NUFIN)]]></expression>
+        <metadata>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="TIPOMOV" label="Tipo" type="S" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+          <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Vlr. Desdob." type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+          <NUFIN>$NUFIN</NUFIN>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_a514bsy" description="Det_Diver_Desp">
+    <args>
+      <arg id="A_MESANO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_a514btc" useNewGrid="S">
+        <title><![CDATA[Detalhamento Divergência Despesa - :A_MESANO]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT 'PROVISAO DESPESA' TIPO,NUFIN,CODPARC,NOMEPARC,CODNAT,DESCRNAT,DTVENC,VLRDESDOBFROM AD_PROVISAODETALHE DETWHERE TO_NUMBER(TO_CHAR(DET.DTVENC,'MMYYYY')) = TO_NUMBER(:A_MESANO) AND DET.TIPOMOV='DESPESA'AND EXISTS (SELECT 1 FROM TGFFIN FIN WHERE FIN.NUFIN = DET.NUFIN)UNION ALLSELECT'REALIZADO DESPESA' TIPO,VGF.NUFIN,VGF.CODPARC,PAR.NOMEPARC,VGF.CODNAT,NAT.DESCRNAT,VGF.DTVENC,VGF.VLRBAIXA*-1 VLRDESDOBFROM VGFFIN VGFINNER JOIN TGFPAR PAR ON VGF.CODPARC = PAR.CODPARCINNER JOIN TGFNAT NAT ON VGF.CODNAT = NAT.CODNATWHERE VGF.RECDESP = -1AND VGF.PROVISAO = 'N'AND VGF.CODCTABCOINT IS NOT NULLAND TO_NUMBER(TO_CHAR(VGF.DTVENC,'MMYYYY')) = TO_NUMBER(:A_MESANO)]]></expression>
+        <metadata>
+          <field name="TIPO" label="Tp." type="S" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+          <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Valor" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+          <NUFIN>$NUFIN</NUFIN>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_a514bux" description="Det_Diver_Rec">
+    <args>
+      <arg id="A_MESANO" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_a514bvd" useNewGrid="S">
+        <title><![CDATA[Detalhamento Divergência Receita - :A_MESANO]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT 'PROVISAO RECEITA' TIPO,NUFIN,CODPARC,NOMEPARC,CODNAT,DESCRNAT,DTVENC,VLRDESDOBFROM AD_PROVISAODETALHE DETWHERE TO_NUMBER(TO_CHAR(DET.DTVENC,'MMYYYY')) = TO_NUMBER(:A_MESANO) AND DET.TIPOMOV='RECEITA'AND EXISTS (SELECT 1 FROM TGFFIN FIN WHERE FIN.NUFIN = DET.NUFIN)UNION ALLSELECT'REALIZADO RECEITA' TIPO,VGF.NUFIN,VGF.CODPARC,PAR.NOMEPARC,VGF.CODNAT,NAT.DESCRNAT,VGF.DTVENC,VGF.VLRBAIXA*-1 VLRDESDOBFROM VGFFIN VGFINNER JOIN TGFPAR PAR ON VGF.CODPARC = PAR.CODPARCINNER JOIN TGFNAT NAT ON VGF.CODNAT = NAT.CODNATWHERE VGF.RECDESP = 1AND VGF.PROVISAO = 'N'AND VGF.CODCTABCOINT IS NOT NULLAND TO_NUMBER(TO_CHAR(VGF.DTVENC,'MMYYYY')) = TO_NUMBER(:A_MESANO)]]></expression>
+        <metadata>
+          <field name="TIPO" label="Tp." type="S" visible="true" useFooter="false"/>
+          <field name="NUFIN" label="NÚ. Fin." type="I" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="Cód. Parc." type="I" visible="true" useFooter="false"/>
+          <field name="NOMEPARC" label="Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="CODNAT" label="Cód. Nat." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Natureza" type="S" visible="true" useFooter="false"/>
+          <field name="DTVENC" label="Dt. Venc." type="D" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Valor" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+        <on-click-launcher resource-id="br.com.sankhya.fin.cad.movimentacaoFinanceira">
+          <NUFIN>$NUFIN</NUFIN>
+        </on-click-launcher>
+      </grid>
+    </container>
+  </level>
+</gadget>

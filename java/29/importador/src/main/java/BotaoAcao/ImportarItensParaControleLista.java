@@ -1,4 +1,3 @@
-// Pacote e imports
 package BotaoAcao;
 
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
@@ -35,6 +34,12 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
             jdbc = EntityFacadeFactory.getDWFFacade().getJdbcWrapper();
             jdbc.openSession();
 
+            // Verificação inicial se existem itens para o NUNOTA
+            if (!existeItemNota(jdbc, nunota)) {
+                contexto.setMensagemRetorno("Importar Lista Inicial primeiramente!");
+                return;
+            }
+
             // CORRIGIDO: passar nunota para buscar versão por nota
             BigDecimal versao = getProximaVersao(jdbc, nunota);
 
@@ -53,6 +58,26 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
         } finally {
             JdbcWrapper.closeSession(jdbc);
         }
+    }
+
+    private boolean existeItemNota(JdbcWrapper jdbc, BigDecimal nunota) throws Exception {
+        NativeSql query = null;
+        ResultSet rs = null;
+
+        try {
+            query = new NativeSql(jdbc);
+            query.appendSql("SELECT COUNT(*) AS TOTAL FROM TGFITE WHERE NUNOTA = :NUNOTA");
+            query.setNamedParameter("NUNOTA", nunota);
+            rs = query.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("TOTAL") > 0;
+            }
+        } finally {
+            if (rs != null) rs.close();
+            NativeSql.releaseResources(query);
+        }
+        return false;
     }
 
     private void processarItensNota(JdbcWrapper jdbc, BigDecimal nunota, ContextoAcao contexto, BigDecimal versao) throws Exception {
@@ -216,7 +241,6 @@ public class ImportarItensParaControleLista implements AcaoRotinaJava {
         }
     }
 
-    // CORRIGIDO: Agora a versão é reiniciada por NUNOTA
     private BigDecimal getProximaVersao(JdbcWrapper jdbc, BigDecimal nunota) throws Exception {
         NativeSql query = null;
         ResultSet rs = null;

@@ -122,6 +122,8 @@
 
 <snk:query var="fat_det">
 
+
+
 SELECT
 CAB.CODEMP,
 LAN.CODCTACTB,
@@ -157,9 +159,7 @@ WHEN 'T' THEN 'TRANSFERENCIA'
 ELSE 'ORIGEM NAO ESPERADA = '|| CAB.TIPMOV
 END AS ORIGEM, 
 CAB.TIPMOV AS MOVIMENTO,
-CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR,
-NVL(CRI.CODCENCUS, CRI1.CODCENCUS) AS CODCENCUS,
-NVL(CRI.DESCRCENCUS, CRI1.DESCRCENCUS) AS DESCRCENCUS
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
 
 
 
@@ -171,7 +171,6 @@ INNER JOIN TGFPAR PAR ON (PAR.CODPARC = CAB.CODPARC)
 INNER JOIN TGFNAT NAT ON (NAT.CODNAT = CAB.CODNAT)
 INNER JOIN TGFTOP TOP ON (TOP.CODTIPOPER = CAB.CODTIPOPER AND TOP.DHALTER = CAB.DHTIPOPER)
 LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
-LEFT JOIN TSICUS CRI1 ON CAB.CODCENCUS = CRI1.CODCENCUS
 WHERE
 (PLA.CTACTB  LIKE '%3.01.03.01%' OR PLA.CTACTB  LIKE '%3.01.03.02%') 
 
@@ -217,9 +216,8 @@ FIN.CODNAT AS CODNATUREZA,
 NAT.DESCRNAT AS NATUREZA,
 'LANÇAMENTO FINANCEIRO' AS ORIGEM, 
 'FINANCEIRO' AS MOVIMENTO,
-CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR,
-NVL(CRI.CODCENCUS, CRI1.CODCENCUS) AS CODCENCUS,
-NVL(CRI.DESCRCENCUS, CRI1.DESCRCENCUS) AS DESCRCENCUS
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
+
 
 FROM TCBLAN LAN
 INNER JOIN TCBPLA PLA ON (PLA.CODCTACTB = LAN.CODCTACTB)
@@ -229,7 +227,6 @@ INNER JOIN TGFPAR PAR ON (PAR.CODPARC = FIN.CODPARC)
 INNER JOIN TGFNAT NAT ON (NAT.CODNAT = FIN.CODNAT)
 INNER JOIN TGFTOP TOP ON (TOP.CODTIPOPER = FIN.CODTIPOPER AND TOP.DHALTER = FIN.DHTIPOPER)
 LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
-LEFT JOIN TSICUS CRI1 ON FIN.CODCENCUS = CRI1.CODCENCUS
 WHERE     	
 (PLA.CTACTB  LIKE '%3.01.03.01%' OR PLA.CTACTB  LIKE '%3.01.03.02%') 
 
@@ -275,9 +272,7 @@ FIN.CODNAT AS CODNATUREZA,
 NAT.DESCRNAT AS NATUREZA,
 'BAIXA DE TITULO' AS ORIGEM, 
 'BAIXA' AS MOVIMENTO,
-CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR,
-NVL(CRI.CODCENCUS, CRI1.CODCENCUS) AS CODCENCUS,
-NVL(CRI.DESCRCENCUS, CRI1.DESCRCENCUS) AS DESCRCENCUS
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
 
 
 FROM TCBLAN LAN
@@ -288,7 +283,6 @@ INNER JOIN TGFPAR PAR ON (PAR.CODPARC = FIN.CODPARC)
 INNER JOIN TGFNAT NAT ON (NAT.CODNAT = FIN.CODNAT)
 INNER JOIN TGFTOP TOP ON (TOP.CODTIPOPER = FIN.CODTIPOPERBAIXA AND TOP.DHALTER = FIN.DHTIPOPERBAIXA)
 LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
-LEFT JOIN TSICUS CRI1 ON FIN.CODCENCUS = CRI1.CODCENCUS
 WHERE
 (PLA.CTACTB  LIKE '%3.01.03.01%' OR PLA.CTACTB  LIKE '%3.01.03.02%') 
 
@@ -334,9 +328,7 @@ FIN.CODNAT AS CODNATUREZA,
 NAT.DESCRNAT AS NATUREZA,
 'RENEGOCIACAO' AS ORIGEM, 
 'RENEGOCIACAO' AS MOVIMENTO,
-CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR,
-NVL(CRI.CODCENCUS, CRI1.CODCENCUS) AS CODCENCUS,
-NVL(CRI.DESCRCENCUS, CRI1.DESCRCENCUS) AS DESCRCENCUS
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
 
 
 FROM TCBLAN LAN
@@ -347,7 +339,6 @@ INNER JOIN TGFPAR PAR ON (PAR.CODPARC = FIN.CODPARC)
 INNER JOIN TGFNAT NAT ON (NAT.CODNAT = FIN.CODNAT)
 INNER JOIN TGFTOP TOP ON (TOP.CODTIPOPER = FIN.CODTIPOPER AND TOP.DHALTER = FIN.DHTIPOPER)
 LEFT JOIN TSICUS CRI ON LAN.CODCENCUS = CRI.CODCENCUS
-LEFT JOIN TSICUS CRI1 ON FIN.CODCENCUS = CRI1.CODCENCUS
 
 WHERE
 (PLA.CTACTB  LIKE '%3.01.03.01%' OR PLA.CTACTB  LIKE '%3.01.03.02%') 
@@ -393,9 +384,7 @@ CASE WHEN MBC.RECDESP = 1 THEN 'RECEITA' ELSE 'DESPESA' END AS RECEITADESPESA,
 'MOV. BANCARIO' AS NATUREZA,
 'MOV. BANCARIO' AS ORIGEM, 
 'MOV. BANCARIO' AS MOVIMENTO,
-CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR,
-0 CODCENCUS,
-'SEM CR' AS DESCRCENCUS
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
 
 
 FROM TCBLAN LAN
@@ -449,10 +438,7 @@ LAN.COMPLHIST AS HISTORICOLAN,
 'SEM NATUREZA - LCTO MANUAL' AS NATUREZA,
 'SEM ORIGEM - LCTO MANUAL' AS ORIGEM, 
 'MANUAL' AS MOVIMENTO,
-CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR,
-0 CODCENCUS,
-'SEM CR' AS DESCRCENCUS
-
+CASE WHEN LAN.TIPLANC = 'D' THEN 'RED' ELSE 'BLUE' END AS FGCOLOR
 
 
 FROM TCBLAN LAN
@@ -483,6 +469,10 @@ AND IT.TIPLANC=LAN.TIPLANC
 AND IT.NUMLOTE=LAN.NUMLOTE)
 
 ORDER BY 1, 5, 13, 10 DESC
+
+
+
+
     
     
 </snk:query>
@@ -519,9 +509,7 @@ ORDER BY 1, 5, 13, 10 DESC
                     <th onclick="sortTable(20)">Cód. Nat.</th>
                     <th onclick="sortTable(21)">Natureza</th>
                     <th onclick="sortTable(22)">Origem</th>
-                    <th onclick="sortTable(23)">CR</th>
-                    <th onclick="sortTable(24)">Descr. CR.</th>
-                    <th onclick="sortTable(25)">Vlr. Lanc.</th>
+                    <th onclick="sortTable(23)">Vlr. Lanc.</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
@@ -543,15 +531,13 @@ ORDER BY 1, 5, 13, 10 DESC
                         <td>${row.TPLANC}</td>
                         <td>${row.NUMLOTE}</td>
                         <td>${row.NUMLANC}</td>
-                        <td>${row.MOVIMENTO}</td>
                         <td>${row.HISTORICOORIGEM}</td>
                         <td>${row.HISTORICOLAN}</td>
                         <td>${row.RECEITADESPESA}</td>
                         <td>${row.CODNATUREZA}</td>
                         <td>${row.NATUREZA}</td>
                         <td>${row.ORIGEM}</td>
-                        <td>${row.CODCENCUS}</td>
-                        <td>${row.DESCRCENCUS}</td>
+                        <td>${row.MOVIMENTO}</td>
                         <td style="text-align: center;">
                             <fmt:formatNumber value="${row.VLRLANC}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
                         </td>
@@ -561,7 +547,7 @@ ORDER BY 1, 5, 13, 10 DESC
             <tfoot>
                 <tr class="total-row">
                     <td><b>Total</b></td>
-                    <td colspan="24"></td>
+                    <td colspan="22"></td>
                     <td style="text-align: center;" id="totalAmount"><b>R$ 0,00</b></td>
                 </tr>       
             </tfoot>
@@ -603,7 +589,7 @@ ORDER BY 1, 5, 13, 10 DESC
 
         rows.forEach(row => {
             if (row.style.display !== 'none') {
-                const cellValue = row.cells[25].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); 
+                const cellValue = row.cells[23].textContent.replace(/[^\d,-]/g, '').replace(',', '.'); 
                 const value = parseFloat(cellValue);
                 total += isNaN(value) ? 0 : value;
             }

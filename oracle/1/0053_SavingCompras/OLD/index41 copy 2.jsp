@@ -396,7 +396,7 @@
             </svg>
         </button>
         
-        <button class="export-btn excel-btn" onclick="exportarExcelPersonalizado()" title="Exportar Excel Completo">
+        <button class="export-btn excel-btn" onclick="exportarExcelCompleto()" title="Exportar Excel Completo">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="white" viewBox="0 0 24 24" style="vertical-align: middle;">
                 <path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 1.5L18.5 9H13V3.5zM8.6 12l-1.6 2.3L5.4 12H4.2l2.2 3L4.2 18h1.2l1.6-2.3L8.6 18h1.2l-2.2-3 2.2-3H8.6zM11 12h1v6h-1v-6zm2.5 0h1.1l.9 1.6.9-1.6h1.1l-1.5 2.6 1.5 2.4h-1.1l-1-1.6-1 1.6h-1.1l1.5-2.4-1.5-2.6z"/>
             </svg>
@@ -539,41 +539,58 @@ function gerarPDFCompleto() {
 }
 
 
-function exportarExcelPersonalizado() {
-    // Defina o título
-    const titulo = ["Detalhamento Total Economia: Saving + Evolução de Preço + Ganho Negociação"];
+function exportarExcelCompleto() {
+    try {
+        // Verifica se a biblioteca está disponível
+        if (!window.XLSX) {
+            alert("A biblioteca SheetJS não foi carregada corretamente!");
+            return;
+        }
 
-    // Captura o cabeçalho da tabela
-    const cabecalho = [];
-    document.querySelectorAll(".table thead th").forEach(th => {
-        cabecalho.push(th.innerText.trim());
-    });
+        // Cria uma nova pasta de trabalho
+        const workbook = XLSX.utils.book_new();
 
-    // Captura o corpo da tabela
-    const corpo = [];
-    document.querySelectorAll(".table tbody tr").forEach(tr => {
-        const linha = [];
-        tr.querySelectorAll("td").forEach(td => {
-            linha.push(td.innerText.trim());
-        });
-        corpo.push(linha);
-    });
+        // Processa a primeira tabela (Saving e Evolução)
+        const table1 = document.getElementById('tabela1');
+        if (table1) {
+            // Converte a tabela HTML para worksheet mantendo os textos exatos
+            const worksheet1 = XLSX.utils.table_to_sheet(table1, {raw: true});
+            
+            // Adiciona o título na primeira linha
+            XLSX.utils.sheet_add_aoa(worksheet1, [["Detalhamento Saving + Evolução de Preço + Ganho Negociação = Total Economia"]], {origin: 'A1'});
+            
+            // Força o formato de texto para as colunas de data (Dt. Neg.)
+            const dateCols1 = [5]; // Índice da coluna F (Dt. Neg.)
+            for (let row = 2; ; row++) {
+                const cell = XLSX.utils.encode_cell({c: 5, r: row});
+                if (!worksheet1[cell]) break;
+                worksheet1[cell].t = 's'; // Tipo string
+            }
+            
+            // Formata as colunas numéricas
+            worksheet1['!cols'] = [
+                {}, {}, {}, {}, {},           // Colunas A-E
+                {},                          // Coluna F (já tratada como texto)
+                { numFmt: '#,##0.00' },      // Coluna G (Saving)
+                { numFmt: '#,##0.00' }       // Coluna H (Ev. Preço)
+            ];
+            
+            // Formata o título em negrito
+            worksheet1['A1'].s = { font: { bold: true } };
+            
+            // Adiciona a planilha ao workbook
+            XLSX.utils.book_append_sheet(workbook, worksheet1, "Total Economia");
+        }
 
-    // Montar os dados com quebras de linha
-    const dados = [];
-    dados.push(titulo);        // Linha 1: título
-    dados.push([]);            // Linha 2: em branco
-    dados.push(cabecalho);     // Linha 3: cabeçalho
-    dados.push([]);            // Linha 4: em branco
-    dados.push(...corpo);      // A partir da linha 5: corpo da tabela
 
-    // Criar planilha
-    const worksheet = XLSX.utils.aoa_to_sheet(dados);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "total_economia");
 
-    // Exportar
-    XLSX.writeFile(workbook, "total_economia.xlsx");
+        // Gera o arquivo Excel
+        XLSX.writeFile(workbook, 'relatorio_Total_economia.xlsx');
+
+    } catch (error) {
+        console.error("Erro ao exportar para Excel:", error);
+        alert("Erro ao exportar: " + error.message);
+    }
 }
 
 </script>

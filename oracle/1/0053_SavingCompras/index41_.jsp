@@ -173,13 +173,12 @@
 <body>
     <snk:query var="ganho_negcociacao_detalhe">
 
+
     SELECT 
-    CODEMP,PARCEIRO,PRODUTO,NUFIN,NUNOTA,DTNEG,DTVENC,DHBAIXA,COMPRADOR, SAVING,GANHO_EVOLUCAO,GANHO_NEGOCIACAO,SAVING+GANHO_EVOLUCAO+GANHO_NEGOCIACAO TOTAL_ECONOMIA
+    CODEMP,SUBSTR(PARCEIRO, 1, INSTR(PARCEIRO, '-') - 1) AS CODPARC,
+    PARCEIRO, SUM(SAVING)SAVING,SUM(GANHO_EVOLUCAO)GANHO_EVOLUCAO,SUM(GANHO_NEGOCIACAO)GANHO_NEGOCIACAO,SUM(SAVING+GANHO_EVOLUCAO+GANHO_NEGOCIACAO) TOTAL_ECONOMIA
     FROM (
-    
-    SELECT 
-    CODEMP,PARCEIRO,PRODUTO,NUFIN,NUNOTA,DTNEG,DTVENC,DHBAIXA,COMPRADOR, SUM(SAVING)SAVING,SUM(GANHO_EVOLUCAO)GANHO_EVOLUCAO,SUM(GANHO_NEGOCIACAO)GANHO_NEGOCIACAO
-    FROM (
+
             SELECT
             CODEMP,
             PARCEIRO,
@@ -379,11 +378,10 @@
             AND USU.AD_USUCOMPRADOR = 'S'
             )
             )
-    )
-    GROUP BY CODEMP,PARCEIRO,PRODUTO,NUFIN,NUNOTA,DTNEG,DTVENC,DHBAIXA,COMPRADOR
-    
-    )
 
+    )
+    
+    GROUP BY CODEMP,PARCEIRO    
 
 
 </snk:query>
@@ -411,13 +409,6 @@
                     <tr>
                         <th>Emp.</th>
                         <th>Parceiro</th>
-                        <th>Produto</th>
-                        <th>NÚ. Fin.</th>
-                        <th>NÚ. Único</th>
-                        <th>Dt. Neg.</th>
-                        <th>Dt. Venc.</th>
-                        <th>Dt. Baixa.</th>
-                        <th>Comprador</th>
                         <th>Saving</th>
                         <th>Gan. Ev. Preço</th>
                         <th>Gan. Negociação</th>
@@ -427,15 +418,9 @@
                 <tbody>
                     <c:forEach items="${ganho_negcociacao_detalhe.rows}" var="row">
                         <tr>
-                            <td>${row.CODEMP}</td>
+
+                            <td onclick="abrir_det('${row.CODEMP}','${row.CODPARC}')">${row.CODEMP}</td>
                             <td>${row.PARCEIRO}</td>
-                            <td>${row.PRODUTO}</td>
-                            <td onclick="abrir_mov('${row.NUFIN}')">${row.NUFIN}</td>
-                            <td onclick="abrir_portal('${row.NUNOTA}')">${row.NUNOTA}</td>
-                            <td>${row.DTNEG}</td>
-                            <td>${row.DTVENC}</td>
-                            <td>${row.DHBAIXA}</td>
-                            <td>${row.COMPRADOR}</td>
                             <td>
                                 <fmt:formatNumber value="${row.SAVING}" type="number"
                                     maxFractionDigits="2" groupingUsed="true" />
@@ -461,7 +446,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="9"><strong>Total:</strong></td>
+                        <td colspan="2"><strong>Total:</strong></td>
                         <td class="total-column">
                             <fmt:formatNumber value="${totalSaving}" type="currency"
                                 maxFractionDigits="2" groupingUsed="true" />
@@ -505,6 +490,17 @@
             var level = 'br.com.sankhya.com.mov.CentralNotas';
             openApp(level, params);
         }
+
+
+        function abrir_det(codemp,codparc) {
+            var params = {'A_CODEMP': parseInt(codemp),
+                         'A_CODPARC': parseInt(codparc)
+            };
+            var level = 'lvl_sh3rkb'; 
+            openLevel(level, params);
+        }
+
+
 
 // Função para gerar PDF com ambas as tabelas
 function gerarPDFCompleto() {
