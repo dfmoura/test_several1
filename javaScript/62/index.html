@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Demandas</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .login-container, .main-container { max-width: 400px; margin: 80px auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .main-container { max-width: 1000px; }
+    input, button { width: 100%; padding: 10px; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 10px; text-align: left; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="login-container" id="loginDiv">
+  <h2>Login da Empresa</h2>
+  <input type="text" id="empresa" placeholder="Nome da Empresa">
+  <input type="text" id="usuario" placeholder="Usuário">
+  <input type="password" id="senha" placeholder="Senha">
+  <button onclick="login()">Entrar</button>
+</div>
+
+<div class="main-container hidden" id="mainDiv">
+  <h2>Demandas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Solicitante</th>
+        <th>Descrição</th>
+        <th>Data Solicitação</th>
+        <th>Aprovado</th>
+        <th>Status</th>
+        <th>Executante</th>
+        <th>Observação</th>
+      </tr>
+    </thead>
+    <tbody id="tabelaDemandas">
+      <tr>
+        <td>João Silva</td>
+        <td>Conserto do servidor</td>
+        <td>2025-06-12</td>
+        <td>Sim</td>
+        <td>Em andamento</td>
+        <td>Maria Souza</td>
+        <td>Iniciado</td>
+      </tr>
+    </tbody>
+  </table>
+  <button onclick="abrirControle()">Controle de Demandas</button>
+</div>
+
+<script>
+  const usuarios = [
+    { empresa: "EmpresaX", usuario: "admin", senha: "1234" },
+    { empresa: "EmpresaY", usuario: "user", senha: "abcd" }
+  ];
+
+  function login() {
+    const empresa = document.getElementById('empresa').value;
+    const usuario = document.getElementById('usuario').value;
+    const senha = document.getElementById('senha').value;
+
+    const validado = usuarios.find(u => u.empresa === empresa && u.usuario === usuario && u.senha === senha);
+
+    if (validado) {
+      document.getElementById('loginDiv').classList.add('hidden');
+      document.getElementById('mainDiv').classList.remove('hidden');
+    } else {
+      alert('Credenciais inválidas.');
+    }
+  }
+
+  function abrirControle() {
+    alert("Abrir controle de demandas - tela em desenvolvimento.");
+  }
+</script>
+
+</body>
+</html>
