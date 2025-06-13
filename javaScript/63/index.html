@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Visualizador de Estilo do Botão</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .controls {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    input {
+      width: 200px;
+    }
+    .preview {
+      text-align: center;
+      margin-top: 1px;
+    }
+    button {
+      background-color: #3498db;
+      border: none;
+      color: white;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+    }
+    svg {
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="controls">
+    <h3>Altere o estilo do botão:</h3>
+    <label>Cor de fundo:
+      <input type="color" id="bgColor" value="#3498db">
+    </label>
+    <label>Arredondamento (px):
+      <input type="number" id="radius" value="8">
+    </label>
+    <label>Tamanho da fonte (px):
+      <input type="number" id="fontSize" value="16">
+    </label>
+  </div>
+
+  <div class="preview">
+    <button id="reportBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="white" viewBox="0 0 24 24">
+        <path d="M6 2C4.9 2 4 2.9 4 4v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 1.5L18.5 9H13V3.5zM7 13h10v2H7v-2zm0 4h10v2H7v-2zm0-8h5v2H7V9z"/>
+      </svg>
+      Relatório
+    </button>
+  </div>
+
+  <script>
+    const btn = document.getElementById('reportBtn');
+    document.getElementById('bgColor').addEventListener('input', e => {
+      btn.style.backgroundColor = e.target.value;
+    });
+    document.getElementById('radius').addEventListener('input', e => {
+      btn.style.borderRadius = e.target.value + 'px';
+    });
+    document.getElementById('fontSize').addEventListener('input', e => {
+      btn.style.fontSize = e.target.value + 'px';
+    });
+  </script>
+
+</body>
+</html>

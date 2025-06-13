@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Rel Baixados do dia" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0000000000000022"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["./"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+FIN.CODPARC,
+PAR.NOMEPARC,
+PAR.RAZAOSOCIAL,
+PAR.CODPARCMATRIZ,
+FIN.NUFIN,
+NVL(FIN.NUNOTA,0),
+FIN.CODEMP,
+EMP.NOMEFANTASIA,
+FIN.VLRDESDOB,
+FIN.DTVENC,
+FIN.DHBAIXA,
+CASE WHEN FIN.RECDESP = 1 THEN 'RECEITA'
+     WHEN FIN.RECDESP = -1 THEN 'DESPESA'
+     WHEN FIN.RECDESP = 0 THEN 'OUTROS'
+END AS MOVIMENTO,
+CASE WHEN FIN.PROVISAO = 'S' THEN 'Sim'
+     WHEN FIN.PROVISAO = 'N' THEN 'Não'
+END AS PROVISAO,
+
+FIN.VLRBAIXA
+
+FROM TGFFIN FIN
+INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+INNER JOIN TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
+
+WHERE FIN.DHBAIXA = TRUNC(SYSDATE)
+AND FIN.PROVISAO = 'N'
+ORDER BY FIN.RECDESP]]>
+	</queryString>
+	<field name="CODPARC" class="java.lang.String">
+		<fieldDescription><![CDATA[Cód Parceiro]]></fieldDescription>
+	</field>
+	<field name="RAZAOSOCIAL" class="java.lang.String">
+		<fieldDescription><![CDATA[Razão Social]]></fieldDescription>
+	</field>
+	<field name="NUFIN" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Nro Financeiro]]></fieldDescription>
+	</field>
+	<field name="NOMEFANTASIA" class="java.lang.String">
+		<fieldDescription><![CDATA[Empresa]]></fieldDescription>
+	</field>
+	<field name="VLRDESDOB" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Vlr desdobramento]]></fieldDescription>
+	</field>
+	<field name="DTVENC" class="java.sql.Timestamp">
+		<fieldDescription><![CDATA[Dt. Vencimento]]></fieldDescription>
+	</field>
+	<field name="DHBAIXA" class="java.sql.Timestamp">
+		<fieldDescription><![CDATA[Dt. Baixa]]></fieldDescription>
+	</field>
+	<field name="MOVIMENTO" class="java.lang.String">
+		<fieldDescription><![CDATA[Movimento]]></fieldDescription>
+	</field>
+	<field name="VLRBAIXA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Vlr Baixado]]></fieldDescription>
+	</field>
+	<variable name="VLRBAIXA_1" class="java.math.BigDecimal" resetType="Group" resetGroup="MOVIMENTO" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLRBAIXA}]]></variableExpression>
+	</variable>
+	<variable name="NUFIN_1" class="java.math.BigDecimal" resetType="Group" resetGroup="MOVIMENTO" calculation="Sum">
+		<variableExpression><![CDATA[$F{NUFIN}]]></variableExpression>
+	</variable>
+	<variable name="NUFIN_2" class="java.lang.Integer" resetType="Group" resetGroup="MOVIMENTO" calculation="DistinctCount">
+		<variableExpression><![CDATA[$F{NUFIN}]]></variableExpression>
+	</variable>
+	<group name="MOVIMENTO">
+		<groupExpression><![CDATA[$F{MOVIMENTO}]]></groupExpression>
+		<groupHeader>
+			<band height="46">
+				<rectangle radius="10">
+					<reportElement x="0" y="6" width="802" height="20" backcolor="#CCFFCC"/>
+				</rectangle>
+				<textField>
+					<reportElement x="217" y="6" width="367" height="19"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="14" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{MOVIMENTO}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="0" y="15" width="329" height="1"/>
+					<graphicElement>
+						<pen lineWidth="0.5" lineStyle="Dashed"/>
+					</graphicElement>
+				</line>
+				<line>
+					<reportElement x="473" y="16" width="329" height="1"/>
+					<graphicElement>
+						<pen lineWidth="0.5" lineStyle="Dashed"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="0" y="26" width="150" height="20"/>
+					<textElement textAlignment="Center">
+						<font isBold="true"/>
+					</textElement>
+					<text><![CDATA[Razão Social]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="152" y="26" width="74" height="20"/>
+					<textElement textAlignment="Center">
+						<font isBold="true"/>
+					</textElement>
+					<text><![CDATA[Nro Financeiro]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="229" y="26" width="97" height="20"/>
+					<textElement textAlignment="Center">
+						<font isBold="true"/>
+					</textElement>
+					<text><![CDATA[Vencimento]]></text>
+				</staticText>
+				<staticText>
+					<reportElement mode="Transparent" x="329" y="26" width="97" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<text><![CDATA[Dt. Baixa]]></text>
+				</staticText>
+				<staticText>
+					<reportElement mode="Transparent" x="429" y="26" width="97" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<text><![CDATA[Movimento]]></text>
+				</staticText>
+				<staticText>
+					<reportElement mode="Transparent" x="529" y="26" width="97" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<text><![CDATA[Vlr desdobramento]]></text>
+				</staticText>
+				<staticText>
+					<reportElement mode="Transparent" x="629" y="26" width="97" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<text><![CDATA[Empresa]]></text>
+				</staticText>
+				<staticText>
+					<reportElement mode="Transparent" x="729" y="26" width="73" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<text><![CDATA[Vlr Baixado]]></text>
+				</staticText>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="40">
+				<rectangle>
+					<reportElement x="556" y="0" width="220" height="40"/>
+					<graphicElement>
+						<pen lineWidth="0.5" lineStyle="Dashed"/>
+					</graphicElement>
+				</rectangle>
+				<textField pattern="#,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="629" y="0" width="171" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLRBAIXA_1}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="676" y="20" width="100" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.Integer"><![CDATA[$V{NUFIN_2}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="556" y="20" width="144" height="20"/>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<text><![CDATA[Quantide de Financeiros:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="556" y="0" width="142" height="20"/>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<text><![CDATA[Valor Baixado:]]></text>
+				</staticText>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="76" splitType="Stretch">
+			<image onErrorType="Blank">
+				<reportElement x="0" y="0" width="247" height="60"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "logo.png"]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="191" y="0" width="482" height="60"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="24" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Rel Financeiro Baixados do dia]]></text>
+			</staticText>
+			<textField pattern="EEEEE dd MMMMM yyyy">
+				<reportElement x="597" y="60" width="205" height="15"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="153" height="20"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOSOCIAL}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="151" y="0" width="78" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUFIN}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="229" y="0" width="100" height="20"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DTVENC}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="329" y="0" width="100" height="20"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.sql.Timestamp"><![CDATA[$F{DHBAIXA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="429" y="0" width="100" height="20"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{MOVIMENTO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="529" y="0" width="100" height="20"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRDESDOB}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="629" y="0" width="100" height="20"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEFANTASIA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="729" y="0" width="73" height="20"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRBAIXA}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="34" splitType="Stretch"/>
+	</summary>
+</jasperReport>
