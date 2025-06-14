@@ -31,158 +31,182 @@ inner join tgfpar par on fin.codparc = par.codparc
 where
 fin.dtvenc between $P{P_PERIODO} and $P{P_PERIODO1}]]>
 	</queryString>
-	<field name="NUFIN" class="java.math.BigDecimal"/>
-	<field name="NUMNOTA" class="java.math.BigDecimal"/>
-	<field name="DTNEG" class="java.util.Date"/>
-	<field name="DTVENC" class="java.util.Date"/>
-	<field name="DHBAIXA" class="java.util.Date"/>
-	<field name="VLRDESDOB" class="java.math.BigDecimal"/>
-	<field name="RAZAOSOCIAL" class="java.lang.String"/>
-	<field name="DESCRNAT" class="java.lang.String"/>
-	<field name="HISTORICO" class="java.lang.String"/>
+	<field name="NUFIN" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[N° Financeiro]]></fieldDescription>
+	</field>
+	<field name="NUMNOTA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[N° Nota]]></fieldDescription>
+	</field>
+	<field name="DTNEG" class="java.util.Date">
+		<fieldDescription><![CDATA[Dt. Emissão]]></fieldDescription>
+	</field>
+	<field name="DTVENC" class="java.util.Date">
+		<fieldDescription><![CDATA[Dt. Vencimento]]></fieldDescription>
+	</field>
+	<field name="DHBAIXA" class="java.util.Date">
+		<fieldDescription><![CDATA[Dt. Baixa]]></fieldDescription>
+	</field>
+	<field name="VLRDESDOB" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Valor]]></fieldDescription>
+	</field>
+	<field name="RAZAOSOCIAL" class="java.lang.String">
+		<fieldDescription><![CDATA[Razão Social]]></fieldDescription>
+	</field>
+	<field name="DESCRNAT" class="java.lang.String">
+		<fieldDescription><![CDATA[Descrição Natureza]]></fieldDescription>
+	</field>
+	<field name="HISTORICO" class="java.lang.String">
+		<fieldDescription><![CDATA[Histórico]]></fieldDescription>
+	</field>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
 	<title>
-		<band height="60" splitType="Stretch">
-			<image onErrorType="Blank">
-				<reportElement x="0" y="0" width="247" height="60"/>
-				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "logo.png"]]></imageExpression>
-			</image>
-		</band>
+		<band splitType="Stretch"/>
 	</title>
 	<pageHeader>
 		<band splitType="Stretch"/>
 	</pageHeader>
 	<columnHeader>
-		<band height="31" splitType="Stretch">
+		<band height="71" splitType="Stretch">
 			<staticText>
-				<reportElement x="0" y="11" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8" isBold="true"/>
+				<reportElement x="0" y="51" width="36" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
-				<text><![CDATA[NUFIN]]></text>
+				<text><![CDATA[N° Financeiro]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="61" y="11" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8" isBold="true"/>
+				<reportElement x="36" y="51" width="38" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
-				<text><![CDATA[NUMNOTA]]></text>
+				<text><![CDATA[N° Nota]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="122" y="11" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8" isBold="true"/>
+				<reportElement x="74" y="51" width="45" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
-				<text><![CDATA[DTNEG]]></text>
+				<text><![CDATA[Dt. Emissão]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="183" y="11" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8" isBold="true"/>
+				<reportElement x="119" y="51" width="45" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
-				<text><![CDATA[DTVENC]]></text>
+				<text><![CDATA[Dt. Vencimento]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="244" y="11" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8" isBold="true"/>
+				<reportElement x="164" y="51" width="45" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
-				<text><![CDATA[DHBAIXA]]></text>
+				<text><![CDATA[Dt. Baixa]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="305" y="11" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8" isBold="true"/>
+				<reportElement x="209" y="51" width="61" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
-				<text><![CDATA[VLRDESDOB]]></text>
+				<text><![CDATA[Valor]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="366" y="11" width="61" height="20"/>
+				<reportElement x="270" y="51" width="110" height="20"/>
 				<textElement verticalAlignment="Middle">
-					<font size="8" isBold="true"/>
+					<font size="6"/>
 				</textElement>
-				<text><![CDATA[RAZAOSOCIAL]]></text>
+				<text><![CDATA[Razão Social]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="427" y="11" width="61" height="20"/>
+				<reportElement x="380" y="51" width="83" height="20"/>
 				<textElement verticalAlignment="Middle">
-					<font size="8" isBold="true"/>
+					<font size="6"/>
 				</textElement>
-				<text><![CDATA[DESCRNAT]]></text>
+				<text><![CDATA[Descrição Natureza]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="488" y="11" width="61" height="20"/>
+				<reportElement x="463" y="51" width="92" height="20"/>
 				<textElement verticalAlignment="Middle">
-					<font size="8" isBold="true"/>
+					<font size="6"/>
 				</textElement>
-				<text><![CDATA[HISTORICO]]></text>
+				<text><![CDATA[Histórico]]></text>
+			</staticText>
+			<image onErrorType="Blank">
+				<reportElement x="0" y="0" width="155" height="29"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "logo.png"]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="0" y="0" width="555" height="20"/>
+				<textElement textAlignment="Center">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Relatório Financeiro Gerencial]]></text>
 			</staticText>
 		</band>
 	</columnHeader>
 	<detail>
 		<band height="20" splitType="Stretch">
 			<textField>
-				<reportElement x="0" y="0" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8"/>
+				<reportElement x="0" y="0" width="36" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUFIN}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="61" y="0" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8"/>
+				<reportElement x="36" y="0" width="38" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUMNOTA}]]></textFieldExpression>
 			</textField>
-			<textField>
-				<reportElement x="122" y="0" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8"/>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="74" y="0" width="45" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTNEG}]]></textFieldExpression>
 			</textField>
-			<textField>
-				<reportElement x="183" y="0" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8"/>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="119" y="0" width="45" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTVENC}]]></textFieldExpression>
 			</textField>
-			<textField>
-				<reportElement x="244" y="0" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8"/>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="164" y="0" width="45" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.util.Date"><![CDATA[$F{DHBAIXA}]]></textFieldExpression>
 			</textField>
-			<textField>
-				<reportElement x="305" y="0" width="61" height="20"/>
-				<textElement verticalAlignment="Middle">
-					<font size="8"/>
+			<textField pattern="#,##0.00">
+				<reportElement x="209" y="0" width="61" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRDESDOB}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="366" y="0" width="61" height="20"/>
+				<reportElement x="270" y="0" width="110" height="20"/>
 				<textElement verticalAlignment="Middle">
-					<font size="8"/>
+					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{RAZAOSOCIAL}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="427" y="0" width="61" height="20"/>
+				<reportElement x="380" y="0" width="83" height="20"/>
 				<textElement verticalAlignment="Middle">
-					<font size="8"/>
+					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRNAT}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="488" y="0" width="61" height="20"/>
+				<reportElement x="463" y="0" width="92" height="20"/>
 				<textElement verticalAlignment="Middle">
-					<font size="8"/>
+					<font size="6"/>
 				</textElement>
 				<textFieldExpression class="java.lang.String"><![CDATA[$F{HISTORICO}]]></textFieldExpression>
 			</textField>

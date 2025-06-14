@@ -1,0 +1,42 @@
+<gadget ><prompt-parameters><parameter  id="P_PERIODO" description="Data Inicial" metadata="date" required="false" keep-last="true" keep-date="false" show-inactives="false" label="P_PERIODO : Data" order="0"/><parameter  id="P_PERIODO1" description="Data Final" metadata="date" required="false" keep-last="true" keep-date="false" show-inactives="false" label="P_PERIODO1 : Data" order="1"/><parameter  id="P_VERIFICACAO" description="Verificação" metadata="singleList:Text" listType="text" required="false" keep-last="true" keep-date="false" show-inactives="false" label="P_VERIFICACAO : singleList:Text" order="2"><item value="1" label="Data de Vencimento"/><item value="2" label="Data de Baixa"/></parameter><parameter  id="P_CODNAT" description="Natureza" metadata="multiList:Text" listType="sql" required="false" keep-last="true" keep-date="false" show-inactives="false" label="P_CODNAT : multiList:Text" order="3"><expression type="SQL"><![CDATA[select
+codnat value,
+codnat||'-'||descrnat label
+from tgfnat
+order by descrnat]]></expression></parameter><parameter  id="P_RECDESP" description="Receita / Despesa" metadata="singleList:Text" listType="text" required="false" keep-last="true" keep-date="false" show-inactives="false" label="P_RECDESP : singleList:Text" order="4"><item value="1" label="Ambos"/><item value="2" label="Receita"/><item value="3" label="Despesa"/></parameter><parameter  id="P_PERIODO.INI" description="P_PERIODO.INI" metadata="dateTime" required="false" order="5" keep-last="true" label="P_PERIODO.INI : Data/Hora"/><parameter  id="P_PERIODO.FIN" description="P_PERIODO.FIN" metadata="dateTime" required="false" order="6" keep-last="true" label="P_PERIODO.FIN : Data/Hora"/></prompt-parameters><level id="01R" description="Principal"><container orientacao="V" tamanhoRelativo="100"><container orientacao="V" tamanhoRelativo="89.76317799847212"><grid id="grd_0AN" useNewGrid="S"><expression type="sql" data-source="MGEDS"><![CDATA[select
+fin.nufin,
+fin.numnota,
+fin.dtneg,
+fin.dtvenc,
+fin.dhbaixa,
+case 
+when fin.recdesp = 1 then fin.vlrdesdob
+when fin.recdesp = -1  then fin.vlrdesdob*-1 end vlrdesdob,
+fin.codparc||'-'||par.razaosocial razaosocial,
+fin.codnat||'-'||nat.descrnat descrnat,
+fin.historico
+from tgffin fin
+inner join tgfnat nat on fin.codnat = nat.codnat
+inner join tgfpar par on fin.codparc = par.codparc
+where 
+  ((:p_verificacao = 1 and fin.dtvenc between :P_PERIODO and :P_PERIODO1)
+  or
+  (:p_verificacao = 2 and fin.dhbaixa between :P_PERIODO and :P_PERIODO1))
+and (fin.codnat in :P_CODNAT)
+and (
+(:P_RECDESP = 1 )
+OR
+(:P_RECDESP = 2 AND fin.recdesp = 1)
+OR
+(:P_RECDESP = 3 AND fin.recdesp = -1)
+)
+
+and ((fin.PROVISAO = 'S' AND fin.DHBAIXA IS NULL) OR fin.PROVISAO = 'N')]]></expression><metadata><field name="NUFIN" label="Número Financeiro" type="I" visible="true" useFooter="false"></field><field name="NUMNOTA" label="Número da Nota" type="I" visible="true" useFooter="false"></field><field name="DTNEG" label="Data Emissão" type="D" visible="true" useFooter="false"></field><field name="DTVENC" label="Data Vencimento" type="D" visible="true" useFooter="false"></field><field name="DHBAIXA" label="Data Baixa" type="D" visible="true" useFooter="false"></field><field name="VLRDESDOB" label="Valor" type="F" visible="true" useFooter="SUM" mask="#.##0,00"><formatter  greaterEqualThan="0"><![CDATA[<span style="color:#0000FF">$VALUE</span>]]></formatter><formatter  lessThan="0"><![CDATA[<span style="color:#FF0000">$VALUE</span>]]></formatter></field><field name="RAZAOSOCIAL" label="Razão Social" type="S" visible="true" useFooter="false"></field><field name="DESCRNAT" label="Descrição Natureza" type="S" visible="true" useFooter="false"></field><field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"></field></metadata></grid></container><container orientacao="V" tamanhoRelativo="11.246923011628894"><simple-value id="svl_0AZ"><value-expression><![CDATA[<div style="text-align: center;">
+  <button style="
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    padding: 6px 20px;
+
+">Relatório</div>]]></value-expression><on-click  navigate-to="01Z"/></simple-value></container></container></level><level id="0Q8" description="Relatorio"><container orientacao="V" tamanhoRelativo="100"><ireportcomponent id="ireport_0QA" report="170" ignorePagination="true"></ireportcomponent></container></level><level id="01Z" description="Relatorio1"><container orientacao="V" tamanhoRelativo="100"><html5component id="html5_021" entryPoint="prod3.jsp"></html5component></container></level></gadget>
