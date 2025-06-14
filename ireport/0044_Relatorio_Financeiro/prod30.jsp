@@ -381,7 +381,7 @@
                 OR (:P_RECDESP = 2 AND FIN.RECDESP = 1)
                 OR (:P_RECDESP = 3 AND FIN.RECDESP = -1)
             )
-            AND ((FIN.PROVISAO = 'S' AND FIN.DHBAIXA IS NULL) OR FIN.PROVISAO = 'N')
+            AND ( FIN.PROVISAO = 'N')
     </snk:query>
 
     <div class="container">
