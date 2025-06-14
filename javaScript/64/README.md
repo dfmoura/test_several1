@@ -1,5 +1,3 @@
----
-
 ### 📘 **Resumo Didático: Componentes do React**
 
 #### 🎯 Objetivos de Aprendizagem:
@@ -118,7 +116,3 @@ function App() {
 * Componentização torna o código mais organizado, reaproveitável e fácil de manter.
 * Props permitem criar componentes dinâmicos e personalizados.
 * React simplifica o desenvolvimento de interfaces modernas e interativas.
-
----
-
-Se quiser, posso montar um exemplo prático com código comentado. Deseja isso?
