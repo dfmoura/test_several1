@@ -1,0 +1,12 @@
+services:
+  react-app:
+    build: .
+    working_dir: /app/curriculo-dev  # 👈 define corretamente a subpasta
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    tty: true
+    user: "${UID}:${GID}" 

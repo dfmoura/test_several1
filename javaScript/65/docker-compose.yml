@@ -1,0 +1,12 @@
+services:
+  react-app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+    working_dir: /app
+    command: yarn start
