@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="resumo_sintetico" language="groovy" pageWidth="802" pageHeight="555" orientation="Landscape" columnWidth="802" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.100000000000001"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<style name="DefaultStyle" forecolor="#FF0033" pattern="">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{SALDOREAL}!= null && $F{SALDOREAL}.doubleValue() >= 0]]></conditionExpression>
+			<style forecolor="#3333FF"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{SALDOREAL} != null && $F{SALDOREAL}.doubleValue() < 0]]></conditionExpression>
+			<style forecolor="#FF0033"/>
+		</conditionalStyle>
+	</style>
+	<style name="DefaultStyle1">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{SALDOBCO} != null && $F{SALDOBCO}.doubleValue() >= 0]]></conditionExpression>
+			<style forecolor="#3333FF"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{SALDOBCO} != null && $F{SALDOBCO}.doubleValue() < 0]]></conditionExpression>
+			<style forecolor="#FF0033"/>
+		</conditionalStyle>
+	</style>
+	<style name="DefaultStyle2">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{SALDO} != null && $V{SALDO}.doubleValue() >= 0]]></conditionExpression>
+			<style forecolor="#3333FF"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{SALDO} != null && $V{SALDO}.doubleValue() < 0]]></conditionExpression>
+			<style forecolor="#FF0033"/>
+		</conditionalStyle>
+	</style>
+	<style name="DefaultStyle3">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{SALDO_1} != null && $V{SALDO_1}.doubleValue() >= 0]]></conditionExpression>
+			<style forecolor="#3333FF"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{SALDO_1} != null && $V{SALDO_1}.doubleValue() < 0]]></conditionExpression>
+			<style mode="Transparent" forecolor="#FF0033"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\sayajin\\Documents\\GitHub\\test_several1\\ireport\\0040_rel_fluxo_caixa_sintetico\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DTFIM" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<parameter name="DT_ESCOLHA" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Saldo até]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_EMPRESA" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+  SUM(saldoreal) saldoreal,
+  SUM(saldobco) saldobco
+FROM (
+  -- SALDO REFERÊNCIA
+  SELECT
+      E.RAZAOABREV,
+      sbc.CODCTABCOINT || '-' || cta.codctabco || '-' || cta.descricao DESCRICAO,
+      cta.CODBCO,
+      cta.CODAGE,
+      sbc.SALDOREAL,
+      sbc.SALDOBCO
+  FROM tgfsbc sbc
+  LEFT JOIN tsicta cta ON sbc.CODCTABCOINT = cta.CODCTABCOINT
+  LEFT JOIN tsiemp E ON E.CODEMP = cta.CODEMP
+  WHERE
+    SBC.REFERENCIA = (
+      SELECT MAX(REFERENCIA)
+      FROM TGFSBC T2
+      WHERE T2.CODCTABCOINT = SBC.CODCTABCOINT
+        AND T2.REFERENCIA <= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
+    )
+    AND cta.CODEMP IS NOT NULL
+    AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+    AND CTA.AD_USAFLUXOCAIXA='S'
+
+  UNION ALL
+
+  -- MOVIMENTAÇÃO SALDO REAL
+  SELECT
+      E.RAZAOABREV,
+      MBC.CODCTABCOINT || '-' || cta.codctabco || '-' || cta.descricao DESCRICAO,
+      cta.CODBCO,
+      cta.CODAGE,
+      NVL(MBC.VLRLANC * MBC.RECDESP, 0) AS SALDOREAL,
+      0 AS SALDOBCO
+  FROM TGFMBC MBC
+  LEFT JOIN tsicta cta ON MBC.CODCTABCOINT = cta.CODCTABCOINT
+  LEFT JOIN tsiemp E ON E.CODEMP = cta.CODEMP
+  WHERE
+    MBC.DTLANC >= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
+    AND MBC.DTLANC <= NVL($P{DT_ESCOLHA}, $P{DTINI})
+    AND cta.CODEMP IS NOT NULL
+    AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+    AND CTA.AD_USAFLUXOCAIXA='S'
+
+
+  UNION ALL
+
+  -- MOVIMENTAÇÃO SALDO BANCO
+  SELECT
+      E.RAZAOABREV,
+      MBC.CODCTABCOINT || '-' || cta.codctabco || '-' || cta.descricao DESCRICAO,
+      cta.CODBCO,
+      cta.CODAGE,
+      0 AS SALDOREAL,
+      NVL(MBC.VLRLANC * MBC.RECDESP, 0) AS SALDOBCO
+  FROM TGFMBC MBC
+  LEFT JOIN tsicta cta ON MBC.CODCTABCOINT = cta.CODCTABCOINT
+  LEFT JOIN tsiemp E ON E.CODEMP = cta.CODEMP
+  WHERE
+    MBC.DTLANC >= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
+    AND MBC.DTLANC <= NVL($P{DT_ESCOLHA}, $P{DTINI})
+    AND MBC.CONCILIADO = 'S'
+    AND cta.CODEMP IS NOT NULL
+    AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+    AND CTA.AD_USAFLUXOCAIXA='S'
+
+)
+]]>
+	</queryString>
+	<field name="SALDOREAL" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Saldo Real]]></fieldDescription>
+	</field>
+	<field name="SALDOBCO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Saldo Banco]]></fieldDescription>
+	</field>
+	<variable name="SALDO" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{SALDOREAL}]]></variableExpression>
+	</variable>
+	<variable name="SALDO_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{SALDOBCO}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="25" splitType="Stretch">
+			<textField pattern="#,##0.00">
+				<reportElement style="DefaultStyle" x="320" y="3" width="130" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{SALDOREAL}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement style="DefaultStyle1" x="559" y="3" width="130" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{SALDOBCO}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="218" y="3" width="90" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Saldo Real:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="457" y="3" width="90" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Saldo Banco:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="3" width="220" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Resumo Sintético Saldo Bancário:]]></text>
+			</staticText>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

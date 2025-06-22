@@ -1,0 +1,267 @@
+<gadget refresh-time="1800000">
+  <prompt-parameters>
+    <parameter id="P_DTNEG" description="Data Negociação" metadata="datePeriod" required="true" keep-last="true" keep-date="false" order="0" label="P_DTNEG : Período"/>
+    <parameter id="P_CODEMP" description="Cód. Empresa" metadata="entity:Empresa@CODEMP" required="false" keep-last="false" keep-date="false" order="1" label="P_CODEMP : Entidade/Tabela"/>
+    <parameter id="P_CODVEND" description="Cód. Comprador" metadata="entity:Vendedor@CODVEND" required="false" keep-last="false" keep-date="false" order="2" label="P_CODVEND : Entidade/Tabela"/>
+    <parameter id="P_CODCENCUS" description="Cód. CR" metadata="entity:CentroResultado@CODCENCUS" required="false" keep-last="false" keep-date="false" order="3" label="P_CODCENCUS : Entidade/Tabela"/>
+    <parameter id="P_CODNAT" description="Cód. Natureza" metadata="entity:Natureza@CODNAT" required="false" keep-last="false" keep-date="false" order="4" label="P_CODNAT : Entidade/Tabela"/>
+    <parameter id="P_CODPROJ" description="Cód. Projeto" metadata="entity:Projeto@CODPROJ" required="false" keep-last="false" keep-date="false" order="5" label="P_CODPROJ : Entidade/Tabela"/>
+    <parameter id="P_NUMCOTACAO" description="Nro. Cotação" metadata="integer" required="false" keep-last="false" keep-date="false" order="7" label="P_NUMCOTACAO : Número Inteiro"/>
+    <parameter id="P_STATUS" description="Status" metadata="singleList:Text" listType="text" required="false" keep-last="true" keep-date="false" order="8" label="P_STATUS : singleList:Text">
+      <item value="0" label="Sem Cotação"/>
+      <item value="1" label="Cotação sem Pedido"/>
+      <item value="2" label="Cotação com Pedido"/>
+      <item value="3" label="Com Nota de Compra"/>
+      <item value="9" label="Finalizado pelo Usuário"/>
+      <item value="T" label="Todos"/>
+    </parameter>
+    <parameter id="P_PEDIDO" description="Apenas Confirmados" metadata="singleList:Text" listType="text" required="false" keep-last="false" keep-date="false" order="9">
+      <item value="S" label=" Sim"/>
+      <item value="N" label=" Não"/>
+    </parameter>
+  </prompt-parameters>
+  <level id="lvl_apekyh6" description="Principal">
+    <args>
+      <arg id="A_NUMCOTACAO" type="integer" order="0" label="A_NUMCOTACAO : Número Inteiro"/>
+      <arg id="A_SOLICITACAO" type="integer" label="A_SOLICITACAO : Número Inteiro"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="137">
+        <container orientacao="H" tamanhoRelativo="100">
+          <container orientacao="V" tamanhoRelativo="126">
+            <simple-value id="svl_aurfe4f">
+              <args>
+                <arg id="A_NUMCOTACAO" type="integer"/>
+                <arg id="A_SOLICITACAO" type="integer"/>
+              </args>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT  DISTINCTNVL((NVL(T.DTCOT,HOJE) - NVL(T.DTREQ,HOJE)),0) +  NVL((NVL(T.DTPED,HOJE) - NVL(T.DTCOT,HOJE)),0) + NVL((NVL(T.DTNOT,HOJE) - NVL(T.DTPED,HOJE)),0) AS LEADTIME,(T.DTCOT - T.DTREQ) AS REQCOT,(T.DTPED - T.DTCOT) AS COTPED,(T.DTNOT - T.DTPED) AS PEDNOTFROM(SELECTTO_DATE(SYSDATE,'DD/MM/YYYY') AS HOJE,TO_DATE(CABJ.DTNEG, 'DD/MM/YYYY') AS DTREQ,(SELECT DISTINCTTO_DATE(COT.DHINIC, 'DD/MM/YYYY') FROM TGFCOT COTWHERE COT.NUMCOTACAO = :A_NUMCOTACAO) AS DTCOT,(SELECT DISTINCTMAX(TO_DATE(CABO.DTNEG, 'DD/MM/YYYY')) FROM TGFCAB CABOWHERE CABO.NUMCOTACAO = :A_NUMCOTACAOAND CABO.TIPMOV = 'O') AS DTPED,(SELECT DISTINCTMAX(TO_DATE(CABC.DTFATUR, 'DD/MM/YYYY'))FROM TGFCAB CABCWHERE CABC.NUMCOTACAO = :A_NUMCOTACAOAND CABC.TIPMOV = 'C') AS DTNOT FROM TGFCAB CABJ, TGFITE ITEWHERE CABJ.NUNOTA = ITE.NUNOTAAND CABJ.TIPMOV = 'J'AND CABJ.NUMCOTACAO = :A_NUMCOTACAO )T]]></expression>
+              <metadata>
+                <field name="LEADTIME" label="LEADTIME" type="I" visible="true" useFooter="false"/>
+                <field name="REQCOT" label="REQCOT" type="I" visible="true" useFooter="false"/>
+                <field name="COTPED" label="COTPED" type="I" visible="true" useFooter="false"/>
+                <field name="PEDNOT" label="PEDNOT" type="I" visible="true" useFooter="false"/>
+              </metadata>
+              <value-expression><![CDATA[<b><span style='font-size: 14px;'><div style='text-align: right;'>Timeline Compras: <span style='color: #FF0000;'>$LEADTIME dias </span></div></span></b>]]></value-expression>
+            </simple-value>
+          </container>
+          <container orientacao="V" tamanhoRelativo="100">
+            <simple-value id="svl_ay5prm2">
+              <value-expression><![CDATA[<div style='text-align: right;'><span style='background-color: #FF0000;'>Sem Cotação</span><span style='background-color: #FFFF00;'>Cotação sem Pedido</span><span style='background-color: #ADFF2F;'>Cotação com Pedido</span><span style='background-color: #ADD8E6;'>Com Nota de Compra</span><span style='background-color: #FFC0CB;'>Requisição finalizada pelo usuário</span><span style='background-color: #DDA0DD;'>Requisição Compra Direta</span></div>]]></value-expression>
+            </simple-value>
+          </container>
+        </container>
+        <container orientacao="H" tamanhoRelativo="459">
+          <container orientacao="V" tamanhoRelativo="50">
+            <container orientacao="V" tamanhoRelativo="50">
+              <grid id="grd_apekyh8" entityName="AD_GERARCOTACAO" multiplaSelecao="N" useNewGrid="S">
+                <title><![CDATA[Solicitação de Materiais]]></title>
+                <expression type="sql" data-source="MGEDS"><![CDATA[SELECT DISTINCT    SYSDATE AS DTREF,    -- FC_GET_STATUSCOT(CAB.NUNOTA) AS TESTE,    CAB.CODEMP,    CAB.NUNOTA,    CAB.NUMNOTA AS NUMSOLICITACAO,    CAB.DTNEG,    CAB.CODUSUINC,    USU.NOMEUSU AS SOLICITANTE,    NVL(CAB.NUMCOTACAO,0) AS NUMCOTACAO,    CAB.CODNAT,    CAB.CODCENCUS,    CAB.CODPROJ,    CAB.OBSERVACAO,    CAB.CODTIPOPER ||'-'||TOP.DESCROPER AS CODTIPOPER,    CAB.PENDENTE,    LIB.REPROVADO,   (SELECT F_DESCROPC('TGFCOT', 'SITUACAO', COT.SITUACAO) FROM DUAL) AS SITUACAO,   CASE     WHEN FC_GET_STATUSCOT(CAB.NUNOTA) = '0' AND CAB.PENDENTE <> 'N' THEN 'RED'    WHEN FC_GET_STATUSCOT(CAB.NUNOTA) = '3' THEN '#ADD8E6'    WHEN FC_GET_STATUSCOT(CAB.NUNOTA) = '1' THEN 'YELLOW'    WHEN FC_GET_STATUSCOT(CAB.NUNOTA) = '2' THEN '#ADFF2F'    WHEN FC_GET_STATUSCOT(CAB.NUNOTA) = '9' THEN 'PINK'    ELSE '#DDA0DD' END AS BKCOLOR,CASE         WHEN FC_GET_STATUSCOT(CAB.NUNOTA) = '0' THEN 1                WHEN FC_GET_STATUSCOT(CAB.NUNOTA) = '1' THEN 2 	   WHEN FC_GET_STATUSCOT(CAB.NUNOTA) = '2' THEN 3        WHEN FC_GET_STATUSCOT(CAB.NUNOTA) = '3' THEN 4                WHEN FC_GET_STATUSCOT(CAB.NUNOTA) = '9' THEN 5        ELSE 6     END AS ORDEM_CORFROM TGFCAB CABLEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTALEFT JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSULEFT JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND CAB.DHTIPOPER = TOP.DHALTER LEFT JOIN TGFCOT COT ON CAB.NUNOTA=COT.NUNOTAORIGLEFT JOIN TSILIB LIB ON CAB.NUNOTA=LIB.NUCHAVEWHERE CAB.TIPMOV IN ('J')    AND CAB.DTNEG BETWEEN :P_DTNEG.INI AND :P_DTNEG.FIN    AND (CAB.CODEMP = :P_CODEMP OR :P_CODEMP IS NULL)    AND (CAB.CODNAT = :P_CODNAT OR :P_CODNAT IS NULL)    AND (CAB.CODCENCUS = :P_CODCENCUS OR :P_CODCENCUS IS NULL)    AND (CAB.CODPROJ = :P_CODPROJ OR :P_CODPROJ IS NULL)    AND (CAB.CODVEND = :P_CODVEND OR :P_CODVEND IS NULL)    AND (CAB.NUMCOTACAO = :P_NUMCOTACAO OR :P_NUMCOTACAO IS NULL)  AND (         (:P_PEDIDO = 'S' AND CAB.STATUSNOTA = 'L') OR        (:P_PEDIDO = 'N' AND CAB.STATUSNOTA  ='A')    ) AND (LIB.REPROVADO = 'N' OR LIB.REPROVADO IS NULL)  GROUP BY CAB.CODEMP, CAB.CODEMPNEGOC, CAB.NUNOTA, CAB.NUMNOTA, CAB.DTNEG, CAB.CODUSUINC, CAB.OBSERVACAO, CAB.NUMCOTACAO, CAB.CODVEICULO, CAB.CODNAT, CAB.CODCENCUS, CAB.CODPROJ, USU.NOMEUSU, CAB.CODTIPOPER, TOP.DESCROPER, COT.SITUACAO,CAB.PENDENTE, LIB.REPROVADOORDER BY ORDEM_COR]]></expression>
+                <metadata>
+                  <field name="DTREF" label="Dt. Referencia" type="D" visible="false" useFooter="false"/>
+                  <field name="CODEMP" label="Cód. Empresa" type="I" visible="true" useFooter="false"/>
+                  <field name="NUNOTA" label="Nr. Único Solic." type="I" visible="true" useFooter="false"/>
+                  <field name="NUMSOLICITACAO" label="Nr. Solicitação" type="I" visible="true" useFooter="false"/>
+                  <field name="DTNEG" label="Dt. Negociação" type="D" visible="true" useFooter="false"/>
+                  <field name="CODUSUINC" label="CODUSUINC" type="I" visible="false" useFooter="false"/>
+                  <field name="SOLICITANTE" label="Solicitante" type="S" visible="true" useFooter="false"/>
+                  <field name="NUMCOTACAO" label="Nro. Cotação" type="I" visible="true" useFooter="false"/>
+                  <field name="CODNAT" label="Cód. Natureza" type="I" visible="true" useFooter="false"/>
+                  <field name="CODCENCUS" label="Cód. CR" type="I" visible="true" useFooter="false"/>
+                  <field name="CODPROJ" label="Cód. Projeto" type="I" visible="true" useFooter="false"/>
+                  <field name="OBSERVACAO" label="Observação" type="S" visible="true" useFooter="false"/>
+                  <field name="CODTIPOPER" label="Tip. Operação" type="S" visible="true" useFooter="false"/>
+                  <field name="PENDENTE" label="PENDENTE" type="S" visible="true" useFooter="false"/>
+                  <field name="REPROVADO" label="REPROVADO" type="S" visible="true" useFooter="false"/>
+                  <field name="SITUACAO" label="SITUACAO" type="S" visible="true" useFooter="false"/>
+                  <field name="BKCOLOR" label="BKCOLOR" type="S" visible="true" useFooter="false"/>
+                  <field name="ORDEM_COR" label="ORDEM_COR" type="F" visible="true" useFooter="false"/>
+                </metadata>
+                <on-click-launcher resource-id="br.com.sankhya.com.mov.CentralNotas">
+                  <NUNOTA>$NUNOTA</NUNOTA>
+                </on-click-launcher>
+                <refresh-details ui-list="svl_aurfe4f,grd_apekyih,grd_avj852f,grd_apekyia,grd_apekyio">
+                  <param id="A_NUMCOTACAO">$NUMCOTACAO</param>
+                  <param id="A_SOLICITACAO">$NUMSOLICITACAO</param>
+                </refresh-details>
+              </grid>
+            </container>
+          </container>
+          <container orientacao="V" tamanhoRelativo="50">
+            <grid id="grd_apekyih" useNewGrid="S">
+              <args>
+                <arg id="A_NUMCOTACAO" type="integer"/>
+                <arg id="A_SOLICITACAO" type="integer"/>
+              </args>
+              <title><![CDATA[Pedido de Compra]]></title>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT T.REQUISICAO,T.DTREQUISICAO,T.NUMCOTACAO,T.PEDCOMPRA,T.DTGERPED,T.CODPARC,T.PARCEIRO,T.VLRPED,T.DHLIB,T.NOMEUSUSOLICIT1,T.NOMEUSULIB1,T.NOMEUSUSOLICIT2,T.NOMEUSULIB2,T.ENTREGA,T.NUMCOTACAO,T.LIBERADO,T.DHLIB,T.NOMEUSUSOLICIT1,T.NOMEUSULIB1,T.NOMEUSUSOLICIT2,T.NOMEUSULIB2FROM(SELECT DISTINCTCABJ.NUNOTA AS REQUISICAO,CABJ.DTNEG AS DTREQUISICAO,ITC.NUNOTACPA AS PEDCOMPRA,CABO.DTNEG AS DTGERPED,CABO.CODPARC AS CODPARC,(SELECT NOMEPARC FROM TGFPAR WHERE CODPARC = CABO.CODPARC) AS PARCEIRO,CABO.VLRNOTA AS VLRPED,TO_CHAR(CABO.DTPREVENT,'DD/MM/YYYY') AS ENTREGA,ITC.NUMCOTACAO AS NUMCOTACAO,CASEWHEN (SELECT COUNT(LIB.AD_NUMCOTACAO) FROM TSILIB LIB, TGFCAB C  WHERE LIB.NUCHAVE = C.NUNOTA AND C.TIPMOV = 'O' AND NVL(LIB.VLRLIBERADO,0) <=0 AND LIB.REPROVADO ='N' AND LIB.EVENTO IN (18,41,44) AND C.NUMCOTACAO = CABO.NUMCOTACAO) >0 THEN 'Em aprovação'WHEN (SELECT COUNT(LIB.AD_NUMCOTACAO) FROM TSILIB LIB, TGFCAB C  WHERE LIB.NUCHAVE = C.NUNOTA AND C.TIPMOV = 'O' AND LIB.REPROVADO ='S' AND LIB.EVENTO IN (18,41,44) AND C.NUMCOTACAO = CABO.NUMCOTACAO) >0 THEN 'Reprovado' ELSE 'Aprovado' END AS LIBERADO,(SELECT MAX(LIB.DHLIB) FROM TSILIB LIB, TGFCAB C  WHERE LIB.NUCHAVE = C.NUNOTA AND C.TIPMOV = 'O' AND C.NUMCOTACAO = CABO.NUMCOTACAO) AS DHLIB,                    (SELECT MAX(NOMEUSU) FROM TSIUSU WHERE CODUSU = (SELECT CODUSUSOLICIT FROM TSILIB WHERE NUCHAVE = CABO.NUNOTA AND TABELA = 'TGFCAB' AND EVENTO IN(18,41))) NOMEUSUSOLICIT1,                  (SELECT MAX(NOMEUSU) FROM TSIUSU WHERE CODUSU = (SELECT MAX(CODUSULIB) FROM TSILIB WHERE NUCHAVE = CABO.NUNOTA AND TABELA = 'TGFCAB' AND EVENTO IN(18,41))) NOMEUSULIB1,             (SELECT MAX(NOMEUSU) FROM TSIUSU WHERE CODUSU =(SELECT MAX(CODUSUSOLICIT) FROM TSILIB WHERE NUCHAVE = CABO.NUNOTA AND TABELA = 'TGFCAB' AND EVENTO = 44)) as NOMEUSUSOLICIT2,                    (SELECT MAX(NOMEUSU) FROM TSIUSU WHERE CODUSU =(SELECT MAX(CODUSULIB) FROM TSILIB WHERE NUCHAVE = CABO.NUNOTA AND TABELA = 'TGFCAB' AND EVENTO = 44)) NOMEUSULIB2FROM TGFCAB CABOLEFT JOIN TGFITC ITC ON CABO.NUNOTA = ITC.NUNOTACPALEFT JOIN TGFCOT COT ON COT.NUMCOTACAO = ITC.NUMCOTACAOLEFT JOIN TGFCAB CABJ ON COT.NUNOTAORIG = CABJ.NUNOTALEFT JOIN TGFVAR VAR ON VAR.NUNOTA = CABJ.NUNOTAWHERE CABJ.TIPMOV  = 'J'AND CABO.TIPMOV = 'O')TWHERE T.NUMCOTACAO = :A_NUMCOTACAOORDER BY T.PEDCOMPRA]]></expression>
+              <metadata>
+                <field name="REQUISICAO" label="Requisição" type="I" visible="true" useFooter="false"/>
+                <field name="DTREQUISICAO" label="Dt. Requisição" type="D" visible="true" useFooter="false"/>
+                <field name="NUMCOTACAO" label="Nro. Cotação" type="I" visible="false" useFooter="false"/>
+                <field name="PEDCOMPRA" label="Nro. Único" type="I" visible="true" useFooter="false"/>
+                <field name="DTGERPED" label="Dt. Geração" type="D" visible="true" useFooter="false"/>
+                <field name="CODPARC" label="Parceiro" type="I" visible="true" useFooter="false"/>
+                <field name="PARCEIRO" label="Nome Parceiro" type="S" visible="true" useFooter="false"/>
+                <field name="VLRPED" label="Vlr. Pedido" type="F" visible="true" useFooter="false"/>
+                <field name="DHLIB" label="Dh. Liberação" type="D" visible="false" useFooter="false"/>
+                <field name="NOMEUSUSOLICIT1" label="Usuário Solicitante" type="S" visible="false" useFooter="false"/>
+                <field name="NOMEUSULIB1" label="Liberador 01" type="S" visible="false" useFooter="false"/>
+                <field name="NOMEUSUSOLICIT2" label="NOMEUSUSOLICIT2" type="S" visible="false" useFooter="false"/>
+                <field name="NOMEUSULIB2" label="Liberador 02" type="S" visible="false" useFooter="false"/>
+                <field name="ENTREGA" label="Previsão Entrega" type="D" visible="true" useFooter="false"/>
+                <field name="LIBERADO" label="Liberado?" type="S" visible="false" useFooter="false"/>
+              </metadata>
+              <on-click-launcher resource-id="br.com.sankhya.com.mov.CentralNotas">
+                <NUNOTA>$PEDCOMPRA</NUNOTA>
+              </on-click-launcher>
+            </grid>
+          </container>
+        </container>
+      </container>
+      <container orientacao="H" tamanhoRelativo="203">
+        <container orientacao="V" tamanhoRelativo="100">
+          <grid id="grd_avj852f" useNewGrid="S">
+            <args>
+              <arg id="A_NUMCOTACAO" type="integer"/>
+              <arg id="A_SOLICITACAO" type="integer"/>
+            </args>
+            <title><![CDATA[Produtos da Solicitação]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT DISTINCT
+    
+    CAB.NUMNOTA AS NUMSOLICITACAO,
+    CAB.NUNOTA,
+    CAB.NUMCOTACAO AS NUMCOTACAO,
+    PRO.DESCRPROD,
+    ITE.QTDNEG,
+    ITE.VLRUNIT,
+ITE.QTDNEG * ITE.VLRUNIT AS TOTAL_VLR,
+    CAB.DTNEG
+  
+   
+FROM TGFCAB CAB
+JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+JOIN TSIUSU USU ON CAB.CODUSUINC = USU.CODUSU
+LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+INNER JOIN TGFPRO PRO ON ITE.CODPROD=PRO.CODPROD
+WHERE 
+    (CAB.NUMCOTACAO =:A_NUMCOTACAO OR  CAB.NUMNOTA =:A_SOLICITACAO)
+AND CAB.TIPMOV  = 'J'
+
+
+GROUP BY CAB.CODEMP, CAB.CODEMPNEGOC, CAB.NUNOTA, CAB.NUMNOTA, CAB.DTNEG, CAB.CODUSUINC, CAB.OBSERVACAO, CAB.NUMCOTACAO, CAB.CODVEICULO, CAB.CODNAT, CAB.CODCENCUS, CAB.CODPROJ, USU.NOMEUSU,PRO.DESCRPROD,ITE.QTDNEG,ITE.VLRUNIT,ITE.CODPROD
+ORDER BY 1, 3]]></expression>
+            <metadata>
+              <field name="NUMSOLICITACAO" label="Nro. Único  Solicitação" type="I" visible="true" useFooter="false"/>
+              <field name="NUNOTA" label="Nro. Solicitação" type="I" visible="true" useFooter="false"/>
+              <field name="NUMCOTACAO" label="Cotação" type="I" visible="true" useFooter="false"/>
+              <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+              <field name="QTDNEG" label="Qtd.Negociada" type="F" visible="true" useFooter="SUM"/>
+              <field name="VLRUNIT" label="Vlr.Unitário" type="F" visible="true" useFooter="false"/>
+              <field name="TOTAL_VLR" label="Total" type="F" visible="true" useFooter="SUM" mask="R$ #.##0,00"/>
+              <field name="DTNEG" label="Dta.Negociação" type="D" visible="true" useFooter="false" mask="DD/MM/YY"/>
+            </metadata>
+            <on-click-launcher resource-id="br.com.sankhya.com.mov.CentralNotas">
+              <NUNOTA>$NUNOTA</NUNOTA>
+            </on-click-launcher>
+          </grid>
+        </container>
+        <container orientacao="H" tamanhoRelativo="103">
+          <container orientacao="V" tamanhoRelativo="50">
+            <grid id="grd_apekyia" useNewGrid="S">
+              <args>
+                <arg id="A_NUMCOTACAO" type="integer"/>
+                <arg id="A_SOLICITACAO" type="integer"/>
+              </args>
+              <title><![CDATA[Cotação]]></title>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECTT.EMPESTOQUE,T. DTREQ,T.DTPEDCOM,T.DTINICOT,T.DTFINCOT,T.NUMCOTACAO,T.CODCOMPRADOR,T.COMPRADOR,T.EXISTEPARC,T.PEDCOMGERFROM(SELECT DISTINCTCOT.CODEMP AS EMPESTOQUE,(SELECT DTNEG FROM TGFCAB WHERE NUNOTA = COT.NUNOTAORIG) AS DTREQ,(SELECT DTNEG FROM TGFCAB WHERE NUNOTA = (SELECT MAX(NUNOTACPA) FROM TGFITC WHERE NUMCOTACAO = :A_NUMCOTACAO)  AND TIPMOV='O') AS DTPEDCOM,TO_CHAR(COT.DHINIC,'DD/MM/YYYY') AS DTINICOT,TO_CHAR(COT.DHFINAL,'DD/MM/YYYY') AS DTFINCOT,ITC.NUMCOTACAO AS NUMCOTACAO,COT.CODUSUREQ AS CODCOMPRADOR,(SELECT COUNT(CODPARC) FROM TGFITC WHERE CODPARC <> 0 AND NUMCOTACAO = :A_NUMCOTACAO) AS EXISTEPARC,(SELECT NOMEUSU FROM TSIUSU WHERE CODUSU = COT.CODUSUREQ) AS COMPRADOR,(SELECT MAX(NUNOTACPA) FROM TGFITC WHERE  CODPARC <> 0  AND SITUACAO <> 'P' AND NUMCOTACAO = :A_NUMCOTACAO) AS PEDCOMGER FROM TGFCOT COT, TGFITE ITE,TGFCAB CAB, TGFITC ITC  WHERE CAB.NUNOTA = COT.NUNOTAORIG AND (CAB.NUMCOTACAO = COT.NUMCOTACAO) AND COT.NUMCOTACAO = ITC.NUMCOTACAOGROUP BY COT.CODEMP, COT.DHINIC, COT.DHFINAL,ITC.NUMCOTACAO, ITC.AD_CODVEND, COT.NUNOTAORIG,ITC.CODPARC, COT.CODUSUREQORDER BY ITC.NUMCOTACAO)TWHERE T.NUMCOTACAO = :A_NUMCOTACAOGROUP BY T.EMPESTOQUE,T. DTREQ,T.DTINICOT,T.DTFINCOT,T.NUMCOTACAO,T.CODCOMPRADOR,T.COMPRADOR,T.PEDCOMGER,T.EXISTEPARC,T.DTPEDCOM]]></expression>
+              <metadata>
+                <field name="EMPESTOQUE" label="Empresa" type="I" visible="true" useFooter="false"/>
+                <field name="DTREQ" label="DTREQ" type="D" visible="false" useFooter="false"/>
+                <field name="DTPEDCOM" label="DTPEDCOM" type="D" visible="false" useFooter="false"/>
+                <field name="DTINICOT" label="Dt. Cotação" type="S" visible="true" useFooter="false"/>
+                <field name="DTFINCOT" label="DTFINCOT" type="S" visible="false" useFooter="false"/>
+                <field name="NUMCOTACAO" label="Nro. Cotação" type="I" visible="true" useFooter="false"/>
+                <field name="CODCOMPRADOR" label="Comprador" type="I" visible="true" useFooter="false"/>
+                <field name="COMPRADOR" label="Nome Comprador" type="S" visible="true" useFooter="false"/>
+                <field name="EXISTEPARC" label="EXISTEPARC" type="F" visible="false" useFooter="false"/>
+                <field name="PEDCOMGER" label="PEDCOMGER" type="F" visible="false" useFooter="false"/>
+              </metadata>
+              <on-click-launcher resource-id="br.com.sankhya.swb.cotacao.rotinas.cotacao">
+                <NUMCOTACAO>$NUMCOTACAO</NUMCOTACAO>
+                <CODPROD/>
+                <CODPARC/>
+                <CONTROLE/>
+                <CODLOCAL/>
+                <CABECALHO/>
+                <DIFERENCIADOR/>
+              </on-click-launcher>
+            </grid>
+          </container>
+          <container orientacao="V" tamanhoRelativo="50">
+            <grid id="grd_apekyio" useNewGrid="S">
+              <args>
+                <arg id="A_NUMCOTACAO" type="integer"/>
+                <arg id="A_SOLICITACAO" type="integer"/>
+              </args>
+              <title><![CDATA[Nota de Compra]]></title>
+              <expression type="sql" data-source="MGEDS"><![CDATA[SELECT DISTINCTCAB.NUNOTA AS NUNOTA,CAB.NUMNOTA AS NRONOTA,CAB.DTFATUR AS DTENTRADANOTA,CAB.VLRNOTA AS VLRNOTA,FIN.NUFIN AS NROFINANCEIRO,FIN. DTVENC AS DATAVENC,CAB.NUMCOTACAOFROM TGFCAB CAB, TGFFIN FINWHERE  CAB.NUNOTA = FIN.NUNOTAAND CAB.TIPMOV = 'C'AND CAB.NUMCOTACAO = :A_NUMCOTACAOORDER BY CAB.NUNOTA]]></expression>
+              <metadata>
+                <field name="NUNOTA" label="Nro. Único Nota" type="I" visible="true" useFooter="false"/>
+                <field name="NRONOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
+                <field name="DTENTRADANOTA" label="Dt. Nota" type="D" visible="true" useFooter="false" mask="DD/MM/YYYY"/>
+                <field name="VLRNOTA" label="Vlr. Nota" type="F" visible="true" useFooter="false" mask="R$ #.##0,00"/>
+                <field name="NROFINANCEIRO" label="Nro. Único Financeiro" type="I" visible="true" useFooter="false"/>
+                <field name="DATAVENC" label="Dt. Vencimento" type="D" visible="true" useFooter="false" mask="DD/MM/YYYY"/>
+                <field name="NUMCOTACAO" label="NUMCOTACAO" type="I" visible="false" useFooter="false"/>
+              </metadata>
+              <on-click-launcher resource-id="br.com.sankhya.com.mov.CentralNotas">
+                <NUNOTA>$NUNOTA</NUNOTA>
+              </on-click-launcher>
+            </grid>
+          </container>
+        </container>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_a0k115b" description="Médias Lead Time Parcial">
+    <container orientacao="H" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="33">
+        <grid id="grd_a0k115c" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECTROUND(AVG(TO_DATE(COT.DHINIC,'DD/MM/YYYY') - TO_DATE(CABJ.DTNEG,'DD/MM/YYYY'))) AS LTPARCIALREQCOTFROM TGFCAB CABJ,TGFCOT COT, TGFITE ITEWHERE (CABJ.NUMCOTACAO = COT.NUMCOTACAO OR COT.NUMCOTACAO = ITE.AD_NUMCOTACAO)AND CABJ.NUNOTA = ITE.NUNOTAAND CABJ.CODTIPOPER = 17AND COT.NUMCOTACAO > 0AND ((CABJ.DTNEG >= :P_PERIODOREQ.INI) OR (:P_PERIODOREQ.INI IS NULL))]]></expression>
+          <metadata>
+            <field name="LTPARCIALREQCOT" label="Lead Time Parcial Requisição x Cotação" type="I" visible="true" useFooter="false"/>
+          </metadata>
+        </grid>
+      </container>
+      <container orientacao="V" tamanhoRelativo="33">
+        <grid id="grd_a0k12e3" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[SELECT DISTINCTROUND(AVG(TO_DATE(CAB.DTNEG,'DD/MM/YYYY') - TO_DATE(COT.DTALTER,'DD/MM/YYYY'))) AS LTPARCIALCOTPCFROM TGFCOT COT, TGFITC ITC, TGFCAB CABWHERE COT.NUMCOTACAO = ITC.NUMCOTACAOAND COT.NUMCOTACAO = CAB.NUMCOTACAOAND CAB.CODTIPOPER IN (215,20,47,70,270)AND COT.SITUACAO = 'P'AND ((COT.DHINIC >= :P_PERIODOREQ.INI) OR (:P_PERIODOREQ.INI IS NULL)) ORDER BY COT.NUMCOTACAO]]></expression>
+          <metadata>
+            <field name="LTPARCIALCOTPC" label="Lead Time Parcial Cotação x Pedido de Compra" type="I" visible="true" useFooter="false"/>
+          </metadata>
+        </grid>
+      </container>
+      <container orientacao="V" tamanhoRelativo="33">
+        <container orientacao="V" tamanhoRelativo="100">
+          <grid id="grd_a0k12e4" useNewGrid="S">
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT DISTINCTROUND(AVG(TO_DATE(CABC.DTFATUR,'DD/MM/YYYY') - TO_DATE(CABO.DTNEG,'DD/MM/YYYY'))) AS LTPARCIALPCNOTAFROM TGFCAB CABO, TGFCAB CABCWHERE CABO.NUMCOTACAO = CABC.NUMCOTACAOAND CABO.TIPMOV = 'O'AND CABC.TIPMOV = 'C'AND CABO.CODTIPOPER IN (215,20,47,70,270)AND ((CABO.DTNEG >= :P_PERIODOREQ.INI) OR (:P_PERIODOREQ.INI IS NULL))]]></expression>
+            <metadata>
+              <field name="LTPARCIALPCNOTA" label="Lead Time Parcial Pedido de Compra x Nota" type="I" visible="true" useFooter="false"/>
+            </metadata>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="335">
+          <grid id="grd_obbr6u" useNewGrid="S">
+            <title><![CDATA[Lead Time liberação]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECTLIB.CODUSULIB,(SELECT NOMEUSU FROM TSIUSU WHERE LIB.CODUSULIB = CODUSU) AS LIBERADOR,ROUND(AVG((TO_DATE(LIB.DHLIB,'DD/MM/YYY') - TO_DATE(LIB.DHSOLICIT,'DD/MM/YYY')))) AS LTLIBFROM TSILIB LIB, TSIUSU USU, TGFCAB CABWHERE LIB.CODUSULIB = USU.CODUSUAND CAB.NUNOTA = LIB.NUCHAVEAND CAB.TIPMOV = 'O'AND CAB.CODTIPOPER IN (20,215,70,270,283)AND LIB.DHLIB IS NOT NULLAND USU.DTLIMACESSO >= SYSDATEAND USU.CODUSU IN (21,58,193,120,111,182,5,33,2,9,155,107,86,12,58,129)AND ((TRUNC(CAB.DTNEG) >= :P_PERIODOREQ.INI) OR (:P_PERIODOREQ.INI IS NULL)) AND ((TRUNC(CAB.DTNEG) <= :P_PERIODOREQ.FIN) OR (:P_PERIODOREQ.FIN IS NULL)) GROUP BY LIB.CODUSULIBORDER BY LTLIB DESC]]></expression>
+            <metadata>
+              <field name="CODUSULIB" label="CODUSULIB" type="I" visible="false" useFooter="false"/>
+              <field name="LIBERADOR" label="Liberador" type="S" visible="true" useFooter="false"/>
+              <field name="LTLIB" label="Média em dias" type="I" visible="true" useFooter="false"/>
+            </metadata>
+          </grid>
+        </container>
+      </container>
+    </container>
+  </level>
+</gadget>

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="anterior" language="groovy" pageWidth="802" pageHeight="555" orientation="Landscape" columnWidth="802" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.4641000000000008"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DTFIM" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<parameter name="DT_ESCOLHA" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Saldo até]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_EMPRESA" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+SUM(A_RECEBER_PROV_S) A_RECEBER_PROV_S,
+SUM(A_RECEBER_PROV_N) A_RECEBER_PROV_N,
+SUM(A_REC_VEIC_PROV_N) A_REC_VEIC_PROV_N,
+SUM(A_RECEBER_PROV_S) +
+SUM(A_RECEBER_PROV_N) +
+SUM(A_REC_VEIC_PROV_N) A_RECEBER_TOT,
+SUM(A_PAGAR_PROV_S) A_PAGAR_PROV_S,
+SUM(A_PAGAR_PROV_N) A_PAGAR_PROV_N,
+SUM(A_PAGAR_PROV_S) +
+SUM(A_PAGAR_PROV_N) A_PAGAR_TOT,
+
+SUM(DIFERENCA) DIFERENCA
+
+FROM (
+
+WITH BASE_DADOS AS (
+  SELECT
+    DTVENC,
+    CODCTABCOINT AS CONTA,
+    CODNAT,
+    RECDESP,
+    PROVISAO,
+    VLRDESDOB
+  FROM TGFFIN
+  WHERE
+    TRUNC(DTVENC) < $P{DTINI}
+    AND DHBAIXA IS NULL
+    AND ($P{P_EMPRESA} IS NULL OR CODEMP = $P{P_EMPRESA})
+    AND RECDESP <> 0
+    AND (NUNOTA IS NULL OR NUNOTA IN (
+    SELECT
+    FIN1.NUNOTA
+    FROM TGFFIN FIN1
+    LEFT JOIN TGFCAB CAB ON FIN1.NUNOTA = CAB.NUNOTA
+    WHERE FIN1.DTVENC < $P{DTINI}
+    AND (FIN1.NUNOTA IS NULL OR CAB.STATUSNOTA = 'L')))
+
+)
+
+SELECT
+  BAS.DTVENC,
+  NVL(SUM(CASE WHEN BAS.RECDESP = 1 AND BAS.PROVISAO = 'S' THEN BAS.VLRDESDOB END), 0) AS A_RECEBER_PROV_S,
+  NVL(SUM(CASE WHEN BAS.RECDESP = 1 AND BAS.CODNAT <> 5010500 AND NVL(BAS.PROVISAO, 'N') = 'N' THEN BAS.VLRDESDOB END), 0) AS A_RECEBER_PROV_N,
+  NVL(SUM(CASE WHEN BAS.RECDESP = 1 AND BAS.CODNAT = 5010500 AND NVL(BAS.PROVISAO, 'N') = 'N' THEN BAS.VLRDESDOB END), 0) AS A_REC_VEIC_PROV_N,
+  NVL(SUM(CASE WHEN BAS.RECDESP = -1 AND BAS.PROVISAO = 'S' THEN -1 * BAS.VLRDESDOB END), 0) AS A_PAGAR_PROV_S,
+  NVL(SUM(CASE WHEN BAS.RECDESP = -1 AND NVL(BAS.PROVISAO, 'N') = 'N' THEN -1 * BAS.VLRDESDOB END), 0) AS A_PAGAR_PROV_N,
+
+  -- DIFERENÇA DO DIA
+  NVL(SUM(CASE WHEN BAS.RECDESP = 1 THEN BAS.VLRDESDOB END), 0) -
+  NVL(SUM(CASE WHEN BAS.RECDESP = -1 THEN BAS.VLRDESDOB END), 0) AS DIFERENCA
+
+FROM BASE_DADOS BAS
+LEFT JOIN TSICTA CTA ON BAS.CONTA = CTA.CODCTABCOINT
+
+
+GROUP BY DTVENC
+ORDER BY DTVENC
+)]]>
+	</queryString>
+	<field name="A_RECEBER_PROV_S" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='S']]></fieldDescription>
+	</field>
+	<field name="A_RECEBER_PROV_N" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='N']]></fieldDescription>
+	</field>
+	<field name="A_REC_VEIC_PROV_N" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Rec. Veiculo Prov='N']]></fieldDescription>
+	</field>
+	<field name="A_RECEBER_TOT" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Total]]></fieldDescription>
+	</field>
+	<field name="A_PAGAR_PROV_S" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Pagar Prov='S']]></fieldDescription>
+	</field>
+	<field name="A_PAGAR_PROV_N" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='N']]></fieldDescription>
+	</field>
+	<field name="DIFERENCA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Diferença]]></fieldDescription>
+	</field>
+	<field name="A_PAGAR_TOT" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Pagar Total]]></fieldDescription>
+	</field>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="35" splitType="Stretch">
+			<textField>
+				<reportElement positionType="Float" x="0" y="2" width="802" height="28"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Saldo 'A Receber' anterior até " +
+    new java.text.SimpleDateFormat("dd/MM/yyyy").format(
+        new java.util.Date($P{DTINI}.getTime() - (1000 * 60 * 60 * 24))
+    ) +
+    " |  Provisão: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_RECEBER_PROV_S}) +
+    "  Real: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_RECEBER_PROV_N}) +
+    "  Real Vendas Veículos: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_REC_VEIC_PROV_N}) +
+    "  Total: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_RECEBER_TOT}) +
+
+    "\n" + // quebra de linha se o campo for multilinha
+    "Saldo 'A Pagar' anterior até " +
+    new java.text.SimpleDateFormat("dd/MM/yyyy").format(
+        new java.util.Date($P{DTINI}.getTime() - (1000 * 60 * 60 * 24))
+    ) +
+    " |  Provisão: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_PAGAR_PROV_S}) +
+    "  Real: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_PAGAR_PROV_N}) +
+    "  Total: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_PAGAR_TOT})
+]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="0" width="802" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="0" y="32" width="802" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<break>
+				<reportElement x="0" y="34" width="100" height="1"/>
+			</break>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

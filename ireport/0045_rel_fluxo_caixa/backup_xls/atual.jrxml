@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="atual" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.1000000000000005"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<style name="DefaultStyle" forecolor="#FF0033" pattern="">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{DIFERENCA} != null && $F{DIFERENCA}.doubleValue() >= 0]]></conditionExpression>
+			<style forecolor="#3333FF"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{DIFERENCA} != null && $F{DIFERENCA}.doubleValue() < 0]]></conditionExpression>
+			<style forecolor="#FF0033"/>
+		</conditionalStyle>
+	</style>
+	<style name="DefaultStyle1">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{DIFERENCA_ACUMULADA} != null && $F{DIFERENCA_ACUMULADA}.doubleValue() >= 0]]></conditionExpression>
+			<style forecolor="#3333FF"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{DIFERENCA_ACUMULADA} != null && $F{DIFERENCA_ACUMULADA}.doubleValue() < 0]]></conditionExpression>
+			<style forecolor="#FF0033"/>
+		</conditionalStyle>
+	</style>
+	<style name="DefaultStyle2">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{V_DIFERENCA} != null && $V{V_DIFERENCA}.doubleValue() >= 0]]></conditionExpression>
+			<style forecolor="#3333FF"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{V_DIFERENCA} != null && $V{V_DIFERENCA}.doubleValue() < 0]]></conditionExpression>
+			<style forecolor="#FF0033"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Users\\sayajin\\Documents\\GitHub\\test_several1\\ireport\\0040_rel_fluxo_caixa_sintetico\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DTFIM" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<parameter name="DT_ESCOLHA" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Saldo até]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CONSID_SALDO" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Considera saldo das contas no acum. pendentes]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_EMPRESA" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_TPNAT" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Selecione o tipo de natureza: Marcado (Natureza grau 2)  ou  Desmarcado (natureza análitica)]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="MOSTRAR_DETALHAMENTO" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Mostrar Detalhamento Contas]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_REMOVER_LIM_REC" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Remover limitação de receitas]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CONSIDERAR_REC_PROV" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Considerar Receitas provisionadas]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CONSIDERAR_ADTO" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Considerar Adiantamentos]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CONSID_DESP_DEV_VENDA" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Considerar despesas de Dev. de Venda]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[WITH BASE_DADOS AS (
+  SELECT
+    CODCTABCOINT AS CONTA,
+    DTVENC,
+    RECDESP,
+    PROVISAO,
+    VLRDESDOB
+  FROM TGFFIN
+  WHERE
+    TRUNC(DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+
+
+    AND DHBAIXA IS NULL
+
+  UNION ALL
+
+  SELECT
+    SIMULA_CONTA AS CONTA,
+    SIMULA_DTVENC AS DTVENC,
+    SIMULA_RECDESP AS RECDESP,
+    SIMULA_PROVISAO AS PROVISAO,
+    SIMULA_VLRDESDOB AS VLRDESDOB
+  FROM AD_SIMULACAIXA
+  WHERE
+    TRUNC(SIMULA_DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+    AND SIMULA_PROVISAO = 'S'
+)
+
+SELECT
+  DTVENC,
+  NVL(SUM(CASE WHEN RECDESP = 1 AND PROVISAO = 'S' THEN VLRDESDOB END), 0) AS A_RECEBER_PROV_S,
+  NVL(SUM(CASE WHEN RECDESP = 1 AND NVL(PROVISAO, 'N') = 'N' THEN VLRDESDOB END), 0) AS A_RECEBER_PROV_N,
+  NVL(SUM(CASE WHEN RECDESP = -1 AND PROVISAO = 'S' THEN -1 * VLRDESDOB END), 0) AS A_PAGAR_PROV_S,
+  NVL(SUM(CASE WHEN RECDESP = -1 AND NVL(PROVISAO, 'N') = 'N' THEN -1 * VLRDESDOB END), 0) AS A_PAGAR_PROV_N,
+
+  -- DIFERENÇA DO DIA
+  NVL(SUM(CASE WHEN RECDESP = 1 THEN VLRDESDOB END), 0) -
+  NVL(SUM(CASE WHEN RECDESP = -1 THEN VLRDESDOB END), 0) AS DIFERENCA,
+
+  -- ACUMULADO
+  SUM(
+    NVL(SUM(CASE WHEN RECDESP = 1 THEN VLRDESDOB END), 0) -
+    NVL(SUM(CASE WHEN RECDESP = -1 THEN VLRDESDOB END), 0)
+  ) OVER (ORDER BY   DTVENC ROWS UNBOUNDED PRECEDING) AS DIFERENCA_ACUMULADA
+
+FROM BASE_DADOS BAS
+LEFT JOIN TSICTA CTA ON BAS.CONTA = CTA.CODCTABCOINT
+WHERE CTA.AD_USAFLUXOCAIXA='S'
+GROUP BY   DTVENC
+ORDER BY   DTVENC]]>
+	</queryString>
+	<field name="DTVENC" class="java.util.Date">
+		<fieldDescription><![CDATA[Dt. Venc.]]></fieldDescription>
+	</field>
+	<field name="A_RECEBER_PROV_S" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='S']]></fieldDescription>
+	</field>
+	<field name="A_RECEBER_PROV_N" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='N']]></fieldDescription>
+	</field>
+	<field name="A_PAGAR_PROV_S" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Pagar Prov='S']]></fieldDescription>
+	</field>
+	<field name="A_PAGAR_PROV_N" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[A Receber Prov='N']]></fieldDescription>
+	</field>
+	<field name="DIFERENCA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Diferença]]></fieldDescription>
+	</field>
+	<field name="DIFERENCA_ACUMULADA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Acumulado]]></fieldDescription>
+	</field>
+	<variable name="A_REC_PROV" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{A_RECEBER_PROV_S}]]></variableExpression>
+	</variable>
+	<variable name="A_REC_REAL" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{A_RECEBER_PROV_N}]]></variableExpression>
+	</variable>
+	<variable name="A_PAG_PROV" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{A_PAGAR_PROV_S}]]></variableExpression>
+	</variable>
+	<variable name="A_PAG_REAL" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{A_PAGAR_PROV_N}]]></variableExpression>
+	</variable>
+	<variable name="V_DIFERENCA" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{DIFERENCA}]]></variableExpression>
+	</variable>
+	<title>
+		<band height="343" splitType="Stretch">
+			<staticText>
+				<reportElement positionType="Float" x="0" y="0" width="802" height="27"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Fluxo de Caixa Satis]]></text>
+			</staticText>
+			<textField>
+				<reportElement positionType="Float" x="0" y="27" width="802" height="20"/>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression class="java.lang.String"><![CDATA["Período de: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{DTINI}) + " até: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{DTFIM})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="63" width="802" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Saldos de Contas]]></text>
+			</staticText>
+			<subreport>
+				<reportElement key="resumo" positionType="Float" x="0" y="78" width="802" height="30">
+					<printWhenExpression><![CDATA[$P{MOSTRAR_DETALHAMENTO} == true]]></printWhenExpression>
+				</reportElement>
+				<subreportParameter name="SUBREPORT_DIR"/>
+				<subreportParameter name="DTINI">
+					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DTFIM">
+					<subreportParameterExpression><![CDATA[$P{DTFIM}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "resumo.jasper"]]></subreportExpression>
+			</subreport>
+			<subreport>
+				<reportElement key="anterior" positionType="Float" x="0" y="115" width="802" height="40"/>
+				<subreportParameter name="DTINI">
+					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DTFIM">
+					<subreportParameterExpression><![CDATA[$P{DTFIM}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "anterior.jasper"]]></subreportExpression>
+			</subreport>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="166" width="802" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Fluxo de Caixa Sintético]]></text>
+			</staticText>
+			<subreport>
+				<reportElement key="sintetico" positionType="Float" x="0" y="181" width="802" height="40"/>
+				<subreportParameter name="SUBREPORT_DIR"/>
+				<subreportParameter name="DTINI">
+					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DTFIM">
+					<subreportParameterExpression><![CDATA[$P{DTFIM}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "sintetico.jasper"]]></subreportExpression>
+			</subreport>
+			<staticText>
+				<reportElement key="" positionType="Float" x="0" y="231" width="802" height="15"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Fluxo de Caixa Análitico]]></text>
+			</staticText>
+			<subreport>
+				<reportElement key="detalhe" positionType="Float" x="0" y="246" width="802" height="69"/>
+				<subreportParameter name="DTINI">
+					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DTFIM">
+					<subreportParameterExpression><![CDATA[$P{DTFIM}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "detalhe.jasper"]]></subreportExpression>
+			</subreport>
+			<subreport>
+				<reportElement key="resumo_sintetico" positionType="Float" x="0" y="78" width="802" height="30">
+					<printWhenExpression><![CDATA[$P{MOSTRAR_DETALHAMENTO} == false]]></printWhenExpression>
+				</reportElement>
+				<subreportParameter name="SUBREPORT_DIR"/>
+				<subreportParameter name="DTINI">
+					<subreportParameterExpression><![CDATA[$P{DTINI}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DTFIM">
+					<subreportParameterExpression><![CDATA[$P{DTFIM}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "resumo.jasper"]]></subreportExpression>
+			</subreport>
+			<textField>
+				<reportElement x="0" y="47" width="802" height="16"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="html">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["<html><b>Parâmetros utilizados:</b> "
++ "<b>Data Saldo até:</b> " + $P{DT_ESCOLHA} + " | "
++ "<b>Saldo acum. pendentes:</b> " + $P{P_CONSID_SALDO} + " | "
++ "<b>Cód. Empresa:</b> " + $P{P_EMPRESA} + " | "
++ "<b>Tipo Natureza:</b> " + ($P{P_TPNAT} ? "Natureza grau 2" : "Natureza analítica") + " | "
++ "<b>Detalhamento Contas:</b> " + ($P{MOSTRAR_DETALHAMENTO} ? "Sim" : "Não") + " | "
++ "<b>Lim. Receitas:</b> " + ($P{P_REMOVER_LIM_REC} ? "Removida" : "Aplicada") + " | "
++ "<b>Receitas provisionadas:</b> " + ($P{P_CONSIDERAR_REC_PROV} ? "Sim" : "Não") + " | "
++ "<b>Adiantamentos:</b> " + ($P{P_CONSIDERAR_ADTO} ? "Sim" : "Não") + " | "
++ "<b>Desp. Dev. Venda:</b> " + ($P{P_CONSID_DESP_DEV_VENDA} ? "Sim" : "Não") + "</html>"]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+</jasperReport>

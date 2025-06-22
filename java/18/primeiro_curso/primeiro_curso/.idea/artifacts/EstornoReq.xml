@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="EstornoReq">
+    <output-path>$PROJECT_DIR$/out/artifacts/EstornoReq</output-path>
+    <root id="archive" name="EstornoReq.jar">
+      <element id="module-output" name="primeiro_curso" />
+    </root>
+  </artifact>
+</component>
