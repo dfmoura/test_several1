@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="CLAUSULAS_subreport1" language="groovy" pageWidth="595" pageHeight="842" columnWidth="539" leftMargin="42" rightMargin="14" topMargin="28" bottomMargin="28">
+	<property name="ireport.zoom" value="3.452271214393105"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="820"/>
+	<property name="ireport.definition"/>
+	<parameter name="P_NUNOTA" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+    PAR.AD_CLAUSULA1,
+    PAR.AD_CLAUSULA2,
+    PAR.AD_CLAUSULA3,
+    PAR.AD_CLAUSULA4,
+    PAR.AD_CLAUSULA5,
+    PAR.AD_CLAUSULA6,
+    PAR.AD_CLAUSULA7,
+    PAR.AD_CLAUSULA8,
+    PAR.AD_CLAUSULA9,
+    PAR.AD_CLAUSULA10,
+    PAR.AD_CLAUSULA11
+FROM TGFCAB CAB
+, TGFPAR PAR
+WHERE CAB.CODPARC = PAR.CODPARC
+AND CAB.NUNOTA = $P{P_NUNOTA}
+ORDER BY  CAB.NUNOTA]]>
+	</queryString>
+	<field name="AD_CLAUSULA1" class="java.lang.String"/>
+	<field name="AD_CLAUSULA2" class="java.lang.String"/>
+	<field name="AD_CLAUSULA3" class="java.lang.String"/>
+	<field name="AD_CLAUSULA4" class="java.lang.String"/>
+	<field name="AD_CLAUSULA5" class="java.lang.String"/>
+	<field name="AD_CLAUSULA6" class="java.lang.String"/>
+	<field name="AD_CLAUSULA7" class="java.lang.String"/>
+	<field name="AD_CLAUSULA8" class="java.lang.String"/>
+	<field name="AD_CLAUSULA9" class="java.lang.String"/>
+	<field name="AD_CLAUSULA10" class="java.lang.String"/>
+	<field name="AD_CLAUSULA11" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="77" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="539" height="41"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[Pelo presente instrumento particular, as Partes:
+
+ AGRIPAR BIOFERTILIZANTES DO TRIANGULO SPE LTDA, inscrita no CNPJ sob o n. : 45.734.490/0001-98, com sede na Cidade de Tupaciguara/MG, à ROD BR-452 KM-76,9 FAZENDA SACI II , Bairro Zona Rural Minas Gerais, CEP 38.480-000, neste ato representada na forma de seu Estatuto Social, doravante denominada “VENDEDORA” e o cliente acima qualificado, doravante denominado, COMPRADOR, por meio deste instrumento celebram o presente Contrato de Compra e Venda Mercantil, de acordo com as seguintes cláusulas e condições:
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="48" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[CLÁUSULA PRIMEIRA:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="0" y="59" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA1}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="31">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="12" width="539" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA2}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="1" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[CLÁUSULA SEGUNDA:]]></text>
+			</staticText>
+		</band>
+		<band height="30">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="11" width="539" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA3}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="0" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[CLÁUSULA TERCEIRA:]]></text>
+			</staticText>
+		</band>
+		<band height="30">
+			<staticText>
+				<reportElement x="0" y="1" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[CLÁUSULA QUARTA:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="12" width="539" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA4}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="30">
+			<staticText>
+				<reportElement x="0" y="1" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[CLÁUSULA QUINTA:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="12" width="539" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA5}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="30">
+			<staticText>
+				<reportElement x="0" y="3" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[CLÁUSULA SEXTA:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="14" width="539" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA6}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="30">
+			<staticText>
+				<reportElement x="0" y="3" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[CLÁUSULA SÉTIMA:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="14" width="539" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA7}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="30">
+			<staticText>
+				<reportElement x="0" y="3" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[CLÁUSULA OITAVA:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="14" width="539" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA8}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="30">
+			<staticText>
+				<reportElement x="0" y="5" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[CLÁUSULA NONA:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="16" width="539" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA9}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="31">
+			<staticText>
+				<reportElement x="0" y="5" width="539" height="11"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Calibri" size="8"/>
+				</textElement>
+				<text><![CDATA[CLÁUSULA DÉCIMA:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="16" width="539" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA10}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="0" y="5" width="539" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_CLAUSULA11}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="70">
+			<textField pattern="dd MMMMM yyyy">
+				<reportElement x="157" y="3" width="229" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="3" width="158" height="20"/>
+				<textElement/>
+				<text><![CDATA[Local:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="27" width="297" height="43"/>
+				<textElement/>
+				<text><![CDATA[_____________________________________________________
+CLIENTE:
+CPF:
+]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>
