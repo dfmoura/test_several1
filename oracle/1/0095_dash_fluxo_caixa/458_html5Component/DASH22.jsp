@@ -18,6 +18,41 @@
             box-sizing: border-box;
             background-color: #F0F7EF;
             color: #2F4F2F;
+            padding-top: 80px; /* Espaço para o header fixo */
+        }
+
+        /* Header fixo */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(135deg, #5B9B61, #7CBF74);
+            box-shadow: 0 2px 8px rgba(0, 64, 32, 0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .header-title {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .header-logo img {
+            width: 86px;
+            height: auto;
+            filter: brightness(0) invert(1); /* Torna a logo branca */
         }
 
         .container {
@@ -80,7 +115,7 @@
         .section {
             display: flex;
             justify-content: space-between;
-            height: calc(100vh - 260px);
+            height: calc(100vh - 340px); /* Ajustado para considerar o header */
             margin-bottom: 20px;
         }
 
@@ -121,24 +156,38 @@
         .logo-overlay {
             position: fixed;
             bottom: 20px;
-            right: 20px;
+            left: 20px; /* Movido para o canto esquerdo */
             z-index: 9999;
             opacity: 0.7;
             transition: opacity 0.3s ease;
         }
+        
         .logo-overlay:hover {
             opacity: 1;
         }
+        
         .logo-overlay img {
-            width: 72px;
+            width: 103px;
             height: auto;
-        }        
+            filter: brightness(0) invert(1); /* Torna a logo branca */
+        }
 
     </style>
     
     <snk:load/>
 </head>
 <body>
+    <!-- Header fixo -->
+    <div class="header">
+        <div class="header-logo">
+            <a href="https://neuon.com.br/" target="_blank" rel="noopener noreferrer">
+            <img src="https://neuon.com.br/logos/logo-5.svg" alt="Neuon Logo">
+            </a>
+        </div>
+        <h1 class="header-title">Dash Fluxo de Caixa</h1>
+        <div></div> <!-- Espaço para equilibrar o layout -->
+    </div>
+
     <snk:query var="receita_baixada">
 
     SELECT SUM(VWF.VLRBAIXA_CALC)VLTOTANT 
@@ -310,10 +359,6 @@
                 <canvas id="lineChart"></canvas>
             </div>
             <!-- Gráfico de Colunas Horizontais (Direita) -->
-
-
-
-            
         </div>
     </div>
 
@@ -435,10 +480,5 @@ function abrir_nivel(){
     </script>
 
 
-    <div class="logo-overlay">
-        <a href="https://neuon.com.br/" target="_blank" rel="noopener noreferrer">
-            <img src="https://neuon.com.br/logos/logo-5.svg" alt="Neuon Logo">
-        </a>
-    </div>
  </body>
 </html>

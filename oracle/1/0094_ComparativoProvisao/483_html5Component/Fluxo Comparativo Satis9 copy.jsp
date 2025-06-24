@@ -19,6 +19,26 @@
                                 box-sizing: border-box;
                             }
 
+
+                            /* Adicione este novo estilo para o overlay do logo */
+                            .logo-overlay {
+                                position: fixed;
+                                bottom: 20px;
+                                right: 20px;
+                                z-index: 9999;
+                                opacity: 0.7;
+                                transition: opacity 0.3s ease;
+                            }
+
+                            .logo-overlay:hover {
+                                opacity: 1;
+                            }
+
+                            .logo-overlay img {
+                                width: 150px;
+                                height: auto;
+                            }
+
                             .container {
                                 width: 100%;
                                 padding: 20px;
@@ -329,6 +349,13 @@
                             <button onclick="abrir_nivel2('lvl_ccy8v8', '')">Resumo por Naturezas</button>
                             <button onclick="abrir_nivel3('lvl_ccy8wm', '')">Detalhamento Analitico por
                                 naturezas</button>
+                        </div>
+
+                        <!-- Substitua o div do logo-overlay por este código -->
+                        <div class="logo-overlay">
+                            <a href="https://neuon.com.br/" target="_blank" rel="noopener noreferrer">
+                                <img src="https://neuon.com.br/logos/logo-5.svg" alt="Neuon Logo">
+                            </a>
                         </div>
 
                         <tr>
