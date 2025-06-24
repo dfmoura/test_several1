@@ -115,7 +115,6 @@
             color: white !important; /* Força o texto branco em todas as colunas do cabeçalho */
             position: sticky;
             top: 0;
-
         }
 
         thead th {
@@ -125,9 +124,8 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-size: 0.8rem;
-            color: white !important;
         }
-      
+       
 
         tbody tr {
             transition: all 0.3s ease;
@@ -626,19 +624,13 @@
                     theme: 'striped',
                     showHead: 'everyPage',
                     didParseCell: function(data) {
-                        // Aplicar estilos de cor apenas para células de valor (coluna 5) no corpo da tabela
-                        if (data.column.index === 5 && data.section === 'body') {
+                        // Aplicar estilos de cor para valores positivos/negativos
+                        if (data.column.index === 5) {
                             const cellText = data.cell.text[0] || "";
                             const hasNegativeSign = cellText.includes('-');
                             const numericValue = parseFloat(cellText.replace(/\./g, '').replace(',', '.'));
                             const isNegative = hasNegativeSign || numericValue < 0;
                             data.cell.styles.textColor = isNegative ? [231, 76, 60] : [39, 174, 96];
-                            data.cell.styles.fontStyle = 'bold';
-                        }
-                        
-                        // Forçar cabeçalhos (th) a serem brancos
-                        if (data.section === 'head') {
-                            data.cell.styles.textColor = [255, 255, 255]; // Branco
                             data.cell.styles.fontStyle = 'bold';
                         }
                     },
@@ -774,12 +766,6 @@
                 gerarPDF();
             }
         });
-
-
-        document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('th-valor').style.color = 'white';
-        });        
-
     </script>
 </body>
 </html>
