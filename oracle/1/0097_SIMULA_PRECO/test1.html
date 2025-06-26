@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Simulação de Preços</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-4">Dashboard de Simulação de Preços</h1>
+
+    <!-- Filtros obrigatórios -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div>
+        <label for="data" class="block text-sm font-medium">Data (obrigatório)</label>
+        <input type="date" id="data" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+      </div>
+      <div>
+        <label for="empresa" class="block text-sm font-medium">Empresa Custo (obrigatório)</label>
+        <select id="empresa" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+          <option value="">Selecione...</option>
+          <option>0 TODOS</option>
+          <option>SATIS ARAXA</option>
+          <option>SATIS MARAU</option>
+          <option>SATIS NOVA MUTUM</option>
+          <option>SATIS RIO VERDE</option>
+          <option>SATIS FORMOSA</option>
+          <option>SATIS JUAZEIRO</option>
+          <option>SATIS LUIZ EDUARDO MAGALHÃES</option>
+          <option>SATIS SANTARÉM</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Parâmetros adicionais -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <input type="date" id="data-vigor" placeholder="Data Vigor Novo Preço" class="p-2 border rounded" />
+      <input type="number" id="margem" placeholder="Margem para Simulação (%)" class="p-2 border rounded" />
+      <input type="text" id="tabela" placeholder="Tabela de Preço" class="p-2 border rounded" />
+      <input type="text" id="produto" placeholder="Produto" class="p-2 border rounded" />
+    </div>
+
+    <button onclick="gerarSimulacao()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Gerar Simulação</button>
+
+    <div class="mt-8 overflow-x-auto">
+      <table class="min-w-full bg-white rounded shadow">
+        <thead>
+          <tr class="bg-gray-200 text-left text-xs font-semibold uppercase tracking-wider">
+            <th class="px-4 py-2">Empresa</th>
+            <th class="px-4 py-2">Tabela</th>
+            <th class="px-4 py-2">Produto</th>
+            <th class="px-4 py-2">Preço Tabela</th>
+            <th class="px-4 py-2">Custo Médio S/ ICMS</th>
+            <th class="px-4 py-2">Margem Atual (%)</th>
+            <th class="px-4 py-2">Custo Hoje</th>
+            <th class="px-4 py-2">Nova Margem (%)</th>
+            <th class="px-4 py-2">Novo Preço</th>
+            <th class="px-4 py-2">Data Vigor</th>
+          </tr>
+        </thead>
+        <tbody id="resultado">
+          <!-- Resultados da simulação serão inseridos aqui -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const empresas = [
+      "0 TODOS", "SATIS ARAXA", "SATIS MARAU", "SATIS NOVA MUTUM",
+      "SATIS RIO VERDE", "SATIS FORMOSA", "SATIS JUAZEIRO",
+      "SATIS LUIZ EDUARDO MAGALHÃES", "SATIS SANTARÉM"
+    ];
+
+    const tabelas = ["0-PADRÃO", "100-UNIFICADA", "200-AGRO", "300-PROMO"];
+    const produtos = Array.from({ length: 200 }, (_, i) => `PROD-${i + 1}`);
+
+    let dadosExemplo = [];
+
+    function gerarDadosComDatas() {
+      const datas = ["2025-06-01", "2025-06-15", "2025-07-01", "2025-07-15"];
+      for (let data of datas) {
+        for (let i = 0; i < 300; i++) {
+          const tabela = tabelas[Math.floor(Math.random() * tabelas.length)];
+          const produto = produtos[Math.floor(Math.random() * produtos.length)];
+          const empresa = empresas[Math.floor(Math.random() * (empresas.length - 1)) + 1]; // ignora "0 TODOS" na geração
+          const precoTabela = parseFloat((Math.random() * 2000 + 50).toFixed(2));
+          const custoMedio = parseFloat((precoTabela * (Math.random() * 0.5 + 0.1)).toFixed(5));
+          const custoHoje = parseFloat((custoMedio * (1 + Math.random() * 0.15)).toFixed(6));
+          dadosExemplo.push({ data, empresa, tabela, produto, precoTabela, custoMedio, custoHoje });
+        }
+      }
+    }
+
+    gerarDadosComDatas();
+
+    function gerarSimulacao() {
+      const margemInput = parseFloat(document.getElementById("margem").value || 60);
+      const dataVigor = document.getElementById("data-vigor").value || "2025-07-01";
+      const dataFiltro = document.getElementById("data").value;
+      const empresaFiltro = document.getElementById("empresa").value;
+      const produtoFiltro = document.getElementById("produto").value.trim().toUpperCase();
+      const tabelaFiltro = document.getElementById("tabela").value.trim().toUpperCase();
+
+      const tbody = document.getElementById("resultado");
+      tbody.innerHTML = "";
+
+      if (!dataFiltro) {
+        alert("Por favor, selecione a data obrigatória.");
+        return;
+      }
+
+      const filtrado = dadosExemplo.filter(item =>
+        item.data === dataFiltro &&
+        (empresaFiltro === "0 TODOS" || item.empresa === empresaFiltro) &&
+        (!produtoFiltro || item.produto.includes(produtoFiltro)) &&
+        (!tabelaFiltro || item.tabela.includes(tabelaFiltro))
+      );
+
+      if (filtrado.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center px-4 py-2">Nenhum dado encontrado para os filtros informados.</td></tr>`;
+        return;
+      }
+
+      filtrado.forEach((item, index) => {
+        const margemAtual = ((item.precoTabela - item.custoMedio) / item.precoTabela) * 100;
+        const novoPreco = item.custoHoje / (1 - margemInput / 100);
+
+        const row = `
+          <tr class="border-t" id="linha-${index}">
+            <td class="px-4 py-2">${item.empresa}</td>
+            <td class="px-4 py-2">${item.tabela}</td>
+            <td class="px-4 py-2">${item.produto}</td>
+            <td class="px-4 py-2">${item.precoTabela.toFixed(2)}</td>
+            <td class="px-4 py-2">${item.custoMedio.toFixed(5)}</td>
+            <td class="px-4 py-2">${margemAtual.toFixed(2)}</td>
+            <td class="px-4 py-2">${item.custoHoje.toFixed(6)}</td>
+            <td class="px-4 py-2">
+              <input type="number" value="${margemInput.toFixed(2)}" step="0.01" min="0" max="99.99"
+                     class="margem-individual p-1 border rounded w-20"
+                     data-index="${index}" data-custo="${item.custoHoje}" />
+            </td>
+            <td class="px-4 py-2" id="novo-preco-${index}">${novoPreco.toFixed(6)}</td>
+            <td class="px-4 py-2">${dataVigor}</td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+
+      // Event listener para atualizar novo preço com base na margem individual
+      document.querySelectorAll('.margem-individual').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const novaMargem = parseFloat(e.target.value);
+          const index = e.target.dataset.index;
+          const custo = parseFloat(e.target.dataset.custo);
+          if (isNaN(novaMargem) || novaMargem >= 100 || novaMargem < 0) return;
+
+          const novoPreco = custo / (1 - novaMargem / 100);
+          document.getElementById(`novo-preco-${index}`).textContent = novoPreco.toFixed(6);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

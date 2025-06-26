@@ -122,7 +122,7 @@
             padding: 12px 15px;
             text-align: left;
             font-weight: 600;
-            text-transform: uppercase;
+            
             letter-spacing: 0.5px;
             font-size: 0.8rem;
             color: white !important;
@@ -376,7 +376,7 @@
         INNER JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
         INNER JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
         WHERE 
-            ((:P_VERIFICACAO = 1 AND FIN.DTVENC BETWEEN :P_PERIODO AND :P_PERIODO1)
+            ((:P_VERIFICACAO = 1 AND FIN.DTVENC BETWEEN :P_PERIODO AND :P_PERIODO1 and fin.dhbaixa is null)
             OR (:P_VERIFICACAO = 2 AND FIN.DHBAIXA BETWEEN :P_PERIODO AND :P_PERIODO1))
             AND (FIN.CODNAT IN (:P_CODNAT))
             AND (
@@ -407,12 +407,12 @@
                                 <tr>
                                     <th style="width: 8%">Nº Financeiro</th>
                                     <th style="width: 8%">Nº Nota</th>
-                                    <th style="width: 10%">Data Negociação</th>
+                                    <th style="width: 10%">Data Emissão</th>
                                     <th style="width: 10%">Data Vencimento</th>
                                     <th style="width: 10%">Data Baixa</th>
                                     <th style="width: 10%">Valor</th>
-                                    <th style="width: 18%">Parceiro</th>
-                                    <th style="width: 18%">Natureza</th>
+                                    <th style="width: 18%">Razão Social</th>
+                                    <th style="width: 18%">Descrição Natureza</th>
                                     <th style="width: 18%">Histórico</th>
                                 </tr>
                             </thead>
@@ -582,7 +582,7 @@
                 // Configurar dados da tabela
                 const head = [[
                     'Nº Financeiro', 'Nº Nota', 'Data Negociação', 'Data Vencimento',
-                    'Data Baixa', 'Valor', 'Parceiro', 'Natureza', 'Histórico'
+                    'Data Baixa', 'Valor', 'Razão Social', 'Descrição Natureza', 'Histórico'
                 ]];
                 
                 const body = [];
@@ -649,8 +649,8 @@
                         3: { cellWidth: 20, halign: 'center' },  // Data Vencimento
                         4: { cellWidth: 18, halign: 'center' },  // Data Baixa
                         5: { cellWidth: 22, halign: 'right' },   // Valor
-                        6: { cellWidth: 55, halign: 'left' },    // Parceiro
-                        7: { cellWidth: 55, halign: 'left' },    // Natureza
+                        6: { cellWidth: 55, halign: 'left' },    // Razão Social
+                        7: { cellWidth: 55, halign: 'left' },    // Descrição Natureza
                         8: { cellWidth: 55, halign: 'left' }     // Histórico
                     },
                     pageBreak: 'auto',
