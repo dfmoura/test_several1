@@ -1,0 +1,59 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="P_EMPRESA" description="Empresa" metadata="entity:Empresa@CODEMP" required="true" keep-last="true" keep-date="false" order="0"/>
+    <parameter id="P_PERIODO" description="Período" metadata="date" required="true" keep-last="true" keep-date="false" order="1"/>
+  </prompt-parameters>
+  <level id="lvl_aiseped" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="100">
+        <grid id="grd_alhz9qu" useNewGrid="S">
+          <expression type="sql" data-source="MGEDS"><![CDATA[select    codtab,    nometab,    codprod,    descrprod,    codgrupoprod,    descrgrupoprod,    marca,    POND_MARCA_ult_12_m,    cusmedicm_ult_12_m,    vlrvenda,    nvl(((vlrvenda - cusmedicm_ult_12_m) / NULLIF(vlrvenda, 0)) * 100,0) AS margem,    vlrvenda * 0.85 vlrvenda_menos_15,    nvl((((vlrvenda * 0.85) - cusmedicm_ult_12_m) / NULLIF(vlrvenda, 0)) * 100,0) AS margem_menos_15,    vlrvenda * 0.65 vlrvenda_menos_35,    nvl((((vlrvenda * 0.65) - cusmedicm_ult_12_m) / NULLIF(vlrvenda, 0)) * 100,0) AS margem_menos_35,    nvl(qtdprev*POND_MARCA_ult_12_m,0) qtdprev,    nvl(VLR_PREV*POND_MARCA_ult_12_m,0) VLR_PREV,    nvl((VLR_PREV*POND_MARCA_ult_12_m)/NULLIF((qtdprev*POND_MARCA_ult_12_m),0),0) ticket_med_objetivo,    nvl(qtd,0)qtd_real_ult_12_m,    nvl(vlr,0)vlr_real_ult_12_m,    nvl(vlr/nullif(qtd,0),0) ticket_med_real_ult_12_m,    nvl(qtd_safra,0)qtd_safra,    nvl(vlr_safra,0)vlr_safra,    nvl(vlr_safra/nullif(qtd_safra,0),0) ticket_med_safrafrom (SELECT     codprod,    descrprod,    codgrupoprod,    descrgrupoprod,    marca,    AD_QTDVOLLT,    vlrvenda,    cusmedicm cusmedicm_ult_12_m,    POND_MARCA POND_MARCA_ult_12_m,    qtdprev,    VLR_PREV,    qtd,    vlr,    qtd_safra,    vlr_safra,    tipo,    modbaseicms,    nutab,    codtab,    nometab,    dtvigor,    percentual,    ad_descperFROM (with cus as (selectcodprod,codemp,avg(cusmedicm)cusmedicmfrom tgfcusWHERE dtatual >= ADD_MONTHS(:P_PERIODO, -12)AND dtatual < :P_PERIODOAND codemp = :P_EMPRESAgroup bycodprod,codemp),pon as (SELECT CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD,-- Ponderação do produto em relação ao total da marcaROUND(SUM(QTD) / SUM(SUM(QTD)) OVER (PARTITION BY MARCA), 4) AS POND_MARCAFROM VGF_VENDAS_SATISWHERE dtneg >= ADD_MONTHS(:P_PERIODO, -12)AND dtneg < :P_PERIODOAND CODEMP = :P_EMPRESAGROUP BY CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD),met as (select marca, sum(qtdprev)qtdprev,sum(VLR_PREV)VLR_PREV from (SELECT DISTINCT  met.codmeta,  met.dtref,  met.codvend,  met.codparc,  met.marca,  met.qtdprev,  met.QTDPREV * PRC.VLRVENDALT AS VLR_PREVFROM tgfmet metLEFT JOIN VGF_VENDAS_SATIS VGF   ON MET.DTREF = TRUNC(VGF.DTMOV,'MM')  AND MET.CODVEND = VGF.CODVEND  AND MET.CODPARC = VGF.CODPARC  AND MET.MARCA = VGF.MARCA  AND VGF.BONIFICACAO = 'N'LEFT JOIN AD_PRECOMARCA PRC   ON MET.MARCA = PRC.MARCA  AND PRC.CODMETA = MET.CODMETA  AND PRC.DTREF = (     SELECT MAX(DTREF)      FROM AD_PRECOMARCA      WHERE CODMETA = MET.CODMETA        AND DTREF <= MET.DTREF        AND MARCA = MET.MARCA )LEFT JOIN TGFPAR PAR ON MET.CODPARC = PAR.CODPARCLEFT JOIN TGFVEN VEN ON MET.CODVEND = VEN.CODVENDWHERE met.codmeta = 4AND met.dtref BETWEEN     CASE         WHEN EXTRACT(MONTH FROM CAST(:P_PERIODO AS DATE)) <= 6         THEN TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') - INTERVAL '6' MONTH        ELSE TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') + INTERVAL '6' MONTH    ENDAND     CASE         WHEN EXTRACT(MONTH FROM CAST(:P_PERIODO AS DATE)) <= 6         THEN TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') + INTERVAL '5' MONTH        ELSE TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') + INTERVAL '17' MONTH    END)group by marca),fat as (SELECT CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD, NVL(SUM(QTD),0) QTD,NVL(SUM(VLR),0) VLR FROM VGF_VENDAS_SATISWHERE dtneg >= ADD_MONTHS(:P_PERIODO, -12)AND dtneg < :P_PERIODOAND CODEMP = :P_EMPRESAGROUP BY CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD),fat1 as (SELECT CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD, NVL(SUM(QTD),0) qtd_safra,NVL(SUM(VLR),0) vlr_safra FROM VGF_VENDAS_SATISWHERE dtneg BETWEEN     CASE         WHEN EXTRACT(MONTH FROM CAST(:P_PERIODO AS DATE)) <= 6         THEN TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') - INTERVAL '6' MONTH        ELSE TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') + INTERVAL '6' MONTH    ENDAND     CASE         WHEN EXTRACT(MONTH FROM CAST(:P_PERIODO AS DATE)) <= 6         THEN TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') + INTERVAL '5' MONTH        ELSE TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') + INTERVAL '17' MONTH    ENDAND CODEMP = :P_EMPRESAGROUP BY CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD)    SELECT        PRO.CODPROD,        PRO.DESCRPROD,        PRO.CODGRUPOPROD,        GRU.DESCRGRUPOPROD,        PRO.MARCA,        PRO.AD_QTDVOLLT,        nvl(exc.vlrvenda,0) vlrvenda,        NVL(cus.cusmedicm,0)cusmedicm,        nvl(pon.POND_MARCA,0) POND_MARCA,        met.qtdprev,        met.VLR_PREV,        fat.qtd,        fat.vlr,        fat1.qtd_safra,        fat1.vlr_safra,        exc.tipo,        exc.modbaseicms,        exc.nutab,        tab.codtab,        nta.nometab,        tab.dtvigor,        tab.percentual,        tab.ad_descper,        ROW_NUMBER() OVER (PARTITION BY PRO.CODPROD ORDER BY tab.dtvigor DESC) AS rn    FROM tgfpro pro    INNER JOIN tgfgru gru ON pro.codgrupoprod = gru.codgrupoprod    LEFT JOIN tgfexc exc ON pro.codprod = exc.codprod    LEFT JOIN tgftab tab ON exc.nutab = tab.nutab    LEFT JOIN tgfnta nta ON tab.codtab = nta.codtab    LEFT JOIN cus on pro.codprod = cus.codprod     LEFT JOIN pon on pro.codprod = pon.codprod     LEFT JOIN met on pro.marca = met.marca    LEFT JOIN fat on pro.codprod = fat.codprod    LEFT JOIN fat1 on pro.codprod = fat1.codprod    WHERE SUBSTR(PRO.CODGRUPOPROD, 1, 1) = '1'      AND nta.ativo = 'S' and pro.ativo = 'S') subWHERE rn = 1)]]></expression>
+          <metadata>
+            <field name="CODTAB" label="CODTAB" type="I" visible="true" useFooter="false"/>
+            <field name="NOMETAB" label="NOMETAB" type="S" visible="true" useFooter="false"/>
+            <field name="CODPROD" label="Cód. Produto" type="I" visible="true" useFooter="false"/>
+            <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+            <field name="CODGRUPOPROD" label="Cód. Grupo" type="I" visible="true" useFooter="false"/>
+            <field name="DESCRGRUPOPROD" label="Grupo" type="S" visible="true" useFooter="false"/>
+            <field name="MARCA" label="Marca" type="S" visible="true" useFooter="false"/>
+            <field name="POND_MARCA_ULT_12_M" label="Ponderado Últ. 12.m" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="CUSMEDICM_ULT_12_M" label="Custo (Últ.12.m)" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLRVENDA" label="Vlr. Venda" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="MARGEM" label="Margem" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLRVENDA_MENOS_15" label="Vlr. Venda (-15%)" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="MARGEM_MENOS_15" label="Margem (-15%)" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLRVENDA_MENOS_35" label="Vlr. Venda (-35%)" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="MARGEM_MENOS_35" label="Margem (-35%)" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="QTDPREV" label="Qtd.Prev x Pond." type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLR_PREV" label="Vlr.Prev x Pond" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="TICKET_MED_OBJETIVO" label="Ticket Médio Objetivo" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="QTD_REAL_ULT_12_M" label="Qtd.Real Últ.12.m" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLR_REAL_ULT_12_M" label="Vlr.Real Últ.12.m" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="TICKET_MED_REAL_ULT_12_M" label="Ticket Médio Real Últ.12.m" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="QTD_SAFRA" label="Qtd.Real Safra" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="VLR_SAFRA" label="Vlr.Real Safra" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+            <field name="TICKET_MED_SAFRA" label="Ticket Real Safra" type="F" visible="true" useFooter="false" mask="#.##0,00"/>
+          </metadata>
+        </grid>
+      </container>
+    </container>
+  </level>
+  <level id="lvl_alhz9sv" description="Meta">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_alhz9s6" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD, NVL(SUM(QTD),0) QTD,NVL(SUM(VLR),0) VLR FROM VGF_VENDAS_SATISWHERE dtneg BETWEEN     CASE         WHEN EXTRACT(MONTH FROM CAST(:P_PERIODO AS DATE)) <= 6         THEN TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') - INTERVAL '6' MONTH        ELSE TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') + INTERVAL '6' MONTH    ENDAND     CASE         WHEN EXTRACT(MONTH FROM CAST(:P_PERIODO AS DATE)) <= 6         THEN TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') + INTERVAL '5' MONTH        ELSE TRUNC(CAST(:P_PERIODO AS DATE), 'YYYY') + INTERVAL '17' MONTH    ENDAND CODEMP = :P_EMPRESAGROUP BY CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD]]></expression>
+        <metadata>
+          <field name="CODEMP" label="CODEMP" type="I" visible="true" useFooter="false"/>
+          <field name="PROD" label="PROD" type="S" visible="true" useFooter="false"/>
+          <field name="CODPROD" label="CODPROD" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRPROD" label="DESCRPROD" type="S" visible="true" useFooter="false"/>
+          <field name="MARCA" label="MARCA" type="S" visible="true" useFooter="false"/>
+          <field name="CODGRUPOPROD" label="CODGRUPOPROD" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRGRUPOPROD" label="DESCRGRUPOPROD" type="S" visible="true" useFooter="false"/>
+          <field name="QTD" label="QTD" type="I" visible="true" useFooter="false"/>
+          <field name="VLR" label="VLR" type="I" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>
