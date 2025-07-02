@@ -780,83 +780,23 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
   btn.disabled = true;
   const rawData = collectTableData();
 
+  // Show total and keys of the first record (if any)
+  let msg = 'Total de registros coletados: ' + rawData.length;
+  if (rawData.length > 0) {
+    const keys = Object.keys(rawData[0]);
+    msg += '\nKeys: ' + keys.join(', ');
+  }
+  alert(msg);
+
   if (rawData.length === 0) {
-    alert('Nenhum dado para inserir. Por favor, preencha pelo menos um dos campos de Novo Preço ou Data Vigor.');
     btn.disabled = false;
     return;
   }
 
-  try {
-    // First, authenticate with Sankhya API
-    const loginResponse = await fetch('https://api.sandbox.sankhya.com.br/login', {
-      method: 'POST',
-      headers: {
-        'token': '1e02dfe7-a1e2-4137-ba68-54692b702f47',
-        'appkey': '9250975a-bcf3-4d27-84ab-ee8244866b1e',
-        'username': 'diogomou@gmail.com',
-        'password': 'Buc110t@20251'
-      }
-    });
-
-    if (!loginResponse.ok) {
-      throw new Error('Falha na autenticação com a API Sankhya');
-    }
-
-    const loginData = await loginResponse.json();
-    const token = loginData.sessionID;
-
-    // Prepare records for the TESTE_PRECO table
-    const records = rawData.map((item, index) => ({
-      values: {
-        "1": item.codigoTabela,
-        "2": item.codigoProduto,
-        "3": item.novoPreco || "",
-        "4": convertDateToOracle(item.dataVigor) || ""
-      }
-    }));
-
-    // Insert data into TESTE_PRECO table
-    const insertResponse = await fetch('https://api.sandbox.sankhya.com.br/gateway/v1/mge/service.sbr?serviceName=DatasetSP.save&outputType=json', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        serviceName: "DatasetSP.save",
-        requestBody: {
-          entityName: "TESTE_PRECO",
-          standAlone: false,
-          fields: [
-            "CODTAB",
-            "CODPROD", 
-            "NOVO_PRECO",
-            "DTVIGOR"
-          ],
-          records: records
-        }
-      })
-    });
-
-    if (!insertResponse.ok) {
-      const errorText = await insertResponse.text();
-      throw new Error(`Erro ao inserir dados: ${errorText}`);
-    }
-
-    const insertData = await insertResponse.json();
-    
-    if (insertData.status === 'success') {
-      alert(`Sucesso! ${rawData.length} registro(s) inserido(s) na tabela TESTE_PRECO.`);
-    } else {
-      throw new Error(`Erro na resposta da API: ${JSON.stringify(insertData)}`);
-    }
-
-  } catch (error) {
-    console.error('Erro:', error);
-    alert(`Erro ao inserir dados: ${error.message}`);
-  } finally {
-    btn.disabled = false;
-  }
+  //incremente code persist here
+  
+  
+  btn.disabled = false;
 });
 
 
