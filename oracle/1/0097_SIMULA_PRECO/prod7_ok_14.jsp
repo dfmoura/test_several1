@@ -55,16 +55,19 @@
     #dataTable thead {
       position: sticky;
       top: 0;
-      z-index: 30;
+      z-index: 50;
       background-color: #d1fae5;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     #dataTable thead th {
       position: sticky;
       top: 0;
-      z-index: 30;
+      z-index: 50;
       background-color: #d1fae5;
       border: 1px solid #e5e7eb;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
     }
     
     #table-container {
@@ -72,6 +75,31 @@
       overflow: auto;
       max-height: 85vh;
       position: relative;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Ensure table takes full width of container */
+    #dataTable {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+    }
+    
+    /* Improve sticky header compatibility */
+    @supports (position: sticky) {
+      #dataTable thead {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 0;
+      }
+      
+      #dataTable thead th {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 0;
+      }
     }
     
     body {
@@ -534,8 +562,12 @@ ORDER BY 1,5,3 DESC
     </table>
   </div>
 
-  <button id="exportJsonBtn" class="export-btn-overlay" title="Exportar para JSON">
+  <button id="exportJsonBtn" class="export-btn-overlay" title="Exportar para JSON" style="bottom: 20px; right: 20px;">
     <i class="fas fa-file-export"></i>
+  </button>
+  
+  <button id="insertDataBtn" class="export-btn-overlay" title="Inserir no Banco" style="bottom: 20px; right: 90px;">
+    <i class="fas fa-database"></i>
   </button>
 
   <script>
@@ -662,10 +694,42 @@ ORDER BY 1,5,3 DESC
     }
     autoFormatDateInput(globalDtVigor);
     document.querySelectorAll('.row-dtvigor').forEach(autoFormatDateInput);
+    
+    // Sticky header enhancement
+    const tableContainer = document.getElementById('table-container');
+    const tableHeader = document.querySelector('#dataTable thead');
+    
+    if (tableContainer && tableHeader) {
+      tableContainer.addEventListener('scroll', function() {
+        // Add shadow effect when scrolled
+        if (this.scrollTop > 0) {
+          tableHeader.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+        } else {
+          tableHeader.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+        }
+      });
+      
+      // Ensure header is properly positioned on page load
+      window.addEventListener('load', function() {
+        tableHeader.style.position = 'sticky';
+        tableHeader.style.top = '0';
+      });
+    }
   </script>
 
 <script>
-  document.getElementById('exportJsonBtn').addEventListener('click', function() {
+  // Função para converter data de dd/mm/aaaa para aaaa-mm-dd
+  function convertDateToOracle(dateStr) {
+    if (!dateStr || dateStr.trim() === '') return null;
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+    }
+    return null;
+  }
+
+  // Função para coletar dados da tabela
+  function collectTableData() {
     const table = document.getElementById('dataTable');
     const rows = table.querySelectorAll('tbody tr');
     const data = [];
@@ -685,6 +749,13 @@ ORDER BY 1,5,3 DESC
       }
     });
     
+    return data;
+  }
+
+  // Event listener para exportar JSON
+  document.getElementById('exportJsonBtn').addEventListener('click', function() {
+    const data = collectTableData();
+    
     if (data.length === 0) {
       alert('Nenhum dado para exportar. Por favor, preencha pelo menos um dos campos de Novo Preço ou Data Vigor.');
       return;
@@ -701,6 +772,103 @@ ORDER BY 1,5,3 DESC
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  });
+
+  // Event listener para inserir no banco usando SankhyaJX
+  document.getElementById('insertDataBtn').addEventListener('click', function() {
+    const data = collectTableData();
+    
+    if (data.length === 0) {
+      alert('Nenhum dado para inserir. Por favor, preencha pelo menos um dos campos de Novo Preço ou Data Vigor.');
+      return;
+    }
+
+    // Confirmação antes de inserir
+    if (!confirm(`Deseja inserir ${data.length} registro(s) na tabela teste_preco?`)) {
+      return;
+    }
+
+    // Desabilita o botão durante a operação
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.disabled = true;
+
+    try {
+      // Usando SankhyaJX para inserir os dados
+      const insertPromises = data.map(rowData => {
+        const oracleDate = convertDateToOracle(rowData.dataVigor);
+        
+        return new Promise((resolve, reject) => {
+          // Verifica se o produto não é nulo (linhas de resumo)
+          if (!rowData.codigoProduto || rowData.codigoProduto === '') {
+            resolve({ success: false, message: 'Produto não informado' });
+            return;
+          }
+
+          const insertSQL = `
+            INSERT INTO teste_preco (codtab, codprod, novo_preco, dtvigor) 
+            VALUES (?, ?, ?, ?)
+          `;
+          
+          const params = [
+            parseInt(rowData.codigoTabela),
+            parseInt(rowData.codigoProduto),
+            parseFloat(rowData.novoPreco) || null,
+            oracleDate
+          ];
+
+          // Executa a inserção usando SankhyaJX
+          JX.executeSQL(insertSQL, params, {
+            success: function(result) {
+              resolve({ 
+                success: true, 
+                message: `Inserido: Tab ${rowData.codigoTabela}, Prod ${rowData.codigoProduto}` 
+              });
+            },
+            error: function(error) {
+              reject({ 
+                success: false, 
+                message: `Erro ao inserir Tab ${rowData.codigoTabela}, Prod ${rowData.codigoProduto}: ${error.message || error}` 
+              });
+            }
+          });
+        });
+      });
+
+      // Aguarda todas as inserções
+      Promise.allSettled(insertPromises).then(results => {
+        const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+        const failed = results.length - successful;
+        
+        let message = `Operação concluída!\n`;
+        message += `Inserções bem-sucedidas: ${successful}\n`;
+        message += `Falhas: ${failed}`;
+        
+        if (failed > 0) {
+          message += '\n\nDetalhes dos erros:\n';
+          results.forEach((result, index) => {
+            if (result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success)) {
+              const errorMsg = result.status === 'rejected' ? result.reason.message : result.value.message;
+              message += `- ${errorMsg}\n`;
+            }
+          });
+        }
+        
+        alert(message);
+      }).catch(error => {
+        alert('Erro durante a operação: ' + error.message);
+      }).finally(() => {
+        // Restaura o botão
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      });
+
+    } catch (error) {
+      alert('Erro ao preparar dados: ' + error.message);
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
   });
 </script>
 

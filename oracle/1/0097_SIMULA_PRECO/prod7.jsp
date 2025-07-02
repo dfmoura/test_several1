@@ -14,7 +14,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-  <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js"></script> 
+  <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js"></script>
   <style>
     html, body {
       font-size: 12.6px; 
@@ -774,102 +775,34 @@ ORDER BY 1,5,3 DESC
     URL.revokeObjectURL(url);
   });
 
-  // Event listener para inserir no banco usando SankhyaJX
-  document.getElementById('insertDataBtn').addEventListener('click', function() {
-    const data = collectTableData();
-    
-    if (data.length === 0) {
-      alert('Nenhum dado para inserir. Por favor, preencha pelo menos um dos campos de Novo Preço ou Data Vigor.');
-      return;
+document.getElementById('insertDataBtn').addEventListener('click', async function () {
+  const rawData = collectTableData();
+
+  // Transformar os dados para o formato esperado pela API
+  const registros = rawData.map(item => ({
+    CODTAB: item.codigoTabela,
+    CODPROD: item.codigoProduto,
+    NOVO_PRECO: item.novoPreco,
+    DTVIGOR: convertDateToOracle(item.dataVigor)
+  }));
+
+  if (registros.length === 0) {
+    alert('Nenhum dado válido para inserir. Preencha pelo menos um campo.');
+    return;
+  }
+
+  try {
+    for (const registro of registros) {
+      await JX.salvar(registro, 'TESTE_PRECO');
     }
+    alert(`Dados inseridos com sucesso! Total de registros: ${registros.length}`);
+  } catch (err) {
+    console.error('Erro ao inserir dados:', err);
+    alert('Erro ao inserir dados. Veja o console para detalhes.');
+  }
+});
 
-    // Confirmação antes de inserir
-    if (!confirm(`Deseja inserir ${data.length} registro(s) na tabela teste_preco?`)) {
-      return;
-    }
 
-    // Desabilita o botão durante a operação
-    const btn = this;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    btn.disabled = true;
-
-    try {
-      // Usando SankhyaJX para inserir os dados
-      const insertPromises = data.map(rowData => {
-        const oracleDate = convertDateToOracle(rowData.dataVigor);
-        
-        return new Promise((resolve, reject) => {
-          // Verifica se o produto não é nulo (linhas de resumo)
-          if (!rowData.codigoProduto || rowData.codigoProduto === '') {
-            resolve({ success: false, message: 'Produto não informado' });
-            return;
-          }
-
-          const insertSQL = `
-            INSERT INTO teste_preco (codtab, codprod, novo_preco, dtvigor) 
-            VALUES (?, ?, ?, ?)
-          `;
-          
-          const params = [
-            parseInt(rowData.codigoTabela),
-            parseInt(rowData.codigoProduto),
-            parseFloat(rowData.novoPreco) || null,
-            oracleDate
-          ];
-
-          // Executa a inserção usando SankhyaJX
-          JX.executeSQL(insertSQL, params, {
-            success: function(result) {
-              resolve({ 
-                success: true, 
-                message: `Inserido: Tab ${rowData.codigoTabela}, Prod ${rowData.codigoProduto}` 
-              });
-            },
-            error: function(error) {
-              reject({ 
-                success: false, 
-                message: `Erro ao inserir Tab ${rowData.codigoTabela}, Prod ${rowData.codigoProduto}: ${error.message || error}` 
-              });
-            }
-          });
-        });
-      });
-
-      // Aguarda todas as inserções
-      Promise.allSettled(insertPromises).then(results => {
-        const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-        const failed = results.length - successful;
-        
-        let message = `Operação concluída!\n`;
-        message += `Inserções bem-sucedidas: ${successful}\n`;
-        message += `Falhas: ${failed}`;
-        
-        if (failed > 0) {
-          message += '\n\nDetalhes dos erros:\n';
-          results.forEach((result, index) => {
-            if (result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success)) {
-              const errorMsg = result.status === 'rejected' ? result.reason.message : result.value.message;
-              message += `- ${errorMsg}\n`;
-            }
-          });
-        }
-        
-        alert(message);
-      }).catch(error => {
-        alert('Erro durante a operação: ' + error.message);
-      }).finally(() => {
-        // Restaura o botão
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      });
-
-    } catch (error) {
-      alert('Erro ao preparar dados: ' + error.message);
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-    }
-  });
 </script>
 
 </body>
