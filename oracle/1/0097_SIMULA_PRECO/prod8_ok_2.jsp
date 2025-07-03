@@ -454,7 +454,7 @@ CODTAB,
 NOMETAB,
 MARCA,
 TICKET_MEDIO_OBJETIVO_MARCA
-)where rownum < 100
+)
 ORDER BY 1,5,3 DESC
   </snk:query>
 
@@ -775,81 +775,48 @@ ORDER BY 1,5,3 DESC
     URL.revokeObjectURL(url);
   });
 
-
-  document.getElementById('insertDataBtn').addEventListener('click', async function () {
+document.getElementById('insertDataBtn').addEventListener('click', async function () {
   const btn = this;
   btn.disabled = true;
-
   const rawData = collectTableData();
-  alert(`Total de registros coletados: ${rawData.length}` +
-        (rawData.length > 0 ? `\nKeys: ${Object.keys(rawData[0]).join(', ')}` : ''));
+
+  // Show total and keys of the first record (if any)
+  let msg = 'Total de registros coletados: ' + rawData.length;
+  if (rawData.length > 0) {
+    const keys = Object.keys(rawData[0]);
+    msg += '\nKeys: ' + keys.join(', ');
+  }
+  alert(msg);
 
   if (rawData.length === 0) {
     btn.disabled = false;
     return;
   }
 
-  try {
-    const lastRecord = await JX.consultar("SELECT MAX(ID) AS MAX_ID FROM AD_TESTEPRECO");
-    const lastId = lastRecord?.[0]?.MAX_ID;
-    let nextId = (lastId != null && !isNaN(lastId)) ? parseInt(lastId, 10) + 1 : 1;
+  //incremente code persist here
 
-    const insertData = rawData.map((item, idx) => ({
-      ID: nextId + idx,
-      CODTAB: item.codigoTabela?.toString() || null,
-      CODPROD: item.codigoProduto?.toString() || null,
-      NOVO_PRECO: item.novoPreco?.toString() || null,
-      DTVIGOR: item.dataVigor?.toString() || null
-    }));
 
-    console.log('Dados preparados para inserção:', insertData);
+  JX.salvar({
+  ID: 4,
+  CODTAB: '100',
+  CODPROD: '115841',
+  NOVO_PRECO: '112510',
+  DTVIGOR: '12/07/2025'
+}, 'AD_TESTEPRECO').then(console.log).catch(console.error);
 
-    let successCount = 0;
-    const errors = [];
 
-    for (let i = 0; i < insertData.length; i++) {
-      const record = insertData[i];
-      console.log(`Inserindo registro ${i + 1}/${insertData.length}`, record);
-      try {
-        const resp = await JX.salvar('AD_TESTEPRECO', [record]);
-        if (resp?.success) {
-          successCount++;
-          console.log(`Registro ${i + 1} inserido com sucesso.`);
-        } else {
-          errors.push({ index: i, record, resp });
-          console.error(`Falha no registro ${i + 1}:`, resp);
-        }
-      } catch (err) {
-        errors.push({ index: i, record, err });
-        console.error(`Erro no registro ${i + 1}:`, err);
-      }
-    }
+JX.salvar({
+  ID: 5,
+  CODTAB: '81',
+  CODPROD: '9415',
+  NOVO_PRECO: '13',
+  DTVIGOR: '10/08/2025'
+}, 'AD_TESTEPRECO').then(console.log).catch(console.error);
 
-    const total = insertData.length;
-    const errorCount = errors.length;
-    const success = (errorCount === 0);
 
-    if (success) {
-      alert(`✅ Inserção concluída: ${successCount}/${total} registros salvos.`);
-    } else {
-      console.warn(`⚠️ ${successCount}/${total} registros salvos, ${errorCount} falharam.`);
-      console.table(errors.map(e => ({
-        row: e.index + 1,
-        record: e.record,
-        error: e.resp?.message || e.err?.message || JSON.stringify(e.resp || e.err)
-      })));
-      alert(`Inserção parcial concluída. ${successCount} sucesso(s), ${errorCount} erro(s). Veja console para detalhes.`);
-    }
-
-  } catch (err) {
-    console.error('Erro geral ao salvar dados:', err);
-    alert(`Erro ao acessar o banco ou processar dados: ${err.message || err}`);
-  } finally {
-    btn.disabled = false;
-  }
+  
+  btn.disabled = false;
 });
-
-
 
 
 </script>

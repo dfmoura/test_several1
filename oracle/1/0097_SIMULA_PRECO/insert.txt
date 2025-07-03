@@ -1,0 +1,29 @@
+curl --location 'https://api.sankhya.com.br/gateway/v1/mge/service.sbr?serviceName=DatasetSP.save&outputType=json' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer eyJub21lQXBsaWNhY2FvIjoiZjdhVXI2cCtnZkp1TTJmYW1nekVwZz09IiwiY29kUGFyYyI6IlF6Q0xHRDZpcFRQV0l3WlFmMG92anc9PSIsImpzZXNzaW9uSWQiOiJQVDlyVWxZNkpnUHFGRXI5T3lUaENsVlFoWHBWZkxPejhmd0xkVUcxOE9Ebk1zOFZ5c0dtdG5lMXpPSHVTTlZjIiwicGxhaW5Ob21lSW50ZWdyYWRvciI6IlRSSUdHRVIgREVTRU5WT0xWSU1FTlRPIFBST0ZJU1NJT05BTCBMVERBIiwiYW1iaWVudGUiOiJwcmQiLCJub21lSW50ZWdyYWRvciI6ImVUaEFtMVNHVmxWMFVZWkh4VDRFSnBpQ2I4TXl0K0c0TzdxV2NDK1BvbFVoazgrSUN5RXFkZGhDV1pzT1JUU2giLCJub21lQ2xpZW50ZSI6ImdwdWlXRmd6RnJYL3JIZG9Td0RuTWc9PSIsImFwcGxpY2F0aW9uSWQiOiJBcjgvZ0xyZkN2bWxnZ3ZBNTI0RFBFbXByR0hZL1lPR1lRYWJEWFU4ZnZhMFNtK1JOb1hYTFJzdFFzdlVhL2tNIiwidXJsIjoiclpvVWQ3dFc5b2lXb1ltV01MNXN5cGE3VXpPclBESHE2eWFJMmoza3NHSTQ0VGViZlRCK2dPSjRvVlR4Ui9ZSyIsIm9yaWdlbUFwbGljYWNhbyI6Imx5cUNkNnlhUlQwZWxiTFF6bWxFeXc9PSIsInBsYWluTm9tZUFwbGljYWNhbyI6IlRFU1RFX0RBRE9TIiwiYWxnIjoiUlM1MTIifQ.eyJpYXQiOjE3NTE1MDQ4ODUsImV4cCI6MTc1MTU0ODA4NX0.HOYo8PuDE7KtQMPI7rd7xfMew9v1_qKLsp80kGnfRg_MUryGO2f0tur9vM_ehryaOjpAcwyqExxXw5kSqYm4IY11OAHNd4-i6zmSx7zRZHnKVdTz4T2kPXRGka6givhr--fyNZvObLxFtgT_z3WZHD9hpG-ji8k-UxjigJaxKR6HVh7gcjhNRIy7DAW_aLLc1-rIEjTrgIRNWEPXG1-IRZYooj1hQLPWVE98m3YFpdAh7684BIbR6elcEH9MZG_mE6zmfKcxj9IZu3_6rStxzccLSg3S6Bf_VNx3i1k6WpgmoSTH3aTuGvGbyk3uKH1aZVOmrYDauU7urRC_r7SV46OvSNNHbVPwZO8DZkQignpaIemWGsz2F9VDaxfa4YwDTDKtLq7tSw5qZKFH0L9Bk7d4y9F7vAdzd3oDsLHeodVCTAqGs2eXDrSPriwujeJZBLUqhd9b7cTR2vqRPNB_3jAwslCUXIUCJrVASpE8tvbuIb5kzzzPUynSfSN9XemiEUqi4x6NbURPBPiklgg6cP3QcwbG-gpYMusxV4V-0aKTlDbRaxvpUwEo8yQK1bZhln4XJPptf0dNqOg_FwunYeCfeIWF1umyIQnPWyWM8m3cHQGTbG3N1N7G6U39FID3LilhLqx0ZgqCmjf7Kech2eBtl_oN31bmSAAppVPMXKU' \
+--data '{
+  "serviceName": "DatasetSP.save",
+  "requestBody": {
+    "entityName": "AD_TESTEPRECO",
+    "standAlone": false,
+    "fields": [
+      "ID",
+      "CODTAB",
+      "CODPROD",
+      "NOVO_PRECO",
+      "DTVIGOR"
+    ],
+    "records": [
+      {
+        "values": {
+          "0": 2,
+          "1": "055",
+          "2": "B100",
+          "3": "1500.00",
+          "4": "10/07/2025"
+        }
+      }
+    ]
+  }
+}
+'

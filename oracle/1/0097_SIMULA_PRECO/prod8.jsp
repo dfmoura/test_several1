@@ -454,7 +454,7 @@ CODTAB,
 NOMETAB,
 MARCA,
 TICKET_MEDIO_OBJETIVO_MARCA
-)where rownum < 100
+)
 ORDER BY 1,5,3 DESC
   </snk:query>
 
@@ -775,80 +775,65 @@ ORDER BY 1,5,3 DESC
     URL.revokeObjectURL(url);
   });
 
+// Função para buscar o próximo ID disponível na tabela
+async function getNextId() {
+  const result = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_TESTEPRECO');
+  const maxId = result?.[0]?.MAXID || 0;
+  return parseInt(maxId, 10) + 1;
+}
 
-  document.getElementById('insertDataBtn').addEventListener('click', async function () {
+// Evento do botão de inserção
+document.getElementById('insertDataBtn').addEventListener('click', async function () {
   const btn = this;
   btn.disabled = true;
 
   const rawData = collectTableData();
-  alert(`Total de registros coletados: ${rawData.length}` +
-        (rawData.length > 0 ? `\nKeys: ${Object.keys(rawData[0]).join(', ')}` : ''));
+const data = rawData.filter(item =>
+  item.codigoProduto?.trim() !== '' &&
+  item.novoPreco?.trim() !== ''
+);
 
-  if (rawData.length === 0) {
-    btn.disabled = false;
-    return;
-  }
+
+
+
+ 
 
   try {
-    const lastRecord = await JX.consultar("SELECT MAX(ID) AS MAX_ID FROM AD_TESTEPRECO");
-    const lastId = lastRecord?.[0]?.MAX_ID;
-    let nextId = (lastId != null && !isNaN(lastId)) ? parseInt(lastId, 10) + 1 : 1;
+    for (const item of data) {
+      const nextId = await getNextId();
 
-    const insertData = rawData.map((item, idx) => ({
-      ID: nextId + idx,
-      CODTAB: item.codigoTabela?.toString() || null,
-      CODPROD: item.codigoProduto?.toString() || null,
-      NOVO_PRECO: item.novoPreco?.toString() || null,
-      DTVIGOR: item.dataVigor?.toString() || null
-    }));
+      const record = {
+        ID: nextId,
+        CODTAB: item.codigoTabela || '',
+        CODPROD: item.codigoProduto || '',
+        NOVO_PRECO: item.novoPreco || '',
+        DTVIGOR: item.dataVigor || ''
+      };
 
-    console.log('Dados preparados para inserção:', insertData);
-
-    let successCount = 0;
-    const errors = [];
-
-    for (let i = 0; i < insertData.length; i++) {
-      const record = insertData[i];
-      console.log(`Inserindo registro ${i + 1}/${insertData.length}`, record);
-      try {
-        const resp = await JX.salvar('AD_TESTEPRECO', [record]);
-        if (resp?.success) {
-          successCount++;
-          console.log(`Registro ${i + 1} inserido com sucesso.`);
-        } else {
-          errors.push({ index: i, record, resp });
-          console.error(`Falha no registro ${i + 1}:`, resp);
-        }
-      } catch (err) {
-        errors.push({ index: i, record, err });
-        console.error(`Erro no registro ${i + 1}:`, err);
-      }
+      await JX.salvar(record, 'AD_TESTEPRECO');
+      console.log(`Registro ${nextId} salvo com sucesso.`);
     }
 
-    const total = insertData.length;
-    const errorCount = errors.length;
-    const success = (errorCount === 0);
 
-    if (success) {
-      alert(`✅ Inserção concluída: ${successCount}/${total} registros salvos.`);
-    } else {
-      console.warn(`⚠️ ${successCount}/${total} registros salvos, ${errorCount} falharam.`);
-      console.table(errors.map(e => ({
-        row: e.index + 1,
-        record: e.record,
-        error: e.resp?.message || e.err?.message || JSON.stringify(e.resp || e.err)
-      })));
-      alert(`Inserção parcial concluída. ${successCount} sucesso(s), ${errorCount} erro(s). Veja console para detalhes.`);
-    }
+    //chamar a procedure aki
+    //chamar a procedure aki
+    await JX.acionarBotao({
+      tipo         : 'SQL',
+      idBotao      : 251,
+      entidade     : 'AD_TESTEPRECO',
+      nomeProcedure: 'STP_ORGANIZA_TABPRECO'
+    });
 
-  } catch (err) {
-    console.error('Erro geral ao salvar dados:', err);
-    alert(`Erro ao acessar o banco ou processar dados: ${err.message || err}`);
+
+
+    alert('Todos os registros foram salvos com sucesso!');
+  } catch (error) {
+    console.error('Erro ao salvar dados:', error);
+    alert('Erro ao salvar dados. Veja o console para detalhes.');
   } finally {
     btn.disabled = false;
   }
 });
-
 
 
 
