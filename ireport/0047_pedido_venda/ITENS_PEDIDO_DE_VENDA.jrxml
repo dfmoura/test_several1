@@ -12,8 +12,10 @@
 	<style name="style1" forecolor="#FFFFFF" backcolor="#C0C0C0" fill="Solid"/>
 	<parameter name="PK_NUNOTA" class="java.math.BigDecimal" isForPrompting="false"/>
 	<queryString>
-		<![CDATA[SELECT
+		<![CDATA[SELECT * FROM (
+SELECT
 ITE.NUNOTA AS PEDIDO,
+CAB.AD_REFFORCA AS REF_A2W,
 ITE.SEQUENCIA,
 ITE.CODPROD,
 PRO.DESCRPROD AS DESCRPROD,
@@ -24,9 +26,9 @@ ITE.USOPROD,
 ITE.OBSERVACAO,
 CAB.PESOBRUTO AS PESOBRUTOCAB,
 (CASE
-    WHEN VOA.CODPROD IS NULL THEN ITE.QTDNEG
-    WHEN VOA.DIVIDEMULTIPLICA = 'D' THEN ITE.QTDNEG * VOA.QUANTIDADE
-    ELSE ITE.QTDNEG / VOA.QUANTIDADE
+    WHEN VOA.CODPROD IS NULL THEN (ITE.QTDNEG-ITE.QTDCONFERIDA)
+    WHEN VOA.DIVIDEMULTIPLICA = 'D' THEN (ITE.QTDNEG-ITE.QTDCONFERIDA) * VOA.QUANTIDADE
+    ELSE (ITE.QTDNEG-ITE.QTDCONFERIDA) / NULLIF(VOA.QUANTIDADE,0)
 END) AS QTDNEG,
 (CASE
     WHEN VOA.CODPROD IS NULL THEN ITE.VLRUNIT
@@ -35,11 +37,11 @@ END) AS QTDNEG,
 END + CASE WHEN ITE.VLRDESC < 0 THEN ITE.VLRDESC / ITE.QTDNEG * -1 ELSE 0 END) AS VLRUNIT,
 ITE.CODVOL,
 CASE WHEN ITE.VLRDESC >= 0 THEN ITE.VLRDESC ELSE 0 END AS VLRDESC,
-ITE.QTDNEG * (ITE.VLRUNIT + CASE WHEN ITE.VLRDESC < 0 THEN ITE.VLRDESC / ITE.QTDNEG * -1 ELSE 0 END) AS TOTALITEM,
+(ITE.QTDNEG-ITE.QTDCONFERIDA) * (ITE.VLRUNIT + CASE WHEN ITE.VLRDESC < 0 THEN ITE.VLRDESC / NULLIF((ITE.QTDNEG-ITE.QTDCONFERIDA),0) * -1 ELSE 0 END) AS TOTALITEM,
 ITE.VLRTOT - ITE.VLRDESC - ITE.VLRREPRED AS TOTLIQ,
 ITE.VLRICMS,
-PRO.PESOLIQ * ITE.QTDNEG AS PESOLIQ,
-PRO.PESOBRUTO,
+PRO.PESOLIQ * (ITE.QTDNEG-ITE.QTDCONFERIDA) AS PESOLIQ,
+PRO.PESOBRUTO * (ITE.QTDNEG-ITE.QTDCONFERIDA) AS PESOBRUTO,
 (SELECT QTDVOL FROM TGFCAB WHERE NUNOTA = ITE.NUNOTA) AS VOLUME
 FROM TGFITE ITE
 INNER JOIN TGFPRO PRO ON(ITE.CODPROD = PRO.CODPROD)
@@ -54,9 +56,13 @@ WHERE
 ITE.NUNOTA = $P{PK_NUNOTA}
 AND
 ITE.SEQUENCIA > 0
-ORDER BY ITE.SEQUENCIA]]>
+)WHERE QTDNEG > 0
+ORDER BY SEQUENCIA]]>
 	</queryString>
 	<field name="PEDIDO" class="java.math.BigDecimal"/>
+	<field name="REF_A2W" class="java.lang.String">
+		<fieldDescription><![CDATA[Ref. A2W]]></fieldDescription>
+	</field>
 	<field name="SEQUENCIA" class="java.math.BigDecimal"/>
 	<field name="CODPROD" class="java.math.BigDecimal"/>
 	<field name="DESCRPROD" class="java.lang.String"/>
@@ -74,7 +80,7 @@ ORDER BY ITE.SEQUENCIA]]>
 	<field name="TOTLIQ" class="java.math.BigDecimal"/>
 	<field name="VLRICMS" class="java.lang.Double"/>
 	<field name="PESOLIQ" class="java.math.BigDecimal"/>
-	<field name="PESOBRUTO" class="java.lang.Double"/>
+	<field name="PESOBRUTO" class="java.math.BigDecimal"/>
 	<field name="VOLUME" class="java.math.BigDecimal"/>
 	<variable name="TOTAL_SERVICO" class="java.math.BigDecimal" calculation="Sum">
 		<variableExpression><![CDATA[($F{USOPROD}.toString().equalsIgnoreCase("S")?$F{TOTALITEM}:new BigDecimal(0))]]></variableExpression>
@@ -103,6 +109,9 @@ ORDER BY ITE.SEQUENCIA]]>
 	<variable name="TOT_PESOLIQ" class="java.math.BigDecimal" calculation="Sum">
 		<variableExpression><![CDATA[$F{PESOLIQ}]]></variableExpression>
 	</variable>
+	<variable name="TOT_PESOBRUTO" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{PESOBRUTO}]]></variableExpression>
+	</variable>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
@@ -116,7 +125,7 @@ ORDER BY ITE.SEQUENCIA]]>
 				<textElement verticalAlignment="Middle" markup="none">
 					<font fontName="Calibri" size="11" isBold="true" pdfFontName="Helvetica-Bold"/>
 				</textElement>
-				<textFieldExpression class="java.lang.String"><![CDATA["Produtos - Pedido Nº "+$F{PEDIDO}]]></textFieldExpression>
+				<textFieldExpression class="java.lang.String"><![CDATA["Produtos - Pedido Nº "+$F{PEDIDO}+" | Ref.: "+$F{REF_A2W}]]></textFieldExpression>
 			</textField>
 			<staticText>
 				<reportElement key="staticText-1" x="100" y="17" width="38" height="15" forecolor="#000000"/>
@@ -490,7 +499,7 @@ ORDER BY ITE.SEQUENCIA]]>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Calibri" size="7"/>
 				</textElement>
-				<textFieldExpression class="java.lang.Double"><![CDATA[$F{PESOBRUTOCAB}]]></textFieldExpression>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TOT_PESOBRUTO}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00" isBlankWhenNull="true">
 				<reportElement x="174" y="15" width="60" height="15"/>
@@ -500,7 +509,7 @@ ORDER BY ITE.SEQUENCIA]]>
 				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TOT_PESOLIQ}]]></textFieldExpression>
 			</textField>
 			<textField pattern="#,##0.00" isBlankWhenNull="true">
-				<reportElement x="291" y="15" width="60" height="15"/>
+				<reportElement x="291" y="15" width="58" height="15"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Calibri" size="7"/>
 				</textElement>
