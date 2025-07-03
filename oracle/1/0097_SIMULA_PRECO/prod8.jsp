@@ -941,6 +941,11 @@ async function getNextId() {
   return parseInt(maxId, 10) + 1;
 }
 
+async function getNextId2() {
+  const result = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_TESTEPRECOLIMP');
+  const maxId = result?.[0]?.MAXID || 0;
+  return parseInt(maxId, 10) + 1;
+}
 
 
 // Função para salvar os dados
@@ -969,6 +974,28 @@ async function salvarDadosTabela(data) {
     const progress = 30 + Math.round(progressPercent);
     updateLoadingProgress(progress, `Salvando registro ...`);
     console.log(`Progresso: ${progress}% (${progressPercent.toFixed(2)}%) - Registro ${i + 1} de ${totalRecords}`);
+  }
+}
+
+// Função para inserir na tabela AD_TESTEPRECOLIMP
+async function inserirTestePrecoLimp() {
+  console.log('Iniciando inserção na tabela AD_TESTEPRECOLIMP...');
+  
+  try {
+    const nextId = await getNextId2();
+    
+    const record = {
+      ID: nextId,
+      FLAG: 'S'
+    };
+
+    await JX.salvar(record, 'AD_TESTEPRECOLIMP');
+    console.log(`Registro ${nextId} inserido com sucesso na tabela AD_TESTEPRECOLIMP.`);
+    
+    return true;
+  } catch (error) {
+    console.error('Erro ao inserir na tabela AD_TESTEPRECOLIMP:', error);
+    throw error;
   }
 }
 
@@ -1016,6 +1043,11 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
       
       
     }
+    
+    updateLoadingProgress(85, 'Inserindo flag de controle...');
+    
+    // Inserir na tabela AD_TESTEPRECOLIMP
+    await inserirTestePrecoLimp();
     
     updateLoadingProgress(100, 'Processo concluído com sucesso!');
     
