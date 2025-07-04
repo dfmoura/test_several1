@@ -250,25 +250,6 @@
       border-radius: 8px;
     }
 
-    /* Cores de fundo para grupos de tabela/marca */
-    tr.bg-codtab-marca-0 {
-      background-color: #ffffff; /* Branco para o primeiro grupo */
-    }
-    
-    tr.bg-codtab-marca-1 {
-      background-color: #f0fdf4; /* Verde muito claro para o segundo grupo */
-    }
-    
-    /* Destaque ao passar o mouse */
-    tr:hover {
-      background-color: #dcfce7 !important;
-      transition: background-color 0.2s ease;
-    }
-    
-    /* Borda de separação entre grupos distintos */
-    tr.group-separator {
-      border-top: 2px solid #bbf7d0;
-    }    
   </style>
   <snk:load/>
 </head>
@@ -625,74 +606,61 @@ ORDER BY 1,5,3 DESC
           <th class="col-dt-vigor">Dt. Vigor</th>
         </tr>
       </thead>
-        <tbody>
-          <c:set var="previousCodtabMarca" value=""/>
-          <c:set var="groupCounter" value="0"/>
-          
-          <c:forEach var="row" items="${base.rows}" varStatus="loop">
-            <c:set var="currentCodtabMarca" value="${row.CODTAB}-${row.MARCA}"/>
-            
-            <c:if test="${currentCodtabMarca != previousCodtabMarca}">
-              <c:set var="groupCounter" value="${groupCounter + 1}"/>
-              <c:set var="previousCodtabMarca" value="${currentCodtabMarca}"/>
-            </c:if>
-            
-            <c:set var="groupClass" value="bg-codtab-marca-${groupCounter % 2}"/>
-            <c:set var="separatorClass" value="${currentCodtabMarca != previousCodtabMarca && !loop.first ? 'group-separator' : ''}"/>
-            
-            <tr class="border-b border-green-100 ${groupClass} ${separatorClass}">
-              <td class="col-codtab" title="${row.CODTAB}">${row.CODTAB}</td>
-              <td class="col-tabela" title="${row.NOMETAB}">${row.NOMETAB}</td>
-              <td class="col-codprod" title="${row.CODPROD}">${row.CODPROD}</td>
-              <td class="col-produto" title="${row.DESCRPROD}">${row.DESCRPROD}</td>
-              <td class="col-marca" title="${row.MARCA}">${row.MARCA}</td>
-              <td class="col-vol">${row.AD_QTDVOLLT}</td>
-              <td class="col-pond">${row.POND_MARCA}</td>
-              <td class="col-custo">
-                <fmt:formatNumber value="${row.CUSTO_SATIS}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-preco">
-                <fmt:formatNumber value="${row.PRECO_TAB}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-margem">
-                <fmt:formatNumber value="${row.MARGEM}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-preco15">
-                <fmt:formatNumber value="${row.PRECO_TAB_MENOS15}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-margem15">
-                <fmt:formatNumber value="${row.MARGEM_MENOS15}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-preco35">
-                <fmt:formatNumber value="${row.PRECO_TAB_MENOS65}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-margem35">
-                <fmt:formatNumber value="${row.MARGEM_MENOS65}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-ticket-obj">
-                <fmt:formatNumber value="${row.TICKET_MEDIO_OBJETIVO}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-ticket-12m">
-                <fmt:formatNumber value="${row.TICKET_MEDIO_ULT_12_M}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-ticket-safra">
-                <fmt:formatNumber value="${row.TICKET_MEDIO_SAFRA}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-custo-atu">
-                <fmt:formatNumber value="${row.CUSTO_SATIS_ATU}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-nova-margem">
-                <input type="number" step="0.01" class="row-margin border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
-              </td>
-              <td class="col-novo-preco">
-                <input type="number" step="0.01" class="row-price border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
-              </td>
-              <td class="col-dt-vigor">
-                <input type="text" class="row-dtvigor border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" placeholder="dd/mm/aaaa" maxlength="10" />
-              </td>
-            </tr>
-          </c:forEach>
-        </tbody>
+      <tbody>
+        <c:forEach var="row" items="${base.rows}">
+          <tr class="border-b border-green-100 hover:bg-green-50 transition">
+            <td class="col-codtab" title="${row.CODTAB}">${row.CODTAB}</td>
+            <td class="col-tabela" title="${row.NOMETAB}">${row.NOMETAB}</td>
+            <td class="col-codprod" title="${row.CODPROD}">${row.CODPROD}</td>
+            <td class="col-produto" title="${row.DESCRPROD}">${row.DESCRPROD}</td>
+            <td class="col-marca" title="${row.MARCA}">${row.MARCA}</td>
+            <td class="col-vol">${row.AD_QTDVOLLT}</td>
+            <td class="col-pond">${row.POND_MARCA}</td>
+            <td class="col-custo">
+              <fmt:formatNumber value="${row.CUSTO_SATIS}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-preco">
+              <fmt:formatNumber value="${row.PRECO_TAB}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-margem">
+              <fmt:formatNumber value="${row.MARGEM}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-preco15">
+              <fmt:formatNumber value="${row.PRECO_TAB_MENOS15}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-margem15">
+              <fmt:formatNumber value="${row.MARGEM_MENOS15}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-preco35">
+              <fmt:formatNumber value="${row.PRECO_TAB_MENOS65}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-margem35">
+              <fmt:formatNumber value="${row.MARGEM_MENOS65}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-ticket-obj">
+              <fmt:formatNumber value="${row.TICKET_MEDIO_OBJETIVO}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-ticket-12m">
+              <fmt:formatNumber value="${row.TICKET_MEDIO_ULT_12_M}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-ticket-safra">
+              <fmt:formatNumber value="${row.TICKET_MEDIO_SAFRA}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-custo-atu">
+              <fmt:formatNumber value="${row.CUSTO_SATIS_ATU}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-nova-margem">
+              <input type="number" step="0.01" class="row-margin border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
+            </td>
+            <td class="col-novo-preco">
+              <input type="number" step="0.01" class="row-price border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
+            </td>
+            <td class="col-dt-vigor">
+              <input type="text" class="row-dtvigor border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" placeholder="dd/mm/aaaa" maxlength="10" />
+            </td>
+          </tr>
+        </c:forEach>
+      </tbody>
     </table>
   </div>
 
@@ -1000,7 +968,7 @@ async function salvarDadosTabela(data) {
     const progressPercent = ((i + 1) / totalRecords) * 40;
     const progress = 30 + Math.round(progressPercent);
     updateLoadingProgress(progress, `Salvando registro ...`);
-    
+    console.log(`Progresso: ${progress}% (${progressPercent.toFixed(2)}%) - Registro ${i + 1} de ${totalRecords}`);
   }
 }
 

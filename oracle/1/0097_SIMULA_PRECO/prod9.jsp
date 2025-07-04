@@ -182,93 +182,7 @@
       pointer-events: none;
     }
 
-    /* Loading overlay styles */
-    .loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
 
-    .loading-content {
-      background-color: white;
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      text-align: center;
-      max-width: 400px;
-      width: 90%;
-    }
-
-    .loading-spinner {
-      border: 4px solid #e5e7eb;
-      border-top: 4px solid #10b981;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 1rem;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .loading-title {
-      color: #065f46;
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .loading-message {
-      color: #047857;
-      font-size: 0.875rem;
-      margin-bottom: 1rem;
-    }
-
-    .loading-progress {
-      background-color: #d1fae5;
-      border-radius: 8px;
-      height: 8px;
-      overflow: hidden;
-      margin-bottom: 1rem;
-    }
-
-    .loading-progress-bar {
-      background-color: #10b981;
-      height: 100%;
-      width: 0%;
-      transition: width 0.3s ease;
-      border-radius: 8px;
-    }
-
-    /* Cores de fundo para grupos de tabela/marca */
-    tr.bg-codtab-marca-0 {
-      background-color: #ffffff; /* Branco para o primeiro grupo */
-    }
-    
-    tr.bg-codtab-marca-1 {
-      background-color: #f0fdf4; /* Verde muito claro para o segundo grupo */
-    }
-    
-    /* Destaque ao passar o mouse */
-    tr:hover {
-      background-color: #dcfce7 !important;
-      transition: background-color 0.2s ease;
-    }
-    
-    /* Borda de separação entre grupos distintos */
-    tr.group-separator {
-      border-top: 2px solid #bbf7d0;
-    }    
   </style>
   <snk:load/>
 </head>
@@ -625,74 +539,61 @@ ORDER BY 1,5,3 DESC
           <th class="col-dt-vigor">Dt. Vigor</th>
         </tr>
       </thead>
-        <tbody>
-          <c:set var="previousCodtabMarca" value=""/>
-          <c:set var="groupCounter" value="0"/>
-          
-          <c:forEach var="row" items="${base.rows}" varStatus="loop">
-            <c:set var="currentCodtabMarca" value="${row.CODTAB}-${row.MARCA}"/>
-            
-            <c:if test="${currentCodtabMarca != previousCodtabMarca}">
-              <c:set var="groupCounter" value="${groupCounter + 1}"/>
-              <c:set var="previousCodtabMarca" value="${currentCodtabMarca}"/>
-            </c:if>
-            
-            <c:set var="groupClass" value="bg-codtab-marca-${groupCounter % 2}"/>
-            <c:set var="separatorClass" value="${currentCodtabMarca != previousCodtabMarca && !loop.first ? 'group-separator' : ''}"/>
-            
-            <tr class="border-b border-green-100 ${groupClass} ${separatorClass}">
-              <td class="col-codtab" title="${row.CODTAB}">${row.CODTAB}</td>
-              <td class="col-tabela" title="${row.NOMETAB}">${row.NOMETAB}</td>
-              <td class="col-codprod" title="${row.CODPROD}">${row.CODPROD}</td>
-              <td class="col-produto" title="${row.DESCRPROD}">${row.DESCRPROD}</td>
-              <td class="col-marca" title="${row.MARCA}">${row.MARCA}</td>
-              <td class="col-vol">${row.AD_QTDVOLLT}</td>
-              <td class="col-pond">${row.POND_MARCA}</td>
-              <td class="col-custo">
-                <fmt:formatNumber value="${row.CUSTO_SATIS}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-preco">
-                <fmt:formatNumber value="${row.PRECO_TAB}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-margem">
-                <fmt:formatNumber value="${row.MARGEM}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-preco15">
-                <fmt:formatNumber value="${row.PRECO_TAB_MENOS15}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-margem15">
-                <fmt:formatNumber value="${row.MARGEM_MENOS15}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-preco35">
-                <fmt:formatNumber value="${row.PRECO_TAB_MENOS65}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-margem35">
-                <fmt:formatNumber value="${row.MARGEM_MENOS65}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-ticket-obj">
-                <fmt:formatNumber value="${row.TICKET_MEDIO_OBJETIVO}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-ticket-12m">
-                <fmt:formatNumber value="${row.TICKET_MEDIO_ULT_12_M}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-ticket-safra">
-                <fmt:formatNumber value="${row.TICKET_MEDIO_SAFRA}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-custo-atu">
-                <fmt:formatNumber value="${row.CUSTO_SATIS_ATU}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
-              </td>
-              <td class="col-nova-margem">
-                <input type="number" step="0.01" class="row-margin border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
-              </td>
-              <td class="col-novo-preco">
-                <input type="number" step="0.01" class="row-price border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
-              </td>
-              <td class="col-dt-vigor">
-                <input type="text" class="row-dtvigor border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" placeholder="dd/mm/aaaa" maxlength="10" />
-              </td>
-            </tr>
-          </c:forEach>
-        </tbody>
+      <tbody>
+        <c:forEach var="row" items="${base.rows}">
+          <tr class="border-b border-green-100 hover:bg-green-50 transition">
+            <td class="col-codtab" title="${row.CODTAB}">${row.CODTAB}</td>
+            <td class="col-tabela" title="${row.NOMETAB}">${row.NOMETAB}</td>
+            <td class="col-codprod" title="${row.CODPROD}">${row.CODPROD}</td>
+            <td class="col-produto" title="${row.DESCRPROD}">${row.DESCRPROD}</td>
+            <td class="col-marca" title="${row.MARCA}">${row.MARCA}</td>
+            <td class="col-vol">${row.AD_QTDVOLLT}</td>
+            <td class="col-pond">${row.POND_MARCA}</td>
+            <td class="col-custo">
+              <fmt:formatNumber value="${row.CUSTO_SATIS}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-preco">
+              <fmt:formatNumber value="${row.PRECO_TAB}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-margem">
+              <fmt:formatNumber value="${row.MARGEM}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-preco15">
+              <fmt:formatNumber value="${row.PRECO_TAB_MENOS15}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-margem15">
+              <fmt:formatNumber value="${row.MARGEM_MENOS15}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-preco35">
+              <fmt:formatNumber value="${row.PRECO_TAB_MENOS65}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-margem35">
+              <fmt:formatNumber value="${row.MARGEM_MENOS65}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-ticket-obj">
+              <fmt:formatNumber value="${row.TICKET_MEDIO_OBJETIVO}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-ticket-12m">
+              <fmt:formatNumber value="${row.TICKET_MEDIO_ULT_12_M}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-ticket-safra">
+              <fmt:formatNumber value="${row.TICKET_MEDIO_SAFRA}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-custo-atu">
+              <fmt:formatNumber value="${row.CUSTO_SATIS_ATU}" type="number" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/>
+            </td>
+            <td class="col-nova-margem">
+              <input type="number" step="0.01" class="row-margin border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
+            </td>
+            <td class="col-novo-preco">
+              <input type="number" step="0.01" class="row-price border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
+            </td>
+            <td class="col-dt-vigor">
+              <input type="text" class="row-dtvigor border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" placeholder="dd/mm/aaaa" maxlength="10" />
+            </td>
+          </tr>
+        </c:forEach>
+      </tbody>
     </table>
   </div>
 
@@ -704,49 +605,7 @@ ORDER BY 1,5,3 DESC
     <i class="fas fa-database"></i>
   </button>
 
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-content">
-      <div class="loading-spinner"></div>
-      <div class="loading-title">Processando...</div>
-      <div id="loadingMessage" class="loading-message">Salvando dados na tabela...</div>
-      <div class="loading-progress">
-        <div id="loadingProgressBar" class="loading-progress-bar"></div>
-      </div>
-    </div>
-  </div>
-
   <script>
-    // Loading overlay functions
-    function showLoading(message = 'Processando...') {
-      const overlay = document.getElementById('loadingOverlay');
-      const messageEl = document.getElementById('loadingMessage');
-      const progressBar = document.getElementById('loadingProgressBar');
-      
-      messageEl.textContent = message;
-      progressBar.style.width = '0%';
-      overlay.style.display = 'flex';
-    }
-
-    function updateLoadingProgress(percent, message) {
-      const messageEl = document.getElementById('loadingMessage');
-      const progressBar = document.getElementById('loadingProgressBar');
-      
-      console.log(`updateLoadingProgress chamado: ${percent}% - "${message}"`);
-      
-      if (message) {
-        messageEl.textContent = message;
-      }
-      progressBar.style.width = percent + '%';
-      
-      console.log(`Progress bar width definida para: ${percent}%`);
-    }
-
-    function hideLoading() {
-      const overlay = document.getElementById('loadingOverlay');
-      overlay.style.display = 'none';
-    }
-
     // Helper functions
     function calcMargin(newPrice, custo) {
       if (!newPrice || !custo) return '';
@@ -967,58 +826,28 @@ ORDER BY 1,5,3 DESC
   });
 
 // Função para buscar o próximo ID disponível na tabela
-async function getNextIdFromTable(tableName) {
-  const result = await JX.consultar(`SELECT MAX(ID) AS MAXID FROM ${tableName}`);
+async function getNextId() {
+  const result = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_TESTEPRECO');
+  const maxId = result?.[0]?.MAXID || 0;
+  return parseInt(maxId, 10) + 1;
+}
+
+async function getNextId2() {
+  const result = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_TESTEPRECOLIMP');
   const maxId = result?.[0]?.MAXID || 0;
   return parseInt(maxId, 10) + 1;
 }
 
 
-
-// Função para salvar os dados
-
-async function salvarDadosTabela(data) {
-  const totalRecords = data.length;
-  console.log(`Iniciando salvamento de ${totalRecords} registros...`);
-  
-  for (let i = 0; i < data.length; i++) {
-    const item = data[i];
-    const nextId = await getNextIdFromTable('AD_TESTEPRECO');
-
-    const record = {
-      ID: nextId,
-      CODTAB: item.codigoTabela || '',
-      CODPROD: item.codigoProduto || '',
-      NOVO_PRECO: item.novoPreco || '',
-      DTVIGOR: item.dataVigor || ''
-    };
-
-    await JX.salvar(record, 'AD_TESTEPRECO');
-    console.log(`Registro ${nextId} salvo com sucesso.`);
-    
-    // Update progress
-    const progressPercent = ((i + 1) / totalRecords) * 40;
-    const progress = 30 + Math.round(progressPercent);
-    updateLoadingProgress(progress, `Salvando registro ...`);
-    
-  }
-}
-
 // Função para inserir na tabela AD_TESTEPRECOLIMP
 async function inserirTestePrecoLimp() {
-  console.log('Iniciando inserção na tabela AD_TESTEPRECOLIMP...');
-  
   try {
-    const nextId = await getNextIdFromTable('AD_TESTEPRECOLIMP');
-    
+    const nextId = await getNextId2();   
     const record = {
       ID: nextId,
       FLAG: 'S'
     };
-
     await JX.salvar(record, 'AD_TESTEPRECOLIMP');
-    console.log(`Registro ${nextId} inserido com sucesso na tabela AD_TESTEPRECOLIMP.`);
-    
     return true;
   } catch (error) {
     console.error('Erro ao inserir na tabela AD_TESTEPRECOLIMP:', error);
@@ -1026,20 +855,31 @@ async function inserirTestePrecoLimp() {
   }
 }
 
+
+// Função para salvar os dados
+async function salvarDadosTabela(data) {
+  for (const item of data) {
+    const nextId = await getNextId();
+    const record = {
+      ID: nextId,
+      CODTAB: item.codigoTabela || '',
+      CODPROD: item.codigoProduto || '',
+      NOVO_PRECO: item.novoPreco || '',
+      DTVIGOR: item.dataVigor || ''
+    };
+    await JX.salvar(record, 'AD_TESTEPRECO');
+  }
+}
+
 // Reorganizando o evento do botão
 document.getElementById('insertDataBtn').addEventListener('click', async function () {
   const btn = this;
   btn.disabled = true;
-
-  console.log('Botão de inserção clicado...');
-
   const rawData = collectTableData();
   const data = rawData.filter(item =>
     item.codigoProduto?.trim() !== '' &&
     item.novoPreco?.trim() !== ''
   );
-
-  console.log('Dados filtrados para inserção:', data);
 
   if (data.length === 0) {
     alert('Nenhum dado válido para inserir.');
@@ -1048,46 +888,12 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
   }
 
   try {
-    // Show loading overlay
-    showLoading('Iniciando processo de salvamento...');
-    updateLoadingProgress(10, 'Validando dados...');
-    
-    console.log('Iniciando salvamento dos dados...');
-    updateLoadingProgress(30, 'Salvando dados na tabela...');
-    
     await salvarDadosTabela(data);
-    console.log('Dados salvos com sucesso. Iniciando organização da tabela...');
-    
-    updateLoadingProgress(70, 'Organizando tabela de preços...');
-    
-    
-    try {
-    
-    
-    } catch (error) {
-      
-      updateLoadingProgress(75, 'Tentando método alternativo...');
-      
-      
-    }
-    
-    updateLoadingProgress(85, 'Inserindo flag de controle...');
-    
-    // Inserir na tabela AD_TESTEPRECOLIMP
-    await inserirTestePrecoLimp();
-    
-    updateLoadingProgress(100, 'Processo concluído com sucesso!');
-    
-    // Small delay to show completion
-    setTimeout(() => {
-      hideLoading();
-      alert('Todos os registros foram salvos e a tabela foi organizada com sucesso!');
-    }, 500);
-    
+    await inserirTestePrecoLimp(); // chamada da função isolada
+    alert('Todos os registros foram salvos e a tabela foi organizada com sucesso!');
   } catch (error) {
     console.error('Erro ao salvar ou organizar dados:', error);
-    hideLoading();
-    alert('Erro ao salvar ou organizar dados: ' + error.message);
+    alert('Erro ao salvar ou organizar dados. Veja o console para detalhes.');
   } finally {
     btn.disabled = false;
   }
