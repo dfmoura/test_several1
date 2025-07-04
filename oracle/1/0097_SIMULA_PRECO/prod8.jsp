@@ -967,71 +967,23 @@ ORDER BY 1,5,3 DESC
   });
 
 // Função para buscar o próximo ID disponível na tabela
-async function getNextIdFromTable(tableName) {
-  const result = await JX.consultar(`SELECT MAX(ID) AS MAXID FROM ${tableName}`);
+async function getNextId() {
+  const result = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_TESTEPRECO');
   const maxId = result?.[0]?.MAXID || 0;
   return parseInt(maxId, 10) + 1;
 }
 
-
-
-// Função para salvar os dados
-
-async function salvarDadosTabela(data) {
-  const totalRecords = data.length;
-  console.log(`Iniciando salvamento de ${totalRecords} registros...`);
-  
-  for (let i = 0; i < data.length; i++) {
-    const item = data[i];
-    const nextId = await getNextIdFromTable('AD_TESTEPRECO');
-
-    const record = {
-      ID: nextId,
-      CODTAB: item.codigoTabela || '',
-      CODPROD: item.codigoProduto || '',
-      NOVO_PRECO: item.novoPreco || '',
-      DTVIGOR: item.dataVigor || ''
-    };
-
-    await JX.salvar(record, 'AD_TESTEPRECO');
-    console.log(`Registro ${nextId} salvo com sucesso.`);
-    
-    // Update progress
-    const progressPercent = ((i + 1) / totalRecords) * 40;
-    const progress = 30 + Math.round(progressPercent);
-    updateLoadingProgress(progress, `Salvando registro ...`);
-    
-  }
+async function getNextId2() {
+  const result1 = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_TESTEPRECOLIMP');
+  const maxId1 = result1?.[0]?.MAXID || 0;
+  return parseInt(maxId1, 10) + 1;
 }
 
-// Função para inserir na tabela AD_TESTEPRECOLIMP
-async function inserirTestePrecoLimp() {
-  console.log('Iniciando inserção na tabela AD_TESTEPRECOLIMP...');
-  
-  try {
-    const nextId = await getNextIdFromTable('AD_TESTEPRECOLIMP');
-    
-    const record = {
-      ID: nextId,
-      FLAG: 'S'
-    };
-
-    await JX.salvar(record, 'AD_TESTEPRECOLIMP');
-    console.log(`Registro ${nextId} inserido com sucesso na tabela AD_TESTEPRECOLIMP.`);
-    
-    return true;
-  } catch (error) {
-    console.error('Erro ao inserir na tabela AD_TESTEPRECOLIMP:', error);
-    throw error;
-  }
-}
 
 // Reorganizando o evento do botão
 document.getElementById('insertDataBtn').addEventListener('click', async function () {
   const btn = this;
   btn.disabled = true;
-
-  console.log('Botão de inserção clicado...');
 
   const rawData = collectTableData();
   const data = rawData.filter(item =>
@@ -1039,61 +991,47 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
     item.novoPreco?.trim() !== ''
   );
 
-  console.log('Dados filtrados para inserção:', data);
-
-  if (data.length === 0) {
-    alert('Nenhum dado válido para inserir.');
-    btn.disabled = false;
-    return;
-  }
-
   try {
-    // Show loading overlay
-    showLoading('Iniciando processo de salvamento...');
-    updateLoadingProgress(10, 'Validando dados...');
-    
-    console.log('Iniciando salvamento dos dados...');
-    updateLoadingProgress(30, 'Salvando dados na tabela...');
-    
-    await salvarDadosTabela(data);
-    console.log('Dados salvos com sucesso. Iniciando organização da tabela...');
-    
-    updateLoadingProgress(70, 'Organizando tabela de preços...');
-    
-    
-    try {
-    
-    
-    } catch (error) {
-      
-      updateLoadingProgress(75, 'Tentando método alternativo...');
-      
-      
+    for (const item of data) {
+      const nextId = await getNextId();
+
+      const record = {
+        ID: nextId,
+        CODTAB: item.codigoTabela || '',
+        CODPROD: item.codigoProduto || '',
+        NOVO_PRECO: item.novoPreco || '',
+        DTVIGOR: item.dataVigor || ''
+      };
+
+      await JX.salvar(record, 'AD_TESTEPRECO');
+      console.log(`Registro ${nextId} salvo com sucesso.`);
     }
-    
-    updateLoadingProgress(85, 'Inserindo flag de controle...');
-    
-    // Inserir na tabela AD_TESTEPRECOLIMP
-    await inserirTestePrecoLimp();
-    
-    updateLoadingProgress(100, 'Processo concluído com sucesso!');
-    
-    // Small delay to show completion
-    setTimeout(() => {
-      hideLoading();
-      alert('Todos os registros foram salvos e a tabela foi organizada com sucesso!');
-    }, 500);
-    
+
+    alert('Todos os registros foram salvos com sucesso!');
   } catch (error) {
-    console.error('Erro ao salvar ou organizar dados:', error);
-    hideLoading();
-    alert('Erro ao salvar ou organizar dados: ' + error.message);
+    console.error('Erro ao salvar dados:', error);
+    alert('Erro ao salvar dados. Veja o console para detalhes.');
   } finally {
     btn.disabled = false;
   }
+
+    // Insert into AD_TESTEPRECOLIMP table at the end
+    try {
+    const nextId2 = await getNextId2();
+    const limpezaRecord = {
+      ID: 1,
+      FLAG: 'S'
+    };
+
+    const resultado = await JX.salvar(limpezaRecord, 'AD_TESTEPRECOLIMP');
+    console.log('Resultado do salvar:', resultado);
+    console.log(`Registro de limpeza ${nextId2} salvo com sucesso.`);
+  } catch (error) {
+    console.error('Erro ao salvar registro de limpeza:', error);
+    alert('Erro ao salvar registro de limpeza. Veja o console para detalhes.');
+  }
+
 });
-
-
 </script>
 
 </body>

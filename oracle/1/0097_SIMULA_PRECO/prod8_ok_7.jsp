@@ -182,74 +182,6 @@
       pointer-events: none;
     }
 
-    /* Loading overlay styles */
-    .loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-
-    .loading-content {
-      background-color: white;
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      text-align: center;
-      max-width: 400px;
-      width: 90%;
-    }
-
-    .loading-spinner {
-      border: 4px solid #e5e7eb;
-      border-top: 4px solid #10b981;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 1rem;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .loading-title {
-      color: #065f46;
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .loading-message {
-      color: #047857;
-      font-size: 0.875rem;
-      margin-bottom: 1rem;
-    }
-
-    .loading-progress {
-      background-color: #d1fae5;
-      border-radius: 8px;
-      height: 8px;
-      overflow: hidden;
-      margin-bottom: 1rem;
-    }
-
-    .loading-progress-bar {
-      background-color: #10b981;
-      height: 100%;
-      width: 0%;
-      transition: width 0.3s ease;
-      border-radius: 8px;
-    }
-
   </style>
   <snk:load/>
 </head>
@@ -672,17 +604,6 @@ ORDER BY 1,5,3 DESC
     <i class="fas fa-database"></i>
   </button>
 
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-content">
-      <div class="loading-spinner"></div>
-      <div class="loading-title">Processando...</div>
-      <div id="loadingMessage" class="loading-message">Salvando dados na tabela...</div>
-      <div class="loading-progress">
-        <div id="loadingProgressBar" class="loading-progress-bar"></div>
-      </div>
-    </div>
-  </div>
 
   <script>
     // Loading overlay functions
@@ -934,6 +855,7 @@ ORDER BY 1,5,3 DESC
     URL.revokeObjectURL(url);
   });
 
+
 // Função para buscar o próximo ID disponível na tabela
 async function getNextIdFromTable(tableName) {
   const result = await JX.consultar(`SELECT MAX(ID) AS MAXID FROM ${tableName}`);
@@ -942,17 +864,12 @@ async function getNextIdFromTable(tableName) {
 }
 
 
-
 // Função para salvar os dados
-
 async function salvarDadosTabela(data) {
   const totalRecords = data.length;
-  console.log(`Iniciando salvamento de ${totalRecords} registros...`);
-  
   for (let i = 0; i < data.length; i++) {
     const item = data[i];
     const nextId = await getNextIdFromTable('AD_TESTEPRECO');
-
     const record = {
       ID: nextId,
       CODTAB: item.codigoTabela || '',
@@ -960,36 +877,24 @@ async function salvarDadosTabela(data) {
       NOVO_PRECO: item.novoPreco || '',
       DTVIGOR: item.dataVigor || ''
     };
-
-    await JX.salvar(record, 'AD_TESTEPRECO');
-    console.log(`Registro ${nextId} salvo com sucesso.`);
-    
+    await JX.salvar(record, 'AD_TESTEPRECO'); 
     // Update progress
     const progressPercent = ((i + 1) / totalRecords) * 40;
     const progress = 30 + Math.round(progressPercent);
-    updateLoadingProgress(progress, `Salvando registro ...`);
-    console.log(`Progresso: ${progress}% (${progressPercent.toFixed(2)}%) - Registro ${i + 1} de ${totalRecords}`);
   }
 }
 
 // Função para inserir na tabela AD_TESTEPRECOLIMP
 async function inserirTestePrecoLimp() {
-  console.log('Iniciando inserção na tabela AD_TESTEPRECOLIMP...');
-  
-  try {
-    const nextId = await getNextIdFromTable('AD_TESTEPRECOLIMP');
-    
+    try {
+    const nextId = await getNextIdFromTable('AD_TESTEPRECOLIMP'); 
     const record = {
       ID: nextId,
       FLAG: 'S'
     };
-
     await JX.salvar(record, 'AD_TESTEPRECOLIMP');
-    console.log(`Registro ${nextId} inserido com sucesso na tabela AD_TESTEPRECOLIMP.`);
-    
     return true;
   } catch (error) {
-    console.error('Erro ao inserir na tabela AD_TESTEPRECOLIMP:', error);
     throw error;
   }
 }
@@ -998,63 +903,19 @@ async function inserirTestePrecoLimp() {
 document.getElementById('insertDataBtn').addEventListener('click', async function () {
   const btn = this;
   btn.disabled = true;
-
-  console.log('Botão de inserção clicado...');
-
   const rawData = collectTableData();
   const data = rawData.filter(item =>
     item.codigoProduto?.trim() !== '' &&
     item.novoPreco?.trim() !== ''
   );
-
-  console.log('Dados filtrados para inserção:', data);
-
-  if (data.length === 0) {
-    alert('Nenhum dado válido para inserir.');
-    btn.disabled = false;
-    return;
-  }
-
   try {
-    // Show loading overlay
-    showLoading('Iniciando processo de salvamento...');
-    updateLoadingProgress(10, 'Validando dados...');
-    
-    console.log('Iniciando salvamento dos dados...');
-    updateLoadingProgress(30, 'Salvando dados na tabela...');
-    
     await salvarDadosTabela(data);
-    console.log('Dados salvos com sucesso. Iniciando organização da tabela...');
-    
-    updateLoadingProgress(70, 'Organizando tabela de preços...');
-    
-    
     try {
-    
-    
     } catch (error) {
-      
-      updateLoadingProgress(75, 'Tentando método alternativo...');
-      
-      
     }
-    
-    updateLoadingProgress(85, 'Inserindo flag de controle...');
-    
     // Inserir na tabela AD_TESTEPRECOLIMP
     await inserirTestePrecoLimp();
-    
-    updateLoadingProgress(100, 'Processo concluído com sucesso!');
-    
-    // Small delay to show completion
-    setTimeout(() => {
-      hideLoading();
-      alert('Todos os registros foram salvos e a tabela foi organizada com sucesso!');
-    }, 500);
-    
   } catch (error) {
-    console.error('Erro ao salvar ou organizar dados:', error);
-    hideLoading();
     alert('Erro ao salvar ou organizar dados: ' + error.message);
   } finally {
     btn.disabled = false;
@@ -1063,6 +924,5 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
 
 
 </script>
-
 </body>
 </html>
