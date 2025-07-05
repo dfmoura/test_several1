@@ -1,6 +1,6 @@
 curl --location --request POST 'https://api.sankhya.com.br/login' \
---header 'token: 5fd1f2b1-34fd-40ce-9b48-a44397df4c2d' \
---header 'appkey: 55156abb-d3da-4343-aedb-a3e031352f81' \
---header 'username: diogomou@gmail.com' \
---header 'password: Buc110t@20251' \
+--header 'token: colocar aki' \
+--header 'appkey: colocar aki' \
+--header 'username: colocar aki' \
+--header 'password: colocar aki' \
 --data ''

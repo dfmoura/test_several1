@@ -1075,27 +1075,13 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
   btn.disabled = true;
 
   const rawData = collectTableData();
-  
-  // Validate that both novoPreco and dataVigor are filled for each record
-  const invalidRecords = rawData.filter(item => 
-    item.codigoProduto?.trim() !== '' && 
-    (!item.novoPreco?.trim() || !item.dataVigor?.trim())
-  );
-  
-  if (invalidRecords.length > 0) {
-    showStatusOverlay('Validação', 'Todos os registros devem ter tanto o Novo Preço quanto a Data de Vigor preenchidos. Verifique os campos vazios.', 'error');
-    btn.disabled = false;
-    return;
-  }
-  
   const data = rawData.filter(item =>
     item.codigoProduto?.trim() !== '' &&
-    item.novoPreco?.trim() !== '' &&
-    item.dataVigor?.trim() !== ''
+    item.novoPreco?.trim() !== ''
   );
 
   if (data.length === 0) {
-    showStatusOverlay('Aviso', 'Nenhum dado válido encontrado para inserir. Por favor, preencha tanto o Novo Preço quanto a Data de Vigor para pelo menos um registro.', 'error');
+    showStatusOverlay('Aviso', 'Nenhum dado válido encontrado para inserir. Por favor, preencha pelo menos um campo de Novo Preço.', 'error');
     btn.disabled = false;
     return;
   }
