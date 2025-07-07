@@ -1,0 +1,35 @@
+CREATE OR REPLACE PROCEDURE "STP_ORGANIZA_TABPRECO" (
+    P_CODUSU     NUMBER,
+    P_IDSESSAO   VARCHAR2,
+    P_QTDLINHAS  NUMBER,
+    P_MENSAGEM   OUT VARCHAR2
+) AS
+    FIELD_ID NUMBER;
+BEGIN
+    FOR I IN 1..P_QTDLINHAS LOOP
+        FIELD_ID := ACT_INT_FIELD(P_IDSESSAO, I, 'ID');
+        -- lógica para FIELD_ID
+    END LOOP;
+
+/*BLOCO DE LIMPEZA*/
+    DELETE FROM AD_TESTEPRECO
+    WHERE ID NOT IN (
+        SELECT ID FROM (
+            SELECT ID,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY CODTAB, CODPROD, DTVIGOR
+                       ORDER BY ID DESC
+                   ) AS NUM_LINHA
+            FROM AD_TESTEPRECO
+        )
+        WHERE NUM_LINHA = 1
+    );
+/*FIM BLOCO DE LIMPEZA*/
+    
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Removido ROLLBACK
+        P_MENSAGEM := 'Erro: ' || SQLERRM;
+END;
+/
