@@ -345,6 +345,7 @@
   <snk:query var="base">
 
   SELECT 
+  NVL(NUTAB,0)NUTAB,
   CODTAB,
   NOMETAB,
   CODPROD,
@@ -529,6 +530,7 @@ WHERE RN = 1
 BAS AS (
 SELECT * FROM (
 SELECT DISTINCT
+TAB.NUTAB,
 NTA.CODTAB, 
 NTA.NOMETAB, 
 PRO.CODPROD, 
@@ -569,6 +571,7 @@ ORDER BY NTA.CODTAB, PRO.CODPROD
 )WHERE RN = 1)
 
 SELECT 
+NUTAB,
 CODTAB, 
 NOMETAB, 
 CODPROD, 
@@ -593,6 +596,7 @@ FROM BAS
 UNION ALL
 
 SELECT 
+NULL NUTAB,
 CODTAB,
 NOMETAB,
 NULL CODPROD,
@@ -665,11 +669,12 @@ ORDER BY 1,5,3 DESC
           <th></th>
           <th></th>
           <th></th>
-          <th colspan="2" style="background-color: #E49EDD; text-align: center;">Tabela</th>
+          <th></th>
+          <th colspan="2" style="background-color: #E49EDD; text-align: center;">Tab.</th>
           
-          <th colspan="2" style="background-color: #0000FF; text-align: center; color: white;">Tabela Consumidor -15%</th>
+          <th colspan="2" style="background-color: #0000FF; text-align: center; color: white;">Tab. Consum. (-15%)</th>
           
-          <th colspan="2" style="background-color: #00FF00; text-align: center;">Tabela Revenda -35%</th>
+          <th colspan="2" style="background-color: #00FF00; text-align: center;">Tab. Rev. -35%</th>
           <th></th>
           <th></th>
           <th></th>
@@ -679,6 +684,7 @@ ORDER BY 1,5,3 DESC
           <th></th>
         </tr>
         <tr class="bg-green-200 text-green-900">
+          <th class="col-codtab" title="Cód. Tab.">Nú.</th>
           <th class="col-codtab" title="Cód. Tab.">Cód.</th>
           <th class="col-tabela" title="Tabela">Tab.</th>
           <th class="col-codprod" title="Cód. Prod.">Cód. Prod.</th>
@@ -718,6 +724,7 @@ ORDER BY 1,5,3 DESC
             <c:set var="separatorClass" value="${currentCodtabMarca != previousCodtabMarca && !loop.first ? 'group-separator' : ''}"/>
             
             <tr class="border-b border-green-100 ${groupClass} ${separatorClass}">
+              <td class="col-codtab" title="${row.CODTAB}">${row.NUTAB}</td>
               <td class="col-codtab" title="${row.CODTAB}">${row.CODTAB}</td>
               <td class="col-tabela" title="${row.NOMETAB}">${row.NOMETAB}</td>
               <td class="col-codprod" title="${row.CODPROD}">${row.CODPROD}</td>
@@ -988,7 +995,8 @@ ORDER BY 1,5,3 DESC
     rows.forEach(row => {
       const cells = row.cells;
       const rowData = {
-        codigoTabela: cells[0].textContent.trim(),
+        numeroTabela: cells[0].textContent.trim(),
+        codigoTabela: cells[1].textContent.trim(),
         codigoProduto: cells[2].textContent.trim(),
         novoPreco: row.querySelector('.row-price').value,
         dataVigor: row.querySelector('.row-dtvigor').value
@@ -1109,6 +1117,7 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
 
       const record = {
         ID: nextId,
+        NUTAB: item.numeroTabela || '',
         CODTAB: item.codigoTabela || '',
         CODPROD: item.codigoProduto || '',
         NOVO_PRECO: item.novoPreco || '',
