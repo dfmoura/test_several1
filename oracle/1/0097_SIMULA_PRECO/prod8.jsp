@@ -1150,6 +1150,5 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
   }
 });
 </script>
-
 </body>
 </html>
