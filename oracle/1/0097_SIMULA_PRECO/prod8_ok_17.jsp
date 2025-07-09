@@ -130,8 +130,7 @@
     }
     
     /* Larguras específicas para as colunas */
-    .col-nutab { width: 40px; }    
-    .col-codtab { width: 50px; }
+    .col-codtab { width: 40px; }
     .col-tabela { width: 40px; }
     .col-codprod { width: 60px; }
     .col-produto { width: 80px; }
@@ -327,17 +326,6 @@
     
     tr.bg-codtab-marca-1 {
       background-color: #f0fdf4; /* Verde muito claro para o segundo grupo */
-    }
-    
-    /* Remove increment/decrement controls from number inputs */
-    input[type="number"]::-webkit-outer-spin-button,
-    input[type="number"]::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    
-    input[type="number"] {
-      -moz-appearance: textfield;
     }
     
     /* Destaque ao passar o mouse */
@@ -595,7 +583,6 @@ WHERE NTA.ATIVO = 'S'
 AND PRO.CODGRUPOPROD LIKE '1%'
 AND PRO.ATIVO = 'S'
 AND TAB.DTVIGOR <= :P_PERIODO
-
 AND (:P_CODTAB IS NULL OR TAB.CODTAB = :P_CODTAB)
 AND (:P_CODPROD IS NULL OR PRO.CODPROD = :P_CODPROD)
 AND PRO.MARCA IN (:P_MARCA)
@@ -715,7 +702,7 @@ ORDER BY 2,6,4 DESC
           <th></th>
         </tr>
         <tr class="bg-green-200 text-green-900">
-          <th class="col-nutab" title="Cód. Tab.">Nú.</th>
+          <th class="col-codtab" title="Cód. Tab.">Nú.</th>
           <th class="col-codtab" title="Cód. Tab.">Cód.</th>
           <th class="col-tabela" title="Tabela">Tab.</th>
           <th class="col-codprod" title="Cód. Prod.">Cód. Prod.</th>
@@ -754,7 +741,7 @@ ORDER BY 2,6,4 DESC
             <c:set var="groupClass" value="bg-codtab-marca-${groupCounter % 2}"/>
             <c:set var="separatorClass" value="${currentCodtabMarca != previousCodtabMarca && !loop.first ? 'group-separator' : ''}"/>
             
-            <c:set var="isSummaryRow" value="${row.NUTAB == 0 && row.DESCRPROD == '1'}"/>
+            <c:set var="isSummaryRow" value="${row.NUTAB == 0 && row.CODPROD == null && row.DESCRPROD == '1'}"/>
             <c:set var="rowClass" value="${isSummaryRow ? 'summary-row' : groupClass}"/>
             <tr class="border-b border-green-100 ${rowClass} ${separatorClass}">
               <td class="col-codtab" title="${row.CODTAB}">
@@ -767,7 +754,7 @@ ORDER BY 2,6,4 DESC
               <td class="col-tabela" title="${row.NOMETAB}">${row.NOMETAB}</td>
               <td class="col-codprod" title="${row.CODPROD}">
                 <c:choose>
-                  <c:when test="${row.CODPROD == null}"></c:when>
+                  <c:when test="${row.CODPROD == null}">NULL</c:when>
                   <c:otherwise>${row.CODPROD}</c:otherwise>
                 </c:choose>
               </td>
@@ -1088,6 +1075,12 @@ async function getNextId() {
   return parseInt(maxId, 10) + 1;
 }
 
+async function getNextId2() {
+  const result1 = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_TESTEPRECOLIMP');
+  const maxId1 = result1?.[0]?.MAXID || 0;
+  return parseInt(maxId1, 10) + 1;
+}
+
 
 // Status overlay functions
 function showStatusOverlay(title, message, type = 'success') {
@@ -1170,7 +1163,18 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
       console.log(`Registro ${nextId} salvo com sucesso.`);
     }
 
-
+    try {
+      const nextIdLimp = await getNextId2();
+      const limpezaRecord = {
+        ID: nextIdLimp,
+        FLAG: 'S'
+      };
+      const resultado = await JX.salvar(limpezaRecord, 'AD_TESTEPRECOLIMP');
+      console.log('Registro de limpeza salvo:', resultado);
+    } catch (error) {
+      console.error('Erro ao salvar registro de limpeza:', error);
+      throw error;
+    }
 
     showStatusOverlay('Sucesso', `${data.length} registros foram salvos com sucesso!`, 'success');
   } catch (error) {
@@ -1181,5 +1185,6 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
   }
 });
 </script>
+
 </body>
 </html>
