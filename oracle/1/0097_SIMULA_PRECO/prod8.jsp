@@ -335,11 +335,11 @@
       -webkit-appearance: none;
       margin: 0;
     }
-    
+    /*
     input[type="number"] {
       -moz-appearance: textfield;
     }
-    
+    */
     /* Destaque ao passar o mouse */
     tr:hover {
       background-color: #dcfce7 !important;
