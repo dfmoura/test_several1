@@ -130,8 +130,7 @@
     }
     
     /* Larguras específicas para as colunas */
-    .col-nutab { width: 40px; }    
-    .col-codtab { width: 50px; }
+    .col-codtab { width: 40px; }
     .col-tabela { width: 40px; }
     .col-codprod { width: 60px; }
     .col-produto { width: 80px; }
@@ -329,17 +328,6 @@
       background-color: #f0fdf4; /* Verde muito claro para o segundo grupo */
     }
     
-    /* Remove increment/decrement controls from number inputs */
-    input[type="number"]::-webkit-outer-spin-button,
-    input[type="number"]::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    
-    input[type="number"] {
-      -moz-appearance: textfield;
-    }
-    
     /* Destaque ao passar o mouse */
     tr:hover {
       background-color: #dcfce7 !important;
@@ -351,23 +339,27 @@
       border-top: 2px solid #bbf7d0;
     }
     
-    /* Linhas mais escuras */
+    /* Linhas mais escuras e em negrito */
     #dataTable tbody tr {
       border-bottom: 2px solid #d1fae5;
+      font-weight: 500;
     }
     
     #dataTable tbody tr td {
       border: 1px solid #bbf7d0;
+      font-weight: 500;
     }
     
     /* Estilo especial para linhas de resumo (NUTAB = 0, CODPROD = NULL, DESCRPROD = 1) */
     tr.summary-row {
       background-color: #e0f2e9 !important;
+      font-weight: 600;
       border-bottom: 3px solid #10b981;
     }
     
     tr.summary-row td {
       border: 1px solid #10b981;
+      font-weight: 600;
     }    
   </style>
   <snk:load/>
@@ -378,7 +370,7 @@
   SELECT 
   NVL(NUTAB,0)NUTAB,
   CODTAB,
-  SUBSTR(NOMETAB, 1, 3) NOMETAB,
+  NOMETAB,
   CODPROD,
   DESCRPROD,
   MARCA,
@@ -595,7 +587,6 @@ WHERE NTA.ATIVO = 'S'
 AND PRO.CODGRUPOPROD LIKE '1%'
 AND PRO.ATIVO = 'S'
 AND TAB.DTVIGOR <= :P_PERIODO
-
 AND (:P_CODTAB IS NULL OR TAB.CODTAB = :P_CODTAB)
 AND (:P_CODPROD IS NULL OR PRO.CODPROD = :P_CODPROD)
 AND PRO.MARCA IN (:P_MARCA)
@@ -701,21 +692,22 @@ ORDER BY 2,6,4 DESC
           <th></th>
           <th></th>
           <th></th>
-          <th>Custo</th>
+          <th></th>
           <th colspan="2" style="background-color: #E49EDD; text-align: center;">Tab.</th>
           
           <th colspan="2" style="background-color: #0000FF; text-align: center; color: white;">Tab. Consum. (-15%)</th>
           
           <th colspan="2" style="background-color: #00FF00; text-align: center;">Tab. Rev. (-35%)</th>
-          <th colspan="3">Ticket</th>
-
-          <th>Custo</th>
-          <th  colspan="2">Novo</th>
-          
+          <th></th>
+          <th></th>
+          <th></th>
+          <th></th>
+          <th></th>
+          <th></th>
           <th></th>
         </tr>
         <tr class="bg-green-200 text-green-900">
-          <th class="col-nutab" title="Cód. Tab.">Nú.</th>
+          <th class="col-codtab" title="Cód. Tab.">Nú.</th>
           <th class="col-codtab" title="Cód. Tab.">Cód.</th>
           <th class="col-tabela" title="Tabela">Tab.</th>
           <th class="col-codprod" title="Cód. Prod.">Cód. Prod.</th>
@@ -723,19 +715,19 @@ ORDER BY 2,6,4 DESC
           <th class="col-marca" title="Marca">Marca</th>
           <th class="col-vol">LT</th>
           <th class="col-pond">Peso</th>
-          <th class="col-custo">Satis</th>
+          <th class="col-custo">Custo Satis</th>
           <th class="col-preco" style="background-color: #E49EDD; text-align: center;">Preço</th>
           <th class="col-margem" style="background-color: #E49EDD; text-align: center;">Margem</th>
           <th class="col-preco15" style="background-color: #0000FF; text-align: center;color: white;">Preço</th>
           <th class="col-margem15" style="background-color: #0000FF; text-align: center;color: white;">Margem</th>
           <th class="col-preco35" style="background-color: #00FF00; text-align: center;">Preço</th>
           <th class="col-margem35" style="background-color: #00FF00; text-align: center;">Margem</th>
-          <th class="col-ticket-obj">Objetivo</th>
-          <th class="col-ticket-12m">Últ. 12M</th>
-          <th class="col-ticket-safra">Safra</th>
-          <th class="col-custo-atu">Atual</th>
-          <th class="col-nova-margem">Margem</th>
-          <th class="col-novo-preco">Preço</th>
+          <th class="col-ticket-obj">Ticket Obj.</th>
+          <th class="col-ticket-12m">Ticket 12M</th>
+          <th class="col-ticket-safra">Ticket Safra</th>
+          <th class="col-custo-atu">Custo Atual</th>
+          <th class="col-nova-margem">Nova Margem</th>
+          <th class="col-novo-preco">Novo Preço</th>
           <th class="col-dt-vigor">Dt. Vigor</th>
         </tr>
       </thead>
@@ -754,29 +746,12 @@ ORDER BY 2,6,4 DESC
             <c:set var="groupClass" value="bg-codtab-marca-${groupCounter % 2}"/>
             <c:set var="separatorClass" value="${currentCodtabMarca != previousCodtabMarca && !loop.first ? 'group-separator' : ''}"/>
             
-            <c:set var="isSummaryRow" value="${row.NUTAB == 0 && row.DESCRPROD == '1'}"/>
-            <c:set var="rowClass" value="${isSummaryRow ? 'summary-row' : groupClass}"/>
-            <tr class="border-b border-green-100 ${rowClass} ${separatorClass}">
-              <td class="col-codtab" title="${row.CODTAB}">
-                <c:choose>
-                  <c:when test="${row.NUTAB == 0}">0</c:when>
-                  <c:otherwise>${row.NUTAB}</c:otherwise>
-                </c:choose>
-              </td>
+            <tr class="border-b border-green-100 ${groupClass} ${separatorClass}">
+              <td class="col-codtab" title="${row.CODTAB}">${row.NUTAB}</td>
               <td class="col-codtab" title="${row.CODTAB}">${row.CODTAB}</td>
               <td class="col-tabela" title="${row.NOMETAB}">${row.NOMETAB}</td>
-              <td class="col-codprod" title="${row.CODPROD}">
-                <c:choose>
-                  <c:when test="${row.CODPROD == null}"></c:when>
-                  <c:otherwise>${row.CODPROD}</c:otherwise>
-                </c:choose>
-              </td>
-              <td class="col-produto" title="${row.DESCRPROD}">
-                <c:choose>
-                  <c:when test="${row.DESCRPROD == '1'}">1</c:when>
-                  <c:otherwise>${row.DESCRPROD}</c:otherwise>
-                </c:choose>
-              </td>
+              <td class="col-codprod" title="${row.CODPROD}">${row.CODPROD}</td>
+              <td class="col-produto" title="${row.DESCRPROD}">${row.DESCRPROD}</td>
               <td class="col-marca" title="${row.MARCA}">${row.MARCA}</td>
               <td class="col-vol">${row.AD_QTDVOLLT}</td>
               <td class="col-pond">${row.POND_MARCA}</td>
@@ -1088,6 +1063,12 @@ async function getNextId() {
   return parseInt(maxId, 10) + 1;
 }
 
+async function getNextId2() {
+  const result1 = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_TESTEPRECOLIMP');
+  const maxId1 = result1?.[0]?.MAXID || 0;
+  return parseInt(maxId1, 10) + 1;
+}
+
 
 // Status overlay functions
 function showStatusOverlay(title, message, type = 'success') {
@@ -1170,7 +1151,18 @@ document.getElementById('insertDataBtn').addEventListener('click', async functio
       console.log(`Registro ${nextId} salvo com sucesso.`);
     }
 
-
+    try {
+      const nextIdLimp = await getNextId2();
+      const limpezaRecord = {
+        ID: nextIdLimp,
+        FLAG: 'S'
+      };
+      const resultado = await JX.salvar(limpezaRecord, 'AD_TESTEPRECOLIMP');
+      console.log('Registro de limpeza salvo:', resultado);
+    } catch (error) {
+      console.error('Erro ao salvar registro de limpeza:', error);
+      throw error;
+    }
 
     showStatusOverlay('Sucesso', `${data.length} registros foram salvos com sucesso!`, 'success');
   } catch (error) {
