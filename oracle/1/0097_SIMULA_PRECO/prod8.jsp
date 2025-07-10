@@ -369,11 +369,60 @@
     
     tr.summary-row td {
       border: 1px solid #10b981;
-    }    
+    }
+    
+    /* Fixed header styles */
+    .fixed-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 35px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+    
+    .header-logo {
+      display: flex;
+      align-items: center;
+    }
+    
+    .header-logo img {
+      width: 40px;
+      height: auto;
+      filter: brightness(0) invert(1);
+    }
+    
+    .header-title {
+      color: white;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin: 0;
+    }
+    
+    /* Adjust body padding to account for fixed header */
+    body {
+      padding-top: 55px !important;
+    }
   </style>
   <snk:load/>
 </head>
 <body class="bg-green-50 min-h-screen flex flex-col items-center py-6">
+  <!-- Fixed Header -->
+  <div class="fixed-header">
+    <div class="header-logo">
+      <a href="https://neuon.com.br/" target="_blank" rel="noopener noreferrer">
+        <img src="https://neuon.com.br/logos/logo-5.svg" alt="Neuon Logo">
+      </a>
+    </div>
+    <h1 class="header-title">Simulação de Preço</h1>
+    <div></div> <!-- Empty div for flex spacing -->
+  </div>
   <snk:query var="base">
 
   SELECT 
