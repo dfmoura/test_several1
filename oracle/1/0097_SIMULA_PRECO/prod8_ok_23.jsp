@@ -822,10 +822,7 @@ ORDER BY 2,6,4 DESC
                 <input type="number" step="0.01" class="row-margin border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
               </td>
               <td class="col-novo-preco">
-                <div class="flex items-center justify-center space-x-1">
-                  <input type="number" step="0.01" class="row-price border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" data-preco-tab="${row.PRECO_TAB}" />
-                  <span class="price-arrow text-sm ml-1"></span>
-                </div>
+                <input type="number" step="0.01" class="row-price border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
               </td>
               <td class="col-dt-vigor">
                 <input type="text" class="row-dtvigor border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" placeholder="dd/mm/aaaa" maxlength="10" />
@@ -878,25 +875,6 @@ ORDER BY 2,6,4 DESC
       if (!newMargin || !custo) return '';
       return (custo / (1 - (newMargin / 100))).toFixed(2);
     }
-    
-    function updatePriceArrow(priceInput) {
-      const novoPreco = parseFloat(priceInput.value);
-      const precoTab = parseFloat(priceInput.dataset.precoTab);
-      const arrowSpan = priceInput.closest('td').querySelector('.price-arrow');
-      
-      if (isNaN(novoPreco) || isNaN(precoTab)) {
-        arrowSpan.innerHTML = '';
-        return;
-      }
-      
-      if (novoPreco > precoTab) {
-        arrowSpan.innerHTML = '<i class="fas fa-arrow-up text-green-600"></i>';
-      } else if (novoPreco < precoTab) {
-        arrowSpan.innerHTML = '<i class="fas fa-arrow-down text-red-600"></i>';
-      } else {
-        arrowSpan.innerHTML = '<i class="fas fa-minus text-gray-500"></i>';
-      }
-    }
 
     // Row event listeners
     document.querySelectorAll('.row-price').forEach(function(input) {
@@ -910,9 +888,6 @@ ORDER BY 2,6,4 DESC
         } else {
           marginInput.value = '';
         }
-        
-        // Update price arrow
-        updatePriceArrow(this);
       });
     });
     document.querySelectorAll('.row-margin').forEach(function(input) {
@@ -965,7 +940,6 @@ ORDER BY 2,6,4 DESC
           const row = input.closest('tr');
           const marginInput = row.querySelector('.row-margin');
           marginInput.value = calcMargin(price, custo);
-          updatePriceArrow(input);
         }
       });
     });
@@ -978,7 +952,6 @@ ORDER BY 2,6,4 DESC
           const row = input.closest('tr');
           const priceInput = row.querySelector('.row-price');
           priceInput.value = calcPrice(margin, custo);
-          updatePriceArrow(priceInput);
         }
       });
     });
@@ -1109,23 +1082,6 @@ ORDER BY 2,6,4 DESC
     });
   }
 
-  // Função para converter string numérica para formato brasileiro
-  function convertToBrazilianFormat(value) {
-    if (!value || value.trim() === '') return '';
-    
-    // Remove any existing formatting and convert to number
-    const cleanValue = value.replace(/[^\d.,]/g, '').replace(',', '.');
-    const num = parseFloat(cleanValue);
-    
-    if (isNaN(num)) return value;
-    
-    // Format with Brazilian locale (comma as decimal, dot as thousands)
-    return num.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  }
-
   // Função para coletar dados da tabela para Excel (apenas linhas visíveis)
   function collectTableDataForExcel() {
     const table = document.getElementById('dataTable');
@@ -1146,21 +1102,21 @@ ORDER BY 2,6,4 DESC
         'Cód. Prod.': cells[3].textContent.trim(),
         'Produto': cells[4].textContent.trim(),
         'Marca': cells[5].textContent.trim(),
-        'LT': convertToBrazilianFormat(cells[6].textContent.trim()),
-        'Peso': convertToBrazilianFormat(cells[7].textContent.trim()),
-        'Custo Satis': convertToBrazilianFormat(cells[8].textContent.trim()),
-        'Preço Tab.': convertToBrazilianFormat(cells[9].textContent.trim()),
-        'Margem Tab.': convertToBrazilianFormat(cells[10].textContent.trim()),
-        'Preço Consum.': convertToBrazilianFormat(cells[11].textContent.trim()),
-        'Margem Consum.': convertToBrazilianFormat(cells[12].textContent.trim()),
-        'Preço Rev.': convertToBrazilianFormat(cells[13].textContent.trim()),
-        'Margem Rev.': convertToBrazilianFormat(cells[14].textContent.trim()),
-        'Ticket Objetivo': convertToBrazilianFormat(cells[15].textContent.trim()),
-        'Ticket Últ. 12M': convertToBrazilianFormat(cells[16].textContent.trim()),
-        'Ticket Safra': convertToBrazilianFormat(cells[17].textContent.trim()),
-        'Custo Atual': convertToBrazilianFormat(cells[18].textContent.trim()),
-        'Nova Margem': convertToBrazilianFormat(row.querySelector('.row-margin').value),
-        'Novo Preço': convertToBrazilianFormat(row.querySelector('.row-price').value),
+        'LT': cells[6].textContent.trim(),
+        'Peso': cells[7].textContent.trim(),
+        'Custo Satis': cells[8].textContent.trim(),
+        'Preço Tab.': cells[9].textContent.trim(),
+        'Margem Tab.': cells[10].textContent.trim(),
+        'Preço Consum.': cells[11].textContent.trim(),
+        'Margem Consum.': cells[12].textContent.trim(),
+        'Preço Rev.': cells[13].textContent.trim(),
+        'Margem Rev.': cells[14].textContent.trim(),
+        'Ticket Objetivo': cells[15].textContent.trim(),
+        'Ticket Últ. 12M': cells[16].textContent.trim(),
+        'Ticket Safra': cells[17].textContent.trim(),
+        'Custo Atual': cells[18].textContent.trim(),
+        'Nova Margem': row.querySelector('.row-margin').value,
+        'Novo Preço': row.querySelector('.row-price').value,
         'Dt. Vigor': row.querySelector('.row-dtvigor').value
       };
       
@@ -1175,59 +1131,52 @@ ORDER BY 2,6,4 DESC
     const data = collectTableDataForExcel();
     
     if (data.length === 0) {
-      showStatusOverlay('Aviso', 'Nenhum dado para exportar. A tabela está vazia ou não há linhas visíveis com o filtro atual.', 'error');
+      alert('Nenhum dado para exportar. A tabela está vazia ou não há linhas visíveis com o filtro atual.');
       return;
     }
     
-    try {
-      // Create workbook and worksheet
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(data);
-      
-      // Set column widths
-      const colWidths = [
-        { wch: 8 },   // Nú.
-        { wch: 8 },   // Cód.
-        { wch: 6 },   // Tab.
-        { wch: 12 },  // Cód. Prod.
-        { wch: 40 },  // Produto
-        { wch: 10 },  // Marca
-        { wch: 6 },   // LT
-        { wch: 8 },   // Peso
-        { wch: 12 },  // Custo Satis
-        { wch: 12 },  // Preço Tab.
-        { wch: 12 },  // Margem Tab.
-        { wch: 12 },  // Preço Consum.
-        { wch: 12 },  // Margem Consum.
-        { wch: 12 },  // Preço Rev.
-        { wch: 12 },  // Margem Rev.
-        { wch: 12 },  // Ticket Objetivo
-        { wch: 12 },  // Ticket Últ. 12M
-        { wch: 12 },  // Ticket Safra
-        { wch: 12 },  // Custo Atual
-        { wch: 12 },  // Nova Margem
-        { wch: 12 },  // Novo Preço
-        { wch: 12 }   // Dt. Vigor
-      ];
-      ws['!cols'] = colWidths;
-      
-      // Add worksheet to workbook
-      XLSX.utils.book_append_sheet(wb, ws, 'Resumo Material');
-      
-      // Generate filename with current date
-      const now = new Date();
-      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-      const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
-      const filename = `resumo_material_${dateStr}_${timeStr}.xlsx`;
-      
-      // Export the file
-      XLSX.writeFile(wb, filename);
-      
-      showStatusOverlay('Sucesso', `${data.length} linhas exportadas para Excel com sucesso!`, 'success');
-    } catch (error) {
-      console.error('Erro ao exportar Excel:', error);
-      showStatusOverlay('Erro', 'Erro ao exportar arquivo Excel. Verifique o console para detalhes.', 'error');
-    }
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+    
+    // Set column widths
+    const colWidths = [
+      { wch: 8 },   // Nú.
+      { wch: 8 },   // Cód.
+      { wch: 6 },   // Tab.
+      { wch: 12 },  // Cód. Prod.
+      { wch: 40 },  // Produto
+      { wch: 10 },  // Marca
+      { wch: 6 },   // LT
+      { wch: 8 },   // Peso
+      { wch: 12 },  // Custo Satis
+      { wch: 12 },  // Preço Tab.
+      { wch: 12 },  // Margem Tab.
+      { wch: 12 },  // Preço Consum.
+      { wch: 12 },  // Margem Consum.
+      { wch: 12 },  // Preço Rev.
+      { wch: 12 },  // Margem Rev.
+      { wch: 12 },  // Ticket Objetivo
+      { wch: 12 },  // Ticket Últ. 12M
+      { wch: 12 },  // Ticket Safra
+      { wch: 12 },  // Custo Atual
+      { wch: 12 },  // Nova Margem
+      { wch: 12 },  // Novo Preço
+      { wch: 12 }   // Dt. Vigor
+    ];
+    ws['!cols'] = colWidths;
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Resumo Material');
+    
+    // Generate filename with current date
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
+    const filename = `resumo_material_${dateStr}_${timeStr}.xlsx`;
+    
+    // Export the file
+    XLSX.writeFile(wb, filename);
   });
 
 // Função para buscar o próximo ID disponível na tabela

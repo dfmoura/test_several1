@@ -878,25 +878,6 @@ ORDER BY 2,6,4 DESC
       if (!newMargin || !custo) return '';
       return (custo / (1 - (newMargin / 100))).toFixed(2);
     }
-    
-    function updatePriceArrow(priceInput) {
-      const novoPreco = parseFloat(priceInput.value);
-      const precoTab = parseFloat(priceInput.dataset.precoTab);
-      const arrowSpan = priceInput.closest('td').querySelector('.price-arrow');
-      
-      if (isNaN(novoPreco) || isNaN(precoTab)) {
-        arrowSpan.innerHTML = '';
-        return;
-      }
-      
-      if (novoPreco > precoTab) {
-        arrowSpan.innerHTML = '<i class="fas fa-arrow-up text-green-600"></i>';
-      } else if (novoPreco < precoTab) {
-        arrowSpan.innerHTML = '<i class="fas fa-arrow-down text-red-600"></i>';
-      } else {
-        arrowSpan.innerHTML = '<i class="fas fa-minus text-gray-500"></i>';
-      }
-    }
 
     // Row event listeners
     document.querySelectorAll('.row-price').forEach(function(input) {
@@ -965,7 +946,6 @@ ORDER BY 2,6,4 DESC
           const row = input.closest('tr');
           const marginInput = row.querySelector('.row-margin');
           marginInput.value = calcMargin(price, custo);
-          updatePriceArrow(input);
         }
       });
     });
@@ -978,7 +958,6 @@ ORDER BY 2,6,4 DESC
           const row = input.closest('tr');
           const priceInput = row.querySelector('.row-price');
           priceInput.value = calcPrice(margin, custo);
-          updatePriceArrow(priceInput);
         }
       });
     });

@@ -822,10 +822,7 @@ ORDER BY 2,6,4 DESC
                 <input type="number" step="0.01" class="row-margin border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
               </td>
               <td class="col-novo-preco">
-                <div class="flex items-center justify-center space-x-1">
-                  <input type="number" step="0.01" class="row-price border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" data-preco-tab="${row.PRECO_TAB}" />
-                  <span class="price-arrow text-sm ml-1"></span>
-                </div>
+                <input type="number" step="0.01" class="row-price border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" data-custo="${row.CUSTO_SATIS_ATU}" />
               </td>
               <td class="col-dt-vigor">
                 <input type="text" class="row-dtvigor border border-green-300 rounded px-1 py-1 w-full focus:outline-none focus:ring-2 focus:ring-green-400 text-center" value="" placeholder="dd/mm/aaaa" maxlength="10" />
@@ -878,25 +875,6 @@ ORDER BY 2,6,4 DESC
       if (!newMargin || !custo) return '';
       return (custo / (1 - (newMargin / 100))).toFixed(2);
     }
-    
-    function updatePriceArrow(priceInput) {
-      const novoPreco = parseFloat(priceInput.value);
-      const precoTab = parseFloat(priceInput.dataset.precoTab);
-      const arrowSpan = priceInput.closest('td').querySelector('.price-arrow');
-      
-      if (isNaN(novoPreco) || isNaN(precoTab)) {
-        arrowSpan.innerHTML = '';
-        return;
-      }
-      
-      if (novoPreco > precoTab) {
-        arrowSpan.innerHTML = '<i class="fas fa-arrow-up text-green-600"></i>';
-      } else if (novoPreco < precoTab) {
-        arrowSpan.innerHTML = '<i class="fas fa-arrow-down text-red-600"></i>';
-      } else {
-        arrowSpan.innerHTML = '<i class="fas fa-minus text-gray-500"></i>';
-      }
-    }
 
     // Row event listeners
     document.querySelectorAll('.row-price').forEach(function(input) {
@@ -910,9 +888,6 @@ ORDER BY 2,6,4 DESC
         } else {
           marginInput.value = '';
         }
-        
-        // Update price arrow
-        updatePriceArrow(this);
       });
     });
     document.querySelectorAll('.row-margin').forEach(function(input) {
@@ -965,7 +940,6 @@ ORDER BY 2,6,4 DESC
           const row = input.closest('tr');
           const marginInput = row.querySelector('.row-margin');
           marginInput.value = calcMargin(price, custo);
-          updatePriceArrow(input);
         }
       });
     });
@@ -978,7 +952,6 @@ ORDER BY 2,6,4 DESC
           const row = input.closest('tr');
           const priceInput = row.querySelector('.row-price');
           priceInput.value = calcPrice(margin, custo);
-          updatePriceArrow(priceInput);
         }
       });
     });
