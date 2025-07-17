@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookStore - Your Online Book Destination</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <h1><i class="fas fa-book-open"></i> BookStore</h1>
+            </div>
+            
+            <!-- Search Field (User Story 4) -->
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search for books..." class="search-input">
+                <button class="search-btn"><i class="fas fa-search"></i></button>
+            </div>
+            
+            <!-- Shopping Cart Icon (User Story 2) -->
+            <div class="cart-icon">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="cart-count">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation with Categories (User Story 3) -->
+    <nav class="categories-nav">
+        <div class="container">
+            <ul class="categories-list">
+                <li><a href="#" class="category-link active">All Books</a></li>
+                <li><a href="#" class="category-link">Fiction</a></li>
+                <li><a href="#" class="category-link">Non-Fiction</a></li>
+                <li><a href="#" class="category-link">Science Fiction</a></li>
+                <li><a href="#" class="category-link">Mystery & Thriller</a></li>
+                <li><a href="#" class="category-link">Romance</a></li>
+                <li><a href="#" class="category-link">Biography</a></li>
+                <li><a href="#" class="category-link">Children's Books</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Hero Section -->
+            <section class="hero-section">
+                <div class="hero-content">
+                    <h2>Discover Your Next Favorite Book</h2>
+                    <p>Explore thousands of titles from bestselling authors and discover new worlds between the pages.</p>
+                    <button class="cta-button">Shop Now</button>
+                </div>
+            </section>
+
+            <!-- Best-Selling Books Section (User Story 1) -->
+            <section class="bestsellers-section">
+                <h2 class="section-title">Best-Selling Books</h2>
+                <div class="books-grid" id="bestsellersGrid">
+                    <!-- Books will be dynamically loaded here -->
+                </div>
+            </section>
+
+            <!-- Featured Categories -->
+            <section class="featured-categories">
+                <h2 class="section-title">Browse by Category</h2>
+                <div class="categories-grid">
+                    <div class="category-card">
+                        <i class="fas fa-rocket"></i>
+                        <h3>Science Fiction</h3>
+                        <p>Explore futuristic worlds</p>
+                    </div>
+                    <div class="category-card">
+                        <i class="fas fa-heart"></i>
+                        <h3>Romance</h3>
+                        <p>Love stories that touch the heart</p>
+                    </div>
+                    <div class="category-card">
+                        <i class="fas fa-search"></i>
+                        <h3>Mystery</h3>
+                        <p>Thrilling detective stories</p>
+                    </div>
+                    <div class="category-card">
+                        <i class="fas fa-graduation-cap"></i>
+                        <h3>Educational</h3>
+                        <p>Learn and grow with knowledge</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>BookStore</h3>
+                    <p>Your trusted source for quality books online.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Shipping Info</a></li>
+                        <li><a href="#">Returns</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Customer Service</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Track Order</a></li>
+                        <li><a href="#">Gift Cards</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 BookStore. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Shopping Cart Modal -->
+    <div class="cart-modal" id="cartModal">
+        <div class="cart-content">
+            <div class="cart-header">
+                <h3>Shopping Cart</h3>
+                <button class="close-cart" id="closeCart">&times;</button>
+            </div>
+            <div class="cart-items" id="cartItems">
+                <p class="empty-cart">Your cart is empty</p>
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total: $<span id="cartTotal">0.00</span></span>
+                </div>
+                <button class="checkout-btn">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

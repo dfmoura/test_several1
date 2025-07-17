@@ -1362,7 +1362,8 @@ function hideStatusOverlay() {
     // Reorganizando o evento do botão
     document.getElementById('insertDataBtn').addEventListener('click', async function () {
   const btn = this;
-  
+  btn.disabled = true;
+
   const rawData = collectTableData();
   
   // Validate that both novoPreco and dataVigor are filled for each record
@@ -1373,6 +1374,7 @@ function hideStatusOverlay() {
   
   if (invalidRecords.length > 0) {
     showStatusOverlay('Validação', 'Todos os registros devem ter tanto o Novo Preço quanto a Data de Vigor preenchidos. Verifique os campos vazios.', 'error');
+    btn.disabled = false;
     return;
   }
   
@@ -1384,17 +1386,9 @@ function hideStatusOverlay() {
 
   if (data.length === 0) {
     showStatusOverlay('Aviso', 'Nenhum dado válido encontrado para inserir. Por favor, preencha tanto o Novo Preço quanto a Data de Vigor para pelo menos um registro.', 'error');
+    btn.disabled = false;
     return;
   }
-
-  // Ask for user confirmation before proceeding
-  const confirmMessage = `Tem certeza que deseja inserir ou atualizar registros na Tabela de Preços?\n\nEsta ação irá adicionar novos registros ou atualizar os restros atuais na tabela.`;
-  
-  if (!confirm(confirmMessage)) {
-    return; // User cancelled the operation
-  }
-
-  btn.disabled = true;
 
   // Show processing overlay
   showStatusOverlay('Processando...', `Inserindo ${data.length} registros no banco de dados...`, 'processing');
@@ -1415,6 +1409,8 @@ function hideStatusOverlay() {
       await JX.salvar(record, 'AD_TESTEPRECO');
       console.log(`Registro ${nextId} salvo com sucesso.`);
     }
+
+
 
     showStatusOverlay('Sucesso', `${data.length} registros foram salvos com sucesso!`, 'success');
   } catch (error) {

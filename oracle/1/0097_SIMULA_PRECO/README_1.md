@@ -186,4 +186,4 @@ Se você encontrar problemas ou tiver dúvidas:
 
 ---
 
-*Este sistema foi desenvolvido para facilitar a análise e simulação de preços, permitindo tomadas de decisão mais informadas e estratégicas.*
+*Este sistema foi desenvolvido para facilitar a análise e simulação de preços, permitindo tomadas de decisão mais informadas e estratégicas.* 

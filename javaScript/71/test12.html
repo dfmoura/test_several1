@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPT Chat with Knowledge Base</title>
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <!-- Fallback for Chart.js -->
+    <script>
+        if (typeof Chart === 'undefined') {
+            console.warn('Chart.js não carregou do CDN principal, tentando fallback...');
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+            script.onload = function() {
+                console.log('✅ Chart.js carregado via fallback');
+            };
+            script.onerror = function() {
+                console.error('❌ Falha ao carregar Chart.js via fallback');
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+    <style>
+        /* ===== RESET CSS - Remove margens e paddings padrão ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ===== ESTILOS DO CORPO - Fundo gradiente e layout principal ===== */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ===== CONTAINER PRINCIPAL - Grid layout com duas colunas ===== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr; /* 1.5 partes para base de conhecimento, 1 parte para chat */
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        /* ===== BASE DE CONHECIMENTO - Painel esquerdo ===== */
+        .knowledge-base {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-y: auto; /* Permite rolagem se o conteúdo for muito grande */
+        }
+
+        /* ===== CONTAINER DO CHAT - Painel direito ===== */
+        .chat-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column; /* Organiza elementos verticalmente */
+        }
+
+        /* ===== CABEÇALHO DO CHAT ===== */
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            background: #f8f9fa;
+            border-radius: 15px 15px 0 0;
+        }
+
+        /* ===== ÁREA DE MENSAGENS - Área principal do chat ===== */
+        .chat-messages {
+            flex: 1; /* Ocupa todo espaço disponível */
+            padding: 20px;
+            overflow-y: auto; /* Permite rolagem das mensagens */
+            max-height: 400px;
+        }
+
+        /* ===== ESTILOS DAS MENSAGENS ===== */
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word; /* Quebra palavras longas */
+        }
+
+        /* ===== MENSAGEM DO USUÁRIO - Alinhada à direita, cor verde ===== */
+        .user-message {
+            background: #4CAF50;
+            color: white;
+            margin-left: auto; /* Alinha à direita */
+            border-bottom-right-radius: 5px; /* Cantos arredondados diferentes */
+        }
+
+        /* ===== MENSAGEM DO BOT - Alinhada à esquerda, cor cinza ===== */
+        .bot-message {
+            background: #f1f3f4;
+            color: #333;
+            border-bottom-left-radius: 5px; /* Cantos arredondados diferentes */
+        }
+
+        /* ===== ÁREA DE ENTRADA - Campo de texto e botão ===== */
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* ===== CAMPO DE TEXTO ===== */
+        .chat-input input {
+            flex: 1; /* Ocupa todo espaço disponível */
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s; /* Animação suave na borda */
+        }
+
+        /* ===== ESTADO FOCUS DO CAMPO DE TEXTO ===== */
+        .chat-input input:focus {
+            border-color: #4CAF50;
+        }
+
+        /* ===== BOTÃO DE ENVIAR ===== */
+        .chat-input button {
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s; /* Animação suave no hover */
+        }
+
+        /* ===== ESTADO HOVER DO BOTÃO ===== */
+        .chat-input button:hover {
+            background: #2E7D32;
+        }
+
+        /* ===== ESTADO DESABILITADO DO BOTÃO ===== */
+        .chat-input button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* ===== TABELA DA BASE DE CONHECIMENTO ===== */
+        .knowledge-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* ===== CABEÇALHO DA TABELA ===== */
+        .knowledge-table thead {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .knowledge-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* ===== LINHAS DA TABELA ===== */
+        .knowledge-table tbody tr {
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s;
+        }
+
+        .knowledge-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .knowledge-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        /* ===== CÉLULAS DA TABELA ===== */
+        .knowledge-table td {
+            padding: 12px 15px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        /* ===== CÉLULA DO PRODUTO ===== */
+        .knowledge-table td:first-child {
+            font-weight: 600;
+            color: #4CAF50;
+            width: 25%;
+        }
+
+        /* ===== CÉLULA DA EMPRESA ===== */
+        .knowledge-table td:nth-child(2) {
+            color: #2E7D32;
+            font-weight: 500;
+            width: 30%;
+        }
+
+        /* ===== CÉLULA DA DATA ===== */
+        .knowledge-table td:nth-child(3) {
+            color: #dc3545;
+            font-weight: 500;
+            width: 15%;
+            text-align: center;
+        }
+
+        /* ===== CÉLULA DO VALOR DE FATURAMENTO ===== */
+        .knowledge-table td:last-child {
+            color: #666;
+            width: 30%;
+            font-weight: 500;
+        }
+
+        /* ===== ANIMAÇÃO DE CARREGAMENTO ===== */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite; /* Animação de rotação */
+        }
+
+        /* ===== DEFINIÇÃO DA ANIMAÇÃO DE ROTAÇÃO ===== */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ===== MENSAGENS DE STATUS ===== */
+        .status {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        /* ===== STATUS DE SUCESSO ===== */
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* ===== STATUS DE ERRO ===== */
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* ===== SUGESTÕES INTELIGENTES ===== */
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .suggestion-btn {
+            padding: 6px 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .suggestion-btn:hover {
+            background: #2E7D32;
+            transform: translateY(-1px);
+        }
+
+        /* ===== INDICADORES DE INTELIGÊNCIA ===== */
+        .intelligence-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #17a2b8;
+            color: white;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+
+        /* ===== MENSAGENS COM FORMATAÇÃO RICA ===== */
+        .rich-message {
+            line-height: 1.6;
+        }
+
+        .rich-message strong {
+            color: #2E7D32;
+        }
+
+        .rich-message code {
+            background: #f1f3f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        /* ===== BOTÃO DE LIMPAR CONVERSA ===== */
+        .clear-chat-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .clear-chat-btn:hover {
+            background: #c82333;
+        }
+
+        /* ===== TÍTULO PRINCIPAL ===== */
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* ===== TÍTULO DAS SEÇÕES ===== */
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        /* ===== DASHBOARD E VISUALIZAÇÕES ===== */
+        .dashboard-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2E7D32;
+        }
+
+        .dashboard-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chart-control-btn {
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .chart-control-btn:hover {
+            background: #2E7D32;
+            transform: translateY(-1px);
+        }
+
+        .chart-control-btn.secondary {
+            background: #6c757d;
+        }
+
+        .chart-control-btn.secondary:hover {
+            background: #5a6268;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        #chartCanvas {
+            width: 100% !important;
+            height: 100% !important;
+            max-height: 400px;
+        }
+
+        .chart-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+        }
+
+        .chart-info {
+            background: #e8f5e8;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .chart-info h4 {
+            color: #2E7D32;
+            margin-bottom: 8px;
+        }
+
+        .chart-info p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        /* ===== MODAL PARA CONFIGURAÇÕES DE GRÁFICO ===== */
+        .chart-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2E7D32;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* ===== RESPONSIVIDADE PARA DASHBOARD ===== */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            
+            .dashboard-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .chart-container {
+                height: 300px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+            }
+        }
+
+        /* ===== ANIMAÇÕES PARA DASHBOARD ===== */
+        .dashboard-container.show {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== ESTILOS PARA EXPORTAÇÃO ===== */
+        .export-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .export-btn {
+            padding: 6px 12px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .export-btn:hover {
+            background: #138496;
+            transform: translateY(-1px);
+        }
+
+        /* ===== INDICADOR DE VISUALIZAÇÃO ===== */
+        .visualization-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #ffc107;
+            color: #333;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== TÍTULO PRINCIPAL DA APLICAÇÃO ===== -->
+    <h1>🤖 GPT Chat com Base de Faturamento <span class="visualization-indicator">📊 Dashboard</span></h1>
+    
+    <!-- ===== CONTAINER PRINCIPAL - Layout em grid ===== -->
+    <div class="container">
+        <!-- ===== PAINEL DA BASE DE CONHECIMENTO ===== -->
+        <div class="knowledge-base">
+            <div class="section-title">📚 Faturamento</div>
+            <div id="knowledgeContent">
+                <!-- Conteúdo da base de conhecimento será carregado aqui -->
+            </div>
+            
+            <!-- ===== DASHBOARD CONTAINER ===== -->
+            <div class="dashboard-container" id="dashboardContainer">
+                <div class="dashboard-header">
+                    <div class="dashboard-title">📊 Dashboard de Faturamento</div>
+                    <div class="dashboard-controls">
+                        <button class="chart-control-btn" id="configureChartBtn">⚙️ Configurar</button>
+                        <button class="chart-control-btn secondary" id="testChartBtn">🧪 Testar</button>
+                        <button class="chart-control-btn secondary" id="debugBtn">🔍 Debug</button>
+                        <button class="chart-control-btn secondary" id="exportChartBtn">📥 Exportar</button>
+                        <button class="chart-control-btn secondary" id="hideDashboardBtn">❌ Ocultar</button>
+                    </div>
+                </div>
+                
+                <div class="chart-info" id="chartInfo">
+                    <h4>📈 Informações do Gráfico</h4>
+                    <p>Selecione o tipo de visualização e configure os parâmetros para gerar gráficos profissionais dos seus dados de faturamento.</p>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-wrapper">
+                        <div class="chart-loading" id="chartLoading">
+                            <div class="loading"></div>
+                            <p>Gerando visualização...</p>
+                        </div>
+                        <canvas id="chartCanvas" style="display: none;"></canvas>
+                    </div>
+                </div>
+                
+                <div class="export-options" id="exportOptions" style="display: none;">
+                    <button class="export-btn" onclick="exportChart('png')">📷 PNG</button>
+                    <button class="export-btn" onclick="exportChart('jpg')">🖼️ JPG</button>
+                    <button class="export-btn" onclick="exportChart('pdf')">📄 PDF</button>
+                    <button class="export-btn" onclick="exportChart('svg')">🎨 SVG</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PAINEL DO CHAT ===== -->
+        <div class="chat-container">
+            <!-- ===== CABEÇALHO DO CHAT ===== -->
+            <div class="chat-header">
+                <h2>💬 Chat com o GPT <span class="intelligence-indicator">AI</span></h2>
+                <div id="status"></div>
+                <button class="clear-chat-btn" id="clearChatBtn">🗑️ Limpar</button>
+            </div>
+            
+            <!-- ===== ÁREA DE MENSAGENS ===== -->
+            <div class="chat-messages" id="chatMessages">
+                <!-- ===== MENSAGEM INICIAL DO BOT ===== -->
+                <div class="message bot-message rich-message">
+                    Olá! Sou sua assistente especializada na base de faturamento. Estou aqui para te ajudar a esclarecer dúvidas e responder perguntas relacionadas ao faturamento. Posso também criar dashboards e gráficos profissionais dos seus dados! 📊
+                </div>
+            </div>
+            
+            <!-- ===== SUGESTÕES INTELIGENTES ===== -->
+            <div class="suggestions" id="suggestions">
+                <!-- Sugestões serão adicionadas dinamicamente -->
+            </div>
+            
+            <!-- ===== ÁREA DE ENTRADA DE MENSAGENS ===== -->
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Digite sua pergunta aqui..." />
+                <button id="sendButton">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE CONFIGURAÇÃO DE GRÁFICO ===== -->
+    <div class="chart-modal" id="chartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">⚙️ Configurar Visualização</div>
+                <button class="close-modal" id="closeModalBtn">&times;</button>
+            </div>
+            
+            <form id="chartConfigForm">
+                <div class="form-group">
+                    <label for="chartType">Tipo de Gráfico:</label>
+                    <select id="chartType" required>
+                        <option value="">Selecione um tipo...</option>
+                        <option value="bar">Gráfico de Barras</option>
+                        <option value="line">Gráfico de Linha</option>
+                        <option value="pie">Gráfico de Pizza</option>
+                        <option value="doughnut">Gráfico de Rosca</option>
+                        <option value="radar">Gráfico de Radar</option>
+                        <option value="scatter">Gráfico de Dispersão</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dataSource">Fonte de Dados:</label>
+                    <select id="dataSource" required>
+                        <option value="">Selecione uma fonte...</option>
+                        <option value="revenue_by_company">Faturamento por Empresa</option>
+                        <option value="revenue_by_product">Faturamento por Produto</option>
+                        <option value="revenue_by_month">Faturamento por Mês</option>
+                        <option value="top_companies">Top 10 Empresas</option>
+                        <option value="top_products">Top 10 Produtos</option>
+                        <option value="monthly_trends">Tendências Mensais</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="chartTitle">Título do Gráfico:</label>
+                    <input type="text" id="chartTitle" placeholder="Ex: Faturamento por Empresa" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="maxItems">Máximo de Itens (opcional):</label>
+                    <input type="number" id="maxItems" min="1" max="50" placeholder="Ex: 10">
+                </div>
+            </form>
+            
+            <div class="modal-actions">
+                <button class="chart-control-btn secondary" id="cancelConfigBtn">Cancelar</button>
+                <button class="chart-control-btn" id="generateChartBtn">📊 Gerar Gráfico</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== CONFIGURAÇÃO INICIAL - CHAVE DA API OPENAI =====
+        const OPENAI_API_KEY = "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";
+
+        // ===== VARIÁVEIS GLOBAIS PARA MEMÓRIA E CONTEXTO =====
+        let conversationHistory = [];
+        let currentContext = '';
+        let analysisCache = {};
+
+        // ===== BASE DE CONHECIMENTO - Dados que o GPT usará para responder =====
+        // SEQUÊNCIA DE EXECUÇÃO: Esta base é carregada primeiro e serve como contexto para o GPT
+        function generateBillingData(N) {
+    const sampleProducts = [
+        "NPK 10-10-10", "NPK 20-20-20", "NPK 15-15-15", "NPK 5-10-15", "NPK 12-12-12",
+        "Ureia 46%", "Sulfato de Amônio", "Nitrato de Amônio", "Fosfato Diamônico",
+        "Superfosfato Triplo", "Cloreto de Potássio", "Sulfato de Potássio",
+        "Nitrato de Cálcio", "Sulfato de Magnésio", "Bórax", "Sulfato de Zinco",
+        "Sulfato de Cobre", "Sulfato de Manganês", "Molibdato de Sódio",
+        "Fertilizante Orgânico", "Composto Orgânico", "Humus de Minhoca",
+        "Torta de Mamona", "Torta de Neem", "Farinha de Ossos",
+        "Farinha de Sangue", "Quitina de Crustáceos", "Algas Marinhas",
+        "Extrato de Peixe", "Biofertilizante", "Micorrizas", "Rizóbios"
+    ];
+
+    const sampleCompanies = [
+        "AgroTech Fertilizantes", "Fertilizantes do Brasil", "AgroQuímica Nacional",
+        "Fertilizantes Verde", "AgroMinerais Ltda", "Fertilizantes Potássio",
+        "AgroNutrientes", "Fertilizantes Orgânicos Brasil", "AgroFertil",
+        "Fertilizantes Nitrogenados", "AgroBio Fertilizantes", "Fertilizantes Micronutrientes",
+        "AgroQuímica Sul", "Fertilizantes do Nordeste", "AgroMinerais Norte",
+        "Fertilizantes Verde Vida", "AgroNutrientes Plus", "Fertilizantes Orgânicos Plus",
+        "AgroFertil Premium", "Fertilizantes Nitrogenados Pro", "AgroBio Fertilizantes Plus",
+        "Fertilizantes Micronutrientes Pro", "AgroQuímica Centro", "Fertilizantes do Centro",
+        "AgroMinerais Leste", "Fertilizantes Verde Nature", "AgroNutrientes Gold",
+        "Fertilizantes Orgânicos Gold", "AgroFertil Elite", "Fertilizantes Nitrogenados Elite"
+    ];
+
+    const billingData = [];
+
+    for (let i = 0; i < N; i++) {
+        const product = sampleProducts[Math.floor(Math.random() * sampleProducts.length)] + ` ${i + 1}`;
+        const company = sampleCompanies[Math.floor(Math.random() * sampleCompanies.length)];
+        const content = Math.floor(Math.random() * 50000) + 5000; // valores entre 5000 e 55000
+        
+        // Generate random date within the last 2 years
+        const startDate = new Date(2022, 0, 1); // January 1, 2022
+        const endDate = new Date(); // Today
+        const randomTime = startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime());
+        const randomDate = new Date(randomTime);
+        
+        // Format date as dd/mm/yyyy
+        const day = String(randomDate.getDate()).padStart(2, '0');
+        const month = String(randomDate.getMonth() + 1).padStart(2, '0');
+        const year = randomDate.getFullYear();
+        const date = `${day}/${month}/${year}`;
+        
+        billingData.push({ product, company, content, date });
+    }
+
+    return billingData;
+}
+
+// Exemplo: gerar 15 registros
+const knowledgeBase = generateBillingData(30);
+
+        // ===== FUNÇÕES INTELIGENTES PARA ANÁLISE DE DADOS =====
+        
+        // Analisa padrões nos dados de faturamento
+        function analyzeBillingPatterns() {
+            const analysis = {
+                totalRevenue: 0,
+                averageRevenue: 0,
+                topCompanies: [],
+                topProducts: [],
+                monthlyTrends: {},
+                revenueByCompany: {},
+                revenueByProduct: {},
+                growthRate: 0,
+                seasonalPatterns: {}
+            };
+
+            knowledgeBase.forEach(item => {
+                // Total revenue
+                analysis.totalRevenue += item.content;
+                
+                // Revenue by company
+                if (!analysis.revenueByCompany[item.company]) {
+                    analysis.revenueByCompany[item.company] = 0;
+                }
+                analysis.revenueByCompany[item.company] += item.content;
+                
+                // Revenue by product
+                if (!analysis.revenueByProduct[item.product]) {
+                    analysis.revenueByProduct[item.product] = 0;
+                }
+                analysis.revenueByProduct[item.product] += item.content;
+                
+                // Monthly trends
+                const month = item.date.split('/')[1];
+                if (!analysis.monthlyTrends[month]) {
+                    analysis.monthlyTrends[month] = 0;
+                }
+                analysis.monthlyTrends[month] += item.content;
+                
+                // Seasonal patterns
+                const season = getSeason(parseInt(month));
+                if (!analysis.seasonalPatterns[season]) {
+                    analysis.seasonalPatterns[season] = 0;
+                }
+                analysis.seasonalPatterns[season] += item.content;
+            });
+
+            // Calculate averages and top performers
+            analysis.averageRevenue = analysis.totalRevenue / knowledgeBase.length;
+            
+            // Top 5 companies
+            analysis.topCompanies = Object.entries(analysis.revenueByCompany)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5)
+                .map(([company, revenue]) => ({ company, revenue }));
+            
+            // Top 5 products
+            analysis.topProducts = Object.entries(analysis.revenueByProduct)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5)
+                .map(([product, revenue]) => ({ product, revenue }));
+
+            // Calculate growth rate (simplified)
+            const sortedData = knowledgeBase.sort((a, b) => new Date(a.date.split('/').reverse().join('-')) - new Date(b.date.split('/').reverse().join('-')));
+            if (sortedData.length >= 2) {
+                const firstHalf = sortedData.slice(0, Math.floor(sortedData.length / 2));
+                const secondHalf = sortedData.slice(Math.floor(sortedData.length / 2));
+                const firstHalfRevenue = firstHalf.reduce((sum, item) => sum + item.content, 0);
+                const secondHalfRevenue = secondHalf.reduce((sum, item) => sum + item.content, 0);
+                analysis.growthRate = ((secondHalfRevenue - firstHalfRevenue) / firstHalfRevenue) * 100;
+            }
+
+            return analysis;
+        }
+
+        // Função para determinar a estação do ano
+        function getSeason(month) {
+            if (month >= 3 && month <= 5) return 'Primavera';
+            if (month >= 6 && month <= 8) return 'Verão';
+            if (month >= 9 && month <= 11) return 'Outono';
+            return 'Inverno';
+        }
+
+        // Gera insights inteligentes baseados nos dados
+        function generateInsights() {
+            const analysis = analyzeBillingPatterns();
+            const insights = [];
+
+            // Revenue insights
+            insights.push(`💰 **Faturamento total:** R$ ${analysis.totalRevenue.toLocaleString('pt-BR')}`);
+            insights.push(`📊 **Faturamento médio por transação:** R$ ${analysis.averageRevenue.toLocaleString('pt-BR')}`);
+            
+            // Growth insights
+            if (analysis.growthRate !== 0) {
+                const growthEmoji = analysis.growthRate > 0 ? '📈' : '📉';
+                insights.push(`${growthEmoji} **Taxa de crescimento:** ${analysis.growthRate.toFixed(1)}%`);
+            }
+            
+            // Top company insight
+            if (analysis.topCompanies.length > 0) {
+                const topCompany = analysis.topCompanies[0];
+                insights.push(`🏆 **Empresa líder:** ${topCompany.company} (R$ ${topCompany.revenue.toLocaleString('pt-BR')})`);
+            }
+            
+            // Top product insight
+            if (analysis.topProducts.length > 0) {
+                const topProduct = analysis.topProducts[0];
+                insights.push(`⭐ **Produto mais vendido:** ${topProduct.product} (R$ ${topProduct.revenue.toLocaleString('pt-BR')})`);
+            }
+
+            // Seasonal insights
+            const topSeason = Object.entries(analysis.seasonalPatterns)
+                .sort(([,a], [,b]) => b - a)[0];
+            if (topSeason) {
+                insights.push(`🌱 **Estação mais ativa:** ${topSeason[0]} (R$ ${topSeason[1].toLocaleString('pt-BR')})`);
+            }
+
+            return insights.join('\n');
+        }
+
+        // Função para gerar dicas de visualização
+        function generateVisualizationHints(questionType) {
+            const hints = [];
+            
+            switch (questionType) {
+                case 'TOTAL_REVENUE':
+                    hints.push('💡 **Dica:** Considere criar um gráfico de pizza para mostrar a distribuição por empresa');
+                    hints.push('📊 **Sugestão:** Um gráfico de barras seria ideal para comparar faturamentos');
+                    break;
+                case 'COMPANY_ANALYSIS':
+                    hints.push('📈 **Visualização:** Gráfico de barras horizontais para ranking de empresas');
+                    hints.push('🎯 **Insight:** Considere um gráfico de linha para mostrar evolução temporal');
+                    break;
+                case 'PRODUCT_ANALYSIS':
+                    hints.push('📊 **Recomendação:** Gráfico de barras para produtos mais vendidos');
+                    hints.push('🔍 **Análise:** Treemap seria útil para visualizar hierarquia de produtos');
+                    break;
+                case 'TREND_ANALYSIS':
+                    hints.push('📈 **Ideal:** Gráfico de linha para mostrar tendências ao longo do tempo');
+                    hints.push('📊 **Alternativa:** Gráfico de área para volume de vendas por período');
+                    break;
+            }
+            
+            return hints.join('\n');
+        }
+
+        // Função para detectar o tipo de pergunta do usuário
+        function detectQuestionType(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            // Detecção de solicitações de visualização
+            if (lowerMessage.includes('gráfico') || lowerMessage.includes('chart') || lowerMessage.includes('dashboard') || 
+                lowerMessage.includes('visualização') || lowerMessage.includes('visualization') || lowerMessage.includes('gráfico') ||
+                lowerMessage.includes('barras') || lowerMessage.includes('pizza') || lowerMessage.includes('linha') ||
+                lowerMessage.includes('dispersão') || lowerMessage.includes('radar') || lowerMessage.includes('rosca')) {
+                return 'VISUALIZATION_REQUEST';
+            }
+            
+            if (lowerMessage.includes('total') || lowerMessage.includes('soma') || lowerMessage.includes('faturamento total')) {
+                return 'TOTAL_REVENUE';
+            }
+            if (lowerMessage.includes('média') || lowerMessage.includes('médio') || lowerMessage.includes('average')) {
+                return 'AVERAGE_REVENUE';
+            }
+            if (lowerMessage.includes('empresa') || lowerMessage.includes('company')) {
+                return 'COMPANY_ANALYSIS';
+            }
+            if (lowerMessage.includes('produto') || lowerMessage.includes('product')) {
+                return 'PRODUCT_ANALYSIS';
+            }
+            if (lowerMessage.includes('tendência') || lowerMessage.includes('trend') || lowerMessage.includes('evolução')) {
+                return 'TREND_ANALYSIS';
+            }
+            if (lowerMessage.includes('comparar') || lowerMessage.includes('compare')) {
+                return 'COMPARISON';
+            }
+            if (lowerMessage.includes('recomendação') || lowerMessage.includes('sugestão') || lowerMessage.includes('advice')) {
+                return 'RECOMMENDATION';
+            }
+            
+            return 'GENERAL';
+        }
+
+        // Função para criar contexto inteligente baseado no tipo de pergunta
+        function createSmartContext(questionType) {
+            const analysis = analyzeBillingPatterns();
+            
+            switch (questionType) {
+                case 'VISUALIZATION_REQUEST':
+                    return `Contexto para solicitação de visualização:
+- Dados disponíveis: ${knowledgeBase.length} registros de faturamento
+- Tipos de gráficos suportados: Barras, Linha, Pizza, Rosca, Radar, Dispersão
+- Fontes de dados: Por empresa, por produto, por mês, top performers
+- Capacidades: Gráficos interativos, exportação, configuração personalizada`;
+                
+                case 'TOTAL_REVENUE':
+                    return `Contexto para análise de faturamento total:
+- Faturamento total: R$ ${analysis.totalRevenue.toLocaleString('pt-BR')}
+- Número de transações: ${knowledgeBase.length}
+- Período analisado: ${knowledgeBase.length} registros de faturamento`;
+                
+                case 'AVERAGE_REVENUE':
+                    return `Contexto para análise de faturamento médio:
+- Faturamento médio por transação: R$ ${analysis.averageRevenue.toLocaleString('pt-BR')}
+- Faturamento total: R$ ${analysis.totalRevenue.toLocaleString('pt-BR')}
+- Número de transações: ${knowledgeBase.length}`;
+                
+                case 'COMPANY_ANALYSIS':
+                    return `Contexto para análise por empresa:
+${analysis.topCompanies.map((company, index) => 
+    `${index + 1}. ${company.company}: R$ ${company.revenue.toLocaleString('pt-BR')}`
+).join('\n')}`;
+                
+                case 'PRODUCT_ANALYSIS':
+                    return `Contexto para análise por produto:
+${analysis.topProducts.map((product, index) => 
+    `${index + 1}. ${product.product}: R$ ${product.revenue.toLocaleString('pt-BR')}`
+).join('\n')}`;
+                
+                case 'TREND_ANALYSIS':
+                    return `Contexto para análise de tendências:
+${Object.entries(analysis.monthlyTrends).map(([month, revenue]) => 
+    `Mês ${month}: R$ ${revenue.toLocaleString('pt-BR')}`
+).join('\n')}`;
+                
+                default:
+                    return `Contexto geral da base de conhecimento:
+- Total de registros: ${knowledgeBase.length}
+- Faturamento total: R$ ${analysis.totalRevenue.toLocaleString('pt-BR')}
+- Faturamento médio: R$ ${analysis.averageRevenue.toLocaleString('pt-BR')}
+- Principais empresas: ${analysis.topCompanies.slice(0, 3).map(c => c.company).join(', ')}
+- Principais produtos: ${analysis.topProducts.slice(0, 3).map(p => p.product).join(', ')}`;
+            }
+        }
+
+        // ===== ELEMENTOS DO DOM - Referências aos elementos HTML =====
+        // SEQUÊNCIA DE EXECUÇÃO: Estes elementos são obtidos após o carregamento da página
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const statusDiv = document.getElementById('status');
+        const knowledgeContent = document.getElementById('knowledgeContent');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const suggestionsDiv = document.getElementById('suggestions');
+
+        // ===== ELEMENTOS DO DASHBOARD =====
+        const dashboardContainer = document.getElementById('dashboardContainer');
+        const chartCanvas = document.getElementById('chartCanvas');
+        const chartLoading = document.getElementById('chartLoading');
+        const chartInfo = document.getElementById('chartInfo');
+        const exportOptions = document.getElementById('exportOptions');
+        const chartModal = document.getElementById('chartModal');
+        const chartConfigForm = document.getElementById('chartConfigForm');
+        const chartType = document.getElementById('chartType');
+        const dataSource = document.getElementById('dataSource');
+        const chartTitle = document.getElementById('chartTitle');
+        const maxItems = document.getElementById('maxItems');
+        const configureChartBtn = document.getElementById('configureChartBtn');
+        const exportChartBtn = document.getElementById('exportChartBtn');
+        const hideDashboardBtn = document.getElementById('hideDashboardBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelConfigBtn = document.getElementById('cancelConfigBtn');
+        const generateChartBtn = document.getElementById('generateChartBtn');
+
+        // ===== VARIÁVEIS GLOBAIS PARA DASHBOARD =====
+        let currentChart = null;
+        let chartConfig = {
+            type: 'bar',
+            dataSource: 'revenue_by_company',
+            title: 'Faturamento por Empresa',
+            maxItems: 10
+        };
+
+        // ===== FUNÇÃO DE INICIALIZAÇÃO - Configura a aplicação =====
+        // SEQUÊNCIA DE EXECUÇÃO: 1ª função executada quando a página carrega
+        function init() {
+            console.log('🔧 Inicializando aplicação inteligente...');
+            
+            // Verificar se Chart.js está carregado
+            if (typeof Chart === 'undefined') {
+                console.error('❌ Chart.js não está carregado!');
+                showStatus('Erro: Chart.js não está disponível', 'error');
+            } else {
+                console.log('✅ Chart.js carregado com sucesso');
+            }
+            
+            displayKnowledgeBase(); // 2ª função executada
+            setupEventListeners();   // 3ª função executada
+            setupDashboardEvents();  // 3.5ª função executada
+            initializeSmartFeatures(); // 4ª função executada
+            
+            // Testar geração de gráfico após um pequeno delay
+            setTimeout(() => {
+                debugChartSystem();
+                testChartGeneration();
+                // Mostrar dashboard por padrão para facilitar testes
+                showDashboard();
+            }, 1000);
+            
+            showStatus('Smart GPT Chat ready! 🤖', 'success'); // 5ª função executada
+        }
+
+        // ===== FUNÇÃO PARA INICIALIZAR RECURSOS INTELIGENTES =====
+        function initializeSmartFeatures() {
+            console.log('🧠 Inicializando recursos inteligentes...');
+            
+            // Pré-analisa os dados para cache
+            analysisCache = analyzeBillingPatterns();
+            
+            // Adiciona insights iniciais
+            const insights = generateInsights();
+            addMessage(`💡 **Insights Automáticos:**\n${insights}`, false);
+            
+            console.log('✅ Recursos inteligentes inicializados');
+        }
+
+        // ===== FUNÇÃO PARA EXIBIR A BASE DE CONHECIMENTO =====
+        // SEQUÊNCIA DE EXECUÇÃO: Executada durante a inicialização
+        function displayKnowledgeBase() {
+            console.log('📚 Exibindo base de conhecimento...');
+            
+            // Cria HTML para a tabela da base de conhecimento
+            knowledgeContent.innerHTML = `
+                <table class="knowledge-table">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Empresa</th>
+                            <th>Date</th>
+                            <th>Faturamento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${knowledgeBase.map(item => `
+                            <tr>
+                                <td>${item.product}</td>
+                                <td>${item.company}</td>
+                                <td>${item.date}</td>
+                                <td>R$ ${item.content.toLocaleString('pt-BR')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            console.log(`✅ Base de conhecimento exibida em tabela com ${knowledgeBase.length} itens`);
+        }
+
+        // ===== FUNÇÃO PARA CONFIGURAR EVENTOS =====
+        // SEQUÊNCIA DE EXECUÇÃO: Executada durante a inicialização
+        function setupEventListeners() {
+            console.log('🎧 Configurando eventos...');
+            
+            // Evento de clique no botão de enviar
+            sendButton.addEventListener('click', sendMessage);
+            
+            // Evento de tecla Enter no campo de texto
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Evento de clique no botão de limpar chat
+            clearChatBtn.addEventListener('click', clearChat);
+            
+            console.log('✅ Eventos configurados com sucesso');
+        }
+
+        // ===== FUNÇÃO PARA CONFIGURAR EVENTOS DO DASHBOARD =====
+        function setupDashboardEvents() {
+            console.log('📊 Configurando eventos do dashboard...');
+            
+            // Eventos dos botões do dashboard
+            configureChartBtn.addEventListener('click', showChartModal);
+            document.getElementById('testChartBtn').addEventListener('click', () => {
+                console.log('🧪 Teste manual solicitado');
+                testChartGeneration();
+            });
+            document.getElementById('debugBtn').addEventListener('click', () => {
+                console.log('🔍 Debug manual solicitado');
+                debugChartSystem();
+            });
+            exportChartBtn.addEventListener('click', toggleExportOptions);
+            hideDashboardBtn.addEventListener('click', hideDashboard);
+            
+            // Eventos do modal
+            closeModalBtn.addEventListener('click', hideChartModal);
+            cancelConfigBtn.addEventListener('click', hideChartModal);
+            generateChartBtn.addEventListener('click', generateChart);
+            
+            // Evento para fechar modal clicando fora
+            chartModal.addEventListener('click', (e) => {
+                if (e.target === chartModal) {
+                    hideChartModal();
+                }
+            });
+            
+            // Eventos de formulário
+            chartType.addEventListener('change', updateChartConfig);
+            dataSource.addEventListener('change', updateChartConfig);
+            chartTitle.addEventListener('input', updateChartConfig);
+            maxItems.addEventListener('input', updateChartConfig);
+            
+            console.log('✅ Eventos do dashboard configurados');
+        }
+
+        // Função para limpar o histórico da conversa
+        function clearChat() {
+            conversationHistory = [];
+            chatMessages.innerHTML = ''; // Limpa as mensagens do chat
+            addMessage('Histórico de conversa limpo!', false);
+            showStatus('Chat history cleared! 🧹', 'success');
+        }
+
+        // ===== FUNÇÃO PARA MOSTRAR MENSAGENS DE STATUS =====
+        // SEQUÊNCIA DE EXECUÇÃO: Chamada quando há sucesso ou erro
+        function showStatus(message, type) {
+            console.log(`📢 Status: ${message} (${type})`);
+            
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            
+            // Remove a mensagem após 5 segundos
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        // ===== FUNÇÃO PARA ADICIONAR MENSAGENS AO CHAT =====
+        // SEQUÊNCIA DE EXECUÇÃO: Chamada sempre que uma mensagem é enviada ou recebida
+        function addMessage(content, isUser = false) {
+            console.log(`💬 Adicionando mensagem: ${isUser ? 'Usuário' : 'Bot'}`);
+            
+            // Cria um novo elemento div para a mensagem
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            // Suporte a markdown básico para formatação
+            if (!isUser) {
+                content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                content = content.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                content = content.replace(/```(.*?)```/g, '<code>$1</code>');
+                content = content.replace(/\n/g, '<br>');
+                messageDiv.innerHTML = content;
+            } else {
+                messageDiv.textContent = content;
+            }
+            
+            // Adiciona a mensagem ao chat
+            chatMessages.appendChild(messageDiv);
+            
+            // Rola para a última mensagem
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            console.log('✅ Mensagem adicionada com sucesso');
+        }
+
+        // Função para adicionar sugestões inteligentes
+        function addSuggestions(suggestions) {
+            suggestionsDiv.innerHTML = ''; // Limpa sugestões anteriores
+            suggestions.forEach(suggestion => {
+                const btn = document.createElement('button');
+                btn.className = 'suggestion-btn';
+                btn.textContent = suggestion;
+                btn.addEventListener('click', () => {
+                    messageInput.value = messageInput.value + ' ' + suggestion;
+                    sendMessage();
+                });
+                suggestionsDiv.appendChild(btn);
+            });
+            suggestionsDiv.style.display = 'block'; // Mostra as sugestões
+        }
+
+        // Função para esconder sugestões
+        function hideSuggestions() {
+            suggestionsDiv.style.display = 'none';
+        }
+
+        // Função para mostrar sugestões inteligentes
+        function showSmartSuggestions(questionType) {
+            hideSuggestions(); // Esconde sugestões anteriores
+            let suggestions = [];
+            switch (questionType) {
+                case 'TOTAL_REVENUE':
+                    suggestions = ['Faturamento total', 'Soma de faturamento', 'Valor total de vendas'];
+                    break;
+                case 'AVERAGE_REVENUE':
+                    suggestions = ['Faturamento médio', 'Média de faturamento', 'Valor médio por transação'];
+                    break;
+                case 'COMPANY_ANALYSIS':
+                    suggestions = ['Empresa com maior faturamento', 'Quem vendeu mais', 'Empresa líder'];
+                    break;
+                case 'PRODUCT_ANALYSIS':
+                    suggestions = ['Produto mais vendido', 'Qual produto mais vendeu', 'Item mais vendido'];
+                    break;
+                case 'TREND_ANALYSIS':
+                    suggestions = ['Tendência de faturamento', 'Evolução do faturamento', 'Crescimento mensal'];
+                    break;
+                case 'COMPARISON':
+                    suggestions = ['Comparar faturamento', 'Comparar vendas', 'Faturamento de outras empresas'];
+                    break;
+                case 'RECOMMENDATION':
+                    suggestions = ['Recomendação de produto', 'Sugestão de fertilizante', 'Dica de investimento'];
+                    break;
+                default:
+                    suggestions = ['Como posso ajudar?', 'Pergunte sobre faturamento', 'Fale sobre vendas'];
+            }
+            addSuggestions(suggestions);
+        }
+
+        // Função para detectar o tipo de pergunta do usuário
+        function detectQuestionType(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            if (lowerMessage.includes('total') || lowerMessage.includes('soma') || lowerMessage.includes('faturamento total')) {
+                return 'TOTAL_REVENUE';
+            }
+            if (lowerMessage.includes('média') || lowerMessage.includes('médio') || lowerMessage.includes('average')) {
+                return 'AVERAGE_REVENUE';
+            }
+            if (lowerMessage.includes('empresa') || lowerMessage.includes('company')) {
+                return 'COMPANY_ANALYSIS';
+            }
+            if (lowerMessage.includes('produto') || lowerMessage.includes('product')) {
+                return 'PRODUCT_ANALYSIS';
+            }
+            if (lowerMessage.includes('tendência') || lowerMessage.includes('trend') || lowerMessage.includes('evolução')) {
+                return 'TREND_ANALYSIS';
+            }
+            if (lowerMessage.includes('comparar') || lowerMessage.includes('compare')) {
+                return 'COMPARISON';
+            }
+            if (lowerMessage.includes('recomendação') || lowerMessage.includes('sugestão') || lowerMessage.includes('advice')) {
+                return 'RECOMMENDATION';
+            }
+            
+            return 'GENERAL';
+        }
+
+        // Função para criar contexto inteligente baseado no tipo de pergunta
+        function createSmartContext(questionType) {
+            const analysis = analyzeBillingPatterns();
+            
+            switch (questionType) {
+                case 'TOTAL_REVENUE':
+                    return `Contexto para análise de faturamento total:
+- Faturamento total: R$ ${analysis.totalRevenue.toLocaleString('pt-BR')}
+- Número de transações: ${knowledgeBase.length}
+- Período analisado: ${knowledgeBase.length} registros de faturamento`;
+                
+                case 'AVERAGE_REVENUE':
+                    return `Contexto para análise de faturamento médio:
+- Faturamento médio por transação: R$ ${analysis.averageRevenue.toLocaleString('pt-BR')}
+- Faturamento total: R$ ${analysis.totalRevenue.toLocaleString('pt-BR')}
+- Número de transações: ${knowledgeBase.length}`;
+                
+                case 'COMPANY_ANALYSIS':
+                    return `Contexto para análise por empresa:
+${analysis.topCompanies.map((company, index) => 
+    `${index + 1}. ${company.company}: R$ ${company.revenue.toLocaleString('pt-BR')}`
+).join('\n')}`;
+                
+                case 'PRODUCT_ANALYSIS':
+                    return `Contexto para análise por produto:
+${analysis.topProducts.map((product, index) => 
+    `${index + 1}. ${product.product}: R$ ${product.revenue.toLocaleString('pt-BR')}`
+).join('\n')}`;
+                
+                case 'TREND_ANALYSIS':
+                    return `Contexto para análise de tendências:
+${Object.entries(analysis.monthlyTrends).map(([month, revenue]) => 
+    `Mês ${month}: R$ ${revenue.toLocaleString('pt-BR')}`
+).join('\n')}`;
+                
+                default:
+                    return `Contexto geral da base de conhecimento:
+- Total de registros: ${knowledgeBase.length}
+- Faturamento total: R$ ${analysis.totalRevenue.toLocaleString('pt-BR')}
+- Faturamento médio: R$ ${analysis.averageRevenue.toLocaleString('pt-BR')}
+- Principais empresas: ${analysis.topCompanies.slice(0, 3).map(c => c.company).join(', ')}
+- Principais produtos: ${analysis.topProducts.slice(0, 3).map(p => p.product).join(', ')}`;
+            }
+        }
+
+        // ===== FUNÇÃO PRINCIPAL PARA ENVIAR MENSAGENS =====
+        // SEQUÊNCIA DE EXECUÇÃO: Executada quando o usuário envia uma mensagem
+        async function sendMessage() {
+            console.log('🚀 Iniciando envio de mensagem inteligente...');
+            
+            // Obtém a mensagem do campo de texto
+            const message = messageInput.value.trim();
+            if (!message) {
+                console.log('⚠️ Mensagem vazia, ignorando...');
+                return;
+            }
+
+            // SEQUÊNCIA DE EXECUÇÃO: Passo 1 - Adiciona mensagem do usuário ao chat
+            addMessage(message, true);
+            messageInput.value = '';
+
+            // Adiciona à memória da conversa
+            conversationHistory.push({ role: 'user', content: message });
+
+            // Detect visualization request
+            const questionType = detectQuestionType(message);
+            if (questionType === 'VISUALIZATION_REQUEST' || detectVisualizationRequest(message)) {
+                // Process visualization request and show dashboard
+                const botResponse = processVisualizationRequest(message);
+                conversationHistory.push({ role: 'assistant', content: botResponse });
+                addMessage(botResponse, false);
+                showStatus('Dashboard gerado automaticamente! 📊', 'success');
+                addFollowUpSuggestions('VISUALIZATION_REQUEST', botResponse);
+                return;
+            }
+
+            // SEQUÊNCIA DE EXECUÇÃO: Passo 2 - Desabilita interface durante processamento
+            sendButton.disabled = true;
+            messageInput.disabled = true;
+            sendButton.innerHTML = '<div class="loading"></div>';
+
+            try {
+                console.log('🧠 Analisando tipo de pergunta...');
+                
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 3 - Detecta tipo de pergunta e cria contexto inteligente
+                const smartContext = createSmartContext(questionType);
+                
+                console.log(`📊 Tipo de pergunta detectado: ${questionType}`);
+                console.log('🔄 Preparando contexto inteligente para GPT...');
+                
+                // Mostra sugestões inteligentes baseadas no tipo de pergunta
+                showSmartSuggestions(questionType);
+                
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 4 - Cria contexto a partir da base de conhecimento
+                const context = knowledgeBase.map(item => 
+                    `${item.product} (${item.company}) - ${item.date}: R$ ${item.content.toLocaleString('pt-BR')}`
+                ).join('\n\n');
+
+                // Cria mensagens para o GPT com histórico da conversa
+                const messages = [
+                    {
+                        role: 'system',
+                        content: `Você é um assistente AI especializado em análise de dados de faturamento, com acesso a uma base de conhecimento detalhada. Você é inteligente, preciso e sempre fornece insights valiosos.
+
+CAPACIDADES ESPECIAIS:
+- Análise quantitativa e qualitativa de dados
+- Identificação de padrões e tendências
+- Recomendações baseadas em dados
+- Explicações claras e acessíveis
+- Respostas contextualizadas
+- Sugestões práticas e acionáveis
+- Dicas de visualização de dados
+
+CONTEXTO INTELIGENTE ATUAL:
+${smartContext}
+
+BASE DE CONHECIMENTO COMPLETA:
+${context}
+
+DICAS DE VISUALIZAÇÃO:
+${generateVisualizationHints(questionType)}
+
+DIRETRIZES DE RESPOSTA:
+1. Sempre use os dados fornecidos como base principal
+2. Forneça análises quantitativas quando relevante
+3. Identifique padrões e tendências interessantes
+4. Ofereça insights práticos e acionáveis
+5. Use linguagem clara e profissional
+6. Seja específico com números e valores
+7. Sugira ações baseadas nos dados quando apropriado
+8. Use formatação markdown para destacar informações importantes
+9. Forneça contexto adicional quando relevante
+10. Mantenha consistência com conversas anteriores
+11. Inclua dicas de visualização quando apropriado
+12. Sugira próximos passos de análise
+
+TIPO DE PERGUNTA DETECTADO: ${questionType}
+
+Responda de forma inteligente, precisa e útil. Use **negrito** para destacar valores importantes e *itálico* para conceitos-chave.`
+                    }
+                ];
+
+                // Adiciona histórico da conversa (últimas 10 mensagens para contexto)
+                const recentHistory = conversationHistory.slice(-10);
+                messages.push(...recentHistory);
+
+                console.log('📡 Enviando requisição inteligente para OpenAI...');
+                
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 5 - Faz requisição para a API do OpenAI com retry
+                let response;
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (retryCount < maxRetries) {
+                    try {
+                        response = await fetch('https://api.openai.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${OPENAI_API_KEY}`
+                            },
+                            body: JSON.stringify({
+                                model: 'gpt-3.5-turbo',
+                                messages: messages,
+                                max_tokens: 1000,
+                                temperature: 0.2, // Mais determinístico para análises
+                                presence_penalty: 0.1,
+                                frequency_penalty: 0.1
+                            })
+                        });
+                        break; // Sucesso, sai do loop
+                    } catch (fetchError) {
+                        retryCount++;
+                        console.log(`🔄 Tentativa ${retryCount} falhou, tentando novamente...`);
+                        if (retryCount >= maxRetries) {
+                            throw fetchError;
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Backoff exponencial
+                    }
+                }
+
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 6 - Verifica se a requisição foi bem-sucedida
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP! status: ${response.status}`);
+                }
+
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 7 - Processa a resposta do GPT
+                const data = await response.json();
+                const botResponse = data.choices[0].message.content;
+                
+                console.log('✅ Resposta inteligente recebida do GPT');
+                
+                // Adiciona à memória da conversa
+                conversationHistory.push({ role: 'assistant', content: botResponse });
+                
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 8 - Adiciona resposta do bot ao chat
+                addMessage(botResponse, false);
+                showStatus('Smart response generated! 🧠', 'success');
+
+                // Adiciona sugestões de follow-up baseadas na resposta
+                setTimeout(() => {
+                    addFollowUpSuggestions(questionType, botResponse);
+                }, 1000);
+
+            } catch (error) {
+                // SEQUÊNCIA DE EXECUÇÃO: Tratamento de erro
+                console.error('❌ Erro:', error);
+                addMessage('Desculpe, encontrei um erro ao processar sua solicitação. Tente novamente.', false);
+                showStatus('Error: ' + error.message, 'error');
+            } finally {
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 9 - Reabilita interface
+                console.log('🔄 Reabilitando interface...');
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+                sendButton.textContent = 'Enviar';
+            }
+        }
+
+        // Função para adicionar sugestões de follow-up
+        function addFollowUpSuggestions(questionType, response) {
+            const followUpSuggestions = [];
+            
+            if (questionType === 'VISUALIZATION_REQUEST') {
+                followUpSuggestions.push('Configurar gráfico', 'Exportar visualização', 'Criar dashboard completo');
+            } else if (questionType === 'TOTAL_REVENUE') {
+                followUpSuggestions.push('Comparar com períodos anteriores', 'Analisar por empresa', 'Ver tendências mensais');
+            } else if (questionType === 'COMPANY_ANALYSIS') {
+                followUpSuggestions.push('Ver produtos da empresa', 'Comparar com outras empresas', 'Analisar crescimento');
+            } else if (questionType === 'PRODUCT_ANALYSIS') {
+                followUpSuggestions.push('Ver empresas que vendem este produto', 'Analisar preços', 'Comparar com outros produtos');
+            } else {
+                followUpSuggestions.push('Fazer nova pergunta', 'Ver insights gerais', 'Analisar dados específicos');
+            }
+            
+            if (followUpSuggestions.length > 0) {
+                addSuggestions(followUpSuggestions);
+            }
+        }
+
+        // ===== FUNÇÕES DO DASHBOARD E VISUALIZAÇÕES =====
+
+        // Função para mostrar o modal de configuração
+        function showChartModal() {
+            chartModal.style.display = 'block';
+            // Preencher formulário com configuração atual
+            chartType.value = chartConfig.type;
+            dataSource.value = chartConfig.dataSource;
+            chartTitle.value = chartConfig.title;
+            maxItems.value = chartConfig.maxItems;
+        }
+
+        // Função para esconder o modal
+        function hideChartModal() {
+            chartModal.style.display = 'none';
+        }
+
+        // Função para atualizar configuração do gráfico
+        function updateChartConfig() {
+            chartConfig = {
+                type: chartType.value || 'bar',
+                dataSource: dataSource.value || 'revenue_by_company',
+                title: chartTitle.value || 'Gráfico de Faturamento',
+                maxItems: parseInt(maxItems.value) || 10
+            };
+            console.log('⚙️ Configuração atualizada:', chartConfig);
+        }
+
+        // Função para mostrar dashboard
+        function showDashboard() {
+            dashboardContainer.classList.add('show');
+            showStatus('Dashboard ativado! 📊', 'success');
+        }
+
+        // Função para esconder dashboard
+        function hideDashboard() {
+            dashboardContainer.classList.remove('show');
+            showStatus('Dashboard ocultado', 'success');
+        }
+
+        // Função para alternar opções de exportação
+        function toggleExportOptions() {
+            exportOptions.style.display = exportOptions.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        // Função para gerar dados para o gráfico
+        function generateChartData(dataSource, maxItems = 10) {
+            console.log('📊 Gerando dados para fonte:', dataSource, 'máximo:', maxItems);
+            
+            const analysis = analyzeBillingPatterns();
+            console.log('📈 Análise disponível:', analysis);
+            
+            let chartData = [];
+            
+            switch (dataSource) {
+                case 'revenue_by_company':
+                    chartData = Object.entries(analysis.revenueByCompany)
+                        .sort(([,a], [,b]) => b - a)
+                        .slice(0, maxItems)
+                        .map(([company, revenue]) => ({
+                            label: company,
+                            value: revenue,
+                            color: getRandomColor()
+                        }));
+                    break;
+                
+                case 'revenue_by_product':
+                    chartData = Object.entries(analysis.revenueByProduct)
+                        .sort(([,a], [,b]) => b - a)
+                        .slice(0, maxItems)
+                        .map(([product, revenue]) => ({
+                            label: product,
+                            value: revenue,
+                            color: getRandomColor()
+                        }));
+                    break;
+                
+                case 'revenue_by_month':
+                    chartData = Object.entries(analysis.monthlyTrends)
+                        .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                        .map(([month, revenue]) => ({
+                            label: `Mês ${month}`,
+                            value: revenue,
+                            color: getRandomColor()
+                        }));
+                    break;
+                
+                case 'top_companies':
+                    chartData = analysis.topCompanies
+                        .slice(0, maxItems)
+                        .map((company, index) => ({
+                            label: company.company,
+                            value: company.revenue,
+                            color: getRandomColor()
+                        }));
+                    break;
+                
+                case 'top_products':
+                    chartData = analysis.topProducts
+                        .slice(0, maxItems)
+                        .map((product, index) => ({
+                            label: product.product,
+                            value: product.revenue,
+                            color: getRandomColor()
+                        }));
+                    break;
+                
+                case 'monthly_trends':
+                    chartData = Object.entries(analysis.monthlyTrends)
+                        .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                        .map(([month, revenue]) => ({
+                            label: `Mês ${month}`,
+                            value: revenue,
+                            color: getRandomColor()
+                        }));
+                    break;
+                
+                default:
+                    console.warn('⚠️ Fonte de dados desconhecida:', dataSource);
+                    chartData = [];
+            }
+            
+            console.log('📊 Dados gerados:', chartData);
+            return chartData;
+        }
+
+        // Função para gerar cores aleatórias
+        function getRandomColor() {
+            const colors = [
+                '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336',
+                '#00BCD4', '#FF5722', '#795548', '#607D8B', '#E91E63',
+                '#3F51B5', '#009688', '#FFEB3B', '#673AB7', '#FFC107'
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Função para gerar o gráfico
+        function generateChart() {
+            console.log('📊 Iniciando geração de gráfico...');
+            
+            updateChartConfig();
+            
+            if (!chartConfig.type || !chartConfig.dataSource || !chartConfig.title) {
+                showStatus('Por favor, preencha todos os campos obrigatórios', 'error');
+                return;
+            }
+
+            console.log('⚙️ Configuração do gráfico:', chartConfig);
+
+            hideChartModal();
+            showDashboard();
+            
+            // Mostrar loading
+            chartLoading.style.display = 'block';
+            chartCanvas.style.display = 'none';
+            chartInfo.style.display = 'block';
+            
+            setTimeout(() => {
+                try {
+                    const chartData = generateChartData(chartConfig.dataSource, chartConfig.maxItems);
+                    
+                    console.log('📈 Dados gerados:', chartData);
+                    
+                    if (chartData.length === 0) {
+                        showStatus('Nenhum dado encontrado para a fonte selecionada', 'error');
+                        chartLoading.style.display = 'none';
+                        return;
+                    }
+
+                    // Destruir gráfico anterior se existir
+                    if (currentChart) {
+                        currentChart.destroy();
+                    }
+
+                    // Verificar se Chart.js está disponível
+                    if (typeof Chart === 'undefined') {
+                        showStatus('Erro: Chart.js não está carregado', 'error');
+                        chartLoading.style.display = 'none';
+                        return;
+                    }
+
+                    // Garantir que o canvas está visível e com tamanho adequado
+                    chartCanvas.style.display = 'block';
+                    chartCanvas.style.width = '100%';
+                    chartCanvas.style.height = '400px';
+                    
+                    // Configurar dados do gráfico
+                    const ctx = chartCanvas.getContext('2d');
+                    if (!ctx) {
+                        throw new Error('Não foi possível obter o contexto 2D do canvas');
+                    }
+                    
+                    const labels = chartData.map(item => item.label);
+                    const data = chartData.map(item => item.value);
+                    const colors = chartData.map(item => item.color);
+
+                    console.log('🎨 Configurando gráfico com:', {
+                        type: chartConfig.type,
+                        labels: labels,
+                        data: data,
+                        colors: colors
+                    });
+
+                    // Configuração do gráfico
+                    const isPie = chartConfig.type === 'pie' || chartConfig.type === 'doughnut';
+                    const chartOptions = {
+                        type: chartConfig.type,
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: chartConfig.title,
+                                data: data,
+                                backgroundColor: isPie ? colors : colors,
+                                borderColor: isPie ? colors : colors,
+                                borderWidth: 2,
+                                fill: chartConfig.type === 'line' || chartConfig.type === 'radar',
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: chartConfig.title,
+                                    font: {
+                                        size: 16,
+                                        weight: 'bold'
+                                    },
+                                    color: '#2E7D32'
+                                },
+                                legend: {
+                                    display: isPie,
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 20,
+                                        usePointStyle: true
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0,0,0,0.8)',
+                                    titleColor: '#fff',
+                                    bodyColor: '#fff',
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.parsed.y !== undefined ? context.parsed.y : context.parsed;
+                                            return `${context.label}: R$ ${value.toLocaleString('pt-BR')}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: !isPie ? {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.1)'
+                                    },
+                                    ticks: {
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toLocaleString('pt-BR');
+                                        }
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.1)'
+                                    }
+                                }
+                            } : {}
+                        }
+                    };
+
+                    // Criar novo gráfico
+                    currentChart = new Chart(ctx, chartOptions);
+                    
+                    console.log('✅ Gráfico criado com sucesso');
+                    
+                    // Esconder loading
+                    chartLoading.style.display = 'none';
+                    chartCanvas.style.display = 'block';
+                    chartInfo.style.display = 'block';
+                    
+                    // Forçar redimensionamento do gráfico
+                    setTimeout(() => {
+                        if (currentChart) {
+                            currentChart.resize();
+                        }
+                    }, 100);
+                    
+                    // Atualizar informações do gráfico
+                    updateChartInfo(chartData);
+                    
+                    showStatus('Gráfico gerado com sucesso! 📊', 'success');
+                } catch (error) {
+                    console.error('❌ Erro ao gerar gráfico:', error);
+                    showStatus('Erro ao gerar gráfico: ' + error.message, 'error');
+                    chartLoading.style.display = 'none';
+                }
+            }, 1000);
+        }
+
+        // Função para atualizar informações do gráfico
+        function updateChartInfo(chartData) {
+            const totalValue = chartData.reduce((sum, item) => sum + item.value, 0);
+            const averageValue = totalValue / chartData.length;
+            const maxValue = Math.max(...chartData.map(item => item.value));
+            const minValue = Math.min(...chartData.map(item => item.value));
+
+            chartInfo.innerHTML = `
+                <h4>📈 Informações do Gráfico</h4>
+                <p><strong>Total:</strong> R$ ${totalValue.toLocaleString('pt-BR')} | 
+                <strong>Média:</strong> R$ ${averageValue.toLocaleString('pt-BR')} | 
+                <strong>Máximo:</strong> R$ ${maxValue.toLocaleString('pt-BR')} | 
+                <strong>Mínimo:</strong> R$ ${minValue.toLocaleString('pt-BR')}</p>
+            `;
+        }
+
+        // Função para exportar gráfico
+        function exportChart(format) {
+            if (!currentChart) {
+                showStatus('Nenhum gráfico para exportar', 'error');
+                return;
+            }
+
+            const canvas = chartCanvas;
+            let dataURL;
+
+            switch (format) {
+                case 'png':
+                    dataURL = canvas.toDataURL('image/png');
+                    break;
+                case 'jpg':
+                    dataURL = canvas.toDataURL('image/jpeg', 0.8);
+                    break;
+                case 'svg':
+                    // Para SVG, precisaríamos de uma biblioteca adicional
+                    showStatus('Exportação SVG em desenvolvimento', 'error');
+                    return;
+                case 'pdf':
+                    // Para PDF, precisaríamos de uma biblioteca adicional
+                    showStatus('Exportação PDF em desenvolvimento', 'error');
+                    return;
+                default:
+                    showStatus('Formato não suportado', 'error');
+                    return;
+            }
+
+            // Criar link de download
+            const link = document.createElement('a');
+            link.download = `grafico_${chartConfig.title.replace(/[^a-zA-Z0-9]/g, '_')}.${format}`;
+            link.href = dataURL;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showStatus(`Gráfico exportado como ${format.toUpperCase()}! 📥`, 'success');
+        }
+
+        // Função para detectar solicitações de visualização na mensagem
+        function detectVisualizationRequest(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            // Palavras-chave para detecção de solicitações de visualização
+            const visualizationKeywords = [
+                'gráfico', 'chart', 'dashboard', 'visualização', 'visualization',
+                'barras', 'pizza', 'linha', 'dispersão', 'radar', 'rosca',
+                'gráfico de', 'chart of', 'mostrar', 'criar', 'gerar'
+            ];
+            
+            return visualizationKeywords.some(keyword => lowerMessage.includes(keyword));
+        }
+
+        // Função para processar solicitações de visualização
+        function processVisualizationRequest(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            // Detectar tipo de gráfico solicitado
+            let suggestedType = 'bar';
+            if (lowerMessage.includes('pizza') || lowerMessage.includes('pie')) {
+                suggestedType = 'pie';
+            } else if (lowerMessage.includes('linha') || lowerMessage.includes('line')) {
+                suggestedType = 'line';
+            } else if (lowerMessage.includes('rosca') || lowerMessage.includes('doughnut')) {
+                suggestedType = 'doughnut';
+            } else if (lowerMessage.includes('radar')) {
+                suggestedType = 'radar';
+            } else if (lowerMessage.includes('dispersão') || lowerMessage.includes('scatter')) {
+                suggestedType = 'scatter';
+            }
+            
+            // Detectar fonte de dados
+            let suggestedDataSource = 'revenue_by_company';
+            if (lowerMessage.includes('produto') || lowerMessage.includes('product')) {
+                suggestedDataSource = 'revenue_by_product';
+            } else if (lowerMessage.includes('mês') || lowerMessage.includes('month')) {
+                suggestedDataSource = 'revenue_by_month';
+            } else if (lowerMessage.includes('top') || lowerMessage.includes('melhor')) {
+                if (lowerMessage.includes('empresa') || lowerMessage.includes('company')) {
+                    suggestedDataSource = 'top_companies';
+                } else {
+                    suggestedDataSource = 'top_products';
+                }
+            }
+            
+            // Configurar e mostrar dashboard
+            chartConfig = {
+                type: suggestedType,
+                dataSource: suggestedDataSource,
+                title: `Gráfico de ${suggestedDataSource.replace(/_/g, ' ')}`,
+                maxItems: 10
+            };
+            
+            showDashboard();
+            generateChart();
+            
+            return `Perfeito! Criei um gráfico de ${suggestedType} baseado em ${suggestedDataSource.replace(/_/g, ' ')}. 
+            Você pode configurar mais opções clicando no botão "⚙️ Configurar" no dashboard.`;
+        }
+
+        // ===== FUNÇÃO DE TESTE PARA VERIFICAR GRÁFICOS =====
+        function testChartGeneration() {
+            console.log('🧪 Testando geração de gráfico...');
+            
+            if (typeof Chart === 'undefined') {
+                console.error('❌ Chart.js não disponível para teste');
+                return false;
+            }
+            
+            // Garantir que o canvas está visível para o teste
+            chartCanvas.style.display = 'block';
+            chartLoading.style.display = 'none';
+            
+            // Teste simples com dados mock
+            const testData = [
+                { label: 'Teste 1', value: 100, color: '#4CAF50' },
+                { label: 'Teste 2', value: 200, color: '#2196F3' },
+                { label: 'Teste 3', value: 150, color: '#FF9800' }
+            ];
+            
+            const ctx = chartCanvas.getContext('2d');
+            if (!ctx) {
+                console.error('❌ Não foi possível obter o contexto 2D do canvas');
+                return false;
+            }
+            const testChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: testData.map(item => item.label),
+                    datasets: [{
+                        label: 'Teste',
+                        data: testData.map(item => item.value),
+                        backgroundColor: testData.map(item => item.color)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            console.log('✅ Teste de gráfico bem-sucedido');
+            
+            // Manter o gráfico visível por alguns segundos para verificação
+            setTimeout(() => {
+                testChart.destroy();
+                console.log('🧹 Gráfico de teste destruído');
+            }, 3000);
+            
+            return true;
+        }
+
+        // ===== FUNÇÃO DE DEBUGGING =====
+        function debugChartSystem() {
+            console.log('🔍 Debugging do sistema de gráficos...');
+            console.log('Chart.js disponível:', typeof Chart !== 'undefined');
+            console.log('Canvas disponível:', !!chartCanvas);
+            console.log('Canvas context:', !!chartCanvas?.getContext('2d'));
+            console.log('Dashboard container:', !!dashboardContainer);
+            console.log('Chart loading:', !!chartLoading);
+            console.log('Chart config:', chartConfig);
+            console.log('Current chart:', !!currentChart);
+        }
+
+        // ===== INICIALIZAÇÃO DA APLICAÇÃO =====
+        // SEQUÊNCIA DE EXECUÇÃO: Este evento é disparado quando o DOM está completamente carregado
+        document.addEventListener('DOMContentLoaded', init);
+        
+        console.log('🎯 Script carregado, aguardando inicialização...');
+    </script>
+</body>
+</html>
+
+

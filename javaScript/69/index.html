@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevConnect - Developer-Requester Platform</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="page active">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>DevConnect</h1>
+                <p>Connect developers with project requests</p>
+            </div>
+            
+            <div class="login-form">
+                <div class="user-type-selector">
+                    <h3>Select Your Role</h3>
+                    <div class="role-buttons">
+                        <button class="role-btn" data-role="requester">
+                            <span class="role-icon">📋</span>
+                            <span class="role-text">Requester</span>
+                            <span class="role-desc">Create development requests</span>
+                        </button>
+                        <button class="role-btn" data-role="developer">
+                            <span class="role-icon">💻</span>
+                            <span class="role-text">Developer</span>
+                            <span class="role-desc">Accept and complete tasks</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboardPage" class="page">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2>DevConnect</h2>
+            </div>
+            <div class="nav-user">
+                <span id="userInfo"></span>
+                <button id="logoutBtn" class="btn-secondary">Logout</button>
+            </div>
+        </nav>
+
+        <div class="dashboard-container">
+            <!-- Requester Dashboard -->
+            <div id="requesterDashboard" class="dashboard-section">
+                <div class="dashboard-header">
+                    <h2>Requester Dashboard</h2>
+                    <button id="newRequestBtn" class="btn-primary">+ New Request</button>
+                </div>
+                
+                <div class="dashboard-content">
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <h3 id="pendingCount">0</h3>
+                            <p>Pending</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="inProgressCount">0</h3>
+                            <p>In Progress</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="completedCount">0</h3>
+                            <p>Completed</p>
+                        </div>
+                    </div>
+                    
+                    <div class="requests-section">
+                        <h3>My Requests</h3>
+                        <div id="requesterRequests" class="requests-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Developer Dashboard -->
+            <div id="developerDashboard" class="dashboard-section">
+                <div class="dashboard-header">
+                    <h2>Developer Dashboard</h2>
+                    <div class="dashboard-tabs">
+                        <button class="tab-btn active" data-tab="available">Available Requests</button>
+                        <button class="tab-btn" data-tab="my-tasks">My Tasks</button>
+                    </div>
+                </div>
+                
+                <div class="dashboard-content">
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <h3 id="availableCount">0</h3>
+                            <p>Available</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="myTasksCount">0</h3>
+                            <p>My Tasks</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="completedTasksCount">0</h3>
+                            <p>Completed</p>
+                        </div>
+                    </div>
+                    
+                    <div id="availableRequests" class="requests-section active">
+                        <h3>Available Requests</h3>
+                        <div id="availableRequestsList" class="requests-list"></div>
+                    </div>
+                    
+                    <div id="myTasks" class="requests-section">
+                        <h3>My Tasks</h3>
+                        <div id="myTasksList" class="requests-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Request Modal -->
+    <div id="newRequestModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Request</h3>
+                <button class="close-btn" id="closeRequestModal">&times;</button>
+            </div>
+            <form id="newRequestForm">
+                <div class="form-group">
+                    <label for="requestTitle">Title</label>
+                    <input type="text" id="requestTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="requestDescription">Description</label>
+                    <textarea id="requestDescription" rows="4" required></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="urgencyLevel">Urgency Level</label>
+                        <select id="urgencyLevel" required>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="deadline">Desired Deadline</label>
+                        <input type="date" id="deadline" required>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="cancelRequest">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Request Details Modal -->
+    <div id="requestDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="requestDetailsTitle">Request Details</h3>
+                <button class="close-btn" id="closeDetailsModal">&times;</button>
+            </div>
+            <div id="requestDetailsContent"></div>
+            <div class="modal-actions" id="requestDetailsActions"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

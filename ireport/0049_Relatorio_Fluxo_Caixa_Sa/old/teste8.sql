@@ -1,0 +1,198 @@
+SELECT
+    ORDEM,
+    TRUNC(DTVENC) DTVENC,
+    AGRUPADOR,
+    SUM(A_RECEBER_PROV_S)A_RECEBER_PROV_S,
+    SUM(A_RECEBER_PROV_N)A_RECEBER_PROV_N,
+    SUM(A_PAGAR_PROV_S)A_PAGAR_PROV_S,
+    SUM(A_PAGAR_PROV_N)A_PAGAR_PROV_N,
+    SUM(DIFERENCA)DIFERENCA,
+    -- ACUMULADO
+    SUM(
+        SUM(DIFERENCA)+SUM(SALDO_INI)
+    ) OVER (ORDER BY TRUNC(DTVENC) ROWS UNBOUNDED PRECEDING) AS DIFERENCA_ACUMULADA
+FROM (
+    SELECT
+        1 ORDEM,
+        NVL($P{DT_ESCOLHA}, $P{DTINI}) DTVENC,
+        '1-Saldo Inicial' AGRUPADOR,
+        0 A_RECEBER_PROV_S,
+        0 A_RECEBER_PROV_N,
+        0 A_PAGAR_PROV_S,
+        0 A_PAGAR_PROV_N,
+        0 DIFERENCA,
+        sum(CASE WHEN $P{P_CONSID_SALDO} = 1 then saldoreal else 0 end) SALDO_INI,
+        0 RECDESP
+    FROM (
+        -- SALDO REFERÊNCIA
+        SELECT
+            sbc.SALDOREAL
+        FROM tgfsbc sbc
+        LEFT JOIN tsicta cta ON sbc.CODCTABCOINT = cta.CODCTABCOINT
+        WHERE
+            SBC.REFERENCIA = (
+                SELECT MAX(REFERENCIA)
+                FROM TGFSBC T2
+                WHERE T2.CODCTABCOINT = SBC.CODCTABCOINT
+                    AND T2.REFERENCIA <= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
+            )
+            AND cta.CODEMP IS NOT NULL
+            AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+            AND CTA.AD_USAFLUXOCAIXA='S'
+
+        UNION ALL
+
+        -- MOVIMENTAÇÃO SALDO REAL
+        SELECT
+            NVL(MBC.VLRLANC * MBC.RECDESP, 0) AS SALDOREAL
+        FROM TGFMBC MBC
+        LEFT JOIN tsicta cta ON MBC.CODCTABCOINT = cta.CODCTABCOINT
+        WHERE
+            MBC.DTLANC >= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
+            AND MBC.DTLANC <= NVL($P{DT_ESCOLHA}, $P{DTINI})
+            AND cta.CODEMP IS NOT NULL
+            AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+            AND CTA.AD_USAFLUXOCAIXA='S'
+
+        UNION ALL
+
+        -- MOVIMENTAÇÃO SALDO BANCO (IGNORADA NO SOMATÓRIO)
+        SELECT
+            0 AS SALDOREAL
+        FROM TGFMBC MBC
+        LEFT JOIN tsicta cta ON MBC.CODCTABCOINT = cta.CODCTABCOINT
+        WHERE
+            MBC.DTLANC >= TRUNC(NVL($P{DT_ESCOLHA}, $P{DTINI}), 'MM')
+            AND MBC.DTLANC <= NVL($P{DT_ESCOLHA}, $P{DTINI})
+            AND MBC.CONCILIADO = 'S'
+            AND cta.CODEMP IS NOT NULL
+            AND ($P{P_EMPRESA} IS NULL OR cta.CODEMP = $P{P_EMPRESA})
+            AND CTA.AD_USAFLUXOCAIXA='S'
+    )
+
+    UNION ALL
+
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY DTVENC, RECDESP DESC, AGRUPADOR) + 1 AS ORDEM,
+        DTVENC,
+        AGRUPADOR,
+        A_RECEBER_PROV_S,
+        A_RECEBER_PROV_N,
+        A_PAGAR_PROV_S,
+        A_PAGAR_PROV_N,
+        DIFERENCA,
+        0 SALDO_INI,
+        RECDESP
+    FROM (
+        WITH BASE_DADOS AS (
+            SELECT
+                FIN.CODCTABCOINT AS CONTA,
+                FIN.DTVENC,
+                CASE
+                    WHEN FIN.RECDESP = 1 THEN (SELECT CODNAT FROM TGFNAT WHERE CODNAT = FIN.CODNAT)
+                    WHEN FIN.RECDESP = -1 AND $P{P_TPNAT} = 1 THEN (SELECT NAT1.CODNAT FROM TGFNAT NAT INNER JOIN TGFNAT NAT1 ON NAT.CODNATPAI = NAT1.CODNAT WHERE NAT.CODNAT = FIN.CODNAT)
+                    WHEN FIN.RECDESP = -1 AND $P{P_TPNAT} = 0 THEN (SELECT CODNAT FROM TGFNAT WHERE CODNAT = FIN.CODNAT) 
+                END AS CODNAT,
+                CASE
+                    WHEN FIN.RECDESP = 1 THEN (SELECT CODNAT||'-'||DESCRNAT FROM TGFNAT WHERE CODNAT = FIN.CODNAT)
+                    WHEN FIN.RECDESP = -1 AND $P{P_TPNAT} = 1 THEN (SELECT NAT1.CODNAT||'-'||NAT1.DESCRNAT FROM TGFNAT NAT INNER JOIN TGFNAT NAT1 ON NAT.CODNATPAI = NAT1.CODNAT WHERE NAT.CODNAT = FIN.CODNAT)
+                    WHEN FIN.RECDESP = -1 AND $P{P_TPNAT} = 0 THEN (SELECT CODNAT||'-'||DESCRNAT FROM TGFNAT WHERE CODNAT = FIN.CODNAT) 
+                END AS AGRUPADOR,
+                FIN.RECDESP,
+                FIN.PROVISAO,
+                FIN.VLRDESDOB
+            FROM TGFFIN FIN
+            LEFT JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
+            LEFT JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+            WHERE
+                TRUNC(FIN.DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+                AND FIN.DHBAIXA IS NULL
+                AND FIN.RECDESP <> 0
+                AND ($P{P_EMPRESA} IS NULL OR FIN.CODEMP = $P{P_EMPRESA})
+                AND (FIN.NUNOTA IS NULL OR FIN.NUNOTA IN (
+                    SELECT
+                        FIN1.NUNOTA
+                    FROM TGFFIN FIN1
+                    LEFT JOIN TGFCAB CAB ON FIN1.NUNOTA = CAB.NUNOTA
+                    WHERE FIN1.DTVENC BETWEEN $P{DTINI} AND $P{DTFIM}
+                        AND (FIN1.NUNOTA IS NULL OR CAB.STATUSNOTA = 'L')
+                ))
+                AND (
+                    ($P{P_CONSIDERAR_ADTO} = 1)
+                    OR
+                    (NVL($P{P_CONSIDERAR_ADTO},0) = 0 AND FIN.CODNAT NOT IN (6010100,6010200,6010300,6020100,6020200,6020300))
+                )
+                AND (
+                    ($P{P_CONSID_DESP_DEV_VENDA} = 1)
+                    OR
+                    (NVL($P{P_CONSID_DESP_DEV_VENDA},0) = 0 AND FIN.CODNAT NOT IN (1020000))
+                )
+
+            UNION ALL
+            
+            SELECT
+                PEA.SIMULA_CONTA AS CONTA,
+                PEA.SIMULA_DTVENC AS DTVENC,
+                1 CODNAT,
+                CASE
+                    WHEN PEA.SIMULA_RECDESP = 1 THEN (SELECT CODNAT||'-'||DESCRNAT FROM TGFNAT WHERE CODNAT = PEA.SIMULA_NAT)
+                    WHEN PEA.SIMULA_RECDESP = -1 AND $P{P_TPNAT} = 1 THEN (SELECT NAT1.CODNAT||'-'||NAT1.DESCRNAT FROM TGFNAT NAT INNER JOIN TGFNAT NAT1 ON NAT.CODNATPAI = NAT1.CODNAT WHERE NAT.CODNAT = PEA.SIMULA_NAT)
+                    WHEN PEA.SIMULA_RECDESP = -1 AND $P{P_TPNAT} = 0 THEN (SELECT CODNAT||'-'||DESCRNAT FROM TGFNAT WHERE CODNAT = PEA.SIMULA_NAT) 
+                END AS AGRUPADOR,
+                PEA.SIMULA_RECDESP AS RECDESP,
+                PEA.SIMULA_PROVISAO AS PROVISAO,
+                PEA.SIMULA_VLRDESDOB AS VLRDESDOB
+            FROM AD_SIMULACAIXA PEA
+            LEFT JOIN TGFNAT NAT ON PEA.SIMULA_NAT = NAT.CODNAT
+            LEFT JOIN TGFPAR PAR ON PEA.SIMULA_PARCEIRO = PAR.CODPARC
+            WHERE
+                TRUNC(PEA.SIMULA_DTVENC) BETWEEN $P{DTINI} AND $P{DTFIM}
+                AND ($P{P_EMPRESA} IS NULL OR PEA.SIMULA_EMPRESA = $P{P_EMPRESA})
+        )
+        SELECT
+            BAS.DTVENC,
+            BAS.AGRUPADOR,
+            BAS.RECDESP,
+            NVL(SUM(
+                CASE
+                    WHEN NVL($P{P_CONSIDERAR_REC_PROV}, 0) = 1
+                        AND BAS.RECDESP = 1
+                        AND BAS.PROVISAO = 'S'
+                        AND (
+                            (NVL($P{P_REMOVER_LIM_REC}, 0) = 0 AND BAS.CODNAT IN (1010000, 4020304, 2040600)) OR
+                            NVL($P{P_REMOVER_LIM_REC}, 0) = 1
+                        )
+                    THEN BAS.VLRDESDOB
+                    ELSE 0
+                END
+            ), 0) AS A_RECEBER_PROV_S,
+            NVL(
+                SUM(CASE
+                    WHEN BAS.RECDESP = 1 AND NVL(BAS.PROVISAO, 'N') = 'N' AND BAS.CODNAT IN (1010000,4020304,2040600) AND NVL($P{P_REMOVER_LIM_REC},0) = 0 THEN BAS.VLRDESDOB
+                    WHEN BAS.RECDESP = 1 AND NVL(BAS.PROVISAO, 'N') = 'N' AND $P{P_REMOVER_LIM_REC} = 1 THEN BAS.VLRDESDOB 
+                END), 0) AS A_RECEBER_PROV_N,
+            NVL(SUM(CASE WHEN BAS.RECDESP = -1 AND BAS.PROVISAO = 'S' THEN -1 * BAS.VLRDESDOB END), 0) AS A_PAGAR_PROV_S,
+            NVL(SUM(CASE WHEN BAS.RECDESP = -1 AND NVL(BAS.PROVISAO, 'N') = 'N' THEN -1 * BAS.VLRDESDOB END), 0) AS A_PAGAR_PROV_N,
+            -- DIFERENÇA DO DIA
+            NVL(SUM(
+                CASE
+                    WHEN $P{P_CONSIDERAR_REC_PROV} = 1 AND BAS.RECDESP = 1 AND BAS.PROVISAO = 'S' AND ((NVL($P{P_REMOVER_LIM_REC}, 0) = 0 AND BAS.CODNAT IN (1010000, 4020304, 2040600)) OR $P{P_REMOVER_LIM_REC} = 1 ) THEN BAS.VLRDESDOB
+                    WHEN NVL($P{P_CONSIDERAR_REC_PROV}, 0) = 0 AND BAS.RECDESP = 1 AND BAS.PROVISAO <> 'S' AND ((NVL($P{P_REMOVER_LIM_REC}, 0) = 0 AND BAS.CODNAT IN (1010000, 4020304, 2040600)) OR $P{P_REMOVER_LIM_REC} = 1 ) THEN BAS.VLRDESDOB
+                END
+            ), 0)
+            -
+            NVL(SUM(CASE WHEN BAS.RECDESP = -1 THEN BAS.VLRDESDOB END), 0) AS DIFERENCA
+        FROM BASE_DADOS BAS
+        GROUP BY BAS.DTVENC,BAS.AGRUPADOR,BAS.RECDESP
+    )
+)
+GROUP BY ORDEM,TRUNC(DTVENC),AGRUPADOR
+HAVING
+    NOT (
+        SUM(A_RECEBER_PROV_S) = 0 AND
+        SUM(A_RECEBER_PROV_N) = 0 AND
+        SUM(A_PAGAR_PROV_S) = 0 AND
+        SUM(A_PAGAR_PROV_N) = 0 AND
+        SUM(SALDO_INI) = 0
+    )
+ORDER BY ORDEM

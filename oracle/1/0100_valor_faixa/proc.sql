@@ -1,0 +1,81 @@
+CREATE OR REPLACE PROCEDURE STP_VALIDFRETE_SATIS(
+       P_TIPOEVENTO INT,    -- Identifica o tipo de evento
+       P_IDSESSAO VARCHAR2, -- Identificador da execução. Serve para buscar informações dos campos da execução.
+       P_CODUSU INT        -- Código do usuário logado
+) AS       
+       BEFORE_INSERT        INT;
+       AFTER_INSERT         INT;
+       BEFORE_DELETE        INT;
+       AFTER_DELETE         INT;
+       BEFORE_UPDATE        INT;
+       AFTER_UPDATE         INT;
+       BEFORE_COMMIT        INT;
+       P_LIMITEFRETE        NUMBER;
+       P_PORCPED            NUMBER;
+       P_ORDEMCARGA         NUMBER;
+       P_SEQUENCIA          NUMBER;
+       P_OBSLIB             VARCHAR2(1000);     
+       P_NUAVISO            NUMBER;
+       P_USACARGA           NUMBER;
+       P_CODEMP             NUMBER;
+       P_PERCENTUAL         NUMBER;
+       P_CODUSU1             NUMBER;
+       
+BEGIN
+       BEFORE_INSERT := 0;
+       AFTER_INSERT  := 1;
+       BEFORE_DELETE := 2;
+       AFTER_DELETE  := 3;
+       BEFORE_UPDATE := 4;
+       AFTER_UPDATE  := 5;
+       BEFORE_COMMIT := 10;
+       
+    IF  P_TIPOEVENTO = AFTER_UPDATE THEN
+            P_ORDEMCARGA := EVP_GET_CAMPO_INT(P_IDSESSAO, 'ORDEMCARGA'); 
+            P_CODEMP := EVP_GET_CAMPO_INT(P_IDSESSAO, 'CODEMP');
+           
+
+
+        --OBTER O PERCENTUAL FRETE/PEDIDO DE ACORDO COM A ORDEM DE CARGA
+        SELECT ROUND(MAX(NVL(ORD.VLRFRETE,0)) * 100 / SUM(CAB.VLRNOTA),2) INTO P_PERCENTUAL
+        FROM TGFCAB CAB
+        INNER JOIN TGFTOP TOP ON CAB.CODTIPOPER=TOP.CODTIPOPER AND CAB.DHTIPOPER=TOP.DHALTER
+        INNER JOIN TGFORD ORD ON  (CAB.ORDEMCARGA=ORD.ORDEMCARGA)
+        WHERE CAB.VLRNOTA > 0 
+        AND ORD.VLRFRETE >0
+        AND TOP.CODTIPOPER in(1101,1103,1106,1112,1181)
+        AND CAB.ORDEMCARGA= P_ORDEMCARGA;
+
+
+        --OBTER USUARIO E EVENTO REFERENTE PERCENTUAL ESTABELECIDO EM FAIXA DE PERCENTUAIS
+        SELECT NVL(MAX(ADA.CODUSU),STP_GET_CODUSULOGADO) INTO P_CODUSU1
+        FROM AD_LIMITEALCADA ADA
+        INNER JOIN AD_LIMITALCADACARGDET DET ON ADA.CODIGO = DET.CODIGO
+        WHERE DET.EVENTO = 1105
+        AND P_PERCENTUAL >= DET.FAIXA_INI
+        AND (DET.FAIXA_FIN IS NULL OR P_PERCENTUAL < DET.FAIXA_FIN);
+
+
+
+           SELECT COUNT(*)INTO P_USACARGA FROM TGFORD WHERE ORDEMCARGA = P_ORDEMCARGA AND CODEMP = P_CODEMP AND NVL(AD_QUANTIDADE,0) >= 0; 
+
+       IF P_USACARGA > 0 THEN 
+
+                SELECT NVL(MAX(SEQUENCIA),0)+1 INTO P_SEQUENCIA FROM TSILIB WHERE NUCHAVE = P_ORDEMCARGA;
+                                
+                P_OBSLIB := 'Liberação de Ordem de Carga com Pedido de Frete estabelecido!';
+               
+                INSERT INTO TSILIB
+                
+                  (NUCHAVE, TABELA, EVENTO, CODUSUSOLICIT, DHSOLICIT, VLRLIMITE, VLRATUAL, VLRLIBERADO, 
+                   CODUSULIB, DHLIB, OBSERVACAO, PERCLIMITE, PERCANTERIOR, VLRANTERIOR, SEQUENCIA, 
+                   REPROVADO, SUPLEMENTO, ANTECIPACAO, TRANSF, SEQCASCATA, NUCLL, NURNG)
+                   
+                VALUES
+                 (P_ORDEMCARGA, 'TGFORD', 1105, P_CODUSU1, SYSDATE, 0, 0, 0, 
+                  0, NULL, P_OBSLIB, 0, 0, 0, P_SEQUENCIA, 'N', 'N', 'N', 'N', 0, 0, NULL);
+                 
+          END IF;
+    END IF; 
+END;
+/

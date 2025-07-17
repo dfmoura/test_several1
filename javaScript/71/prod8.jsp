@@ -417,7 +417,7 @@
   <div class="fixed-header">
     <div class="header-logo">
       <a href="https://neuon.com.br/" target="_blank" rel="noopener noreferrer">
-        <img src="https://neuon.com.br/wp-content/uploads/2025/07/Logotipo-16.svg" alt="Neuon Logo">
+        <img src="https://neuon.com.br/logos/logo-5.svg" alt="Neuon Logo">
       </a>
     </div>
     <h1 class="header-title">Simulação de Preço</h1>
@@ -549,8 +549,8 @@ AND
 GROUP BY MARCA
 ),
 FAT AS (
-SELECT CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD, NVL(SUM(QTD),0) QTD,NVL(SUM(VLR),0) VLR,
-NVL(SUM(VLR)/NULLIF(SUM(QTD),0),0) TICKET_MEDIO_ULT_12_M
+SELECT CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD, NVL(SUM(QTDNEG),0) QTD,NVL(SUM(VLR),0) VLR,
+NVL(SUM(VLR)/NULLIF(SUM(QTDNEG),0),0) TICKET_MEDIO_ULT_12_M
 FROM VGF_VENDAS_SATIS
 WHERE 
 DTNEG >= ADD_MONTHS(:P_PERIODO, -12)
@@ -562,8 +562,8 @@ AND (:P_CODPARC IS NULL OR CODPARC = :P_CODPARC)
 GROUP BY CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD
 ),
 FAT1 AS (
-SELECT CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD, NVL(SUM(QTD),0) QTD_SAFRA,NVL(SUM(VLR),0) VLR_SAFRA,
-NVL(SUM(VLR)/NULLIF(SUM(QTD),0),0) TICKET_MEDIO_SAFRA
+SELECT CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD, NVL(SUM(QTDNEG),0) QTD_SAFRA,NVL(SUM(VLR),0) VLR_SAFRA,
+NVL(SUM(VLR)/NULLIF(SUM(QTDNEG),0),0) TICKET_MEDIO_SAFRA
 FROM VGF_VENDAS_SATIS
 WHERE 
 DTNEG BETWEEN 
@@ -689,28 +689,20 @@ NULL POND_MARCA,
 NULL DTVIGOR,
 SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA) AS CUSTO_SATIS,
 SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA) AS PRECO_TAB,
-
-
 NVL((
 SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA) - 
 SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)
-) / NULLIF(SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA), 0) * 100, 0) AS MARGEM,
-
-
+) / NULLIF(SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA), 0) * 100, 0) AS MARGEM,
 SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)*0.85 AS PRECO_TAB_MENOS15,
-
 NVL((
 SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)*0.85 - 
 SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)
-) / NULLIF(SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA), 0) * 100, 0) AS MARGEM_MENOS15,
-
+) / NULLIF(SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA), 0) * 100, 0) AS MARGEM_MENOS15,
 SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)*0.65 AS PRECO_TAB_MENOS65,
-
 NVL((
 SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)*0.65 - 
 SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)
-) / NULLIF(SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA), 0) * 100, 0) AS MARGEM_MENOS65,
-
+) / NULLIF(SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA), 0) * 100, 0) AS MARGEM_MENOS65,
 TICKET_MEDIO_OBJETIVO_MARCA TICKET_MEDIO_OBJETIVO,
 SUM(TICKET_MEDIO_ULT_12_M  * POND_MARCA) AS TICKET_MEDIO_ULT_12_M,
 SUM(TICKET_MEDIO_SAFRA  * POND_MARCA) AS TICKET_MEDIO_SAFRA,
@@ -1362,7 +1354,8 @@ function hideStatusOverlay() {
     // Reorganizando o evento do botão
     document.getElementById('insertDataBtn').addEventListener('click', async function () {
   const btn = this;
-  
+  btn.disabled = true;
+
   const rawData = collectTableData();
   
   // Validate that both novoPreco and dataVigor are filled for each record
@@ -1373,6 +1366,7 @@ function hideStatusOverlay() {
   
   if (invalidRecords.length > 0) {
     showStatusOverlay('Validação', 'Todos os registros devem ter tanto o Novo Preço quanto a Data de Vigor preenchidos. Verifique os campos vazios.', 'error');
+    btn.disabled = false;
     return;
   }
   
@@ -1384,17 +1378,9 @@ function hideStatusOverlay() {
 
   if (data.length === 0) {
     showStatusOverlay('Aviso', 'Nenhum dado válido encontrado para inserir. Por favor, preencha tanto o Novo Preço quanto a Data de Vigor para pelo menos um registro.', 'error');
+    btn.disabled = false;
     return;
   }
-
-  // Ask for user confirmation before proceeding
-  const confirmMessage = `Tem certeza que deseja inserir ou atualizar registros na Tabela de Preços?\n\nEsta ação irá adicionar novos registros ou atualizar os restros atuais na tabela.`;
-  
-  if (!confirm(confirmMessage)) {
-    return; // User cancelled the operation
-  }
-
-  btn.disabled = true;
 
   // Show processing overlay
   showStatusOverlay('Processando...', `Inserindo ${data.length} registros no banco de dados...`, 'processing');
@@ -1415,6 +1401,8 @@ function hideStatusOverlay() {
       await JX.salvar(record, 'AD_TESTEPRECO');
       console.log(`Registro ${nextId} salvo com sucesso.`);
     }
+
+
 
     showStatusOverlay('Sucesso', `${data.length} registros foram salvos com sucesso!`, 'success');
   } catch (error) {

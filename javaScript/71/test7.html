@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPT Chat with Knowledge Base</title>
+    <style>
+        /* ===== RESET CSS - Remove margens e paddings padrão ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ===== ESTILOS DO CORPO - Fundo gradiente e layout principal ===== */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ===== CONTAINER PRINCIPAL - Grid layout com duas colunas ===== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr; /* 1.5 partes para base de conhecimento, 1 parte para chat */
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        /* ===== BASE DE CONHECIMENTO - Painel esquerdo ===== */
+        .knowledge-base {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-y: auto; /* Permite rolagem se o conteúdo for muito grande */
+        }
+
+        /* ===== CONTAINER DO CHAT - Painel direito ===== */
+        .chat-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column; /* Organiza elementos verticalmente */
+        }
+
+        /* ===== CABEÇALHO DO CHAT ===== */
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            background: #f8f9fa;
+            border-radius: 15px 15px 0 0;
+        }
+
+        /* ===== ÁREA DE MENSAGENS - Área principal do chat ===== */
+        .chat-messages {
+            flex: 1; /* Ocupa todo espaço disponível */
+            padding: 20px;
+            overflow-y: auto; /* Permite rolagem das mensagens */
+            max-height: 400px;
+        }
+
+        /* ===== ESTILOS DAS MENSAGENS ===== */
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word; /* Quebra palavras longas */
+        }
+
+        /* ===== MENSAGEM DO USUÁRIO - Alinhada à direita, cor verde ===== */
+        .user-message {
+            background: #4CAF50;
+            color: white;
+            margin-left: auto; /* Alinha à direita */
+            border-bottom-right-radius: 5px; /* Cantos arredondados diferentes */
+        }
+
+        /* ===== MENSAGEM DO BOT - Alinhada à esquerda, cor cinza ===== */
+        .bot-message {
+            background: #f1f3f4;
+            color: #333;
+            border-bottom-left-radius: 5px; /* Cantos arredondados diferentes */
+        }
+
+        /* ===== ÁREA DE ENTRADA - Campo de texto e botão ===== */
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* ===== CAMPO DE TEXTO ===== */
+        .chat-input input {
+            flex: 1; /* Ocupa todo espaço disponível */
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s; /* Animação suave na borda */
+        }
+
+        /* ===== ESTADO FOCUS DO CAMPO DE TEXTO ===== */
+        .chat-input input:focus {
+            border-color: #4CAF50;
+        }
+
+        /* ===== BOTÃO DE ENVIAR ===== */
+        .chat-input button {
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s; /* Animação suave no hover */
+        }
+
+        /* ===== ESTADO HOVER DO BOTÃO ===== */
+        .chat-input button:hover {
+            background: #2E7D32;
+        }
+
+        /* ===== ESTADO DESABILITADO DO BOTÃO ===== */
+        .chat-input button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* ===== TABELA DA BASE DE CONHECIMENTO ===== */
+        .knowledge-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* ===== CABEÇALHO DA TABELA ===== */
+        .knowledge-table thead {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .knowledge-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* ===== LINHAS DA TABELA ===== */
+        .knowledge-table tbody tr {
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s;
+        }
+
+        .knowledge-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .knowledge-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        /* ===== CÉLULAS DA TABELA ===== */
+        .knowledge-table td {
+            padding: 12px 15px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        /* ===== CÉLULA DO PRODUTO ===== */
+        .knowledge-table td:first-child {
+            font-weight: 600;
+            color: #4CAF50;
+            width: 25%;
+        }
+
+        /* ===== CÉLULA DA EMPRESA ===== */
+        .knowledge-table td:nth-child(2) {
+            color: #2E7D32;
+            font-weight: 500;
+            width: 30%;
+        }
+
+        /* ===== CÉLULA DA DATA ===== */
+        .knowledge-table td:nth-child(3) {
+            color: #dc3545;
+            font-weight: 500;
+            width: 15%;
+            text-align: center;
+        }
+
+        /* ===== CÉLULA DO VALOR DE FATURAMENTO ===== */
+        .knowledge-table td:last-child {
+            color: #666;
+            width: 30%;
+            font-weight: 500;
+        }
+
+        /* ===== ANIMAÇÃO DE CARREGAMENTO ===== */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite; /* Animação de rotação */
+        }
+
+        /* ===== DEFINIÇÃO DA ANIMAÇÃO DE ROTAÇÃO ===== */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ===== MENSAGENS DE STATUS ===== */
+        .status {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        /* ===== STATUS DE SUCESSO ===== */
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* ===== STATUS DE ERRO ===== */
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* ===== TÍTULO PRINCIPAL ===== */
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* ===== TÍTULO DAS SEÇÕES ===== */
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== TÍTULO PRINCIPAL DA APLICAÇÃO ===== -->
+    <h1>🤖 GPT Chat com Base de Faturamento</h1>
+    
+    <!-- ===== CONTAINER PRINCIPAL - Layout em grid ===== -->
+    <div class="container">
+        <!-- ===== PAINEL DA BASE DE CONHECIMENTO ===== -->
+        <div class="knowledge-base">
+            <div class="section-title">📚 Faturamento</div>
+            <div id="knowledgeContent">
+                <!-- Conteúdo da base de conhecimento será carregado aqui -->
+            </div>
+        </div>
+
+        <!-- ===== PAINEL DO CHAT ===== -->
+        <div class="chat-container">
+            <!-- ===== CABEÇALHO DO CHAT ===== -->
+            <div class="chat-header">
+                <h2>💬 Chat com o GPT</h2>
+                <div id="status"></div>
+            </div>
+            
+            <!-- ===== ÁREA DE MENSAGENS ===== -->
+            <div class="chat-messages" id="chatMessages">
+                <!-- ===== MENSAGEM INICIAL DO BOT ===== -->
+                <div class="message bot-message">
+                    Olá! Sou sua assistente especializada na base de faturamento. Estou aqui para te ajudar a esclarecer dúvidas e responder perguntas relacionadas ao faturamento.
+                </div>
+            </div>
+            
+            <!-- ===== ÁREA DE ENTRADA DE MENSAGENS ===== -->
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Type your question here..." />
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== CONFIGURAÇÃO INICIAL - CHAVE DA API OPENAI =====
+        const OPENAI_API_KEY = "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";
+
+        // ===== BASE DE CONHECIMENTO - Dados que o GPT usará para responder =====
+        // SEQUÊNCIA DE EXECUÇÃO: Esta base é carregada primeiro e serve como contexto para o GPT
+        function generateBillingData(N) {
+    const sampleProducts = [
+        "NPK 10-10-10", "NPK 20-20-20", "NPK 15-15-15", "NPK 5-10-15", "NPK 12-12-12",
+        "Ureia 46%", "Sulfato de Amônio", "Nitrato de Amônio", "Fosfato Diamônico",
+        "Superfosfato Triplo", "Cloreto de Potássio", "Sulfato de Potássio",
+        "Nitrato de Cálcio", "Sulfato de Magnésio", "Bórax", "Sulfato de Zinco",
+        "Sulfato de Cobre", "Sulfato de Manganês", "Molibdato de Sódio",
+        "Fertilizante Orgânico", "Composto Orgânico", "Humus de Minhoca",
+        "Torta de Mamona", "Torta de Neem", "Farinha de Ossos",
+        "Farinha de Sangue", "Quitina de Crustáceos", "Algas Marinhas",
+        "Extrato de Peixe", "Biofertilizante", "Micorrizas", "Rizóbios"
+    ];
+
+    const sampleCompanies = [
+        "AgroTech Fertilizantes", "Fertilizantes do Brasil", "AgroQuímica Nacional",
+        "Fertilizantes Verde", "AgroMinerais Ltda", "Fertilizantes Potássio",
+        "AgroNutrientes", "Fertilizantes Orgânicos Brasil", "AgroFertil",
+        "Fertilizantes Nitrogenados", "AgroBio Fertilizantes", "Fertilizantes Micronutrientes",
+        "AgroQuímica Sul", "Fertilizantes do Nordeste", "AgroMinerais Norte",
+        "Fertilizantes Verde Vida", "AgroNutrientes Plus", "Fertilizantes Orgânicos Plus",
+        "AgroFertil Premium", "Fertilizantes Nitrogenados Pro", "AgroBio Fertilizantes Plus",
+        "Fertilizantes Micronutrientes Pro", "AgroQuímica Centro", "Fertilizantes do Centro",
+        "AgroMinerais Leste", "Fertilizantes Verde Nature", "AgroNutrientes Gold",
+        "Fertilizantes Orgânicos Gold", "AgroFertil Elite", "Fertilizantes Nitrogenados Elite"
+    ];
+
+    const billingData = [];
+
+    for (let i = 0; i < N; i++) {
+        const product = sampleProducts[Math.floor(Math.random() * sampleProducts.length)] + ` ${i + 1}`;
+        const company = sampleCompanies[Math.floor(Math.random() * sampleCompanies.length)];
+        const content = Math.floor(Math.random() * 50000) + 5000; // valores entre 5000 e 55000
+        
+        // Generate random date within the last 2 years
+        const startDate = new Date(2022, 0, 1); // January 1, 2022
+        const endDate = new Date(); // Today
+        const randomTime = startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime());
+        const randomDate = new Date(randomTime);
+        
+        // Format date as dd/mm/yyyy
+        const day = String(randomDate.getDate()).padStart(2, '0');
+        const month = String(randomDate.getMonth() + 1).padStart(2, '0');
+        const year = randomDate.getFullYear();
+        const date = `${day}/${month}/${year}`;
+        
+        billingData.push({ product, company, content, date });
+    }
+
+    return billingData;
+}
+
+// Exemplo: gerar 15 registros
+const knowledgeBase = generateBillingData(30);
+
+        // ===== ELEMENTOS DO DOM - Referências aos elementos HTML =====
+        // SEQUÊNCIA DE EXECUÇÃO: Estes elementos são obtidos após o carregamento da página
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const statusDiv = document.getElementById('status');
+        const knowledgeContent = document.getElementById('knowledgeContent');
+
+        // ===== FUNÇÃO DE INICIALIZAÇÃO - Configura a aplicação =====
+        // SEQUÊNCIA DE EXECUÇÃO: 1ª função executada quando a página carrega
+        function init() {
+            console.log('🔧 Inicializando aplicação...');
+            displayKnowledgeBase(); // 2ª função executada
+            setupEventListeners();   // 3ª função executada
+            showStatus('Ready to chat!', 'success'); // 4ª função executada
+        }
+
+        // ===== FUNÇÃO PARA EXIBIR A BASE DE CONHECIMENTO =====
+        // SEQUÊNCIA DE EXECUÇÃO: Executada durante a inicialização
+        function displayKnowledgeBase() {
+            console.log('📚 Exibindo base de conhecimento...');
+            
+            // Cria HTML para a tabela da base de conhecimento
+            knowledgeContent.innerHTML = `
+                <table class="knowledge-table">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Empresa</th>
+                            <th>Date</th>
+                            <th>Faturamento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${knowledgeBase.map(item => `
+                            <tr>
+                                <td>${item.product}</td>
+                                <td>${item.company}</td>
+                                <td>${item.date}</td>
+                                <td>R$ ${item.content.toLocaleString('pt-BR')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            console.log(`✅ Base de conhecimento exibida em tabela com ${knowledgeBase.length} itens`);
+        }
+
+        // ===== FUNÇÃO PARA CONFIGURAR EVENTOS =====
+        // SEQUÊNCIA DE EXECUÇÃO: Executada durante a inicialização
+        function setupEventListeners() {
+            console.log('🎧 Configurando eventos...');
+            
+            // Evento de clique no botão de enviar
+            sendButton.addEventListener('click', sendMessage);
+            
+            // Evento de tecla Enter no campo de texto
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            console.log('✅ Eventos configurados com sucesso');
+        }
+
+        // ===== FUNÇÃO PARA MOSTRAR MENSAGENS DE STATUS =====
+        // SEQUÊNCIA DE EXECUÇÃO: Chamada quando há sucesso ou erro
+        function showStatus(message, type) {
+            console.log(`📢 Status: ${message} (${type})`);
+            
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            
+            // Remove a mensagem após 5 segundos
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        // ===== FUNÇÃO PARA ADICIONAR MENSAGENS AO CHAT =====
+        // SEQUÊNCIA DE EXECUÇÃO: Chamada sempre que uma mensagem é enviada ou recebida
+        function addMessage(content, isUser = false) {
+            console.log(`💬 Adicionando mensagem: ${isUser ? 'Usuário' : 'Bot'}`);
+            
+            // Cria um novo elemento div para a mensagem
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            messageDiv.textContent = content;
+            
+            // Adiciona a mensagem ao chat
+            chatMessages.appendChild(messageDiv);
+            
+            // Rola para a última mensagem
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            console.log('✅ Mensagem adicionada com sucesso');
+        }
+
+        // ===== FUNÇÃO PRINCIPAL PARA ENVIAR MENSAGENS =====
+        // SEQUÊNCIA DE EXECUÇÃO: Executada quando o usuário envia uma mensagem
+        async function sendMessage() {
+            console.log('🚀 Iniciando envio de mensagem...');
+            
+            // Obtém a mensagem do campo de texto
+            const message = messageInput.value.trim();
+            if (!message) {
+                console.log('⚠️ Mensagem vazia, ignorando...');
+                return;
+            }
+
+            // SEQUÊNCIA DE EXECUÇÃO: Passo 1 - Adiciona mensagem do usuário ao chat
+            addMessage(message, true);
+            messageInput.value = '';
+
+            // SEQUÊNCIA DE EXECUÇÃO: Passo 2 - Desabilita interface durante processamento
+            sendButton.disabled = true;
+            messageInput.disabled = true;
+            sendButton.innerHTML = '<div class="loading"></div>';
+
+            try {
+                console.log('🔄 Preparando contexto para GPT...');
+                
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 3 - Cria contexto a partir da base de conhecimento
+                const context = knowledgeBase.map(item => 
+                    `${item.product} (${item.company}) - ${item.date}: R$ ${item.content.toLocaleString('pt-BR')}`
+                ).join('\n\n');
+
+                console.log('📡 Enviando requisição para OpenAI...');
+                
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 4 - Faz requisição para a API do OpenAI
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `Você é um assistente AI útil com acesso à seguinte base de conhecimento. Use essas informações para responder perguntas de forma precisa e abrangente. Se a pergunta não estiver coberta na base de conhecimento, forneça uma resposta útil geral.
+
+Base de Conhecimento:
+${context}
+
+Por favor, forneça respostas claras e precisas baseadas na base de conhecimento quando possível.`
+                            },
+                            {
+                                role: 'user',
+                                content: message
+                            }
+                        ],
+                        max_tokens: 500,
+                        temperature: 0.7
+                    })
+                });
+
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 5 - Verifica se a requisição foi bem-sucedida
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP! status: ${response.status}`);
+                }
+
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 6 - Processa a resposta do GPT
+                const data = await response.json();
+                const botResponse = data.choices[0].message.content;
+                
+                console.log('✅ Resposta recebida do GPT');
+                
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 7 - Adiciona resposta do bot ao chat
+                addMessage(botResponse, false);
+                showStatus('Message sent successfully!', 'success');
+
+            } catch (error) {
+                // SEQUÊNCIA DE EXECUÇÃO: Tratamento de erro
+                console.error('❌ Erro:', error);
+                addMessage('Desculpe, encontrei um erro ao processar sua solicitação. Tente novamente.', false);
+                showStatus('Error: ' + error.message, 'error');
+            } finally {
+                // SEQUÊNCIA DE EXECUÇÃO: Passo 8 - Reabilita interface
+                console.log('🔄 Reabilitando interface...');
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+                sendButton.textContent = 'Send';
+            }
+        }
+
+        // ===== INICIALIZAÇÃO DA APLICAÇÃO =====
+        // SEQUÊNCIA DE EXECUÇÃO: Este evento é disparado quando o DOM está completamente carregado
+        document.addEventListener('DOMContentLoaded', init);
+        
+        console.log('🎯 Script carregado, aguardando inicialização...');
+    </script>
+</body>
+</html>
+
+
