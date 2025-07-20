@@ -89,7 +89,7 @@
 
 
 <script>
-const OPENAI_API_KEY = "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";
+const OPENAI_API_KEY = "";
 
 // Convert query results to JSON
 let baseData = [];

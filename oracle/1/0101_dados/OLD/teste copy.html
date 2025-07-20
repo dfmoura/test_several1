@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Dashboard de Receita - Empresa de Fertilizantes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(39, 174, 96, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 5px solid #27ae60;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card h3 {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .change {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .positive {
+            color: #27ae60;
+        }
+
+        .negative {
+            color: #e74c3c;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container h3 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .chart {
+            height: 300px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(39, 174, 96, 0.1) 0%, rgba(46, 204, 113, 0.1) 100%);
+        }
+
+        .revenue-chart {
+            height: 400px;
+        }
+
+        .products-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .products-section h3 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .product-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .product-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #27ae60;
+            transition: transform 0.3s ease;
+        }
+
+        .product-item:hover {
+            transform: translateX(5px);
+        }
+
+        .product-item h4 {
+            color: #2c3e50;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .product-item .revenue {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #27ae60;
+            margin-bottom: 5px;
+        }
+
+        .product-item .growth {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .bottom-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-card h3 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-item .label {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .info-item .value {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .bottom-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(39, 174, 96, 0.3);
+            transition: transform 0.3s ease;
+            font-weight: 600;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .trend-indicator {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            margin-right: 5px;
+        }
+
+        .trend-up {
+            border-bottom: 8px solid #27ae60;
+        }
+
+        .trend-down {
+            border-top: 8px solid #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🌱 Dashboard de Receita - Empresa de Fertilizantes</h1>
+            <p>Visão abrangente do desempenho financeiro e tendências de mercado</p>
+        </div>
+
+        <!-- Key Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Receita Total</h3>
+                <div class="value">R$ 14.236.960</div>
+                <div class="change positive">
+                    <span class="trend-indicator trend-up"></span>
+                    +12,5% vs mês anterior
+                </div>
+            </div>
+            <div class="stat-card">
+                <h3>Crescimento Mensal</h3>
+                <div class="value">+8,3%</div>
+                <div class="change positive">
+                    <span class="trend-indicator trend-up"></span>
+                    +2,1% vs meta
+                </div>
+            </div>
+            <div class="stat-card">
+                <h3>Unidades Vendidas</h3>
+                <div class="value">45.892</div>
+                <div class="change positive">
+                    <span class="trend-indicator trend-up"></span>
+                    +15,2% vs mês anterior
+                </div>
+            </div>
+            <div class="stat-card">
+                <h3>Participação de Mercado</h3>
+                <div class="value">23,4%</div>
+                <div class="change positive">
+                    <span class="trend-indicator trend-up"></span>
+                    +1,8% vs trimestre anterior
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="chart-container">
+                <h3>Tendência de Receita (Últimos 12 Meses)</h3>
+                <div class="chart revenue-chart">
+                    <div style="text-align: center;">
+                        <div style="font-size: 3rem; color: #27ae60; margin-bottom: 10px;">📈</div>
+                        <div>Gráfico de visualização de receita</div>
+                        <div style="font-size: 0.9rem; margin-top: 10px; color: #95a5a6;">
+                            Gráfico interativo mostrando tendências mensais de receita
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Receita por Região</h3>
+                <div class="chart">
+                    <div style="text-align: center;">
+                        <div style="font-size: 3rem; color: #27ae60; margin-bottom: 10px;">🗺️</div>
+                        <div>Distribuição regional</div>
+                        <div style="font-size: 0.9rem; margin-top: 10px; color: #95a5a6;">
+                            Análise geográfica da receita
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Products -->
+        <div class="products-section">
+            <h3>Produtos com Melhor Desempenho</h3>
+            <div class="product-list">
+                <div class="product-item">
+                    <h4>NPK 15-15-15</h4>
+                    <div class="revenue">R$ 4.462.250</div>
+                    <div class="growth">+18,3% crescimento</div>
+                </div>
+                <div class="product-item">
+                    <h4>Uréia 46-0-0</h4>
+                    <div class="revenue">R$ 3.781.150</div>
+                    <div class="growth">+12,7% crescimento</div>
+                </div>
+                <div class="product-item">
+                    <h4>DAP 18-46-0</h4>
+                    <div class="revenue">R$ 3.170.600</div>
+                    <div class="growth">+9,4% crescimento</div>
+                </div>
+                <div class="product-item">
+                    <h4>Sulfato de Potássio</h4>
+                    <div class="revenue">R$ 2.822.960</div>
+                    <div class="growth">+15,8% crescimento</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Section -->
+        <div class="bottom-section">
+            <div class="info-card">
+                <h3>Métricas de Performance</h3>
+                <div class="info-item">
+                    <span class="label">Satisfação do Cliente</span>
+                    <span class="value">94,2%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 94.2%;"></div>
+                </div>
+                
+                <div class="info-item">
+                    <span class="label">Taxa de Atendimento</span>
+                    <span class="value">98,7%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 98.7%;"></div>
+                </div>
+                
+                <div class="info-item">
+                    <span class="label">Giro de Estoque</span>
+                    <span class="value">6,8x</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 68%;"></div>
+                </div>
+                
+                <div class="info-item">
+                    <span class="label">Margem de Lucro</span>
+                    <span class="value">23,4%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 23.4%;"></div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Insights de Mercado</h3>
+                <div class="info-item">
+                    <span class="label">Mercado Principal</span>
+                    <span class="value">Centro-Oeste</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Mercado Secundário</span>
+                    <span class="value">Sul</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Mercado Emergente</span>
+                    <span class="value">Nordeste</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Nível de Concorrência</span>
+                    <span class="value">Moderado</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Pico Sazonal</span>
+                    <span class="value">Q2-Q3</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Previsão de Crescimento</span>
+                    <span class="value">+15% A/A</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="refreshData()">
+        🔄 Atualizar Dados
+    </button>
+
+    <script>
+        function refreshData() {
+            // Simulate data refresh
+            const btn = document.querySelector('.refresh-btn');
+            btn.innerHTML = '⏳ Atualizando...';
+            btn.style.opacity = '0.7';
+            
+            setTimeout(() => {
+                btn.innerHTML = '✅ Atualizado!';
+                setTimeout(() => {
+                    btn.innerHTML = '🔄 Atualizar Dados';
+                    btn.style.opacity = '1';
+                }, 1000);
+            }, 1500);
+        }
+
+        // Add some interactivity to the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate stat cards on load
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    card.style.transition = 'all 0.5s ease';
+                    
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 100);
+            });
+
+            // Add hover effects to product items
+            const productItems = document.querySelectorAll('.product-item');
+            productItems.forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+                    this.style.color = 'white';
+                });
+                
+                item.addEventListener('mouseleave', function() {
+                    this.style.background = 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
+                    this.style.color = '#2c3e50';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

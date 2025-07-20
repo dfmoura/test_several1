@@ -1,0 +1,21 @@
+v_corpo := 
+    '<p>Prezado(a) <strong>' || v_nome_usuario || '</strong>,</p>' ||
+
+    '<p>A requisição nº <strong>' || v_nuchave || '</strong>, cadastrada há <strong>' || round(v_dias_pendentes, 2) || ' dia(s)</strong>, permanece pendente de aprovação.</p>' ||
+
+    '<p><strong>Data da solicitação:</strong> ' || TO_CHAR(v_dhsolicit, 'DD/MM/YYYY HH24:MI') || '</p>' ||
+
+    '<p><strong>Descrição da Requisição:</strong><br>' || v_observacao || '</p>' ||
+
+    '<div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 12px; border-radius: 5px; margin-top: 15px;">' ||
+    '<strong>Atenção:</strong> Esta requisição está <u>acima do prazo padrão</u> e será <strong>automaticamente excluída em 5 dias corridos</strong> se não for aprovada até lá.' ||
+    '</div>' ||
+
+    '<p style="margin-top: 15px;">Caso a requisição ainda seja necessária, pedimos que tome as providências para a aprovação imediata, evitando a exclusão automática.</p>' ||
+
+    '<p style="color: #856404; margin-top: 10px;"><strong>Após o prazo informado, não será possível recuperar esta requisição.</strong></p>' ||
+
+    '<br>' ||
+    '<p>Atenciosamente,<br>Departamento de Compras - Sistema de Notificações</p>' ||
+
+    '<img src="https://github.com/dfmoura/test_several1/blob/main/oracle/1/0064_constrole_homologacao_insumos_rd/satis_logo.jpg?raw=true" alt="Logo" style="margin-top: 20px;">';

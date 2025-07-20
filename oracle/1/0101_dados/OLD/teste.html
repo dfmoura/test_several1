@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Receita - Empresa de Fertilizantes</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(39, 174, 96, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 5px solid #27ae60;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card h3 {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .change {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .positive {
+            color: #27ae60;
+        }
+
+        .negative {
+            color: #e74c3c;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        .chart-container h3 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .chart {
+            height: 300px;
+            background: white;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .revenue-chart {
+            height: 400px;
+        }
+
+        .chart-placeholder {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .products-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .products-section h3 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .product-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .product-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #27ae60;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .product-item:hover {
+            transform: translateX(5px);
+        }
+
+        .product-item h4 {
+            color: #2c3e50;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .product-item .revenue {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #27ae60;
+            margin-bottom: 5px;
+        }
+
+        .product-item .growth {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .bottom-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        .info-card h3 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-item .label {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .info-item .value {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .bottom-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(39, 174, 96, 0.3);
+            transition: transform 0.3s ease;
+            font-weight: 600;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .trend-indicator {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            margin-right: 5px;
+        }
+
+        .trend-up {
+            border-bottom: 8px solid #27ae60;
+        }
+
+        .trend-down {
+            border-top: 8px solid #e74c3c;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: -10px;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .modal h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .detail-item h4 {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .detail-item .value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .chart-demo {
+            height: 200px;
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin: 20px 0;
+        }
+
+        .table-container {
+            margin-top: 20px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🌱 Dashboard de Receita - Empresa de Fertilizantes</h1>
+            <p>Visão abrangente do desempenho financeiro e tendências de mercado</p>
+        </div>
+
+        <!-- Key Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card" onclick="showDetails('revenue')">
+                <h3>Receita Total</h3>
+                <div class="value">R$ 14.236.960</div>
+                <div class="change positive">
+                    <span class="trend-indicator trend-up"></span>
+                    +12,5% vs mês anterior
+                </div>
+            </div>
+            <div class="stat-card" onclick="showDetails('growth')">
+                <h3>Crescimento Mensal</h3>
+                <div class="value">+8,3%</div>
+                <div class="change positive">
+                    <span class="trend-indicator trend-up"></span>
+                    +2,1% vs meta
+                </div>
+            </div>
+            <div class="stat-card" onclick="showDetails('units')">
+                <h3>Unidades Vendidas</h3>
+                <div class="value">45.892</div>
+                <div class="change positive">
+                    <span class="trend-indicator trend-up"></span>
+                    +15,2% vs mês anterior
+                </div>
+            </div>
+            <div class="stat-card" onclick="showDetails('market')">
+                <h3>Participação de Mercado</h3>
+                <div class="value">23,4%</div>
+                <div class="change positive">
+                    <span class="trend-indicator trend-up"></span>
+                    +1,8% vs trimestre anterior
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="chart-container">
+                <h3>Tendência de Receita (Últimos 12 Meses)</h3>
+                <div class="chart revenue-chart">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Receita por Região</h3>
+                <div class="chart">
+                    <canvas id="regionalChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Products -->
+        <div class="products-section">
+            <h3>Produtos com Melhor Desempenho</h3>
+            <div class="product-list">
+                <div class="product-item" onclick="showDetails('npk')">
+                    <h4>NPK 15-15-15</h4>
+                    <div class="revenue">R$ 4.462.250</div>
+                    <div class="growth">+18,3% crescimento</div>
+                </div>
+                <div class="product-item" onclick="showDetails('urea')">
+                    <h4>Uréia 46-0-0</h4>
+                    <div class="revenue">R$ 3.781.150</div>
+                    <div class="growth">+12,7% crescimento</div>
+                </div>
+                <div class="product-item" onclick="showDetails('dap')">
+                    <h4>DAP 18-46-0</h4>
+                    <div class="revenue">R$ 3.170.600</div>
+                    <div class="growth">+9,4% crescimento</div>
+                </div>
+                <div class="product-item" onclick="showDetails('potassium')">
+                    <h4>Sulfato de Potássio</h4>
+                    <div class="revenue">R$ 2.822.960</div>
+                    <div class="growth">+15,8% crescimento</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Section -->
+        <div class="bottom-section">
+            <div class="info-card" onclick="showDetails('performance')">
+                <h3>Métricas de Performance</h3>
+                <div class="info-item">
+                    <span class="label">Satisfação do Cliente</span>
+                    <span class="value">94,2%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 94.2%;"></div>
+                </div>
+                
+                <div class="info-item">
+                    <span class="label">Taxa de Atendimento</span>
+                    <span class="value">98,7%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 98.7%;"></div>
+                </div>
+                
+                <div class="info-item">
+                    <span class="label">Giro de Estoque</span>
+                    <span class="value">6,8x</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 68%;"></div>
+                </div>
+                
+                <div class="info-item">
+                    <span class="label">Margem de Lucro</span>
+                    <span class="value">23,4%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 23.4%;"></div>
+                </div>
+            </div>
+
+            <div class="info-card" onclick="showDetails('market-insights')">
+                <h3>Insights de Mercado</h3>
+                <div class="info-item">
+                    <span class="label">Mercado Principal</span>
+                    <span class="value">Centro-Oeste</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Mercado Secundário</span>
+                    <span class="value">Sul</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Mercado Emergente</span>
+                    <span class="value">Nordeste</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Nível de Concorrência</span>
+                    <span class="value">Moderado</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Pico Sazonal</span>
+                    <span class="value">Q2-Q3</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Previsão de Crescimento</span>
+                    <span class="value">+15% A/A</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- Regional Map Modal -->
+    <div id="regionalMapModal" class="modal">
+        <div class="modal-content" style="max-width: 1200px; height: 80vh;">
+            <span class="close" onclick="closeRegionalMap()">&times;</span>
+            <div id="regionalMapContent"></div>
+        </div>
+    </div>
+
+    <!-- City Details Modal (Higher z-index) -->
+    <div id="cityDetailModal" class="modal" style="z-index: 2000;">
+        <div class="modal-content">
+            <span class="close" onclick="closeCityModal()">&times;</span>
+            <div id="cityModalContent"></div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="refreshData()">
+        🔄 Atualizar Dados
+    </button>
+
+    <script>
+        // Regional city data with revenue
+        const regionalData = {
+            'Centro-Oeste': {
+                cities: [
+                    { name: 'Goiânia', revenue: 1256800, lat: -16.6864, lng: -49.2653 },
+                    { name: 'Brasília', revenue: 985400, lat: -15.7942, lng: -47.8822 },
+                    { name: 'Cuiabá', revenue: 756200, lat: -15.6010, lng: -56.0974 },
+                    { name: 'Campo Grande', revenue: 634500, lat: -20.4486, lng: -54.6295 },
+                    { name: 'Anápolis', revenue: 523400, lat: -16.3280, lng: -48.9534 },
+                    { name: 'Luziânia', revenue: 456200, lat: -16.2520, lng: -47.9500 },
+                    { name: 'Rio Verde', revenue: 398700, lat: -17.7979, lng: -50.9176 },
+                    { name: 'Catalão', revenue: 325200, lat: -18.1700, lng: -47.9417 }
+                ],
+                totalRevenue: 5125800
+            },
+            'Sul': {
+                cities: [
+                    { name: 'Curitiba', revenue: 985600, lat: -25.4289, lng: -49.2671 },
+                    { name: 'Porto Alegre', revenue: 876400, lat: -30.0346, lng: -51.2177 },
+                    { name: 'Florianópolis', revenue: 654300, lat: -27.5969, lng: -48.5495 },
+                    { name: 'Londrina', revenue: 543200, lat: -23.3105, lng: -51.1593 },
+                    { name: 'Caxias do Sul', revenue: 456800, lat: -29.1680, lng: -51.1798 },
+                    { name: 'Ponta Grossa', revenue: 384500, lat: -25.0950, lng: -50.1619 },
+                    { name: 'Blumenau', revenue: 298600, lat: -26.9186, lng: -49.0661 },
+                    { name: 'Joinville', revenue: 267500, lat: -26.3044, lng: -48.8463 }
+                ],
+                totalRevenue: 4256300
+            },
+            'Sudeste': {
+                cities: [
+                    { name: 'São Paulo', revenue: 1256800, lat: -23.5505, lng: -46.6333 },
+                    { name: 'Rio de Janeiro', revenue: 987400, lat: -22.9068, lng: -43.1729 },
+                    { name: 'Belo Horizonte', revenue: 654300, lat: -19.9167, lng: -43.9345 },
+                    { name: 'Campinas', revenue: 543200, lat: -22.9064, lng: -47.0616 },
+                    { name: 'Ribeirão Preto', revenue: 456800, lat: -21.1767, lng: -47.8208 },
+                    { name: 'Uberlândia', revenue: 384500, lat: -18.9126, lng: -48.2754 },
+                    { name: 'Sorocaba', revenue: 298600, lat: -23.5016, lng: -47.4581 },
+                    { name: 'Vitória', revenue: 267500, lat: -20.2976, lng: -40.2958 }
+                ],
+                totalRevenue: 2856200
+            },
+            'Nordeste': {
+                cities: [
+                    { name: 'Salvador', revenue: 456800, lat: -12.9714, lng: -38.5011 },
+                    { name: 'Recife', revenue: 384500, lat: -8.0476, lng: -34.8770 },
+                    { name: 'Fortaleza', revenue: 298600, lat: -3.7319, lng: -38.5267 },
+                    { name: 'Maceió', revenue: 267500, lat: -9.6498, lng: -35.7089 },
+                    { name: 'Aracaju', revenue: 198400, lat: -10.9091, lng: -37.0677 },
+                    { name: 'João Pessoa', revenue: 156700, lat: -7.1150, lng: -34.8631 },
+                    { name: 'Natal', revenue: 134500, lat: -5.7945, lng: -35.2120 },
+                    { name: 'Teresina', revenue: 98700, lat: -5.0892, lng: -42.8016 }
+                ],
+                totalRevenue: 1562600
+            },
+            'Norte': {
+                cities: [
+                    { name: 'Manaus', revenue: 198400, lat: -3.1190, lng: -60.0217 },
+                    { name: 'Belém', revenue: 156700, lat: -1.4554, lng: -48.4898 },
+                    { name: 'Porto Velho', revenue: 98700, lat: -8.7619, lng: -63.9039 },
+                    { name: 'Rio Branco', revenue: 45600, lat: -9.9754, lng: -67.8249 },
+                    { name: 'Boa Vista', revenue: 23400, lat: 2.8235, lng: -60.6758 },
+                    { name: 'Macapá', revenue: 18900, lat: 0.0349, lng: -51.0504 },
+                    { name: 'Palmas', revenue: 15600, lat: -10.1753, lng: -48.2982 }
+                ],
+                totalRevenue: 436060
+            }
+        };
+
+        // Sample data for different components
+        const sampleData = {
+            revenue: {
+                title: "Detalhes da Receita Total",
+                description: "Análise detalhada da receita por período e categoria",
+                details: [
+                    { label: "Receita Q1 2024", value: "R$ 4.125.300" },
+                    { label: "Receita Q2 2024", value: "R$ 4.856.200" },
+                    { label: "Receita Q3 2024", value: "R$ 5.255.460" },
+                    { label: "Meta Anual", value: "R$ 18.500.000" },
+                    { label: "Crescimento YoY", value: "+14.2%" },
+                    { label: "Margem Operacional", value: "18.7%" }
+                ],
+                chart: "📊 Gráfico de Receita Trimestral",
+                table: [
+                    ["Trimestre", "Receita", "Crescimento", "Meta"],
+                    ["Q1 2024", "R$ 4.125.300", "+8.3%", "95.2%"],
+                    ["Q2 2024", "R$ 4.856.200", "+12.1%", "102.1%"],
+                    ["Q3 2024", "R$ 5.255.460", "+15.7%", "108.3%"]
+                ]
+            },
+            growth: {
+                title: "Análise de Crescimento Mensal",
+                description: "Métricas detalhadas de crescimento e performance",
+                details: [
+                    { label: "Crescimento Janeiro", value: "+6.8%" },
+                    { label: "Crescimento Fevereiro", value: "+7.2%" },
+                    { label: "Crescimento Março", value: "+8.3%" },
+                    { label: "Meta Mensal", value: "+6.2%" },
+                    { label: "Tendência", value: "Positiva" },
+                    { label: "Projeção Q4", value: "+9.1%" }
+                ],
+                chart: "📈 Tendência de Crescimento Mensal",
+                table: [
+                    ["Mês", "Crescimento", "Meta", "Status"],
+                    ["Janeiro", "+6.8%", "+6.2%", "✅"],
+                    ["Fevereiro", "+7.2%", "+6.2%", "✅"],
+                    ["Março", "+8.3%", "+6.2%", "✅"]
+                ]
+            },
+            units: {
+                title: "Detalhes de Unidades Vendidas",
+                description: "Análise por produto e região de vendas",
+                details: [
+                    { label: "NPK 15-15-15", value: "12.450 unidades" },
+                    { label: "Uréia 46-0-0", value: "10.230 unidades" },
+                    { label: "DAP 18-46-0", value: "8.760 unidades" },
+                    { label: "Sulfato de Potássio", value: "7.890 unidades" },
+                    { label: "Outros Produtos", value: "6.562 unidades" },
+                    { label: "Total", value: "45.892 unidades" }
+                ],
+                chart: "📦 Distribuição de Unidades por Produto",
+                table: [
+                    ["Produto", "Unidades", "Receita", "Crescimento"],
+                    ["NPK 15-15-15", "12.450", "R$ 4.462.250", "+18.3%"],
+                    ["Uréia 46-0-0", "10.230", "R$ 3.781.150", "+12.7%"],
+                    ["DAP 18-46-0", "8.760", "R$ 3.170.600", "+9.4%"],
+                    ["Sulfato de Potássio", "7.890", "R$ 2.822.960", "+15.8%"]
+                ]
+            },
+            market: {
+                title: "Análise de Participação de Mercado",
+                description: "Posicionamento competitivo e análise de mercado",
+                details: [
+                    { label: "Participação Atual", value: "23.4%" },
+                    { label: "Participação Anterior", value: "21.6%" },
+                    { label: "Principal Concorrente", value: "18.7%" },
+                    { label: "Segundo Concorrente", value: "15.2%" },
+                    { label: "Crescimento de Mercado", value: "+1.8%" },
+                    { label: "Meta de Mercado", value: "25.0%" }
+                ],
+                chart: "🏆 Participação de Mercado vs Concorrentes",
+                table: [
+                    ["Empresa", "Participação", "Crescimento", "Tendência"],
+                    ["Nossa Empresa", "23.4%", "+1.8%", "↗️"],
+                    ["Concorrente A", "18.7%", "+0.5%", "→"],
+                    ["Concorrente B", "15.2%", "-0.3%", "↘️"],
+                    ["Outros", "42.7%", "-2.0%", "↘️"]
+                ]
+            },
+            'revenue-chart': {
+                title: "Tendência de Receita - Últimos 12 Meses",
+                description: "Análise mensal detalhada da receita",
+                details: [
+                    { label: "Maior Receita", value: "Março 2024 - R$ 5.255.460" },
+                    { label: "Menor Receita", value: "Janeiro 2024 - R$ 3.856.200" },
+                    { label: "Média Mensal", value: "R$ 4.745.320" },
+                    { label: "Crescimento Médio", value: "+8.3% ao mês" },
+                    { label: "Sazonalidade", value: "Alta no Q2-Q3" },
+                    { label: "Projeção Q4", value: "R$ 5.850.000" }
+                ],
+                chart: "📊 Gráfico de Receita Mensal (12 meses)",
+                table: [
+                    ["Mês", "Receita", "Crescimento", "Meta"],
+                    ["Jan 2024", "R$ 3.856.200", "+6.8%", "95.2%"],
+                    ["Fev 2024", "R$ 4.125.300", "+7.2%", "98.1%"],
+                    ["Mar 2024", "R$ 4.856.200", "+8.3%", "102.1%"],
+                    ["Abr 2024", "R$ 5.255.460", "+15.7%", "108.3%"],
+                    ["Mai 2024", "R$ 5.125.800", "+12.3%", "105.7%"],
+                    ["Jun 2024", "R$ 4.962.100", "+8.9%", "101.2%"]
+                ]
+            },
+            regional: {
+                title: "Receita por Região - Análise Detalhada",
+                description: "Distribuição geográfica da receita",
+                details: [
+                    { label: "Centro-Oeste", value: "R$ 5.125.800 (36.0%)" },
+                    { label: "Sul", value: "R$ 4.256.300 (29.9%)" },
+                    { label: "Sudeste", value: "R$ 2.856.200 (20.1%)" },
+                    { label: "Nordeste", value: "R$ 1.562.600 (11.0%)" },
+                    { label: "Norte", value: "R$ 436.060 (3.0%)" },
+                    { label: "Total", value: "R$ 14.236.960" }
+                ],
+                chart: "🗺️ Mapa de Distribuição Regional",
+                table: [
+                    ["Região", "Receita", "Participação", "Crescimento"],
+                    ["Centro-Oeste", "R$ 5.125.800", "36.0%", "+15.2%"],
+                    ["Sul", "R$ 4.256.300", "29.9%", "+12.7%"],
+                    ["Sudeste", "R$ 2.856.200", "20.1%", "+8.9%"],
+                    ["Nordeste", "R$ 1.562.600", "11.0%", "+18.3%"],
+                    ["Norte", "R$ 436.060", "3.0%", "+5.4%"]
+                ]
+            },
+            npk: {
+                title: "NPK 15-15-15 - Análise Detalhada",
+                description: "Produto líder em vendas e receita",
+                details: [
+                    { label: "Receita Total", value: "R$ 4.462.250" },
+                    { label: "Unidades Vendidas", value: "12.450 unidades" },
+                    { label: "Preço Médio", value: "R$ 358,41/unidade" },
+                    { label: "Crescimento", value: "+18.3%" },
+                    { label: "Participação", value: "31.3% da receita total" },
+                    { label: "Margem", value: "24.7%" }
+                ],
+                chart: "📈 Performance do NPK 15-15-15",
+                table: [
+                    ["Região", "Vendas", "Receita", "Crescimento"],
+                    ["Centro-Oeste", "5.230", "R$ 1.874.150", "+22.1%"],
+                    ["Sul", "3.890", "R$ 1.394.650", "+16.8%"],
+                    ["Sudeste", "2.120", "R$ 759.580", "+12.3%"],
+                    ["Nordeste", "1.210", "R$ 433.870", "+18.9%"]
+                ]
+            },
+            urea: {
+                title: "Uréia 46-0-0 - Análise Detalhada",
+                description: "Segundo produto em performance",
+                details: [
+                    { label: "Receita Total", value: "R$ 3.781.150" },
+                    { label: "Unidades Vendidas", value: "10.230 unidades" },
+                    { label: "Preço Médio", value: "R$ 369,81/unidade" },
+                    { label: "Crescimento", value: "+12.7%" },
+                    { label: "Participação", value: "26.5% da receita total" },
+                    { label: "Margem", value: "21.3%" }
+                ],
+                chart: "📊 Performance da Uréia 46-0-0",
+                table: [
+                    ["Região", "Vendas", "Receita", "Crescimento"],
+                    ["Centro-Oeste", "4.120", "R$ 1.523.600", "+14.2%"],
+                    ["Sul", "3.450", "R$ 1.275.750", "+11.8%"],
+                    ["Sudeste", "1.890", "R$ 698.850", "+9.7%"],
+                    ["Nordeste", "770", "R$ 284.750", "+15.3%"]
+                ]
+            },
+            dap: {
+                title: "DAP 18-46-0 - Análise Detalhada",
+                description: "Produto com crescimento estável",
+                details: [
+                    { label: "Receita Total", value: "R$ 3.170.600" },
+                    { label: "Unidades Vendidas", value: "8.760 unidades" },
+                    { label: "Preço Médio", value: "R$ 361,48/unidade" },
+                    { label: "Crescimento", value: "+9.4%" },
+                    { label: "Participação", value: "22.3% da receita total" },
+                    { label: "Margem", value: "19.8%" }
+                ],
+                chart: "📈 Performance do DAP 18-46-0",
+                table: [
+                    ["Região", "Vendas", "Receita", "Crescimento"],
+                    ["Centro-Oeste", "3.450", "R$ 1.247.100", "+10.2%"],
+                    ["Sul", "2.890", "R$ 1.044.700", "+8.7%"],
+                    ["Sudeste", "1.560", "R$ 563.760", "+7.3%"],
+                    ["Nordeste", "860", "R$ 310.840", "+12.1%"]
+                ]
+            },
+            potassium: {
+                title: "Sulfato de Potássio - Análise Detalhada",
+                description: "Produto com alto crescimento",
+                details: [
+                    { label: "Receita Total", value: "R$ 2.822.960" },
+                    { label: "Unidades Vendidas", value: "7.890 unidades" },
+                    { label: "Preço Médio", value: "R$ 357,79/unidade" },
+                    { label: "Crescimento", value: "+15.8%" },
+                    { label: "Participação", value: "19.8% da receita total" },
+                    { label: "Margem", value: "22.1%" }
+                ],
+                chart: "📊 Performance do Sulfato de Potássio",
+                table: [
+                    ["Região", "Vendas", "Receita", "Crescimento"],
+                    ["Centro-Oeste", "3.120", "R$ 1.116.300", "+18.5%"],
+                    ["Sul", "2.450", "R$ 876.700", "+14.2%"],
+                    ["Sudeste", "1.340", "R$ 479.560", "+12.8%"],
+                    ["Nordeste", "980", "R$ 350.400", "+16.9%"]
+                ]
+            },
+            performance: {
+                title: "Métricas de Performance - Análise Detalhada",
+                description: "Indicadores de qualidade e eficiência operacional",
+                details: [
+                    { label: "Satisfação do Cliente", value: "94.2% (Meta: 90%)" },
+                    { label: "Taxa de Atendimento", value: "98.7% (Meta: 95%)" },
+                    { label: "Giro de Estoque", value: "6.8x (Meta: 6.0x)" },
+                    { label: "Margem de Lucro", value: "23.4% (Meta: 20%)" },
+                    { label: "Tempo de Entrega", value: "2.3 dias (Meta: 3 dias)" },
+                    { label: "Retorno de Investimento", value: "18.7% (Meta: 15%)" }
+                ],
+                chart: "📊 Dashboard de Performance",
+                table: [
+                    ["Métrica", "Atual", "Meta", "Status"],
+                    ["Satisfação do Cliente", "94.2%", "90%", "✅"],
+                    ["Taxa de Atendimento", "98.7%", "95%", "✅"],
+                    ["Giro de Estoque", "6.8x", "6.0x", "✅"],
+                    ["Margem de Lucro", "23.4%", "20%", "✅"],
+                    ["Tempo de Entrega", "2.3 dias", "3 dias", "✅"],
+                    ["ROI", "18.7%", "15%", "✅"]
+                ]
+            },
+            'market-insights': {
+                title: "Insights de Mercado - Análise Detalhada",
+                description: "Análise estratégica de mercado e oportunidades",
+                details: [
+                    { label: "Mercado Principal", value: "Centro-Oeste (36.0% da receita)" },
+                    { label: "Mercado Secundário", value: "Sul (29.9% da receita)" },
+                    { label: "Mercado Emergente", value: "Nordeste (+18.3% crescimento)" },
+                    { label: "Nível de Concorrência", value: "Moderado (3 principais)" },
+                    { label: "Pico Sazonal", value: "Q2-Q3 (plantio)" },
+                    { label: "Previsão de Crescimento", value: "+15% A/A" }
+                ],
+                chart: "📈 Análise de Mercado e Tendências",
+                table: [
+                    ["Aspecto", "Status", "Tendência", "Ação"],
+                    ["Centro-Oeste", "Líder", "Estável", "Manter"],
+                    ["Sul", "Forte", "Crescendo", "Expandir"],
+                    ["Sudeste", "Estável", "Lento", "Otimizar"],
+                    ["Nordeste", "Emergente", "Alto", "Investir"],
+                    ["Norte", "Pequeno", "Estável", "Monitorar"]
+                ]
+            }
+        };
+
+        function showDetails(type) {
+            const data = sampleData[type];
+            if (!data) return;
+
+            const modal = document.getElementById('detailModal');
+            const content = document.getElementById('modalContent');
+
+            content.innerHTML = `
+                <h2>${data.title}</h2>
+                <p style="color: #7f8c8d; margin-bottom: 20px;">${data.description}</p>
+                
+                <div class="detail-grid">
+                    ${data.details.map(detail => `
+                        <div class="detail-item">
+                            <h4>${detail.label}</h4>
+                            <div class="value">${detail.value}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="chart-demo">
+                    <canvas id="modalChart" width="400" height="200"></canvas>
+                </div>
+
+                <div class="table-container">
+                    <h3>Dados Detalhados</h3>
+                    <table class="data-table">
+                        ${data.table.map((row, index) => `
+                            <tr>
+                                ${row.map(cell => index === 0 ? `<th>${cell}</th>` : `<td>${cell}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+            
+            // Create modal chart after content is rendered
+            setTimeout(() => {
+                createModalChart(type);
+            }, 100);
+        }
+
+        function createModalChart(type) {
+            const ctx = document.getElementById('modalChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (window.modalChart) {
+                window.modalChart.destroy();
+            }
+
+            let chartConfig = {};
+
+            switch(type) {
+                case 'revenue':
+                    chartConfig = {
+                        type: 'bar',
+                        data: {
+                            labels: ['Q1 2024', 'Q2 2024', 'Q3 2024'],
+                            datasets: [{
+                                label: 'Receita Trimestral',
+                                data: [4125300, 4856200, 5255460],
+                                backgroundColor: '#27ae60',
+                                borderColor: '#27ae60',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return 'R$ ' + (value / 1000000).toFixed(1) + 'M';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    break;
+                case 'growth':
+                    chartConfig = {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Fev', 'Mar'],
+                            datasets: [{
+                                label: 'Crescimento Mensal',
+                                data: [6.8, 7.2, 8.3],
+                                borderColor: '#27ae60',
+                                backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value + '%';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    break;
+                case 'units':
+                    chartConfig = {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['NPK 15-15-15', 'Uréia 46-0-0', 'DAP 18-46-0', 'Sulfato de Potássio'],
+                            datasets: [{
+                                data: [12450, 10230, 8760, 7890],
+                                backgroundColor: ['#27ae60', '#2ecc71', '#3498db', '#f39c12']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    };
+                    break;
+                case 'market':
+                    chartConfig = {
+                        type: 'bar',
+                        data: {
+                            labels: ['Nossa Empresa', 'Concorrente A', 'Concorrente B', 'Outros'],
+                            datasets: [{
+                                label: 'Participação de Mercado',
+                                data: [23.4, 18.7, 15.2, 42.7],
+                                backgroundColor: ['#27ae60', '#3498db', '#f39c12', '#95a5a6']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 50,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value + '%';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    break;
+                default:
+                    chartConfig = {
+                        type: 'bar',
+                        data: {
+                            labels: ['Dados'],
+                            datasets: [{
+                                label: 'Valores',
+                                data: [100],
+                                backgroundColor: '#27ae60'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    };
+            }
+
+            window.modalChart = new Chart(ctx, chartConfig);
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        function closeRegionalMap() {
+            document.getElementById('regionalMapModal').style.display = 'none';
+        }
+
+        function closeCityModal() {
+            document.getElementById('cityDetailModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailModal');
+            const regionalModal = document.getElementById('regionalMapModal');
+            const cityModal = document.getElementById('cityDetailModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+            if (event.target === regionalModal) {
+                regionalModal.style.display = 'none';
+            }
+            if (event.target === cityModal) {
+                cityModal.style.display = 'none';
+            }
+        }
+
+        function showRegionalMap(region) {
+            const data = regionalData[region];
+            if (!data) return;
+
+            const modal = document.getElementById('regionalMapModal');
+            const content = document.getElementById('regionalMapContent');
+
+            // Calculate center coordinates for the region
+            const centerLat = data.cities.reduce((sum, city) => sum + city.lat, 0) / data.cities.length;
+            const centerLng = data.cities.reduce((sum, city) => sum + city.lng, 0) / data.cities.length;
+
+            content.innerHTML = `
+                <h2>🗺️ ${region} - Mapa de Receita por Cidade</h2>
+                <p style="color: #7f8c8d; margin-bottom: 20px;">
+                    Receita total: R$ ${(data.totalRevenue / 1000000).toFixed(2)}M | 
+                    ${data.cities.length} cidades | 
+                    Clique nos pontos para ver detalhes
+                </p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 300px; gap: 20px; height: calc(80vh - 120px);">
+                    <div id="map" style="height: 100%; border-radius: 10px; background: #f8f9fa; position: relative;">
+                        <div style="position: absolute; top: 10px; left: 10px; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000;">
+                            <strong>${region}</strong><br>
+                            <small>Receita por cidade</small>
+                        </div>
+                        <div id="mapContainer" style="height: 100%; width: 100%;"></div>
+                    </div>
+                    
+                    <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-y: auto;">
+                        <h3>🏙️ Cidades da Região</h3>
+                        <div style="margin-top: 15px;">
+                            ${data.cities.map(city => `
+                                <div style="padding: 10px; border-bottom: 1px solid #ecf0f1; cursor: pointer;" 
+                                     onmouseover="highlightCity('${city.name}')" 
+                                     onmouseout="unhighlightCity()"
+                                     onclick="focusCity('${city.name}')">
+                                    <div style="font-weight: 600; color: #2c3e50;">${city.name}</div>
+                                    <div style="color: #27ae60; font-size: 0.9rem;">R$ ${(city.revenue / 1000).toFixed(0)}K</div>
+                                    <div style="color: #7f8c8d; font-size: 0.8rem;">
+                                        ${((city.revenue / data.totalRevenue) * 100).toFixed(1)}% da região
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+            
+            // Initialize map after content is rendered
+            setTimeout(() => {
+                initializeRegionalMap(region, data, centerLat, centerLng);
+            }, 100);
+        }
+
+        function initializeRegionalMap(region, data, centerLat, centerLng) {
+            const mapContainer = document.getElementById('mapContainer');
+            mapContainer.innerHTML = ''; // Clear previous content
+            
+            // Create map container with proper styling
+            const mapDiv = document.createElement('div');
+            mapDiv.id = 'leafletMap';
+            mapDiv.style.cssText = `
+                width: 100%;
+                height: 100%;
+                border-radius: 10px;
+                position: relative;
+                border: 2px solid #27ae60;
+            `;
+            
+            // Add region title overlay
+            const titleOverlay = document.createElement('div');
+            titleOverlay.style.cssText = `
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                background: rgba(255, 255, 255, 0.95);
+                padding: 8px 12px;
+                border-radius: 6px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                z-index: 1000;
+                font-weight: bold;
+                color: #2c3e50;
+                border-left: 3px solid #27ae60;
+                font-size: 14px;
+                backdrop-filter: blur(5px);
+            `;
+            titleOverlay.textContent = `${region} - Mapa de Receita`;
+            mapDiv.appendChild(titleOverlay);
+            
+            mapContainer.appendChild(mapDiv);
+            
+            // Initialize Leaflet map after DOM is ready
+            setTimeout(() => {
+                // Calculate center coordinates for the region
+                const centerLat = data.cities.reduce((sum, city) => sum + city.lat, 0) / data.cities.length;
+                const centerLng = data.cities.reduce((sum, city) => sum + city.lng, 0) / data.cities.length;
+                
+                // Create the map
+                const map = L.map('leafletMap', {
+                    center: [centerLat, centerLng],
+                    zoom: 6,
+                    zoomControl: true,
+                    attributionControl: true
+                });
+                
+                // Add OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18
+                }).addTo(map);
+                
+                // Find max revenue for scaling
+                const maxRevenue = Math.max(...data.cities.map(city => city.revenue));
+                
+                // Add city markers
+                data.cities.forEach(city => {
+                    // Calculate circle size based on revenue
+                    const radius = Math.max(8, (city.revenue / maxRevenue) * 25);
+                    
+                    // Create custom circle marker
+                    const circle = L.circleMarker([city.lat, city.lng], {
+                        radius: radius,
+                        fillColor: '#27ae60',
+                        color: '#2c3e50',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillOpacity: 0.6
+                    }).addTo(map);
+                    
+                    // Create popup content
+                    const popupContent = `
+                        <div style="text-align: center; min-width: 150px;">
+                            <div style="font-weight: bold; color: #27ae60; margin-bottom: 5px;">🏙️ ${city.name}</div>
+                            <div style="font-size: 14px; font-weight: bold; color: #2c3e50;">
+                                R$ ${(city.revenue / 1000).toFixed(0)}K
+                            </div>
+                            <div style="font-size: 11px; color: #7f8c8d; margin-top: 3px;">
+                                ${((city.revenue / data.totalRevenue) * 100).toFixed(1)}% da região
+                            </div>
+                            <div style="font-size: 10px; color: #95a5a6; margin-top: 5px;">
+                                Clique para detalhes
+                            </div>
+                        </div>
+                    `;
+                    
+                    circle.bindPopup(popupContent);
+                    
+                    // Add click event to open city details
+                    circle.on('click', () => {
+                        focusCity(city.name);
+                    });
+                    
+                    // Add hover effects
+                    circle.on('mouseover', function() {
+                        this.setRadius(radius + 3);
+                        this.setStyle({
+                            fillOpacity: 0.8,
+                            color: '#27ae60',
+                            weight: 3
+                        });
+                    });
+                    
+                    circle.on('mouseout', function() {
+                        this.setRadius(radius);
+                        this.setStyle({
+                            fillOpacity: 0.6,
+                            color: '#2c3e50',
+                            weight: 2
+                        });
+                    });
+                });
+                
+                // Add legend
+                const legend = L.control({ position: 'bottomright' });
+                legend.onAdd = function() {
+                    const div = L.DomUtil.create('div', 'info legend');
+                    div.style.cssText = `
+                        background: rgba(255, 255, 255, 0.95);
+                        padding: 10px;
+                        border-radius: 6px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                        font-size: 11px;
+                        color: #7f8c8d;
+                        backdrop-filter: blur(5px);
+                        min-width: 120px;
+                    `;
+                    div.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 5px; color: #2c3e50;">🗺️ Receita por Cidade:</div>
+                        <div style="display: flex; align-items: center; margin: 2px 0;">
+                            <div style="width: 12px; height: 12px; background: #27ae60; border-radius: 50%; margin-right: 6px; border: 1px solid #2c3e50; opacity: 0.6;"></div>
+                            <span>Baixa receita</span>
+                        </div>
+                        <div style="display: flex; align-items: center; margin: 2px 0;">
+                            <div style="width: 20px; height: 20px; background: #27ae60; border-radius: 50%; margin-right: 6px; border: 1px solid #2c3e50; opacity: 0.8;"></div>
+                            <span>Alta receita</span>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 10px; color: #95a5a6;">
+                            Clique nos círculos para detalhes
+                        </div>
+                    `;
+                    return div;
+                };
+                legend.addTo(map);
+                
+                // Fit map to show all markers
+                const group = new L.featureGroup(data.cities.map(city => 
+                    L.marker([city.lat, city.lng])
+                ));
+                map.fitBounds(group.getBounds().pad(0.1));
+                
+            }, 100);
+        }
+
+        function showCityTooltip(city, x, y) {
+            // Remove existing tooltip
+            hideTooltip();
+            
+            const tooltip = document.createElement('div');
+            tooltip.id = 'cityTooltip';
+            tooltip.style.cssText = `
+                position: absolute;
+                background: white;
+                border: 2px solid #27ae60;
+                border-radius: 8px;
+                padding: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                z-index: 1000;
+                font-size: 13px;
+                max-width: 220px;
+                left: ${x}%;
+                top: ${y - 15}%;
+                transform: translate(-50%, -100%);
+                color: #2c3e50;
+                font-weight: 500;
+            `;
+            tooltip.innerHTML = `
+                <div style="font-weight: bold; color: #27ae60; margin-bottom: 5px;">🏙️ ${city.name}</div>
+                <div style="margin: 5px 0;">
+                    <strong>Receita:</strong> R$ ${(city.revenue / 1000).toFixed(0)}K
+                </div>
+                <div style="margin: 5px 0; font-size: 11px; color: #7f8c8d;">
+                    📍 ${city.lat.toFixed(2)}, ${city.lng.toFixed(2)}
+                </div>
+                <div style="margin: 5px 0; font-size: 11px; color: #7f8c8d;">
+                    Clique para ver detalhes
+                </div>
+            `;
+            
+            // Add arrow
+            const arrow = document.createElement('div');
+            arrow.style.cssText = `
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 0;
+                height: 0;
+                border-left: 8px solid transparent;
+                border-right: 8px solid transparent;
+                border-top: 8px solid #27ae60;
+            `;
+            tooltip.appendChild(arrow);
+            
+            document.getElementById('map').appendChild(tooltip);
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('cityTooltip');
+            if (tooltip) {
+                tooltip.remove();
+            }
+        }
+
+        function highlightCity(cityName) {
+            const circles = document.querySelectorAll('circle[data-city]');
+            circles.forEach(circle => {
+                if (circle.getAttribute('data-city') === cityName) {
+                    circle.setAttribute('r', parseFloat(circle.getAttribute('r')) + 3);
+                    circle.setAttribute('fill', '#27ae60');
+                }
+            });
+        }
+
+        function unhighlightCity() {
+            const circles = document.querySelectorAll('circle[data-city]');
+            circles.forEach(circle => {
+                const originalSize = (parseFloat(circle.getAttribute('r')) - 3);
+                if (originalSize > 0) {
+                    circle.setAttribute('r', originalSize);
+                    circle.setAttribute('fill', `rgba(39, 174, 96, 0.6)`);
+                }
+            });
+        }
+
+        function focusCity(cityName) {
+            // Find the city data
+            const allRegions = Object.values(regionalData);
+            let targetCity = null;
+            
+            for (const region of allRegions) {
+                const city = region.cities.find(c => c.name === cityName);
+                if (city) {
+                    targetCity = city;
+                    break;
+                }
+            }
+            
+            if (targetCity) {
+                // Show city details in a new modal or update current view
+                showCityDetails(targetCity);
+            }
+        }
+
+        function showCityDetails(city) {
+            const modal = document.getElementById('cityDetailModal');
+            const content = document.getElementById('cityModalContent');
+            
+            // Find which region this city belongs to
+            let regionName = '';
+            for (const [region, data] of Object.entries(regionalData)) {
+                if (data.cities.find(c => c.name === city.name)) {
+                    regionName = region;
+                    break;
+                }
+            }
+            
+            content.innerHTML = `
+                <h2>🏙️ ${city.name}</h2>
+                <p style="color: #7f8c8d; margin-bottom: 20px;">
+                    Detalhes da cidade e receita - ${regionName}
+                </p>
+                
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <h4>Receita Total</h4>
+                        <div class="value">R$ ${(city.revenue / 1000).toFixed(0)}K</div>
+                    </div>
+                    <div class="detail-item">
+                        <h4>Latitude</h4>
+                        <div class="value">${city.lat.toFixed(4)}</div>
+                    </div>
+                    <div class="detail-item">
+                        <h4>Longitude</h4>
+                        <div class="value">${city.lng.toFixed(4)}</div>
+                    </div>
+                    <div class="detail-item">
+                        <h4>Região</h4>
+                        <div class="value">${regionName}</div>
+                    </div>
+                    <div class="detail-item">
+                        <h4>Receita Mensal</h4>
+                        <div class="value">R$ ${(city.revenue / 12 / 1000).toFixed(0)}K</div>
+                    </div>
+                    <div class="detail-item">
+                        <h4>Receita Diária</h4>
+                        <div class="value">R$ ${(city.revenue / 365 / 1000).toFixed(0)}K</div>
+                    </div>
+                </div>
+
+                <div class="chart-demo">
+                    📊 Gráfico de Receita - ${city.name}
+                </div>
+
+                <div class="table-container">
+                    <h3>Dados da Cidade</h3>
+                    <table class="data-table">
+                        <tr>
+                            <th>Métrica</th>
+                            <th>Valor</th>
+                            <th>Ranking</th>
+                        </tr>
+                        <tr>
+                            <td>Receita Total</td>
+                            <td>R$ ${(city.revenue / 1000).toFixed(0)}K</td>
+                            <td>#${getCityRanking(city.name)}</td>
+                        </tr>
+                        <tr>
+                            <td>Receita Mensal</td>
+                            <td>R$ ${(city.revenue / 12 / 1000).toFixed(0)}K</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>Receita Diária</td>
+                            <td>R$ ${(city.revenue / 365 / 1000).toFixed(0)}K</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>Participação Regional</td>
+                            <td>${((city.revenue / regionalData[regionName].totalRevenue) * 100).toFixed(1)}%</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>Coordenadas</td>
+                            <td>${city.lat.toFixed(2)}, ${city.lng.toFixed(2)}</td>
+                            <td>-</td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+        }
+
+        function getCityRanking(cityName) {
+            // Get all cities from all regions and sort by revenue
+            const allCities = [];
+            Object.values(regionalData).forEach(region => {
+                allCities.push(...region.cities);
+            });
+            
+            allCities.sort((a, b) => b.revenue - a.revenue);
+            const ranking = allCities.findIndex(city => city.name === cityName) + 1;
+            return ranking;
+        }
+
+        function refreshData() {
+            // Simulate data refresh
+            const btn = document.querySelector('.refresh-btn');
+            btn.innerHTML = '⏳ Atualizando...';
+            btn.style.opacity = '0.7';
+            
+            setTimeout(() => {
+                btn.innerHTML = '✅ Atualizado!';
+                setTimeout(() => {
+                    btn.innerHTML = '🔄 Atualizar Dados';
+                    btn.style.opacity = '1';
+                }, 1000);
+            }, 1500);
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            // Revenue Trend Chart
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            const revenueChart = new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+                    datasets: [{
+                        label: 'Receita Mensal (R$)',
+                        data: [3856200, 4125300, 4856200, 5255460, 5125800, 4962100, 4785600, 4923400, 5156700, 5289400, 5421800, 5623400],
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Regional Revenue Chart
+            const regionalCtx = document.getElementById('regionalChart').getContext('2d');
+            const regionalChart = new Chart(regionalCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Centro-Oeste', 'Sul', 'Sudeste', 'Nordeste', 'Norte'],
+                    datasets: [{
+                        data: [5125800, 4256300, 2856200, 1562600, 436060],
+                        backgroundColor: [
+                            '#27ae60',
+                            '#2ecc71',
+                            '#3498db',
+                            '#f39c12',
+                            '#e74c3c'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const regions = ['Centro-Oeste', 'Sul', 'Sudeste', 'Nordeste', 'Norte'];
+                            showRegionalMap(regions[index]);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Add some interactivity to the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize charts
+            initializeCharts();
+
+            // Animate stat cards on load
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    card.style.transition = 'all 0.5s ease';
+                    
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 100);
+            });
+
+            // Add hover effects to product items
+            const productItems = document.querySelectorAll('.product-item');
+            productItems.forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+                    this.style.color = 'white';
+                });
+                
+                item.addEventListener('mouseleave', function() {
+                    this.style.background = 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
+                    this.style.color = '#2c3e50';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

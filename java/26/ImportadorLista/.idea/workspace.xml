@@ -9,7 +9,78 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="cede36c5-03f7-4746-8707-08dae30a7595" name="Changes" comment="" />
+    <list default="true" id="cede36c5-03f7-4746-8707-08dae30a7595" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../../../javaScript/71/test10.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../../javaScript/71/test10.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../javaScript/71/test11.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../../javaScript/71/test11.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../javaScript/71/test12.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../../javaScript/71/test12.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../javaScript/71/test3.jsp" beforeDir="false" afterPath="$PROJECT_DIR$/../../../javaScript/71/test3.jsp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../javaScript/71/test4.jsp" beforeDir="false" afterPath="$PROJECT_DIR$/../../../javaScript/71/test4.jsp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../javaScript/71/test5.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../../javaScript/71/test5.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../javaScript/71/test6.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../../javaScript/71/test6.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../javaScript/71/test7.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../../javaScript/71/test7.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../javaScript/71/test8.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../../javaScript/71/test8.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../javaScript/71/test9.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../../javaScript/71/test9.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0001_date_interval - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0001_date_interval.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0002_acc_sails_by_brand - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0002_acc_sails_by_brand.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0003_multilist_by_brand - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0003_multilist_by_brand.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0004_sails_new_products - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0004_sails_new_products.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0005_RETORNO DE INVESTIMENTO - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0005_RETORNO DE INVESTIMENTO.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0006_CUSTO COM INOVACAO - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0006_CUSTO COM INOVACAO.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0007_VENDAS NOVOS PRODUTOS - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0007_VENDAS NOVOS PRODUTOS.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0008_PERCENTUAL TOTAL E ACUMULADO DE VENDAS PRODUTOS LANÇAMENTOS - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0008_PERCENTUAL TOTAL E ACUMULADO DE VENDAS PRODUTOS LANÇAMENTOS.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0009_ReservasPendentesFaturamento - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0009_ReservasPendentesFaturamento.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0010_STP_SOLAPROV_xxxx - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0010_STP_SOLAPROV_xxxx.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0011_STP_APROVACAO_RESERVAS_EnvioMail" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0011_STP_APROVACAO_RESERVAS_EnvioMail - Copy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0011_STP_APROVACAO_RESERVAS_EnvioMail - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0011_STP_APROVACAO_RESERVAS_EnvioMail.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0012_STP_CONCLUIR_RESERVA_XXXX - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0012_STP_CONCLUIR_RESERVA_XXXX.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0013_STP_INC_PROGENTREGA - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0013_STP_INC_PROGENTREGA.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0014_SELECT_CUSTOxRENTABILIDADE - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0014_SELECT_CUSTOxRENTABILIDADE.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0015_SELECT_CUSTO_MP - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0015_SELECT_CUSTO_MP.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0015_SELECT_CUSTOunt_CUSTOuntREPOSICAO - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0015_SELECT_CUSTOunt_CUSTOuntREPOSICAO.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0016_SELECT_CUSTO_MEDIOxPREVISTO - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0016_SELECT_CUSTO_MEDIOxPREVISTO.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0017_SELECT_VALORES_AGRUPADOS_POR_CLASSES - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0017_SELECT_VALORES_AGRUPADOS_POR_CLASSES.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0018_SELECT_EXEMPLO_FOR - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0018_SELECT_EXEMPLO_FOR.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0019_SELECT_DIAS_ENTRE_UM_PEDIDO_E_OUTRO_CLIENTE - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0019_SELECT_DIAS_ENTRE_UM_PEDIDO_E_OUTRO_CLIENTE.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0020_SELECT_FATURAMENTO_BASICO_GM - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0020_SELECT_FATURAMENTO_BASICO_GM.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0021 _SELECT_Gestao_Documentos" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0021 _SELECT_Gestao_Documentos - Copy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0021_function_numero_por_extenso - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0021_function_numero_por_extenso.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0022_STP_SOLICT_DESC - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0022_STP_SOLICT_DESC.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0022_function_numero_por_extenso.sql - Copy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/0022_function_numero_por_extenso.sql.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/Conceitos/Casca - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/Conceitos/Casca.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/Conceitos/Trigger - Copy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/Conceitos/Trigger.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/Conceitos/Trigger/Casca - Copy.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/Conceitos/Trigger/Casca.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/Conceitos/Trigger1 - Copy.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../oracle/1/Conceitos/Trigger1.txt" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,18 +97,18 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/home/diogo/Documents/Git/test_several1/java/26/ImportadorLista",
-    "project.structure.last.edited": "Artifacts",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/diogo/Documents/Git/test_several1/java/26/ImportadorLista&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Artifacts&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;
   }
-}]]></component>
+}</component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
