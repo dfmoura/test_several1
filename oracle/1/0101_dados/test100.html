@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Notificação de Requisição</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    .info-box {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 15px;
+    }
+    .alerta {
+      color: red;
+      margin-top: 15px;
+    }
+    .logo {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <p>Prezado(a) <strong>{{NOME_USUARIO}}</strong>,</p>
+
+  <p>
+    Gostaríamos de informar que a requisição nº <strong>{{NUCHAVE}}</strong>
+    encontra-se pendente há <strong>{{DIAS_PENDENTES}} dia(s)</strong> e aguarda análise pelos responsáveis.
+  </p>
+
+  <p><strong>Data da solicitação:</strong> {{DATA_SOLICITACAO}}</p>
+
+  <p><strong>Descrição da Requisição:</strong><br>
+    {{OBSERVACAO}}
+  </p>
+
+  <div class="info-box">
+    <strong>Esta é uma notificação informativa sobre o status da sua requisição.</strong><br>
+    <em>Sua requisição está aguardando análise pelos responsáveis pela aprovação / reprovação.</em>
+  </div>
+
+  <p style="margin-top: 15px;"><strong>Prazo final para análise:</strong> {{PRAZO_FINAL}}</p>
+
+  <p style="margin-top: 10px;">
+    <strong>Dias restantes para análise:</strong>
+    <span style="color: #dc3545; font-weight: bold;">{{DIAS_RESTANTES}} dia(s)</span>
+  </p>
+
+  <p class="alerta">
+    <strong>Atenção:</strong> Requisições que permanecerem pendentes por
+    <strong>15 dias corridos</strong> a partir da data da solicitação (<strong>{{DATA_SOLICITACAO_CURTA}}</strong>)
+    serão <u>automaticamente reprovadas</u> do sistema.
+    <strong>Requisições reprovadas automaticamente devem ser recriadas no sistema,
+    caso o usuário ainda deseje seguir com a solicitação.</strong>
+  </p>
+
+  <br>
+
+  <p>
+    Agradecemos sua compreensão.<br>
+    Departamento de Compras - Sistema de Notificações
+  </p>
+
+  <img class="logo" src="https://github.com/dfmoura/test_several1/blob/main/oracle/1/0064_constrole_homologacao_insumos_rd/satis_logo.jpg?raw=true" alt="Logo">
+
+</body>
+</html>

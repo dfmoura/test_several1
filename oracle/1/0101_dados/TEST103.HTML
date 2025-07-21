@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Reprovação Automática - Notificação</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      color: #333;
+      line-height: 1.6;
+    }
+    .info-reprovacao {
+      background-color: #d4edda;
+      border: 1px solid #c3e6cb;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 15px;
+    }
+    .info-reprovacao strong {
+      color: #155724;
+    }
+    .destaque-verde {
+      color: #155724;
+      margin-top: 15px;
+    }
+    .alerta-prazo {
+      color: #dc3545;
+      font-weight: bold;
+    }
+    .logo {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <p>Prezado(a) <strong>{{NOME_USUARIO}}</strong>,</p>
+
+  <p>
+    <strong>INFORMAÇÃO:</strong> A requisição nº <strong>{{NUCHAVE}}</strong>
+    foi <strong>automaticamente reprovada</strong> do sistema.
+  </p>
+
+  <p><strong>Data da solicitação:</strong> {{DATA_SOLICITACAO}}</p>
+
+  <p><strong>Descrição da Requisição:</strong><br>
+    {{OBSERVACAO}}
+  </p>
+
+  <p><strong>Tempo de pendência:</strong> {{DIAS_PENDENTES}} dia(s)</p>
+
+  <p><strong>Data de corte:</strong> {{DATA_CORTE}}</p>
+
+  <p><strong>Prazo final que expirou:</strong> {{PRAZO_FINAL}}</p>
+
+  <p style="margin-top: 10px;">
+    <strong>Dias após o prazo:</strong>
+    <span class="alerta-prazo">{{DIAS_APOS_PRAZO}} dia(s)</span>
+  </p>
+
+  <div class="info-reprovacao">
+    <strong>REPROVAÇÃO AUTOMÁTICA REALIZADA</strong><br>
+    <strong>
+      Esta requisição foi reprovada do sistema conforme a política de reprovação automática
+      após 5 dias da data de corte, sem análise pelos responsáveis.
+    </strong>
+  </div>
+
+  <p class="destaque-verde">
+    <strong>Observação:</strong> Caso ainda seja necessária a liberação,
+    será necessário criar uma nova requisição no sistema.
+    <strong>Requisições reprovadas automaticamente devem ser recriadas no sistema,
+    caso o usuário ainda deseje seguir com a solicitação.</strong>
+  </p>
+
+  <br>
+
+  <p>
+    Agradecemos sua compreensão.<br>
+    Departamento de Compras - Sistema de Notificações
+  </p>
+
+  <img class="logo" src="https://github.com/dfmoura/test_several1/blob/main/oracle/1/0064_constrole_homologacao_insumos_rd/satis_logo.jpg?raw=true" alt="Logo">
+
+</body>
+</html>

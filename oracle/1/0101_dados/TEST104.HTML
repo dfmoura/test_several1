@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Alerta de Pendência de Requisição</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      color: #333;
+      line-height: 1.6;
+    }
+    .alerta-prazo {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      padding: 12px;
+      border-radius: 5px;
+      margin-top: 15px;
+    }
+    .alerta-prazo strong {
+      color: #856404;
+    }
+    .prazo-final {
+      color: #dc3545;
+      font-weight: bold;
+    }
+    .info-final {
+      color: #856404;
+      margin-top: 10px;
+    }
+    .logo {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <p>Prezado(a) <strong>{{NOME_USUARIO}}</strong>,</p>
+
+  <p>
+    A requisição nº <strong>{{NUCHAVE}}</strong>, cadastrada há <strong>{{DIAS_PENDENTES}} dia(s)</strong>,
+    permanece pendente de análise pelos responsáveis.
+  </p>
+
+  <p><strong>Data da solicitação:</strong> {{DATA_SOLICITACAO}}</p>
+
+  <p><strong>Descrição da Requisição:</strong><br>
+    {{OBSERVACAO}}
+  </p>
+
+  <div class="alerta-prazo">
+    <strong>Atenção:</strong> Esta requisição está <u>acima do prazo padrão</u> e será
+    <strong>automaticamente reprovada em 5 dias corridos</strong> a partir da data de corte
+    (<strong>{{DATA_CORTE}}</strong>).
+  </div>
+
+  <p style="margin-top: 15px;"><strong>Prazo final para análise:</strong> {{PRAZO_FINAL}}</p>
+
+  <p style="margin-top: 10px;">
+    <strong>Dias restantes para análise:</strong>
+    <span class="prazo-final">{{DIAS_RESTANTES}} dia(s)</span>
+  </p>
+
+  <p style="margin-top: 15px;">
+    Para evitar a reprovação automática, recomendamos que você entre em contato com os responsáveis pela aprovação
+    para verificar o status da análise, caso a requisição ainda seja necessária.
+  </p>
+
+  <p class="info-final">
+    <strong>Após o prazo informado, será necessário criar uma nova requisição no sistema.</strong>
+  </p>
+
+  <br>
+
+  <p>
+    Agradecemos sua compreensão.<br>
+    Departamento de Compras - Sistema de Notificações
+  </p>
+
+  <img class="logo" src="https://github.com/dfmoura/test_several1/blob/main/oracle/1/0064_constrole_homologacao_insumos_rd/satis_logo.jpg?raw=true" alt="Logo">
+
+</body>
+</html>
