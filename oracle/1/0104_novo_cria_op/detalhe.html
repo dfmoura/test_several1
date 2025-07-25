@@ -60,67 +60,67 @@
     }
     .resumo {
       background: var(--branco);
-      border-radius: 12px;
+      border-radius: 8px;
       box-shadow: var(--sombra);
-      padding: 16px;
-      margin-bottom: 16px;
+      padding: 10px;
+      margin-bottom: 12px;
     }
     .resumo-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid var(--verde-claro);
+      gap: 8px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--verde-claro);
     }
     .resumo-icon {
-      width: 40px;
-      height: 40px;
+      width: 28px;
+      height: 28px;
       background: var(--verde-medio);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--branco);
-      font-size: 1.2rem;
+      font-size: 0.9rem;
       font-weight: bold;
     }
     .resumo-titulo {
       flex: 1;
     }
     .resumo-titulo .codigo {
-      font-size: 1.1rem;
+      font-size: 0.95rem;
       font-weight: 600;
       color: var(--verde-escuro);
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
     .resumo-titulo .descricao {
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       color: var(--cinza-texto);
-      line-height: 1.3;
+      line-height: 1.2;
     }
     .resumo-detalhes {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
     }
     .resumo-card {
       background: var(--cinza-fundo);
-      border-radius: 8px;
-      padding: 8px 10px;
+      border-radius: 4px;
+      padding: 4px 6px;
       text-align: center;
       border: 1px solid var(--cinza-borda);
     }
     .resumo-card-label {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       color: var(--verde-escuro);
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 2px;
+      letter-spacing: 0.3px;
+      margin-bottom: 1px;
     }
     .resumo-card-valor {
-      font-size: 0.95rem;
+      font-size: 0.8rem;
       color: var(--cinza-texto);
       font-weight: 500;
     }
@@ -314,6 +314,15 @@
     .btn-voltar:active { background: var(--verde-hover); }
     @media (min-width: 600px) {
       main { padding: 24px 0 0 0; }
+    }
+    @media (max-width: 480px) {
+      .resumo-detalhes {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+      }
+      .resumo-card {
+        padding: 6px 8px;
+      }
     }
   </style>
 </head>
