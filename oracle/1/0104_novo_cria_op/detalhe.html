@@ -53,74 +53,82 @@
       flex: 1 1 auto;
       margin-top: 56px;
       margin-bottom: 70px;
-      padding: 16px 8px 0 8px;
+      padding: 8px 6px 0 6px;
       max-width: 600px;
       width: 100%;
       margin-left: auto; margin-right: auto;
     }
     .resumo {
       background: var(--branco);
-      border-radius: 8px;
+      border-radius: 6px;
       box-shadow: var(--sombra);
-      padding: 10px;
-      margin-bottom: 12px;
+      padding: 6px 8px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
     .resumo-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--verde-claro);
+      gap: 6px;
+      flex-shrink: 0;
     }
     .resumo-icon {
-      width: 28px;
-      height: 28px;
+      width: 20px;
+      height: 20px;
       background: var(--verde-medio);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--branco);
-      font-size: 0.9rem;
+      font-size: 0.7rem;
       font-weight: bold;
     }
     .resumo-titulo {
-      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
     }
     .resumo-titulo .codigo {
-      font-size: 0.95rem;
+      font-size: 0.8rem;
       font-weight: 600;
       color: var(--verde-escuro);
-      margin-bottom: 1px;
     }
     .resumo-titulo .descricao {
-      font-size: 0.8rem;
+      font-size: 0.7rem;
       color: var(--cinza-texto);
-      line-height: 1.2;
+      line-height: 1.1;
     }
     .resumo-detalhes {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 4px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex: 1;
+      justify-content: flex-end;
     }
     .resumo-card {
       background: var(--cinza-fundo);
-      border-radius: 4px;
-      padding: 4px 6px;
+      border-radius: 3px;
+      padding: 2px 6px;
       text-align: center;
       border: 1px solid var(--cinza-borda);
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 60px;
     }
     .resumo-card-label {
-      font-size: 0.65rem;
+      font-size: 0.55rem;
       color: var(--verde-escuro);
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.3px;
-      margin-bottom: 1px;
+      letter-spacing: 0.2px;
     }
     .resumo-card-valor {
-      font-size: 0.8rem;
+      font-size: 0.65rem;
       color: var(--cinza-texto);
       font-weight: 500;
     }
@@ -282,6 +290,48 @@
       cursor: pointer;
       margin-left: 4px;
     }
+    /* Botões de ação */
+    .acao-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .editar-btn {
+      background: var(--verde-medio);
+      color: var(--branco);
+    }
+    .editar-btn:hover {
+      background: var(--verde-hover);
+      transform: scale(1.05);
+    }
+    .excluir-btn {
+      background: var(--vermelho);
+      color: var(--branco);
+    }
+    .excluir-btn:hover {
+      background: #dc2626;
+      transform: scale(1.05);
+    }
+    .confirmar-btn {
+      background: var(--amarelo);
+      color: var(--verde-escuro);
+    }
+    .confirmar-btn:hover {
+      background: #eab308;
+      transform: scale(1.05);
+    }
+    .acao-btn:active {
+      transform: scale(0.95);
+    }
     /* Rodapé fixo */
     footer {
       position: fixed;
@@ -316,12 +366,41 @@
       main { padding: 24px 0 0 0; }
     }
     @media (max-width: 480px) {
+      .resumo {
+        padding: 4px 6px;
+        margin-bottom: 6px;
+        gap: 8px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .resumo-header {
+        gap: 4px;
+      }
+      .resumo-icon {
+        width: 18px;
+        height: 18px;
+        font-size: 0.6rem;
+      }
       .resumo-detalhes {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
+        gap: 4px;
+        justify-content: flex-start;
+        width: 100%;
       }
       .resumo-card {
-        padding: 6px 8px;
+        padding: 3px 5px;
+        min-width: 50px;
+        flex: 1;
+      }
+      /* Botões otimizados para mobile */
+      .acao-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
+        margin: 0 3px;
+      }
+      .tabela th, .tabela td {
+        padding: 8px 4px;
+        font-size: 0.9rem;
       }
     }
   </style>
@@ -354,6 +433,7 @@
       <table class="tabela" id="tabelaApont">
         <thead>
           <tr>
+            <th>Ações</th>
             <th></th>
             <th>Nota</th>
             <th>Usuário</th>
@@ -361,7 +441,7 @@
             <th>Situação</th>
             <th>Qtd. Apontada</th>
             <th>Qtd. Perda</th>
-            <th>Ações</th>
+            <th>Excluir</th>
           </tr>
         </thead>
         <tbody id="tbodyApont">
@@ -545,7 +625,13 @@
       apontamentos.forEach((ap, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><button class='expandir-btn' onclick='toggleMateriais(${idx})' title='Ver materiais'>▼</button></td>
+          <td>
+            ${ap.situacao === 'Pendente' ? `
+              <button class="acao-btn editar-btn" onclick='editarApont(${idx})' title="Editar">✏️</button>
+              <button class="acao-btn confirmar-btn" onclick='confirmarApont(${idx})' title="Confirmar">✔️</button>
+            ` : ''}
+          </td>
+          <td><button class='expandir-btn' onclick='toggleMateriais(${idx})' title='${ap.oculto ? 'Mostrar' : 'Ocultar'} materiais'>${ap.oculto ? '▼' : '▲'}</button></td>
           <td>${ap.nunota}</td>
           <td>${ap.codusu}</td>
           <td>${ap.dhapontamento}</td>
@@ -553,14 +639,16 @@
           <td>${ap.qtdApontada}</td>
           <td>${ap.qtdPerda}</td>
           <td>
-            ${ap.situacao === 'Pendente' ? `<button onclick='editarApont(${idx})'>✏️</button> <button onclick='excluirApont(${idx})'>🗑️</button> <button onclick='confirmarApont(${idx})'>✔️</button>` : ''}
+            ${ap.situacao === 'Pendente' ? `
+              <button class="acao-btn excluir-btn" onclick='excluirApont(${idx})' title="Excluir">🗑️</button>
+            ` : ''}
           </td>
         `;
         tbody.appendChild(tr);
-        // Linha de materiais (expandida)
-        if (ap.expandido) {
+        // Linha de materiais (oculta por padrão)
+        if (!ap.oculto) {
           const trMat = document.createElement('tr');
-          trMat.innerHTML = `<td colspan='8'>${renderMateriais(ap, idx)}</td>`;
+          trMat.innerHTML = `<td colspan='9'>${renderMateriais(ap, idx)}</td>`;
           tbody.appendChild(trMat);
         }
       });
@@ -568,13 +656,13 @@
     function renderMateriais(ap, idxAp) {
       let html = `<div class='materiais-lista'><table class='materiais-tabela' style='width:100%'><thead><tr><th>Cód.</th><th>Material</th><th>Lote</th><th>Qtd.</th><th>Estoque</th><th>UN</th><th>Ações</th></tr></thead><tbody>`;
       ap.materiais.forEach((mat, idxMat) => {
-        html += `<tr><td>${mat.codMaterial}</td><td>${mat.material}</td><td>${mat.lote}</td><td>${mat.qtdApontada}</td><td>${mat.estoque}</td><td>${mat.un}</td><td>${ap.situacao === 'Pendente' ? `<button onclick='editarMaterial(${idxAp},${idxMat})'>✏️</button> <button onclick='excluirMaterial(${idxAp},${idxMat})'>🗑️</button>` : ''}</td></tr>`;
+        html += `<tr><td>${mat.codMaterial}</td><td>${mat.material}</td><td>${mat.lote}</td><td>${mat.qtdApontada}</td><td>${mat.estoque}</td><td>${mat.un}</td><td>${ap.situacao === 'Pendente' ? `<button class="acao-btn editar-btn" onclick='editarMaterial(${idxAp},${idxMat})' title="Editar">✏️</button> <button class="acao-btn excluir-btn" onclick='excluirMaterial(${idxAp},${idxMat})' title="Excluir">🗑️</button>` : ''}</td></tr>`;
       });
       html += `</tbody></table></div>`;
       return html;
     }
     function toggleMateriais(idx) {
-      apontamentos[idx].expandido = !apontamentos[idx].expandido;
+      apontamentos[idx].oculto = !apontamentos[idx].oculto;
       renderApontamentos();
     }
     // Adicionar Apontamento
@@ -629,7 +717,7 @@
           qtdApontada,
           qtdPerda,
           materiais,
-          expandido: false
+          oculto: false
         });
       } else {
         // Editar
