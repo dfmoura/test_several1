@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operações de Produção</title>
+  <style>
+    :root {
+      --verde-escuro: #145a32;
+      --verde: #27ae60;
+      --verde-claro: #a9dfbf;
+      --cinza: #f4f6f7;
+      --cinza-escuro: #566573;
+      --branco: #fff;
+      --borda: #d5dbdb;
+      --sombra: 0 2px 8px rgba(20,90,50,0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--cinza);
+      color: var(--verde-escuro);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--branco);
+      box-shadow: var(--sombra);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      height: 56px;
+      padding: 0 1rem;
+    }
+    .header-icon {
+      width: 32px; height: 32px;
+      margin-right: 1rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--verde-escuro);
+      letter-spacing: 0.5px;
+    }
+    main {
+      flex: 1 1 auto;
+      margin-top: 56px;
+      margin-bottom: 60px;
+      padding: 1rem 0.5rem 0.5rem 0.5rem;
+      max-width: 600px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .filtros {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+    }
+    .filtro-btn {
+      border: none;
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      padding: 0.5rem 1.1rem;
+      border-radius: 20px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .filtro-btn.ativo {
+      background: var(--verde);
+      color: var(--branco);
+    }
+    .tabela-container {
+      background: var(--branco);
+      border-radius: 12px;
+      box-shadow: var(--sombra);
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 480px;
+    }
+    th, td {
+      padding: 0.7rem 0.5rem;
+      text-align: left;
+    }
+    th {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-size: 0.98rem;
+      font-weight: 600;
+      border-bottom: 2px solid var(--borda);
+    }
+    tr {
+      transition: background 0.15s;
+    }
+    tr.clicavel {
+      cursor: pointer;
+    }
+    tr.clicavel:hover {
+      background: var(--verde-claro);
+    }
+    td {
+      border-bottom: 1px solid var(--borda);
+      font-size: 0.97rem;
+    }
+    .rodape {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 56px;
+      background: var(--branco);
+      box-shadow: 0 -2px 8px rgba(20,90,50,0.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: var(--verde-escuro);
+      z-index: 10;
+      letter-spacing: 0.5px;
+    }
+    @media (max-width: 600px) {
+      main { padding: 0.5rem 0.1rem 0.5rem 0.1rem; }
+      table { min-width: 340px; }
+      .header-title { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="header-icon">
+      <!-- Ícone SVG discreto -->
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="10" stroke="#27ae60" stroke-width="2"/><rect x="7" y="7" width="8" height="8" rx="2" fill="#27ae60"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <div class="filtros">
+      <button class="filtro-btn ativo" data-situacao="Pendente">Pendentes</button>
+      <button class="filtro-btn" data-situacao="Finalizada">Finalizadas</button>
+      <button class="filtro-btn" data-situacao="Cancelada">Canceladas</button>
+    </div>
+    <div class="tabela-container">
+      <table id="tabela-op">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data Fabricação</th>
+            <th>Produto</th>
+            <th>Qtd. Produzir</th>
+            <th>Lote</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Linhas inseridas via JS -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <footer class="rodape">
+    <span>© 2024 Sistema de Controle de Produção</span>
+  </footer>
+  <script>
+    // Dados simulados
+    const operacoes = [
+      { idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001 - Produto A', qtdproduzir: 100, nrolote: 'L001', situacao: 'Pendente' },
+      { idiproc: 102, dtfab: '2024-06-02', codprodpa: 'P002 - Produto B', qtdproduzir: 200, nrolote: 'L002', situacao: 'Finalizada' },
+      { idiproc: 103, dtfab: '2024-06-03', codprodpa: 'P003 - Produto C', qtdproduzir: 150, nrolote: 'L003', situacao: 'Cancelada' },
+      { idiproc: 104, dtfab: '2024-06-04', codprodpa: 'P004 - Produto D', qtdproduzir: 120, nrolote: 'L004', situacao: 'Pendente' },
+      { idiproc: 105, dtfab: '2024-06-05', codprodpa: 'P005 - Produto E', qtdproduzir: 180, nrolote: 'L005', situacao: 'Pendente' },
+    ];
+    let situacaoAtual = 'Pendente';
+    function renderTabela() {
+      const tbody = document.querySelector('#tabela-op tbody');
+      tbody.innerHTML = '';
+      operacoes.filter(op => op.situacao === situacaoAtual).forEach(op => {
+        const tr = document.createElement('tr');
+        if (op.situacao === 'Pendente') {
+          tr.classList.add('clicavel');
+          tr.addEventListener('click', () => {
+            window.location.href = 'detalhe.html?id=' + op.idiproc;
+          });
+        }
+        tr.innerHTML = `
+          <td>${op.idiproc}</td>
+          <td>${op.dtfab}</td>
+          <td>${op.codprodpa}</td>
+          <td>${op.qtdproduzir}</td>
+          <td>${op.nrolote}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
+        this.classList.add('ativo');
+        situacaoAtual = this.dataset.situacao;
+        renderTabela();
+      });
+    });
+    renderTabela();
+  </script>
+</body>
+</html>

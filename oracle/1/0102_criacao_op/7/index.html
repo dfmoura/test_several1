@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operações de Produção</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --verde-escuro: #14532d;
+      --verde-medio: #22c55e;
+      --verde-claro: #bbf7d0;
+      --verde-suave: #e7fbe7;
+      --verde-vibrante: #16a34a;
+      --verde-cinza: #d1fae5;
+      --cinza: #f3f4f6;
+      --cinza-escuro: #6b7280;
+      --branco: #fff;
+      --sombra: 0 2px 8px rgba(20, 83, 45, 0.07);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Roboto', Arial, sans-serif;
+      background: var(--cinza);
+      color: var(--verde-escuro);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--branco);
+      box-shadow: var(--sombra);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      height: 56px;
+      padding: 0 1rem;
+    }
+    .header-icon {
+      width: 28px; height: 28px;
+      margin-right: 0.75rem;
+      fill: var(--verde-medio);
+    }
+    .header-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+    .filtros {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 56px;
+      padding: 1rem 1rem 0.5rem 1rem;
+      background: var(--branco);
+      box-shadow: 0 2px 4px rgba(34,197,94,0.03);
+      position: sticky;
+      top: 56px;
+      z-index: 9;
+    }
+    .filtro-btn {
+      flex: 1;
+      padding: 0.5rem 0;
+      border: none;
+      border-radius: 20px;
+      background: var(--verde-cinza);
+      color: var(--verde-escuro);
+      font-weight: 500;
+      font-size: 1rem;
+      transition: background 0.2s, color 0.2s;
+      cursor: pointer;
+    }
+    .filtro-btn.ativo {
+      background: var(--verde-medio);
+      color: var(--branco);
+    }
+    main {
+      flex: 1;
+      padding: 0.5rem 0.5rem 4.5rem 0.5rem;
+      margin-top: 0.5rem;
+      max-width: 600px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .tabela {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .tabela th {
+      text-align: left;
+      font-size: 0.95rem;
+      color: var(--verde-escuro);
+      font-weight: 700;
+      padding: 0.5rem 0.5rem 0.25rem 0.5rem;
+    }
+    .tabela td {
+      background: var(--branco);
+      padding: 0.75rem 0.5rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      box-shadow: 0 1px 4px rgba(34,197,94,0.04);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .tabela tr:hover td {
+      background: var(--verde-suave);
+    }
+    @media (min-width: 600px) {
+      main { padding: 1.5rem 0.5rem 4.5rem 0.5rem; }
+      .tabela th, .tabela td { font-size: 1.05rem; }
+    }
+    footer {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: var(--branco);
+      box-shadow: 0 -2px 8px rgba(20, 83, 45, 0.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      font-size: 1rem;
+      color: var(--verde-escuro);
+      z-index: 10;
+      gap: 0.5rem;
+    }
+    .footer-icon {
+      width: 20px; height: 20px;
+      fill: var(--verde-medio);
+    }
+    /* Scrollbar leve */
+    ::-webkit-scrollbar { width: 8px; background: var(--verde-suave); }
+    ::-webkit-scrollbar-thumb { background: var(--verde-cinza); border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <svg class="header-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <div class="filtros">
+    <button class="filtro-btn ativo" data-situacao="Pendente">Pendentes</button>
+    <button class="filtro-btn" data-situacao="Finalizada">Finalizadas</button>
+    <button class="filtro-btn" data-situacao="Cancelada">Canceladas</button>
+  </div>
+  <main>
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Data</th>
+          <th>Produto</th>
+          <th>Qtd</th>
+          <th>Lote</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-op"></tbody>
+    </table>
+  </main>
+  <footer>
+    <svg class="footer-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+    <span>Operações de Produção</span>
+  </footer>
+  <script>
+    // Dados de exemplo
+    const operacoes = [
+      { idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001', descprod: 'Produto A', qtdproduzir: 1000, nrolote: 'L001', situacao: 'Pendente' },
+      { idiproc: 102, dtfab: '2024-06-02', codprodpa: 'P002', descprod: 'Produto B', qtdproduzir: 500, nrolote: 'L002', situacao: 'Finalizada' },
+      { idiproc: 103, dtfab: '2024-06-03', codprodpa: 'P003', descprod: 'Produto C', qtdproduzir: 750, nrolote: 'L003', situacao: 'Cancelada' },
+      { idiproc: 104, dtfab: '2024-06-04', codprodpa: 'P004', descprod: 'Produto D', qtdproduzir: 1200, nrolote: 'L004', situacao: 'Pendente' },
+      { idiproc: 105, dtfab: '2024-06-05', codprodpa: 'P005', descprod: 'Produto E', qtdproduzir: 900, nrolote: 'L005', situacao: 'Finalizada' },
+      { idiproc: 106, dtfab: '2024-06-06', codprodpa: 'P006', descprod: 'Produto F', qtdproduzir: 600, nrolote: 'L006', situacao: 'Pendente' },
+    ];
+    let situacaoAtual = 'Pendente';
+    function renderTabela() {
+      const tbody = document.getElementById('tbody-op');
+      tbody.innerHTML = '';
+      operacoes.filter(op => op.situacao === situacaoAtual).forEach(op => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>	${op.idiproc}</td>
+          <td>	${op.dtfab}</td>
+          <td>	${op.codprodpa} - ${op.descprod}</td>
+          <td>	${op.qtdproduzir}</td>
+          <td>	${op.nrolote}</td>
+        `;
+        tr.addEventListener('click', () => {
+          localStorage.setItem('op_selecionada', JSON.stringify(op));
+          window.location.href = 'detalhe.html';
+        });
+        tbody.appendChild(tr);
+      });
+    }
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
+        this.classList.add('ativo');
+        situacaoAtual = this.dataset.situacao;
+        renderTabela();
+      });
+    });
+    renderTabela();
+  </script>
+</body>
+</html>

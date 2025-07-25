@@ -1,0 +1,7 @@
+
+| Campo | PK | Tipo     | Tamanho |
+| ----- | -- | -------- | ------- |
+| ID    | ✔️ | NUMBER   | 10      |
+| NOME  |    | VARCHAR2 | 100     |
+| VALOR |    | FLOAT    | 126     |
+| DATA  |    | DATE     | 7       |

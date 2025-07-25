@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhe da Operação</title>
+  <style>
+    :root {
+      --verde-escuro: #14532d;
+      --verde-medio: #22c55e;
+      --verde-claro: #bbf7d0;
+      --verde-hover: #16a34a;
+      --cinza-fundo: #f6f6f6;
+      --cinza-tabela: #e5e7eb;
+      --cinza-borda: #d1d5db;
+      --branco: #fff;
+      --sombra: 0 2px 8px rgba(20, 83, 45, 0.08);
+      --vermelho: #ef4444;
+      --amarelo: #facc15;
+      --cinza: #6b7280;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--cinza-fundo);
+      color: var(--verde-escuro);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--branco);
+      box-shadow: var(--sombra);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      height: 56px;
+      padding: 0 1rem;
+    }
+    .header-icon {
+      width: 32px; height: 32px;
+      margin-right: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-icon svg {
+      width: 24px; height: 24px; fill: var(--verde-medio);
+    }
+    .header-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    main {
+      flex: 1;
+      margin-top: 56px;
+      margin-bottom: 80px;
+      padding: 1rem 0.5rem 0.5rem 0.5rem;
+      max-width: 600px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .cartao-resumo {
+      background: var(--branco);
+      border-radius: 16px;
+      box-shadow: var(--sombra);
+      padding: 1.2rem 1rem 1rem 1rem;
+      margin-bottom: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .cartao-resumo h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--verde-medio);
+      margin-bottom: 0.5rem;
+    }
+    .cartao-resumo .info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem 1.5rem;
+      font-size: 1rem;
+    }
+    .cartao-resumo .info span {
+      min-width: 120px;
+      font-weight: 500;
+      color: var(--verde-escuro);
+    }
+    .botoes-acao {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+    }
+    .btn-acao {
+      flex: 1;
+      min-width: 120px;
+      padding: 0.7rem 0;
+      border: none;
+      border-radius: 20px;
+      background: var(--verde-medio);
+      color: var(--branco);
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn-acao[disabled] {
+      background: var(--cinza-tabela);
+      color: var(--cinza);
+      cursor: not-allowed;
+    }
+    .btn-acao.parar { background: var(--amarelo); color: var(--verde-escuro); }
+    .btn-acao.finalizar { background: var(--verde-escuro); }
+    .btn-acao.iniciar { background: var(--verde-medio); }
+    .btn-acao.continuar { background: var(--verde-hover); }
+    .btn-acao svg {
+      width: 20px; height: 20px;
+    }
+    .abas {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.7rem;
+    }
+    .aba-btn {
+      flex: 1;
+      padding: 0.6rem 0;
+      border: none;
+      border-radius: 20px 20px 0 0;
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-weight: 500;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .aba-btn.ativa {
+      background: var(--verde-medio);
+      color: var(--branco);
+    }
+    .conteudo-aba { background: var(--branco); border-radius: 0 0 12px 12px; box-shadow: var(--sombra); padding: 1rem 0.5rem; }
+    .tabela-container { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 500px;
+    }
+    th, td {
+      padding: 0.65rem 0.5rem;
+      text-align: left;
+    }
+    th {
+      background: var(--cinza-tabela);
+      color: var(--verde-escuro);
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-bottom: 2px solid var(--cinza-borda);
+    }
+    tr {
+      border-bottom: 1px solid var(--cinza-borda);
+      transition: background 0.15s;
+    }
+    tr:last-child { border-bottom: none; }
+    td {
+      font-size: 0.97rem;
+      color: var(--verde-escuro);
+    }
+    .btn-tabela {
+      border: none;
+      background: none;
+      color: var(--verde-medio);
+      font-size: 1.1rem;
+      cursor: pointer;
+      margin: 0 0.2rem;
+      transition: color 0.2s;
+    }
+    .btn-tabela[disabled] { color: var(--cinza); cursor: not-allowed; }
+    .btn-tabela.confirmar { color: var(--verde-hover); }
+    .btn-tabela.deletar { color: var(--vermelho); }
+    .btn-tabela.editar { color: var(--amarelo); }
+    .no-data {
+      text-align: center;
+      color: #888;
+      padding: 2rem 0;
+      font-size: 1.1rem;
+    }
+    /* Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(20, 83, 45, 0.25);
+      z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.2s;
+    }
+    .modal {
+      background: var(--branco);
+      border-radius: 16px;
+      box-shadow: var(--sombra);
+      padding: 1.5rem 1rem 1rem 1rem;
+      min-width: 280px;
+      max-width: 95vw;
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      animation: modalIn 0.2s;
+    }
+    @keyframes modalIn {
+      from { transform: translateY(40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal label { font-weight: 500; color: var(--verde-escuro); }
+    .modal input, .modal select, .modal textarea {
+      width: 100%;
+      padding: 0.6rem;
+      border-radius: 8px;
+      border: 1px solid var(--cinza-borda);
+      font-size: 1rem;
+      margin-top: 0.3rem;
+      margin-bottom: 0.7rem;
+    }
+    .modal .modal-botoes {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+    .modal .modal-botoes button {
+      flex: 1;
+      padding: 0.7rem 0;
+      border: none;
+      border-radius: 12px;
+      background: var(--verde-medio);
+      color: var(--branco);
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .modal .modal-botoes .cancelar {
+      background: var(--cinza-tabela);
+      color: var(--cinza);
+    }
+    footer {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 80px;
+      background: var(--branco);
+      box-shadow: 0 -2px 8px rgba(20, 83, 45, 0.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: var(--verde-escuro);
+      z-index: 10;
+      letter-spacing: 0.01em;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .btn-voltar {
+      width: 90%;
+      max-width: 400px;
+      margin: 0.2rem auto 0 auto;
+      padding: 1rem 0;
+      border: none;
+      border-radius: 20px;
+      background: var(--verde-medio);
+      color: var(--branco);
+      font-weight: 600;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn-voltar:active { background: var(--verde-hover); }
+    @media (max-width: 600px) {
+      main { padding: 1rem 0.2rem 0.5rem 0.2rem; }
+      table { min-width: 400px; }
+      .header-title { font-size: 1.1rem; }
+      .modal { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="header-icon">
+      <!-- Ícone SVG discreto -->
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.15"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <div class="cartao-resumo" id="cartaoResumo">
+      <h2>Resumo da Operação</h2>
+      <div class="info">
+        <span><b>ID:</b> <span id="res-idiproc"></span></span>
+        <span><b>Data:</b> <span id="res-dtfab"></span></span>
+        <span><b>Produto:</b> <span id="res-codprodpa"></span></span>
+        <span><b>Qtd. Produzir:</b> <span id="res-qtdproduzir"></span></span>
+        <span><b>Lote:</b> <span id="res-nrolote"></span></span>
+      </div>
+    </div>
+    <div class="botoes-acao" id="botoesAcao">
+      <!-- Botões de ação renderizados via JS -->
+    </div>
+    <div class="abas">
+      <button class="aba-btn ativa" data-aba="apontamentos">Apontamentos</button>
+      <button class="aba-btn" data-aba="execucao">Execução</button>
+    </div>
+    <div class="conteudo-aba" id="conteudoAba">
+      <!-- Conteúdo das abas via JS -->
+    </div>
+  </main>
+  <footer>
+    <span>© 2024 Sistema de Controle de Produção</span>
+    <button class="btn-voltar" onclick="window.location.href='index.html'">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      Voltar
+    </button>
+  </footer>
+  <div id="modal-root"></div>
+  <script>
+    // Utilidades
+    function formatarDataHora(dt) {
+      if (!dt) return '';
+      const d = new Date(dt);
+      return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    }
+    function formatarData(dt) {
+      if (!dt) return '';
+      const d = new Date(dt);
+      return d.toLocaleDateString('pt-BR');
+    }
+    // Dados simulados (em produção, viriam de API ou localStorage)
+    const op = JSON.parse(localStorage.getItem('opDetalhe')) || {
+      idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001', descprod: 'Produto A', qtdproduzir: 100, nrolote: 'L001', situacao: 'pendente'
+    };
+    // Estado da execução
+    let statusExecucao = 'naoiniciada'; // naoiniciada, emexecucao, parada, finalizada
+    let execucoes = [];
+    let apontamentos = [];
+    let usuarioAtual = 'USR01';
+    // Render resumo
+    function renderResumo() {
+      document.getElementById('res-idiproc').textContent = op.idiproc;
+      document.getElementById('res-dtfab').textContent = formatarData(op.dtfab);
+      document.getElementById('res-codprodpa').textContent = op.codprodpa + ' - ' + op.descprod;
+      document.getElementById('res-qtdproduzir').textContent = op.qtdproduzir;
+      document.getElementById('res-nrolote').textContent = op.nrolote;
+    }
+    // Render botões principais
+    function renderBotoes() {
+      const el = document.getElementById('botoesAcao');
+      el.innerHTML = '';
+      if (statusExecucao === 'naoiniciada') {
+        el.innerHTML = `<button class="btn-acao iniciar" onclick="iniciarExecucao()"><svg viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' opacity='0.15'/><path d='M8 5v14l11-7z' fill='currentColor'/></svg>Iniciar</button>`;
+      } else if (statusExecucao === 'emexecucao') {
+        el.innerHTML = `<button class="btn-acao parar" onclick="abrirModalParada()"><svg viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' opacity='0.15'/><rect x='7' y='7' width='10' height='10' fill='currentColor'/></svg>Parar</button>
+        <button class="btn-acao finalizar" onclick="finalizarExecucao()"><svg viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' opacity='0.15'/><path d='M6 18L18 6M6 6l12 12' stroke='currentColor' stroke-width='2' stroke-linecap='round'/></svg>Finalizar</button>`;
+      } else if (statusExecucao === 'parada') {
+        el.innerHTML = `<button class="btn-acao continuar" onclick="continuarExecucao()"><svg viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' opacity='0.15'/><path d='M8 5v14l11-7z' fill='currentColor'/></svg>Continuar</button>`;
+      } else if (statusExecucao === 'finalizada') {
+        el.innerHTML = `<button class="btn-acao finalizar" disabled><svg viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' opacity='0.15'/><path d='M6 18L18 6M6 6l12 12' stroke='currentColor' stroke-width='2' stroke-linecap='round'/></svg>Finalizado</button>`;
+      }
+    }
+    // Abas
+    let abaAtual = 'apontamentos';
+    document.querySelectorAll('.aba-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativa'));
+        this.classList.add('ativa');
+        abaAtual = this.dataset.aba;
+        renderAba();
+      });
+    });
+    // Render conteúdo da aba
+    function renderAba() {
+      if (abaAtual === 'apontamentos') renderAbaApontamentos();
+      else renderAbaExecucao();
+    }
+    // Apontamentos
+    function renderAbaApontamentos() {
+      const saldo = calcularSaldoApontar();
+      let html = `<div class="tabela-container"><table><thead><tr><th>Nota</th><th>Usuário</th><th>Data/Hora</th><th>Situação</th><th>Qtd. Apontada</th><th>Qtd. Perda</th><th>Ações</th></tr></thead><tbody>`;
+      if (!apontamentos.length) {
+        html += `<tr><td colspan="7" class="no-data">Nenhum apontamento.</td></tr>`;
+      } else {
+        apontamentos.forEach((ap, i) => {
+          html += `<tr>
+            <td>${ap.nunota}</td>
+            <td>${ap.codusu}</td>
+            <td>${formatarDataHora(ap.dhapontamento)}</td>
+            <td>${ap.situacao}</td>
+            <td>${ap.qtdapontada}</td>
+            <td>${ap.qtdperda}</td>
+            <td>`;
+          if (ap.situacao === 'Pendente') {
+            html += `<button class="btn-tabela editar" title="Editar" onclick="editarApontamento(${i})">✏️</button>
+              <button class="btn-tabela deletar" title="Deletar" onclick="deletarApontamento(${i})">🗑️</button>
+              <button class="btn-tabela confirmar" title="Confirmar" onclick="confirmarApontamento(${i})">✔️</button>`;
+          } else {
+            html += `<button class="btn-tabela" disabled>✔️</button>`;
+          }
+          html += `</td></tr>`;
+        });
+      }
+      html += `</tbody></table></div>
+      <button class="btn-acao" style="margin-top:1rem;" onclick="abrirModalApontamento(${saldo})">➕ Adicionar Apontamento</button>`;
+      document.getElementById('conteudoAba').innerHTML = html;
+    }
+    // Execução
+    function renderAbaExecucao() {
+      let html = `<div class="tabela-container"><table><thead><tr><th>Início</th><th>Fim</th><th>Tipo</th><th>Usuário</th><th>Motivo</th></tr></thead><tbody>`;
+      if (!execucoes.length) {
+        html += `<tr><td colspan="5" class="no-data">Nenhuma execução.</td></tr>`;
+      } else {
+        execucoes.forEach(ex => {
+          html += `<tr>
+            <td>${formatarDataHora(ex.dhinicio)}</td>
+            <td>${ex.dhfinal ? formatarDataHora(ex.dhfinal) : '-'}</td>
+            <td>${ex.tipo}</td>
+            <td>${ex.codusu}</td>
+            <td>${ex.motivo || '-'}</td>
+          </tr>`;
+        });
+      }
+      html += `</tbody></table></div>`;
+      document.getElementById('conteudoAba').innerHTML = html;
+    }
+    // Botões principais - lógica
+    function iniciarExecucao() {
+      statusExecucao = 'emexecucao';
+      execucoes.push({ dhinicio: new Date(), dhfinal: null, tipo: 'normal', codusu: usuarioAtual, motivo: '' });
+      renderBotoes();
+      renderAba();
+    }
+    function abrirModalParada() {
+      abrirModal({
+        titulo: 'Motivo da Parada',
+        campos: [
+          { label: 'Motivo', name: 'motivo', tipo: 'textarea', obrigatorio: true }
+        ],
+        onConfirm: (val) => {
+          pararExecucao(val.motivo);
+        }
+      });
+    }
+    function pararExecucao(motivo) {
+      // Encerra execução atual
+      const atual = execucoes.find(e => !e.dhfinal);
+      if (atual) atual.dhfinal = new Date();
+      // Cria linha de parada
+      execucoes.push({ dhinicio: new Date(), dhfinal: null, tipo: 'parada', codusu: usuarioAtual, motivo });
+      statusExecucao = 'parada';
+      renderBotoes();
+      renderAba();
+    }
+    function continuarExecucao() {
+      // Encerra parada
+      const atual = execucoes.find(e => !e.dhfinal);
+      if (atual) atual.dhfinal = new Date();
+      // Nova linha normal
+      execucoes.push({ dhinicio: new Date(), dhfinal: null, tipo: 'normal', codusu: usuarioAtual, motivo: '' });
+      statusExecucao = 'emexecucao';
+      renderBotoes();
+      renderAba();
+    }
+    function finalizarExecucao() {
+      // Encerra execução
+      const atual = execucoes.find(e => !e.dhfinal);
+      if (atual) {
+        atual.dhfinal = new Date();
+        atual.tipo = 'finalizado';
+      }
+      statusExecucao = 'finalizada';
+      renderBotoes();
+      renderAba();
+    }
+    // Apontamentos - lógica
+    function calcularSaldoApontar() {
+      let total = 0;
+      apontamentos.forEach(ap => {
+        total += Number(ap.qtdapontada) + Number(ap.qtdperda);
+      });
+      return Math.max(0, op.qtdproduzir - total);
+    }
+    function abrirModalApontamento(saldo) {
+      abrirModal({
+        titulo: 'Novo Apontamento',
+        campos: [
+          { label: 'Qtd. Apontada', name: 'qtdapontada', tipo: 'number', valor: saldo, obrigatorio: true, min: 1, max: saldo },
+          { label: 'Qtd. Perda', name: 'qtdperda', tipo: 'number', valor: 0, obrigatorio: true, min: 0, max: saldo },
+        ],
+        onConfirm: (val) => {
+          adicionarApontamento(val.qtdapontada, val.qtdperda);
+        }
+      });
+    }
+    function adicionarApontamento(qtdapontada, qtdperda) {
+      qtdapontada = Number(qtdapontada);
+      qtdperda = Number(qtdperda);
+      if (qtdapontada + qtdperda < 1) return;
+      if ((qtdapontada + qtdperda) > calcularSaldoApontar() + qtdapontada + qtdperda) return;
+      apontamentos.push({
+        nunota: Math.floor(Math.random()*9000+1000),
+        codusu: usuarioAtual,
+        dhapontamento: new Date(),
+        situacao: 'Pendente',
+        qtdapontada,
+        qtdperda
+      });
+      renderAba();
+    }
+    function editarApontamento(idx) {
+      const ap = apontamentos[idx];
+      abrirModal({
+        titulo: 'Editar Apontamento',
+        campos: [
+          { label: 'Qtd. Apontada', name: 'qtdapontada', tipo: 'number', valor: ap.qtdapontada, obrigatorio: true, min: 1, max: calcularSaldoApontar() + Number(ap.qtdapontada) + Number(ap.qtdperda) },
+          { label: 'Qtd. Perda', name: 'qtdperda', tipo: 'number', valor: ap.qtdperda, obrigatorio: true, min: 0, max: calcularSaldoApontar() + Number(ap.qtdapontada) + Number(ap.qtdperda) },
+        ],
+        onConfirm: (val) => {
+          ap.qtdapontada = Number(val.qtdapontada);
+          ap.qtdperda = Number(val.qtdperda);
+          renderAba();
+        }
+      });
+    }
+    function deletarApontamento(idx) {
+      apontamentos.splice(idx, 1);
+      renderAba();
+    }
+    function confirmarApontamento(idx) {
+      apontamentos[idx].situacao = 'Confirmado';
+      renderAba();
+    }
+    // Modal genérico
+    function abrirModal({ titulo, campos, onConfirm }) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      let html = `<h3>${titulo}</h3><form id="modalForm">`;
+      campos.forEach(c => {
+        html += `<label>${c.label}
+          <input type="${c.tipo}" name="${c.name}" value="${c.valor ?? ''}" ${c.min !== undefined ? `min='${c.min}'` : ''} ${c.max !== undefined ? `max='${c.max}'` : ''} ${c.obrigatorio ? 'required' : ''} ${c.tipo==='number'?'inputmode="numeric" pattern="[0-9]*"':''} />
+        </label>`;
+      });
+      html += `<div class="modal-botoes">
+        <button type="button" class="cancelar">Cancelar</button>
+        <button type="submit">Confirmar</button>
+      </div></form>`;
+      modal.innerHTML = html;
+      overlay.appendChild(modal);
+      document.getElementById('modal-root').appendChild(overlay);
+      // Cancelar
+      modal.querySelector('.cancelar').onclick = () => overlay.remove();
+      // Confirmar
+      modal.querySelector('form').onsubmit = (e) => {
+        e.preventDefault();
+        const val = {};
+        campos.forEach(c => {
+          val[c.name] = modal.querySelector(`[name='${c.name}']`).value;
+        });
+        overlay.remove();
+        onConfirm(val);
+      };
+    }
+    // Inicialização
+    renderResumo();
+    renderBotoes();
+    renderAba();
+  </script>
+</body>
+</html>

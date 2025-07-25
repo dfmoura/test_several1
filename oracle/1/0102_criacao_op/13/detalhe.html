@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhe da Operação</title>
+  <style>
+    :root {
+      --verde-primario: #2ecc40;
+      --verde-secundario: #27ae60;
+      --verde-terciario: #a3e635;
+      --verde-escuro: #14532d;
+      --verde-claro: #d1fae5;
+      --cinza-claro: #f3f4f6;
+      --cinza-medio: #e5e7eb;
+      --cinza-escuro: #374151;
+      --branco: #fff;
+      --vermelho: #e74c3c;
+      --azul: #2563eb;
+      --sombra: 0 2px 8px rgba(44, 204, 64, 0.08);
+      --borda-radius: 14px;
+      --transicao: 0.18s cubic-bezier(.4,0,.2,1);
+      --cinza-inativo: #e5e7eb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: var(--cinza-claro); color: var(--cinza-escuro); }
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    ::selection { background: var(--verde-terciario); color: var(--verde-escuro); }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--branco);
+      box-shadow: var(--sombra);
+      display: flex;
+      align-items: center;
+      z-index: 10;
+      padding: 0 1.2rem;
+      border-bottom: 2px solid var(--verde-primario);
+    }
+    .header-icone {
+      width: 32px; height: 32px;
+      margin-right: 1rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-icone svg {
+      width: 24px; height: 24px; fill: var(--verde-primario);
+    }
+    .header-titulo {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--verde-escuro);
+    }
+    main { flex: 1 1 auto; padding-top: 60px; padding-bottom: 48px; }
+    @media (max-width: 480px) {
+      main { padding-top: 56px; padding-bottom: 44px; }
+    }
+    .resumo-op {
+      margin: 1.2rem auto 1.2rem auto;
+      max-width: 600px;
+      background: var(--branco);
+      border-radius: var(--borda-radius);
+      box-shadow: var(--sombra);
+      padding: 1.1rem 1.2rem 1.1rem 1.2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2rem 2.2rem;
+      align-items: center;
+      justify-content: space-between;
+      border-left: 6px solid var(--verde-primario);
+      border-bottom: 2px solid var(--verde-claro);
+      transition: box-shadow var(--transicao);
+    }
+    .resumo-item {
+      display: flex; align-items: center; gap: 0.6em;
+      min-width: 120px;
+      margin-bottom: 0.2em;
+    }
+    .resumo-icone {
+      width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+    }
+    .resumo-icone svg { width: 18px; height: 18px; fill: var(--verde-primario); }
+    .resumo-label {
+      font-size: 0.98rem;
+      color: var(--verde-escuro);
+      font-weight: 600;
+      margin-right: 0.2em;
+    }
+    .resumo-valor {
+      font-size: 1.08rem;
+      color: var(--cinza-escuro);
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+    @media (max-width: 600px) {
+      .resumo-op { flex-direction: column; gap: 0.7rem 0; align-items: flex-start; }
+      .resumo-item { min-width: 0; }
+    }
+    .botoes-principais {
+      display: flex; gap: 1.2rem; margin: 1.2rem auto 0.5rem auto; justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-principal {
+      min-width: 120px;
+      padding: 0.7em 1.3em;
+      border-radius: var(--borda-radius);
+      font-size: 1.08rem;
+      font-weight: 700;
+      color: var(--branco);
+      box-shadow: 0 2px 8px rgba(44,204,64,0.10);
+      transition: background var(--transicao), color var(--transicao), box-shadow var(--transicao);
+      outline: none;
+      border: none;
+      margin-bottom: 0.2em;
+    }
+    .btn-iniciar { background: var(--verde-primario); }
+    .btn-parar { background: var(--vermelho); }
+    .btn-continuar { background: var(--azul); }
+    .btn-finalizar-ativo { background: var(--verde-escuro); }
+    .btn-finalizar-inativo { background: var(--cinza-inativo); color: #aaa; cursor: not-allowed; }
+    .btn-principal:active { filter: brightness(0.95); }
+    .abas {
+      display: flex; gap: 0.5rem; margin: 1.5rem auto 0 auto; max-width: 600px; justify-content: center;
+    }
+    .aba-btn {
+      padding: 0.5em 1.2em;
+      border-radius: var(--borda-radius);
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-weight: 600;
+      font-size: 1rem;
+      border: 2px solid transparent;
+      transition: background var(--transicao), color var(--transicao), border var(--transicao);
+    }
+    .aba-btn.ativo {
+      background: var(--verde-primario);
+      color: var(--branco);
+      border-color: var(--verde-escuro);
+      box-shadow: 0 2px 8px rgba(44,204,64,0.10);
+    }
+    .aba-btn:active { background: var(--verde-secundario); }
+    .conteudo-aba { max-width: 900px; margin: 0 auto; background: var(--branco); border-radius: var(--borda-radius); box-shadow: var(--sombra); padding: 1.2rem 0.7rem 1.7rem 0.7rem; margin-top: 0.7rem; }
+    .tabela-aba { width: 100%; border-collapse: collapse; min-width: 400px; }
+    .tabela-aba th, .tabela-aba td { padding: 0.6em 0.4em; text-align: left; font-size: 0.98rem; }
+    .tabela-aba th { color: var(--verde-escuro); font-weight: 700; border-bottom: 2px solid var(--verde-primario); }
+    .tabela-aba td { border-bottom: 1px solid var(--cinza-medio); color: var(--cinza-escuro); }
+    .tabela-aba tr.deletavel { cursor: pointer; background: var(--verde-claro); transition: background var(--transicao), box-shadow var(--transicao); }
+    .tabela-aba tr.deletavel:hover { background: var(--vermelho); color: var(--branco); }
+    .tabela-aba tr:not(.deletavel):hover { background: var(--cinza-medio); }
+    @media (max-width: 700px) {
+      .conteudo-aba { min-width: 0; padding: 0.5rem; }
+      .tabela-aba { min-width: 320px; font-size: 0.95rem; }
+      .tabela-aba th, .tabela-aba td { padding: 0.4em 0.2em; }
+    }
+    .novo-apontamento-btn {
+      background: var(--verde-primario); color: var(--branco); border-radius: var(--borda-radius); padding: 0.5em 1.1em; font-weight: 600; font-size: 1rem; margin-bottom: 0.7em; box-shadow: 0 2px 8px rgba(44,204,64,0.10); transition: background var(--transicao); }
+    .novo-apontamento-btn:active { background: var(--verde-secundario); }
+    .modal-bg {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(44,204,64,0.10); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+    .modal {
+      background: var(--branco); border-radius: var(--borda-radius); box-shadow: 0 4px 24px rgba(44,204,64,0.18); padding: 1.5rem 1.2rem; min-width: 320px; max-width: 95vw; }
+    .modal-titulo { font-size: 1.15rem; font-weight: 700; color: var(--verde-escuro); margin-bottom: 1em; }
+    .modal-campos { display: flex; flex-direction: column; gap: 0.7em; }
+    .modal-campos label { font-size: 0.98rem; color: var(--verde-escuro); font-weight: 600; }
+    .modal-campos input, .modal-campos select { padding: 0.5em 0.7em; border-radius: var(--borda-radius); border: 1px solid var(--cinza-medio); font-size: 1rem; }
+    .modal-botoes { display: flex; gap: 1.2em; margin-top: 1.2em; justify-content: flex-end; }
+    .modal-botoes button { min-width: 90px; padding: 0.5em 1em; border-radius: var(--borda-radius); font-weight: 600; font-size: 1rem; }
+    .modal-botoes .btn-cancelar { background: var(--cinza-medio); color: var(--cinza-escuro); }
+    .modal-botoes .btn-confirmar { background: var(--verde-primario); color: var(--branco); }
+    .modal-botoes .btn-confirmar:disabled { background: var(--cinza-inativo); color: #aaa; cursor: not-allowed; }
+    footer {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 48px;
+      background: var(--branco);
+      border-top: 2px solid var(--verde-primario);
+      box-shadow: var(--sombra);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.2rem;
+      z-index: 10;
+    }
+    .footer-app {
+      font-size: 1rem;
+      color: var(--verde-escuro);
+      font-weight: 600;
+      display: flex; align-items: center;
+      gap: 0.5em;
+    }
+    .footer-status {
+      display: flex; align-items: center; gap: 0.4em;
+      font-size: 0.95rem;
+      color: var(--verde-primario);
+    }
+    .footer-status-icone {
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .footer-status-icone svg {
+      width: 16px; height: 16px; fill: var(--verde-primario);
+    }
+    .footer-voltar {
+      display: flex; align-items: center; gap: 0.5em; background: var(--verde-claro); color: var(--verde-escuro); border-radius: var(--borda-radius); padding: 0.5em 1.1em; font-weight: 600; font-size: 1rem; margin-left: 1em; cursor: pointer; transition: background var(--transicao), color var(--transicao); border: none; }
+    .footer-voltar:active { background: var(--verde-terciario); }
+    .footer-voltar svg { width: 18px; height: 18px; fill: var(--verde-escuro); }
+    /*
+    .modal.animar { opacity: 0; transform: translateY(40px) scale(0.98); transition: all 0.22s cubic-bezier(.4,0,.2,1); }
+    .modal.animar.show { opacity: 1; transform: none; }
+    .modal-botoes button { box-shadow: 0 2px 8px rgba(44,204,64,0.10); border: none; }
+    .modal-botoes .btn-confirmar { font-size: 1.08rem; font-weight: 700; }
+    .modal-botoes .btn-cancelar { font-size: 1.08rem; }
+    .modal input[type=number] { font-size: 1.1rem; text-align: right; }
+    */
+  </style>
+</head>
+<body>
+  <!-- =========================
+       CABEÇALHO FIXO
+  ========================= -->
+  <header>
+    <span class="header-icone" aria-label="Ícone Produção">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.12"/><path d="M7 17V7h10v10z"/></svg>
+    </span>
+    <span class="header-titulo">Operações de Produção</span>
+  </header>
+  <main>
+    <!-- =========================
+         RESUMO VISUAL DO ITEM
+    ========================= -->
+    <section class="resumo-op" id="resumo-op">
+      <!-- Preenchido via JS -->
+    </section>
+    <!-- =========================
+         BOTÕES PRINCIPAIS
+    ========================= -->
+    <div class="botoes-principais">
+      <button id="btnPrincipal" class="btn-principal btn-iniciar">Iniciar</button>
+      <button id="btnFinalizar" class="btn-principal btn-finalizar-inativo" disabled>Finalizar</button>
+    </div>
+    <!-- =========================
+         ABAS FUNCIONAIS
+    ========================= -->
+    <nav class="abas" aria-label="Abas funcionais">
+      <button class="aba-btn ativo" data-aba="apontamentos">Apontamentos</button>
+      <button class="aba-btn" data-aba="execucao">Execução</button>
+    </nav>
+    <section class="conteudo-aba" id="conteudo-aba">
+      <!-- Conteúdo dinâmico das abas -->
+    </section>
+  </main>
+  <!-- =========================
+       RODAPÉ FIXO
+  ========================= -->
+  <footer>
+    <span class="footer-app">
+      <span class="footer-status-icone">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.12"/><path d="M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
+      </span>
+      Controle de Produção
+    </span>
+    <button class="footer-voltar" id="btnVoltar">
+      <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      Voltar
+    </button>
+    <span class="footer-status">
+      <span class="footer-status-icone">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.12"/><path d="M12 8v4l3 3"/></svg>
+      </span>
+      Online
+    </span>
+  </footer>
+  <!-- =========================
+       MODAIS DINÂMICOS
+  ========================= -->
+  <div id="modal-bg" style="display:none;"></div>
+  <script>
+    // =========================
+    // UTILITÁRIOS E ESTADO
+    // =========================
+    const op = JSON.parse(localStorage.getItem('opSelecionada') || '{}');
+    // Estado da operação: 'nao_iniciada', 'andamento', 'parada', 'finalizada'
+    let estadoOp = 'nao_iniciada';
+    let execucoes = [];
+    let apontamentos = [];
+    // Simula usuário atual
+    const usuarioAtual = 'USR01';
+    // =========================
+    // RENDERIZA RESUMO VISUAL
+    // =========================
+    function renderResumo() {
+      const resumo = document.getElementById('resumo-op');
+      resumo.innerHTML = `
+        <div class="resumo-item"><span class="resumo-icone"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.12"/><path d="M5 12h14"/></svg></span><span class="resumo-label">ID:</span><span class="resumo-valor">${op.idiproc || '-'}</span></div>
+        <div class="resumo-item"><span class="resumo-icone"><svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="2" opacity="0.12"/><path d="M8 12h8"/></svg></span><span class="resumo-label">Data:</span><span class="resumo-valor">${op.dtfab || '-'}</span></div>
+        <div class="resumo-item"><span class="resumo-icone"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2" opacity="0.12"/><path d="M7 12h10"/></svg></span><span class="resumo-label">Produto:</span><span class="resumo-valor">${op.codprodpa || '-'}</span></div>
+        <div class="resumo-item"><span class="resumo-icone"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.12"/><path d="M12 8v4l3 3"/></svg></span><span class="resumo-label">Qtd. Produzir:</span><span class="resumo-valor">${op.qtdproduzir || '-'}</span></div>
+        <div class="resumo-item"><span class="resumo-icone"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" opacity="0.12"/><path d="M9 12h6"/></svg></span><span class="resumo-label">Lote:</span><span class="resumo-valor">${op.nrolote || '-'}</span></div>
+      `;
+    }
+    // =========================
+    // BOTÕES PRINCIPAIS
+    // =========================
+    const btnPrincipal = document.getElementById('btnPrincipal');
+    const btnFinalizar = document.getElementById('btnFinalizar');
+    function atualizarBotoesPrincipais() {
+      btnPrincipal.className = 'btn-principal';
+      btnFinalizar.className = 'btn-principal';
+      btnFinalizar.disabled = true;
+      if (estadoOp === 'nao_iniciada') {
+        btnPrincipal.textContent = 'Iniciar';
+        btnPrincipal.classList.add('btn-iniciar');
+      } else if (estadoOp === 'andamento') {
+        btnPrincipal.textContent = 'Parar';
+        btnPrincipal.classList.add('btn-parar');
+        btnFinalizar.disabled = false;
+        btnFinalizar.classList.add('btn-finalizar-ativo');
+      } else if (estadoOp === 'parada') {
+        btnPrincipal.textContent = 'Continuar';
+        btnPrincipal.classList.add('btn-continuar');
+      } else if (estadoOp === 'finalizada') {
+        btnPrincipal.textContent = 'Finalizada';
+        btnPrincipal.disabled = true;
+        btnFinalizar.disabled = true;
+        btnFinalizar.classList.add('btn-finalizar-inativo');
+      }
+    }
+    btnPrincipal.addEventListener('click', () => {
+      if (estadoOp === 'nao_iniciada') {
+        // Iniciar operação
+        estadoOp = 'andamento';
+        execucoes.push({
+          dhinicio: new Date().toISOString(),
+          dhfinal: '',
+          tipo: 'normal',
+          codusu: usuarioAtual,
+          motivo: ''
+        });
+      } else if (estadoOp === 'andamento') {
+        // Parar operação: abrir modal para motivo
+        abrirModalMotivo();
+      } else if (estadoOp === 'parada') {
+        // Continuar operação
+        fecharExecucaoAnterior();
+        execucoes.push({
+          dhinicio: new Date().toISOString(),
+          dhfinal: '',
+          tipo: 'normal',
+          codusu: usuarioAtual,
+          motivo: ''
+        });
+        estadoOp = 'andamento';
+        atualizarBotoesPrincipais();
+        renderAbaAtual();
+      }
+      atualizarBotoesPrincipais();
+      renderAbaAtual();
+    });
+    btnFinalizar.addEventListener('click', () => {
+      if (estadoOp === 'andamento') {
+        fecharExecucaoAnterior('finalizado');
+        estadoOp = 'finalizada';
+        atualizarBotoesPrincipais();
+        renderAbaAtual();
+      }
+    });
+    function fecharExecucaoAnterior(tipo='parada', motivo='') {
+      if (execucoes.length > 0 && !execucoes[execucoes.length-1].dhfinal) {
+        execucoes[execucoes.length-1].dhfinal = new Date().toISOString();
+        execucoes[execucoes.length-1].tipo = tipo;
+        if (motivo) execucoes[execucoes.length-1].motivo = motivo;
+      }
+    }
+    // =========================
+    // MODAL DE MOTIVO DE PARADA
+    // =========================
+    function abrirModalMotivo() {
+      const modalBg = document.getElementById('modal-bg');
+      modalBg.innerHTML = `<div class="modal"><div class="modal-titulo">Motivo da Parada</div><div class="modal-campos"><label for="motivo">Motivo:</label><input id="motivo" type="text" maxlength="80" autocomplete="off" autofocus></div><div class="modal-botoes"><button class="btn-cancelar">Cancelar</button><button class="btn-confirmar" disabled>Confirmar</button></div></div>`;
+      modalBg.style.display = 'flex';
+      const input = modalBg.querySelector('#motivo');
+      const btnCancelar = modalBg.querySelector('.btn-cancelar');
+      const btnConfirmar = modalBg.querySelector('.btn-confirmar');
+      input.addEventListener('input', () => {
+        btnConfirmar.disabled = input.value.trim().length < 3;
+      });
+      btnCancelar.addEventListener('click', fecharModal);
+      btnConfirmar.addEventListener('click', () => {
+        fecharExecucaoAnterior('parada', input.value.trim());
+        estadoOp = 'parada';
+        fecharModal();
+        atualizarBotoesPrincipais();
+        renderAbaAtual();
+      });
+    }
+    function fecharModal() {
+      const modalBg = document.getElementById('modal-bg');
+      modalBg.style.display = 'none';
+      modalBg.innerHTML = '';
+    }
+    // =========================
+    // ABAS FUNCIONAIS
+    // =========================
+    let abaAtual = 'apontamentos';
+    document.querySelectorAll('.aba-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativo'));
+        this.classList.add('ativo');
+        abaAtual = this.dataset.aba;
+        renderAbaAtual();
+      });
+    });
+    function renderAbaAtual() {
+      if (abaAtual === 'apontamentos') renderAbaApontamentos();
+      else renderAbaExecucao();
+    }
+    // =========================
+    // ABA APONTAMENTOS
+    // =========================
+    function renderAbaApontamentos() {
+      const saldoRestante = op.qtdproduzir - apontamentos.reduce((soma, a) => soma + Number(a.qtdapontada) + Number(a.qtdperda), 0);
+      let html = `<button class="novo-apontamento-btn" id="btnNovoApontamento">Novo Apontamento</button><table class="tabela-aba"><thead><tr><th>Nota</th><th>Usuário</th><th>Data/Hora</th><th>Situação</th><th>Qtd. Apontada</th><th>Qtd. Perda</th><th></th></tr></thead><tbody>`;
+      if (apontamentos.length === 0) {
+        html += `<tr><td colspan="7" style="text-align:center;color:var(--cinza-escuro);">Nenhum apontamento.</td></tr>`;
+      } else {
+        apontamentos.forEach((a, idx) => {
+          html += `<tr${a.situacao==='Pendente'?' class="deletavel" tabindex="0" aria-label="Editar ou deletar apontamento"':''}>
+            <td>${a.nunota}</td>
+            <td>${a.codusu}</td>
+            <td>${formatarDataHora(a.dhapontamento)}</td>
+            <td>${a.situacao}</td>
+            <td>${a.situacao==='Pendente'?`<span class="editavel" data-idx="${idx}" data-campo="qtdapontada">${a.qtdapontada}</span>`:a.qtdapontada}</td>
+            <td>${a.situacao==='Pendente'?`<span class="editavel" data-idx="${idx}" data-campo="qtdperda">${a.qtdperda}</span>`:a.qtdperda}</td>
+            <td>${a.situacao==='Pendente'?'<button class="btn-deletar" data-idx="'+idx+'" title="Deletar">🗑️</button>':''}</td>
+          </tr>`;
+        });
+      }
+      html += `</tbody></table>`;
+      document.getElementById('conteudo-aba').innerHTML = html;
+      document.getElementById('btnNovoApontamento').onclick = abrirModalNovoApontamento;
+      document.querySelectorAll('.btn-deletar').forEach(btn => {
+        btn.onclick = function() {
+          const idx = Number(this.dataset.idx);
+          if (apontamentos[idx].situacao === 'Pendente') {
+            apontamentos.splice(idx,1);
+            renderAbaApontamentos();
+          }
+        };
+      });
+      // Edição inline
+      document.querySelectorAll('.editavel').forEach(span => {
+        span.onclick = function() {
+          const idx = Number(this.dataset.idx);
+          const campo = this.dataset.campo;
+          abrirModalEditarApontamento(idx, campo);
+        };
+      });
+    }
+    function abrirModalNovoApontamento() {
+      const saldoRestante = op.qtdproduzir - apontamentos.reduce((soma, a) => soma + Number(a.qtdapontada) + Number(a.qtdperda), 0);
+      const modalBg = document.getElementById('modal-bg');
+      modalBg.innerHTML = `<div class="modal"><div class="modal-titulo">Novo Apontamento</div><div class="modal-campos"><label for="qtdapontada">Qtd. Apontada</label><input id="qtdapontada" type="number" min="1" max="${saldoRestante}" value="${saldoRestante>0?saldoRestante:1}" required><label for="qtdperda">Qtd. Perda</label><input id="qtdperda" type="number" min="0" max="${saldoRestante}" value="0" required></div><div class="modal-botoes"><button class="btn-cancelar">Cancelar</button><button class="btn-confirmar" disabled>Confirmar</button></div></div>`;
+      modalBg.style.display = 'flex';
+      const inputApontada = modalBg.querySelector('#qtdapontada');
+      const inputPerda = modalBg.querySelector('#qtdperda');
+      const btnCancelar = modalBg.querySelector('.btn-cancelar');
+      const btnConfirmar = modalBg.querySelector('.btn-confirmar');
+      function validar() {
+        const valA = Number(inputApontada.value);
+        const valP = Number(inputPerda.value);
+        btnConfirmar.disabled = (valA < 1 || valA > saldoRestante || valP < 0 || (valA+valP) > saldoRestante);
+      }
+      inputApontada.addEventListener('input', validar);
+      inputPerda.addEventListener('input', validar);
+      btnCancelar.addEventListener('click', fecharModal);
+      btnConfirmar.addEventListener('click', () => {
+        apontamentos.push({
+          nunota: gerarNota(),
+          codusu: usuarioAtual,
+          dhapontamento: new Date().toISOString(),
+          situacao: 'Pendente',
+          qtdapontada: Number(inputApontada.value),
+          qtdperda: Number(inputPerda.value)
+        });
+        fecharModal();
+        renderAbaApontamentos();
+      });
+      validar();
+    }
+    function gerarNota() {
+      return 'N'+(1000+apontamentos.length+1);
+    }
+    // =========================
+    // ABA EXECUÇÃO
+    // =========================
+    function renderAbaExecucao() {
+      let html = `<table class="tabela-aba"><thead><tr><th>Início</th><th>Fim</th><th>Tipo</th><th>Usuário</th><th>Motivo</th></tr></thead><tbody>`;
+      if (execucoes.length === 0) {
+        html += `<tr><td colspan="5" style="text-align:center;color:var(--cinza-escuro);">Nenhuma execução registrada.</td></tr>`;
+      } else {
+        execucoes.forEach(e => {
+          html += `<tr><td>${formatarDataHora(e.dhinicio)}</td><td>${e.dhfinal?formatarDataHora(e.dhfinal):'-'}</td><td>${e.tipo}</td><td>${e.codusu}</td><td>${e.motivo||'-'}</td></tr>`;
+        });
+      }
+      html += `</tbody></table>`;
+      document.getElementById('conteudo-aba').innerHTML = html;
+    }
+    // =========================
+    // UTILITÁRIOS
+    // =========================
+    function formatarDataHora(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    }
+    // =========================
+    // BOTÃO VOLTAR
+    // =========================
+    document.getElementById('btnVoltar').onclick = () => {
+      window.location.href = 'index.html';
+    };
+    // =========================
+    // INICIALIZAÇÃO
+    // =========================
+    window.addEventListener('DOMContentLoaded', () => {
+      renderResumo();
+      atualizarBotoesPrincipais();
+      renderAbaAtual();
+    });
+  </script>
+</body>
+</html>

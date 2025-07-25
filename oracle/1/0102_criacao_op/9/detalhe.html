@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhe da Operação</title>
+  <style>
+    :root {
+      --verde-escuro: #14532d;
+      --verde: #22c55e;
+      --verde-claro: #bbf7d0;
+      --verde-medio: #4ade80;
+      --verde-vibrante: #16a34a;
+      --cinza: #e5e7eb;
+      --cinza-escuro: #6b7280;
+      --cinza-claro: #f3f4f6;
+      --vermelho: #ef4444;
+      --azul: #2563eb;
+      --cinza-opaco: #d1d5db;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--cinza-claro);
+      color: var(--verde-escuro);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--verde-escuro);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      height: 56px;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(20,83,45,0.08);
+    }
+    .header-icon {
+      width: 32px; height: 32px;
+      margin: 0 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    main {
+      flex: 1;
+      margin-top: 56px;
+      margin-bottom: 64px;
+      padding: 16px 8px 0 8px;
+      max-width: 600px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .resumo {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(34,197,94,0.08);
+      padding: 16px;
+      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .resumo .desc-prod {
+      color: var(--cinza-escuro);
+      font-size: 0.97em;
+    }
+    .acoes {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .btn-acao {
+      flex: 1;
+      padding: 12px 0;
+      border: none;
+      border-radius: 24px;
+      font-size: 1.08rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      box-shadow: 0 1px 4px rgba(20,83,45,0.04);
+    }
+    .btn-iniciar { background: var(--verde-vibrante); color: #fff; }
+    .btn-parar { background: var(--vermelho); color: #fff; }
+    .btn-continuar { background: var(--azul); color: #fff; }
+    .btn-finalizar { background: var(--verde-escuro); color: #fff; }
+    .btn-finalizar.inativo { background: var(--cinza-opaco); color: var(--cinza-escuro); cursor: not-allowed; }
+    .abas {
+      display: flex;
+      gap: 0;
+      margin-bottom: 0;
+      border-bottom: 2px solid var(--verde-claro);
+    }
+    .aba-btn {
+      flex: 1;
+      padding: 10px 0;
+      background: none;
+      border: none;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--verde-escuro);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: border 0.2s, color 0.2s;
+    }
+    .aba-btn.ativa {
+      border-bottom: 2.5px solid var(--verde-medio);
+      color: var(--verde-medio);
+      background: var(--verde-claro);
+    }
+    .aba-conteudo {
+      background: #fff;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 2px 8px rgba(34,197,94,0.08);
+      padding: 12px 4px 8px 4px;
+      margin-bottom: 8px;
+      min-height: 120px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 420px;
+    }
+    th, td {
+      padding: 8px 6px;
+      text-align: left;
+    }
+    th {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-size: 0.97rem;
+      font-weight: 600;
+      border-bottom: 2px solid var(--verde-medio);
+    }
+    tr {
+      transition: background 0.15s;
+    }
+    tr:hover {
+      background: var(--verde-claro);
+    }
+    td {
+      border-bottom: 1px solid var(--cinza);
+      font-size: 0.96rem;
+    }
+    .btn-del {
+      background: var(--vermelho);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.95em;
+      cursor: pointer;
+      margin-left: 4px;
+      transition: background 0.2s;
+    }
+    .btn-del:disabled {
+      background: var(--cinza-opaco);
+      color: var(--cinza-escuro);
+      cursor: not-allowed;
+    }
+    .rodape {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 64px;
+      background: #fff;
+      border-top: 1px solid var(--verde-claro);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 1rem;
+      color: var(--verde-escuro);
+      z-index: 10;
+    }
+    .btn-voltar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      color: var(--verde-escuro);
+      font-size: 1.1rem;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 12px 16px;
+      border-radius: 24px;
+      transition: background 0.2s;
+      margin-left: -8px;
+    }
+    .btn-voltar:active, .btn-voltar:focus {
+      background: var(--verde-claro);
+    }
+    .rodape-app {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .footer-icon {
+      width: 20px; height: 20px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    @media (min-width: 700px) {
+      main { max-width: 900px; }
+      .aba-conteudo { min-width: 600px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="header-icon">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#bbf7d0" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <div class="resumo" id="resumo-dados">
+      <!-- Dados do item selecionado -->
+    </div>
+    <div class="acoes">
+      <button id="btn-acao" class="btn-acao btn-iniciar">Iniciar</button>
+      <button id="btn-finalizar" class="btn-acao btn-finalizar inativo" disabled>Finalizar</button>
+    </div>
+    <div class="abas">
+      <button class="aba-btn ativa" data-aba="apontamentos">Apontamentos</button>
+      <button class="aba-btn" data-aba="execucao">Execução</button>
+    </div>
+    <div class="aba-conteudo" id="conteudo-apontamentos">
+      <table>
+        <thead>
+          <tr>
+            <th>Nota</th>
+            <th>Usuário</th>
+            <th>Data/Hora</th>
+            <th>Situação</th>
+            <th>Qtd. Apontada</th>
+            <th>Qtd. Perda</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody-apontamentos">
+          <!-- Linhas via JS -->
+        </tbody>
+      </table>
+    </div>
+    <div class="aba-conteudo" id="conteudo-execucao" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th>Início</th>
+            <th>Final</th>
+            <th>Tipo</th>
+            <th>Usuário</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-execucao">
+          <!-- Linhas via JS -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <div class="rodape">
+    <button class="btn-voltar" id="btn-voltar">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="#14532d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Voltar</span>
+    </button>
+    <span class="rodape-app">
+      <span>Operações de Produção</span>
+      <span class="footer-icon">
+        <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" stroke="#22c55e" stroke-width="2"/><circle cx="10" cy="10" r="4" fill="#22c55e"/></svg>
+      </span>
+    </span>
+  </div>
+  <script>
+    // Utilitário para datas
+    function formatarDataHora(dt) {
+      if (!dt) return '';
+      const d = new Date(dt);
+      return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    }
+    // Recupera dados do localStorage
+    const dados = JSON.parse(localStorage.getItem('detalheProducao') || '{}');
+    // Renderiza resumo
+    function renderResumo() {
+      const el = document.getElementById('resumo-dados');
+      el.innerHTML = `
+        <div><b>ID:</b> ${dados.idiproc || ''}</div>
+        <div><b>Data Fabricação:</b> ${dados.dtfab || ''}</div>
+        <div><b>Produto:</b> <b>${dados.codprodpa || ''}</b> <span class="desc-prod">${dados.descprod || ''}</span></div>
+        <div><b>Qtd. Produzir:</b> ${dados.qtdproduzir || ''}</div>
+        <div><b>Lote:</b> ${dados.nrolote || ''}</div>
+      `;
+    }
+    // Estado dos botões de ação
+    let estado = 'iniciar'; // iniciar, rodando, parado
+    let execucoes = [];
+    let apontamentos = [
+      { nunota: 201, codusu: 'usu1', dhapontamento: '2024-06-10T08:00', situacao: 'Pendente', qtd: 100.5, perda: 0 },
+      { nunota: 202, codusu: 'usu2', dhapontamento: '2024-06-10T09:00', situacao: 'Confirmado', qtd: 200, perda: 2 },
+      { nunota: 203, codusu: 'usu1', dhapontamento: '2024-06-10T10:00', situacao: 'Pendente', qtd: 50, perda: 0.5 },
+    ];
+    // Simula usuário atual
+    const usuarioAtual = 'usu1';
+    // Renderiza apontamentos
+    function renderApontamentos() {
+      const tbody = document.getElementById('tbody-apontamentos');
+      tbody.innerHTML = '';
+      apontamentos.forEach((a, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${a.nunota}</td>
+          <td>${a.codusu}</td>
+          <td>${formatarDataHora(a.dhapontamento)}</td>
+          <td>${a.situacao}</td>
+          <td>${a.qtd}</td>
+          <td>${a.perda}</td>
+          <td>${a.situacao === 'Pendente' ? `<button class='btn-del' onclick='deletarApontamento(${idx})'>Deletar</button>` : ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    window.deletarApontamento = function(idx) {
+      apontamentos.splice(idx, 1);
+      renderApontamentos();
+    }
+    // Renderiza execuções
+    function renderExecucao() {
+      const tbody = document.getElementById('tbody-execucao');
+      tbody.innerHTML = '';
+      execucoes.forEach(e => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${formatarDataHora(e.dhinicio)}</td>
+            <td>${formatarDataHora(e.dhfinal)}</td>
+            <td>${e.tipo}</td>
+            <td>${e.codusu}</td>
+            <td>${e.motivo || ''}</td>
+          </tr>
+        `;
+      });
+    }
+    // Lógica dos botões de ação
+    const btnAcao = document.getElementById('btn-acao');
+    const btnFinalizar = document.getElementById('btn-finalizar');
+    function atualizarBotoes() {
+      if (estado === 'iniciar') {
+        btnAcao.textContent = 'Iniciar';
+        btnAcao.className = 'btn-acao btn-iniciar';
+        btnFinalizar.classList.add('inativo');
+        btnFinalizar.disabled = true;
+      } else if (estado === 'rodando') {
+        btnAcao.textContent = 'Parar';
+        btnAcao.className = 'btn-acao btn-parar';
+        btnFinalizar.classList.remove('inativo');
+        btnFinalizar.disabled = false;
+      } else if (estado === 'parado') {
+        btnAcao.textContent = 'Continuar';
+        btnAcao.className = 'btn-acao btn-continuar';
+        btnFinalizar.classList.add('inativo');
+        btnFinalizar.disabled = true;
+      }
+    }
+    btnAcao.addEventListener('click', () => {
+      if (estado === 'iniciar') {
+        // Iniciar execução
+        execucoes.push({
+          dhinicio: new Date().toISOString(),
+          dhfinal: '',
+          tipo: 'normal',
+          codusu: usuarioAtual,
+          motivo: ''
+        });
+        estado = 'rodando';
+      } else if (estado === 'rodando') {
+        // Parar execução
+        if (execucoes.length > 0) {
+          execucoes[execucoes.length-1].dhfinal = new Date().toISOString();
+        }
+        execucoes.push({
+          dhinicio: new Date().toISOString(),
+          dhfinal: '',
+          tipo: 'parada',
+          codusu: usuarioAtual,
+          motivo: 'Pausa' // Simples
+        });
+        estado = 'parado';
+      } else if (estado === 'parado') {
+        // Continuar execução
+        if (execucoes.length > 0) {
+          execucoes[execucoes.length-1].dhfinal = new Date().toISOString();
+        }
+        execucoes.push({
+          dhinicio: new Date().toISOString(),
+          dhfinal: '',
+          tipo: 'normal',
+          codusu: usuarioAtual,
+          motivo: ''
+        });
+        estado = 'rodando';
+      }
+      atualizarBotoes();
+      renderExecucao();
+    });
+    btnFinalizar.addEventListener('click', () => {
+      if (estado === 'rodando' && execucoes.length > 0) {
+        execucoes[execucoes.length-1].dhfinal = new Date().toISOString();
+        execucoes[execucoes.length-1].tipo = 'finalizado';
+        estado = 'iniciar';
+        atualizarBotoes();
+        renderExecucao();
+      }
+    });
+    // Abas
+    document.querySelectorAll('.aba-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativa'));
+        this.classList.add('ativa');
+        if (this.getAttribute('data-aba') === 'apontamentos') {
+          document.getElementById('conteudo-apontamentos').style.display = '';
+          document.getElementById('conteudo-execucao').style.display = 'none';
+        } else {
+          document.getElementById('conteudo-apontamentos').style.display = 'none';
+          document.getElementById('conteudo-execucao').style.display = '';
+        }
+      });
+    });
+    // Botão voltar
+    document.getElementById('btn-voltar').addEventListener('click', function() {
+      // Transição suave
+      document.body.style.opacity = 0;
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 180);
+    });
+    // Inicialização
+    renderResumo();
+    renderApontamentos();
+    renderExecucao();
+    atualizarBotoes();
+    // Suave ao entrar
+    document.body.style.opacity = 0;
+    setTimeout(() => { document.body.style.transition = 'opacity 0.2s'; document.body.style.opacity = 1; }, 30);
+  </script>
+</body>
+</html>

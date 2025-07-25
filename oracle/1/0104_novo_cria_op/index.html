@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operações de Produção</title>
+  <style>
+    :root {
+      --verde-escuro: #14532d;
+      --verde-medio: #22c55e;
+      --verde-claro: #bbf7d0;
+      --verde-hover: #16a34a;
+      --cinza-fundo: #f6fef9;
+      --cinza-tabela: #e5e7eb;
+      --cinza-borda: #d1fae5;
+      --cinza-texto: #374151;
+      --branco: #fff;
+      --sombra: 0 2px 8px rgba(20,83,45,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--cinza-fundo);
+      color: var(--cinza-texto);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--verde-escuro);
+      color: var(--branco);
+      display: flex;
+      align-items: center;
+      height: 56px;
+      box-shadow: var(--sombra);
+      z-index: 10;
+    }
+    .header-icon {
+      width: 32px; height: 32px;
+      margin: 0 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    main {
+      flex: 1 1 auto;
+      margin-top: 56px;
+      margin-bottom: 60px;
+      padding: 16px 8px 0 8px;
+      max-width: 600px;
+      width: 100%;
+      margin-left: auto; margin-right: auto;
+    }
+    .filtros {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+    .filtro-btn {
+      flex: 1;
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      border: none;
+      border-radius: 20px;
+      padding: 8px 0;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .filtro-btn.ativo {
+      background: var(--verde-medio);
+      color: var(--branco);
+    }
+    .tabela-op {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--branco);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--sombra);
+    }
+    .tabela-op th, .tabela-op td {
+      padding: 10px 6px;
+      text-align: left;
+      font-size: 0.98rem;
+    }
+    .tabela-op th {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-weight: 600;
+      border-bottom: 2px solid var(--cinza-borda);
+    }
+    .tabela-op tr {
+      border-bottom: 1px solid var(--cinza-tabela);
+      transition: background 0.15s;
+    }
+    .tabela-op tr[data-clicavel="true"]:hover {
+      background: var(--verde-claro);
+      cursor: pointer;
+    }
+    .tabela-op td {
+      color: var(--cinza-texto);
+    }
+    .tabela-op tr:last-child { border-bottom: none; }
+    .sem-registros {
+      text-align: center;
+      color: var(--verde-escuro);
+      padding: 24px 0;
+      font-size: 1.1rem;
+    }
+    footer {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 60px;
+      background: var(--verde-escuro);
+      color: var(--branco);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 500;
+      box-shadow: 0 -2px 8px rgba(20,83,45,0.08);
+      z-index: 10;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+    }
+    @media (min-width: 600px) {
+      main { padding: 24px 0 0 0; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Cabeçalho fixo -->
+  <header>
+    <span class="header-icon" aria-label="Menu">
+      <!-- Ícone SVG discreto -->
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <!-- Filtros de situação -->
+    <div class="filtros">
+      <button class="filtro-btn ativo" data-situacao="Pendentes">Pendentes</button>
+      <button class="filtro-btn" data-situacao="Finalizadas">Finalizadas</button>
+      <button class="filtro-btn" data-situacao="Canceladas">Canceladas</button>
+    </div>
+    <!-- Tabela de operações -->
+    <table class="tabela-op" id="tabelaOp">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Data</th>
+          <th>Produto</th>
+          <th>Qtd. Produzir</th>
+          <th>Lote</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyOp">
+        <!-- Linhas geradas via JS -->
+      </tbody>
+    </table>
+    <div class="sem-registros" id="semRegistros" style="display:none;">Nenhuma operação encontrada.</div>
+  </main>
+  <!-- Rodapé fixo -->
+  <footer>
+    Sistema de Controle de Produção &copy;
+  </footer>
+  <script>
+    // Dados simulados de operações de produção
+    const operacoes = [
+      { idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001', descprod: 'Produto A', qtdproduzir: 1000, nrolote: 'L001', situacao: 'Pendentes' },
+      { idiproc: 102, dtfab: '2024-06-02', codprodpa: 'P002', descprod: 'Produto B', qtdproduzir: 800, nrolote: 'L002', situacao: 'Finalizadas' },
+      { idiproc: 103, dtfab: '2024-06-03', codprodpa: 'P003', descprod: 'Produto C', qtdproduzir: 1200, nrolote: 'L003', situacao: 'Pendentes' },
+      { idiproc: 104, dtfab: '2024-06-04', codprodpa: 'P004', descprod: 'Produto D', qtdproduzir: 500, nrolote: 'L004', situacao: 'Canceladas' },
+      { idiproc: 105, dtfab: '2024-06-05', codprodpa: 'P005', descprod: 'Produto E', qtdproduzir: 1500, nrolote: 'L005', situacao: 'Pendentes' },
+    ];
+
+    // Estado do filtro atual
+    let filtroAtual = 'Pendentes';
+
+    // Função para renderizar a tabela de operações
+    function renderTabela() {
+      const tbody = document.getElementById('tbodyOp');
+      const semRegistros = document.getElementById('semRegistros');
+      tbody.innerHTML = '';
+      // Filtra operações pela situação
+      const filtradas = operacoes.filter(op => op.situacao === filtroAtual);
+      if (filtradas.length === 0) {
+        semRegistros.style.display = 'block';
+        return;
+      } else {
+        semRegistros.style.display = 'none';
+      }
+      filtradas.forEach(op => {
+        // Apenas pendentes são clicáveis
+        const clicavel = op.situacao === 'Pendentes';
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-clicavel', clicavel);
+        if (clicavel) {
+          tr.tabIndex = 0;
+          tr.setAttribute('role', 'button');
+          tr.setAttribute('aria-label', `Ver detalhes da operação ${op.idiproc}`);
+          tr.addEventListener('click', () => {
+            // Salva dados no localStorage para detalhe.html
+            localStorage.setItem('opSelecionada', JSON.stringify(op));
+            window.location.href = 'detalhe.html';
+          });
+        }
+        tr.innerHTML = `
+          <td>${op.idiproc}</td>
+          <td>${op.dtfab}</td>
+          <td>${op.codprodpa} - ${op.descprod}</td>
+          <td>${op.qtdproduzir}</td>
+          <td>${op.nrolote}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Função para alternar filtro
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
+        this.classList.add('ativo');
+        filtroAtual = this.getAttribute('data-situacao');
+        renderTabela();
+      });
+    });
+
+    // Renderiza tabela ao carregar
+    renderTabela();
+  </script>
+</body>
+</html>

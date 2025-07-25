@@ -1,0 +1,192 @@
+
+<!doctype html>
+<html id="OrdensProducaoApp">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"></meta>
+    <meta charset="utf-8"></meta>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"></meta>
+    <!-- VENDORS CSS -->
+    <SCRIPT type="text/javascript">opc30671 = "1";  LISTOPC = "opc30619=1;opc30938=1;opc30937=1;opc40105=1;opc30342=1;opc30661=1;opc30620=1;opc30740=1;opc30660=1;opc30626=1;opc30427=1;opc30625=1;opc30627=1;opc30347=1;opc30424=1;opc30423=1;opc30621=1;opc30742=1;opc30426=1;opc30624=1;opc30745=1;opc30425=1;opc30623=1;opc80084=1;opc30608=1;opc30607=1;opc30609=1;opc2997119=1;opc30651=1;opc30333=1;opc30615=1;opc30617=1;opc30616=1;opc30737=1;opc30611=1;opc30655=1;opc30610=1;opc30657=1;opc30656=1;opc40120=1;opc50805=1;opc30719=1;opc51180=1;opc51182=1;opc51181=1;opc51184=1;opc30364=1;opc51183=1;opc51186=1;opc51185=1;opc51187=1;opc30363=1;opc30362=1;opc30648=1;opc30606=1;opc30325=1;opc30643=1;opc30720=1;opc30602=1;opc30646=1;opc30601=1;opc30672=1;opc30630=1;opc30674=1;opc30671=1;opc51112=1;opc30757=1;opc30639=1;opc30633=1;opc30677=1;opc30357=1;opc30632=1;opc30635=1;opc30315=1;opc30634=1;opc30678=1;opc30755=1";  opc30672 = "1";  opc30630 = "1";  opc30674 = "1";  RAS = "aXNTdXA=";  opc30633 = "1";  opc30677 = "1";  opc30357 = "1";  opc30632 = "1";  opc30635 = "1";  opc30315 = "1";  opc30634 = "1";  opc30678 = "1";  opc30755 = "1";  opc30757 = "1";  opc30639 = "1";  RESOURCEID = "br.com.sankhya.prod.OrdensProducaoHTML";  opc30660 = "1";  opc51183 = "1";  opc51184 = "1";  opc51181 = "1";  GLOBALID = "0A648FD300708E04AA4A5FF000CD7D13";  opc30342 = "1";  opc30661 = "1";  opc51182 = "1";  PCSF = "I05jYKEXNBGLOzI=";  opc30620 = "1";  opc30740 = "1";  opc80084 = "1";  opc51180 = "1";  mgeSession = "z6_HSaG9JzT-hBJA32mo7lbj5yeu4w8p6vlIqQx8";  opc30347 = "1";  opc30424 = "1";  opc40105 = "1";  opc30423 = "1";  opc30621 = "1";  opc30742 = "1";  opc2997119 = "1";  opc30426 = "1";  opc30624 = "1";  opc30745 = "1";  opc30425 = "1";  opc30623 = "1";  opc30626 = "1";  opc30427 = "1";  opc30625 = "1";  opc30627 = "1";  opc50805 = "1";  UID = "0";  RE = "1";  labelCarregando = "Carregando...";  VSS = "2";  opc51187 = "1";  opc51185 = "1";  opc51186 = "1";  opc30651 = "1";  opc30333 = "1";  opc30611 = "1";  opc30655 = "1";  opc30610 = "1";  opc30657 = "1";  opc30656 = "1";  opc30615 = "1";  html5ScreenChoice = "S";  opc30617 = "1";  opc30616 = "1";  opc30737 = "1";  PROFILEID = "S4W8LB";  opc30619 = "1";  opc30938 = "1";  URIServiceBroker = "mgeprod";  opc30937 = "1";  opc30609 = "1";  opc51112 = "1";  opc30363 = "1";  opc30362 = "1";  resourceID = "br.com.sankhya.prod.OrdensProducaoHTML";  opc30364 = "1";  opc30325 = "1";  opc30643 = "1";  opc30720 = "1";  opc30602 = "1";  opc30646 = "1";  opc30601 = "1";  opc30648 = "1";  isExt = "N";  opc30606 = "1";  opc30608 = "1";  opc40120 = "1";  opc30607 = "1";  opc30719 = "1";  MGESESSION = "z6_HSaG9JzT-hBJA32mo7lbj5yeu4w8p6vlIqQx8";  moduleID = "OrdensProducao";</SCRIPT>
+    <SCRIPT id="MGEParamsTag" type="text/javascript" tag-included-by-launcher="true">MGE_PARAMS = "cHJvZC5maWx0cmFyLndvcmtjZW50ZXIucG9yLnBhX189X19OX187X19jb20ucHJvZC5vYnJpZ2F0b3Jpby5tb3Rpdm9zLnBhcmFkYV9fPV9fU19fO19fZXhpYmUuYXRpdmlkYWRlcy5tb2RvLmdyYWRlX189X19OX187X19tZ2UuYXRpdmEubXVsdGkuYWJhc19fPV9fMl9fO19fbWdlLmNvcmUudGlwby5jb25zdWx0YS5hdXRvbWF0aWNhLmNlcF9fPV9fMl9fO19fY29tLnV0aWxpemEuY29udHJvbGVfXz1fX1NfXztfX21nZXByb2QuZGlhcy5jb25zdWx0YS5xZG9pdGVucy5ub3Rhcy5jb25maXJtYWRhc19fPV9fMF9fO19fbWdlcHJvLmlnbm9yYS5wb3B1cC5hbGVydGEubGFuY2FtZW50by5vcF9fPV9fTl9fO19fY29tLnByb2QuZGVmaW5pci5tcC5zaS5wcm9wcmlvX189X19TX187X19nbG9iYWwuY2FycmVnYXIucmVnaXN0cm9zLmluaWNpYXIudGVsYV9fPV9fTl9fO19fZ2xvYmFsLm9yZGVuYXIuZmlsdHJvcy5wZXJzb25hbGl6YWRvc19fPV9fU19fO19fY29tLmNvbmZpZ3VyYWNhby5ncmFkZS5yZXNwZWl0YS5jb25maWcudGVsYV9fPV9fTl9fO19fZ2xvYmFsLm5vdGlmaWNhLmFsdGVyYWNhby5kYXRhc2V0X189X19OX187X19tZ2UuY29yZS5mbGV4LnRoZW1lX189X19TX187X19ici5jb20uc2Fua2h5YS5tb2RlbGNvcmUudmFsaWRhY2Fvc2VndXJhbmNhZmlsdHJvc19fPV9fTl9fO19fbWdlLnF0ZC5yZWdpc3Ryb3MubWFpcy51dGlsaXphZG9zLnJlc2V0X189X18zMF9fO19fbWdlLnF0ZC5yZWdpc3Ryb3MubWFpcy51dGlsaXphZG9zLmFwcmVzZW50YWNhb19fPV9fTl9fO19fY29tLmFjY2Vzcy5jb25maWcuaW4uZ3JpZF9fPV9fTl9fO19fbWdlLmNvcmUuaGFiaWxpdGEudGVsYS5odG1sNV9fPV9fMF9fO19fcHJvZC5leGliZS5xdGRvcHMuZXh0cmF0by5tcHNfXz1fX1NfXztfX3Byb2Qub2JyaWdhLmRldGFsaGUucGVyZGEubXBfXz1fX05fXztfX2JyLmNvbS5zYW5raHlhLm1nZS5tb3N0cmEuYXZpc28ucGFnaW5hLmluaWNpYWxfXz1fX05fXztfX2dsb2JhbC51c2EuYXBwLmN1Ym9fXz1fX1NfXztfX2dsb2JhbC5wb3J0YS5hcHAuaW1wcmVzc2FvX189X185MDk2X187X19tZ2UucXRkLnJlZ2lzdHJvcy5tYWlzLnV0aWxpemFkb3MucGVzcXVpc2FfXz1fXzEwX187X19nbG9iYWwub3JkZW5hci5hY29lcy5wZXJzb25hbGl6YWRhc19fPV9fTl9fO19fZ2xvYmFsLnVzYS5hcHAuaW1wcmVzc2FvX189X19TX187X19nbG9iYWwuYXRhbGhvLmFjb2VzLnBlcnNvbmFsaXphZGFzX189X19OX187X19tZ2UuY29yZS5jb25maWcuZm9ybS5odG1sNV9fPV9fMF9fO19fcHJvZC5oYWJpbGl0YS5kZXRhbGhlLnBlcmRhLm1wX189X19OX187X19wcm9kLmxhbmNhci5vcC52ZXJzYW8uYW50ZXJpb3JfXz1fX05fXztfX21nZS5jb3JlLm1vZG8uZ3JhZGUuY29uZmlndXJhdmVsLnBlc3F1aXNhX189X19TX187X19tZ2UuY29yZS5xdGRlLm1heGltYS5yZWdpc3Ryb3MucGFyYS5leHBvcnRhY2FvX189X18xMDAwMDAwMF9fO19fZ2xvYmFsLm9yZGVuYXIuYWJhcy50b2Rhc2FiYXNfXz1fX04=";</SCRIPT>
+    <link rel="stylesheet" type="text/css" href="/mge/assets/vendors/ui-grid/ui-grid.min.css?v=4.35b75"></link>
+    <link rel="stylesheet" href="/mge/assets/vendors/bootstrap.min.css?v=4.35b75"></link>
+    <link rel="stylesheet" type="text/css" href="/mge/assets/vendors/loading-bar.min.css?v=4.35b75"></link>
+    <link rel="stylesheet" href="/mge/js/jqwidgets/styles/jqx.base.css" type="text/css?v=4.35b75"></link>
+    <link rel="stylesheet" href="/mge/js/jqwidgets/styles/jqx.metro.css" type="text/css?v=4.35b75"></link>
+    <link rel="stylesheet" type="text/css" href="/mge/assets/css/snk.min.css?v=4.35b75"></link>
+    <link rel="SHORTCUT ICON" href="/mge/img/favicon.ico?v=4.35b75"></link>
+    <link rel="stylesheet" type="text/css" href="/mge/assets/vendors/bpmn/css/diagram-js.css"></link>
+    <link rel="stylesheet" type="text/css" href="/mge/assets/vendors/bpmn/css/bpmn.css"></link>
+    <link rel="stylesheet" type="text/css" href="/mge/assets/vendors/bpmn/css/bpmnsnk.css"></link>
+    <link rel="stylesheet" href="/mge/scripts/vendors/fullcalendar/main.min.css?v=4.35b75"></link>
+    <!-- VENDORS CSS -->
+    <script src="/mge/js/util/jquery-1.9.1.min.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/sf/sf.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/util/Base64.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/AppletCaller.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/impressao.js?v=4.35b75"></script>
+    <script>var locale = 'pt_BR';
+		var APPLICATION_NAME = 'OrdensProducao';
+		var MODULE_ID = 'OrdensProducao';
+		var PROFILEID = 'S4W8LB';
+		var isSecurityDomain = false;
+		var localHostname = window.location.hostname;
+		var workspace;
+		
+		try {
+			var parentHostname = window.top.window.location.hostname;
+			
+			if(parentHostname == localHostname){
+				isSecurityDomain = true;
+			}
+			
+			if(isSecurityDomain) {
+			    workspace = parent.workspace;
+
+			    if (!workspace) {
+			        if (parent.parent.workspace) {
+			            workspace = parent.parent.workspace;
+			        }
+			    }
+			} 
+			
+		} catch (e) {
+			console.error(e);
+		}
+				
+		var i18nlocal = null; //    .i18n           : buildLocalI18nVar-method  : bundle do dicionário de dados
+		var i18nAll = {}; //        .i18nBundles    : i18nVars-method           : bundle da aplicação, outras aplicações e defaults
+		var i18nFramework = {}; //  .i18nBundles    : i18nVars-method           : bundle do framework</script>
+    <SCRIPT type="text/javascript">var printerAppPort = 9096 
+ var printerAppSSLPort = 9196 
+try {
+   if(navigator.userAgent.indexOf("Electron") !== -1){ 
+      if(sessionStorage.getItem("printerAppPort")){  
+			printerAppPort = parseInt(sessionStorage.getItem("printerAppPort")); 
+			printerAppSSLPort = printerAppPort + 100;  
+		 }	
+	  }	
+} catch(err) { 
+		console.log("Erro ao consultar porta do WC: " + err);
+}</SCRIPT>
+    <link media="all" type="text/css" href="html5/OrdensProducao/OrdensProducao.css" rel="stylesheet" tag-included-by-launcher="true"></link>
+    <script type="text/javascript" async="true" src="https://screen-webcomponent.sankhya.com.br/screen-webcomponent.js"></script>
+  </head>
+  <body>
+    <div id="pageWrapper" layout="column">
+      <div id="page" ng-include="'html5/OrdensProducao/OrdensProducao.html'" layout="column" flex="" ng-cloak=""></div>
+    </div>
+    <!-- VENDORS1 -->
+    <script src="/mge/scripts/custom-native-functions.js?v=4.35b75"></script>
+    <script src="/mge/scripts/vendors/angular/angular.js?v=4.35b75"></script>
+    <script src="/mge/scripts/vendors/angular/angular-touch.js?v=4.35b75"></script>
+    <script src="/mge/scripts/vendors/angular/angular-animate.min.js?v=4.35b75"></script>
+    <script src="/mge/scripts/vendors/angular/angular-aria.min.js?v=4.35b75"></script>
+    <script src="/mge/scripts/vendors/angular/angular-sanitize.min.js?v=4.35b75"></script>
+    <script src="/mge/scripts/vendors/ui-bootstrap/ui-bootstrap-tpls.min.js?v=4.35b75"></script>
+    <!-- VENDORS1 -->
+    <script src="/mge/scripts/vendors/translate/angular-translate.js?v=4.35b75"></script>
+    <!-- VENDORS2 -->
+    <script src="/mge/scripts/vendors/ui-grid/ui-grid.modified.js?v=4.35b75"></script>
+    <script src="/mge/scripts/vendors/numeral/numeral.min.js?v=4.35b75"></script>
+    <script src="/mge/scripts/vendors/moment/moment.min.js"></script>
+    <script src="/mge/scripts/vendors/loading-bar/loading-bar.min.js?v=4.35b75"></script>
+    <script src="/mge/scripts/vendors/sortable/sortable.min.js?v=4.35b75"></script>
+    <script src="/mge/scripts/vendors/ui-mask/mask.min.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/tinymce/tinymce.min.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/tinymce/uitinymce.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/tinymce/langs/pt_BR.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/tinymce/langs/en_CA.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/ace/ace.min.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/clipboard/clipboard.min.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/ag-grid/ag-grid-enterprise.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/bpmn/bpmn-custom-modeler.development.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/snapsvg/snap.svg-min.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/crypto-js/crypto-js.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/fullcalendar/main.min.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/fullcalendar/locales/es.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/scripts/vendors/fullcalendar/locales/pt-br.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/highstock/modules/funnel.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/highstock/modules/exporting.js?v=4.35b75"></script>
+    <!-- VENDORS2 -->
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxcore.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxdata.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxlistbox.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxbuttons.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxscrollbar.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxmenu.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxgrid.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxgrid.selection.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxgrid.columnsresize.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxgrid.columnsreorder.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxgrid.sort.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxgrid.filter.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxgrid.aggregates.js?v=4.35b75"></script>
+    <script type="text/javascript" src="/mge/js/jqwidgets/jqxdropdownlist.js?v=4.35b75"></script>
+    <script src="/mge/scripts/snk.js?v=4.35b75"></script>
+    <script src="/mgeprod/scripts/snk-launcher.js"></script>
+    <script src="html5/OrdensProducao/OrdensProducao.js?v=4.35b75"></script>
+    <script>var ngAppName = "OrdensProducaoApp";
+	
+		agGrid.LicenseManager.setLicenseKey("Sankhya_Gestao_de_Negocios_Sankhya-W_2Devs6_November_2020__MTYwNDYyMDgwMDAwMA==1f914bb75813904547879033c6de21d2");
+		    agGrid.initialiseAgGridWithAngular1(angular);
+	
+		    angular
+		        .module(ngAppName)
+		        .run(function(SkI18nService, SkWorkspace){
+		            SkWorkspace.unlockSwitchApp();
+		            
+		            SkI18nService.setLang(locale);
+		            
+		            angular.forEach(i18nAll, function(translations, bundleName){
+		                SkI18nService.addBundle(locale, bundleName, translations);					
+		            });
+		            
+		            angular.forEach(i18nFramework, function(translations, bundleName){
+		                SkI18nService.addBundle(locale, bundleName, translations);					
+		            });
+		        });
+	
+	
+		function startApplication() {
+		    angular.bootstrap(document, [ngAppName]);
+		}</script>
+    <script src="/mge/scripts/launcher.js?v=4.35b75"></script>
+    <input type="hidden" id="appletParameters" value="" tag-included-by-launcher="true"></input>
+    <input type="hidden" id="br.com.sankhya.prod.OrdensProducaoHTML" value="{&quot;resourceID&quot;:&quot;br.com.sankhya.prod.OrdensProducaoHTML&quot;,&quot;allowPersonalizedFilter&quot;:&quot;N&quot;,&quot;isHtml5&quot;:&quot;true&quot;,&quot;layout&quot;:{&quot;workspace&quot;:{&quot;invisibleTabs&quot;:{},&quot;tab&quot;:[{&quot;title&quot;:&quot;Geral&quot;,&quot;field&quot;:[{&quot;name&quot;:&quot;QTDPRODUZIR&quot;},{&quot;name&quot;:&quot;SALDOOP&quot;},{&quot;name&quot;:&quot;CODPRODPA&quot;},{&quot;name&quot;:&quot;REFERENCIA&quot;},{&quot;name&quot;:&quot;DESCRPRODPA&quot;},{&quot;name&quot;:&quot;COMPLDESCPA&quot;},{&quot;name&quot;:&quot;DHINC&quot;},{&quot;name&quot;:&quot;DHINST&quot;},{&quot;name&quot;:&quot;DHTERMINO&quot;},{&quot;name&quot;:&quot;DESCRICAO&quot;},{&quot;name&quot;:&quot;CODPARCTERC&quot;},{&quot;name&quot;:&quot;CODUSUFINAL&quot;},{&quot;name&quot;:&quot;CODEXEC&quot;},{&quot;name&quot;:&quot;NOMEEXEC&quot;},{&quot;name&quot;:&quot;NOMERPA&quot;},{&quot;name&quot;:&quot;QTDRPA&quot;},{&quot;name&quot;:&quot;PRIORIDADE&quot;},{&quot;name&quot;:&quot;MULTIPRODUTO&quot;},{&quot;name&quot;:&quot;CODPLP&quot;},{&quot;name&quot;:&quot;IDWFLOW&quot;},{&quot;name&quot;:&quot;CODUSUINC&quot;},{&quot;name&quot;:&quot;IDIPROCPAI&quot;},{&quot;name&quot;:&quot;AD_ESTOQUE&quot;},{&quot;name&quot;:&quot;AD_IDIPROCPI&quot;},{&quot;name&quot;:&quot;ProcessoProdutivo.CODPRC&quot;},{&quot;name&quot;:&quot;ProcessoProdutivo.VERSAO&quot;},{&quot;name&quot;:&quot;ProcessoProdutivo.PRODPARATERCEIRO&quot;},{&quot;name&quot;:&quot;ProcessoProdutivo.USATERCEIRO&quot;},{&quot;name&quot;:&quot;ProcessoProdutivo.DEFTERCEIRO&quot;},{&quot;name&quot;:&quot;TOTALTEMPPREVISTO&quot;},{&quot;name&quot;:&quot;TOTALTEMPREALIZADO&quot;},{&quot;name&quot;:&quot;NUMPS&quot;},{&quot;name&quot;:&quot;TEMPOATRAVESS&quot;},{&quot;name&quot;:&quot;DTINICIOMAX&quot;},{&quot;name&quot;:&quot;DTPREVENT&quot;},{&quot;name&quot;:&quot;PERIODOMPS&quot;},{&quot;name&quot;:&quot;NUNOTA&quot;},{&quot;name&quot;:&quot;SEQNOTA&quot;},{&quot;name&quot;:&quot;CODPARC&quot;},{&quot;name&quot;:&quot;CONTROLEPA&quot;},{&quot;name&quot;:&quot;CONTROLEPA&quot;},{&quot;name&quot;:&quot;NUMPS&quot;},{&quot;name&quot;:&quot;TEMPOATRAVESS&quot;},{&quot;name&quot;:&quot;DTINICIOMAX&quot;},{&quot;name&quot;:&quot;DTPREVENT&quot;},{&quot;name&quot;:&quot;PERIODOMPS&quot;},{&quot;name&quot;:&quot;NUNOTA&quot;},{&quot;name&quot;:&quot;SEQNOTA&quot;},{&quot;name&quot;:&quot;CODPARC&quot;}]},{&quot;title&quot;:&quot;Atividades&quot;,&quot;field&quot;:{&quot;name&quot;:&quot;abaAtividade&quot;}},{&quot;title&quot;:&quot;Mov. Acessórias&quot;,&quot;field&quot;:{&quot;name&quot;:&quot;abaMovimentacoesAcessorias&quot;}},{&quot;title&quot;:&quot;Notas de Produção&quot;,&quot;field&quot;:{&quot;name&quot;:&quot;abaNotasProducao&quot;}},{&quot;title&quot;:&quot;Dependências&quot;,&quot;field&quot;:{&quot;name&quot;:&quot;abaDependenciaOPs&quot;}},{&quot;title&quot;:&quot;Desvios de Produção&quot;,&quot;field&quot;:{&quot;name&quot;:&quot;abaDesviosProducao&quot;}},{&quot;title&quot;:&quot;Terceiros&quot;,&quot;field&quot;:{&quot;name&quot;:&quot;abaTerceiros&quot;}},{&quot;title&quot;:&quot;Pedido de Venda&quot;,&quot;field&quot;:{&quot;name&quot;:&quot;abaPedidoVenda&quot;}}],&quot;mainPanel&quot;:{&quot;field&quot;:[{&quot;name&quot;:&quot;IDIPROC&quot;},{&quot;name&quot;:&quot;NROLOTE&quot;},{&quot;name&quot;:&quot;AD_LOTEPI&quot;},{&quot;name&quot;:&quot;STATUSPROC&quot;},{&quot;name&quot;:&quot;IDPROC&quot;},{&quot;name&quot;:&quot;ProcessoProdutivo.TIPOPROC&quot;},{&quot;name&quot;:&quot;ProcessoProdutivo.DESCRABREV&quot;},{&quot;name&quot;:&quot;IDICOP&quot;},{&quot;name&quot;:&quot;IDICOP&quot;},{&quot;name&quot;:&quot;AD_DTFABRICACAO&quot;}]},&quot;tabOrder&quot;:{&quot;tab&quot;:[{&quot;title&quot;:&quot;Geral&quot;},{&quot;title&quot;:&quot;Atividades&quot;},{&quot;title&quot;:&quot;Mov. Acessórias&quot;},{&quot;title&quot;:&quot;Notas de Produção&quot;},{&quot;title&quot;:&quot;Dependências&quot;},{&quot;title&quot;:&quot;Desvios de Produção&quot;},{&quot;title&quot;:&quot;Terceiros&quot;},{&quot;title&quot;:&quot;Pedido de Venda&quot;}]}}},&quot;fields&quot;:{}}" tag-included-by-launcher="true"></input>
+    <include tag-included-by-launcher="true">
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaAtividade/abaAtividade.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaDependenciaOPs/abaDependenciaOPs.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaDesviosProducao/abaDesviosProducao.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaDesviosProducao/popover/popoverPrefs.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaNotasProducao/abaNotasProducao.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaMovimentacoesAcessorias/abaMovimentacoesAcessorias.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaMovimentacoesAcessorias/popup/novaMovimentacaoWizard/novaMovimentacaoWizard.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/ResumoPAMP/resumoPAMP.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/SubstituirProdutoPA/substituirProdutoPA.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/RedimensionarLote/redimensionarLote.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/EditarLote/editarLote.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/transferenciaParcial/transferenciaParcial.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/ApontamentoDivergente/apontamentoDivergente.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/PararAtividade/pararAtividade.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaAtividade/popup/novaMovimentacaoWizard.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaTerceiros/abaTerceiros.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaControleQualidade/abaControleQualidade.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/GeraSeriePA/geraSeriePAPopUp.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/GeraSerieMP/geraSerieMPPopUp.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/liberarSerieApontamento/liberarSerieApontamentoPopUp.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaNotasProducao/popup/popupVerCustos.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaPedidoVenda/abaPedidoVenda.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/SelecaoLancamento/selecaolancamento.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaDetalhamentoPerda/abaDetalhamentoPerda.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/abas/abaAtividade/popup/itensRecursoCT.controller.js"></script>
+      <script type="text/javascript" src="html5/OrdensProducao/popup/Prioridade/popOverPrioridade.controller.js"></script>
+    </include>
+    <applets>
+      <div id="centralNotaAppletImpressao"></div>
+      <div id="impressaoChequeApplet"></div>
+    </applets>
+    <screen-webcomponent id="sw.br.com.sankhya.prod.OrdensProducaoHTML"></screen-webcomponent>
+  </body>
+</html>
+

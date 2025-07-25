@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhe da Operação</title>
+  <style>
+    :root {
+      --verde-escuro: #14532d;
+      --verde-medio: #22c55e;
+      --verde-claro: #bbf7d0;
+      --verde-vibrante: #16a34a;
+      --verde-suave: #d1fae5;
+      --cinza: #e5e7eb;
+      --cinza-escuro: #6b7280;
+      --branco: #fff;
+      --azul: #2563eb;
+      --vermelho: #dc2626;
+      --cinza-opaco: #d1d5db;
+      --fonte: 'Segoe UI', 'Arial', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--fonte);
+      background: var(--verde-suave);
+      color: var(--verde-escuro);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--verde-escuro);
+      color: var(--branco);
+      display: flex;
+      align-items: center;
+      height: 56px;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(20,83,45,0.08);
+      padding: 0 16px;
+    }
+    .header-icon {
+      width: 28px; height: 28px;
+      margin-right: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    main {
+      flex: 1;
+      margin-top: 56px;
+      margin-bottom: 64px;
+      padding: 16px 8px 0 8px;
+      max-width: 700px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .resumo {
+      background: var(--branco);
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(34,197,94,0.07);
+      padding: 14px 12px;
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 24px;
+    }
+    .acoes {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-acao {
+      flex: 1 1 120px;
+      padding: 12px 0;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      margin-bottom: 4px;
+    }
+    .btn-iniciar { background: var(--verde-vibrante); color: var(--branco); }
+    .btn-parar { background: var(--vermelho); color: var(--branco); }
+    .btn-continuar { background: var(--azul); color: var(--branco); }
+    .btn-finalizar-ativo { background: var(--verde-escuro); color: var(--branco); }
+    .btn-finalizar-inativo { background: var(--cinza-opaco); color: var(--cinza-escuro); cursor: not-allowed; }
+    .abas {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--verde-medio);
+      margin-bottom: 0;
+    }
+    .aba-btn {
+      flex: 1;
+      padding: 12px 0;
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      border: none;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 8px 8px 0 0;
+      margin-right: 2px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .aba-btn.ativa {
+      background: var(--verde-medio);
+      color: var(--branco);
+    }
+    .conteudo-aba {
+      background: var(--branco);
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 2px 8px rgba(34,197,94,0.07);
+      padding: 10px 6px 16px 6px;
+      margin-bottom: 8px;
+      min-height: 120px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 500px;
+    }
+    th, td {
+      padding: 10px 6px;
+      text-align: left;
+      font-size: 0.98rem;
+    }
+    th {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-weight: 600;
+      border-bottom: 2px solid var(--verde-medio);
+    }
+    tr {
+      transition: background 0.15s;
+    }
+    tr.pendente {
+      color: var(--verde-escuro);
+    }
+    tr.confirmado {
+      color: var(--cinza-escuro);
+      background: var(--cinza);
+    }
+    .excluir-btn {
+      background: var(--vermelho);
+      color: var(--branco);
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      margin-left: 4px;
+      transition: background 0.2s;
+    }
+    .excluir-btn:disabled {
+      background: var(--cinza-opaco);
+      color: var(--cinza-escuro);
+      cursor: not-allowed;
+    }
+    .rodape {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 56px;
+      background: var(--verde-escuro);
+      color: var(--branco);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 1rem;
+      z-index: 10;
+      box-shadow: 0 -2px 8px rgba(20,83,45,0.08);
+    }
+    .btn-voltar {
+      display: flex;
+      align-items: center;
+      background: none;
+      border: none;
+      color: var(--branco);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: background 0.2s;
+      margin-left: -8px;
+    }
+    .btn-voltar:active, .btn-voltar:focus {
+      background: var(--verde-medio);
+    }
+    .btn-voltar svg {
+      margin-right: 6px;
+    }
+    @media (max-width: 600px) {
+      main { padding: 8px 2px 0 2px; }
+      th, td { padding: 8px 2px; font-size: 0.97rem; }
+      .header-title { font-size: 1.1rem; }
+      .rodape { font-size: 0.97rem; }
+      .resumo { font-size: 0.98rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="header-icon">
+      <!-- Ícone SVG discreto -->
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <div class="resumo" id="resumo-op">
+      <!-- Resumo preenchido via JS -->
+    </div>
+    <div class="acoes">
+      <button id="btn-acao" class="btn-acao btn-iniciar">Iniciar</button>
+      <button id="btn-finalizar" class="btn-acao btn-finalizar-inativo" disabled>Finalizar</button>
+    </div>
+    <div class="abas">
+      <button class="aba-btn ativa" data-aba="apontamentos">Apontamentos</button>
+      <button class="aba-btn" data-aba="execucao">Execução</button>
+    </div>
+    <div class="conteudo-aba" id="conteudo-apontamentos">
+      <table>
+        <thead>
+          <tr>
+            <th>Nota</th>
+            <th>Usuário</th>
+            <th>Data/Hora</th>
+            <th>Situação</th>
+            <th>Qtd. Apontada</th>
+            <th>Qtd. Perda</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-apontamentos">
+          <!-- Linhas preenchidas via JS -->
+        </tbody>
+      </table>
+    </div>
+    <div class="conteudo-aba" id="conteudo-execucao" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th>Início</th>
+            <th>Final</th>
+            <th>Tipo</th>
+            <th>Usuário</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-execucao">
+          <!-- Linhas preenchidas via JS -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <footer class="rodape">
+    <button class="btn-voltar" onclick="window.location.href='index.html'">
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Voltar</span>
+    </button>
+    <span>Controle de Operações</span>
+  </footer>
+  <script>
+    // Dados de exemplo (simulação)
+    const dadosOp = [
+      { idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001 - Produto A', qtdproduzir: 1000, nrolote: 'L001', situacao: 'Pendente' },
+      { idiproc: 102, dtfab: '2024-06-02', codprodpa: 'P002 - Produto B', qtdproduzir: 500, nrolote: 'L002', situacao: 'Finalizada' },
+      { idiproc: 103, dtfab: '2024-06-03', codprodpa: 'P003 - Produto C', qtdproduzir: 750, nrolote: 'L003', situacao: 'Cancelada' },
+      { idiproc: 104, dtfab: '2024-06-04', codprodpa: 'P004 - Produto D', qtdproduzir: 1200, nrolote: 'L004', situacao: 'Pendente' },
+      { idiproc: 105, dtfab: '2024-06-05', codprodpa: 'P005 - Produto E', qtdproduzir: 900, nrolote: 'L005', situacao: 'Finalizada' },
+    ];
+    // Simulação de dados de apontamentos
+    let apontamentos = [
+      { nunota: 2001, codusu: 'U001', dhapontamento: '2024-06-10 08:00', situacao: 'Pendente', qtd: 100, perda: 0 },
+      { nunota: 2002, codusu: 'U002', dhapontamento: '2024-06-10 09:00', situacao: 'Confirmado', qtd: 200, perda: 5 },
+      { nunota: 2003, codusu: 'U001', dhapontamento: '2024-06-10 10:00', situacao: 'Pendente', qtd: 150, perda: 2 },
+    ];
+    // Simulação de dados de execução
+    let execucoes = [
+      { dhinicio: '2024-06-10 08:00', dhfinal: '', tipo: 'normal', codusu: 'U001', motivo: '' },
+    ];
+    // Estado da operação
+    let estado = 'parado'; // 'parado', 'andamento', 'pausado', 'finalizado'
+    let opSelecionada = null;
+    // Utilitário para obter parâmetro da URL
+    function getParam(nome) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(nome);
+    }
+    function renderResumo() {
+      const idiproc = parseInt(getParam('idiproc'));
+      opSelecionada = dadosOp.find(d => d.idiproc === idiproc) || dadosOp[0];
+      document.getElementById('resumo-op').innerHTML = `
+        <div><b>ID:</b> ${opSelecionada.idiproc}</div>
+        <div><b>Data Fabricação:</b> ${opSelecionada.dtfab}</div>
+        <div><b>Produto:</b> ${opSelecionada.codprodpa}</div>
+        <div><b>Qtd. Produzir:</b> ${opSelecionada.qtdproduzir}</div>
+        <div><b>Lote:</b> ${opSelecionada.nrolote}</div>
+      `;
+    }
+    function renderApontamentos() {
+      const tbody = document.getElementById('tbody-apontamentos');
+      tbody.innerHTML = '';
+      apontamentos.forEach((a, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = a.situacao === 'Pendente' ? 'pendente' : 'confirmado';
+        tr.innerHTML = `
+          <td>${a.nunota}</td>
+          <td>${a.codusu}</td>
+          <td>${a.dhapontamento}</td>
+          <td>${a.situacao}</td>
+          <td>${a.qtd}</td>
+          <td>${a.perda}</td>
+          <td>
+            <button class="excluir-btn" ${a.situacao !== 'Pendente' ? 'disabled' : ''} onclick="excluirApontamento(${idx})">Excluir</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    function excluirApontamento(idx) {
+      if (apontamentos[idx].situacao === 'Pendente') {
+        apontamentos.splice(idx, 1);
+        renderApontamentos();
+      }
+    }
+    window.excluirApontamento = excluirApontamento;
+    function renderExecucao() {
+      const tbody = document.getElementById('tbody-execucao');
+      tbody.innerHTML = '';
+      execucoes.forEach(e => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${e.dhinicio}</td>
+            <td>${e.dhfinal || '-'}</td>
+            <td>${e.tipo}</td>
+            <td>${e.codusu}</td>
+            <td>${e.motivo || '-'}</td>
+          </tr>
+        `;
+      });
+    }
+    // Controle dos botões de ação
+    const btnAcao = document.getElementById('btn-acao');
+    const btnFinalizar = document.getElementById('btn-finalizar');
+    function atualizarBotoes() {
+      if (estado === 'parado') {
+        btnAcao.textContent = 'Iniciar';
+        btnAcao.className = 'btn-acao btn-iniciar';
+        btnFinalizar.className = 'btn-acao btn-finalizar-inativo';
+        btnFinalizar.disabled = true;
+      } else if (estado === 'andamento') {
+        btnAcao.textContent = 'Parar';
+        btnAcao.className = 'btn-acao btn-parar';
+        btnFinalizar.className = 'btn-acao btn-finalizar-ativo';
+        btnFinalizar.disabled = false;
+      } else if (estado === 'pausado') {
+        btnAcao.textContent = 'Continuar';
+        btnAcao.className = 'btn-acao btn-continuar';
+        btnFinalizar.className = 'btn-acao btn-finalizar-inativo';
+        btnFinalizar.disabled = true;
+      } else if (estado === 'finalizado') {
+        btnAcao.textContent = 'Iniciar';
+        btnAcao.className = 'btn-acao btn-iniciar';
+        btnFinalizar.className = 'btn-acao btn-finalizar-inativo';
+        btnFinalizar.disabled = true;
+      }
+    }
+    btnAcao.addEventListener('click', () => {
+      if (estado === 'parado' || estado === 'finalizado') {
+        // Iniciar
+        estado = 'andamento';
+        execucoes.push({
+          dhinicio: new Date().toISOString().slice(0,16).replace('T',' '),
+          dhfinal: '',
+          tipo: 'normal',
+          codusu: 'U001',
+          motivo: ''
+        });
+      } else if (estado === 'andamento') {
+        // Parar
+        estado = 'pausado';
+        const exec = execucoes[execucoes.length-1];
+        exec.dhfinal = new Date().toISOString().slice(0,16).replace('T',' ');
+        exec.tipo = 'parada';
+        execucoes.push({
+          dhinicio: new Date().toISOString().slice(0,16).replace('T',' '),
+          dhfinal: '',
+          tipo: 'parada',
+          codusu: 'U001',
+          motivo: 'Pausa solicitada'
+        });
+      } else if (estado === 'pausado') {
+        // Continuar
+        estado = 'andamento';
+        execucoes.push({
+          dhinicio: new Date().toISOString().slice(0,16).replace('T',' '),
+          dhfinal: '',
+          tipo: 'normal',
+          codusu: 'U001',
+          motivo: ''
+        });
+      }
+      atualizarBotoes();
+      renderExecucao();
+    });
+    btnFinalizar.addEventListener('click', () => {
+      if (estado === 'andamento') {
+        estado = 'finalizado';
+        const exec = execucoes[execucoes.length-1];
+        exec.dhfinal = new Date().toISOString().slice(0,16).replace('T',' ');
+        exec.tipo = 'finalizado';
+        atualizarBotoes();
+        renderExecucao();
+      }
+    });
+    // Abas
+    const btnsAba = document.querySelectorAll('.aba-btn');
+    btnsAba.forEach(btn => {
+      btn.addEventListener('click', () => {
+        btnsAba.forEach(b => b.classList.remove('ativa'));
+        btn.classList.add('ativa');
+        document.getElementById('conteudo-apontamentos').style.display = btn.dataset.aba === 'apontamentos' ? '' : 'none';
+        document.getElementById('conteudo-execucao').style.display = btn.dataset.aba === 'execucao' ? '' : 'none';
+      });
+    });
+    // Inicialização
+    renderResumo();
+    renderApontamentos();
+    renderExecucao();
+    atualizarBotoes();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Ordem de Produção</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+</head>
+<style>
+
+/* Variáveis CSS para cores verdes */
+:root {
+    --primary-green: #2e7d32;
+    --secondary-green: #4caf50;
+    --light-green: #81c784;
+    --dark-green: #1b5e20;
+    --accent-green: #66bb6a;
+    --success-green: #43a047;
+    --warning-green: #8bc34a;
+    --info-green: #26a69a;
+    --danger-red: #f44336;
+    --warning-orange: #ff9800;
+    --primary-blue: #2196f3;
+    --light-gray: #f5f5f5;
+    --dark-gray: #424242;
+    --white: #ffffff;
+    --black: #212121;
+    --border-color: #e0e0e0;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --gradient-primary: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
+    --gradient-success: linear-gradient(135deg, var(--success-green), var(--accent-green));
+    --gradient-warning: linear-gradient(135deg, var(--warning-orange), #ffb74d);
+    --gradient-danger: linear-gradient(135deg, var(--danger-red), #ef5350);
+}
+
+/* Reset e configurações gerais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f1f8e9, #c8e6c9);
+    color: var(--black);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Header */
+.header {
+    background: var(--gradient-primary);
+    color: var(--white);
+    padding: 1.5rem 0;
+    box-shadow: 0 4px 20px rgba(46, 125, 50, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+}
+
+.header h1 {
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.status-indicator {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.status-badge {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.status-badge:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Main Content */
+.main-content {
+    padding: 2rem 0;
+    min-height: calc(100vh - 120px);
+}
+
+/* Progress Bar */
+.progress-container {
+    background: var(--white);
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px var(--shadow-color);
+    border: 1px solid var(--border-color);
+}
+
+.progress {
+    height: 12px;
+    border-radius: 10px;
+    background: var(--light-gray);
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+    background: var(--gradient-success);
+    border-radius: 10px;
+    transition: width 0.6s ease;
+    position: relative;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Tabs */
+.nav-tabs {
+    border-bottom: 3px solid var(--light-green);
+    margin-bottom: 2rem;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: var(--dark-gray);
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+    border-radius: 15px 15px 0 0;
+    transition: all 0.3s ease;
+    position: relative;
+    background: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--primary-green);
+    background: rgba(76, 175, 80, 0.1);
+    border-color: transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--white);
+    background: var(--gradient-primary);
+    border-color: transparent;
+    box-shadow: 0 -4px 15px rgba(46, 125, 50, 0.3);
+}
+
+.nav-tabs .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px var(--shadow-color);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    background: var(--white);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background: var(--gradient-primary);
+    color: var(--white);
+    border-radius: 20px 20px 0 0 !important;
+    font-weight: 700;
+    padding: 1.5rem;
+    border: none;
+}
+
+.card-header h5 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+/* Form Controls */
+.form-label {
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin-bottom: 0.5rem;
+}
+
+.form-control, .form-select {
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--white);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--secondary-green);
+    box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
+    outline: none;
+}
+
+.form-control:disabled, .form-select:disabled {
+    background: var(--light-gray);
+    color: var(--dark-gray);
+}
+
+.form-control-static {
+    background: var(--light-gray);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-color);
+    font-weight: 500;
+    color: var(--dark-gray);
+}
+
+/* Buttons */
+.btn {
+    border-radius: 12px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    color: var(--white);
+}
+
+.btn-success {
+    background: var(--gradient-success);
+    color: var(--white);
+}
+
+.btn-warning {
+    background: var(--gradient-warning);
+    color: var(--white);
+}
+
+.btn-danger {
+    background: var(--gradient-danger);
+    color: var(--white);
+}
+
+.btn-secondary {
+    background: var(--dark-gray);
+    color: var(--white);
+}
+
+.btn-outline-success {
+    border: 2px solid var(--secondary-green);
+    color: var(--secondary-green);
+    background: transparent;
+}
+
+.btn-outline-success:hover {
+    background: var(--secondary-green);
+    color: var(--white);
+}
+
+/* Tables */
+.table {
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px var(--shadow-color);
+}
+
+.table thead th {
+    background: var(--gradient-primary);
+    color: var(--white);
+    border: none;
+    font-weight: 700;
+    padding: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
+}
+
+.table tbody tr {
+    transition: all 0.3s ease;
+}
+
+.table tbody tr:hover {
+    background: rgba(76, 175, 80, 0.1);
+    transform: scale(1.01);
+}
+
+.table tbody td {
+    padding: 1rem;
+    border-color: var(--border-color);
+    vertical-align: middle;
+}
+
+/* Action Buttons */
+.action-buttons {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 8px 25px var(--shadow-color);
+    border: 1px solid var(--border-color);
+}
+
+/* Modals */
+.modal-content {
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    background: var(--gradient-primary);
+    color: var(--white);
+    border-radius: 20px 20px 0 0;
+    border: none;
+    padding: 1.5rem;
+}
+
+.modal-header .btn-close {
+    filter: invert(1);
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-color);
+    padding: 1.5rem;
+}
+
+/* Status Indicators */
+.status-pendente {
+    background: var(--warning-orange);
+    color: var(--white);
+}
+
+.status-em-execucao {
+    background: var(--primary-blue);
+    color: var(--white);
+}
+
+.status-finalizada {
+    background: var(--success-green);
+    color: var(--white);
+}
+
+.status-cancelada {
+    background: var(--danger-red);
+    color: var(--white);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .nav-tabs .nav-link {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+    
+    .action-buttons {
+        padding: 1rem;
+    }
+    
+    .action-buttons .btn {
+        margin-bottom: 0.5rem;
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .header {
+        padding: 1rem 0;
+    }
+    
+    .main-content {
+        padding: 1rem 0;
+    }
+    
+    .card-header {
+        padding: 1rem;
+    }
+    
+    .card-header h5 {
+        font-size: 1rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+    
+    .btn {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card, .progress-container, .action-buttons {
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--light-gray);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gradient-primary);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--dark-green);
+}
+
+/* Loading States */
+.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Success/Error Messages */
+.alert {
+    border-radius: 15px;
+    border: none;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.alert-success {
+    background: var(--gradient-success);
+    color: var(--white);
+}
+
+.alert-danger {
+    background: var(--gradient-danger);
+    color: var(--white);
+}
+
+.alert-warning {
+    background: var(--gradient-warning);
+    color: var(--white);
+}
+
+/* Tooltips */
+.tooltip {
+    font-size: 0.85rem;
+}
+
+.tooltip-inner {
+    background: var(--dark-green);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+}
+
+/* Focus States for Accessibility */
+.btn:focus, .form-control:focus, .form-select:focus {
+    outline: 2px solid var(--secondary-green);
+    outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+    .header, .action-buttons, .nav-tabs {
+        display: none;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid var(--border-color);
+    }
+    
+    body {
+        background: var(--white);
+    }
+} 
+
+</style>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h1 class="mb-0">
+                            <i class="fas fa-industry me-2"></i>
+                            Cadastro de Ordem de Produção
+                        </h1>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div class="status-indicator">
+                            <span class="status-badge" id="status-badge">Não Iniciada</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <!-- Progress Bar -->
+                <div class="progress-container mb-4">
+                    <div class="progress">
+                        <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted">Progresso da Ordem de Produção</small>
+                </div>
+
+                <!-- Form Tabs -->
+                <ul class="nav nav-tabs" id="formTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="geral-tab" data-bs-toggle="tab" data-bs-target="#geral" type="button" role="tab">
+                            <i class="fas fa-info-circle me-2"></i>Geral
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="produtos-tab" data-bs-toggle="tab" data-bs-target="#produtos" type="button" role="tab">
+                            <i class="fas fa-box me-2"></i>Produtos
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="atividades-tab" data-bs-toggle="tab" data-bs-target="#atividades" type="button" role="tab">
+                            <i class="fas fa-tasks me-2"></i>Atividades
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="materiais-tab" data-bs-toggle="tab" data-bs-target="#materiais" type="button" role="tab">
+                            <i class="fas fa-tools me-2"></i>Materiais
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="formTabsContent">
+                    <!-- Aba Geral -->
+                    <div class="tab-pane fade show active" id="geral" role="tabpanel">
+                        <div class="row">
+                            <!-- Informações Principais -->
+                            <div class="col-lg-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-cog me-2"></i>Informações Principais</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="numero-op" class="form-label">Número da OP</label>
+                                                <input type="text" class="form-control" id="numero-op" readonly>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="tipo-op" class="form-label">Tipo de OP</label>
+                                                <select class="form-select" id="tipo-op" required>
+                                                    <option value="">Selecione...</option>
+                                                    <option value="P">Produção</option>
+                                                    <option value="D">Desmonte</option>
+                                                    <option value="R">Reprocessamento/Reparo</option>
+                                                    <option value="PC">Produção Conjunta</option>
+                                                    <option value="PT">Produção para Terceiro</option>
+                                                    <option value="TE">Usa Terceiro</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="produto-acabado" class="form-label">Produto Acabado</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="produto-acabado" placeholder="Código do produto">
+                                                    <button class="btn btn-outline-success" type="button" data-bs-toggle="modal" data-bs-target="#modal-produto">
+                                                        <i class="fas fa-search"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="qtd-produzir" class="form-label">Quantidade a Produzir</label>
+                                                <input type="number" class="form-control" id="qtd-produzir" step="0.01" min="0">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="saldo-op" class="form-label">Saldo da OP</label>
+                                                <input type="number" class="form-control" id="saldo-op" readonly>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="controle-pa" class="form-label">Controle PA</label>
+                                                <input type="text" class="form-control" id="controle-pa">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="processo" class="form-label">Processo</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="processo" placeholder="Código do processo">
+                                                    <button class="btn btn-outline-success" type="button">
+                                                        <i class="fas fa-search"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="versao" class="form-label">Versão</label>
+                                                <input type="text" class="form-control" id="versao">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="prioridade" class="form-label">Prioridade</label>
+                                                <select class="form-select" id="prioridade">
+                                                    <option value="1">Baixa</option>
+                                                    <option value="2">Média</option>
+                                                    <option value="3" selected>Alta</option>
+                                                    <option value="4">Urgente</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="planta" class="form-label">Planta</label>
+                                                <select class="form-select" id="planta">
+                                                    <option value="">Selecione...</option>
+                                                    <option value="PLANTA1">Planta 1</option>
+                                                    <option value="PLANTA2">Planta 2</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="parceiro" class="form-label">Parceiro</label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="parceiro" placeholder="Código do parceiro">
+                                                    <button class="btn btn-outline-success" type="button">
+                                                        <i class="fas fa-search"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Informações de Segurança -->
+                            <div class="col-lg-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-shield-alt me-2"></i>Informações de Segurança</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Data de Inclusão</label>
+                                            <p class="form-control-static" id="creation-date"></p>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Usuário de Inclusão</label>
+                                            <p class="form-control-static" id="creation-user"></p>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="data-inicio" class="form-label">Data de Início</label>
+                                            <input type="datetime-local" class="form-control" id="data-inicio">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="data-fim" class="form-label">Data de Término</label>
+                                            <input type="datetime-local" class="form-control" id="data-fim">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Tempo Total Previsto</label>
+                                            <p class="form-control-static" id="tempo-previsto">00:00</p>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Tempo Total Realizado</label>
+                                            <p class="form-control-static" id="tempo-realizado">00:00</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Produtos -->
+                    <div class="tab-pane fade" id="produtos" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5><i class="fas fa-box me-2"></i>Produtos da Ordem de Produção</h5>
+                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modal-produto">
+                                    <i class="fas fa-plus me-1"></i>Adicionar Produto
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="tabela-produtos">
+                                        <thead class="table-success">
+                                            <tr>
+                                                <th>Código</th>
+                                                <th>Descrição</th>
+                                                <th>Quantidade</th>
+                                                <th>Controle</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Produtos serão inseridos aqui dinamicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Atividades -->
+                    <div class="tab-pane fade" id="atividades" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5><i class="fas fa-tasks me-2"></i>Atividades da Ordem de Produção</h5>
+                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modal-atividade">
+                                    <i class="fas fa-plus me-1"></i>Adicionar Atividade
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="tabela-atividades">
+                                        <thead class="table-success">
+                                            <tr>
+                                                <th>Sequência</th>
+                                                <th>Descrição</th>
+                                                <th>Centro de Trabalho</th>
+                                                <th>Tempo Previsto</th>
+                                                <th>Status</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Atividades serão inseridas aqui dinamicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aba Materiais -->
+                    <div class="tab-pane fade" id="materiais" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5><i class="fas fa-tools me-2"></i>Materiais da Ordem de Produção</h5>
+                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modal-material">
+                                    <i class="fas fa-plus me-1"></i>Adicionar Material
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="tabela-materiais">
+                                        <thead class="table-success">
+                                            <tr>
+                                                <th>Código</th>
+                                                <th>Descrição</th>
+                                                <th>Quantidade Necessária</th>
+                                                <th>Quantidade Consumida</th>
+                                                <th>Controle</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Materiais serão inseridos aqui dinamicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons mt-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-success me-2" id="btn-iniciar">
+                                <i class="fas fa-play me-1"></i>Iniciar OP
+                            </button>
+                            <button class="btn btn-warning me-2" id="btn-suspender">
+                                <i class="fas fa-pause me-1"></i>Suspender OP
+                            </button>
+                            <button class="btn btn-danger me-2" id="btn-cancelar">
+                                <i class="fas fa-times me-1"></i>Cancelar OP
+                            </button>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button class="btn btn-secondary me-2" id="btn-limpar">
+                                <i class="fas fa-eraser me-1"></i>Limpar
+                            </button>
+                            <button class="btn btn-primary" id="btn-salvar">
+                                <i class="fas fa-save me-1"></i>Salvar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Produto -->
+    <div class="modal fade" id="modal-produto" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Selecionar Produto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modal-codigo-produto" class="form-label">Código do Produto</label>
+                        <input type="text" class="form-control" id="modal-codigo-produto" placeholder="Digite o código do produto">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-descricao-produto" class="form-label">Descrição</label>
+                        <input type="text" class="form-control" id="modal-descricao-produto" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-controle-produto" class="form-label">Controle</label>
+                        <input type="text" class="form-control" id="modal-controle-produto">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btn-confirmar-produto">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Atividade -->
+    <div class="modal fade" id="modal-atividade" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Adicionar Atividade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="modal-sequencia-atividade" class="form-label">Sequência</label>
+                            <input type="number" class="form-control" id="modal-sequencia-atividade" min="1">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal-centro-trabalho" class="form-label">Centro de Trabalho</label>
+                            <select class="form-select" id="modal-centro-trabalho">
+                                <option value="">Selecione...</option>
+                                <option value="CT001">Centro de Trabalho 001</option>
+                                <option value="CT002">Centro de Trabalho 002</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label for="modal-descricao-atividade" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="modal-descricao-atividade" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal-tempo-previsto" class="form-label">Tempo Previsto (min)</label>
+                            <input type="number" class="form-control" id="modal-tempo-previsto" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal-status-atividade" class="form-label">Status</label>
+                            <select class="form-select" id="modal-status-atividade">
+                                <option value="P">Pendente</option>
+                                <option value="E">Em Execução</option>
+                                <option value="F">Finalizada</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btn-confirmar-atividade">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Material -->
+    <div class="modal fade" id="modal-material" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Adicionar Material</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="modal-codigo-material" class="form-label">Código do Material</label>
+                            <input type="text" class="form-control" id="modal-codigo-material" placeholder="Digite o código do material">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal-descricao-material" class="form-label">Descrição</label>
+                            <input type="text" class="form-control" id="modal-descricao-material" readonly>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal-qtd-necessaria" class="form-label">Quantidade Necessária</label>
+                            <input type="number" class="form-control" id="modal-qtd-necessaria" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="modal-controle-material" class="form-label">Controle</label>
+                            <input type="text" class="form-control" id="modal-controle-material">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btn-confirmar-material">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+    <script>
+
+/**
+ * Sistema de Cadastro de Ordem de Produção
+ * Funcionalidades avançadas e validações
+ */
+
+ class OrdemProducaoController {
+    constructor() {
+        this.opData = {
+            numero: '',
+            tipo: '',
+            produtoAcabado: '',
+            quantidade: 0,
+            status: 'R', // R = Não Iniciada
+            dataCriacao: new Date(),
+            criadoPor: '',
+            prioridade: 3,
+            processo: '',
+            planta: '',
+            parceiro: '',
+            versao: '',
+            dataInicio: null,
+            dataFim: null,
+            tempoTotalPrevisto: 0,
+            tempoTotalRealizado: 0,
+            produtos: [],
+            atividades: [],
+            materiais: []
+        };
+
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.loadInitialData();
+        this.setupValidation();
+        this.setupAutoSave();
+        this.setupResponsiveHandlers();
+    }
+
+    setupEventListeners() {
+        // Event listeners para campos principais
+        document.getElementById('tipo-op').addEventListener('change', (e) => {
+            this.opData.tipo = e.target.value;
+            this.updateTipoDependentFields();
+        });
+
+        document.getElementById('qtd-produzir').addEventListener('input', (e) => {
+            this.opData.quantidade = parseFloat(e.target.value) || 0;
+            this.updateSaldoOP();
+        });
+
+        document.getElementById('prioridade').addEventListener('change', (e) => {
+            this.opData.prioridade = parseInt(e.target.value);
+        });
+
+        // Event listeners para botões de ação
+        document.getElementById('btn-iniciar').addEventListener('click', () => this.iniciarOP());
+        document.getElementById('btn-suspender').addEventListener('click', () => this.suspenderOP());
+        document.getElementById('btn-cancelar').addEventListener('click', () => this.cancelarOP());
+        document.getElementById('btn-salvar').addEventListener('click', () => this.salvarOP());
+        document.getElementById('btn-limpar').addEventListener('click', () => this.limparFormulario());
+
+        // Event listeners para modais
+        this.setupModalEventListeners();
+
+        // Event listeners para tabs
+        this.setupTabEventListeners();
+    }
+
+    setupModalEventListeners() {
+        // Modal de Produto
+        document.getElementById('modal-codigo-produto').addEventListener('input', (e) => {
+            this.buscarProduto(e.target.value);
+        });
+
+        document.getElementById('btn-confirmar-produto').addEventListener('click', () => {
+            this.confirmarProduto();
+        });
+
+        // Modal de Atividade
+        document.getElementById('btn-confirmar-atividade').addEventListener('click', () => {
+            this.confirmarAtividade();
+        });
+
+        // Modal de Material
+        document.getElementById('modal-codigo-material').addEventListener('input', (e) => {
+            this.buscarMaterial(e.target.value);
+        });
+
+        document.getElementById('btn-confirmar-material').addEventListener('click', () => {
+            this.confirmarMaterial();
+        });
+    }
+
+    setupTabEventListeners() {
+        const tabs = document.querySelectorAll('[data-bs-toggle="tab"]');
+        tabs.forEach(tab => {
+            tab.addEventListener('shown.bs.tab', (e) => {
+                this.atualizarTabelas();
+            });
+        });
+    }
+
+    setupResponsiveHandlers() {
+        // Handler para redimensionamento da janela
+        window.addEventListener('resize', () => {
+            this.adjustLayoutForScreenSize();
+        });
+
+        // Handler para orientação do dispositivo
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.adjustLayoutForScreenSize();
+            }, 100);
+        });
+    }
+
+    adjustLayoutForScreenSize() {
+        const isMobile = window.innerWidth <= 768;
+        const isTablet = window.innerWidth > 768 && window.innerWidth <= 1024;
+
+        // Ajustar layout para mobile
+        if (isMobile) {
+            document.querySelectorAll('.card-body').forEach(card => {
+                card.style.padding = '1rem';
+            });
+            
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.style.fontSize = '0.85rem';
+                btn.style.padding = '0.5rem 1rem';
+            });
+        }
+
+        // Ajustar layout para tablet
+        if (isTablet) {
+            document.querySelectorAll('.card-body').forEach(card => {
+                card.style.padding = '1.5rem';
+            });
+        }
+
+        // Ajustar layout para desktop
+        if (window.innerWidth > 1024) {
+            document.querySelectorAll('.card-body').forEach(card => {
+                card.style.padding = '2rem';
+            });
+        }
+    }
+
+    loadInitialData() {
+        // Gerar número da OP
+        this.opData.numero = this.gerarNumeroOP();
+        document.getElementById('numero-op').value = this.opData.numero;
+
+        // Definir data de criação
+        const dataCriacao = new Date();
+        document.getElementById('creation-date').textContent = dataCriacao.toLocaleDateString('pt-BR');
+        this.opData.dataCriacao = dataCriacao;
+
+        // Definir usuário de criação (simulado)
+        document.getElementById('creation-user').textContent = 'USUÁRIO_ATUAL';
+        this.opData.criadoPor = 'USUÁRIO_ATUAL';
+
+        // Carregar dados de exemplo
+        this.carregarDadosExemplo();
+
+        // Atualizar interface
+        this.updateUI();
+    }
+
+    gerarNumeroOP() {
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000);
+        return `OP${timestamp}${random}`;
+    }
+
+    carregarDadosExemplo() {
+        // Dados de exemplo para demonstração
+        this.opData.produtos = [
+            { id: 1, codigo: 'PROD001', descricao: 'Produto Acabado A', quantidade: 100, controle: 'LOTE001' },
+            { id: 2, codigo: 'PROD002', descricao: 'Produto Acabado B', quantidade: 50, controle: 'LOTE002' }
+        ];
+
+        this.opData.atividades = [
+            { id: 1, sequencia: 1, descricao: 'Montagem Inicial', centroTrabalho: 'CT001', tempoPrevisto: 120, status: 'P' },
+            { id: 2, sequencia: 2, descricao: 'Teste de Qualidade', centroTrabalho: 'CT002', tempoPrevisto: 60, status: 'P' }
+        ];
+
+        this.opData.materiais = [
+            { id: 1, codigo: 'MAT001', descricao: 'Material A', qtdNecessaria: 200, qtdConsumida: 0, controle: 'CONT001' },
+            { id: 2, codigo: 'MAT002', descricao: 'Material B', qtdNecessaria: 150, qtdConsumida: 0, controle: 'CONT002' }
+        ];
+
+        this.atualizarTabelas();
+    }
+
+    setupValidation() {
+        // Validação em tempo real para campos obrigatórios
+        const requiredFields = ['tipo-op', 'produto-acabado', 'qtd-produzir'];
+        
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('blur', () => {
+                    this.validateField(field);
+                });
+                
+                field.addEventListener('input', () => {
+                    this.clearFieldError(field);
+                });
+            }
+        });
+    }
+
+    validateField(field) {
+        const value = field.value.trim();
+        const isRequired = field.hasAttribute('required');
+        
+        if (isRequired && !value) {
+            this.showFieldError(field, 'Este campo é obrigatório');
+            return false;
+        }
+        
+        // Validações específicas
+        if (field.id === 'qtd-produzir') {
+            const qtd = parseFloat(value);
+            if (isNaN(qtd) || qtd <= 0) {
+                this.showFieldError(field, 'Quantidade deve ser maior que zero');
+                return false;
+            }
+        }
+        
+        this.clearFieldError(field);
+        return true;
+    }
+
+    showFieldError(field, message) {
+        // Remover erro anterior
+        this.clearFieldError(field);
+        
+        // Adicionar classe de erro
+        field.classList.add('is-invalid');
+        
+        // Criar mensagem de erro
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.textContent = message;
+        
+        field.parentNode.appendChild(errorDiv);
+    }
+
+    clearFieldError(field) {
+        field.classList.remove('is-invalid');
+        const errorDiv = field.parentNode.querySelector('.invalid-feedback');
+        if (errorDiv) {
+            errorDiv.remove();
+        }
+    }
+
+    setupAutoSave() {
+        // Auto-save a cada 30 segundos
+        setInterval(() => {
+            if (this.hasChanges()) {
+                this.autoSave();
+            }
+        }, 30000);
+    }
+
+    autoSave() {
+        this.saveToLocalStorage();
+        this.showNotification('Dados salvos automaticamente', 'success');
+    }
+
+    hasChanges() {
+        // Verificar se houve mudanças nos dados
+        return true; // Simplificado para demonstração
+    }
+
+    saveToLocalStorage() {
+        localStorage.setItem('opData', JSON.stringify(this.opData));
+    }
+
+    loadFromLocalStorage() {
+        const saved = localStorage.getItem('opData');
+        if (saved) {
+            this.opData = { ...this.opData, ...JSON.parse(saved) };
+            this.updateUI();
+        }
+    }
+
+    updateTipoDependentFields() {
+        const tipo = this.opData.tipo;
+        
+        // Mostrar/ocultar campos baseado no tipo
+        const parceiroField = document.getElementById('parceiro').parentNode;
+        const plantaField = document.getElementById('planta').parentNode;
+        
+        if (tipo === 'PT' || tipo === 'TE') {
+            parceiroField.style.display = 'block';
+        } else {
+            parceiroField.style.display = 'none';
+        }
+        
+        if (tipo === 'P' || tipo === 'PC') {
+            plantaField.style.display = 'block';
+        } else {
+            plantaField.style.display = 'none';
+        }
+    }
+
+    updateSaldoOP() {
+        const qtdProduzir = this.opData.quantidade;
+        const qtdConsumida = this.opData.produtos.reduce((total, prod) => total + prod.quantidade, 0);
+        const saldo = qtdProduzir - qtdConsumida;
+        
+        document.getElementById('saldo-op').value = saldo.toFixed(2);
+        
+        // Atualizar progresso
+        const progresso = qtdProduzir > 0 ? (qtdConsumida / qtdProduzir) * 100 : 0;
+        this.atualizarProgresso(progresso);
+    }
+
+    buscarProduto(codigo) {
+        // Simulação de busca de produto
+        const produtos = [
+            { codigo: 'PROD001', descricao: 'Produto Acabado A', controle: 'LOTE001' },
+            { codigo: 'PROD002', descricao: 'Produto Acabado B', controle: 'LOTE002' },
+            { codigo: 'PROD003', descricao: 'Produto Acabado C', controle: 'LOTE003' }
+        ];
+        
+        const produto = produtos.find(p => p.codigo.toLowerCase().includes(codigo.toLowerCase()));
+        
+        if (produto) {
+            document.getElementById('modal-descricao-produto').value = produto.descricao;
+            document.getElementById('modal-controle-produto').value = produto.controle;
+        } else {
+            document.getElementById('modal-descricao-produto').value = '';
+            document.getElementById('modal-controle-produto').value = '';
+        }
+    }
+
+    buscarMaterial(codigo) {
+        // Simulação de busca de material
+        const materiais = [
+            { codigo: 'MAT001', descricao: 'Material A', controle: 'CONT001' },
+            { codigo: 'MAT002', descricao: 'Material B', controle: 'CONT002' },
+            { codigo: 'MAT003', descricao: 'Material C', controle: 'CONT003' }
+        ];
+        
+        const material = materiais.find(m => m.codigo.toLowerCase().includes(codigo.toLowerCase()));
+        
+        if (material) {
+            document.getElementById('modal-descricao-material').value = material.descricao;
+        } else {
+            document.getElementById('modal-descricao-material').value = '';
+        }
+    }
+
+    confirmarProduto() {
+        const codigo = document.getElementById('modal-codigo-produto').value;
+        const descricao = document.getElementById('modal-descricao-produto').value;
+        const controle = document.getElementById('modal-controle-produto').value;
+        const quantidade = parseFloat(document.getElementById('qtd-produzir').value) || 0;
+        
+        if (!codigo || !descricao) {
+            this.showNotification('Preencha todos os campos obrigatórios', 'warning');
+            return;
+        }
+        
+        const novoProduto = {
+            id: Date.now(),
+            codigo: codigo,
+            descricao: descricao,
+            quantidade: quantidade,
+            controle: controle
+        };
+        
+        this.opData.produtos.push(novoProduto);
+        this.atualizarTabelaProdutos();
+        this.fecharModal('modal-produto');
+        this.showNotification('Produto adicionado com sucesso', 'success');
+    }
+
+    confirmarAtividade() {
+        const sequencia = parseInt(document.getElementById('modal-sequencia-atividade').value);
+        const descricao = document.getElementById('modal-descricao-atividade').value;
+        const centroTrabalho = document.getElementById('modal-centro-trabalho').value;
+        const tempoPrevisto = parseInt(document.getElementById('modal-tempo-previsto').value);
+        const status = document.getElementById('modal-status-atividade').value;
+        
+        if (!sequencia || !descricao || !centroTrabalho) {
+            this.showNotification('Preencha todos os campos obrigatórios', 'warning');
+            return;
+        }
+        
+        const novaAtividade = {
+            id: Date.now(),
+            sequencia: sequencia,
+            descricao: descricao,
+            centroTrabalho: centroTrabalho,
+            tempoPrevisto: tempoPrevisto,
+            status: status
+        };
+        
+        this.opData.atividades.push(novaAtividade);
+        this.atualizarTabelaAtividades();
+        this.fecharModal('modal-atividade');
+        this.showNotification('Atividade adicionada com sucesso', 'success');
+    }
+
+    confirmarMaterial() {
+        const codigo = document.getElementById('modal-codigo-material').value;
+        const descricao = document.getElementById('modal-descricao-material').value;
+        const qtdNecessaria = parseFloat(document.getElementById('modal-qtd-necessaria').value) || 0;
+        const controle = document.getElementById('modal-controle-material').value;
+        
+        if (!codigo || !descricao || qtdNecessaria <= 0) {
+            this.showNotification('Preencha todos os campos obrigatórios', 'warning');
+            return;
+        }
+        
+        const novoMaterial = {
+            id: Date.now(),
+            codigo: codigo,
+            descricao: descricao,
+            qtdNecessaria: qtdNecessaria,
+            qtdConsumida: 0,
+            controle: controle
+        };
+        
+        this.opData.materiais.push(novoMaterial);
+        this.atualizarTabelaMateriais();
+        this.fecharModal('modal-material');
+        this.showNotification('Material adicionado com sucesso', 'success');
+    }
+
+    fecharModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const modalInstance = bootstrap.Modal.getInstance(modal);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+        
+        // Limpar campos do modal
+        const inputs = modal.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            if (input.type !== 'button') {
+                input.value = '';
+            }
+        });
+    }
+
+    atualizarTabelaProdutos() {
+        const tbody = document.querySelector('#tabela-produtos tbody');
+        tbody.innerHTML = '';
+        
+        this.opData.produtos.forEach(produto => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${produto.codigo}</td>
+                <td>${produto.descricao}</td>
+                <td>${produto.quantidade}</td>
+                <td>${produto.controle}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="opController.removerProduto(${produto.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    atualizarTabelaAtividades() {
+        const tbody = document.querySelector('#tabela-atividades tbody');
+        tbody.innerHTML = '';
+        
+        this.opData.atividades.forEach(atividade => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${atividade.sequencia}</td>
+                <td>${atividade.descricao}</td>
+                <td>${atividade.centroTrabalho}</td>
+                <td>${this.formatarTempo(atividade.tempoPrevisto)}</td>
+                <td><span class="badge status-${this.getStatusClass(atividade.status)}">${this.getStatusText(atividade.status)}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="opController.removerAtividade(${atividade.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    atualizarTabelaMateriais() {
+        const tbody = document.querySelector('#tabela-materiais tbody');
+        tbody.innerHTML = '';
+        
+        this.opData.materiais.forEach(material => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${material.codigo}</td>
+                <td>${material.descricao}</td>
+                <td>${material.qtdNecessaria}</td>
+                <td>${material.qtdConsumida}</td>
+                <td>${material.controle}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="opController.removerMaterial(${material.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    atualizarTabelas() {
+        this.atualizarTabelaProdutos();
+        this.atualizarTabelaAtividades();
+        this.atualizarTabelaMateriais();
+    }
+
+    removerProduto(id) {
+        this.opData.produtos = this.opData.produtos.filter(p => p.id !== id);
+        this.atualizarTabelaProdutos();
+        this.showNotification('Produto removido com sucesso', 'success');
+    }
+
+    removerAtividade(id) {
+        this.opData.atividades = this.opData.atividades.filter(a => a.id !== id);
+        this.atualizarTabelaAtividades();
+        this.showNotification('Atividade removida com sucesso', 'success');
+    }
+
+    removerMaterial(id) {
+        this.opData.materiais = this.opData.materiais.filter(m => m.id !== id);
+        this.atualizarTabelaMateriais();
+        this.showNotification('Material removido com sucesso', 'success');
+    }
+
+    iniciarOP() {
+        if (!this.validarCamposObrigatorios()) {
+            return;
+        }
+        
+        this.opData.status = 'A'; // A = Em Andamento
+        this.opData.dataInicio = new Date();
+        
+        this.atualizarStatus('Em Andamento', 'status-em-execucao');
+        this.showNotification('Ordem de Produção iniciada com sucesso', 'success');
+        
+        // Atualizar botões
+        this.updateActionButtons();
+    }
+
+    suspenderOP() {
+        if (this.opData.status !== 'A') {
+            this.showNotification('Apenas ordens em andamento podem ser suspensas', 'warning');
+            return;
+        }
+        
+        this.opData.status = 'S'; // S = Suspensa
+        
+        this.atualizarStatus('Suspensa', 'status-pendente');
+        this.showNotification('Ordem de Produção suspensa', 'warning');
+        
+        this.updateActionButtons();
+    }
+
+    cancelarOP() {
+        if (this.opData.status === 'F') {
+            this.showNotification('Ordens finalizadas não podem ser canceladas', 'warning');
+            return;
+        }
+        
+        if (confirm('Tem certeza que deseja cancelar esta Ordem de Produção?')) {
+            this.opData.status = 'C'; // C = Cancelada
+            this.opData.dataFim = new Date();
+            
+            this.atualizarStatus('Cancelada', 'status-cancelada');
+            this.showNotification('Ordem de Produção cancelada', 'danger');
+            
+            this.updateActionButtons();
+        }
+    }
+
+    salvarOP() {
+        if (!this.validarCamposObrigatorios()) {
+            return;
+        }
+        
+        // Simular salvamento
+        this.saveToLocalStorage();
+        this.showNotification('Ordem de Produção salva com sucesso', 'success');
+    }
+
+    limparFormulario() {
+        if (confirm('Tem certeza que deseja limpar todos os dados?')) {
+            this.opData = {
+                numero: this.gerarNumeroOP(),
+                tipo: '',
+                produtoAcabado: '',
+                quantidade: 0,
+                status: 'R',
+                dataCriacao: new Date(),
+                criadoPor: 'USUÁRIO_ATUAL',
+                prioridade: 3,
+                processo: '',
+                planta: '',
+                parceiro: '',
+                versao: '',
+                dataInicio: null,
+                dataFim: null,
+                tempoTotalPrevisto: 0,
+                tempoTotalRealizado: 0,
+                produtos: [],
+                atividades: [],
+                materiais: []
+            };
+            
+            this.updateUI();
+            this.showNotification('Formulário limpo com sucesso', 'success');
+        }
+    }
+
+    validarCamposObrigatorios() {
+        const requiredFields = ['tipo-op', 'produto-acabado', 'qtd-produzir'];
+        let isValid = true;
+        
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (!this.validateField(field)) {
+                isValid = false;
+            }
+        });
+        
+        if (!isValid) {
+            this.showNotification('Preencha todos os campos obrigatórios', 'warning');
+        }
+        
+        return isValid;
+    }
+
+    atualizarStatus(texto, classe) {
+        const statusBadge = document.getElementById('status-badge');
+        statusBadge.textContent = texto;
+        statusBadge.className = `status-badge ${classe}`;
+    }
+
+    atualizarProgresso(percentual) {
+        const progressBar = document.getElementById('progress-bar');
+        progressBar.style.width = `${Math.min(percentual, 100)}%`;
+    }
+
+    updateActionButtons() {
+        const btnIniciar = document.getElementById('btn-iniciar');
+        const btnSuspender = document.getElementById('btn-suspender');
+        const btnCancelar = document.getElementById('btn-cancelar');
+        
+        // Resetar todos os botões
+        btnIniciar.disabled = false;
+        btnSuspender.disabled = false;
+        btnCancelar.disabled = false;
+        
+        // Configurar baseado no status
+        switch (this.opData.status) {
+            case 'R': // Não Iniciada
+                btnIniciar.disabled = false;
+                btnSuspender.disabled = true;
+                btnCancelar.disabled = false;
+                break;
+            case 'A': // Em Andamento
+                btnIniciar.disabled = true;
+                btnSuspender.disabled = false;
+                btnCancelar.disabled = false;
+                break;
+            case 'S': // Suspensa
+                btnIniciar.disabled = false;
+                btnSuspender.disabled = true;
+                btnCancelar.disabled = false;
+                break;
+            case 'F': // Finalizada
+            case 'C': // Cancelada
+                btnIniciar.disabled = true;
+                btnSuspender.disabled = true;
+                btnCancelar.disabled = true;
+                break;
+        }
+    }
+
+    updateUI() {
+        // Atualizar campos do formulário
+        document.getElementById('numero-op').value = this.opData.numero;
+        document.getElementById('tipo-op').value = this.opData.tipo;
+        document.getElementById('produto-acabado').value = this.opData.produtoAcabado;
+        document.getElementById('qtd-produzir').value = this.opData.quantidade;
+        document.getElementById('prioridade').value = this.opData.prioridade;
+        document.getElementById('processo').value = this.opData.processo;
+        document.getElementById('planta').value = this.opData.planta;
+        document.getElementById('parceiro').value = this.opData.parceiro;
+        document.getElementById('versao').value = this.opData.versao;
+        
+        // Atualizar datas
+        if (this.opData.dataInicio) {
+            document.getElementById('data-inicio').value = this.formatarDataParaInput(this.opData.dataInicio);
+        }
+        if (this.opData.dataFim) {
+            document.getElementById('data-fim').value = this.formatarDataParaInput(this.opData.dataFim);
+        }
+        
+        // Atualizar tempos
+        document.getElementById('tempo-previsto').textContent = this.formatarTempo(this.opData.tempoTotalPrevisto);
+        document.getElementById('tempo-realizado').textContent = this.formatarTempo(this.opData.tempoTotalRealizado);
+        
+        // Atualizar status
+        const statusMap = {
+            'R': { texto: 'Não Iniciada', classe: 'status-pendente' },
+            'A': { texto: 'Em Andamento', classe: 'status-em-execucao' },
+            'S': { texto: 'Suspensa', classe: 'status-pendente' },
+            'F': { texto: 'Finalizada', classe: 'status-finalizada' },
+            'C': { texto: 'Cancelada', classe: 'status-cancelada' }
+        };
+        
+        const status = statusMap[this.opData.status];
+        if (status) {
+            this.atualizarStatus(status.texto, status.classe);
+        }
+        
+        // Atualizar botões
+        this.updateActionButtons();
+        
+        // Atualizar tabelas
+        this.atualizarTabelas();
+    }
+
+    getStatusClass(status) {
+        const statusMap = {
+            'P': 'pendente',
+            'E': 'em-execucao',
+            'F': 'finalizada',
+            'C': 'cancelada'
+        };
+        return statusMap[status] || 'pendente';
+    }
+
+    getStatusText(status) {
+        const statusMap = {
+            'P': 'Pendente',
+            'E': 'Em Execução',
+            'F': 'Finalizada',
+            'C': 'Cancelada'
+        };
+        return statusMap[status] || 'Pendente';
+    }
+
+    showNotification(message, type = 'info') {
+        // Criar elemento de notificação
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = `
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        `;
+        
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Remover automaticamente após 5 segundos
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    formatarMoeda(valor) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(valor);
+    }
+
+    formatarData(data) {
+        return new Intl.DateTimeFormat('pt-BR').format(data);
+    }
+
+    formatarDataParaInput(data) {
+        const d = new Date(data);
+        return d.toISOString().slice(0, 16);
+    }
+
+    formatarTempo(minutos) {
+        const horas = Math.floor(minutos / 60);
+        const mins = minutos % 60;
+        return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    }
+}
+
+// Inicializar o controller quando o DOM estiver pronto
+let opController;
+
+document.addEventListener('DOMContentLoaded', function() {
+    opController = new OrdemProducaoController();
+    
+    // Adicionar tooltips do Bootstrap
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Adicionar popovers do Bootstrap
+    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl);
+    });
+}); 
+
+    </script>
+
+</body>
+</html> 

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhe da Operação</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --verde-escuro: #14532d;
+      --verde: #22c55e;
+      --verde-claro: #bbf7d0;
+      --verde-medio: #4ade80;
+      --verde-pastel: #d1fae5;
+      --cinza: #e5e7eb;
+      --cinza-escuro: #6b7280;
+      --branco: #fff;
+      --cinza-opaco: #cbd5e1;
+      --vermelho: #ef4444;
+      --azul: #3b82f6;
+      --verde-escuro2: #166534;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Roboto', Arial, sans-serif;
+      background: var(--cinza);
+      color: var(--verde-escuro);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--branco);
+      box-shadow: 0 2px 8px rgba(34,197,94,0.08);
+      display: flex;
+      align-items: center;
+      height: 56px;
+      z-index: 10;
+      padding: 0 1rem;
+    }
+    .header-icon {
+      width: 32px; height: 32px;
+      margin-right: 1rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--verde-escuro);
+      letter-spacing: 0.5px;
+    }
+    main {
+      flex: 1 1 auto;
+      margin-top: 56px;
+      margin-bottom: 70px;
+      padding: 1rem 0.5rem 0.5rem 0.5rem;
+      max-width: 600px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+    .resumo {
+      background: var(--branco);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(34,197,94,0.07);
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .resumo-titulo {
+      font-weight: 700;
+      color: var(--verde-escuro);
+      font-size: 1.1rem;
+      margin-bottom: 0.2rem;
+    }
+    .resumo-dados {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2rem 2.5rem;
+      font-size: 1rem;
+    }
+    .resumo-dados span {
+      min-width: 120px;
+      display: inline-block;
+    }
+    .botoes-acao {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .btn-acao {
+      flex: 1 1 120px;
+      padding: 0.7rem 1.2rem;
+      border: none;
+      border-radius: 24px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--branco);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, opacity 0.2s;
+      margin-bottom: 0.2rem;
+    }
+    .btn-iniciar { background: var(--verde); }
+    .btn-parar { background: var(--vermelho); }
+    .btn-continuar { background: var(--azul); }
+    .btn-finalizar { background: var(--verde-escuro2); }
+    .btn-finalizar[disabled] {
+      background: var(--cinza-opaco);
+      color: var(--cinza-escuro);
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .abas {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .aba-btn {
+      border: none;
+      background: var(--verde-pastel);
+      color: var(--verde-escuro);
+      font-weight: 500;
+      padding: 0.5rem 1.2rem;
+      border-radius: 20px 20px 0 0;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      font-size: 1rem;
+    }
+    .aba-btn.ativa {
+      background: var(--verde);
+      color: var(--branco);
+    }
+    .conteudo-aba {
+      background: var(--branco);
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 2px 8px rgba(34,197,94,0.07);
+      padding: 1rem 0.5rem;
+      min-height: 120px;
+    }
+    .tabela-apont, .tabela-exec {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 350px;
+    }
+    th, td {
+      padding: 0.6rem 0.4rem;
+      text-align: left;
+    }
+    th {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-size: 1rem;
+      font-weight: 700;
+      border-bottom: 2px solid var(--verde-medio);
+    }
+    td {
+      font-size: 0.98rem;
+      border-bottom: 1px solid var(--cinza);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .btn-apont-del {
+      background: var(--vermelho);
+      color: var(--branco);
+      border: none;
+      border-radius: 8px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      margin-left: 0.3rem;
+      transition: background 0.2s;
+    }
+    .btn-apont-del:disabled {
+      background: var(--cinza-opaco);
+      color: var(--cinza-escuro);
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .apont-add-form {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.7rem;
+      align-items: center;
+    }
+    .apont-add-form input {
+      padding: 0.4rem 0.7rem;
+      border: 1px solid var(--cinza-opaco);
+      border-radius: 8px;
+      font-size: 1rem;
+      width: 110px;
+    }
+    .apont-add-form button {
+      background: var(--verde);
+      color: var(--branco);
+      border: none;
+      border-radius: 8px;
+      padding: 0.4rem 1.1rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .apont-add-form button:disabled {
+      background: var(--cinza-opaco);
+      color: var(--cinza-escuro);
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    @media (max-width: 600px) {
+      th, td { font-size: 0.93rem; padding: 0.5rem 0.3rem; }
+      .tabela-apont, .tabela-exec { min-width: 0; }
+      .conteudo-aba { padding: 0.7rem 0.1rem; }
+      .resumo-dados { gap: 0.7rem 1.2rem; }
+    }
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(20,83,45,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: var(--branco);
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(34,197,94,0.13);
+      padding: 2rem 1.2rem 1.2rem 1.2rem;
+      max-width: 340px;
+      width: 90vw;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      align-items: stretch;
+    }
+    .modal label {
+      font-weight: 500;
+      color: var(--verde-escuro);
+      margin-bottom: 0.5rem;
+    }
+    .modal textarea {
+      width: 100%;
+      min-height: 60px;
+      border-radius: 8px;
+      border: 1px solid var(--cinza-opaco);
+      padding: 0.5rem;
+      font-size: 1rem;
+      resize: vertical;
+    }
+    .modal button {
+      background: var(--verde);
+      color: var(--branco);
+      border: none;
+      border-radius: 8px;
+      padding: 0.6rem 1.1rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 0.7rem;
+      transition: background 0.2s;
+    }
+    .modal button:disabled {
+      background: var(--cinza-opaco);
+      color: var(--cinza-escuro);
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    /* Rodapé */
+    footer {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 70px;
+      background: var(--branco);
+      box-shadow: 0 -2px 8px rgba(34,197,94,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.2rem;
+      z-index: 10;
+    }
+    .footer-nome {
+      font-weight: 700;
+      color: var(--verde-escuro);
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+    }
+    .footer-status {
+      display: flex; align-items: center; gap: 0.5rem;
+      color: var(--verde);
+      font-size: 1rem;
+    }
+    .footer-status-icon {
+      width: 18px; height: 18px;
+      display: inline-block;
+    }
+    .footer-voltar {
+      display: flex; align-items: center; gap: 0.5rem;
+      background: var(--verde-medio);
+      color: var(--branco);
+      border: none;
+      border-radius: 24px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 0.7rem 1.5rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-right: 1.2rem;
+    }
+    .footer-voltar:active {
+      background: var(--verde);
+    }
+    @media (max-width: 600px) {
+      .footer-voltar { font-size: 1rem; padding: 0.7rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="header-icon">
+      <!-- Ícone SVG discreto -->
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#22c55e" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <div class="resumo">
+      <div class="resumo-titulo">Resumo da Operação</div>
+      <div class="resumo-dados" id="resumo-dados">
+        <!-- Dados preenchidos via JS -->
+      </div>
+    </div>
+    <div class="botoes-acao">
+      <button id="btn-acao" class="btn-acao btn-iniciar">Iniciar</button>
+      <button id="btn-finalizar" class="btn-acao btn-finalizar" disabled>Finalizar</button>
+    </div>
+    <div class="abas">
+      <button class="aba-btn ativa" data-aba="apontamentos">Apontamentos</button>
+      <button class="aba-btn" data-aba="execucao">Execução</button>
+    </div>
+    <div class="conteudo-aba" id="conteudo-apontamentos">
+      <table class="tabela-apont" id="tabela-apont">
+        <thead>
+          <tr>
+            <th>Nota</th>
+            <th>Usuário</th>
+            <th>Data/Hora</th>
+            <th>Situação</th>
+            <th>Qtd. Apontada</th>
+            <th>Qtd. Perda</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Linhas via JS -->
+        </tbody>
+      </table>
+      <form class="apont-add-form" id="apont-add-form" autocomplete="off">
+        <input type="text" id="apont-nunota" placeholder="Nota" required />
+        <input type="text" id="apont-codusu" placeholder="Usuário" required />
+        <input type="datetime-local" id="apont-dhapontamento" required />
+        <input type="number" id="apont-qtdapontada" placeholder="Qtd. Apontada" min="0" required />
+        <input type="number" id="apont-qtdperda" placeholder="Qtd. Perda" min="0" required />
+        <button type="submit">Adicionar</button>
+      </form>
+    </div>
+    <div class="conteudo-aba" id="conteudo-execucao" style="display:none;">
+      <table class="tabela-exec" id="tabela-exec">
+        <thead>
+          <tr>
+            <th>Início</th>
+            <th>Final</th>
+            <th>Tipo</th>
+            <th>Usuário</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Linhas via JS -->
+        </tbody>
+      </table>
+    </div>
+    <!-- Modal Parada -->
+    <div id="modal-parada" class="modal-overlay" style="display:none;">
+      <div class="modal">
+        <label for="motivo-parada">Motivo da Parada <span style="color:#ef4444;">*</span></label>
+        <textarea id="motivo-parada" required></textarea>
+        <button id="btn-confirmar-parada">Confirmar</button>
+      </div>
+    </div>
+  </main>
+  <footer>
+    <button class="footer-voltar" onclick="window.location.href='index.html'">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Voltar
+    </button>
+    <span class="footer-nome">Controle de Produção</span>
+    <span class="footer-status">
+      <span class="footer-status-icon">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="#22c55e"/></svg>
+      </span>
+      Online
+    </span>
+  </footer>
+  <script>
+    // Utilidades
+    function getItemLocalStorage(key, fallback) {
+      try {
+        const v = localStorage.getItem(key);
+        return v ? JSON.parse(v) : fallback;
+      } catch { return fallback; }
+    }
+    function setItemLocalStorage(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+    // Dados do index
+    const detalhe = getItemLocalStorage('detalheProducao', null);
+    if (!detalhe) {
+      window.location.href = 'index.html';
+    }
+    // Estado dos botões e execuções
+    let estado = getItemLocalStorage('estadoExec', { status: 'naoiniciado', execs: [], apontamentos: [] });
+    // Render resumo
+    function renderResumo() {
+      const el = document.getElementById('resumo-dados');
+      el.innerHTML = `
+        <span><b>ID:</b> ${detalhe.idiproc}</span>
+        <span><b>Data:</b> ${detalhe.dtfab}</span>
+        <span><b>Produto:</b> ${detalhe.codprodpa}</span>
+        <span><b>Qtd. Produzir:</b> ${detalhe.qtdproduzir}</span>
+        <span><b>Lote:</b> ${detalhe.nrolote}</span>
+      `;
+    }
+    // Abas
+    document.querySelectorAll('.aba-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativa'));
+        this.classList.add('ativa');
+        document.getElementById('conteudo-apontamentos').style.display = this.dataset.aba === 'apontamentos' ? '' : 'none';
+        document.getElementById('conteudo-execucao').style.display = this.dataset.aba === 'execucao' ? '' : 'none';
+      });
+    });
+    // Apontamentos
+    function somaApontamentos() {
+      return estado.apontamentos.reduce((acc, a) => acc + Number(a.qtdapontada||0) + Number(a.qtdperda||0), 0);
+    }
+    function renderApontamentos() {
+      const tbody = document.querySelector('#tabela-apont tbody');
+      tbody.innerHTML = '';
+      estado.apontamentos.forEach((a, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${a.nunota}</td>
+          <td>${a.codusu}</td>
+          <td>${a.dhapontamento.replace('T',' ')}</td>
+          <td>${a.situacao}</td>
+          <td>${a.qtdapontada}</td>
+          <td>${a.qtdperda}</td>
+          <td>
+            <button class="btn-apont-del" ${a.situacao!=='Pendente'?'disabled':''} onclick="deletarApontamento(${idx})">Excluir</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    function deletarApontamento(idx) {
+      if (estado.apontamentos[idx].situacao !== 'Pendente') return;
+      estado.apontamentos.splice(idx,1);
+      setItemLocalStorage('estadoExec', estado);
+      renderApontamentos();
+    }
+    document.getElementById('apont-add-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const nunota = document.getElementById('apont-nunota').value.trim();
+      const codusu = document.getElementById('apont-codusu').value.trim();
+      const dhapontamento = document.getElementById('apont-dhapontamento').value;
+      const qtdapontada = Number(document.getElementById('apont-qtdapontada').value);
+      const qtdperda = Number(document.getElementById('apont-qtdperda').value);
+      if (!nunota || !codusu || !dhapontamento) return;
+      if (qtdapontada < 0 || qtdperda < 0) return;
+      if (somaApontamentos() + qtdapontada + qtdperda > Number(detalhe.qtdproduzir)) {
+        alert('A soma de Qtd. Apontada + Qtd. Perda não pode ultrapassar a Qtd. Produzir.');
+        return;
+      }
+      estado.apontamentos.push({ nunota, codusu, dhapontamento, situacao: 'Pendente', qtdapontada, qtdperda });
+      setItemLocalStorage('estadoExec', estado);
+      renderApontamentos();
+      this.reset();
+    });
+    // Execução
+    function renderExecucao() {
+      const tbody = document.querySelector('#tabela-exec tbody');
+      tbody.innerHTML = '';
+      estado.execs.forEach(e => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${e.dhinicio ? e.dhinicio.replace('T',' ') : ''}</td>
+            <td>${e.dhfinal ? e.dhfinal.replace('T',' ') : ''}</td>
+            <td>${e.tipo}</td>
+            <td>${e.codusu}</td>
+            <td>${e.motivo||''}</td>
+          </tr>
+        `;
+      });
+    }
+    // Botão de ação principal
+    const btnAcao = document.getElementById('btn-acao');
+    const btnFinalizar = document.getElementById('btn-finalizar');
+    let acao = estado.status === 'naoiniciado' ? 'iniciar' : (estado.status === 'parado' ? 'continuar' : 'parar');
+    function updateBtnAcao() {
+      if (estado.status === 'naoiniciado') {
+        btnAcao.textContent = 'Iniciar';
+        btnAcao.className = 'btn-acao btn-iniciar';
+        btnFinalizar.disabled = true;
+      } else if (estado.status === 'executando') {
+        btnAcao.textContent = 'Parar';
+        btnAcao.className = 'btn-acao btn-parar';
+        btnFinalizar.disabled = false;
+      } else if (estado.status === 'parado') {
+        btnAcao.textContent = 'Continuar';
+        btnAcao.className = 'btn-acao btn-continuar';
+        btnFinalizar.disabled = true;
+      } else if (estado.status === 'finalizado') {
+        btnAcao.textContent = 'Finalizado';
+        btnAcao.className = 'btn-acao btn-finalizar';
+        btnAcao.disabled = true;
+        btnFinalizar.disabled = true;
+      }
+      btnAcao.disabled = estado.status === 'finalizado';
+    }
+    btnAcao.addEventListener('click', function() {
+      if (estado.status === 'naoiniciado') {
+        // Iniciar
+        const now = new Date().toISOString().slice(0,16);
+        estado.execs.push({ dhinicio: now, dhfinal: '', tipo: 'normal', codusu: 'usuário atual', motivo: '' });
+        estado.status = 'executando';
+      } else if (estado.status === 'executando') {
+        // Parar: abrir modal
+        document.getElementById('modal-parada').style.display = 'flex';
+        document.getElementById('motivo-parada').value = '';
+        document.getElementById('motivo-parada').focus();
+        return;
+      } else if (estado.status === 'parado') {
+        // Continuar
+        const now = new Date().toISOString().slice(0,16);
+        // Fecha último registro
+        if (estado.execs.length) estado.execs[estado.execs.length-1].dhfinal = now;
+        estado.execs.push({ dhinicio: now, dhfinal: '', tipo: 'normal', codusu: 'usuário atual', motivo: '' });
+        estado.status = 'executando';
+      }
+      setItemLocalStorage('estadoExec', estado);
+      updateBtnAcao();
+      renderExecucao();
+    });
+    document.getElementById('btn-confirmar-parada').addEventListener('click', function() {
+      const motivo = document.getElementById('motivo-parada').value.trim();
+      if (!motivo) {
+        document.getElementById('motivo-parada').focus();
+        return;
+      }
+      const now = new Date().toISOString().slice(0,16);
+      // Fecha último registro
+      if (estado.execs.length) estado.execs[estado.execs.length-1].dhfinal = now;
+      estado.execs.push({ dhinicio: now, dhfinal: '', tipo: 'parada', codusu: 'usuário atual', motivo });
+      estado.status = 'parado';
+      setItemLocalStorage('estadoExec', estado);
+      updateBtnAcao();
+      renderExecucao();
+      document.getElementById('modal-parada').style.display = 'none';
+    });
+    // Finalizar
+    btnFinalizar.addEventListener('click', function() {
+      if (estado.status !== 'executando') return;
+      const now = new Date().toISOString().slice(0,16);
+      if (estado.execs.length) estado.execs[estado.execs.length-1].dhfinal = now;
+      estado.execs.push({ dhinicio: now, dhfinal: now, tipo: 'finalizado', codusu: 'usuário atual', motivo: '' });
+      estado.status = 'finalizado';
+      setItemLocalStorage('estadoExec', estado);
+      updateBtnAcao();
+      renderExecucao();
+    });
+    // Inicialização
+    renderResumo();
+    renderApontamentos();
+    renderExecucao();
+    updateBtnAcao();
+  </script>
+</body>
+</html>

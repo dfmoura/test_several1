@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhe da Operação</title>
+  <style>
+    :root {
+      --verde-principal: #2ecc40;
+      --verde-escuro: #218c29;
+      --verde-claro: #a8e6a3;
+      --cinza-fundo: #f7f7f7;
+      --cinza-claro: #e0e0e0;
+      --cinza-escuro: #444;
+      --branco: #fff;
+      --sombra: 0 2px 8px rgba(44,204,64,0.08);
+      --radius: 14px;
+      --trans: 0.2s cubic-bezier(.4,0,.2,1);
+      --vermelho: #e74c3c;
+      --amarelo: #f1c40f;
+      --azul: #3498db;
+      --cinza-btn: #bdbdbd;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--cinza-fundo);
+      color: var(--cinza-escuro);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--branco);
+      box-shadow: var(--sombra);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      height: 56px;
+      padding: 0 1rem;
+    }
+    .header-icon {
+      width: 32px; height: 32px;
+      margin-right: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-icon svg {
+      width: 24px; height: 24px; fill: var(--verde-principal);
+    }
+    .header-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    main {
+      flex: 1;
+      margin-top: 56px;
+      margin-bottom: 80px;
+      padding: 1rem 0.5rem 0.5rem 0.5rem;
+      max-width: 700px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .cartao-resumo {
+      background: var(--branco);
+      border-radius: var(--radius);
+      box-shadow: var(--sombra);
+      padding: 1.2rem 1rem 1rem 1rem;
+      margin-bottom: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      animation: fadeIn 0.5s;
+    }
+    .cartao-resumo h2 {
+      color: var(--verde-escuro);
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .cartao-campos {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem 1.2rem;
+    }
+    .cartao-campos div {
+      font-size: 1rem;
+    }
+    .botoes-principais {
+      display: flex;
+      gap: 0.7rem;
+      margin: 1rem 0 0.5rem 0;
+      flex-wrap: wrap;
+    }
+    .btn-principal {
+      flex: 1 1 120px;
+      padding: 0.7rem 0.5rem;
+      font-size: 1.05rem;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--verde-principal);
+      color: var(--branco);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--trans), color var(--trans);
+      box-shadow: 0 1px 4px rgba(44,204,64,0.08);
+    }
+    .btn-principal.parado { background: var(--amarelo); color: var(--cinza-escuro); }
+    .btn-principal.finalizado { background: var(--cinza-btn); color: var(--branco); cursor: not-allowed; }
+    .btn-principal.pausado { background: var(--amarelo); color: var(--cinza-escuro); }
+    .btn-principal.iniciar { background: var(--verde-principal); }
+    .btn-principal.continuar { background: var(--azul); }
+    .btn-principal.parar { background: var(--vermelho); }
+    .btn-principal:active { filter: brightness(0.95); }
+    .abas {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.7rem;
+      margin-top: 0.5rem;
+    }
+    .aba-btn {
+      background: var(--cinza-claro);
+      color: var(--cinza-escuro);
+      border: none;
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 0.5rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background var(--trans), color var(--trans);
+    }
+    .aba-btn.ativa {
+      background: var(--verde-principal);
+      color: var(--branco);
+      font-weight: 600;
+    }
+    .aba-conteudo { animation: fadeIn 0.4s; }
+    .tabela-container {
+      background: var(--branco);
+      border-radius: var(--radius);
+      box-shadow: var(--sombra);
+      overflow-x: auto;
+      padding: 0.5rem 0.5rem 0.2rem 0.5rem;
+      margin-bottom: 1.2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 500px;
+    }
+    th, td {
+      padding: 0.7rem 0.5rem;
+      text-align: left;
+      font-size: 1rem;
+    }
+    th {
+      color: var(--verde-escuro);
+      font-weight: 700;
+      border-bottom: 2px solid var(--verde-principal);
+      background: var(--branco);
+    }
+    tr {
+      transition: background var(--trans);
+    }
+    tr[data-editavel="true"]:hover {
+      background: var(--verde-claro);
+      cursor: pointer;
+    }
+    tr:not(:last-child) td {
+      border-bottom: 1px solid var(--cinza-claro);
+    }
+    .vazio {
+      text-align: center;
+      color: #aaa;
+      padding: 2rem 0;
+    }
+    .rodape {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: var(--branco);
+      box-shadow: 0 -2px 8px rgba(44,204,64,0.08);
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 1rem;
+      color: var(--verde-escuro);
+      z-index: 10;
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
+      padding: 0 1.2rem;
+    }
+    .btn-voltar {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.7rem 1.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--trans), color var(--trans);
+      box-shadow: 0 1px 4px rgba(44,204,64,0.08);
+    }
+    .btn-voltar:active { filter: brightness(0.95); }
+    .identidade {
+      font-size: 1rem;
+      color: var(--verde-escuro);
+      font-weight: 500;
+    }
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(44,204,64,0.18);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s;
+    }
+    .modal {
+      background: var(--branco);
+      border-radius: var(--radius);
+      box-shadow: var(--sombra);
+      padding: 1.2rem 1rem 1rem 1rem;
+      min-width: 280px;
+      max-width: 95vw;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      animation: fadeIn 0.3s;
+    }
+    .modal label { font-weight: 500; color: var(--verde-escuro); }
+    .modal input, .modal textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--cinza-claro);
+      font-size: 1rem;
+      margin-top: 0.3rem;
+    }
+    .modal textarea { resize: vertical; min-height: 60px; }
+    .modal .botoes-modal {
+      display: flex;
+      gap: 0.7rem;
+      justify-content: flex-end;
+    }
+    .modal .btn-modal {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--verde-principal);
+      color: var(--branco);
+      transition: background var(--trans);
+    }
+    .modal .btn-modal.cancelar {
+      background: var(--cinza-btn);
+      color: var(--cinza-escuro);
+    }
+    .modal .btn-modal:active { filter: brightness(0.95); }
+    @media (max-width: 600px) {
+      main { padding: 0.5rem 0.1rem 0.1rem 0.1rem; }
+      table { min-width: 350px; font-size: 0.95rem; }
+      th, td { padding: 0.5rem 0.2rem; }
+      .header-title { font-size: 1.05rem; }
+      .rodape { font-size: 0.95rem; padding: 0 0.5rem; }
+      .btn-voltar { font-size: 1rem; padding: 0.6rem 1rem; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="header-icon">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.12"/><path d="M7 12h10M12 7v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <section class="cartao-resumo" id="cartao-resumo">
+      <h2>Resumo da Operação</h2>
+      <div class="cartao-campos" id="campos-resumo">
+        <!-- Campos preenchidos via JS -->
+      </div>
+      <div class="botoes-principais" id="botoes-principais">
+        <!-- Botões principais via JS -->
+      </div>
+    </section>
+    <nav class="abas" aria-label="Abas de detalhes">
+      <button class="aba-btn ativa" data-aba="apontamentos">Apontamentos</button>
+      <button class="aba-btn" data-aba="execucao">Execução</button>
+    </nav>
+    <section class="aba-conteudo" id="aba-apontamentos">
+      <div class="tabela-container">
+        <table id="tabela-apontamentos">
+          <thead>
+            <tr>
+              <th>Nota</th>
+              <th>Usuário</th>
+              <th>Data/Hora</th>
+              <th>Situação</th>
+              <th>Qtd. Apontada</th>
+              <th>Qtd. Perda</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Apontamentos via JS -->
+          </tbody>
+        </table>
+        <div class="vazio" id="msg-vazio-apont" style="display:none;">Nenhum apontamento.</div>
+      </div>
+      <button class="btn-principal" style="margin:0.7rem 0 0 0; width:100%;" onclick="abrirModalNovoApontamento()">Novo Apontamento</button>
+    </section>
+    <section class="aba-conteudo" id="aba-execucao" style="display:none;">
+      <div class="tabela-container">
+        <table id="tabela-execucao">
+          <thead>
+            <tr>
+              <th>Início</th>
+              <th>Fim</th>
+              <th>Tipo</th>
+              <th>Usuário</th>
+              <th>Motivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Execuções via JS -->
+          </tbody>
+        </table>
+        <div class="vazio" id="msg-vazio-exec" style="display:none;">Nenhuma execução registrada.</div>
+      </div>
+    </section>
+    <!-- Modais -->
+    <div id="modal-overlay" style="display:none;"></div>
+  </main>
+  <footer class="rodape">
+    <button class="btn-voltar" onclick="window.history.back()">Voltar</button>
+    <span class="identidade">Controle de Produção &copy; 2024</span>
+  </footer>
+  <script>
+    // Simulação de dados (em produção, viriam de API/localStorage)
+    const registros = [
+      { idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001 - Produto A', qtdproduzir: 1000, nrolote: 'L001', situacao: 'Pendentes' },
+      { idiproc: 102, dtfab: '2024-06-02', codprodpa: 'P002 - Produto B', qtdproduzir: 500, nrolote: 'L002', situacao: 'Finalizadas' },
+      { idiproc: 103, dtfab: '2024-06-03', codprodpa: 'P003 - Produto C', qtdproduzir: 750, nrolote: 'L003', situacao: 'Pendentes' },
+      { idiproc: 104, dtfab: '2024-06-04', codprodpa: 'P004 - Produto D', qtdproduzir: 1200, nrolote: 'L004', situacao: 'Canceladas' },
+      { idiproc: 105, dtfab: '2024-06-05', codprodpa: 'P005 - Produto E', qtdproduzir: 900, nrolote: 'L005', situacao: 'Pendentes' },
+    ];
+    // Simulação de usuário logado
+    const usuarioAtual = { codusu: 'U001', nome: 'João Silva' };
+    // Utilidades
+    function getParam(nome) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(nome);
+    }
+    // Busca registro selecionado
+    const idSelecionado = parseInt(getParam('id'));
+    const registro = registros.find(r => r.idiproc === idSelecionado) || registros[0];
+    // Estado do processo
+    let estadoProcesso = 'naoiniciado'; // naoiniciado, iniciado, pausado, finalizado
+    // Apontamentos e execuções (simulados)
+    let apontamentos = [];
+    let execucoes = [];
+    // Renderização do cartão resumo
+    function renderResumo() {
+      const campos = [
+        { label: 'ID', valor: registro.idiproc },
+        { label: 'Data Fabricação', valor: registro.dtfab },
+        { label: 'Produto', valor: registro.codprodpa },
+        { label: 'Qtd. Produzir', valor: registro.qtdproduzir },
+        { label: 'Lote', valor: registro.nrolote },
+      ];
+      document.getElementById('campos-resumo').innerHTML = campos.map(c => `<div><b>${c.label}:</b> ${c.valor}</div>`).join('');
+      renderBotoesPrincipais();
+    }
+    // Botões principais (Iniciar, Parar, Continuar, Finalizar)
+    function renderBotoesPrincipais() {
+      const container = document.getElementById('botoes-principais');
+      container.innerHTML = '';
+      if (estadoProcesso === 'naoiniciado') {
+        container.innerHTML = `<button class="btn-principal iniciar" onclick="iniciarProcesso()">Iniciar</button>`;
+      } else if (estadoProcesso === 'iniciado') {
+        container.innerHTML = `
+          <button class="btn-principal parar" onclick="abrirModalParar()">Parar</button>
+          <button class="btn-principal finalizado" disabled>Finalizar</button>
+        `;
+      } else if (estadoProcesso === 'pausado') {
+        container.innerHTML = `
+          <button class="btn-principal continuar" onclick="continuarProcesso()">Continuar</button>
+          <button class="btn-principal finalizado" disabled>Finalizar</button>
+        `;
+      } else if (estadoProcesso === 'finalizado') {
+        container.innerHTML = `<button class="btn-principal finalizado" disabled>Finalizado</button>`;
+      }
+      // Finalizar só ativo se iniciado e não pausado
+      if (estadoProcesso === 'iniciado') {
+        container.innerHTML = `
+          <button class="btn-principal parar" onclick="abrirModalParar()">Parar</button>
+          <button class="btn-principal" onclick="finalizarProcesso()">Finalizar</button>
+        `;
+      }
+    }
+    // Funções de fluxo principal
+    function iniciarProcesso() {
+      estadoProcesso = 'iniciado';
+      execucoes.push({ dhinicio: new Date().toISOString(), dhfinal: '', tipo: 'normal', codusu: usuarioAtual.codusu, motivo: '' });
+      renderResumo();
+      renderExecucoes();
+    }
+    function abrirModalParar() {
+      abrirModal({
+        titulo: 'Motivo da Parada',
+        campos: [
+          { label: 'Motivo', name: 'motivo', tipo: 'textarea', obrigatorio: true }
+        ],
+        onConfirm: (valores) => {
+          pararProcesso(valores.motivo);
+        }
+      });
+    }
+    function pararProcesso(motivo) {
+      if (execucoes.length > 0 && !execucoes[execucoes.length-1].dhfinal) {
+        execucoes[execucoes.length-1].dhfinal = new Date().toISOString();
+      }
+      execucoes.push({ dhinicio: new Date().toISOString(), dhfinal: '', tipo: 'parada', codusu: usuarioAtual.codusu, motivo });
+      estadoProcesso = 'pausado';
+      renderResumo();
+      renderExecucoes();
+    }
+    function continuarProcesso() {
+      if (execucoes.length > 0 && !execucoes[execucoes.length-1].dhfinal) {
+        execucoes[execucoes.length-1].dhfinal = new Date().toISOString();
+      }
+      execucoes.push({ dhinicio: new Date().toISOString(), dhfinal: '', tipo: 'normal', codusu: usuarioAtual.codusu, motivo: '' });
+      estadoProcesso = 'iniciado';
+      renderResumo();
+      renderExecucoes();
+    }
+    function finalizarProcesso() {
+      if (execucoes.length > 0 && !execucoes[execucoes.length-1].dhfinal) {
+        execucoes[execucoes.length-1].dhfinal = new Date().toISOString();
+        execucoes[execucoes.length-1].tipo = 'finalizado';
+      }
+      estadoProcesso = 'finalizado';
+      renderResumo();
+      renderExecucoes();
+    }
+    // Abas
+    document.querySelectorAll('.aba-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativa'));
+        this.classList.add('ativa');
+        document.getElementById('aba-apontamentos').style.display = this.dataset.aba === 'apontamentos' ? '' : 'none';
+        document.getElementById('aba-execucao').style.display = this.dataset.aba === 'execucao' ? '' : 'none';
+      });
+    });
+    // Apontamentos
+    function renderApontamentos() {
+      const tbody = document.querySelector('#tabela-apontamentos tbody');
+      tbody.innerHTML = '';
+      if (apontamentos.length === 0) {
+        document.getElementById('msg-vazio-apont').style.display = 'block';
+        return;
+      } else {
+        document.getElementById('msg-vazio-apont').style.display = 'none';
+      }
+      apontamentos.forEach((ap, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${ap.nunota}</td>
+          <td>${ap.codusu}</td>
+          <td>${formatarDataHora(ap.dhapontamento)}</td>
+          <td>${ap.situacao}</td>
+          <td>${ap.qtdapontada}</td>
+          <td>${ap.qtdperda}</td>
+          <td>${renderAcoesApontamento(ap, idx)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    function renderAcoesApontamento(ap, idx) {
+      if (ap.situacao === 'Confirmado') return '';
+      return `
+        <button onclick="confirmarApontamento(${idx})" title="Confirmar" style="background:var(--verde-principal);color:#fff;border:none;border-radius:8px;padding:0.3rem 0.7rem;margin-right:0.2rem;cursor:pointer;">Confirmar</button>
+        <button onclick="editarApontamento(${idx})" title="Editar" style="background:var(--azul);color:#fff;border:none;border-radius:8px;padding:0.3rem 0.7rem;margin-right:0.2rem;cursor:pointer;">Editar</button>
+        <button onclick="deletarApontamento(${idx})" title="Excluir" style="background:var(--vermelho);color:#fff;border:none;border-radius:8px;padding:0.3rem 0.7rem;cursor:pointer;">Excluir</button>
+      `;
+    }
+    function confirmarApontamento(idx) {
+      apontamentos[idx].situacao = 'Confirmado';
+      renderApontamentos();
+    }
+    function editarApontamento(idx) {
+      abrirModal({
+        titulo: 'Editar Apontamento',
+        campos: [
+          { label: 'Qtd. Apontada', name: 'qtdapontada', tipo: 'number', valor: apontamentos[idx].qtdapontada, obrigatorio: true },
+          { label: 'Qtd. Perda', name: 'qtdperda', tipo: 'number', valor: apontamentos[idx].qtdperda, obrigatorio: true }
+        ],
+        onConfirm: (valores) => {
+          if (!validarTotalApontamentos(idx, valores.qtdapontada, valores.qtdperda)) return;
+          apontamentos[idx].qtdapontada = parseInt(valores.qtdapontada);
+          apontamentos[idx].qtdperda = parseInt(valores.qtdperda);
+          renderApontamentos();
+        }
+      });
+    }
+    function deletarApontamento(idx) {
+      abrirModal({
+        titulo: 'Excluir Apontamento',
+        campos: [],
+        mensagem: 'Tem certeza que deseja excluir este apontamento?',
+        onConfirm: () => {
+          apontamentos.splice(idx, 1);
+          renderApontamentos();
+        },
+        textoConfirmar: 'Excluir',
+        textoCancelar: 'Cancelar'
+      });
+    }
+    function abrirModalNovoApontamento() {
+      abrirModal({
+        titulo: 'Novo Apontamento',
+        campos: [
+          { label: 'Qtd. Apontada', name: 'qtdapontada', tipo: 'number', valor: 0, obrigatorio: true },
+          { label: 'Qtd. Perda', name: 'qtdperda', tipo: 'number', valor: 0, obrigatorio: true }
+        ],
+        onConfirm: (valores) => {
+          if (!validarTotalApontamentos(null, valores.qtdapontada, valores.qtdperda)) return;
+          apontamentos.push({
+            nunota: gerarNunota(),
+            codusu: usuarioAtual.codusu,
+            dhapontamento: new Date().toISOString(),
+            situacao: 'Pendente',
+            qtdapontada: parseInt(valores.qtdapontada),
+            qtdperda: parseInt(valores.qtdperda)
+          });
+          renderApontamentos();
+        }
+      });
+    }
+    function validarTotalApontamentos(idxEditar, qtdapontada, qtdperda) {
+      let total = 0;
+      let totalPerda = 0;
+      apontamentos.forEach((ap, idx) => {
+        if (idx === idxEditar) {
+          total += parseInt(qtdapontada);
+          totalPerda += parseInt(qtdperda);
+        } else {
+          total += ap.qtdapontada;
+          totalPerda += ap.qtdperda;
+        }
+      });
+      if (idxEditar === null) {
+        total += parseInt(qtdapontada);
+        totalPerda += parseInt(qtdperda);
+      }
+      if (total + totalPerda > registro.qtdproduzir) {
+        abrirModal({
+          titulo: 'Limite Excedido',
+          mensagem: 'A soma dos apontamentos e perdas não pode ultrapassar a quantidade a produzir.',
+          campos: [],
+          onConfirm: () => {}
+        });
+        return false;
+      }
+      return true;
+    }
+    function gerarNunota() {
+      return 'N' + (1000 + apontamentos.length + 1);
+    }
+    // Execuções
+    function renderExecucoes() {
+      const tbody = document.querySelector('#tabela-execucao tbody');
+      tbody.innerHTML = '';
+      if (execucoes.length === 0) {
+        document.getElementById('msg-vazio-exec').style.display = 'block';
+        return;
+      } else {
+        document.getElementById('msg-vazio-exec').style.display = 'none';
+      }
+      execucoes.forEach(exec => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${formatarDataHora(exec.dhinicio)}</td>
+            <td>${exec.dhfinal ? formatarDataHora(exec.dhfinal) : '-'}</td>
+            <td>${formatarTipo(exec.tipo)}</td>
+            <td>${exec.codusu}</td>
+            <td>${exec.motivo || '-'}</td>
+          </tr>
+        `;
+      });
+    }
+    function formatarTipo(tipo) {
+      if (tipo === 'normal') return 'Normal';
+      if (tipo === 'parada') return 'Parada';
+      if (tipo === 'finalizado') return 'Finalizado';
+      return tipo;
+    }
+    function formatarDataHora(dt) {
+      if (!dt) return '-';
+      const d = new Date(dt);
+      return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    }
+    // Modal genérico
+    function abrirModal({ titulo, campos = [], mensagem = '', onConfirm, textoConfirmar = 'Confirmar', textoCancelar = 'Cancelar' }) {
+      const overlay = document.getElementById('modal-overlay');
+      overlay.innerHTML = '';
+      overlay.style.display = 'flex';
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      if (titulo) {
+        const h3 = document.createElement('h3');
+        h3.textContent = titulo;
+        modal.appendChild(h3);
+      }
+      if (mensagem) {
+        const p = document.createElement('p');
+        p.textContent = mensagem;
+        modal.appendChild(p);
+      }
+      const valores = {};
+      campos.forEach(campo => {
+        const label = document.createElement('label');
+        label.textContent = campo.label + (campo.obrigatorio ? ' *' : '');
+        modal.appendChild(label);
+        let input;
+        if (campo.tipo === 'textarea') {
+          input = document.createElement('textarea');
+        } else {
+          input = document.createElement('input');
+          input.type = campo.tipo || 'text';
+        }
+        input.name = campo.name;
+        input.value = campo.valor || '';
+        if (campo.obrigatorio) input.required = true;
+        input.addEventListener('input', () => {
+          valores[campo.name] = input.value;
+        });
+        modal.appendChild(input);
+        valores[campo.name] = input.value;
+      });
+      const botoes = document.createElement('div');
+      botoes.className = 'botoes-modal';
+      const btnConfirmar = document.createElement('button');
+      btnConfirmar.className = 'btn-modal';
+      btnConfirmar.textContent = textoConfirmar;
+      btnConfirmar.onclick = () => {
+        // Validação obrigatória
+        let valido = true;
+        campos.forEach(campo => {
+          if (campo.obrigatorio && !valores[campo.name]) valido = false;
+        });
+        if (!valido) {
+          btnConfirmar.disabled = true;
+          setTimeout(() => { btnConfirmar.disabled = false; }, 800);
+          return;
+        }
+        overlay.style.display = 'none';
+        onConfirm && onConfirm(valores);
+      };
+      botoes.appendChild(btnConfirmar);
+      const btnCancelar = document.createElement('button');
+      btnCancelar.className = 'btn-modal cancelar';
+      btnCancelar.textContent = textoCancelar;
+      btnCancelar.onclick = () => { overlay.style.display = 'none'; };
+      botoes.appendChild(btnCancelar);
+      modal.appendChild(botoes);
+      overlay.appendChild(modal);
+    }
+    // Inicialização
+    renderResumo();
+    renderApontamentos();
+    renderExecucoes();
+  </script>
+</body>
+</html>

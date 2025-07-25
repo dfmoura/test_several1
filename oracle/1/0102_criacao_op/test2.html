@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Abas com Animação</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    padding: 2rem;
+    background: #f2f2f2;
+  }
+
+  .tab-container {
+    max-width: 600px;
+    margin: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+
+  .tab-buttons {
+    display: flex;
+    background: #eee;
+  }
+
+  .tab-buttons button {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+  }
+
+  .tab-buttons button.active {
+    background: #fff;
+    border-bottom: 2px solid #007BFF;
+    color: #007BFF;
+  }
+
+  .tab-content {
+    display: none;
+    padding: 2rem;
+    animation: fade 0.3s ease-in-out;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+  <div class="tab-container">
+    <div class="tab-buttons">
+      <button class="active" onclick="trocarAba(0)">Perfil</button>
+      <button onclick="trocarAba(1)">Configurações</button>
+      <button onclick="trocarAba(2)">Ajuda</button>
+    </div>
+
+    <div class="tab-content active">
+      <h2>Perfil</h2>
+      <p>Informações do usuário aqui.</p>
+    </div>
+    <div class="tab-content">
+      <h2>Configurações</h2>
+      <p>Ajuste suas preferências.</p>
+    </div>
+    <div class="tab-content">
+      <h2>Ajuda</h2>
+      <p>Precisa de suporte? Estamos aqui.</p>
+    </div>
+  </div>
+
+<script>
+  function trocarAba(indice) {
+    const buttons = document.querySelectorAll('.tab-buttons button');
+    const contents = document.querySelectorAll('.tab-content');
+
+    buttons.forEach(btn => btn.classList.remove('active'));
+    contents.forEach(tab => tab.classList.remove('active'));
+
+    buttons[indice].classList.add('active');
+    contents[indice].classList.add('active');
+  }
+</script>
+</body>
+</html>

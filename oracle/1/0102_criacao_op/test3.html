@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Abas Mobile</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 2rem 1rem 4rem; /* extra bottom padding for nav */
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: white;
+      display: flex;
+      border-top: 1px solid #ccc;
+      box-shadow: 0 -1px 5px rgba(0,0,0,0.1);
+    }
+
+    .bottom-nav button {
+      flex: 1;
+      border: none;
+      background: none;
+      font-size: 0.9rem;
+      color: #555;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: .5rem 0;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .bottom-nav button.active {
+      color: #007BFF;
+      font-weight: bold;
+    }
+
+    .bottom-nav button span {
+      font-size: 1.5rem;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Conteúdo das Abas -->
+  <div class="tab-content active">
+    <h2>🏠 Início</h2>
+    <p>Bem-vindo ao app!</p>
+  </div>
+
+  <div class="tab-content">
+    <h2>🔍 Buscar</h2>
+    <p>Pesquise conteúdos aqui.</p>
+  </div>
+
+  <div class="tab-content">
+    <h2>⚙️ Configurações</h2>
+    <p>Gerencie suas preferências.</p>
+  </div>
+
+  <!-- Navegação inferior -->
+  <div class="bottom-nav">
+    <button class="active" onclick="ativarAba(0)">
+      <span>🏠</span>
+      Início
+    </button>
+    <button onclick="ativarAba(1)">
+      <span>🔍</span>
+      Buscar
+    </button>
+    <button onclick="ativarAba(2)">
+      <span>⚙️</span>
+      Config
+    </button>
+  </div>
+
+  <script>
+    function ativarAba(i) {
+      const buttons = document.querySelectorAll('.bottom-nav button');
+      const tabs = document.querySelectorAll('.tab-content');
+
+      buttons.forEach(btn => btn.classList.remove('active'));
+      tabs.forEach(tab => tab.classList.remove('active'));
+
+      buttons[i].classList.add('active');
+      tabs[i].classList.add('active');
+    }
+  </script>
+
+</body>
+</html>

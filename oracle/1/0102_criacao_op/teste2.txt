@@ -1,0 +1,472 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!doctype html>
+
+
+
+<script type="text/javascript">
+	var wcPorts;
+	var portWebConn;
+	
+	if(navigator.userAgent.indexOf('Electron') > -1) {
+		try {
+			var ipc               = require('electron').ipcRenderer;
+
+			try {
+
+				var remote = require('electron').remote;
+				var ipcMain = remote.ipcMain;
+				var events = ipcMain.eventNames();
+				
+				// Devemos executar o trecho de código se o evento existir
+				if(events.indexOf('isUsingTS') > -1 && events.indexOf('getWcPort') > -1) {
+					
+					// Só obtemos a porta do navegador se estiver no modoTS
+					if(ipc.sendSync('isUsingTS') == 'S') {
+
+						// Porta gerada pelo navegador sankhya
+						wcPorts = ipc.sendSync('getWcPort');
+
+						portWebConn = wcPorts.httpPort;
+
+						// Salvamos para ser usado futuramente no launcher (HTML5 ou Flex)
+						sessionStorage.setItem('printerAppPort', portWebConn);							
+						
+					}
+																
+				}
+											
+			} catch(err) {
+				console.log('O navegador não foi capaz de indicar qual a porta do webconnection. Usaremos a indicada pelo servidor.');
+				console.log('Causa: ' + err);
+			}
+			
+			/*Disponibilizamos o protocolo de comunicação no window
+			para ser utilizado pelo WorkspaceView.*/
+			window.ipc = ipc;
+			
+			ipc.on('uploadFile', function(e, params) {
+				try {
+					var appElement = workspace.getAppSWFElement(params.resourceID, params.appId);
+					if(appElement) {
+						if(appElement.getSWFElement) {
+							appElement = appElement.getSWFElement();
+						}
+						
+						if(params.hasOwnProperty('fileKey') && params.hasOwnProperty('fileName')) {
+							appElement[params.callbackName](params.fileKey, params.fileName);
+						} else {
+							appElement[params.callbackName]();
+						}
+					}
+				} catch(assynError) {
+					alert(assynError.message);
+				}
+			});
+		} catch(error) {
+			alert(error.message);
+		}
+	}
+	
+    var version = "4.35b75";
+    var versionDate = "25/06/2025 22:07";
+    var locale = "PT_BR";
+    var html5Locale = "pt_BR";
+    OCULTARSANKHYALOGOS = false;
+    
+    // identificação de máquina via web connection
+    var usaSysInfoWebConn = false;
+
+    var userWalkme = "SUP+guilherme.costa@braionsolucoes.com+0ae70a1a0bc6072c059123a8933809920ec68b7e72";
+
+    // Se a porta do webconnection não foi preechida até aqui, usamos a fornecida pelo servidor
+    if(!portWebConn) {
+    	portWebConn = "9096";
+    }
+
+    
+    	var urlImage =  '/mge/image/userEvo/' + encodeURI('SUP') + '.png?w=94&h=94&e=b64';
+    	fetch(urlImage)
+    		.then( response => {
+        		if(response.ok) {
+					return response.text();
+            	}		
+        	})
+        	.then(b64img => {
+        		localStorage.setItem('lastImageUser',b64img);
+            });
+    
+</script>
+
+
+
+
+
+<html ng-app="workspaceApp">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=9" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="gwt:property" content="locale=PT_BR">
+		<meta charset="utf-8" />
+		<meta name="viewport" content="user-scalable=yes,initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0" />
+		
+		<link rel="apple-touch-icon" sizes="57x57" href="img/appicon/sk/apple-icon-57x57.png">
+		<link rel="apple-touch-icon" sizes="60x60" href="img/appicon/sk/apple-icon-60x60.png">
+		<link rel="apple-touch-icon" sizes="72x72" href="img/appicon/sk/apple-icon-72x72.png">
+		<link rel="apple-touch-icon" sizes="76x76" href="img/appicon/sk/apple-icon-76x76.png">
+		<link rel="apple-touch-icon" sizes="114x114" href="img/appicon/sk/apple-icon-114x114.png">
+		<link rel="apple-touch-icon" sizes="120x120" href="img/appicon/sk/apple-icon-120x120.png">
+		<link rel="apple-touch-icon" sizes="144x144" href="img/appicon/sk/apple-icon-144x144.png">
+		<link rel="apple-touch-icon" sizes="152x152" href="img/appicon/sk/apple-icon-152x152.png">
+		<link rel="apple-touch-icon" sizes="180x180" href="img/appicon/sk/apple-icon-180x180.png">
+		<link rel="icon" type="image/png" sizes="192x192" href="img/appicon/sk/android-icon-192x192.png">
+		<link rel="icon" type="image/png" sizes="32x32" href="img/appicon/sk/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="96x96" href="img/appicon/sk/favicon-96x96.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="img/appicon/sk/favicon-16x16.png">
+		<link rel="manifest" href="img/appicon/sk/manifest.json">
+		<meta name="msapplication-TileColor" content="#ffffff">
+		<meta name="msapplication-TileImage" content="img/appicon/sk/ms-icon-144x144.png">
+		<meta name="theme-color" content="#ffffff">
+		
+		<meta name="application-name" content="Sankhya Om">
+		
+	    <title>Sankhya Om</title>
+
+		<script type="text/javascript">
+			
+		
+			SYSVERSION = "4.35b75";
+			PROFILEID = "S4W8LB";
+			NOMEUSU = "SUP";
+			CODUSU = "0";
+			ISEVO = true;
+            ISLDAP = "false";
+            ACCOUNT_ENABLE = false;
+            SAS_ID = "0ae70a1a0bc6072c059123a8933809920ec68b7e72";
+            ACCOUNT_URL = "https://account.sankhya.com.br";
+            SANKHYA_LOGIN_URL = "https://account-login-component.sankhya.com.br";
+			MANAGEMENT_ALERTS_URL = "https://management-alerts-component.sankhya.com.br";
+			CORPCLUB_POPUP_URL = "https://corpclub-popup.s3.sa-east-1.amazonaws.com";
+			ACCOUNT_INFO_URL = "https://account-info-component.sankhya.com.br";
+			MANAGER_COMPONENT_URL = "https://manager-webcomponent.sankhya.com.br";
+			SCREEN_COMPONENT_URL = "https://screen-webcomponent.sankhya.com.br";
+			TIPO_BASE = "TESTE";
+			
+			var isJiva = false;
+				 	
+			/*
+			 O Flex estava tendo problemas de performance ao chamar diretamente o window.open via
+	 		 ExternalInterface.call no Chrome e FF, não identificamos se era um problema de confiança
+			 entre o SWF e o browser ou entre o IFrame e o browser, portanto isolamos o open aqui neste método.
+			 Assim o flex chama ele que então irá chamar o open e os problemas de performance foram resolvidos.
+			*/
+			function openExternalWindow(url, target, options, openerWindow) {
+		    	var pop = window.open(url, target, options);
+
+		    	if (openerWindow) {
+		    		pop.opener = openerWindow;
+		    	}
+		    }
+		</script>
+
+		<script type="text/javascript" language="javascript" src="workspace/workspace.nocache.js"></script>
+
+		<script>
+			/*A flag nodeIntegration utilizada no navegador jiva/sankhya seta o 
+			module ao inicializar o navegador. Desta forma algumas bibliotecas tentam carregar
+			o jquery do module e nao do window. Neste caso, para contornar o problema
+			resetamos o module para navegadores jiva/sankhya */
+			var regexElectron = new RegExp("Electron\\/([0-9\\.]*)", "i");
+
+			if(regexElectron.test(navigator.userAgent)) {
+				if (typeof module === 'object') {
+					module = undefined;
+				}
+			}
+		</script>
+
+		<!-- VENDORS1 -->
+	    <script src="/mge/js/util/jquery-1.9.1.min.js"></script>
+	    <script src="js/html2canvas/html2canvas.min.js"></script>
+	    <script src="scripts/vendors/angular/angular.js"></script>
+	    <script src="scripts/vendors/angular/angular-touch.js"></script>
+	    <script src="scripts/vendors/angular/angular-animate.min.js"></script>
+	    <script src="scripts/vendors/angular/angular-aria.min.js"></script>
+	    <script src="scripts/vendors/angular/angular-sanitize.min.js"></script>
+	    <script src="scripts/vendors/ui-bootstrap/ui-bootstrap-tpls.min.js"></script>
+		<!-- VENDORS1 -->
+		
+		<!-- VENDORS2 -->
+		<script src="scripts/vendors/ui-grid/ui-grid.modified.js"></script>
+	    <script src="scripts/vendors/numeral/numeral.min.js"></script>
+	    <script src="scripts/vendors/moment/moment.min.js"></script>
+	    <script src="scripts/vendors/loading-bar/loading-bar.min.js"></script>
+	    <script src="scripts/vendors/translate/angular-translate.js"></script>
+	    <script src="scripts/vendors/packery/packery.pkgd.min.js"></script>
+		<script src="/mge/js/util/jquery-ui.min.js"></script>
+		<!-- VENDORS2 -->
+
+		
+			<link href="css/tour/pageintro.css" rel="stylesheet" type="text/css" />
+     		<script src="scripts/vendors/packery/smart-cards.js"></script>
+     		<script src="js/tour/tourWorkspaceEvoController.js"></script>
+			<script src="js/tour/pageintro.js"></script>
+			
+			<script src="js/util/jquery.mask.min.js"></script>
+		
+
+		<script src="scripts/snk.js?v=0"></script>
+		
+		<script>
+			angular.module('workspaceApp', ['snk.core.metadataprovider']);
+		</script>
+		
+		
+	</head>
+	<body>
+		<iframe src="javascript:''" id="__gwt_historyFrame" tabIndex='-1' style="position:absolute;width:0;height:0;border:0"></iframe>
+   
+	    <noscript>
+	      <div style="width: 22em; position: absolute; left: 50%; margin-left: -11em; color: red; background-color: white; border: 1px solid red; padding: 4px; font-family: sans-serif">
+			Habilite a execução de JavaScript em seu browser.
+	      </div>
+	    </noscript>
+	    
+	    
+		
+		<!-- Google Analytics -->
+		
+
+
+
+
+
+
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-488LKXVVBY"></script>
+<script type="text/javascript">
+
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	
+	function startGA(callback) {
+		
+		
+			
+			
+			
+				var clientSAS = "0ae70a1a0bc6072c059123a8933809920ec68b7e72";
+				var userID = "0";
+				var versaoSistema =  "4.35b75";
+				var versaoBanco = "Oracle Database 19c Standard Edition 2 Release 19.0.0.0.0 - Production Version 19.23.0.0.0";
+				var environment = "TEST";
+				var nomeUsu = "SUP";
+				var nomeParc = "SATIS";
+				
+			
+				gtag('set', 'transport_type', 'beacon');
+				gtag('set', 'user_id', clientSAS + userID);
+				gtag('set', 'send_page_view', false);
+				
+				gtag('set', 'user_properties', {
+					'versao_sistema': versaoSistema,
+					'empresaSAS': clientSAS,
+					'banco': versaoBanco,
+					'nomeparc': nomeParc,
+					'server_os': "Linux 5.15.0-310.184.5.2.el9uek.x86_64",
+					'environment': environment,
+					'codeusu': userID,
+					'nomeusu': nomeUsu
+				});
+		
+				gtag('config', "G-488LKXVVBY");
+		
+				if(callback != null){
+					callback();
+				}else{
+					gtag('set', 'page_location', '/workspace');
+				}
+			
+		
+	}
+	
+	function sendPageView(pagina) {
+		if (gtag != null) {
+			gtag('event', 'page_view', {
+	            page_location: pagina,
+	        });
+		}
+	}
+	
+</script>
+
+		<script type="text/javascript">
+			startGA();
+		</script>
+		<!-- Google Analytics -->
+
+		
+	    	
+
+
+<script src="js/helpcenter/hmac-sha256.js"></script>
+<script src="js/helpcenter/enc-base64.js"></script>
+<script src="js/helpcenter/chat_sdk.js"></script>
+
+<script type="text/javascript">
+(function() {
+    var zendesk = document.createElement('script');
+    zendesk.id = 'ze-snippet';
+    zendesk.src = 'https://cdn.sankhya.com.br/zendesk/latest.min.js?key=c8485f54-43a9-4938-97f3-d0dbe7c69adb';
+    zendesk.setAttribute('async', 'true');
+    document.documentElement.firstChild.appendChild(zendesk);
+    
+    zendesk.onload = function () {
+	
+	    var nameUserChat  = "SUP";
+		var emailUserChat = "guilherme.costa@braionsolucoes.com";
+	
+		var accountKey 	= '441gfyBu5PkpF2Jd7mIm2RdnBXccG7Xx';
+		var signature	= '85CACFB342E0EB54A1E4AB7D34DAF8BAB92BF8431A10023A7DD4A07AC1FD1B85';
+		
+		
+		
+		window.zESettings = {
+	   		webWidget: {
+	    		authenticate: {
+	   	   			chat:{
+	   	   				jwtFn: function(callback) {
+	   	   					callback(gerarToken());
+	   	   				}
+	   	   			}
+	   	    	},
+	   	    	color: { theme: '#194562' }
+	   		}
+	   	};
+		
+		
+		
+	    zChat.init({
+	        account_key: accountKey,
+	        authentication: {
+	            jwt_fn: function(callback) {
+	                callback(gerarToken());
+	            }
+	        }
+	    });
+	    
+		zE('webWidget:on', 'chat:connected', function() {
+		    isChatReady = true;
+		    helpCenterWrapper.nativeFilterDepartaments();
+		});
+		
+		zE('webWidget:on', 'chat:start', function() {
+			window.helpCenterWrapper.trackEventHelpCenter('iniciou_chat', 'chat iniciado');	
+			window.helpCenterWrapper.createTags();
+			window.helpCenterWrapper.setUserOrganization(emailUserChat);
+			//window.helpCenterWrapper.attachLog();
+			
+		});
+		
+		zE('webWidget:on', 'close', function() {
+		    window.helpCenterWrapper.addCloseHandler();
+		});
+		
+		zE('webWidget', 'hide');
+		
+		$( window ).unload(function() {
+			zE('webWidget', 'close');	
+		});
+		
+		
+		zChat.on('chat', function(event_data) {
+			if (event_data.type === 'chat.memberleave') {
+		    	zE('webWidget', 'chat:end');
+		    	zChat.clearVisitorDefaultDepartment();
+		    }
+		});
+	
+		
+		function gerarToken() {
+			
+		    var init = Math.round(Date.now()/1000);
+		    var expire = init + 420000;
+		
+		    var header = {
+		      "alg": "HS256",
+		      "typ": "JWT"
+		    };
+		    
+		    var data = {
+		      "name": nameUserChat,
+		      "email": emailUserChat,
+		      "external_id": emailUserChat,
+		      "iat" : init,
+		      "exp" : expire
+		    };
+	
+		    var stringifiedHeader = CryptoJS.enc.Utf8.parse(JSON.stringify(header));
+		    var encodedHeader = base64Encode(stringifiedHeader);
+	
+		    var stringifiedData = CryptoJS.enc.Utf8.parse(JSON.stringify(data));
+		    var encodedData = base64Encode(stringifiedData);
+	
+		    var tokenJWT = encodedHeader + "." + encodedData;
+		    tokenJWT = CryptoJS.HmacSHA256(tokenJWT, signature);
+		    tokenJWT = base64Encode(tokenJWT);
+	
+		    return `${encodedHeader}.${encodedData}.${tokenJWT}`;
+	
+		}
+		
+		function base64Encode(source) {
+	      var encodedSource = CryptoJS.enc.Base64.stringify(source);
+	      return encodedSource.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+	    }
+
+    }
+    
+})();
+
+</script>
+
+		
+		
+		
+
+		
+	</body>
+</html>
+	
+

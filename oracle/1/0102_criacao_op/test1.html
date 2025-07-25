@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Formulário com Abas (Básico)</title>
+<style>
+  :root {
+    font-family: system-ui, sans-serif;
+    color-scheme: light dark;
+  }
+
+  .tabs {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .tabs button {
+    border: 1px solid #ccc;
+    background: #f5f5f5;
+    padding: .5rem 1rem;
+    cursor: pointer;
+    border-radius: .375rem;
+  }
+  .tabs button.active {
+    background: #ddd;
+    font-weight: 600;
+  }
+
+  .tab {
+    display: none;
+    border: 1px solid #e0e0e0;
+    padding: 1rem;
+    border-radius: .375rem;
+  }
+  .tab.active {
+    display: block;
+  }
+
+  label {
+    display: block;
+    margin: .5rem 0 .25rem;
+  }
+  input {
+    width: 100%;
+    padding: .5rem;
+    border: 1px solid #ccc;
+    border-radius: .25rem;
+  }
+
+  .actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: .5rem;
+    justify-content: flex-end;
+  }
+</style>
+</head>
+<body>
+  <h1>Formulário com Abas</h1>
+
+  <!-- Navegação das abas -->
+  <div class="tabs" role="tablist">
+    <button type="button" class="active" role="tab" aria-selected="true">Informações</button>
+    <button type="button" role="tab" aria-selected="false">Endereço</button>
+    <button type="button" role="tab" aria-selected="false">Confirmação</button>
+  </div>
+
+  <!-- Conteúdo das abas -->
+  <form id="meu-form">
+    <div class="tab active" role="tabpanel">
+      <h2>Informações Pessoais</h2>
+      <label for="nome">Nome</label>
+      <input id="nome" name="nome" type="text" required />
+
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required />
+    </div>
+
+    <div class="tab" role="tabpanel">
+      <h2>Endereço</h2>
+      <label for="rua">Rua</label>
+      <input id="rua" name="rua" type="text" required />
+
+      <label for="cidade">Cidade</label>
+      <input id="cidade" name="cidade" type="text" required />
+    </div>
+
+    <div class="tab" role="tabpanel">
+      <h2>Confirmação</h2>
+      <p>Revise seus dados e envie.</p>
+      <div class="actions">
+        <button type="submit">Enviar</button>
+      </div>
+    </div>
+  </form>
+
+<script>
+  const buttons = document.querySelectorAll('.tabs button');
+  const tabs = document.querySelectorAll('.tab');
+
+  buttons.forEach((btn, index) => {
+    btn.addEventListener('click', () => ativarAba(index));
+  });
+
+  function ativarAba(i) {
+    buttons.forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    tabs.forEach(t => t.classList.remove('active'));
+
+    buttons[i].classList.add('active');
+    buttons[i].setAttribute('aria-selected', 'true');
+    tabs[i].classList.add('active');
+  }
+
+  // Exemplo simples de submit
+  document.getElementById('meu-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    alert('Formulário enviado!');
+  });
+</script>
+</body>
+</html>

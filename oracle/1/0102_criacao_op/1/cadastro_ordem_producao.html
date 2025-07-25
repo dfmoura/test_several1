@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Ordem de Produção</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-gray: #ecf0f1;
+            --dark-gray: #7f8c8d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: var(--primary-color);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+
+        .btn {
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            border: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #229954);
+            border: none;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color), #e67e22);
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color), #c0392b);
+            border: none;
+        }
+
+        .nav-tabs {
+            border-bottom: 2px solid var(--light-gray);
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--dark-gray);
+            font-weight: 500;
+            padding: 1rem 1.5rem;
+            border-radius: 10px 10px 0 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            color: white;
+            border: none;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .required-field::after {
+            content: " *";
+            color: var(--danger-color);
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .status-nao-iniciada { background-color: #e9ecef; color: #495057; }
+        .status-em-andamento { background-color: #d1ecf1; color: #0c5460; }
+        .status-finalizada { background-color: #d4edda; color: #155724; }
+        .status-suspensa { background-color: #fff3cd; color: #856404; }
+        .status-cancelada { background-color: #f8d7da; color: #721c24; }
+
+        .info-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-left: 4px solid var(--secondary-color);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .floating-label {
+            position: relative;
+        }
+
+        .floating-label .form-control {
+            padding-top: 1.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .floating-label .form-label {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--dark-gray);
+            transition: all 0.3s ease;
+        }
+
+        .floating-label .form-control:focus + .form-label,
+        .floating-label .form-control:not(:placeholder-shown) + .form-label {
+            top: 0.25rem;
+            font-size: 0.75rem;
+            color: var(--secondary-color);
+        }
+
+        .progress-bar-custom {
+            height: 8px;
+            border-radius: 4px;
+            background-color: var(--light-gray);
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--success-color), var(--secondary-color));
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0">
+                        <i class="fas fa-industry me-3"></i>
+                        Cadastro de Ordem de Produção
+                    </h1>
+                    <p class="mb-0 mt-2 opacity-75">Sistema de Gestão de Produção</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex justify-content-end align-items-center">
+                        <span class="me-3">
+                            <i class="fas fa-user-circle me-1"></i>
+                            Usuário Logado
+                        </span>
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-clock me-1"></i>
+                            <span id="current-time"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar de Informações -->
+            <div class="col-lg-3">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Informações Gerais
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-card">
+                            <h6 class="fw-bold mb-2">
+                                <i class="fas fa-hashtag me-1"></i>
+                                Número da OP
+                            </h6>
+                            <p class="mb-0 text-muted" id="op-number">OP-2024-001</p>
+                        </div>
+
+                        <div class="info-card">
+                            <h6 class="fw-bold mb-2">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Data de Criação
+                            </h6>
+                            <p class="mb-0 text-muted" id="creation-date">01/01/2024</p>
+                        </div>
+
+                        <div class="info-card">
+                            <h6 class="fw-bold mb-2">
+                                <i class="fas fa-user me-1"></i>
+                                Criado por
+                            </h6>
+                            <p class="mb-0 text-muted" id="created-by">João Silva</p>
+                        </div>
+
+                        <div class="info-card">
+                            <h6 class="fw-bold mb-2">
+                                <i class="fas fa-tasks me-1"></i>
+                                Status
+                            </h6>
+                            <span class="status-badge status-nao-iniciada" id="status-badge">
+                                Não Iniciada
+                            </span>
+                        </div>
+
+                        <div class="info-card">
+                            <h6 class="fw-bold mb-2">
+                                <i class="fas fa-percentage me-1"></i>
+                                Progresso
+                            </h6>
+                            <div class="progress-bar-custom">
+                                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted mt-1 d-block" id="progress-text">0% concluído</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ações Rápidas -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-bolt me-2"></i>
+                            Ações Rápidas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" id="btn-iniciar">
+                                <i class="fas fa-play me-2"></i>
+                                Iniciar OP
+                            </button>
+                            <button class="btn btn-warning" id="btn-suspender">
+                                <i class="fas fa-pause me-2"></i>
+                                Suspender
+                            </button>
+                            <button class="btn btn-danger" id="btn-cancelar">
+                                <i class="fas fa-times me-2"></i>
+                                Cancelar
+                            </button>
+                            <button class="btn btn-primary" id="btn-salvar">
+                                <i class="fas fa-save me-2"></i>
+                                Salvar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conteúdo Principal -->
+            <div class="col-lg-9">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-edit me-2"></i>
+                            Dados da Ordem de Produção
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Abas de Navegação -->
+                        <ul class="nav nav-tabs" id="opTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="geral-tab" data-bs-toggle="tab" data-bs-target="#geral" type="button" role="tab">
+                                    <i class="fas fa-cog me-1"></i>
+                                    Geral
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="produtos-tab" data-bs-toggle="tab" data-bs-target="#produtos" type="button" role="tab">
+                                    <i class="fas fa-box me-1"></i>
+                                    Produtos
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="atividades-tab" data-bs-toggle="tab" data-bs-target="#atividades" type="button" role="tab">
+                                    <i class="fas fa-tasks me-1"></i>
+                                    Atividades
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="materiais-tab" data-bs-toggle="tab" data-bs-target="#materiais" type="button" role="tab">
+                                    <i class="fas fa-tools me-1"></i>
+                                    Materiais
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="planejamento-tab" data-bs-toggle="tab" data-bs-target="#planejamento" type="button" role="tab">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Planejamento
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Conteúdo das Abas -->
+                        <div class="tab-content mt-4" id="opTabContent">
+                            <!-- Aba Geral -->
+                            <div class="tab-pane fade show active" id="geral" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="tipo-op" class="form-label required-field">Tipo de OP</label>
+                                            <select class="form-select" id="tipo-op" required>
+                                                <option value="">Selecione o tipo</option>
+                                                <option value="P">Produção</option>
+                                                <option value="D">Desmonte</option>
+                                                <option value="R">Reprocessamento/Reparo</option>
+                                                <option value="PC">Produção Conjunta</option>
+                                                <option value="PT">Produção para Terceiro</option>
+                                                <option value="TE">Usa Terceiro</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="processo" class="form-label">Processo Produtivo</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="processo" placeholder="Código do processo">
+                                                <button class="btn btn-outline-secondary" type="button">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="produto-acabado" class="form-label required-field">Produto Acabado</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="produto-acabado" placeholder="Código do produto" required>
+                                                <button class="btn btn-outline-secondary" type="button">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="controle-pa" class="form-label">Controle PA</label>
+                                            <input type="text" class="form-control" id="controle-pa" placeholder="Controle do produto acabado">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="qtd-produzir" class="form-label required-field">Quantidade a Produzir</label>
+                                            <input type="number" class="form-control" id="qtd-produzir" placeholder="0,00" step="0.01" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="saldo-op" class="form-label">Saldo da OP</label>
+                                            <input type="number" class="form-control" id="saldo-op" placeholder="0,00" step="0.01" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="planta" class="form-label">Planta</label>
+                                            <select class="form-select" id="planta">
+                                                <option value="">Selecione a planta</option>
+                                                <option value="1">Planta Principal</option>
+                                                <option value="2">Planta Secundária</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="prioridade" class="form-label">Prioridade</label>
+                                            <select class="form-select" id="prioridade">
+                                                <option value="1">Baixa</option>
+                                                <option value="2">Média</option>
+                                                <option value="3" selected>Alta</option>
+                                                <option value="4">Urgente</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="parceiro" class="form-label">Parceiro</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="parceiro" placeholder="Código do parceiro">
+                                                <button class="btn btn-outline-secondary" type="button">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="versao" class="form-label">Versão</label>
+                                            <input type="text" class="form-control" id="versao" placeholder="Versão do processo">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Aba Produtos -->
+                            <div class="tab-pane fade" id="produtos" role="tabpanel">
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <button class="btn btn-primary" id="btn-adicionar-produto">
+                                            <i class="fas fa-plus me-2"></i>
+                                            Adicionar Produto
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Código</th>
+                                                <th>Descrição</th>
+                                                <th>Quantidade</th>
+                                                <th>Controle</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="produtos-table">
+                                            <!-- Produtos serão inseridos aqui dinamicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Aba Atividades -->
+                            <div class="tab-pane fade" id="atividades" role="tabpanel">
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <button class="btn btn-primary" id="btn-adicionar-atividade">
+                                            <i class="fas fa-plus me-2"></i>
+                                            Adicionar Atividade
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Sequência</th>
+                                                <th>Atividade</th>
+                                                <th>Centro de Trabalho</th>
+                                                <th>Tempo Previsto</th>
+                                                <th>Status</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="atividades-table">
+                                            <!-- Atividades serão inseridas aqui dinamicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Aba Materiais -->
+                            <div class="tab-pane fade" id="materiais" role="tabpanel">
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <button class="btn btn-primary" id="btn-adicionar-material">
+                                            <i class="fas fa-plus me-2"></i>
+                                            Adicionar Material
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Código</th>
+                                                <th>Descrição</th>
+                                                <th>Quantidade Necessária</th>
+                                                <th>Quantidade Consumida</th>
+                                                <th>Controle</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="materiais-table">
+                                            <!-- Materiais serão inseridos aqui dinamicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Aba Planejamento -->
+                            <div class="tab-pane fade" id="planejamento" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="data-inicio" class="form-label">Data de Início Prevista</label>
+                                            <input type="datetime-local" class="form-control" id="data-inicio">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="data-fim" class="form-label">Data de Fim Prevista</label>
+                                            <input type="datetime-local" class="form-control" id="data-fim">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="tempo-total" class="form-label">Tempo Total Previsto</label>
+                                            <input type="text" class="form-control" id="tempo-total" placeholder="00:00:00" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="tempo-realizado" class="form-label">Tempo Total Realizado</label>
+                                            <input type="text" class="form-control" id="tempo-realizado" placeholder="00:00:00" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="num-mps" class="form-label">Número MPS</label>
+                                            <input type="text" class="form-control" id="num-mps" placeholder="Número do MPS">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="periodo-mps" class="form-label">Período MPS</label>
+                                            <input type="text" class="form-control" id="periodo-mps" placeholder="Período do MPS">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar Produto -->
+    <div class="modal fade" id="modalProduto" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-box me-2"></i>
+                        Adicionar Produto
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modal-codigo-produto" class="form-label required-field">Código do Produto</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="modal-codigo-produto" required>
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-descricao-produto" class="form-label">Descrição</label>
+                        <input type="text" class="form-control" id="modal-descricao-produto" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-quantidade" class="form-label required-field">Quantidade</label>
+                        <input type="number" class="form-control" id="modal-quantidade" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-controle" class="form-label">Controle</label>
+                        <input type="text" class="form-control" id="modal-controle">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-confirmar-produto">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar Atividade -->
+    <div class="modal fade" id="modalAtividade" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-tasks me-2"></i>
+                        Adicionar Atividade
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modal-sequencia" class="form-label required-field">Sequência</label>
+                        <input type="number" class="form-control" id="modal-sequencia" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-atividade" class="form-label required-field">Atividade</label>
+                        <select class="form-select" id="modal-atividade" required>
+                            <option value="">Selecione a atividade</option>
+                            <option value="1">Corte</option>
+                            <option value="2">Solda</option>
+                            <option value="3">Pintura</option>
+                            <option value="4">Montagem</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-centro-trabalho" class="form-label">Centro de Trabalho</label>
+                        <select class="form-select" id="modal-centro-trabalho">
+                            <option value="">Selecione o centro de trabalho</option>
+                            <option value="1">CT-001 - Corte</option>
+                            <option value="2">CT-002 - Solda</option>
+                            <option value="3">CT-003 - Pintura</option>
+                            <option value="4">CT-004 - Montagem</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-tempo-previsto" class="form-label">Tempo Previsto (minutos)</label>
+                        <input type="number" class="form-control" id="modal-tempo-previsto" step="0.01">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-confirmar-atividade">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar Material -->
+    <div class="modal fade" id="modalMaterial" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-tools me-2"></i>
+                        Adicionar Material
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modal-codigo-material" class="form-label required-field">Código do Material</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="modal-codigo-material" required>
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-descricao-material" class="form-label">Descrição</label>
+                        <input type="text" class="form-control" id="modal-descricao-material" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-qtd-necessaria" class="form-label required-field">Quantidade Necessária</label>
+                        <input type="number" class="form-control" id="modal-qtd-necessaria" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-controle-material" class="form-label">Controle</label>
+                        <input type="text" class="form-control" id="modal-controle-material">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-confirmar-material">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Atualizar hora atual
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('pt-BR');
+            document.getElementById('current-time').textContent = timeString;
+        }
+
+        // Atualizar a cada segundo
+        setInterval(updateCurrentTime, 1000);
+        updateCurrentTime();
+
+        // Dados de exemplo
+        let produtos = [];
+        let atividades = [];
+        let materiais = [];
+
+        // Função para adicionar produto
+        function adicionarProduto(codigo, descricao, quantidade, controle) {
+            const produto = {
+                id: Date.now(),
+                codigo: codigo,
+                descricao: descricao,
+                quantidade: quantidade,
+                controle: controle
+            };
+            produtos.push(produto);
+            atualizarTabelaProdutos();
+        }
+
+        // Função para adicionar atividade
+        function adicionarAtividade(sequencia, atividade, centroTrabalho, tempoPrevisto) {
+            const atividadeObj = {
+                id: Date.now(),
+                sequencia: sequencia,
+                atividade: atividade,
+                centroTrabalho: centroTrabalho,
+                tempoPrevisto: tempoPrevisto,
+                status: 'Pendente'
+            };
+            atividades.push(atividadeObj);
+            atualizarTabelaAtividades();
+        }
+
+        // Função para adicionar material
+        function adicionarMaterial(codigo, descricao, quantidadeNecessaria, controle) {
+            const material = {
+                id: Date.now(),
+                codigo: codigo,
+                descricao: descricao,
+                quantidadeNecessaria: quantidadeNecessaria,
+                quantidadeConsumida: 0,
+                controle: controle
+            };
+            materiais.push(material);
+            atualizarTabelaMateriais();
+        }
+
+        // Atualizar tabela de produtos
+        function atualizarTabelaProdutos() {
+            const tbody = document.getElementById('produtos-table');
+            tbody.innerHTML = '';
+            
+            produtos.forEach(produto => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${produto.codigo}</td>
+                    <td>${produto.descricao}</td>
+                    <td>${produto.quantidade}</td>
+                    <td>${produto.controle || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="removerProduto(${produto.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Atualizar tabela de atividades
+        function atualizarTabelaAtividades() {
+            const tbody = document.getElementById('atividades-table');
+            tbody.innerHTML = '';
+            
+            atividades.forEach(atividade => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${atividade.sequencia}</td>
+                    <td>${atividade.atividade}</td>
+                    <td>${atividade.centroTrabalho || '-'}</td>
+                    <td>${atividade.tempoPrevisto || '-'}</td>
+                    <td><span class="badge bg-warning">${atividade.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="removerAtividade(${atividade.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Atualizar tabela de materiais
+        function atualizarTabelaMateriais() {
+            const tbody = document.getElementById('materiais-table');
+            tbody.innerHTML = '';
+            
+            materiais.forEach(material => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${material.codigo}</td>
+                    <td>${material.descricao}</td>
+                    <td>${material.quantidadeNecessaria}</td>
+                    <td>${material.quantidadeConsumida}</td>
+                    <td>${material.controle || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="removerMaterial(${material.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Funções para remover itens
+        function removerProduto(id) {
+            produtos = produtos.filter(p => p.id !== id);
+            atualizarTabelaProdutos();
+        }
+
+        function removerAtividade(id) {
+            atividades = atividades.filter(a => a.id !== id);
+            atualizarTabelaAtividades();
+        }
+
+        function removerMaterial(id) {
+            materiais = materiais.filter(m => m.id !== id);
+            atualizarTabelaMateriais();
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Botão adicionar produto
+            document.getElementById('btn-adicionar-produto').addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('modalProduto'));
+                modal.show();
+            });
+
+            // Botão confirmar produto
+            document.getElementById('btn-confirmar-produto').addEventListener('click', function() {
+                const codigo = document.getElementById('modal-codigo-produto').value;
+                const descricao = document.getElementById('modal-descricao-produto').value;
+                const quantidade = document.getElementById('modal-quantidade').value;
+                const controle = document.getElementById('modal-controle').value;
+
+                if (codigo && quantidade) {
+                    adicionarProduto(codigo, descricao || 'Produto ' + codigo, quantidade, controle);
+                    bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
+                    
+                    // Limpar campos
+                    document.getElementById('modal-codigo-produto').value = '';
+                    document.getElementById('modal-descricao-produto').value = '';
+                    document.getElementById('modal-quantidade').value = '';
+                    document.getElementById('modal-controle').value = '';
+                }
+            });
+
+            // Botão adicionar atividade
+            document.getElementById('btn-adicionar-atividade').addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('modalAtividade'));
+                modal.show();
+            });
+
+            // Botão confirmar atividade
+            document.getElementById('btn-confirmar-atividade').addEventListener('click', function() {
+                const sequencia = document.getElementById('modal-sequencia').value;
+                const atividade = document.getElementById('modal-atividade').value;
+                const centroTrabalho = document.getElementById('modal-centro-trabalho').value;
+                const tempoPrevisto = document.getElementById('modal-tempo-previsto').value;
+
+                if (sequencia && atividade) {
+                    const atividadeText = document.getElementById('modal-atividade').options[document.getElementById('modal-atividade').selectedIndex].text;
+                    const centroTrabalhoText = centroTrabalho ? document.getElementById('modal-centro-trabalho').options[document.getElementById('modal-centro-trabalho').selectedIndex].text : '';
+                    
+                    adicionarAtividade(sequencia, atividadeText, centroTrabalhoText, tempoPrevisto);
+                    bootstrap.Modal.getInstance(document.getElementById('modalAtividade')).hide();
+                    
+                    // Limpar campos
+                    document.getElementById('modal-sequencia').value = '';
+                    document.getElementById('modal-atividade').value = '';
+                    document.getElementById('modal-centro-trabalho').value = '';
+                    document.getElementById('modal-tempo-previsto').value = '';
+                }
+            });
+
+            // Botão adicionar material
+            document.getElementById('btn-adicionar-material').addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('modalMaterial'));
+                modal.show();
+            });
+
+            // Botão confirmar material
+            document.getElementById('btn-confirmar-material').addEventListener('click', function() {
+                const codigo = document.getElementById('modal-codigo-material').value;
+                const descricao = document.getElementById('modal-descricao-material').value;
+                const quantidadeNecessaria = document.getElementById('modal-qtd-necessaria').value;
+                const controle = document.getElementById('modal-controle-material').value;
+
+                if (codigo && quantidadeNecessaria) {
+                    adicionarMaterial(codigo, descricao || 'Material ' + codigo, quantidadeNecessaria, controle);
+                    bootstrap.Modal.getInstance(document.getElementById('modalMaterial')).hide();
+                    
+                    // Limpar campos
+                    document.getElementById('modal-codigo-material').value = '';
+                    document.getElementById('modal-descricao-material').value = '';
+                    document.getElementById('modal-qtd-necessaria').value = '';
+                    document.getElementById('modal-controle-material').value = '';
+                }
+            });
+
+            // Botões de ação
+            document.getElementById('btn-iniciar').addEventListener('click', function() {
+                if (confirm('Deseja realmente iniciar esta Ordem de Produção?')) {
+                    document.getElementById('status-badge').className = 'status-badge status-em-andamento';
+                    document.getElementById('status-badge').textContent = 'Em Andamento';
+                    document.getElementById('progress-fill').style.width = '25%';
+                    document.getElementById('progress-text').textContent = '25% concluído';
+                }
+            });
+
+            document.getElementById('btn-suspender').addEventListener('click', function() {
+                if (confirm('Deseja realmente suspender esta Ordem de Produção?')) {
+                    document.getElementById('status-badge').className = 'status-badge status-suspensa';
+                    document.getElementById('status-badge').textContent = 'Suspensa';
+                }
+            });
+
+            document.getElementById('btn-cancelar').addEventListener('click', function() {
+                if (confirm('Deseja realmente cancelar esta Ordem de Produção?')) {
+                    document.getElementById('status-badge').className = 'status-badge status-cancelada';
+                    document.getElementById('status-badge').textContent = 'Cancelada';
+                }
+            });
+
+            document.getElementById('btn-salvar').addEventListener('click', function() {
+                // Aqui você implementaria a lógica de salvamento
+                alert('Ordem de Produção salva com sucesso!');
+            });
+        });
+    </script>
+</body>
+</html> 

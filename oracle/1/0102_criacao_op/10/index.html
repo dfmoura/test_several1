@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operações de Produção</title>
+  <style>
+    :root {
+      --verde-escuro: #14532d;
+      --verde-medio: #22c55e;
+      --verde-claro: #bbf7d0;
+      --verde-vibrante: #16a34a;
+      --verde-suave: #d1fae5;
+      --cinza: #e5e7eb;
+      --cinza-escuro: #6b7280;
+      --branco: #fff;
+      --azul: #2563eb;
+      --vermelho: #dc2626;
+      --cinza-opaco: #d1d5db;
+      --fonte: 'Segoe UI', 'Arial', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--fonte);
+      background: var(--verde-suave);
+      color: var(--verde-escuro);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--verde-escuro);
+      color: var(--branco);
+      display: flex;
+      align-items: center;
+      height: 56px;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(20,83,45,0.08);
+      padding: 0 16px;
+    }
+    .header-icon {
+      width: 28px; height: 28px;
+      margin-right: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    main {
+      flex: 1;
+      margin-top: 56px;
+      margin-bottom: 56px;
+      padding: 16px 8px 0 8px;
+      max-width: 700px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .filtros {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .filtro-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: none;
+      border-radius: 6px;
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-weight: 500;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .filtro-btn.ativo {
+      background: var(--verde-medio);
+      color: var(--branco);
+    }
+    .tabela-container {
+      background: var(--branco);
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(34,197,94,0.07);
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 500px;
+    }
+    th, td {
+      padding: 12px 8px;
+      text-align: left;
+    }
+    th {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-size: 0.98rem;
+      font-weight: 600;
+      border-bottom: 2px solid var(--verde-medio);
+    }
+    tr {
+      transition: background 0.15s;
+    }
+    tr[data-situacao="Pendente"] {
+      cursor: pointer;
+    }
+    tr[data-situacao="Pendente"]:hover {
+      background: var(--verde-suave);
+    }
+    tr[data-situacao="Finalizada"] {
+      color: var(--cinza-escuro);
+      background: var(--cinza);
+      cursor: default;
+    }
+    tr[data-situacao="Cancelada"] {
+      color: var(--vermelho);
+      background: #fff0f0;
+      cursor: not-allowed;
+    }
+    .rodape {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 56px;
+      background: var(--verde-escuro);
+      color: var(--branco);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 1rem;
+      z-index: 10;
+      box-shadow: 0 -2px 8px rgba(20,83,45,0.08);
+    }
+    .rodape .status-icon {
+      width: 18px; height: 18px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    @media (max-width: 600px) {
+      main { padding: 8px 2px 0 2px; }
+      th, td { padding: 10px 4px; font-size: 0.97rem; }
+      .header-title { font-size: 1.1rem; }
+      .rodape { font-size: 0.97rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="header-icon">
+      <!-- Ícone SVG discreto -->
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <div class="filtros">
+      <button class="filtro-btn ativo" data-filtro="Pendente">Pendentes</button>
+      <button class="filtro-btn" data-filtro="Finalizada">Finalizadas</button>
+      <button class="filtro-btn" data-filtro="Cancelada">Canceladas</button>
+    </div>
+    <div class="tabela-container">
+      <table id="tabela-op">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data Fabricação</th>
+            <th>Produto (Cód + Desc)</th>
+            <th>Qtd. Produzir</th>
+            <th>Lote</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Linhas preenchidas via JS -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <footer class="rodape">
+    <span>Controle de Operações</span>
+    <span>
+      <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor"><circle cx="10" cy="10" r="8" fill="#22c55e"/></svg>
+    </span>
+  </footer>
+  <script>
+    // Dados de exemplo
+    const dados = [
+      { idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001 - Produto A', qtdproduzir: 1000, nrolote: 'L001', situacao: 'Pendente' },
+      { idiproc: 102, dtfab: '2024-06-02', codprodpa: 'P002 - Produto B', qtdproduzir: 500, nrolote: 'L002', situacao: 'Finalizada' },
+      { idiproc: 103, dtfab: '2024-06-03', codprodpa: 'P003 - Produto C', qtdproduzir: 750, nrolote: 'L003', situacao: 'Cancelada' },
+      { idiproc: 104, dtfab: '2024-06-04', codprodpa: 'P004 - Produto D', qtdproduzir: 1200, nrolote: 'L004', situacao: 'Pendente' },
+      { idiproc: 105, dtfab: '2024-06-05', codprodpa: 'P005 - Produto E', qtdproduzir: 900, nrolote: 'L005', situacao: 'Finalizada' },
+    ];
+    let filtroAtual = 'Pendente';
+    const tabela = document.getElementById('tabela-op').querySelector('tbody');
+    const botoesFiltro = document.querySelectorAll('.filtro-btn');
+    function renderTabela() {
+      tabela.innerHTML = '';
+      dados.filter(d => d.situacao === filtroAtual).forEach(d => {
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-situacao', d.situacao);
+        tr.innerHTML = `
+          <td>${d.idiproc}</td>
+          <td>${d.dtfab}</td>
+          <td>${d.codprodpa}</td>
+          <td>${d.qtdproduzir}</td>
+          <td>${d.nrolote}</td>
+        `;
+        if (d.situacao === 'Pendente') {
+          tr.addEventListener('click', () => {
+            window.location.href = 'detalhe.html?idiproc=' + d.idiproc;
+          });
+        }
+        tabela.appendChild(tr);
+      });
+    }
+    botoesFiltro.forEach(btn => {
+      btn.addEventListener('click', () => {
+        botoesFiltro.forEach(b => b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+        filtroAtual = btn.getAttribute('data-filtro');
+        renderTabela();
+      });
+    });
+    renderTabela();
+  </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operações de Produção</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='%23088A4B'/></svg>">
+</head>
+<body>
+  <header class="header">
+    <span class="icon" aria-label="ícone"></span>
+    <h1>Operações de Produção</h1>
+  </header>
+  <nav class="filters">
+    <button class="filter-btn active" data-status="Pendente">Pendentes</button>
+    <button class="filter-btn" data-status="Finalizada">Finalizadas</button>
+    <button class="filter-btn" data-status="Cancelada">Canceladas</button>
+  </nav>
+  <main>
+    <table class="main-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Data Fabricação</th>
+          <th>Produto</th>
+          <th>Qtd Produzir</th>
+          <th>Lote</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <!-- Dados de exemplo inseridos via JS -->
+      </tbody>
+    </table>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operações de Produção</title>
+  <style>
+    /* Reset básico e fontes */
+    html, body {
+      margin: 0; padding: 0; box-sizing: border-box;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f6fcf7;
+      color: #1a3d1a;
+      min-height: 100vh;
+    }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    /* Cabeçalho fixo */
+    header {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: linear-gradient(90deg, #2e7d32 60%, #43a047 100%);
+      color: #fff;
+      display: flex; align-items: center; height: 56px;
+      box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+      z-index: 10;
+      padding: 0 1rem;
+    }
+    .header-icon {
+      width: 32px; height: 32px; margin-right: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-title {
+      font-size: 1.3rem; font-weight: 600; letter-spacing: 1px;
+    }
+    main { flex: 1; padding: 72px 0 72px 0; }
+    /* Filtros */
+    .filtros {
+      display: flex; justify-content: center; gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .filtro-btn {
+      background: #e8f5e9; color: #2e7d32; border: none;
+      padding: 0.5rem 1.1rem; border-radius: 20px;
+      font-size: 1rem; font-weight: 500;
+      cursor: pointer; transition: background 0.2s, color 0.2s;
+      outline: none;
+    }
+    .filtro-btn.active, .filtro-btn:focus {
+      background: #2e7d32; color: #fff;
+    }
+    /* Tabela responsiva */
+    .tabela-container {
+      overflow-x: auto; margin: 0 0.5rem;
+    }
+    table {
+      width: 100%; border-collapse: collapse; background: #fff;
+      border-radius: 12px; box-shadow: 0 2px 8px rgba(44, 62, 80, 0.06);
+      min-width: 340px;
+    }
+    th, td {
+      padding: 0.7rem 0.5rem; text-align: left;
+    }
+    th {
+      background: #e0f2f1; color: #1b5e20; font-size: 0.98rem;
+      font-weight: 600; border-bottom: 2px solid #a5d6a7;
+    }
+    tr {
+      border-bottom: 1px solid #e0e0e0;
+      transition: background 0.15s;
+    }
+    tr.clickable {
+      cursor: pointer;
+      background: #f1f8e9;
+    }
+    tr.clickable:hover {
+      background: #c8e6c9;
+    }
+    /* Rodapé responsivo */
+    footer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #2e7d32; color: #fff;
+      text-align: center; padding: 0.7rem 0;
+      font-size: 1rem; letter-spacing: 0.5px;
+      box-shadow: 0 -2px 8px rgba(44, 62, 80, 0.07);
+      z-index: 10;
+    }
+    /* Modal overlay */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(30, 50, 30, 0.45); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(44, 62, 80, 0.18);
+      padding: 2rem 1.2rem 1.2rem 1.2rem; max-width: 90vw; width: 340px;
+      display: flex; flex-direction: column; align-items: center;
+      animation: modalIn 0.22s cubic-bezier(.4,1.4,.6,1) both;
+    }
+    @keyframes modalIn {
+      from { transform: translateY(40px) scale(0.95); opacity: 0; }
+      to { transform: none; opacity: 1; }
+    }
+    .modal h2 { margin-top: 0; color: #2e7d32; font-size: 1.2rem; }
+    .modal label { display: block; margin: 1rem 0 0.3rem 0; font-weight: 500; }
+    .modal input, .modal textarea {
+      width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid #a5d6a7;
+      font-size: 1rem; margin-bottom: 1rem;
+    }
+    .modal button {
+      background: #2e7d32; color: #fff; border: none; border-radius: 8px;
+      padding: 0.6rem 1.2rem; font-size: 1rem; font-weight: 600;
+      cursor: pointer; margin-top: 0.5rem;
+      transition: background 0.2s;
+    }
+    .modal button:hover, .modal button:focus {
+      background: #388e3c;
+    }
+    /* Responsividade */
+    @media (min-width: 600px) {
+      main { padding-left: 1.5rem; padding-right: 1.5rem; }
+      .modal { width: 400px; }
+    }
+    @media (min-width: 900px) {
+      .tabela-container { margin: 0 auto; max-width: 800px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Cabeçalho fixo -->
+  <header>
+    <span class="header-icon" aria-label="Produção">
+      <!-- SVG ícone discreto -->
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2" fill="#388e3c"/><path d="M8 12l2.5 2.5L16 9" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <!-- Filtros de situação -->
+    <nav class="filtros" aria-label="Filtros de situação">
+      <button class="filtro-btn active" data-situacao="Pendente">Pendentes</button>
+      <button class="filtro-btn" data-situacao="Finalizada">Finalizadas</button>
+      <button class="filtro-btn" data-situacao="Cancelada">Canceladas</button>
+    </nav>
+    <!-- Tabela de operações -->
+    <div class="tabela-container">
+      <table aria-label="Tabela de operações">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data Fab.</th>
+            <th>Produto</th>
+            <th>Qtd. Produzir</th>
+            <th>Lote</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-op-body">
+          <!-- Linhas geradas via JS -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <!-- Modal genérico -->
+  <div class="modal-overlay" id="modal-overlay" tabindex="-1" aria-modal="true" role="dialog">
+    <div class="modal" id="modal">
+      <h2 id="modal-title">Motivo da Ação</h2>
+      <label for="modal-motivo">Motivo:</label>
+      <textarea id="modal-motivo" rows="3" required placeholder="Descreva o motivo..."></textarea>
+      <button id="modal-confirm">Confirmar</button>
+      <button id="modal-cancel" style="background:#bdbdbd;color:#2e7d32;">Cancelar</button>
+    </div>
+  </div>
+  <!-- Rodapé -->
+  <footer>
+    &copy; 2024 Controle de Produção
+  </footer>
+  <script>
+    // Dados simulados de operações
+    const operacoes = [
+      { idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001', descprod: 'Produto A', qtdproduzir: 1000, nrolote: 'L001', situacao: 'Pendente' },
+      { idiproc: 102, dtfab: '2024-06-02', codprodpa: 'P002', descprod: 'Produto B', qtdproduzir: 800, nrolote: 'L002', situacao: 'Finalizada' },
+      { idiproc: 103, dtfab: '2024-06-03', codprodpa: 'P003', descprod: 'Produto C', qtdproduzir: 1200, nrolote: 'L003', situacao: 'Cancelada' },
+      { idiproc: 104, dtfab: '2024-06-04', codprodpa: 'P004', descprod: 'Produto D', qtdproduzir: 500, nrolote: 'L004', situacao: 'Pendente' },
+    ];
+    let situacaoAtual = 'Pendente';
+    // Renderiza tabela conforme filtro
+    function renderTabela() {
+      const tbody = document.getElementById('tabela-op-body');
+      tbody.innerHTML = '';
+      operacoes.filter(op => op.situacao === situacaoAtual).forEach(op => {
+        const tr = document.createElement('tr');
+        if (op.situacao === 'Pendente') {
+          tr.classList.add('clickable');
+          tr.tabIndex = 0;
+          tr.setAttribute('aria-label', `Ver detalhes da operação ${op.idiproc}`);
+          tr.addEventListener('click', () => abrirDetalhe(op.idiproc));
+          tr.addEventListener('keydown', e => { if (e.key === 'Enter') abrirDetalhe(op.idiproc); });
+        }
+        tr.innerHTML = `
+          <td>${op.idiproc}</td>
+          <td>${op.dtfab}</td>
+          <td>${op.codprodpa} - ${op.descprod}</td>
+          <td>${op.qtdproduzir}</td>
+          <td>${op.nrolote}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    // Filtros
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        situacaoAtual = this.dataset.situacao;
+        renderTabela();
+      });
+    });
+    // Abre detalhe.html (simulação)
+    function abrirDetalhe(idiproc) {
+      // Salva idiproc no localStorage para detalhe.html
+      localStorage.setItem('idiprocSelecionado', idiproc);
+      window.location.href = 'detalhe.html';
+    }
+    // Modal genérico (exemplo de uso)
+    function abrirModal(titulo, onConfirm) {
+      document.getElementById('modal-title').textContent = titulo;
+      document.getElementById('modal-motivo').value = '';
+      document.getElementById('modal-overlay').classList.add('active');
+      document.getElementById('modal-motivo').focus();
+      function fechar() {
+        document.getElementById('modal-overlay').classList.remove('active');
+        document.getElementById('modal-confirm').onclick = null;
+        document.getElementById('modal-cancel').onclick = null;
+      }
+      document.getElementById('modal-confirm').onclick = () => {
+        const motivo = document.getElementById('modal-motivo').value.trim();
+        if (!motivo) {
+          document.getElementById('modal-motivo').focus();
+          return;
+        }
+        fechar();
+        if (onConfirm) onConfirm(motivo);
+      };
+      document.getElementById('modal-cancel').onclick = fechar;
+      document.getElementById('modal-overlay').onkeydown = e => { if (e.key === 'Escape') fechar(); };
+    }
+    // Fecha modal ao clicar fora
+    document.getElementById('modal-overlay').addEventListener('mousedown', function(e) {
+      if (e.target === this) this.classList.remove('active');
+    });
+    // Inicialização
+    renderTabela();
+  </script>
+</body>
+</html>

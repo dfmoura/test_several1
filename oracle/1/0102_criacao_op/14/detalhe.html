@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhe da Operação</title>
+  <style>
+    html, body { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; background: #f6fcf7; color: #1a3d1a; min-height: 100vh; }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    header {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: linear-gradient(90deg, #2e7d32 60%, #43a047 100%);
+      color: #fff;
+      display: flex; align-items: center; height: 56px;
+      box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+      z-index: 10;
+      padding: 0 1rem;
+    }
+    .header-icon {
+      width: 32px; height: 32px; margin-right: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-title {
+      font-size: 1.3rem; font-weight: 600; letter-spacing: 1px;
+    }
+    main { flex: 1; padding: 72px 0 90px 0; }
+    /* Cartão resumo */
+    .cartao-resumo {
+      background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(44, 62, 80, 0.10);
+      margin: 1.2rem 0.7rem 1.2rem 0.7rem; padding: 1.2rem 1rem;
+      display: flex; flex-direction: column; gap: 0.7rem;
+      align-items: flex-start;
+    }
+    .cartao-resumo .cartao-titulo {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 1.1rem; font-weight: 600; color: #2e7d32;
+    }
+    .cartao-resumo .cartao-icones {
+      display: flex; gap: 0.5rem; margin-right: 0.5rem;
+    }
+    .cartao-resumo .campo {
+      font-size: 1rem; color: #1a3d1a;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .cartao-resumo .campo strong { color: #388e3c; min-width: 90px; display: inline-block; }
+    /* Abas */
+    .abas {
+      display: flex; border-bottom: 2px solid #a5d6a7; margin: 0 0.7rem;
+    }
+    .aba-btn {
+      background: none; border: none; color: #2e7d32; font-size: 1.05rem; font-weight: 600;
+      padding: 0.7rem 1.2rem; cursor: pointer; border-bottom: 3px solid transparent;
+      transition: border 0.2s, color 0.2s;
+    }
+    .aba-btn.active { border-bottom: 3px solid #2e7d32; color: #1b5e20; }
+    .aba-conteudo { display: none; padding: 1rem 0.7rem; }
+    .aba-conteudo.active { display: block; }
+    /* Tabelas */
+    .tabela-container { overflow-x: auto; }
+    table {
+      width: 100%; border-collapse: collapse; background: #fff;
+      border-radius: 12px; box-shadow: 0 2px 8px rgba(44, 62, 80, 0.06);
+      min-width: 340px;
+    }
+    th, td {
+      padding: 0.7rem 0.5rem; text-align: left;
+    }
+    th {
+      background: #e0f2f1; color: #1b5e20; font-size: 0.98rem;
+      font-weight: 600; border-bottom: 2px solid #a5d6a7;
+    }
+    tr { border-bottom: 1px solid #e0e0e0; transition: background 0.15s; }
+    tr.editavel { background: #f1f8e9; cursor: pointer; }
+    tr.editavel:hover { background: #c8e6c9; }
+    /* Botões principais */
+    .botoes-principais {
+      display: flex; gap: 1rem; margin: 1.2rem 0.7rem 0 0.7rem;
+      flex-wrap: wrap;
+    }
+    .btn-principal {
+      flex: 1 1 120px;
+      padding: 0.8rem 0.5rem; border: none; border-radius: 12px;
+      font-size: 1.1rem; font-weight: 600; color: #fff;
+      margin-bottom: 0.5rem;
+      cursor: pointer; transition: background 0.2s;
+      box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+    }
+    .btn-iniciar { background: #2e7d32; }
+    .btn-parar { background: #c62828; }
+    .btn-continuar { background: #1976d2; }
+    .btn-finalizar { background: #388e3c; }
+    .btn-principal:disabled { background: #bdbdbd; color: #fff; cursor: not-allowed; }
+    /* Modal overlay */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(30, 50, 30, 0.45); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(44, 62, 80, 0.18);
+      padding: 2rem 1.2rem 1.2rem 1.2rem; max-width: 90vw; width: 340px;
+      display: flex; flex-direction: column; align-items: center;
+      animation: modalIn 0.22s cubic-bezier(.4,1.4,.6,1) both;
+    }
+    @keyframes modalIn {
+      from { transform: translateY(40px) scale(0.95); opacity: 0; }
+      to { transform: none; opacity: 1; }
+    }
+    .modal h2 { margin-top: 0; color: #2e7d32; font-size: 1.2rem; }
+    .modal label { display: block; margin: 1rem 0 0.3rem 0; font-weight: 500; }
+    .modal input, .modal textarea {
+      width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid #a5d6a7;
+      font-size: 1rem; margin-bottom: 1rem;
+    }
+    .modal button {
+      background: #2e7d32; color: #fff; border: none; border-radius: 8px;
+      padding: 0.6rem 1.2rem; font-size: 1rem; font-weight: 600;
+      cursor: pointer; margin-top: 0.5rem;
+      transition: background 0.2s;
+    }
+    .modal button:hover, .modal button:focus {
+      background: #388e3c;
+    }
+    /* Rodapé responsivo */
+    footer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #2e7d32; color: #fff;
+      text-align: center; padding: 0.7rem 0;
+      font-size: 1rem; letter-spacing: 0.5px;
+      box-shadow: 0 -2px 8px rgba(44, 62, 80, 0.07);
+      z-index: 10;
+      display: flex; justify-content: center; align-items: center;
+    }
+    .btn-voltar {
+      background: #fff; color: #2e7d32; border: 2px solid #2e7d32;
+      border-radius: 12px; font-size: 1.1rem; font-weight: 600;
+      padding: 0.7rem 2.2rem; margin: 0 1rem;
+      cursor: pointer; transition: background 0.2s, color 0.2s;
+      box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+    }
+    .btn-voltar:active, .btn-voltar:focus { background: #e8f5e9; color: #1b5e20; }
+    @media (min-width: 600px) {
+      main { padding-left: 1.5rem; padding-right: 1.5rem; }
+      .modal { width: 400px; }
+    }
+    @media (min-width: 900px) {
+      .cartao-resumo, .tabela-container, .abas { margin-left: auto; margin-right: auto; max-width: 800px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Cabeçalho fixo -->
+  <header>
+    <span class="header-icon" aria-label="Produção">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2" fill="#388e3c"/><path d="M8 12l2.5 2.5L16 9" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <!-- Cartão de resumo do item -->
+    <section class="cartao-resumo" id="cartao-resumo">
+      <!-- Conteúdo preenchido via JS -->
+    </section>
+    <!-- Botões principais -->
+    <div class="botoes-principais">
+      <button id="btn-acao" class="btn-principal btn-iniciar">Iniciar</button>
+      <button id="btn-finalizar" class="btn-principal btn-finalizar" disabled>Finalizar</button>
+    </div>
+    <!-- Abas -->
+    <nav class="abas" aria-label="Abas de navegação">
+      <button class="aba-btn active" data-aba="apontamentos">Apontamentos</button>
+      <button class="aba-btn" data-aba="execucao">Execução</button>
+    </nav>
+    <section class="aba-conteudo active" id="aba-apontamentos">
+      <div class="tabela-container">
+        <table aria-label="Tabela de Apontamentos">
+          <thead>
+            <tr>
+              <th>Nota</th><th>Usuário</th><th>Data/Hora</th><th>Situação</th><th>Qtd. Apontada</th><th>Qtd. Perda</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-apontamentos"></tbody>
+        </table>
+      </div>
+      <button id="btn-novo-apontamento" class="btn-principal btn-iniciar" style="margin-top:1rem;width:100%;">Adicionar Apontamento</button>
+    </section>
+    <section class="aba-conteudo" id="aba-execucao">
+      <div class="tabela-container">
+        <table aria-label="Tabela de Execução">
+          <thead>
+            <tr>
+              <th>Início</th><th>Fim</th><th>Tipo</th><th>Usuário</th><th>Motivo</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-execucao"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <!-- Modal overlay -->
+  <div class="modal-overlay" id="modal-overlay" tabindex="-1" aria-modal="true" role="dialog">
+    <div class="modal" id="modal">
+      <h2 id="modal-title">Motivo</h2>
+      <label for="modal-motivo">Motivo:</label>
+      <textarea id="modal-motivo" rows="3" required placeholder="Descreva o motivo..."></textarea>
+      <button id="modal-confirm">Confirmar</button>
+      <button id="modal-cancel" style="background:#bdbdbd;color:#2e7d32;">Cancelar</button>
+    </div>
+  </div>
+  <!-- Modal de apontamento -->
+  <div class="modal-overlay" id="modal-apont-overlay" tabindex="-1" aria-modal="true" role="dialog">
+    <div class="modal" id="modal-apont">
+      <h2 id="modal-apont-title">Novo Apontamento</h2>
+      <form id="form-apontamento">
+        <label for="apont-qtd">Qtd. Apontada:</label>
+        <input type="number" id="apont-qtd" min="0" required>
+        <label for="apont-perda">Qtd. Perda:</label>
+        <input type="number" id="apont-perda" min="0" required>
+        <button type="submit">Salvar</button>
+        <button type="button" id="apont-cancel" style="background:#bdbdbd;color:#2e7d32;">Cancelar</button>
+      </form>
+    </div>
+  </div>
+  <!-- Rodapé -->
+  <footer>
+    <button class="btn-voltar" onclick="window.location.href='index.html'">Voltar</button>
+    <span style="flex:1"></span>
+    &copy; 2024 Controle de Produção
+  </footer>
+  <script>
+    // Simulação de dados e estado
+    const usuarioAtual = 'usu01';
+    const idiproc = localStorage.getItem('idiprocSelecionado') || 101;
+    // Dados simulados (em produção, viriam de API)
+    const operacoes = [
+      { idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001', descprod: 'Produto A', qtdproduzir: 1000, nrolote: 'L001', situacao: 'Pendente' },
+      { idiproc: 102, dtfab: '2024-06-02', codprodpa: 'P002', descprod: 'Produto B', qtdproduzir: 800, nrolote: 'L002', situacao: 'Finalizada' },
+      { idiproc: 104, dtfab: '2024-06-04', codprodpa: 'P004', descprod: 'Produto D', qtdproduzir: 500, nrolote: 'L004', situacao: 'Pendente' },
+    ];
+    let operacao = operacoes.find(o => o.idiproc == idiproc) || operacoes[0];
+    // Estado da operação
+    let estado = 'naoiniciada'; // naoiniciada, andamento, pausada, finalizada
+    // Apontamentos e execuções simulados
+    let apontamentos = [
+      { nunota: 1, codusu: 'usu01', dhapontamento: '2024-06-10 08:00', situacao: 'Pendente', qtdapontada: 200, qtdperda: 0 },
+      { nunota: 2, codusu: 'usu02', dhapontamento: '2024-06-10 09:00', situacao: 'Finalizada', qtdapontada: 300, qtdperda: 10 },
+    ];
+    let execucoes = [
+      { dhinicio: '2024-06-10 08:00', dhfinal: '2024-06-10 09:00', tipo: 'normal', codusu: 'usu01', motivo: '' },
+      { dhinicio: '2024-06-10 09:05', dhfinal: '', tipo: 'parada', codusu: 'usu01', motivo: 'Manutenção' },
+    ];
+    // Renderiza cartão resumo
+    function renderResumo() {
+      const c = operacao;
+      document.getElementById('cartao-resumo').innerHTML = `
+        <div class="cartao-titulo">
+          <span class="cartao-icones">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#388e3c" stroke-width="2" fill="#e8f5e9"/></svg>
+          </span>
+          Detalhe da Operação
+        </div>
+        <div class="campo"><strong>ID:</strong> ${c.idiproc}</div>
+        <div class="campo"><strong>Data Fab.:</strong> ${c.dtfab}</div>
+        <div class="campo"><strong>Produto:</strong> ${c.codprodpa} - ${c.descprod}</div>
+        <div class="campo"><strong>Qtd. Produzir:</strong> ${c.qtdproduzir}</div>
+        <div class="campo"><strong>Lote:</strong> ${c.nrolote}</div>
+      `;
+    }
+    // Abas
+    document.querySelectorAll('.aba-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.aba-conteudo').forEach(sec => sec.classList.remove('active'));
+        document.getElementById('aba-' + this.dataset.aba).classList.add('active');
+      });
+    });
+    // Renderiza apontamentos
+    function renderApontamentos() {
+      const tbody = document.getElementById('tbody-apontamentos');
+      tbody.innerHTML = '';
+      apontamentos.forEach((a, idx) => {
+        const tr = document.createElement('tr');
+        if (a.situacao === 'Pendente') tr.classList.add('editavel');
+        tr.innerHTML = `
+          <td>${a.nunota}</td>
+          <td>${a.codusu}</td>
+          <td>${a.dhapontamento}</td>
+          <td>${a.situacao}</td>
+          <td>${a.qtdapontada}</td>
+          <td>${a.qtdperda}</td>
+          <td>
+            <button onclick="editarApontamento(${idx})" ${a.situacao!=='Pendente'?'disabled':''} title="Editar">✏️</button>
+            <button onclick="deletarApontamento(${idx})" ${a.situacao!=='Pendente'?'disabled':''} title="Deletar">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    // Renderiza execuções
+    function renderExecucoes() {
+      const tbody = document.getElementById('tbody-execucao');
+      tbody.innerHTML = '';
+      execucoes.forEach(e => {
+        tbody.innerHTML += `<tr>
+          <td>${e.dhinicio}</td>
+          <td>${e.dhfinal||'-'}</td>
+          <td>${e.tipo}</td>
+          <td>${e.codusu}</td>
+          <td>${e.motivo||'-'}</td>
+        </tr>`;
+      });
+    }
+    // Botões principais: Iniciar/Parar/Continuar/Finalizar
+    const btnAcao = document.getElementById('btn-acao');
+    const btnFinalizar = document.getElementById('btn-finalizar');
+    function atualizarBotoes() {
+      if (estado === 'naoiniciada') {
+        btnAcao.textContent = 'Iniciar';
+        btnAcao.className = 'btn-principal btn-iniciar';
+        btnAcao.disabled = false;
+        btnFinalizar.disabled = true;
+      } else if (estado === 'andamento') {
+        btnAcao.textContent = 'Parar';
+        btnAcao.className = 'btn-principal btn-parar';
+        btnAcao.disabled = false;
+        btnFinalizar.disabled = false;
+      } else if (estado === 'pausada') {
+        btnAcao.textContent = 'Continuar';
+        btnAcao.className = 'btn-principal btn-continuar';
+        btnAcao.disabled = false;
+        btnFinalizar.disabled = true;
+      } else if (estado === 'finalizada') {
+        btnAcao.textContent = 'Finalizada';
+        btnAcao.className = 'btn-principal btn-finalizar';
+        btnAcao.disabled = true;
+        btnFinalizar.disabled = true;
+      }
+    }
+    btnAcao.onclick = function() {
+      if (estado === 'naoiniciada') {
+        // Iniciar operação
+        estado = 'andamento';
+        execucoes.push({ dhinicio: dataHoraAtual(), dhfinal: '', tipo: 'normal', codusu: usuarioAtual, motivo: '' });
+      } else if (estado === 'andamento') {
+        // Parar operação: exige motivo
+        abrirModal('Motivo da Parada', motivo => {
+          // Fecha execução anterior
+          const exec = execucoes.find(e => !e.dhfinal);
+          if (exec) exec.dhfinal = dataHoraAtual();
+          execucoes.push({ dhinicio: dataHoraAtual(), dhfinal: '', tipo: 'parada', codusu: usuarioAtual, motivo });
+          estado = 'pausada';
+          atualizarBotoes();
+          renderExecucoes();
+        });
+        return;
+      } else if (estado === 'pausada') {
+        // Continuar operação
+        // Fecha execução anterior
+        const exec = execucoes.find(e => !e.dhfinal);
+        if (exec) exec.dhfinal = dataHoraAtual();
+        execucoes.push({ dhinicio: dataHoraAtual(), dhfinal: '', tipo: 'normal', codusu: usuarioAtual, motivo: '' });
+        estado = 'andamento';
+      }
+      atualizarBotoes();
+      renderExecucoes();
+    };
+    btnFinalizar.onclick = function() {
+      if (estado === 'andamento') {
+        // Finalizar operação
+        const exec = execucoes.find(e => !e.dhfinal);
+        if (exec) exec.dhfinal = dataHoraAtual();
+        execucoes.push({ dhinicio: dataHoraAtual(), dhfinal: dataHoraAtual(), tipo: 'finalizado', codusu: usuarioAtual, motivo: '' });
+        estado = 'finalizada';
+        atualizarBotoes();
+        renderExecucoes();
+      }
+    };
+    // Modal genérico (motivo)
+    function abrirModal(titulo, onConfirm) {
+      document.getElementById('modal-title').textContent = titulo;
+      document.getElementById('modal-motivo').value = '';
+      document.getElementById('modal-overlay').classList.add('active');
+      document.getElementById('modal-motivo').focus();
+      function fechar() {
+        document.getElementById('modal-overlay').classList.remove('active');
+        document.getElementById('modal-confirm').onclick = null;
+        document.getElementById('modal-cancel').onclick = null;
+      }
+      document.getElementById('modal-confirm').onclick = () => {
+        const motivo = document.getElementById('modal-motivo').value.trim();
+        if (!motivo) {
+          document.getElementById('modal-motivo').focus();
+          return;
+        }
+        fechar();
+        if (onConfirm) onConfirm(motivo);
+      };
+      document.getElementById('modal-cancel').onclick = fechar;
+      document.getElementById('modal-overlay').onkeydown = e => { if (e.key === 'Escape') fechar(); };
+    }
+    // Fecha modal ao clicar fora
+    document.getElementById('modal-overlay').addEventListener('mousedown', function(e) {
+      if (e.target === this) this.classList.remove('active');
+    });
+    // Modal de apontamento (novo/editar)
+    function abrirModalApontamento(idx) {
+      const overlay = document.getElementById('modal-apont-overlay');
+      const form = document.getElementById('form-apontamento');
+      const title = document.getElementById('modal-apont-title');
+      let editando = typeof idx === 'number';
+      let apont = editando ? apontamentos[idx] : null;
+      // Preencher campos
+      if (editando) {
+        title.textContent = 'Editar Apontamento';
+        form['apont-qtd'].value = apont.qtdapontada;
+        form['apont-perda'].value = apont.qtdperda;
+      } else {
+        title.textContent = 'Novo Apontamento';
+        // Sugerir valor baseado no saldo
+        const totalApontado = somaApontamentos();
+        const saldo = operacao.qtdproduzir - totalApontado;
+        form['apont-qtd'].value = saldo > 0 ? saldo : 0;
+        form['apont-perda'].value = 0;
+      }
+      overlay.classList.add('active');
+      form['apont-qtd'].focus();
+      // Cancelar
+      document.getElementById('apont-cancel').onclick = () => overlay.classList.remove('active');
+      // Submissão
+      form.onsubmit = function(e) {
+        e.preventDefault();
+        const qtdapontada = parseInt(form['apont-qtd'].value, 10) || 0;
+        const qtdperda = parseInt(form['apont-perda'].value, 10) || 0;
+        if (qtdapontada < 0 || qtdperda < 0) return;
+        // Validação de limite
+        let total = somaApontamentos();
+        if (editando) total -= (apont.qtdapontada + apont.qtdperda);
+        if (total + qtdapontada + qtdperda > operacao.qtdproduzir) {
+          alert('A soma dos apontamentos não pode ultrapassar a quantidade a produzir!');
+          return;
+        }
+        if (editando) {
+          apont.qtdapontada = qtdapontada;
+          apont.qtdperda = qtdperda;
+        } else {
+          apontamentos.push({
+            nunota: apontamentos.length ? Math.max(...apontamentos.map(a=>a.nunota))+1 : 1,
+            codusu: usuarioAtual,
+            dhapontamento: dataHoraAtual(),
+            situacao: 'Pendente',
+            qtdapontada, qtdperda
+          });
+        }
+        overlay.classList.remove('active');
+        renderApontamentos();
+      };
+    }
+    // Editar apontamento
+    window.editarApontamento = function(idx) {
+      abrirModalApontamento(idx);
+    };
+    // Deletar apontamento
+    window.deletarApontamento = function(idx) {
+      if (confirm('Deseja realmente deletar este apontamento?')) {
+        apontamentos.splice(idx, 1);
+        renderApontamentos();
+      }
+    };
+    // Soma total dos apontamentos
+    function somaApontamentos() {
+      return apontamentos.reduce((s, a) => s + a.qtdapontada + a.qtdperda, 0);
+    }
+    // Botão novo apontamento
+    document.getElementById('btn-novo-apontamento').onclick = () => abrirModalApontamento();
+    // Renderização inicial
+    function dataHoraAtual() {
+      const d = new Date();
+      return d.toISOString().slice(0,16).replace('T',' ');
+    }
+    function init() {
+      renderResumo();
+      renderApontamentos();
+      renderExecucoes();
+      atualizarBotoes();
+    }
+    init();
+  </script>
+</body>
+</html>

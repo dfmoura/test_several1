@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhe da Operação</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='%23088A4B'/></svg>">
+</head>
+<body>
+  <header class="header">
+    <span class="icon" aria-label="ícone"></span>
+    <h1>Operações de Produção</h1>
+  </header>
+  <main class="detail-main">
+    <section class="resumo" id="resumo">
+      <!-- Resumo do registro selecionado -->
+    </section>
+    <section class="botoes-controle">
+      <button id="btn-acao" class="btn-principal">Iniciar</button>
+      <button id="btn-finalizar" class="btn-secundario" disabled>Finalizar</button>
+    </section>
+    <nav class="abas">
+      <button class="aba-btn active" data-aba="apontamentos">Apontamentos</button>
+      <button class="aba-btn" data-aba="execucao">Execução</button>
+    </nav>
+    <section class="aba-conteudo" id="aba-apontamentos">
+      <table class="main-table">
+        <thead>
+          <tr>
+            <th>nunota</th>
+            <th>codusu</th>
+            <th>dhapontamento</th>
+            <th>situação</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="apontamentos-body">
+          <!-- Dados via JS -->
+        </tbody>
+      </table>
+    </section>
+    <section class="aba-conteudo" id="aba-execucao" style="display:none;">
+      <table class="main-table">
+        <thead>
+          <tr>
+            <th>dhinicio</th>
+            <th>dhfinal</th>
+            <th>tipo</th>
+            <th>codusu</th>
+            <th>motivo</th>
+          </tr>
+        </thead>
+        <tbody id="execucao-body">
+          <!-- Dados via JS -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html> 

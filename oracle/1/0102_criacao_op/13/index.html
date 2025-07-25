@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operações de Produção</title>
+  <style>
+    /* =========================
+       VARIÁVEIS DE CORES
+    ========================= */
+    :root {
+      --verde-primario: #2ecc40;
+      --verde-secundario: #27ae60;
+      --verde-terciario: #a3e635;
+      --verde-escuro: #14532d;
+      --verde-claro: #d1fae5;
+      --cinza-claro: #f3f4f6;
+      --cinza-medio: #e5e7eb;
+      --cinza-escuro: #374151;
+      --branco: #fff;
+      --vermelho: #e74c3c;
+      --azul: #2563eb;
+      --sombra: 0 2px 8px rgba(44, 204, 64, 0.08);
+      --borda-radius: 14px;
+      --transicao: 0.18s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* =========================
+       RESET E BASE
+    ========================= */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: var(--cinza-claro); color: var(--cinza-escuro); }
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    ::selection { background: var(--verde-terciario); color: var(--verde-escuro); }
+
+    /* =========================
+       CABEÇALHO FIXO
+    ========================= */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--branco);
+      box-shadow: var(--sombra);
+      display: flex;
+      align-items: center;
+      z-index: 10;
+      padding: 0 1.2rem;
+      border-bottom: 2px solid var(--verde-primario);
+    }
+    .header-icone {
+      width: 32px; height: 32px;
+      margin-right: 1rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-icone svg {
+      width: 24px; height: 24px; fill: var(--verde-primario);
+    }
+    .header-titulo {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--verde-escuro);
+    }
+
+    /* =========================
+       FILTRO DE SITUAÇÃO
+    ========================= */
+    .filtros {
+      display: flex;
+      gap: 0.7rem;
+      margin: 80px 0 18px 0;
+      justify-content: center;
+    }
+    .filtro-btn {
+      padding: 0.5em 1.2em;
+      border-radius: var(--borda-radius);
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-weight: 600;
+      font-size: 1rem;
+      border: 2px solid transparent;
+      transition: background var(--transicao), color var(--transicao), border var(--transicao);
+    }
+    .filtro-btn.ativo {
+      background: var(--verde-primario);
+      color: var(--branco);
+      border-color: var(--verde-escuro);
+      box-shadow: 0 2px 8px rgba(44,204,64,0.10);
+    }
+    .filtro-btn:active {
+      background: var(--verde-secundario);
+    }
+
+    /* =========================
+       TABELA RESPONSIVA
+    ========================= */
+    .tabela-container {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--branco);
+      border-radius: var(--borda-radius);
+      box-shadow: var(--sombra);
+      overflow-x: auto;
+      padding: 0.5rem 0.5rem 1.5rem 0.5rem;
+      min-height: 320px;
+      transition: box-shadow var(--transicao);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+    thead {
+      background: var(--verde-claro);
+    }
+    th, td {
+      padding: 0.7em 0.5em;
+      text-align: left;
+      font-size: 1rem;
+    }
+    th {
+      color: var(--verde-escuro);
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      border-bottom: 2px solid var(--verde-primario);
+    }
+    tr {
+      transition: background var(--transicao);
+    }
+    tbody tr.interativo {
+      cursor: pointer;
+      background: var(--verde-claro);
+      transition: background var(--transicao), box-shadow var(--transicao);
+    }
+    tbody tr.interativo:hover {
+      background: var(--verde-terciario);
+      box-shadow: 0 2px 8px rgba(44,204,64,0.10);
+    }
+    tbody tr:not(.interativo):hover {
+      background: var(--cinza-medio);
+    }
+    td {
+      border-bottom: 1px solid var(--cinza-medio);
+      color: var(--cinza-escuro);
+    }
+    /* Responsividade da tabela */
+    @media (max-width: 700px) {
+      .tabela-container { min-width: 0; padding: 0.2rem; }
+      table { min-width: 400px; font-size: 0.95rem; }
+      th, td { padding: 0.5em 0.3em; }
+    }
+    @media (max-width: 480px) {
+      .tabela-container { padding: 0.1rem; }
+      table { min-width: 320px; font-size: 0.92rem; }
+      th, td { padding: 0.35em 0.2em; }
+    }
+
+    /* =========================
+       RODAPÉ FIXO
+    ========================= */
+    footer {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 48px;
+      background: var(--branco);
+      border-top: 2px solid var(--verde-primario);
+      box-shadow: var(--sombra);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.2rem;
+      z-index: 10;
+    }
+    .footer-app {
+      font-size: 1rem;
+      color: var(--verde-escuro);
+      font-weight: 600;
+      display: flex; align-items: center;
+      gap: 0.5em;
+    }
+    .footer-status {
+      display: flex; align-items: center; gap: 0.4em;
+      font-size: 0.95rem;
+      color: var(--verde-primario);
+    }
+    .footer-status-icone {
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .footer-status-icone svg {
+      width: 16px; height: 16px; fill: var(--verde-primario);
+    }
+
+    /* =========================
+       AJUSTES DE ESPAÇAMENTO
+    ========================= */
+    main { flex: 1 1 auto; padding-top: 60px; padding-bottom: 48px; }
+    @media (max-width: 480px) {
+      main { padding-top: 56px; padding-bottom: 44px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- =========================
+       CABEÇALHO FIXO
+  ========================= -->
+  <header>
+    <span class="header-icone" aria-label="Ícone Produção">
+      <!-- Ícone SVG discreto -->
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.12"/><path d="M7 17V7h10v10z"/></svg>
+    </span>
+    <span class="header-titulo">Operações de Produção</span>
+  </header>
+
+  <!-- =========================
+       FILTRO DE SITUAÇÃO
+  ========================= -->
+  <nav class="filtros" aria-label="Filtrar por situação">
+    <button class="filtro-btn ativo" data-situacao="Pendente">Pendentes</button>
+    <button class="filtro-btn" data-situacao="Finalizada">Finalizadas</button>
+    <button class="filtro-btn" data-situacao="Cancelada">Canceladas</button>
+  </nav>
+
+  <!-- =========================
+       TABELA DE OPERAÇÕES
+  ========================= -->
+  <main>
+    <section class="tabela-container" aria-label="Tabela de operações">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data Fabricação</th>
+            <th>Produto (Cód. + Descrição)</th>
+            <th>Qtd. Produzir</th>
+            <th>Lote</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-op">
+          <!-- Linhas geradas dinamicamente -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- =========================
+       RODAPÉ FIXO
+  ========================= -->
+  <footer>
+    <span class="footer-app">
+      <span class="footer-status-icone">
+        <!-- Ícone status -->
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.12"/><path d="M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
+      </span>
+      Controle de Produção
+    </span>
+    <span class="footer-status">
+      <span class="footer-status-icone">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.12"/><path d="M12 8v4l3 3"/></svg>
+      </span>
+      Online
+    </span>
+  </footer>
+
+  <!-- =========================
+       SCRIPT PRINCIPAL
+  ========================= -->
+  <script>
+    // =========================
+    // DADOS DE EXEMPLO (simulação)
+    // =========================
+    const operacoes = [
+      {
+        idiproc: 101,
+        dtfab: '2024-06-01',
+        codprodpa: 'P001 - Produto A',
+        qtdproduzir: 1200,
+        nrolote: 'L-20240601',
+        situacao: 'Pendente'
+      },
+      {
+        idiproc: 102,
+        dtfab: '2024-06-02',
+        codprodpa: 'P002 - Produto B',
+        qtdproduzir: 800,
+        nrolote: 'L-20240602',
+        situacao: 'Finalizada'
+      },
+      {
+        idiproc: 103,
+        dtfab: '2024-06-03',
+        codprodpa: 'P003 - Produto C',
+        qtdproduzir: 500,
+        nrolote: 'L-20240603',
+        situacao: 'Cancelada'
+      },
+      {
+        idiproc: 104,
+        dtfab: '2024-06-04',
+        codprodpa: 'P004 - Produto D',
+        qtdproduzir: 2000,
+        nrolote: 'L-20240604',
+        situacao: 'Pendente'
+      }
+    ];
+
+    // =========================
+    // ESTADO ATUAL DO FILTRO
+    // =========================
+    let filtroAtual = 'Pendente';
+
+    // =========================
+    // FUNÇÃO PARA RENDERIZAR TABELA
+    // =========================
+    function renderTabela() {
+      const tbody = document.getElementById('tabela-op');
+      tbody.innerHTML = '';
+      const filtrados = operacoes.filter(op => op.situacao === filtroAtual);
+      if (filtrados.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 5;
+        td.style.textAlign = 'center';
+        td.style.color = 'var(--cinza-escuro)';
+        td.textContent = 'Nenhuma operação encontrada.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+      filtrados.forEach(op => {
+        const tr = document.createElement('tr');
+        // Apenas "Pendente" é interativo
+        if (op.situacao === 'Pendente') {
+          tr.classList.add('interativo');
+          tr.tabIndex = 0;
+          tr.setAttribute('aria-label', `Ver detalhes da operação ${op.idiproc}`);
+          tr.addEventListener('click', () => abrirDetalhe(op));
+          tr.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') abrirDetalhe(op);
+          });
+        }
+        tr.innerHTML = `
+          <td>${op.idiproc}</td>
+          <td>${op.dtfab}</td>
+          <td>${op.codprodpa}</td>
+          <td>${op.qtdproduzir}</td>
+          <td>${op.nrolote}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // =========================
+    // FUNÇÃO PARA TROCAR FILTRO
+    // =========================
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
+        this.classList.add('ativo');
+        filtroAtual = this.dataset.situacao;
+        renderTabela();
+      });
+    });
+
+    // =========================
+    // ABRIR DETALHE (simulação)
+    // =========================
+    function abrirDetalhe(op) {
+      // Salva no localStorage para detalhe.html
+      localStorage.setItem('opSelecionada', JSON.stringify(op));
+      window.location.href = 'detalhe.html';
+    }
+
+    // =========================
+    // INICIALIZAÇÃO
+    // =========================
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTabela();
+    });
+  </script>
+</body>
+</html>

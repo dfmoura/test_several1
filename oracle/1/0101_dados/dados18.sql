@@ -232,7 +232,7 @@ BEGIN
         VALUES (
             v_codfila, v_assunto, NULL, SYSDATE, 'Pendente',
             0, 0, v_corpo, 'E', 3,
-            v_email, 11
+            'diogo.moura@neuon.com.br', 31
         );
         
          

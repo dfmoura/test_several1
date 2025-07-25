@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operações de Produção</title>
+  <style>
+    :root {
+      --verde-principal: #2ecc40;
+      --verde-escuro: #218c29;
+      --verde-claro: #a8e6a3;
+      --cinza-fundo: #f7f7f7;
+      --cinza-claro: #e0e0e0;
+      --cinza-escuro: #444;
+      --branco: #fff;
+      --sombra: 0 2px 8px rgba(44,204,64,0.08);
+      --radius: 14px;
+      --trans: 0.2s cubic-bezier(.4,0,.2,1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--cinza-fundo);
+      color: var(--cinza-escuro);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--branco);
+      box-shadow: var(--sombra);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      height: 56px;
+      padding: 0 1rem;
+    }
+    .header-icon {
+      width: 32px; height: 32px;
+      margin-right: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-icon svg {
+      width: 24px; height: 24px; fill: var(--verde-principal);
+    }
+    .header-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    main {
+      flex: 1;
+      margin-top: 56px;
+      margin-bottom: 64px;
+      padding: 1rem 0.5rem 0.5rem 0.5rem;
+      max-width: 700px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .filtros {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      justify-content: center;
+    }
+    .filtro-btn {
+      background: var(--cinza-claro);
+      color: var(--cinza-escuro);
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.5rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background var(--trans), color var(--trans);
+    }
+    .filtro-btn.ativo {
+      background: var(--verde-principal);
+      color: var(--branco);
+      font-weight: 600;
+    }
+    .tabela-container {
+      background: var(--branco);
+      border-radius: var(--radius);
+      box-shadow: var(--sombra);
+      overflow-x: auto;
+      padding: 0.5rem 0.5rem 0.2rem 0.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 500px;
+    }
+    th, td {
+      padding: 0.7rem 0.5rem;
+      text-align: left;
+      font-size: 1rem;
+    }
+    th {
+      color: var(--verde-escuro);
+      font-weight: 700;
+      border-bottom: 2px solid var(--verde-principal);
+      background: var(--branco);
+    }
+    tr {
+      transition: background var(--trans);
+    }
+    tr[data-clicavel="true"] {
+      cursor: pointer;
+    }
+    tr[data-clicavel="true"]:hover {
+      background: var(--verde-claro);
+    }
+    tr:not(:last-child) td {
+      border-bottom: 1px solid var(--cinza-claro);
+    }
+    .vazio {
+      text-align: center;
+      color: #aaa;
+      padding: 2rem 0;
+    }
+    footer {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: var(--branco);
+      box-shadow: 0 -2px 8px rgba(44,204,64,0.08);
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: var(--verde-escuro);
+      z-index: 10;
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
+    }
+    @media (max-width: 600px) {
+      main { padding: 0.5rem 0.1rem 0.1rem 0.1rem; }
+      table { min-width: 350px; font-size: 0.95rem; }
+      th, td { padding: 0.5rem 0.2rem; }
+      .header-title { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="header-icon">
+      <!-- Ícone SVG discreto -->
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" opacity="0.12"/><path d="M7 12h10M12 7v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+  </header>
+  <main>
+    <nav class="filtros" aria-label="Filtrar situação">
+      <button class="filtro-btn ativo" data-situacao="Pendentes">Pendentes</button>
+      <button class="filtro-btn" data-situacao="Finalizadas">Finalizadas</button>
+      <button class="filtro-btn" data-situacao="Canceladas">Canceladas</button>
+    </nav>
+    <section class="tabela-container">
+      <table id="tabela-op">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data Fabricação</th>
+            <th>Produto (Cód + Desc.)</th>
+            <th>Qtd. Produzir</th>
+            <th>Lote</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Registros inseridos via JS -->
+        </tbody>
+      </table>
+      <div class="vazio" id="msg-vazio" style="display:none;">Nenhum registro encontrado.</div>
+    </section>
+  </main>
+  <footer>
+    <span>Controle de Produção &copy; 2024</span>
+  </footer>
+  <script>
+    // Dados simulados (poderiam vir de API)
+    const registros = [
+      { idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001 - Produto A', qtdproduzir: 1000, nrolote: 'L001', situacao: 'Pendentes' },
+      { idiproc: 102, dtfab: '2024-06-02', codprodpa: 'P002 - Produto B', qtdproduzir: 500, nrolote: 'L002', situacao: 'Finalizadas' },
+      { idiproc: 103, dtfab: '2024-06-03', codprodpa: 'P003 - Produto C', qtdproduzir: 750, nrolote: 'L003', situacao: 'Pendentes' },
+      { idiproc: 104, dtfab: '2024-06-04', codprodpa: 'P004 - Produto D', qtdproduzir: 1200, nrolote: 'L004', situacao: 'Canceladas' },
+      { idiproc: 105, dtfab: '2024-06-05', codprodpa: 'P005 - Produto E', qtdproduzir: 900, nrolote: 'L005', situacao: 'Pendentes' },
+    ];
+    let situacaoAtual = 'Pendentes';
+    function renderTabela() {
+      const tbody = document.querySelector('#tabela-op tbody');
+      tbody.innerHTML = '';
+      const filtrados = registros.filter(r => r.situacao === situacaoAtual);
+      if (filtrados.length === 0) {
+        document.getElementById('msg-vazio').style.display = 'block';
+        return;
+      } else {
+        document.getElementById('msg-vazio').style.display = 'none';
+      }
+      filtrados.forEach(reg => {
+        const tr = document.createElement('tr');
+        if (situacaoAtual === 'Pendentes') {
+          tr.setAttribute('data-clicavel', 'true');
+          tr.addEventListener('click', () => {
+            window.location.href = 'detalhe.html?id=' + reg.idiproc;
+          });
+        }
+        tr.innerHTML = `
+          <td>${reg.idiproc}</td>
+          <td>${reg.dtfab}</td>
+          <td>${reg.codprodpa}</td>
+          <td>${reg.qtdproduzir}</td>
+          <td>${reg.nrolote}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
+        this.classList.add('ativo');
+        situacaoAtual = this.getAttribute('data-situacao');
+        renderTabela();
+      });
+    });
+    renderTabela();
+  </script>
+</body>
+</html>

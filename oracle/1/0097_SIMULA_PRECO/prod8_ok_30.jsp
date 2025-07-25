@@ -1291,7 +1291,7 @@ ORDER BY 2,6,4 DESC
 
 // Função para buscar o próximo ID disponível na tabela
 async function getNextId() {
-  const result = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_ESTIMATIVAPRECO');
+  const result = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_TESTEPRECO');
   const maxId = result?.[0]?.MAXID || 0;
   return parseInt(maxId, 10) + 1;
 }
@@ -1414,7 +1414,7 @@ function hideStatusOverlay() {
         DTVIGOR: item.dataVigor || ''
       };
 
-      await JX.salvar(record, 'AD_ESTIMATIVAPRECO');
+      await JX.salvar(record, 'AD_TESTEPRECO');
       console.log(`Registro ${nextId} salvo com sucesso.`);
     }
 

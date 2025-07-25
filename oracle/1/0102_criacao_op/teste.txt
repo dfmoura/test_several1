@@ -1,0 +1,2183 @@
+angular
+   .module('OrdensProducaoApp', ['snk'])
+   .controller('OrdensProducaoController', ['$q', 'SkWorkspace', 'ArrayUtils', 'CrudUtils', 'StringUtils', 'ServiceProxy', 'DateUtils', 'i18n', 'ObjectUtils', 'Criteria', 'NumberUtils', 'SanPopup', 'MGEParameters', 'SkApplicationInstance', 'AngularUtil', 'MessageUtils', '$scope',
+      function ($q, SkWorkspace, ArrayUtils, CrudUtils, StringUtils, ServiceProxy, DateUtils, i18n, ObjectUtils, Criteria, NumberUtils, SanPopup, MGEParameters, SkApplicationInstance, AngularUtil, MessageUtils, $scope) {
+         var self = this;
+
+         // Interceptors
+         ObjectUtils.implements(self, IDatagridInterceptor);
+         ObjectUtils.implements(self, IDynaformInterceptor);
+         ObjectUtils.implements(self, IFilterPanelInterceptor);
+         ObjectUtils.implements(self, IFormInterceptor);
+
+         const CLIENT_EVENT_LIBERA_WC = "br.com.sankhya.mgeProd.libera.wc";
+         const CLIENT_EVENT_LIBERAR_CT_AO_SUSPENDER_OP = "br.com.sankhya.mgeprod.libera.wc.suspender";
+         self._dsOrdemProducao;
+         var _dynaformOrdemProducao;
+         var _utilizaControle = MGEParameters.asBoolean("com.utiliza.controle");
+         var _fromInit = true;
+         var _selectedLines = [];
+         var _scopePrecisionQTDPRODUZIR;
+         var _scopePrecisionSALDOOP;
+         var _scopeControlePA;
+         self.showTour = false;
+         self.startTour = startTour;
+         self.mostrarTour = true;
+         self.checkMostrarTour;
+         self.resourceID = SkApplicationInstance.getResourceID() + ".config";
+         var _codUsuLogado = SkApplicationInstance.getUserID();
+         self.isSankhyaW = isSankhyaW;
+         self.temOpcional = temOpcional;
+         var _hideFieldsInProducaoFit = ["CODPLP", "PlantaManufatura.NOME"];
+         self.acceptColumnField = acceptColumnField;
+         var _permiteReutilizaLanc = false;
+         self.loadOtherConfigs = loadOtherConfigs;
+         self.chaveLancamento = SkApplicationInstance.getResourceID() + '_lancamento';
+         self.salvarPrioridade = salvarPrioridade;
+         self.getPopOverPrioridadeProps = getPopOverPrioridadeProps;
+         self.isEnableBtnOpcPrioridade = false;
+		 self.getCriteriaModeloNota = getCriteriaModeloNota;
+
+         const ID_CONFIG_PERMITE_REUTILIZACAO_LANCAMENTO = 'config.permite.reutilizacao.lancamento'
+
+         self.interceptColumnMetadata = interceptColumnMetadata;
+
+         var _canEditDhExec = false;
+         var _dhExecManual = false;
+		 
+		 function getCriteriaModeloNota() {
+			return Criteria(" this.TIPMOV = 'P'");
+		 }
+
+         function startTour() {
+            self.showTour = true;
+
+            initTour(); 
+
+            self.tour.startTour = true;
+         }
+
+         function initTour() {
+            var steps = getTourConfig();
+            _dynaformOrdemProducao.goToFormView();
+            self.tour = {
+               onFinish: function () {
+                  if(self.scopeTour.checkMostraTour == undefined){
+                     self.scopeTour.checkMostraTour = true;
+                  }
+                  salvarConfig(self.scopeTour.checkMostraTour);
+               },
+               tourConfig: steps
+            }
+         }
+       
+      function carregarEstadoTela() {
+         var params = {
+           config: {
+             chave: self.resourceID,
+             tipo: "T",
+             usuario: _codUsuLogado,
+           }
+         }
+         ServiceProxy.callService("mge@SystemUtilsSP.getConf", params, true).then(function (response) {
+         
+            self.mostrarTour = response.responseBody.config != undefined && response.responseBody.config.mostrarTour != undefined ? JSON.parse(response.responseBody.config.mostrarTour) : false;
+             if (!self.mostrarTour) {
+               self.startTour();
+           }
+         })
+       }
+
+       function interceptColumnMetadata(fieldMetadata, dataset) {
+         if (dataset.getEntityName() == "CabecalhoInstanciaProcesso") {
+             if (fieldMetadata.name == "QTDPRODUZIR") {
+               fieldMetadata.customCellFormatter = customCellFormatterApontamentoMateriais;
+             } else if (fieldMetadata.name == "SALDOOP") {
+               fieldMetadata.customCellFormatter = customCellFormatterApontamentoMateriais;
+             }
+         }
+      }
+
+      function customCellFormatterApontamentoMateriais(value, column, data) {
+         if (value != undefined){
+            var decQtd = NumberUtils.getNumberOrZero(data.DECQTD) > 0 ? NumberUtils.getNumberOrZero(data.DECQTD) : 2;
+            return NumberUtils.format(value, decQtd);
+         }else{
+            return value;
+         }
+      }
+       
+       function salvarConfig(mostrarTour) {
+          if(!mostrarTour) {
+             mostrarTour = self.scopeTour? self.scopeTour.checkMostraTour : true;
+          }
+
+         var config = {
+                 chave: self.resourceID,
+                 tipo: 'T',
+                 usuario: _codUsuLogado,
+                 mostrarTour: mostrarTour
+             }
+     
+         ServiceProxy.callService('mge@SystemUtilsSP.saveConf', { config: config });
+
+     }
+
+
+         function getTourConfig() {
+            var steps = [
+               {
+                  type: "element",
+                  heading: "Bem-vindo ao novo layout",
+                  selector: "#step14 ",
+                  html: "<p>Este é o novo layout de tela Ordens de Produção. A nova versão do layout é mais rápida, moderna e foi projetada para que você tenha as ferramentas e recursos que necessita sempre à mão.</p><sk-checkbox id='idCheckTour' ng-model='checkMostraTour' ng-change='changeCheckTour(item)'><span>Não mostrar Novamente</span></sk-checkbox>",
+                  placement: "bottom",
+                  actions: {
+                     changeCheckTour: function(){
+                        self.scopeTour =  angular.element(document.getElementById('idCheckTour')).scope();
+                     }
+                  }
+               },
+              
+               {
+                  type: "element",
+                  heading: "Botão Outras Opções",
+                  selector: "#step1",
+                  html: "<p>Importante - Essa opção dá acesso ao menu suspenso com opções de configuração de lote, PA e MP que anteriormente ficava na aba “Produtos” dentro da OP.</p><sk-hbox sk-margin-left='20px'><image width='340px' src='img/step1.png' /></sk-hbox>",
+                  placement: "bottom",
+                  actions: {
+                  }
+
+               },
+               {
+                  type: "element",
+                  heading: "Dentro da Ordem de Produção - Aba Atividades",
+                  selector: ".tabnavigator-wrapper  sk-tabnavigator-item:nth-child(2) ",
+                  html: '<p>Importante - Apresentação em cards das atividades que compõem a OP e em cada card é possível acessar as atividades referentes à Etapa do processo. Essa aba é o agrupamento das Abas Histórico de operações, Estoque por fases e Histórico por fases</p><sk-hbox sk-margin-left="5px"><image  width="340px" flex src="img/step2.png" /></sk-hbox>',
+                  placement: "bottom",
+                  actions: {
+                  }
+               },
+               {
+                  type: "element",
+                  heading: "Mostrar/Esconder painel de Filtros",
+                  selector: "sk-filter-panel-btn",
+                  html: '<p>Este botão é responsavel por esconder o painel de filtros. Este botão fica vermelho quando algum filtro personalizado estiver aplicado.</p>',
+                  placement: "bottom",
+                  actions: {
+                  }
+               },
+               {
+                  type: "element",
+                  heading: "Botão troca de modo",
+                  selector: ".btn-change-face",
+                  html: '<p>Utilize esta opção para alternar entre os modos grade e formulário. A setinha ao lado abre a opção para configurar a grade, conforme ilustra a imagem abaixo. Dentro da configuração da grade você encontrará outro botão de tour para lhe auxiliar quando precisar.</p><image width="180px" flex src="img/step7.png" />',
+                  placement: "bottom",
+                  actions: {
+                  }
+               },
+                 
+               {
+                  type: "element",
+                  heading: "Botões “Primeiro”, “Anterior”, “Próximo” e “Último” para navegar entre as OP’s",
+                  selector: ".container .btn-nav .btn-control:first",
+                  html: '<p>Estas opções permitem a navegação entre os registros da tela.</p>',
+                  placement: "bottom",
+                  actions: {
+                  }
+               },
+               
+               {
+                  type: "element",
+                  heading: "Botão Atualizar",
+                  selector: ".container .btn-nav .btn-refresh:first",
+                  html: '<p>Esta opção recarrega os registros, respeitando os filtros ativos, caso haja algum.</p>',
+                  placement: "bottom",
+                  actions: {
+                  }
+               },
+               {
+                  type: "element",
+                  heading: "Barra de ferramentas",
+                  selector: ".user-left-container",
+                  html: '<p>Essa é a nova barra de ferramentas. Nela você encontra facilmente as opções mais utilizadas para o contexto atual. O que você precisa apenas quando você precisa!</p>',
+                  placement: "bottom",
+                  actions: {
+                  }
+               },
+
+               {
+                  type: "element",
+                  heading: "Botão Nova OP",
+                  selector: "#step9",
+                  html: '<p>Este é novo botão para inclusão de ordens. Ele fica sempre em destaque.</p>',
+                  placement: "bottom",
+                  actions: {
+                  }
+               },
+               {
+                  type: "element",
+                  heading: "Botão Exportar grade",
+                  selector: ".container .btn-export:first",
+                  html: '<p>Esse botão dá acesso aos tipos de export do sistema e relatórios formatados</p>',
+                  placement: "bottom",
+                  actions: {
+                  }
+               },
+               {
+                  type: "element",
+                  heading: "Botão Anexo",
+                  selector: ".container #dynAttach:first",
+                  html: '<p>Permite anexar documentos e designar em quais telas estarão visíveis e para que tipo de usuários.</p>',
+                  placement: "bottom",
+                  actions: {
+                  }
+               },
+               {
+                  type: "element",
+                  heading: "Tour",
+                  selector: "#step14",
+                  html: "<p>Também é possível iniciar o Tour a partir desse botão a qualquer hora.</p>",
+                  placement: "bottom",       
+               },
+            ];
+            return steps;
+         }
+
+         //EventBus
+         var _eventBus = new EventBus();
+
+         self.isJivaW = SkApplicationInstance.isJivaW();
+
+         self.labelSituacao = i18n('Producao.OrdemProducao.labelSituacao');
+         self.labelTipoOP = i18n('Producao.OrdemProducao.labelTipoOP');
+         self.labelExecutantes = i18n('Producao.OrdemProducao.labelExecutantes');
+         self.labelPedidoVenda = i18n('Producao.OrdemProducao.labelPedidoVenda');
+         self.labelMostrarSubOrdens = i18n('Producao.OrdemProducao.labelMostrarSubOrdens');
+         self.labelNroMps = i18n('Producao.OrdensProducao.lblNroMps');
+         self.labelRastreabilidadeMP = i18n('Producao.OrdensProducao.lblRastreabilidadeMP');
+         self.labelCodMP = i18n('Producao.OrdensProducao.lblCodMP');
+         self.labelControleMP = i18n('Producao.OrdensProducao.lblControleMP');
+         self.labelLoteMP = i18n('Producao.OrdensProducao.lblLoteMP');
+         self.labelNumSerieMP = i18n('Producao.OrdensProducao.lblNumSerieMP');
+         self.labelRastreabilidadeSP = i18n('Producao.OrdensProducao.lblRastreabilidadeSP');
+         self.labelCodSP = i18n('Producao.OrdensProducao.lblCodSP');
+         self.labelControleSP = i18n('Producao.OrdensProducao.lblControleMP');
+         self.labelLoteSP = i18n('Producao.OrdensProducao.lblLoteMP');
+
+
+
+         self.optionsTipoPeriodo = [{ data: 'I', value: i18n('Producao.OrdemProducao.labelInclusao') },
+         { data: 'IN', value: i18n('Producao.OrdemProducao.labelInicializacao') },
+         { data: 'C', value: i18n('Producao.OrdemProducao.labelConclusao') }];
+
+         self.optionsSituacao = [{ data: 'R', value: i18n('Producao.OrdemProducao.labelNaoIniciada') },
+         { data: 'A', value: i18n('Producao.OrdemProducao.labelEmAndamento') },
+         { data: 'F', value: i18n('Producao.OrdemProducao.labelFinalizada') },
+         { data: 'S', value: i18n('Producao.OrdemProducao.labelSuspensa') },
+         { data: 'C', value: i18n('Producao.OrdemProducao.labelCancelada') },
+         { data: 'S2', value: i18n('Producao.OrdemProducao.labelSuspendendo') },
+         { data: 'C2', value: i18n('Producao.OrdemProducao.labelCancelando') },
+         { data: 'P2', value: i18n('Producao.OrdemProducao.labelProgramado') }];
+
+         self.optionsTipo = [{ data: 'P', value: i18n('Producao.OrdemProducao.labelProducao') },
+         { data: 'D', value: i18n('Producao.OrdemProducao.labelDesmonte') },
+         { data: 'R', value: i18n('Producao.OrdemProducao.labelReprocessamentoReparo') },
+         { data: 'PC', value: i18n('Producao.OrdemProducao.labelProducaoConjunta') },
+         { data: 'PT', value: i18n('Producao.OrdemProducao.labelProducaoParaTerceiro') },
+         { data: 'TE', value: i18n('Producao.ProcessoProdutivo.labelUsaTercro') }];
+
+         self.onDynaformLoaded = onDynaformLoaded;
+         self.acceptTab = acceptTab;
+         self.interceptBuildField = interceptBuildField;
+         self.acceptField = acceptField;
+         self.customTabsLoader = customTabsLoader;
+
+         self.interceptBeforeSave = interceptBeforeSave;
+         self.interceptAfterLoad = interceptAfterLoad;
+         self.clearFilter = clearFilter;
+
+         self.showFormularios = showFormularios;
+
+         self.onControleEstoqueCreated = onControleEstoqueCreated;
+         self.onControleEstoqueCreatedMP = onControleEstoqueCreatedMP;
+         self.onControleEstoqueCreatedSP = onControleEstoqueCreatedSP;
+         self.filterChange = filterChange;
+         self.filterChangeMP = filterChangeMP;
+         self.filterChangeSP = filterChangeSP;
+
+         //botões iniciar, cancelar, suspender OP
+         self.inicializarOrdens = inicializarOrdens;
+         self.cancelarOrdens = cancelarOrdens;
+         self.suspenderOrdens = suspenderOrdens;
+
+         //controle botões iniciar, cancelar, suspender OP
+         self.disabledInicializarOrdens = false;
+         self.disabledCancelarOrdens = false;
+         self.disabledSuspenderOrdens = false;
+         self.disabledFormularios = true;
+
+         self.btnOutrasOpcoes = btnOutrasOpcoes;
+         self.popupResumoPAMP = popupResumoPAMP;
+         self.substituirProdutoPA = substituirProdutoPA;
+         self.redimensionarLote = redimensionarLote;
+         self.editarLote = editarLote;
+
+         self.onDatasetCreatedPA = onDatasetCreatedPA;
+
+         var configFields = {
+            IDIPROC: { order: 0, tabId: '__main', readOnly: true },
+            IDICOP: {order: 1, tabId: '__main', readOnly: true},
+            STATUSPROC: { order: 2, tabId: '__main', readOnly: true },
+
+            //Geral
+            NROLOTE: { order: 3, readOnly: true },
+            
+            CODPRODPA: { order: 4, tabId: 'general', readOnly: true },
+            CONTROLEPA: { order: 5, tabId: 'general', readOnly: true },
+            QTDPRODUZIR: { order: 6, tabId: 'general', readOnly: true },
+            SALDOOP: { order: 7, tabId: 'general', readOnly: true },
+            CODPRC: { order: 8, description: i18n('Producao.OrdensProducao.lblProcesso'), tabId: 'general', UITabName: 'general', required: false, notMain: true, readOnly: true },
+            VERSAO: { order: 9, tabId: 'general', UITabName: 'general', notMain: true },
+            PRIORIDADE: { order: 10, readOnly: true },
+            CODPARC: { order: 11, readOnly: true },
+            CODPLP: { order: 12, description: i18n('Producao.OrdensProducao.lblPlanta'), required: false, readOnly: true, visible: !validateProducaoFit("CODPLP") },
+            
+
+            //Grupo Planejamento
+            NUMPS: { order: 13, description: i18n('Producao.OrdensProducao.lblNroMps'), tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoPlanejamento'), readOnly: true },
+            PERIODOMPS:{ order: 14, tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoPlanejamento'), readOnly: true },
+            TEMPOATRAVESS: { order: 15, tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoPlanejamento'), readOnly: true },
+            DTPREVENT: { order: 16, tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoPlanejamento'), readOnly: true },
+            DTINICIOMAX: { order: 17, tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoPlanejamento'), readOnly: true },
+            TOTALTEMPPREVISTO: { order: 18, description: i18n('Producao.OrdensProducao.lblTotalPrev'), tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoPlanejamento'), readOnly: true },
+
+            //Grupo Pedido
+            NUNOTA: { order: 19, tabId: 'general', UITabName: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoPedido'), readOnly: true, notMain: true },
+            SEQNOTA: { order: 20, tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoPedido'), readOnly: true },
+
+            //Grupo Seguranca
+            DHINC: { order: 21, tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoSeguranca'), readOnly: true },
+            CODUSUINC: { order: 22, description: i18n('Producao.OrdensProducao.lblUsuarioInc'), tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoSeguranca'), readOnly: true },
+            DHINST: { order: 23, tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoSeguranca'), readOnly: true },
+            DHTERMINO: { order: 24, tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoSeguranca'), readOnly: true },
+            CODUSUFINAL: { order: 25, description: i18n('Producao.OrdensProducao.lblUsuarioFim'), tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoSeguranca'), readOnly: true },
+            TOTALTEMPREALIZADO: { order: 26, description: i18n('Producao.OrdensProducao.lblTotalRealizado'), tabId: 'general', UIGroupName: i18n('Producao.OrdensProducao.grupoSeguranca'), readOnly: true }
+         };
+
+         self.openLancamentoOP = openLancamentoOP;
+         self.onTerminateLancamento = onTerminateLancamento;
+         self.changePedidoVenda = changePedidoVenda;
+         self.tabSelectedIndex = 0;
+         _strOrdensCriadas = "";
+
+         self.onTabnavigatorCreated = onTabnavigatorCreated;
+         self.tabNavigatorFormularioIni;
+         var _formularioProducaoBuilder;
+         self.onCreatedFormularioProducaoBuilder = onCreatedFormularioProducaoBuilder; 
+
+         self.onViewLancamentoCreated = onViewLancamentoCreated;
+         self.viewLancamento;
+         self.isExibePopUpInserirOpNoLancamento = true;
+         self.lancamentoInsertionMode = 'manual';
+         var _creationComplete = false;
+         var _objPK = undefined;
+
+         $scope.loadByPK = loadByPK;
+         function loadByPK(objPK) {
+            if (!_creationComplete && objPK) {
+               _objPK = objPK;
+            } else if (objPK && angular.isDefined(objPK.NULOP)) {
+               self.nulop = objPK.NULOP;
+               // Lancamento por Pedido de Venda
+               self.isExibePopUpInserirOpNoLancamento = false;
+               self.lancamentoInsertionMode = 'auto';
+               self.objPK = objPK;
+               self.tabSelectedIndex = 1;
+               if(angular.isDefined(self.viewLancamento)) {
+                  carregarLancamentoOpPorPedidoVenda();
+               }
+            } else if (objPK && angular.isDefined(objPK.IDIPROC)) {
+               if (angular.isDefined(self._dsOrdemProducao)) {
+                  self._dsOrdemProducao.refresh(undefined, {IDIPROC: objPK.IDIPROC});
+               }
+               self.filterOP = objPK.IDIPROC;
+               self.lancamentoInsertionMode = 'manual';
+            } else if (objPK && angular.isDefined(objPK.STATUSPROC)) {
+               if (angular.isDefined(self._dsOrdemProducao)) {
+                  _dynaformOrdemProducao.goToGridView();
+                  let crit = new Criteria();
+                  crit.append("this.STATUSPROC = ?", objPK.STATUSPROC);
+                  if ("F,C".indexOf(objPK.STATUSPROC) > -1) {
+                     crit.append(" AND onlyDate(this.DHTERMINO) = onlyDate(DBDATE()) ");
+                  } else if ("A" == objPK.STATUSPROC) {
+                     crit.append(" AND onlyDate(DHINST) <= onlyDate(dbDate())");
+                  } else if (",AP,R,P,P2,".indexOf(objPK.STATUSPROC) > -1) {
+                     crit.append(" AND onlyDate(this.DHINC) = onlyDate(dbDate()) ");
+                  } else if (",S,S2,C2,".indexOf(objPK.STATUSPROC) > -1) {
+                     crit.append(" AND onlyDate(this.DHINST) = onlyDate(dbDate()) ");
+                  }
+
+                  if (angular.isDefined(objPK.EMP)) {
+                     crit.append(` AND EXISTS (SELECT 1 FROM TPRPLP PLP WHERE this.CODPLP = PLP.CODPLP AND PLP.CODEMP IN (${objPK.EMP}))`);
+                  }
+                  self._dsOrdemProducao.refresh(crit);
+               }
+            }
+         }
+
+         init();
+
+         function init() {
+            if (self.isJivaW || getAttributeFromHTMLWrapper("producaoFit")) {
+               self.showFiltroCoProduto = false;
+               self.showFiltroCentroTrabalho = false;
+               self.showFilterPlanta = false;
+               self.optionsTipo = self.optionsTipo.filter(function(opt) { return opt.data !== 'PC' });
+            } else {
+               self.showFiltroCoProduto = true;
+               self.showFiltroCentroTrabalho = true;
+               self.showFilterPlanta = true;
+               addCientEventLiberaWC();
+               addCientEventLiberaCentroDeTrabalhoAoSuspender();
+            }
+
+            ServiceProxy.addClientEvent('br.com.mgeprod.clientEvent.cancelaOP.deleteNotaConfirmada', function(clientEvent, recaller) {
+               MessageUtils
+               .simpleConfirm(MessageUtils.TITLE_CONFIRMATION, i18n('Producao.OrdemProducao.msgExcluiDocOperacaoEstoque'))
+               .then(function () {
+                  var obj = recaller.params.ordens;
+                  obj.clientEventParams = {deleteNotaConfirmada: true};
+
+                  recaller.params.ordens = obj;
+                  recaller.reCall();
+               }, function (reason) {
+                  if (reason === 'no') {
+                  }
+               });
+            });
+
+            loadState();
+         }
+
+         function openLancamentoOP() {
+            if (!permissionAcessInsert()) {
+				return;
+            } else if(_permiteReutilizaLanc) {
+               selecionarLancamento().then(result => {
+                  self.tabSelectedIndex = 1;
+                  if(result) {
+                     if(angular.isDefined(self.viewLancamento)) {
+                        self.viewLancamento.reutilizarLancamento = true;
+                        self.viewLancamento.reutilizar = "S";
+                        self.viewLancamento.carregarLancamento(self.nulop);
+                     }
+                     self.isExibePopUpInserirOpNoLancamento = false;
+                  } else {
+                     if(angular.isDefined(self.viewLancamento)) {
+                        self.viewLancamento.reutilizarLancamento = true;
+                        self.isExibePopUpInserirOpNoLancamento = false;
+                        self.viewLancamento.openInsertOP(self.nulop);
+                     }
+                  }
+               });
+            } else {
+               getNewLancamentoOP().finally(function () {
+                  self.tabSelectedIndex = 1;
+                  if(angular.isDefined(self.viewLancamento)) {
+                     self.viewLancamento.reutilizarLancamento = false;
+                     self.viewLancamento.openInsertOP(self.nulop);
+                  }
+               });
+            }
+
+         }
+
+         function getNewLancamentoOP(reutilizar) {
+            var request = {
+               params: {
+                  descricao: "Novo lançamento - "  + DateUtils.formatDate(new Date(), "DD/MM/YYYY - HH:mm:SS"),
+                  reutilizar: reutilizar? "S" : "N"
+               }
+            };
+            return ServiceProxy.callService("mgeprod@LancamentoOrdemProducaoSP.getNovoLancamentoOP", request).then(function (response) {
+               self.nulop = response.responseBody.lancamento.nulop;
+            })
+         }
+
+         function onTerminateLancamento(result) {
+            if (result) {
+               var qtdOrdensIniciadas = result.ordensIniciadas.quantidade.$;
+               var ordens = result.ordens.ordem;
+
+               if (!Array.isArray(ordens)) {
+                  var array = [];
+                  array.push(ordens);
+
+                  ordens = array;
+               }
+
+               angular.forEach(ordens, function(ordem){
+                  if (StringUtils.isNotEmpty(_strOrdensCriadas)) {
+                     _strOrdensCriadas += ", ";
+                  }
+                  
+                  _strOrdensCriadas += ordem.$;
+               });
+
+               var msgPopup = i18n('Producao.OrdemProducao.labelSucessoLancamentoOPSingular',[qtdOrdensIniciadas]);
+               var labelBtnVerOp = "Visualizar OP";
+               if(Number(qtdOrdensIniciadas) > 1){
+                  msgPopup = i18n('Producao.OrdemProducao.labelSucessoLancamentoOP',[qtdOrdensIniciadas]);
+                  labelBtnVerOp = "Visualizar OPs";
+               }
+
+               self.tabSelectedIndex = 0;
+
+               MessageUtils
+               .confirm(MessageUtils.TITLE_INFORMATION, msgPopup, labelBtnVerOp, "Fechar", undefined, undefined, {showBtnCancel: false})
+               .then(function(){
+                  self._dsOrdemProducao.refresh();
+               }, function(reason){
+                     if (reason === 'no') {
+                        _strOrdensCriadas = "";
+                        self._dsOrdemProducao.refresh();
+                     }
+               });
+            } else {
+               self.tabSelectedIndex = 0;
+               self._dsOrdemProducao.refresh();
+            }
+         }
+
+         function onDynaformLoaded(dynaform, dataset) {
+            if ('CabecalhoInstanciaProcesso' == dataset.getEntityName()) {
+               self._dsOrdemProducao = dataset;
+               _dynaformOrdemProducao = dynaform;
+
+               //dataset.setSaveHandler(() => {});
+
+               dataset.setCrudListener("br.com.sankhya.mgeprod.dwfdata.listeners.OrdemProducaoHtmlCrudListener");
+
+               dynaform.getNavigatorAPI()
+                  .showCopyButton(false)
+                  .showRemoveButton(false)
+                  .showAddButton(false);
+
+               //Ordenando abas 
+               dynaform.setTabOrderConfig([
+                  'general',
+                  'custom[abaAtividade, abaMovimentacoesAcessorias, abaNotasProducao, abaDependenciaOPs, abaDesviosProducao]',
+                  'relation',
+                  'custom'
+               ]);
+
+               dynaform.enableSortFields(true);
+               //dynaform.goToGridView();
+
+               //Ordenando abas 
+               dynaform.setTabOrderConfig([
+                  'general',
+                  'custom[abaMateriaPrima,abaSubProduto,abaTarifaCIP,abaTerceiro]',
+                  'relation',
+                  'custom'
+               ]);
+
+               dataset.addCriteriaProvider(function () {
+                  var criteria = Criteria();
+                  criteria.append("(this.STATUSPROC NOT IN('AP', 'P')) ");
+
+                  if(StringUtils.isNotEmpty(_strOrdensCriadas)){
+                     criteria.append(" AND this.IDIPROC IN (" + _strOrdensCriadas + ")");
+                     _strOrdensCriadas = "";
+                  } else {
+                     if (StringUtils.isNotEmpty(self.filterOP)) {
+                        criteria.append(" AND this.IDIPROC = ?", self.filterOP);
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterTipoPeriodo) && StringUtils.isNotEmpty(self.filterPeriodo)) {
+                        var dtInicioIsNull = self.filterPeriodo.dtIni == undefined;
+                        var dtFinalIsNull = self.filterPeriodo.dtFim == undefined;
+
+                        if (!dtInicioIsNull || !dtFinalIsNull) {
+                           var expressao = "";
+
+                           switch (self.filterTipoPeriodo) {
+                              case 'I':
+                                 expressao += montaCriterioExpressaoPeriodo(dtInicioIsNull, dtFinalIsNull, "DHINC");
+                                 break;
+                              case 'IN':
+                                 expressao += montaCriterioExpressaoPeriodo(dtInicioIsNull, dtFinalIsNull, "DHINST");
+                                 break;
+                              case 'C':
+                                 expressao += montaCriterioExpressaoPeriodo(dtInicioIsNull, dtFinalIsNull, "DHTERMINO");
+                                 break;
+                           }
+
+                           var params = [];
+							if (!dtInicioIsNull) {
+								self.filterPeriodo.dtIni.setHours(0);
+								self.filterPeriodo.dtIni.setMinutes(0);
+								self.filterPeriodo.dtIni.setSeconds(0);
+								params.push(Criteria.buildDateParameter(DateUtils.formatDate(self.filterPeriodo.dtIni, DateUtils.DEFAULT_DATETIME_FORMAT)));
+							}
+
+                           if (!dtFinalIsNull) {
+                              self.filterPeriodo.dtFim.setHours(23);
+                              self.filterPeriodo.dtFim.setMinutes(59);
+                              self.filterPeriodo.dtFim.setSeconds(59);
+                              params.push(Criteria.buildDateParameter(DateUtils.formatDate(self.filterPeriodo.dtFim, DateUtils.DEFAULT_DATETIME_FORMAT)));
+                           }
+
+                           criteria.append(expressao, params);
+                        }
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterLote)) {
+                        criteria.append(" AND EXISTS (SELECT 1 FROM TPRIPA IPA WHERE IPA.IDIPROC = this.IDIPROC AND IPA.NROLOTE = ?)", self.filterLote);
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterCentroTrabalho)) {
+                        criteria.append(" AND EXISTS (SELECT 1 FROM TPRWXIP XIP WHERE XIP.IDIPROC = this.IDIPROC AND XIP.CODWCP = ?)", self.filterCentroTrabalho);
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterProdutoAcabado)) {
+                        var expressao = " AND EXISTS (SELECT 1 FROM TPRIPA IPA WHERE IPA.IDIPROC = this.IDIPROC AND IPA.CODPRODPA = " + self.filterProdutoAcabado + ")";
+
+                        if (StringUtils.isNotEmpty(self.filterControle)) {
+                           expressao = " AND EXISTS (SELECT 1 FROM TPRIPA IPA WHERE IPA.IDIPROC = this.IDIPROC AND IPA.CODPRODPA = " + self.filterProdutoAcabado + " AND (nullValue(IPA.CONTROLEPA, ' ' ) = ' ' OR IPA.CONTROLEPA = ?))";
+                           criteria.append(expressao, self.filterControle);
+                        } else {
+                           criteria.append(expressao);
+                        }
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterSeriePA)) {
+                        criteria.append(" AND EXISTS (SELECT 1 FROM TPRSERPA SERPA WHERE SERPA.IDIPROC = this.IDIPROC AND SERPA.CODPRODPA = ? AND SERPA.SERIEPA = ?) ", [self.filterProdutoAcabado, self.filterSeriePA]);
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterReferencia)) {
+                        var expressao = " AND EXISTS (SELECT 1 ";
+                        expressao += "	FROM TGFPRO PRO INNER JOIN TPRIPA IPA ON (IPA.CODPRODPA = PRO.CODPROD) ";
+                        expressao += "WHERE IPA.IDIPROC = this.IDIPROC AND PRO.REFERENCIA like '%?%' ";
+                        expressao += ") ";
+
+                        criteria.append(expressao, self.filterReferencia);
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterGrupoProduto)) {
+                        criteria.append(" AND EXISTS (SELECT 1 FROM TPRIPA IPA INNER JOIN TGFPRO PRO ON(PRO.CODPROD = IPA.CODPRODPA) WHERE IPA.IDIPROC = this.IDIPROC AND PRO.CODGRUPOPROD = ?)", self.filterGrupoProduto);
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterPlanta)) {
+                        criteria.append(" AND this.CODPLP = ?", self.filterPlanta);
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterCoProduto)) {
+                        criteria.append(" AND EXISTS (SELECT 1 FROM TPRICOP ICOP WHERE ICOP.IDIPROC = this.IDIPROC AND ICOP.IDICOP = ?)", self.filterCoProduto);
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterSituacoes)) {
+                        var expressao = " AND this.STATUSPROC IN (";
+                        expressao += buildInQueryStatus();
+                        expressao += ")";
+                        criteria.append(expressao);
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterTipoOP)) {
+                        var expressao = buildQueryTipoOP();
+                        criteria.append(expressao);
+                     }
+
+                     if (StringUtils.isNotEmpty(self.filterExecutantes)) {
+                        var expressao = buildQueryExecutante();
+                        criteria.append(expressao);
+                     }
+                     if(StringUtils.isNotEmpty(self.filterPedidoVenda)){
+                        var expressao = " AND this.IDIPROC  IN (SELECT PRINOTA.IDIPROC FROM TPRINOTA PRINOTA WHERE PRINOTA.NUNOTA = ? ";
+                        expressao += " UNION SELECT IPROC.IDIPROC FROM TPRIPROC IPROC WHERE IPROC.NUNOTA = ? ";
+                        criteria.append(expressao,[self.filterPedidoVenda,self.filterPedidoVenda]);
+                           
+                        if(self.filterSubOrdensActive){
+                        	criteria.append("/*SUBORDENS*/");
+                        	self._dsOrdemProducao.addTXProperty("nunotaPedidoVendaParaBuscaSubOrdem", self.filterPedidoVenda);
+                        }
+                        criteria.append(")");  
+                     }
+                     if(StringUtils.isNotEmpty(self.filterNroMps)){
+                        criteria.append(" AND this.NUMPS = ?", self.filterNroMps);
+                     }
+                     if(StringUtils.isNotEmpty(self.filterNumSerieMP) && StringUtils.isNotEmpty(self.filterCodMP)){
+                        criteria.append(" AND this.IDIPROC IN (SELECT IDIPROC FROM TPRSERMP WHERE SERIEMP = ? AND CODPRODMP = ?)", [self.filterNumSerieMP, self.filterCodMP]);
+                     }
+                     else if(StringUtils.isNotEmpty(self.filterCodMP)){
+                        criteria.append(" AND this.IDIPROC  IN (");
+                        criteria.append("    SELECT IPROC.IDIPROC FROM TPRIPROC IPROC ");
+                        criteria.append("    INNER JOIN TPRIATV IATV ON (IATV.IDIPROC = IPROC.IDIPROC) ");
+                        criteria.append("    INNER JOIN TPRROPE OPE ON (OPE.IDIATV = IATV.IDIATV) ");
+                        criteria.append("    INNER JOIN TGFITE ITE ON (ITE.NUNOTA = OPE.NUNOTA)");
+                        
+                        criteria.append("    WHERE ITE.SEQUENCIA IN (SELECT VAR.SEQUENCIA FROM TGFVAR VAR WHERE VAR.NUNOTA = ITE.NUNOTA)");
+                        criteria.append("    AND ITE.CODPROD = ?", self.filterCodMP);
+
+                        if(StringUtils.isNotEmpty(self.filterLoteMP)){
+                           criteria.append(" AND ITE.CONTROLE = ?", self.filterLoteMP);
+                        }
+                        else if(StringUtils.isNotEmpty(self.filterControleMP)){
+                           criteria.append(" AND ITE.CONTROLE = ?", self.filterControleMP);
+                        }
+
+                        criteria.append("    UNION");
+
+                        criteria.append("    SELECT IPROC.IDIPROC FROM TPRIPROC IPROC ");
+                        criteria.append("    INNER JOIN TPRIATV IATV ON (IATV.IDIPROC = IPROC.IDIPROC)");
+                        criteria.append("    INNER JOIN TPRAPO APO ON (APO.IDIATV = IATV.IDIATV) ");
+                        criteria.append("    INNER JOIN TPRAMP AMP ON (APO.NUAPO = AMP.NUAPO)  ");
+
+                        criteria.append("    WHERE IPROC.STATUSPROC NOT IN ('R', 'P2')");
+                        criteria.append("    AND AMP.CODPRODMP = ?", self.filterCodMP);
+
+                        if(StringUtils.isNotEmpty(self.filterLoteMP)){
+                           criteria.append(" AND AMP.CONTROLEMP = ?", self.filterLoteMP);
+                        }
+                        else if(StringUtils.isNotEmpty(self.filterControleMP)){
+                           criteria.append(" AND AMP.CONTROLEMP = ?", self.filterControleMP);
+                        }
+
+                        criteria.append(" )");                        
+                     }
+                     if(StringUtils.isNotEmpty(self.filterCodSP)){
+                        criteria.append(" AND this.IDIPROC  IN (");
+                        criteria.append("    SELECT IPROC.IDIPROC FROM TPRIPROC IPROC ");
+                        criteria.append("    INNER JOIN TPRIATV IATV ON (IATV.IDIPROC = IPROC.IDIPROC) ");
+                        criteria.append("    INNER JOIN TPRROPE OPE ON (OPE.IDIATV = IATV.IDIATV) ");
+                        criteria.append("    INNER JOIN TGFITE ITE ON (ITE.NUNOTA = OPE.NUNOTA)");
+                        criteria.append("    INNER JOIN TGFCAB CAB ON (CAB.NUNOTA = OPE.NUNOTA)");
+                        
+                        criteria.append("    WHERE EXISTS (SELECT 1 FROM TPRLSP LSP WHERE ITE.CODPROD = LSP.CODPRODSP)");
+                        criteria.append("    AND NOT EXISTS (SELECT 1 FROM TPRAMP AMP WHERE AMP.CODPRODMP  = ITE.CODPROD)");
+                        criteria.append("    AND ITE.CODPROD = ?", self.filterCodSP);
+                        
+                        if(StringUtils.isNotEmpty(self.filterControleSP)){
+                           criteria.append(" AND ITE.CONTROLE = ?", self.filterControleSP);
+                        } 
+                        else if(StringUtils.isNotEmpty(self.filterLoteSP)){
+                           criteria.append(" AND ITE.CONTROLE = ?", self.filterLoteSP);
+                        }
+                        criteria.append("    UNION");
+
+                        criteria.append("    SELECT IPROC.IDIPROC FROM TPRIPROC IPROC");
+                        criteria.append("    INNER JOIN TPRIATV IATV ON (IATV.IDIPROC = IPROC.IDIPROC)");
+                        criteria.append("    INNER JOIN TPRAPO APO ON (APO.IDIATV = IATV.IDIATV)");
+                        criteria.append("    INNER JOIN TPRASP ASP ON (APO.NUAPO = ASP.NUAPO)");
+
+                        criteria.append("    WHERE NOT EXISTS (SELECT 1 FROM TPRAMP AMP WHERE AMP.CODPRODMP  = ASP.CODPRODSP)");
+                        criteria.append("    AND IPROC.STATUSPROC NOT IN ('R', 'P2')");
+                        criteria.append("    AND ASP.CODPRODSP = ?", self.filterCodSP);
+
+                        if(StringUtils.isNotEmpty(self.filterControleSP)){
+                           criteria.append(" AND ASP.CONTROLESP = ?", self.filterControleSP);
+                        } 
+                        else if(StringUtils.isNotEmpty(self.filterLoteSP)){
+                           criteria.append(" AND ASP.CONTROLESP = ?", self.filterLoteSP);
+                        }
+                        criteria.append(" )");
+                     }
+                  }
+                  if ((isSankhyaW() && !getAttributeFromHTMLWrapper("producaoFit")) || temOpcional("20511")) {
+                     carregarEstadoTela();
+                  }
+                 
+                  return criteria;
+               });
+
+               dataset.addLineChangeListener(function (newIndex) {
+                  controleBotoes();
+                  _eventBus.dispatchEvent('onChangeOP', carregaInfoOP());
+
+                  if (newIndex > -1) {
+                     visivelAbaTerceiro();
+
+                     if (StringUtils.isEmpty(self._dsOrdemProducao.getFieldValue("NUMPS"))) {
+                        _dynaformOrdemProducao.setFieldProperty('NUMPS', 'visible', false);
+                        _dynaformOrdemProducao.setFieldProperty('TEMPOATRAVESS', 'visible', false);
+                        _dynaformOrdemProducao.setFieldProperty('DTINICIOMAX', 'visible', false);
+                        _dynaformOrdemProducao.setFieldProperty('DTPREVENT', 'visible', false);
+                        _dynaformOrdemProducao.setFieldProperty('PERIODOMPS', 'visible', false);
+                     } else {
+                        _dynaformOrdemProducao.setFieldProperty('NUMPS', 'visible', true);
+                        _dynaformOrdemProducao.setFieldProperty('TEMPOATRAVESS', 'visible', true);
+                        _dynaformOrdemProducao.setFieldProperty('DTINICIOMAX', 'visible', true);
+                        _dynaformOrdemProducao.setFieldProperty('DTPREVENT', 'visible', true);
+                        _dynaformOrdemProducao.setFieldProperty('PERIODOMPS', 'visible', true);
+                     }
+
+                     if (StringUtils.isEmpty(self._dsOrdemProducao.getFieldValue("NUNOTA"))) {
+                        _dynaformOrdemProducao.setFieldProperty('NUNOTA', 'visible', false);
+                        _dynaformOrdemProducao.setFieldProperty('SEQNOTA', 'visible', false);
+                     } else {
+                        _dynaformOrdemProducao.setFieldProperty('NUNOTA', 'visible', true);
+                        _dynaformOrdemProducao.setFieldProperty('SEQNOTA', 'visible', true);
+                     }
+
+                     if (StringUtils.isNotEmpty(_scopePrecisionQTDPRODUZIR)) {
+                        _scopePrecisionQTDPRODUZIR.precision = getDecQtd();
+                     } 
+
+                     if (StringUtils.isNotEmpty(_scopePrecisionSALDOOP)) {
+                        _scopePrecisionSALDOOP.precision = getDecQtd();
+                     }  
+
+                     if (self._dsOrdemProducao.getFieldValueAsString("ProcessoProdutivo.PRODPARATERCEIRO") == 'N') {
+                        _dynaformOrdemProducao.setFieldProperty('CODPARC', 'visible', false);
+                     } else {
+                        _dynaformOrdemProducao.setFieldProperty('CODPARC', 'visible', true);
+                     }
+
+                     if (self._dsOrdemProducao.getFieldValueAsNumberOrZero("IDICOP") != 0) {
+                        _dynaformOrdemProducao.setFieldProperty('IDICOP', 'visible', true);
+                     } else {
+                        _dynaformOrdemProducao.setFieldProperty('IDICOP', 'visible', false);
+                     }
+
+                     self.isEnableBtnOpcPrioridade = self._dsOrdemProducao.size() > 0;
+
+                     atualizaAbaFormularios();
+
+                     getCanEditDhInicializacao();
+                  }
+               });
+
+               addFieldsTempoTotal(dataset);
+
+               dataset.getFieldsMetadata().forEach(function (field) {
+				  if (['ProcessoProdutivo.CODPLP', 'ProcessoProdutivo.TIPEXECATV'].indexOf(field.name) > -1) {
+                     field.visible = false;
+                     return;
+                  } else if ('CODPRODPA' === field.name) {
+                     field.description = i18n("Producao.OrdensProducao.lblProdutoAcabado");
+                  } else if ('CODGRUPOPRODPA' === field.name) {
+                     field.visible = false;
+                  }
+
+                  metadata = configFields[field.id];
+                  if (angular.isDefined(metadata)) {
+                     if (angular.isDefined(metadata.UITabName)) {
+                        var propertiesEditable = false;
+
+                        field.properties.forEach(function (propertie) {
+                           if (propertie['name'] === 'tabId' || propertie['name'] === 'UITabName') {
+                              propertie['value'] = metadata.UITabName;
+                              propertiesEditable = true;
+                           }
+                        });
+
+                        if (metadata.notMain) {
+                           var arrayProperties = [];
+                           field.properties.forEach(function (propertie) {
+                              if (propertie['name'] !== 'UITabName' && propertie['value'] !== '__main') {
+                                 arrayProperties.push(propertie);
+                              }
+                           });
+
+                           field.properties = arrayProperties;
+                        } else if (!propertiesEditable) {
+                           field.properties.push({ name: "UITabName", value: metadata.UITabName });
+                        }
+                     }
+
+                     if (angular.isDefined(metadata.UIGroupName)) {
+                        if(angular.isUndefined(field.properties)) {
+                           field.properties = [];
+                        }
+
+                        var editGroup = false;
+                        field.properties.forEach(function (propertie) {
+                           if (propertie.name === 'UIGroupName') {
+                              value = metadata.UIGroupName;
+                              editGroup = true;
+                           }
+                        });
+
+                        if (!editGroup) {
+                           field.properties.push({ name: 'UIGroupName', value: metadata.UIGroupName });
+                        }
+                     }
+                  }
+               });
+
+               dataset.addRefreshedListener(function () {
+                  marcarMultiplaSelecao();
+                  atualizaAbaFormularios();
+                  getCanEditDhInicializacao();
+               });
+               
+               dataset.addFieldModifiedListener('DHINST', (fieldName, newValue, oldValue) => {
+                  if(fieldName === 'DHINST') {
+                      if(newValue < dataset.getFieldValue("DHINC")) {
+                        MessageUtils.showAlert(MessageUtils.TITLE_WARNING, i18n("Producao.OrdensProducao.msgDhInicializacaoAnteriorDhInclusao"));
+                        dataset.cancelEdition();
+                      }
+                  };
+              });
+
+               setupFieldValueEvaluatorsPA()
+               
+               dataset.init();
+
+               self.dsProdutoAcabado.setParentDataSet(dataset);
+               self.dsProdutoAcabado.init();
+
+               _creationComplete = true;
+               if (_objPK) {
+                  loadByPK(_objPK);
+               }
+            }
+         }
+
+         function changePedidoVenda(){
+            if(StringUtils.isEmpty(self.filterPedidoVenda)){
+					self.filterSubOrdensActive = false;
+					self.checkSubOrdensEnabled = false;
+				} else {
+					self.checkSubOrdensEnabled = true;
+				}
+         }
+
+         function visivelAbaTerceiro() {
+            var arrayTabInfo = [];
+            _dynaformOrdemProducao.getTabsInfo().forEach(function (propertie){
+               if ((propertie.tabId === "abaTerceiros" && self._dsOrdemProducao.getFieldValueAsString("ProcessoProdutivo.USATERCEIRO") == "N") || propertie.tabId === "mainTab") {
+                  return;
+               }
+
+               arrayTabInfo.push(propertie);
+            });
+
+            _dynaformOrdemProducao.setTabsInfo(arrayTabInfo);
+         }
+
+         function buildQueryExecutante() {
+            var executantes = "";
+            var expressao = "";
+
+            angular.forEach(self.filterExecutantes, function (exec) {
+               if (executantes != '') {
+                  executantes += ',';
+               }
+               executantes += exec;
+            });
+
+            if (StringUtils.isNotEmpty(executantes)) {
+               expressao += " AND EXISTS (";
+               expressao += " 	SELECT";
+               expressao += "	   1";
+               expressao += "	FROM TPRIATV IATV";
+               expressao += "	WHERE";
+               expressao += "		 IATV.IDIPROC = this.IDIPROC";
+               expressao += "		 AND (";
+               expressao += "		     IATV.CODEXEC IS NOT NULL AND IATV.CODEXEC IN (" + executantes + ")";
+               expressao += "		     OR (";
+               expressao += "			    IATV.CODEXEC IS NULL";
+               expressao += "			    AND EXISTS (SELECT 1 FROM TPRECD ECD WHERE ECD.IDEFX = IATV.IDEFX AND ECD.TIPO = 'U' AND ECD.CODIGO IN (" + executantes + "))";
+               expressao += "				OR";
+               expressao += "				IATV.IDEFX IN (";
+               expressao += "					SELECT";
+               expressao += "						ECD.IDEFX";
+               expressao += "					FROM";
+               expressao += "						TPRECD ECD";
+               expressao += "					WHERE";
+               expressao += "						ECD.TIPO = 'G'";
+               expressao += "						AND ECD.CODIGO IN (SELECT USU.CODGRUPO FROM TSIUSU USU WHERE USU.CODUSU IN (" + executantes + "))";
+               expressao += "				)";
+               expressao += "		     )";
+               expressao += "		 )";
+               expressao += "	GROUP BY IATV.IDIPROC";
+               expressao += " )";
+            }
+
+            return expressao;
+         }
+
+         function buildQueryTipoOP() {
+            var expressao = '';
+            var verifyCheckAll = 0;
+
+            angular.forEach(self.filterTipoOP, function (tipo) {
+               if ("P" == tipo) {
+                  verifyCheckAll++;
+                  expressao += " AND (ProcessoProdutivo->PROCDESMONTE = 'N') ";
+               } else {
+                  if ("D" == tipo) {
+                     verifyCheckAll++;
+                     expressao += " AND (ProcessoProdutivo->PROCDESMONTE = 'S') ";
+                  }
+               }
+
+               if ("R" == tipo) {
+                  verifyCheckAll++;
+                  expressao += " AND (ProcessoProdutivo->PROCREPARO = 'S') ";
+               }
+
+               if ("PT" == tipo) {
+                  verifyCheckAll++;
+                  expressao += " AND (ProcessoProdutivo->PRODPARATERCEIRO IN ('O','S')) ";
+               }
+
+               if ("PC" == tipo) {
+                  verifyCheckAll++;
+                  expressao += " AND EXISTS (SELECT 1 FROM TPRICOP ICOP WHERE ICOP.IDIPROC = this.IDIPROC) ";
+               }
+
+               if ("TE" == tipo) {
+                  verifyCheckAll++;
+                  expressao += " AND (ProcessoProdutivo->USATERCEIRO IN ('O','S')) ";
+               }
+            });
+
+            if (verifyCheckAll == 6) {
+               expressao = ' ';
+            }
+
+            return expressao;
+         }
+
+         function buildInQueryStatus() {
+            var strListSituacoes = '';
+
+            angular.forEach(self.filterSituacoes, function (situacao) {
+               if (strListSituacoes != '') {
+                  strListSituacoes += ',';
+               }
+               strListSituacoes += "'" + situacao + "'";
+            });
+
+            return strListSituacoes;
+         }
+
+         function montaCriterioExpressaoPeriodo(dtInicioIsNull, dtFinalIsNull, campo) {
+            var dtInicioAndFinalIsNotNull = !dtInicioIsNull && !dtFinalIsNull;
+            var expressao = "";
+
+            if (dtInicioAndFinalIsNotNull) {
+               expressao = " AND this.CAMPO >= ? AND this.CAMPO <= ?";
+            } else if (!dtInicioIsNull) {
+               expressao = " AND this.CAMPO >= ? ";
+            } else {
+               expressao = " AND this.CAMPO <= ? ";
+            }
+
+            return StringUtils.replaceAll(expressao, "CAMPO", campo);
+         }
+
+         function interceptBuildField(fieldName, dataset, fieldProp, scope) {
+            if (dataset.getEntityName() == 'CabecalhoInstanciaProcesso') {
+               if ('ProcessoProdutivo.CODPRC' == fieldName) {
+                  fieldProp['sk-entity-name'] = "ProcessoProdutivo";
+                  fieldProp['sk-target-field'] = "CODPRC";
+                  fieldProp['sk-description-field-name'] = "ProcessoProdutivo.DESCRABREV";
+
+                  return AngularUtil.createDirective('sk-pesquisa-input', fieldProp, scope);
+               } else if ('CODPRODPA' == fieldName) {
+                  fieldProp['sk-entity-name'] = "ProdutoAcabadoAProduzir";
+                  fieldProp['sk-target-field'] = "CODPRODPA";
+                  fieldProp['sk-description-field-name'] = "DESCRPRODPA";
+
+                  return AngularUtil.createDirective('sk-pesquisa-input', fieldProp, scope);
+               } else if ('QTDPRODUZIR' == fieldName) {
+                  scope.precision = 2;
+                  fieldProp['sk-precision'] = 'precision';
+
+                  _scopePrecisionQTDPRODUZIR = scope;
+
+                  return AngularUtil.createDirective('sk-number-input', fieldProp, scope);
+               } else if ('SALDOOP' == fieldName) {
+                  scope.precision = 2;
+                  fieldProp['sk-precision'] = 'precision';
+
+                  _scopePrecisionSALDOOP = scope;
+
+                  return AngularUtil.createDirective('sk-number-input', fieldProp, scope);
+               } else if('CONTROLEPA' == fieldName) {
+                  _scopeControlePA = scope;
+               } else if('DHINST' == fieldName) {
+                  fieldProp['sk-enabled'] = 'candEditDhInst()';
+                  scope.candEditDhInst = () => { return _canEditDhExec;};
+               }
+            }
+         }
+
+         function getDecQtd() {
+            return isNaN(self._dsOrdemProducao.getFieldValueAsNumber("DECQTD")) ? 2 : self._dsOrdemProducao.getFieldValueAsNumber("DECQTD");
+         }
+
+         //Intercepta os campos do formulario
+         function acceptField(fieldMetadata, dataset) {
+            if (dataset.getEntityName() == 'CabecalhoInstanciaProcesso') {
+               if (fieldMetadata.name.indexOf("AD_") == 0) {
+                  return true;
+               }
+
+               metadata = configFields[fieldMetadata.id];
+               if (angular.isDefined(metadata)) {
+                  if (angular.isDefined(metadata.order)) {
+                     fieldMetadata.order = metadata.order;
+                  }
+
+                  if (angular.isDefined(metadata.description)) {
+                     fieldMetadata.description = metadata.description;
+                  }
+
+                  if (angular.isDefined(metadata.isNullable)) {
+                     fieldMetadata.isNullable = metadata.isNullable;
+                  }
+
+                  if (angular.isDefined(metadata.required)) {
+                     fieldMetadata.required = metadata.required;
+                  }
+
+                  if (angular.isDefined(metadata.tabId)) {
+                     fieldMetadata.tabId = metadata.tabId;
+                     fieldMetadata.tabName = metadata.UITabName;
+                  }
+
+                  if (angular.isDefined(metadata.visible)) {
+                     fieldMetadata.visible = metadata.visible;
+                  }
+
+                  if (angular.isDefined(metadata.readOnly)) {
+                     fieldMetadata.readOnly = metadata.readOnly;
+                  }
+               } else {
+                  if(["TOTALTEMPREALIZADO", "TOTALTEMPPREVISTO","PERIODOMPS"].indexOf(fieldMetadata.name) != -1) {
+                     return true;
+                  }
+                  return false;
+               }
+            }
+
+            return true;
+         }
+
+         function setupFieldValueEvaluatorsPA() {
+            _dynaformOrdemProducao.addFieldPropertyEvaluator('CONTROLEPA', 'visible', function () {
+            	if (_fromInit && _utilizaControle) {
+  				  _fromInit = false;   
+  				  return true;
+            	} else if (!_utilizaControle || self._dsOrdemProducao.getFieldValue('CODPRODPA') == undefined) {
+                  return false;
+                } else if (_utilizaControle) {
+				  if (_scopeControlePA) {
+					_scopeControlePA.description = self.dsProdutoAcabado.getFieldValue("Produto.TITCONTEST");
+				  }
+				  return self.dsProdutoAcabado.getFieldValue("Produto.TIPCONTEST") == 'S';
+               }
+            }, 'CODPRODPA');
+         }
+
+         function acceptTab(tabId, dynaform, dataset) {
+            if ('Estoque em repositório de PA' === tabId || 'Stock in PA repository' === tabId || 'Reserva em Repositorio de PA' === tabId) {
+               return false;
+            } else if ('Instâncias de Atividades' === tabId || 'Instancias de Actividades' === tabId || 'Activity Instances' === tabId) {
+               return false;
+            } else if ('Produto acabado a ser processado em ordem de produção' === tabId || 'Finished Product to be processed in production order' === tabId || 'Terminado Producto Terminado a ser procesado en orden de producción' === tabId) {
+               return false;
+            } else if ('Numeração de Lote' === tabId) {
+               return false;
+            } else if ('Instância Co-produtos na OP' === tabId || 'Co-products instance in OP' === tabId || 'Instancia de coproductos en OP' === tabId) {
+               return false;
+            }
+
+            //TODO: Tirar codigo posteriormente
+            if ('Geral' === tabId) {
+               //return false;
+            }
+
+            return true;
+         }
+
+         function customTabsLoader(entityName) {
+            if (entityName == 'CabecalhoInstanciaProcesso') {
+               var customTabs = [];
+               customTabs.push({
+                  blockId: 'abaAtividade',
+                  description: i18n('Producao.OrdensProducao.abaAtividade'),
+                  controller: 'abaAtividadeController',
+                  controllerAs: 'ctrl',
+                  templateUrl: 'html5/OrdensProducao/abas/abaAtividade/abaAtividade.tpl.html',
+                  eventBus: _eventBus,
+                  properties: {
+                     carregaInfoOP: carregaInfoOP,
+                     parentDataset: self._dsOrdemProducao
+                  }
+               });
+
+               customTabs.push({
+                  blockId: 'abaMovimentacoesAcessorias',
+                  description: i18n('Producao.OrdemProducao.abaMovAcessorias'),
+                  controller: 'abaMovimentacoesAcessoriasController',
+                  controllerAs: 'ctrl',
+                  templateUrl: 'html5/OrdensProducao/abas/abaMovimentacoesAcessorias/abaMovimentacoesAcessorias.tpl.html',
+                  eventBus: _eventBus,
+                  properties: {
+                     utilizaControle: _utilizaControle,
+                     parentDataset: self._dsOrdemProducao
+                  }
+               });
+
+               customTabs.push({
+                  blockId: 'abaNotasProducao',
+                  description: i18n('Producao.OrdemProducao.abaNotasProducao'),
+                  controller: 'abaNotasProducaoController',
+                  controllerAs: 'ctrl',
+                  templateUrl: 'html5/OrdensProducao/abas/abaNotasProducao/abaNotasProducao.tpl.html',
+                  eventBus: _eventBus,
+                  properties: {
+                     utilizaControle: _utilizaControle,
+                     parentDataset: self._dsOrdemProducao
+                  }
+               });
+
+               customTabs.push({
+                  blockId: 'abaDependenciaOPs',
+                  description: i18n('Producao.OrdemProducao.abaDependenciaOPs'),
+                  controller: 'abaDependenciaOPsController',
+                  controllerAs: 'ctrl',
+                  templateUrl: 'html5/OrdensProducao/abas/abaDependenciaOPs/abaDependenciaOPs.tpl.html',
+                  eventBus: _eventBus,
+                  properties: {
+                     carregaInfoOP: carregaInfoOP,
+                     utilizaControle: _utilizaControle,
+                     parentDataset: self._dsOrdemProducao
+                  }
+               });
+
+               customTabs.push({
+                  blockId: 'abaDesviosProducao',
+                  description: i18n('Producao.DesvioProducao.lblAbaDesvioProducao'),
+                  controller: 'abaDesviosProducaoController',
+                  controllerAs: 'ctrl',
+                  templateUrl: 'html5/OrdensProducao/abas/abaDesviosProducao/abaDesviosProducao.tpl.html',
+                  eventBus: _eventBus,
+                  properties: {
+                     carregaInfoOP: carregaInfoOP,
+                     utilizaControle: _utilizaControle,
+                     parentDataset: self._dsOrdemProducao
+                  }
+               });
+
+               customTabs.push({
+                  blockId: 'abaTerceiros',
+                  description: i18n('Producao.OrdemProducao.abaTerceiros'),
+                  controller: 'abaTerceirosController',
+                  controllerAs: 'ctrl',
+                  templateUrl: 'html5/OrdensProducao/abas/abaTerceiros/abaTerceiros.tpl.html',
+                  eventBus: _eventBus,
+                  properties: {
+                     parentDataset: self._dsOrdemProducao
+                  }
+               });
+
+               customTabs.push({
+                  blockId: 'abaPedidoVenda',
+                  description: 'Pedido de Venda',
+                  controller: 'abaPedidoVendaController',
+                  controllerAs: 'ctrl',
+                  templateUrl: 'html5/OrdensProducao/abas/abaPedidoVenda/abaPedidoVenda.tpl.html',
+                  properties: {
+                     parentDataset: self._dsOrdemProducao
+                  }
+               })
+               
+               	customTabs.push({
+                  blockId: 'AbaDetalhamentoPerda',
+                  description: i18n('Commons.MultiplosMotivoPerdaPopUp.lblDetalhamentoPerdas'),
+                  controller: 'AbaDetalhamentoPerdaController',
+                  controllerAs: 'ctrl',
+                  templateUrl: 'html5/OrdensProducao/abas/abaDetalhamentoPerda/abaDetalhamentoPerda.tpl.html',
+                  properties: {
+                     parentDataset: self._dsOrdemProducao
+                  }
+               })
+
+               customTabs.push({
+                  blockId: 'abaControleQualidade',
+                  description: 'Controle de Qualidade',
+                  controller: 'abaControleQualidadeController',
+                  controllerAs: 'ctrl',
+                  templateUrl: 'html5/OrdensProducao/abas/abaControleQualidade/abaControleQualidade.tpl.html',
+                  properties: {
+                     parentDataset: self._dsOrdemProducao
+                  }
+               })
+               
+               return customTabs;
+            }
+         }
+
+         function carregaInfoOP() {
+            return self._dsOrdemProducao == undefined || self._dsOrdemProducao.getCurrentRowAsObject() == undefined ? new Object() : self._dsOrdemProducao.getCurrentRowAsObject();
+         }
+
+         function interceptBeforeSave(dataSource) {
+            return {
+               "filterOP": self.filterOP,
+               "filterLote": self.filterLote,
+               "filterCoProduto": self.filterCoProduto,
+               "dtIni": StringUtils.isEmpty(self.filterPeriodo) ? undefined : self.filterPeriodo.dtIni,
+               "dtFim": StringUtils.isEmpty(self.filterPeriodo) ? undefined : self.filterPeriodo.dtFim,
+               "filterCentroTrabalho": self.filterCentroTrabalho,
+               "filterProdutoAcabado": self.filterProdutoAcabado,
+               "filterSeriePA": self.filterSeriePA,
+               "filterReferencia": self.filterReferencia,
+               "filterControle": self.filterControle,
+               "filterGrupoProduto": self.filterGrupoProduto,
+               "filterPlanta": self.filterPlanta,
+               "filterTipoPeriodo": StringUtils.isEmpty(self.filterTipoPeriodo) ? 'I' : self.filterTipoPeriodo,
+               "filterSituacoes": self.filterSituacoes,
+               "filterTipoOP": self.filterTipoOP,
+               "filterExecutantes": self.filterExecutantes,
+               "filterPedidoVenda" : self.filterPedidoVenda,
+               "filterSubOrdensActive" : self.filterSubOrdensActive,
+               "filterNroMps": self.filterNroMps,
+               "filterCodMP": self.filterCodMP,
+               "filterControleMP": self.filterControleMP,
+               "filterLoteMP": self.filterLoteMP,
+               "filterNumSerieMP": self.filterNumSerieMP,
+               "filterCodSP": self.filterCodSP,
+               "filterControleSP": self.filterControleSP,
+               "filterLoteSP": self.filterLoteSP
+            };
+         }
+
+         function interceptAfterLoad(lastValues) {
+            if (!AngularUtil.isDeffered(lastValues)) {
+               self.filterOP = lastValues.filterOP;
+               self.filterLote = lastValues.filterLote;
+               self.filterCoProduto = lastValues.filterCoProduto;
+               self.filterPeriodo = {
+                  dtIni: StringUtils.isEmpty(lastValues.dtIni) ? undefined : new Date(lastValues.dtIni),
+                  dtFim: StringUtils.isEmpty(lastValues.dtFim) ? undefined : new Date(lastValues.dtFim)
+               };
+               self.filterCentroTrabalho = lastValues.filterCentroTrabalho;
+               self.filterProdutoAcabado = lastValues.filterProdutoAcabado;
+               self.filterSeriePA = lastValues.filterSeriePA;
+               self.filterReferencia = lastValues.filterReferencia;
+               self.filterControle = lastValues.filterControle;
+               self.filterGrupoProduto = lastValues.filterGrupoProduto;
+               self.filterPlanta = lastValues.filterPlanta;
+               self.filterTipoPeriodo = StringUtils.isEmpty(lastValues.filterTipoPeriodo) ? 'I' : lastValues.filterTipoPeriodo;
+               self.filterSituacoes = lastValues.filterSituacoes;
+               self.filterTipoOP = lastValues.filterTipoOP;
+               self.filterExecutantes = lastValues.filterExecutantes;
+               self.filterPedidoVenda = lastValues.filterPedidoVenda;
+               self.filterSubOrdensActive = lastValues.filterSubOrdensActive == "true" ? true : false;
+               self.filterNroMps = lastValues.filterNroMps;
+               self.filterCodMP = lastValues.filterCodMP;
+               self.filterControleMP = lastValues.filterControleMP;
+               self.filterLoteMP = lastValues.filterLoteMP;
+               self.filterNumSerieMP = lastValues.filterNumSerieMP;
+               self.filterCodSP = lastValues.filterCodSP;
+               self.filterControleSP = lastValues.filterControleSP;
+               self.filterLoteSP = lastValues.filterLoteSP;
+
+               selectedSituacoes();
+               selectedTiposOP();
+            } else {
+               self.filterTipoPeriodo = 'I';
+            }
+         }
+
+         function selectedSituacoes() {
+            if (StringUtils.isNotEmpty(self.filterSituacoes)) {
+               self.filterSituacoes.forEach(function (situacao) {
+                  self.optionsSituacao.forEach(function (opc) {
+                     if (opc.data == situacao) {
+                        opc.checked = true;
+                        return;
+                     }
+                  });
+               });
+            }
+         }
+
+         function selectedTiposOP() {
+            if (StringUtils.isNotEmpty(self.filterTipoOP)) {
+               self.filterTipoOP.forEach(function (tipo) {
+                  self.optionsTipo.forEach(function (opc) {
+                     if (opc.data == tipo) {
+                        opc.checked = true;
+                        return;
+                     }
+                  });
+               });
+            }
+         }
+
+         function clearFilter() {
+            self.filterOP = undefined;
+            self.filterLote = undefined;
+            self.filterCoProduto = undefined;
+            self.filterPeriodo = undefined;
+            self.filterCentroTrabalho = undefined;
+            self.filterProdutoAcabado = undefined;
+            self.filterSeriePA = undefined;
+            self.filterReferencia = undefined;
+            self.filterControle = undefined;
+            self.filterGrupoProduto = undefined;
+            self.filterPlanta = undefined;
+            self.filterTipoPeriodo = 'I';
+            self.filterSituacoes = undefined;
+            self.filterTipoOP = undefined;
+            self.filterExecutantes = undefined;
+            self.filterPedidoVenda = undefined;
+            self.filterSubOrdensActive = undefined;
+            self.filterNroMps = undefined;
+            self.filterCodMP = undefined;
+            self.filterControleMP = undefined;
+            self.filterLoteMP = undefined;
+            self.filterNumSerieMP = undefined;
+            self.filterCodSP = undefined;
+            self.filterControleSP = undefined;
+            self.filterLoteSP = undefined;
+         }
+
+         function onControleEstoqueCreated($component) {
+            _controleEstoqueInstance = $component;
+
+            _controleEstoqueInstance.onProductInfoChange(function (produto) {
+               self.isControladoLista = produto && produto.TIPCONTEST == 'S';
+            });
+         }
+
+         function onControleEstoqueCreatedMP($component) {
+            _controleEstoqueInstanceMP = $component;
+
+            _controleEstoqueInstanceMP.onProductInfoChange(function (produto) {
+               self.isControladoListaMP = produto && produto.TIPCONTEST == 'S';
+               if (!self.isControladoListaMP)
+                  self.filterControleMP = undefined;
+               self.isControladoLoteMP = produto && produto.TIPCONTEST == 'L';
+               if (!self.isControladoLoteMP)
+                  self.filterLoteMP = undefined;
+               self.isControladoSerieMP = produto && produto.TIPCONTEST == 'E';
+               if (!self.isControladoSerieMP)
+                  self.filterNumSerieMP = undefined;
+            });
+         }
+
+         function onControleEstoqueCreatedSP($component) {
+            _controleEstoqueInstanceSP = $component;
+
+            _controleEstoqueInstanceSP.onProductInfoChange(function (produto) {
+               self.isControladoListaSP = produto && produto.TIPCONTEST == 'S';
+               if (!self.isControladoListaSP)
+                  self.filterControleSP = undefined;
+               self.isControladoLoteSP = produto && produto.TIPCONTEST == 'L';
+               if (!self.isControladoLoteSP)
+                  self.filterLoteSP = undefined;
+            });
+         }
+
+         function filterChange() {
+            _controleEstoqueInstance.loadByCodProd(self.filterProdutoAcabado);
+
+            showFilterSeriePA();
+         }
+
+         function filterChangeMP() {
+            _controleEstoqueInstanceMP.loadByCodProd(self.filterCodMP);
+         }
+
+         function filterChangeSP() {
+            _controleEstoqueInstanceSP.loadByCodProd(self.filterCodSP);
+         }
+
+         function showFilterSeriePA() {
+			self.isProdutoSerie = false;
+            if (self.filterProdutoAcabado) {
+               self.isProdutoSerie = "E" == self.dsProdutoAcabado.getFieldValue("Produto.TIPCONTEST");
+            } 
+         }
+
+         function inicializarOrdens() {
+            if (!permissionAcessUpdate()) {
+               return;
+            }
+
+            var ordens = getOrdens2Actions();
+
+            if (ordens != null) {
+               ServiceProxy.callService(
+                  "mgeprod@OrdemProducaoSP.inicializarOrdens",
+                  ordens).then(function (result) {
+                     refreshOrdemProducao(true);
+                     var qtdInicializadas = result.responseBody.ordensInicializadas.qtdInicializada;
+                     if (qtdInicializadas > 0) {
+                        if (qtdInicializadas > 1) {
+                           MessageUtils.showInfo(MessageUtils.TITLE_INFORMATION, i18n('Producao.OrdemProducao.msgInicializacoesOk').replace("''", qtdInicializadas));
+                        } else {
+                           MessageUtils.showInfo(MessageUtils.TITLE_INFORMATION, i18n('Producao.OrdemProducao.msgInicializarOk'));
+                        }
+                     } else {
+                        MessageUtils.showAlert(MessageUtils.TITLE_WARNING, i18n('Producao.OrdemProducao.msgErroInicializarOrdens'));
+                     }
+                  });
+            }
+         }
+
+         function getOrdens2Actions(isCancelAllCoProduto) {
+            var items = itemsSelecionados();
+            var idIcop = self._dsOrdemProducao.getFieldValueAsNumberOrZero("IDICOP");
+            if (!isCancelAllCoProduto) {
+               idIcop = 0;
+            }
+            if (items != null) {
+               var ordens = {
+                  ordens: {
+                     idicop: idIcop
+                  }
+               };
+               ordens.ordens.ordem = [];
+               items.forEach(function (item) {
+                  ordens.ordens.ordem.push(
+                     {
+                        IDIPROC: item.IDIPROC,
+                        IDPROC: item.IDPROC,
+                        STATUSPROC: item.STATUSPROC
+                     }
+                  );
+               });
+               return ordens;
+            } else {
+               return null;
+            }
+         }
+
+         function itemsSelecionados() {
+            var items = self._dsOrdemProducao.getSelectedRecordsAsObjects(true);
+
+            if (items && items.length == 0) {
+               var array = [];
+               array.push(self._dsOrdemProducao.getCurrentRowAsObject());
+               items = array;
+            }
+   
+            _selectedLines = items;
+            if (items != null && items.length > 0) {
+               return items;
+            } else {
+               MessageUtils.showError(MessageUtils.TITLE_ERROR, i18n("Producao.OrdemProducao.msgNenhumRegistroSelecionado"));
+               return null;
+            }
+         }
+
+         function suspenderOrdens() {
+            if (!permissionAcessUpdate()) {
+               return;
+            }
+
+            var ordens = getOrdens2Actions();
+
+            if (ordens != null) {
+               ServiceProxy.callService(
+                  "mgeprod@OrdemProducaoSP.suspenderOrdens",
+                  ordens).then(function (result) {
+                     refreshOrdemProducao(true);
+                     if (ordens.ordens.ordem.length > 1) {
+                        MessageUtils.showInfo(MessageUtils.TITLE_INFORMATION, i18n("Producao.OrdemProducao.msgSuspensoesOk"));
+                     } else {
+                        MessageUtils.showInfo(MessageUtils.TITLE_INFORMATION, i18n("Producao.OrdemProducao.msgSuspensaoOk"));
+                     }
+                  });
+            }
+         }
+
+         function cancelarOrdens() {
+            if (!permissionAcessUpdate()) {
+               return;
+            }
+            if (self._dsOrdemProducao.getFieldValueAsNumberOrZero("IDICOP") != 0) {
+            	MessageUtils.confirm(MessageUtils.TITLE_CONFIRMATION, i18n('Producao.GrupoCoProduto.msgConfirmaCancelarOPcoProduto'))
+                .then(function () {
+                	serviceCancelarOP(true);
+                }, function (reason) {
+                    if (reason == 'no') {
+						//Cancelar somente a OP selecionada
+                    	serviceCancelarOP();
+                    }
+                    else if (reason == 'cancel') {
+                        //Nada a fazer
+                    }
+                });
+            } else {
+               //Cancelar somente a OP selecionada
+               serviceCancelarOP();
+            }
+         }
+
+         function serviceCancelarOP(isCancelAllCoProduto) {
+            var ordens = getOrdens2Actions(isCancelAllCoProduto);
+
+            if (ordens != null) {
+               ServiceProxy.callService(
+                  "mgeprod@OrdemProducaoSP.cancelarOrdens",
+                  ordens).then(function (result) {
+                     refreshOrdemProducao(true);
+                     if (ordens.ordens.ordem.length > 1 || isCancelAllCoProduto) {
+                        MessageUtils.showInfo(MessageUtils.TITLE_INFORMATION, i18n("Producao.OrdemProducao.msgCanceladasOk"));
+                     } else {
+                        MessageUtils.showInfo(MessageUtils.TITLE_INFORMATION, i18n("Producao.OrdemProducao.msgCanceladaOk"));
+                     }
+                  });
+            }
+         }
+
+         function permissionAcessUpdate() {
+            var result = true;
+            if (!self._dsOrdemProducao.canEdit()) {
+               MessageUtils.showError(MessageUtils.TITLE_ERROR, i18n("Producao.OrdemProducao.msgPermissaoAcessAlteracao"));
+               result = false;
+            }
+            return result;
+         }
+         
+         function permissionAcessInsert() {
+            var result = true;
+            if (!self._dsOrdemProducao.canInset()) {
+               MessageUtils.showError(MessageUtils.TITLE_ERROR, i18n("Producao.OrdemProducao.msgPermissaoAcessIncluirOP"));
+               result = false;
+            }
+            return result;
+         }
+
+         function marcarMultiplaSelecao() {
+            if (_selectedLines && _selectedLines.length > 0) {
+               var selecteds = [];
+
+               var dp = self._dsOrdemProducao.getRecords();
+
+               if (dp.length > 0) {
+                  for (var selected = 0; selected < _selectedLines.length; selected++) {
+                     for (var item = 0; item < dp.length; item++) {
+                        if (dp[item][0] == _selectedLines[selected].IDIPROC) {
+                           selecteds.push(dp[item]);
+                           break;
+                        }
+                     }
+                  }
+
+                  if (selecteds.length > 0) {
+                     var lineIndex = dp.indexOf(selecteds[selecteds.length - 1]);
+                     self._dsOrdemProducao.gotoRow(lineIndex);
+                     self._dsOrdemProducao.setSelectedRecords(selecteds);
+                  }
+               }
+
+               _selectedLines = null;
+            }
+         }
+
+         function controleBotoes() {
+            if (self._dsOrdemProducao.getFieldValueAsString("STATUSPROC") === "S") {
+               self.disabledCancelarOrdens = true;
+               self.disabledInicializarOrdens = false;
+               self.disabledSuspenderOrdens = true;
+               self.disabledFormularios = false;
+            } else if (self._dsOrdemProducao.getFieldValueAsString("STATUSPROC") === "A") {
+               self.disabledCancelarOrdens = false;
+               self.disabledInicializarOrdens = true;
+               self.disabledSuspenderOrdens = false;
+               self.disabledFormularios = false;
+            } else if (self._dsOrdemProducao.getFieldValueAsString("STATUSPROC") === "R") {
+               self.disabledCancelarOrdens = false;
+               self.disabledInicializarOrdens = false;
+               self.disabledSuspenderOrdens = false;
+               self.disabledFormularios = false;
+            } else if(self._dsOrdemProducao.getFieldValueAsString("STATUSPROC") === "P2") {
+               self.disabledCancelarOrdens = false;
+               self.disabledInicializarOrdens = false;
+               self.disabledSuspenderOrdens = false;
+               self.disabledFormularios = false;
+            } else {  
+               self.disabledCancelarOrdens = true;
+               self.disabledInicializarOrdens = true;
+               self.disabledSuspenderOrdens = true;
+               self.disabledFormularios = true;
+            }
+         }
+
+         function btnOutrasOpcoes() {
+            var options = [
+               { label: i18n('Producao.OrdensProducao.lblResumoPAMP'), action: self.popupResumoPAMP },
+               { label: i18n('Producao.OrdemProducao.btnSubstituirPA'), action: self.substituirProdutoPA },
+               { label: i18n('Producao.OrdemProducao.btnRedimensionarLote'), action: self.redimensionarLote },
+               { label: i18n('Producao.OrdemProducao.btnEditarLote'), action: self.editarLote }
+            ];
+            return options;
+         }
+
+         function popupResumoPAMP() {
+            abrirPopupResumoPAMP(0)
+         }
+
+         function substituirProdutoPA() {
+            if (!permissionAcessUpdate()) {
+               return;
+            }
+
+            if (self.dsProdutoAcabado.size() == 1) {
+               popupSubstituirProdutoPA();
+            } else {
+               abrirPopupResumoPAMP(1);
+            }
+
+         }
+
+         function redimensionarLote() {
+            if (!permissionAcessUpdate()) {
+               return;
+            }
+
+            if (self.dsProdutoAcabado.size() == 1) {
+               popupRedimensionarLote();
+            } else {
+               abrirPopupResumoPAMP(2);
+            }
+
+         }
+
+         function editarLote() {
+            if (!permissionAcessUpdate()) {
+               return;
+            }
+
+            if (self.dsProdutoAcabado.size() == 1) {
+               popupEditarLote();
+            } else {
+               abrirPopupResumoPAMP(3);
+            }
+
+         }
+         
+         function isOPSelecionada() {
+			if (self._dsOrdemProducao.isEmpty()) {
+				MessageUtils.showAlert(MessageUtils.TITLE_WARNING, i18n("Producao.OrdensProducao.msgSelecioneOrdemProducao"));
+				return false;
+			}
+
+			return true;
+		}
+
+         function abrirPopupResumoPAMP(acao) {
+			if (!isOPSelecionada()){
+				return;
+			}
+			 
+            SanPopup.open({
+               title: i18n('Producao.OrdensProducao.lblResumoPAMP'),
+               templateUrl: 'html5/OrdensProducao/popup/ResumoPAMP/resumoPAMP.tpl.html',
+               controller: 'ResumoPAMPController',
+               controllerAs: 'ctrl',
+               size: 'lg',
+               showBtnOk: false,
+               cancelBtnLabel: i18n('Geral.buttonFechar'),
+               resolve: {
+                  data: {
+                     parentDataset: self._dsOrdemProducao,
+                     dsProdutoAcabado: self.dsProdutoAcabado,
+                     utilizaControle: _utilizaControle,
+                     acao: acao == null ? 0 : acao
+                  }
+               }
+            }).result.then(function (result) {
+               var acao = result.acao;
+               if (acao == 1) {
+                  popupSubstituirProdutoPA();
+               } else if (acao == 2) {
+                  popupRedimensionarLote();
+               } else if (acao == 3) {
+                  popupEditarLote();
+               }
+
+            });
+         }
+
+         function popupSubstituirProdutoPA() {
+            SanPopup.open({
+               title: i18n('Producao.OrdemProducao.titlePopupSubstituicaoPA'),
+               templateUrl: 'html5/OrdensProducao/popup/SubstituirProdutoPA/substituirProdutoPA.tpl.html',
+               controller: 'SubstituirProdutoPAController',
+               controllerAs: 'ctrl',
+               size: 'lg',
+               okBtnLabel: i18n('Producao.OrdemProducao.btnConfirmarSubstituicaoPA'),
+               cancelBtnLabel: i18n('Geral.lblCancelar'),
+               resolve: {
+                  data: {
+                     utilizaControle: _utilizaControle,
+                     tipoNroLoteProcessoProdutivo: self._dsOrdemProducao.getFieldValueAsString('ProcessoProdutivo.TIPONROLOTE'),
+                     dsProdutoAcabado: self.dsProdutoAcabado
+                  }
+               }
+            }).result.then(function (result) {
+               if (result != null) {
+                  MessageUtils.showInfo(MessageUtils.TITLE_INFORMATION, i18n("Producao.OrdemProducao.msgSubstituicaoRealizada")).then(function () {
+                     refreshOrdemProducao(false);
+                  });
+               }
+            });
+         }
+
+         function popupRedimensionarLote() {
+            SanPopup.open({
+               title: i18n('Producao.OrdemProducao.btnRedimensionarLote'),
+               templateUrl: 'html5/OrdensProducao/popup/RedimensionarLote/redimensionarLote.tpl.html',
+               controller: 'RedimensionarLoteController',
+               controllerAs: 'ctrl',
+               size: 'xs',
+               okBtnLabel: i18n('Geral.confirmar'),
+               cancelBtnLabel: i18n('Geral.lblCancelar'),
+               resolve: {
+                  data: {
+                     dsProdutoAcabado: self.dsProdutoAcabado
+                  }
+               }
+            }).result.then(function (result) {
+               MessageUtils.showInfo(MessageUtils.TITLE_INFORMATION, i18n("Producao.OrdemProducao.msgRedimensionamentoRealizadoSucesso")).then(function () {
+                  refreshOrdemProducao(false);
+                  self.dsProdutoAcabado.refresh();
+               });
+            });
+         }
+
+         function popupEditarLote() {
+            SanPopup.open({
+               title: i18n('Producao.OrdemProducao.btnEditarLote'),
+               templateUrl: 'html5/OrdensProducao/popup/EditarLote/editarLote.tpl.html',
+               controller: 'EditarLoteController',
+               controllerAs: 'ctrl',
+               size: 'el',
+               okBtnLabel: i18n('Geral.confirmar'),
+               cancelBtnLabel: i18n('Geral.lblCancelar'),
+               resolve: {
+                  data: {
+                     dsProdutoAcabado: self.dsProdutoAcabado
+                  }
+               }
+            }).result.then(function (result) {
+               MessageUtils.showInfo(MessageUtils.TITLE_INFORMATION, i18n("Producao.OrdemProducao.msgEdicaoLoteRealizada")).then(function () {
+                  refreshOrdemProducao(false)
+                  self.dsProdutoAcabado.refresh();
+               });
+            });
+         }
+
+         function refreshOrdemProducao(atualizaAtual) {
+            if (atualizaAtual) {
+               self._dsOrdemProducao.refreshCurrentRow();
+            } else {
+               var currentLineParent = self._dsOrdemProducao.getCurrentIndex();
+               var observer = self._dsOrdemProducao.addRefreshedListener(function () {
+                  if (currentLineParent >= 0) {
+                     self._dsOrdemProducao.gotoRow(currentLineParent);
+                     currentLineParent = -1;
+                     observer();
+                  }
+               });
+               self._dsOrdemProducao.refresh();
+            }
+         }
+
+         function onDatasetCreatedPA(dataset) {
+			self.dsProdutoAcabado = dataset;
+			self.dsProdutoAcabado.whenMetadataLoaded().then(()=>{
+				self.dsProdutoAcabado.getFieldsMetadata().forEach(function (field) {
+					if (['Produto.TIPCONTEST', 'Produto.TITCONTEST'].indexOf(field.name) > -1) {
+						field.visible = false;
+						return;
+					}
+				});
+			});
+         }
+
+         function isJivaW() {
+            return SkWorkspace.isJivaW();
+         }
+
+        function isSankhyaW() {
+            return SkWorkspace.isSankhyaW();
+        }
+
+
+        function temOpcional(opcional) {
+            if (getAttributeFromHTMLWrapper("opc0009") == "1") {
+                return true;
+            }
+
+            return angular.isDefined(ArrayUtils.find(ArrayUtils.toArray(opcional), function (opc) {
+                return getAttributeFromHTMLWrapper("opc" + opc) == "1"
+            }));
+        }
+
+         function getAttributeFromHTMLWrapper(attribName) {
+            return window[attribName];
+         }
+
+         function showFormularios(index) {
+            self.tabSelectedIndex = index;
+         }
+
+         function onTabnavigatorCreated(tabNavigator) {
+            self.tabNavigatorFormularioIni = tabNavigator;
+         }
+
+
+         function onCreatedFormularioProducaoBuilder($instance) {
+            if (angular.isDefined($instance)) {
+               _formularioProducaoBuilder = $instance;
+               atualizaAbaFormularios();
+            }
+         }
+
+         function atualizaAbaFormularios() {
+            self.nroOPForm = self._dsOrdemProducao.getFieldValueAsNumber("IDIPROC");
+            self.prodForm = self._dsOrdemProducao.getFieldValueAsString("DESCRPRODPA");
+            self.tamLoteForm = self._dsOrdemProducao.getFieldValueAsNumber("QTDPRODUZIR");
+
+            if (angular.isDefined(_formularioProducaoBuilder)) {
+               _formularioProducaoBuilder.setResourceId(SkApplicationInstance.getResourceID());
+               _formularioProducaoBuilder.setDataset(self._dsOrdemProducao);
+               _formularioProducaoBuilder.setTabNavigator(self.tabNavigatorFormularioIni);
+               _formularioProducaoBuilder.buildFormulario();
+               self.isVisibleAbaFormulario = true;
+            }
+         }
+
+         function onViewLancamentoCreated(viewLancamento) {
+            self.viewLancamento = viewLancamento;
+            self.viewLancamento.reutilizarLancamento = _permiteReutilizaLanc;
+
+            carregarLancamentoOpPorPedidoVenda();
+         }
+
+         function carregarLancamentoOpPorPedidoVenda() {
+            self.viewLancamento.carregarLancamentoPedidoVenda(self.objPK);
+         }
+
+         function addFieldsTempoTotal(dataset) {
+            dataset.addTransientField({ id: 'TOTALTEMPPREVISTO', name: 'TOTALTEMPPREVISTO', description: i18n("Producao.OrdensProducao.lblTotalPrev"), UIGroupName: i18n('Producao.OrdensProducao.grupoSeguranca'), readOnly: true, standAlone: true, tabId: 'general', visible: true, order: 24 });
+            dataset.addTransientField({ id: 'TOTALTEMPREALIZADO', name: 'TOTALTEMPREALIZADO', description: i18n("Producao.OrdensProducao.lblTotalRealizado"), UIGroupName: i18n('Producao.OrdensProducao.grupoSeguranca'), readOnly: true, standAlone: true, tabId: 'general', visible: true, order: 24 });
+         }
+         
+         function addCientEventLiberaWC() {
+				if(!ServiceProxy.hasClientEvent(CLIENT_EVENT_LIBERA_WC)){
+					ServiceProxy.addClientEvent(
+						CLIENT_EVENT_LIBERA_WC,
+						function(eventContent, serviceRecaller) {
+							var params = serviceRecaller.params.ordens;
+							MessageUtils.simpleConfirm(
+								MessageUtils.TITLE_INFORMATION,
+								i18n("Producao.OrdensProducao.msgLiberacaoWC"))
+								.then(function() {
+									params.CANCELAR_LIBERA_WC = true;
+									serviceRecaller.reCall();	
+								});
+						}
+					);
+				}
+			}
+
+         function addCientEventLiberaCentroDeTrabalhoAoSuspender(){
+				if(!ServiceProxy.hasClientEvent(CLIENT_EVENT_LIBERAR_CT_AO_SUSPENDER_OP)){
+					ServiceProxy.addClientEvent(
+						CLIENT_EVENT_LIBERAR_CT_AO_SUSPENDER_OP,
+						function(eventContent, serviceRecaller) {
+							var params = serviceRecaller.params.ordens;
+
+							MessageUtils.simpleConfirm(
+								MessageUtils.TITLE_INFORMATION,
+								i18n("Producao.OrdensProducao.msgConfirmaSuspenderOP"))
+								.then (function() {
+                           params.validarUsoCentroTrabalho = true;
+									serviceRecaller.reCall();
+							});
+						}
+					);
+				}
+         }
+
+         function acceptColumnField(fieldMD, dataset) {
+            if (dataset.getEntityName() == "CabecalhoInstanciaProcesso") {
+               if (fieldMD.name == "PlantaManufatura.NOME") {
+                  return false;
+               }
+            }
+            return true;
+         }
+
+         function validateProducaoFit(field) {
+            if (field) {
+                return getAttributeFromHTMLWrapper("producaoFit") && _hideFieldsInProducaoFit.indexOf(field) > -1;
+            }
+            return getAttributeFromHTMLWrapper("producaoFit");
+        }
+
+         function loadOtherConfigs(dynaform) {
+            var entityName = dynaform.getEntityName();
+
+            if (entityName == 'CabecalhoInstanciaProcesso') {
+               return [getConfigPermiteReutilizarLancamento()];
+            }
+         }
+
+         function getConfigPermiteReutilizarLancamento() {
+            return {
+               id: ID_CONFIG_PERMITE_REUTILIZACAO_LANCAMENTO,
+               type: 'switch',
+               label: 'Producao.OrdensProducao.lblPermiteReutilizarLancamento',
+               value: _permiteReutilizaLanc,
+               onChange: function (dynaform, conf) {
+                  _permiteReutilizaLanc = conf.value;
+
+                  saveState();
+               }
+            }
+         }
+
+         function selecionarLancamento() {
+            let deferred = $q.defer();
+
+            getListLancamentos().then(listLancamentos => {
+               if(listLancamentos) {
+                  let result = SanPopup.open({
+                     title: i18n('Producao.OrdensProducao.titleLancamentoOPsalvo'),
+                     templateUrl: 'html5/OrdensProducao/popup/SelecaoLancamento/selecaolancamento.tpl.html',
+                     controller: 'SelecaoLancamentoController',
+                     controllerAs: 'ctrl',
+                     size: 'md',
+                     showBtnOk: true,
+                     okBtnLabel: "Iniciar Novo",
+                     okBtnClass: "btn btn-default",
+                     showBtnNo: true,
+                     noBtnLabel: "Cancelar",
+                     cancelBtnLabel: "Continuar Lançamento",
+                     resolve: {
+                        data: {
+                           lancamentos: listLancamentos
+                        }
+                     }
+                  }).result;
+                  
+                  
+                  result.then((nuLancamento) => {
+                     if(nuLancamento.incluirNovo) {
+                        getNewLancamentoOP(true).then(() => {
+                           deferred.resolve(undefined);
+                        });
+                     } else {
+                        self.nulop = parseInt(nuLancamento.acao);
+                        deferred.resolve(self.nulop);
+                     }
+                  });
+               } else {
+                  deferred.reject(undefined);
+               }
+            });
+
+            return deferred.promise; 
+         }
+
+         function getListLancamentos() {
+            let deferred = $q.defer();
+
+            let request = {};
+
+            ServiceProxy.callService("mgeprod@LancamentoOrdemProducaoSP.getLancamentosOPSalvos", request).then(response => {
+                  let lancamentosList = response.responseBody.lancamentos;
+                  if (lancamentosList.length == 0) {
+                     MessageUtils.showAlert(MessageUtils.TITLE_CONFIRMATION, i18n('Producao.OrdemProducao.labelNaoExistemLancamentosSalvos')).then(() => {
+                        deferred.resolve();
+                     })
+                  } else {
+                     deferred.resolve(lancamentosList);
+                  }
+               });
+
+            return deferred.promise;
+         }
+
+         function salvarPrioridade() {
+            var records = self._dsOrdemProducao.getRecordsAsObjects();
+                var ordens = {
+                    ordens: {
+                        IDIPROC: NumberUtils.getNumberOrZero(self._dsOrdemProducao.getFieldValueAsNumber("IDIPROC")),
+                        ordem: []
+                    }
+                };
+                var count = 1;
+                _fastCriteria = "";
+                records.forEach(function (record) {
+                    var recordId = record.IDIPROC;
+                    var ordem = {
+                        INDEX: records.indexOf(record),
+                        IDIPROC: recordId
+                    };
+                    ordens.ordens.ordem.push(ordem);
+                    _fastCriteria += recordId.toString();
+                    if (count < records.length) {
+                        _fastCriteria += ", ";
+                    }
+                    count++;
+                });
+
+                ServiceProxy.callService(
+                    "mgeprod@OrdemProducaoSP.salvarPrioridades",
+                    ordens).then(function (result) {
+                        var criteria = null;
+                        if (!StringUtils.isEmpty(_fastCriteria)) {
+                            var expressao = "this.IDIPROC IN (" + _fastCriteria + ")";
+                            criteria = new Criteria(expressao);
+                        }
+                        self._dsOrdemProducao.refresh(criteria);
+                    });
+         }
+
+         function getPopOverPrioridadeProps() {
+            return {
+               _dsOrdemProducao: self._dsOrdemProducao
+            }
+        }
+
+         function saveState() {
+            var config = {
+               lancamento: {
+                  permiteReutilizaLanc: _permiteReutilizaLanc
+               }
+            }
+
+            SkApplicationInstance.saveMgeConfig(self.chaveLancamento, config)
+               .then(function () {
+                  SkApplicationInstance.putConfiguracaoTela(self.chaveLancamento, config);
+               });
+         }
+
+         function loadState() {
+            var config = SkApplicationInstance.getConfiguracaoTela(self.chaveLancamento);
+
+            if (config) {
+               _permiteReutilizaLanc = JSON.parse(config.lancamento.permiteReutilizaLanc);
+            }
+         }
+
+         function getCanEditDhInicializacao() {
+			_canEditDhExec = false;
+			_dhExecManual = false;
+			if (angular.isDefined(self._dsOrdemProducao)) {
+	            if(['F', 'C'].indexOf(self._dsOrdemProducao.getFieldValue("STATUSPROC")) < 0){
+					_canEditDhExec = ['E', 'M'].indexOf(self._dsOrdemProducao.getFieldValue("ProcessoProdutivo.TIPEXECATV")) != -1;
+				}
+				_dhExecManual = 'M' === self._dsOrdemProducao.getFieldValue("ProcessoProdutivo.TIPEXECATV");	           
+            }
+         }
+
+      }]);
