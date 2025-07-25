@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Controle de Produção - Operações</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            max-width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #666;
+            z-index: 10;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+            background-color: white;
+        }
+
+        /* Mobile First - Dispositivos móveis (até 768px) */
+        @media (max-width: 768px) {
+            .container {
+                padding: 5px;
+            }
+            
+            .iframe-container {
+                height: calc(100vh - 10px);
+                border-radius: 4px;
+            }
+            
+            iframe {
+                border-radius: 4px;
+            }
+        }
+
+        /* Tablets (768px - 1024px) */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .iframe-container {
+                height: calc(100vh - 30px);
+            }
+        }
+
+        /* Desktop (1025px e acima) */
+        @media (min-width: 1025px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .iframe-container {
+                height: calc(100vh - 40px);
+                max-width: 1400px;
+            }
+        }
+
+        /* Telas muito grandes (1400px e acima) */
+        @media (min-width: 1400px) {
+            .iframe-container {
+                max-width: 1600px;
+            }
+        }
+
+        /* Orientação paisagem em dispositivos móveis */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .iframe-container {
+                height: calc(100vh - 5px);
+            }
+        }
+
+        /* Orientação retrato em tablets */
+        @media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+            .iframe-container {
+                height: calc(100vh - 20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <div class="iframe-container">
+            <div class="loading">Carregando...</div>
+            <iframe 
+                src="https://operaprod.netlify.app/index.html" 
+                title="Sistema de Controle de Produção"
+                onload="this.previousElementSibling.style.display='none'">
+            </iframe>
+        </div>
+    </main>
+
+</body>
+</html>

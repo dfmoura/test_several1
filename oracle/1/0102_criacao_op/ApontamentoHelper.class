@@ -1,0 +1,2240 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
+
+package br.com.sankhya.mgeprod.model.helper;
+
+import br.com.sankhya.jape.EntityFacade;
+import br.com.sankhya.jape.bmp.PersistentLocalEntity;
+import br.com.sankhya.jape.core.JapeSession;
+import br.com.sankhya.jape.dao.JdbcWrapper;
+import br.com.sankhya.jape.sql.NativeSql;
+import br.com.sankhya.jape.util.FinderWrapper;
+import br.com.sankhya.jape.vo.DynamicVO;
+import br.com.sankhya.jape.vo.EntityVO;
+import br.com.sankhya.jape.wrapper.JapeFactory;
+import br.com.sankhya.jape.wrapper.JapeWrapper;
+import br.com.sankhya.jape.wrapper.fluid.FluidUpdateVO;
+import br.com.sankhya.mgeprod.model.lancamento.TipoProcesso;
+import br.com.sankhya.mgeprod.model.utils.ApontamentoTotem;
+import br.com.sankhya.mgeprod.model.utils.ListaMateriaisUtils;
+import br.com.sankhya.mgeprod.model.utils.Pair;
+import br.com.sankhya.mgeprod.model.utils.ProducaoUtils;
+import br.com.sankhya.mgeprod.model.utils.ProdutoAcabadoApontamentoTotem;
+import br.com.sankhya.mgeprod.model.utils.ProdutoControle;
+import br.com.sankhya.mgeprod.model.utils.RecursoControle;
+import br.com.sankhya.modelcore.comercial.ComercialUtils;
+import br.com.sankhya.modelcore.comercial.LiberacaoSolicitada;
+import br.com.sankhya.modelcore.comercial.UnidadeProdutoUtils;
+import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import br.com.sankhya.modelcore.util.I18nServerSideBundle;
+import br.com.sankhya.modelcore.util.MGECoreParameter;
+import br.com.sankhya.util.troubleshooting.SKError;
+import br.com.sankhya.util.troubleshooting.TSLevel;
+import br.com.sankhya.ws.ServiceCanceledException;
+import br.com.sankhya.ws.ServiceContext;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.sankhya.util.BigDecimalUtil;
+import com.sankhya.util.JdbcUtils;
+import com.sankhya.util.StringUtils;
+import com.sankhya.util.TimeUtils;
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import javax.ejb.FinderException;
+import org.jdom.Element;
+
+public class ApontamentoHelper {
+    private JdbcWrapper jdbc;
+    private EntityFacade dwfEntityFacade;
+    private NativeSql sqlQtdJaApontada;
+    private NativeSql sqlMovimentacaoEstoque;
+    private static final String TIPO_FIXO = "F";
+    private static final String NAO = "N";
+    private static final String APONTA_MPS_OP = "O";
+
+    public ApontamentoHelper(JdbcWrapper jdbc) {
+        this.jdbc = jdbc;
+        this.dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+    }
+
+    public Element criarApontamentosAtividade(BigDecimal codUsu, BigDecimal idIAtv) throws Exception {
+        DynamicVO instanciaAtividadeVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("InstanciaAtividade", idIAtv);
+        DynamicVO atividadeVO = instanciaAtividadeVO.asDymamicVO("Atividade");
+        this.validarPrecondicoesCriacaoApontamento(instanciaAtividadeVO);
+        DynamicVO cabecalhoApontamentoVO = null;
+        BigDecimal idIProc = instanciaAtividadeVO.asBigDecimal("IDIPROC");
+        Collection<DynamicVO> produtosAProduzir = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ProdutoAcabadoAProduzir", " this.IDIPROC = ? AND this.CONCLUIDO = 'N'", new Object[]{idIProc}));
+        if (atividadeVO.asBigDecimal("IDRPAOPER") != null && "R".equals(atividadeVO.asString("QTDBASEAPON"))) {
+            produtosAProduzir = this.removerProdutosForaDoRepositorio(produtosAProduzir, atividadeVO.asBigDecimal("IDRPAOPER"));
+        }
+
+        List<ProdutoControle> listaProdutosControlePendentesApontamento = this.buscaApontamentosPendetes(idIProc, instanciaAtividadeVO.asBigDecimal("IDEFX"), (BigDecimal)null);
+
+        for(DynamicVO produtoProduzirVO : produtosAProduzir) {
+            if ((listaProdutosControlePendentesApontamento.isEmpty() || !listaProdutosControlePendentesApontamento.contains(new ProdutoControle(produtoProduzirVO.asBigDecimal("CODPRODPA"), produtoProduzirVO.asString("CONTROLEPA")))) && !produtoProduzirVO.asBoolean("CONCLUIDO")) {
+                if (cabecalhoApontamentoVO == null) {
+                    cabecalhoApontamentoVO = this.criarCabecalhoApontamento(codUsu, idIAtv, "");
+                }
+
+                BigDecimal codprodPa = produtoProduzirVO.asBigDecimal("CODPRODPA");
+                String controlePa = produtoProduzirVO.asString("CONTROLEPA");
+                BigDecimal qtdProduzirPa = produtoProduzirVO.asBigDecimal("QTDPRODUZIR");
+                this.criarApontamentoProdutoAcabadoAProduzir(cabecalhoApontamentoVO, new ProdutoControle(codprodPa, controlePa), qtdProduzirPa, (BigDecimal)null, true, false, (BigDecimal)null);
+            }
+        }
+
+        BigDecimal nuapo = null;
+        if (cabecalhoApontamentoVO != null) {
+            nuapo = cabecalhoApontamentoVO.asBigDecimal("NUAPO");
+        }
+
+        Element retornoCriacaoApontamento = new Element("apontamento");
+        retornoCriacaoApontamento.setAttribute("NUAPO", StringUtils.getNullAsEmpty(nuapo));
+        StringBuffer controles = new StringBuffer();
+
+        for(ProdutoControle produtoControle : listaProdutosControlePendentesApontamento) {
+            if (controles.length() > 0) {
+                controles.append(", ");
+            }
+
+            controles.append(produtoControle.getCodProd()).append("-").append(produtoControle.getControle());
+        }
+
+        retornoCriacaoApontamento.setAttribute("LISTAPENDENTES", controles.toString());
+        return retornoCriacaoApontamento;
+    }
+
+    public List<ProdutoControle> buscaApontamentosPendetes(BigDecimal idIProc, BigDecimal idefx, BigDecimal nuapo) throws Exception {
+        return this.buscaApontamentosPendetes(idIProc, idefx, nuapo, (BigDecimal)null, (String)null);
+    }
+
+    public List<ProdutoControle> buscaApontamentosPendetes(BigDecimal idIProc, BigDecimal idefx, BigDecimal nuapo, BigDecimal codProd, String controle) throws Exception {
+        List<ProdutoControle> listaProdutosControlePendentesApontamento = new ArrayList();
+        NativeSql buscaApontamentosPendentes = new NativeSql(this.jdbc);
+        buscaApontamentosPendentes.appendSql(" SELECT TPRAPA.CODPRODPA, TPRAPA.CONTROLEPA ");
+        buscaApontamentosPendentes.appendSql("\tFROM TPRAPA  ");
+        buscaApontamentosPendentes.appendSql("\t\tINNER JOIN TPRAPO ON (TPRAPA.NUAPO = TPRAPO.NUAPO AND TPRAPO.SITUACAO = 'P') ");
+        buscaApontamentosPendentes.appendSql("  \tINNER JOIN TPRIATV ON (TPRIATV.IDIATV = TPRAPO.IDIATV) ");
+        buscaApontamentosPendentes.appendSql(" WHERE TPRIATV.IDIPROC = :IDIPROC ");
+        buscaApontamentosPendentes.appendSql(" \tAND TPRIATV.IDEFX    = :IDEFX ");
+        if (nuapo != null) {
+            buscaApontamentosPendentes.appendSql("AND TPRAPA.NUAPO != :NUAPO");
+            buscaApontamentosPendentes.setNamedParameter("NUAPO", nuapo);
+        }
+
+        if (codProd != null) {
+            buscaApontamentosPendentes.appendSql("AND TPRAPA.CODPRODPA = :CODPROD");
+            buscaApontamentosPendentes.appendSql(" AND nullValue(TPRAPA.CONTROLEPA , ' ') = :CONTROLE");
+            buscaApontamentosPendentes.setNamedParameter("CODPROD", codProd);
+            buscaApontamentosPendentes.setNamedParameter("CONTROLE", controle);
+        }
+
+        buscaApontamentosPendentes.appendSql(" \tGROUP BY TPRAPA.CODPRODPA, TPRAPA.CONTROLEPA ");
+        buscaApontamentosPendentes.setNamedParameter("IDIPROC", idIProc);
+        buscaApontamentosPendentes.setNamedParameter("IDEFX", idefx);
+        ResultSet result = buscaApontamentosPendentes.executeQuery();
+
+        while(result.next()) {
+            listaProdutosControlePendentesApontamento.add(new ProdutoControle(result.getBigDecimal("CODPRODPA"), result.getString("CONTROLEPA")));
+        }
+
+        result.close();
+        return listaProdutosControlePendentesApontamento;
+    }
+
+    private final Collection<DynamicVO> removerProdutosForaDoRepositorio(Collection<DynamicVO> produtosAProduzir, BigDecimal repositorioOperacao) throws Exception {
+        if (repositorioOperacao != null && produtosAProduzir.size() != 0) {
+            BigDecimal idiproc = ((DynamicVO)produtosAProduzir.iterator().next()).asBigDecimal("IDIPROC");
+            Collection<DynamicVO> estoqueRepositorio = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("EstoqueRepositorioPA", "this.IDIPROC = ? AND this.IDRPA = ?", new Object[]{idiproc, repositorioOperacao}));
+            ArrayList<ProdutoControle> produtosNoRepositorio = new ArrayList();
+
+            for(DynamicVO estoquePAVO : estoqueRepositorio) {
+                BigDecimal codprod = estoquePAVO.asBigDecimal("CODPRODPA");
+                String controle = estoquePAVO.asString("CONTROLEPA");
+                ProdutoControle produto = new ProdutoControle(codprod, controle);
+                produtosNoRepositorio.add(produto);
+            }
+
+            Iterator<DynamicVO> iterator = produtosAProduzir.iterator();
+
+            while(iterator.hasNext()) {
+                DynamicVO prodtuoAProduzirVO = (DynamicVO)iterator.next();
+                BigDecimal codprod = prodtuoAProduzirVO.asBigDecimal("CODPRODPA");
+                String controle = prodtuoAProduzirVO.asString("CONTROLEPA");
+                ProdutoControle produto = new ProdutoControle(codprod, controle);
+                if (!produtosNoRepositorio.contains(produto)) {
+                    iterator.remove();
+                }
+            }
+
+            return produtosAProduzir;
+        } else {
+            return produtosAProduzir;
+        }
+    }
+
+    private void criarApontamentoProdutoAcabadoAProduzir(DynamicVO cabecalhoApontamentoVO, ProdutoControle produto, BigDecimal quantidade, BigDecimal qtdPerda, boolean ignorarPAComQtdZero, boolean isApontamentoManual, BigDecimal codmpe) throws Exception {
+        BigDecimal codprodPa = produto.getCodProd();
+        String controlePa = produto.getControle();
+        BigDecimal nuapo = cabecalhoApontamentoVO.asBigDecimal("NUAPO");
+        DynamicVO instanciaAtividadeVO = cabecalhoApontamentoVO.asDymamicVO("InstanciaAtividade");
+        BigDecimal idefx = instanciaAtividadeVO.asBigDecimal("IDEFX");
+        BigDecimal idiproc = instanciaAtividadeVO.asBigDecimal("IDIPROC");
+        BigDecimal idRPAOper = instanciaAtividadeVO.asBigDecimal("Atividade.IDRPAOPER");
+        DynamicVO processoVO = instanciaAtividadeVO.asDymamicVO("CabecalhoInstanciaProcesso.ProcessoProdutivo");
+        BigDecimal idproc = processoVO.asBigDecimal("IDPROC");
+        boolean isProcessoDesmonte = processoVO.asBoolean("PROCDESMONTE");
+        DynamicVO atividadeVO = instanciaAtividadeVO.asDymamicVO("Atividade");
+        String tipoApontamentoMateriaPrima = atividadeVO.asString("APONTAMP");
+        String tipoApontamentoSubproduto = atividadeVO.asString("APONTASP");
+        String tipoApontamentoRecurso = atividadeVO.asString("APONTARECWC");
+        BigDecimal qtdNovoApontamento = quantidade;
+        Boolean sugerirQtdZero = "N".equals(atividadeVO.asString("QTDBASEAPON"));
+        if (!isApontamentoManual) {
+            qtdNovoApontamento = this.calculaQtdNovoApontamento(idiproc, idRPAOper, idefx, quantidade, codprodPa, controlePa);
+        }
+
+        if (!ignorarPAComQtdZero || qtdNovoApontamento.compareTo(BigDecimal.ZERO) != 0 || sugerirQtdZero) {
+            ProdutoControle produtoPA = new ProdutoControle(codprodPa, controlePa);
+            DynamicVO apontamentoPA = this.criarApontamentoPA(nuapo, produtoPA, qtdNovoApontamento, qtdPerda, codmpe);
+            Collection<String> tiposUsoMP = new ArrayList();
+            tiposUsoMP.add("N");
+            if (isProcessoDesmonte) {
+                tiposUsoMP.add("R");
+            }
+
+            BigDecimal quantidadeApontadaPA = apontamentoPA.asBigDecimal("QTDAPONTADA");
+            Collection<OperacoesEstoqueAtividade.MPBean> mps = OperacoesEstoqueAtividade.getMateriasPrimasPAParaApontamento(produtoPA, quantidadeApontadaPA, idproc, idefx, tipoApontamentoMateriaPrima, tiposUsoMP, this.jdbc);
+            ArrayList<OperacoesEstoqueAtividade.MPBean> materiaisMP = OperacoesEstoqueAtividade.vinculaMateriaPrimaAlternativa(mps, produtoPA, (String)null, idiproc, this.jdbc);
+            LinkedHashMap<OperacoesEstoqueAtividade.MPBean, OperacoesEstoqueAtividade.MPBean> materiasPrimas = new LinkedHashMap();
+
+            for(OperacoesEstoqueAtividade.MPBean mpBean : materiaisMP) {
+                if (materiasPrimas.containsKey(mpBean)) {
+                    OperacoesEstoqueAtividade.MPBean mp = (OperacoesEstoqueAtividade.MPBean)materiasPrimas.get(mpBean);
+                    mp.qtdmistura = mp.qtdmistura.add(mpBean.qtdmistura);
+                } else {
+                    materiasPrimas.put(mpBean, mpBean);
+                }
+            }
+
+            boolean quantidadeMPSuprida = true;
+
+            for(OperacoesEstoqueAtividade.MPBean mpBean : materiasPrimas.values()) {
+                if ("F".equals(mpBean.tipoQtd) && "S".equals(mpBean.propmpfixa)) {
+                    BigDecimal qtdAProduzirPA = this.getQtdAProduzirProdutoAcabadoPorOP(idiproc, produtoPA);
+                    NecessidadeApontamentoPA necessidadeApontamentoPA = new NecessidadeApontamentoPA(idiproc, idefx, quantidadeApontadaPA, qtdAProduzirPA);
+                    this.proporcionarQtdMisturaMateriaPrimaTipoQtdFixa(mpBean, necessidadeApontamentoPA);
+                }
+
+                List<DynamicVO> apontamentosMPCriados = this.criarApontamentoMP(idiproc, apontamentoPA.asBigDecimal("NUAPO"), apontamentoPA.asBigDecimal("SEQAPA"), mpBean, idefx, false);
+                if (quantidadeMPSuprida) {
+                    BigDecimal qtdApontada = BigDecimal.ZERO;
+
+                    for(DynamicVO apontamentoMP : apontamentosMPCriados) {
+                        qtdApontada = qtdApontada.add(apontamentoMP.asBigDecimal("QTD"));
+                    }
+
+                    if (mpBean.qtdmistura.compareTo(qtdApontada) > 0) {
+                        quantidadeMPSuprida = false;
+                    }
+                }
+            }
+
+            if (!quantidadeMPSuprida) {
+                ServiceContext.getCurrent().addClientEvent("br.com.sankhya.apontamentomp.naoreproporcionalizado", (Element)null);
+            }
+
+            for(OperacoesEstoqueAtividade.SubprodutoBean subprodutoBean : OperacoesEstoqueAtividade.getSubprodutosPA(produtoPA, quantidadeApontadaPA, idproc, idefx, tipoApontamentoSubproduto, this.jdbc, idiproc)) {
+                this.criarApontamentoSubproduto(apontamentoPA.asBigDecimal("NUAPO"), apontamentoPA.asBigDecimal("SEQAPA"), subprodutoBean);
+            }
+
+            for(OperacoesEstoqueAtividade.RecursosBean recursoBean : OperacoesEstoqueAtividade.getRecursosPA(produtoPA, quantidadeApontadaPA, idproc, idefx, tipoApontamentoRecurso, instanciaAtividadeVO.asBigDecimalOrZero("CODWCP"), instanciaAtividadeVO.asString("WorkCenter.NOME"), this.jdbc)) {
+                this.criarApontamentoRecurso(apontamentoPA.asBigDecimal("NUAPO"), apontamentoPA.asBigDecimal("SEQAPA"), recursoBean, instanciaAtividadeVO.asBigDecimalOrZero("CODWCP"));
+            }
+
+            if (BigDecimalUtil.getValueOrZero(qtdPerda).doubleValue() > (double)0.0F) {
+                this.reproporcionalizaQuantidadeApontadaMP(apontamentoPA);
+            }
+
+        }
+    }
+
+    private DynamicVO criarApontamentoRecurso(BigDecimal nuapo, BigDecimal seqapa, OperacoesEstoqueAtividade.RecursosBean recursoBean, BigDecimal codWcp) throws Exception {
+        DynamicVO apontamentoRecursoWC = (DynamicVO)this.dwfEntityFacade.getDefaultValueObjectInstance("ApontamentoRecursosWorkCenter");
+        apontamentoRecursoWC.setProperty("NUAPO", nuapo);
+        apontamentoRecursoWC.setProperty("SEQAPA", seqapa);
+        apontamentoRecursoWC.setProperty("CODCRE", recursoBean.codCre);
+        apontamentoRecursoWC.setProperty("CODWCP", codWcp);
+        apontamentoRecursoWC.setProperty("QTDAPONTADA", recursoBean.qtdApontada);
+        apontamentoRecursoWC.setProperty("QTDUTILIZADA", recursoBean.qtdUtilizacao);
+        apontamentoRecursoWC.setProperty("QTDRECAPONTAR", recursoBean.qtdUtilizacao);
+        apontamentoRecursoWC = (DynamicVO)this.dwfEntityFacade.createEntity("ApontamentoRecursosWorkCenter", (EntityVO)apontamentoRecursoWC).getValueObject();
+        return apontamentoRecursoWC;
+    }
+
+    private DynamicVO criarApontamentoItensRecurso(BigDecimal nuapo, BigDecimal seqapa, OperacoesEstoqueAtividade.RecursosBean recursoBean, OperacoesEstoqueAtividade.ItensRecursosBean itensRecursosBean) throws Exception {
+        DynamicVO apontamentoRecursoWC = (DynamicVO)this.dwfEntityFacade.getDefaultValueObjectInstance("ItensApontamentoRecursosWC");
+        apontamentoRecursoWC.setProperty("NUAPO", nuapo);
+        apontamentoRecursoWC.setProperty("SEQAPA", seqapa);
+        apontamentoRecursoWC.setProperty("CODCRE", recursoBean.codCre);
+        apontamentoRecursoWC.setProperty("CODWCP", recursoBean.codWcp);
+        apontamentoRecursoWC.setProperty("CODMQP", itensRecursosBean.codMqp);
+        apontamentoRecursoWC.setProperty("CODRHP", itensRecursosBean.codRhp);
+        apontamentoRecursoWC.setProperty("NUEQP", itensRecursosBean.nuEqp);
+        apontamentoRecursoWC = (DynamicVO)this.dwfEntityFacade.createEntity("ItensApontamentoRecursosWC", (EntityVO)apontamentoRecursoWC).getValueObject();
+        return apontamentoRecursoWC;
+    }
+
+    private void removerApontamentoDetalhesPerda(BigDecimal nuapo, BigDecimal seqapa) throws Exception {
+        this.dwfEntityFacade.removeByCriteria(new FinderWrapper("MotivosPerdaApontamentoPA", "NUAPO = ? AND SEQAPA = ?", new Object[]{nuapo, seqapa}));
+    }
+
+    private DynamicVO criarApontamentoDetalhePerda(BigDecimal nuapo, BigDecimal seqapa, BigDecimal codmpe, BigDecimal qtdperda) throws Exception {
+        DynamicVO motivosPerdaApontamentoVO = (DynamicVO)this.dwfEntityFacade.getDefaultValueObjectInstance("MotivosPerdaApontamentoPA");
+        motivosPerdaApontamentoVO.setProperty("NUAPO", nuapo);
+        motivosPerdaApontamentoVO.setProperty("SEQAPA", seqapa);
+        motivosPerdaApontamentoVO.setProperty("CODMPE", codmpe);
+        motivosPerdaApontamentoVO.setProperty("QTDPERDA", qtdperda);
+        this.dwfEntityFacade.createEntity("MotivosPerdaApontamentoPA", (EntityVO)motivosPerdaApontamentoVO);
+        return motivosPerdaApontamentoVO;
+    }
+
+    private DynamicVO criarApontamentoSubproduto(BigDecimal nuapo, BigDecimal seqapa, OperacoesEstoqueAtividade.SubprodutoBean subprodutoBean) throws Exception {
+        DynamicVO apontamentoSubproduto = (DynamicVO)this.dwfEntityFacade.getDefaultValueObjectInstance("ApontamentoSubproduto");
+        apontamentoSubproduto.setProperty("NUAPO", nuapo);
+        apontamentoSubproduto.setProperty("SEQAPA", seqapa);
+        apontamentoSubproduto.setProperty("CODPRODSP", subprodutoBean.produto.getCodProd());
+        apontamentoSubproduto.setProperty("CONTROLESP", subprodutoBean.produto.getControle());
+        apontamentoSubproduto.setProperty("CODVOL", subprodutoBean.codvol);
+        apontamentoSubproduto.setProperty("QTD", subprodutoBean.qtdmistura);
+        apontamentoSubproduto = (DynamicVO)this.dwfEntityFacade.createEntity("ApontamentoSubproduto", (EntityVO)apontamentoSubproduto).getValueObject();
+        return apontamentoSubproduto;
+    }
+
+    private List<DynamicVO> criarApontamentoMP(BigDecimal idiproc, BigDecimal nuapo, BigDecimal seqapa, OperacoesEstoqueAtividade.MPBean mpBean) throws Exception {
+        return this.criarApontamentoMP(idiproc, nuapo, seqapa, mpBean, (BigDecimal)null, false);
+    }
+
+    private List<DynamicVO> criarApontamentoMP(BigDecimal idiproc, BigDecimal nuapo, BigDecimal seqapa, OperacoesEstoqueAtividade.MPBean mpBean, boolean ignoraLoteExtra) throws Exception {
+        return this.criarApontamentoMP(idiproc, nuapo, seqapa, mpBean, (BigDecimal)null, ignoraLoteExtra);
+    }
+
+    private List<DynamicVO> criarApontamentoMP(BigDecimal idiproc, BigDecimal nuapo, BigDecimal seqapa, OperacoesEstoqueAtividade.MPBean mpBean, BigDecimal idEfx, boolean ignoraLoteExtra) throws Exception {
+        ArrayList<DynamicVO> apontamentosCriados = new ArrayList();
+        DynamicVO produtoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{mpBean.produto.getCodProd()});
+        HashMap<String, BigDecimal> quantidadesPorLote = new HashMap();
+        if ("L".equals(produtoVO.asString("TIPCONTEST")) && mpBean.podeFazerExplosaoLote) {
+            quantidadesPorLote = this.getQuantidadesMPPorLoteDisponiveis(idiproc, mpBean.produto.getCodProd(), idEfx);
+        }
+
+        boolean converterParaUNPAD = true;
+        String loteExtra = "+++++++++++++++";
+        if (quantidadesPorLote.size() != 0 && !ignoraLoteExtra) {
+            BigDecimal quantidadeTotalPorlote = BigDecimal.ZERO;
+
+            for(BigDecimal qtd : quantidadesPorLote.values()) {
+                quantidadeTotalPorlote = quantidadeTotalPorlote.add(qtd);
+            }
+
+            if (quantidadeTotalPorlote.compareTo(mpBean.qtdmistura) < 0) {
+                BigDecimal diff = mpBean.qtdmistura.subtract(quantidadeTotalPorlote);
+                if (quantidadesPorLote.containsKey("")) {
+                    quantidadesPorLote.put("", ((BigDecimal)quantidadesPorLote.get("")).add(diff));
+                } else {
+                    quantidadesPorLote.put("+++++++++++++++", diff);
+                }
+            }
+        } else {
+            quantidadesPorLote.put(mpBean.produto.getControle(), mpBean.qtdmistura);
+            converterParaUNPAD = quantidadesPorLote.size() != 0;
+        }
+
+        BigDecimal quantidadeSuprida = BigDecimal.ZERO;
+
+        for(Map.Entry<String, BigDecimal> entry : quantidadesPorLote.entrySet()) {
+            String lote = (String)entry.getKey();
+            BigDecimal quantidadeIteracao = (BigDecimal)entry.getValue();
+            if (converterParaUNPAD && !produtoVO.asString("CODVOL").equals(mpBean.codvol)) {
+                quantidadeIteracao = UnidadeProdutoUtils.converteQuantidadePorUnidadeVolume(produtoVO, quantidadeIteracao, mpBean.produto.getControle(), produtoVO.asString("CODVOL"), mpBean.codvol);
+                quantidadeIteracao = ProducaoUtils.getValorArredondadoPorDecQtd(mpBean.produto.getCodProd(), quantidadeIteracao);
+            }
+
+            BigDecimal quantidadePendente = mpBean.qtdmistura.subtract(quantidadeSuprida);
+            if (quantidadeIteracao.compareTo(quantidadePendente) > 0) {
+                quantidadeIteracao = quantidadePendente;
+            }
+
+            if (StringUtils.isEmpty(lote)) {
+                JapeWrapper apontamentoPaDAO = JapeFactory.dao("ApontamentoPA");
+                DynamicVO apontamentoPaVO = apontamentoPaDAO.findByPK(new Object[]{nuapo, seqapa});
+                if (apontamentoPaVO != null && "L".equals(produtoVO.asString("TIPCONTEST"))) {
+                    ProdutoControle produtoControlePA = new ProdutoControle(apontamentoPaVO.asBigDecimal("CODPRODPA"), apontamentoPaVO.asString("CONTROLEPA"));
+                    lote = this.getLoteSubOrdemPI(mpBean, produtoControlePA, idiproc);
+                }
+            }
+
+            DynamicVO apontamentoMateriais = (DynamicVO)this.dwfEntityFacade.getDefaultValueObjectInstance("ApontamentoMateriais");
+            apontamentoMateriais.setProperty("NUAPO", nuapo);
+            apontamentoMateriais.setProperty("SEQAPA", seqapa);
+            apontamentoMateriais.setProperty("CODPRODMP", mpBean.produto.getCodProd());
+            apontamentoMateriais.setProperty("CONTROLEMP", ComercialUtils.trimControleEstoque(lote.replace("+++++++++++++++", "")));
+            apontamentoMateriais.setProperty("CODVOL", mpBean.codvol);
+            apontamentoMateriais.setProperty("QTD", ProducaoUtils.getValorArredondadoPorDecQtd(mpBean.produto.getCodProd(), quantidadeIteracao));
+            apontamentoMateriais.setProperty("TIPOUSO", "N".equals(mpBean.tipoUso) ? "C" : mpBean.tipoUso);
+            apontamentoMateriais.setProperty("VINCULOSERIEPA", mpBean.vinculoSeriePA == null ? "N" : mpBean.vinculoSeriePA);
+            apontamentoMateriais.setProperty("QTDPERDA", mpBean.qtdTotalPerda == null ? BigDecimal.ZERO : mpBean.qtdTotalPerda);
+            if (mpBean.localBaixaMP == null) {
+                LocalBaixaMPHelper baixaMPHelper = new LocalBaixaMPHelper(this.dwfEntityFacade, mpBean.produto.getCodProd(), ComercialUtils.trimControleEstoque(lote.replace("+++++++++++++++", "")));
+                apontamentoMateriais.setProperty("CODLOCALBAIXA", baixaMPHelper.getLocalBaixaMP(nuapo, seqapa));
+            } else {
+                apontamentoMateriais.setProperty("CODLOCALBAIXA", mpBean.localBaixaMP);
+            }
+
+            if (mpBean.codMpe != null) {
+                apontamentoMateriais.setProperty("CODMPE", mpBean.codMpe);
+            }
+
+            if (mpBean.qtdMpe != null) {
+                apontamentoMateriais.setProperty("QTDMPE", mpBean.qtdMpe);
+            }
+
+            apontamentoMateriais = (DynamicVO)this.dwfEntityFacade.createEntity("ApontamentoMateriais", (EntityVO)apontamentoMateriais).getValueObject();
+            this.removerApontamentoDetalhesPerdaMP(nuapo, seqapa, mpBean.produto.getCodProd(), mpBean.produto.getControle());
+            mpBean.recalcularPerdas();
+
+            for(Map.Entry<BigDecimal, BigDecimal> detalhePerdaMPEntry : mpBean.getPerdas().entrySet()) {
+                BigDecimal motivoPerdaDet = (BigDecimal)detalhePerdaMPEntry.getKey();
+                BigDecimal quantidadePerdaDet = (BigDecimal)detalhePerdaMPEntry.getValue();
+                this.criarApontamentoDetalhePerdaMP(nuapo, seqapa, motivoPerdaDet, quantidadePerdaDet, mpBean.produto.getCodProd(), mpBean.produto.getControle());
+            }
+
+            apontamentosCriados.add(apontamentoMateriais);
+            quantidadeSuprida = quantidadeSuprida.add(quantidadeIteracao);
+            if (quantidadeSuprida.compareTo(mpBean.qtdmistura) >= 0) {
+                break;
+            }
+        }
+
+        return apontamentosCriados;
+    }
+
+    public String getLoteSubOrdemPI(OperacoesEstoqueAtividade.MPBean mpBean, ProdutoControle produtoControlePA, BigDecimal idProcPA) throws Exception {
+        String lotePI = " ";
+        boolean isEstoqueProprio = "N".equals(mpBean.estoqueTerceiro) || mpBean.estoqueTerceiro == null;
+        if (isEstoqueProprio) {
+            OrdemProducaoHelper ordemHelper = OrdemProducaoHelper.getInstance();
+            BigDecimal processoPI = ProducaoUtils.getProcessoPI(mpBean.produto, TipoProcesso.PRODUCAO);
+            boolean isMateriaPrimaEhPI = processoPI != null;
+            if (isMateriaPrimaEhPI) {
+                JapeWrapper cabecalhoInstanciaProcessoDAO = JapeFactory.dao("CabecalhoInstanciaProcesso");
+                DynamicVO cabecalhoInstanciaProcessoVO = cabecalhoInstanciaProcessoDAO.findByPK(new Object[]{idProcPA});
+                BigDecimal idProc = cabecalhoInstanciaProcessoVO != null ? cabecalhoInstanciaProcessoVO.asBigDecimal("IDPROC") : BigDecimal.ZERO;
+                boolean isConsideraLotePiNaMovAcessoria = ordemHelper.isConsideraLotePiNaMovAcessoria(idProc, produtoControlePA, mpBean.produto);
+                if (isConsideraLotePiNaMovAcessoria) {
+                    lotePI = ordemHelper.getLotePI(idProcPA, produtoControlePA, mpBean.produto);
+                }
+            }
+        }
+
+        return lotePI;
+    }
+
+    public LinkedHashMap<String, BigDecimal> getQuantidadesMPPorLoteDisponiveis(BigDecimal idiproc, BigDecimal codprodMP) throws Exception, SQLException {
+        return this.getQuantidadesMPPorLoteDisponiveis(idiproc, codprodMP, (BigDecimal)null);
+    }
+
+    private LinkedHashMap<String, BigDecimal> getQuantidadesMPPorLoteDisponiveis(BigDecimal idiproc, BigDecimal codprodMP, BigDecimal idEfx) throws Exception, SQLException {
+        LinkedHashMap<String, BigDecimal> quantidadesPorLote = this.getQuantidadesEmNotasPorLote(idiproc, codprodMP, idEfx);
+        HashMap<String, BigDecimal> quantidadesApontadasPorLote = this.getQuantidadesApontadasPorLote(idiproc, codprodMP);
+
+        for(Map.Entry<String, BigDecimal> entry : quantidadesApontadasPorLote.entrySet()) {
+            if (quantidadesPorLote.containsKey(entry.getKey())) {
+                BigDecimal quantidadeDeduzida = ((BigDecimal)quantidadesPorLote.get(entry.getKey())).subtract((BigDecimal)entry.getValue());
+                if (quantidadeDeduzida.compareTo(BigDecimal.ZERO) > 0) {
+                    quantidadesPorLote.put(entry.getKey(), quantidadeDeduzida);
+                } else {
+                    quantidadesPorLote.remove(entry.getKey());
+                }
+            }
+        }
+
+        return quantidadesPorLote;
+    }
+
+    private HashMap<String, BigDecimal> getQuantidadesApontadasPorLote(BigDecimal idiproc, BigDecimal codprodMP) throws Exception, SQLException {
+        HashMap<String, BigDecimal> quantidadesApontadasPorLote = new HashMap();
+        NativeSql sql = new NativeSql(this.jdbc);
+        sql.appendSql(" SELECT TPRAMP.CODPRODMP AS CODPROD ");
+        sql.appendSql("\t\t , TPRAMP.CONTROLEMP AS CONTROLE ");
+        sql.appendSql("\t\t , SUM(TPRAMP.QTD) AS QTD ");
+        sql.appendSql("\t\t , TPRAMP.CODVOL AS UNIDADEMP ");
+        sql.appendSql("      , TGFPRO.CODVOL AS CODVOLPADRAO ");
+        sql.appendSql(" FROM TPRAPO ");
+        sql.appendSql(" JOIN TPRIATV ON (TPRIATV.IDIATV = TPRAPO.IDIATV) ");
+        sql.appendSql(" JOIN TPRAMP ON (TPRAMP.NUAPO = TPRAPO.NUAPO) ");
+        sql.appendSql(" JOIN TGFPRO ON (TGFPRO.CODPROD = TPRAMP.CODPRODMP) ");
+        sql.appendSql(" WHERE TPRIATV.IDIPROC = :IDIPROC ");
+        sql.appendSql(" AND TPRAMP.CODPRODMP = :CODPROD ");
+        sql.appendSql(" GROUP BY TPRAMP.CODPRODMP, TPRAMP.CONTROLEMP, TPRAMP.CODVOL, TGFPRO.CODVOL ");
+        sql.setNamedParameter("IDIPROC", idiproc);
+        sql.setNamedParameter("CODPROD", codprodMP);
+        ResultSet resultSet = sql.executeQuery();
+
+        while(resultSet.next()) {
+            String controle = StringUtils.trim(resultSet.getString("CONTROLE"));
+            if (!resultSet.getString("UNIDADEMP").equals(resultSet.getString("CODVOLPADRAO"))) {
+                DynamicVO produtoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{resultSet.getBigDecimal("CODPROD")});
+                BigDecimal quantidadeApontadaUnidadePadrao = UnidadeProdutoUtils.converteQuantidadePorUnidadeVolume(produtoVO, resultSet.getBigDecimal("QTD"), controle, resultSet.getString("UNIDADEMP"), produtoVO.asString("CODVOL"));
+                quantidadesApontadasPorLote.put(controle, quantidadeApontadaUnidadePadrao);
+            } else {
+                quantidadesApontadasPorLote.put(controle, resultSet.getBigDecimal("QTD"));
+            }
+        }
+
+        resultSet.close();
+        return quantidadesApontadasPorLote;
+    }
+
+    private LinkedHashMap<String, BigDecimal> getQuantidadesEmNotasPorLote(BigDecimal idiproc, BigDecimal codprodMP, BigDecimal idEfx) throws Exception, SQLException {
+        LinkedHashMap<String, BigDecimal> quantidadesPorLote = new LinkedHashMap();
+        NativeSql sql = new NativeSql(this.jdbc);
+        sql.appendSql(" SELECT TGFITE.CODPROD, TGFITE.CONTROLE, TGFEST.DTVAL AS DTVAL, TPRIATV.IDEFX AS IDEFX, ");
+        sql.appendSql(" \t   SUM(CASE WHEN (TPRIATV.IDEFX = :IDEFX OR :IDEFX = 0) THEN TGFITE.QTDNEG ELSE 0 END) AS QTDNEG ");
+        sql.appendSql(" \tFROM TGFITE INNER JOIN TGFCAB ON (TGFITE.NUNOTA = TGFCAB.NUNOTA) ");
+        sql.appendSql("\t\t\t\t\tINNER JOIN (SELECT DISTINCT CODPROD, CONTROLE, DTVAL FROM TGFEST) TGFEST ON (TGFEST.CODPROD = TGFITE.CODPROD AND TGFEST.CONTROLE = TGFITE.CONTROLE) ");
+        sql.appendSql("\t\t\t\t\tINNER JOIN TPRROPE ON TGFCAB.NUNOTA = TPRROPE.NUNOTA ");
+        sql.appendSql("\t\t\t\t\tINNER JOIN TPRIATV ON (TPRIATV.IDIATV = TPRROPE.IDIATV AND TGFCAB.IDIPROC = TPRIATV.IDIPROC) ");
+        sql.appendSql("\tWHERE TGFCAB.IDIPROC = :IDIPROC ");
+        sql.appendSql(" \tAND TGFITE.CODPROD = :CODPROD  ");
+        sql.appendSql(" \tAND TGFITE.SEQUENCIA > 0 ");
+        if (this.operacaoEstoqueUsaKanban(idiproc)) {
+            sql.appendSql(" \tAND TGFCAB.TIPMOV = 'J' ");
+        } else {
+            sql.appendSql(" \tAND TGFCAB.TIPMOV <> 'F' ");
+        }
+
+        sql.appendSql(" GROUP BY TGFITE.CODPROD, TGFITE.CONTROLE, TGFEST.DTVAL, TPRIATV.IDEFX ");
+        sql.appendSql(" UNION ");
+        sql.appendSql(" SELECT TGFITE.CODPROD, TGFITE.CONTROLE, TGFEST.DTVAL AS DTVAL, TPRIATV.IDEFX AS IDEFX, ");
+        sql.appendSql(" \t   SUM(CASE WHEN TPRIATV.IDEFX != :IDEFX THEN TGFITE.QTDNEG ELSE 0 END) AS QTDNEG ");
+        sql.appendSql(" \tFROM TGFITE INNER JOIN TGFCAB ON (TGFITE.NUNOTA = TGFCAB.NUNOTA) ");
+        sql.appendSql("\t\t\t\t\tINNER JOIN (SELECT DISTINCT CODPROD, CONTROLE, DTVAL FROM TGFEST) TGFEST ON (TGFEST.CODPROD = TGFITE.CODPROD AND TGFEST.CONTROLE = TGFITE.CONTROLE) ");
+        sql.appendSql("\t\t\t\t\tINNER JOIN TPRROPE ON TGFCAB.NUNOTA = TPRROPE.NUNOTA ");
+        sql.appendSql("\t\t\t\t\tINNER JOIN TPRIATV ON (TPRIATV.IDIATV = TPRROPE.IDIATV AND TGFCAB.IDIPROC = TPRIATV.IDIPROC) ");
+        sql.appendSql("\tWHERE TGFCAB.IDIPROC = :IDIPROC ");
+        sql.appendSql(" \tAND TGFITE.CODPROD = :CODPROD  ");
+        sql.appendSql(" \tAND TGFITE.SEQUENCIA > 0 ");
+        if (this.operacaoEstoqueUsaKanban(idiproc)) {
+            sql.appendSql(" \tAND TGFCAB.TIPMOV = 'J' ");
+        } else {
+            sql.appendSql(" \tAND TGFCAB.TIPMOV <> 'F' ");
+        }
+
+        sql.appendSql(" GROUP BY TGFITE.CODPROD, TGFITE.CONTROLE, TGFEST.DTVAL, TPRIATV.IDEFX ");
+        sql.appendSql(" ORDER BY IDEFX DESC, DTVAL ASC ");
+        sql.setNamedParameter("IDEFX", BigDecimalUtil.getValueOrZero(idEfx));
+        sql.setNamedParameter("IDIPROC", idiproc);
+        sql.setNamedParameter("CODPROD", codprodMP);
+        ResultSet resultSet = sql.executeQuery();
+
+        while(resultSet.next()) {
+            String controle = StringUtils.trim(resultSet.getString("CONTROLE"));
+            if (!quantidadesPorLote.containsKey(controle)) {
+                quantidadesPorLote.put(controle, resultSet.getBigDecimal("QTDNEG"));
+            } else if (BigDecimal.ZERO.compareTo((BigDecimal)quantidadesPorLote.get(controle)) == 0 && BigDecimal.ZERO.compareTo(resultSet.getBigDecimal("QTDNEG")) != 0) {
+                quantidadesPorLote.replace(controle, resultSet.getBigDecimal("QTDNEG"));
+            }
+        }
+
+        resultSet.close();
+        return quantidadesPorLote;
+    }
+
+    private boolean operacaoEstoqueUsaKanban(BigDecimal idiproc) throws Exception {
+        NativeSql sql = null;
+        ResultSet rset = null;
+
+        boolean var4;
+        try {
+            sql = new NativeSql(this.jdbc);
+            sql.appendSql("SELECT COUNT(1) ");
+            sql.appendSql("FROM TPROEST INNER JOIN TPRIATV ON (TPROEST.IDEFX = TPRIATV.IDEFX) ");
+            sql.appendSql("WHERE TPRIATV.IDIPROC = :IDIPROC AND TPROEST.KANBAN = 'S' ");
+            sql.setNamedParameter("IDIPROC", idiproc);
+            rset = sql.executeQuery();
+            if (!rset.next()) {
+                return false;
+            }
+
+            var4 = rset.getInt(1) > 0;
+        } finally {
+            JdbcUtils.closeResultSet(rset);
+            NativeSql.releaseResources(sql);
+        }
+
+        return var4;
+    }
+
+    private DynamicVO criarApontamentoPA(BigDecimal nuApo, ProdutoControle produtoPA, BigDecimal qtdNovoApontamento, BigDecimal qtdPerda) throws Exception {
+        DynamicVO apontamentoPA = (DynamicVO)this.dwfEntityFacade.getDefaultValueObjectInstance("ApontamentoPA");
+        apontamentoPA.setProperty("NUAPO", nuApo);
+        apontamentoPA.setProperty("CODPRODPA", produtoPA.getCodProd());
+        apontamentoPA.setProperty("CONTROLEPA", ComercialUtils.trimControleEstoque(produtoPA.getControle()));
+        apontamentoPA.setProperty("QTDAPONTADA", qtdNovoApontamento);
+        if (qtdPerda != null) {
+            apontamentoPA.setProperty("QTDPERDA", qtdPerda);
+        }
+
+        apontamentoPA = (DynamicVO)this.dwfEntityFacade.createEntity("ApontamentoPA", (EntityVO)apontamentoPA).getValueObject();
+        return apontamentoPA;
+    }
+
+    private DynamicVO criarApontamentoPA(BigDecimal nuApo, ProdutoControle produtoPA, BigDecimal qtdNovoApontamento, BigDecimal qtdPerda, BigDecimal codMpe, BigDecimal qtdMotivosPerda, HashMap<String, Pair<String, String>> mapCamposAdicionais) throws Exception {
+        DynamicVO apontamentoPA = (DynamicVO)this.dwfEntityFacade.getDefaultValueObjectInstance("ApontamentoPA");
+        apontamentoPA.setProperty("NUAPO", nuApo);
+        apontamentoPA.setProperty("CODPRODPA", produtoPA.getCodProd());
+        apontamentoPA.setProperty("CONTROLEPA", ComercialUtils.trimControleEstoque(produtoPA.getControle()));
+        apontamentoPA.setProperty("QTDAPONTADA", qtdNovoApontamento);
+        apontamentoPA.setProperty("QTDPERDA", qtdPerda);
+        apontamentoPA.setProperty("CODMPE", codMpe);
+        apontamentoPA.setProperty("QTDMPE", qtdMotivosPerda);
+        if (mapCamposAdicionais != null) {
+            for(Map.Entry<String, Pair<String, String>> campoAdicional : mapCamposAdicionais.entrySet()) {
+                String nomeCampo = (String)campoAdicional.getKey();
+                String tipoCampo = (String)((Pair)campoAdicional.getValue()).getLeft();
+                String valorCampo = (String)((Pair)campoAdicional.getValue()).getRight();
+                if (valorCampo != null) {
+                    if ("I-F-T".indexOf(tipoCampo) > -1) {
+                        apontamentoPA.setProperty(nomeCampo, BigDecimalUtil.valueOf(valorCampo));
+                    } else if ("S".equals(tipoCampo)) {
+                        apontamentoPA.setProperty(nomeCampo, valorCampo);
+                    } else if ("C".equals(tipoCampo)) {
+                        apontamentoPA.setProperty(nomeCampo, valorCampo);
+                    } else if ("H-D".indexOf(tipoCampo) > -1) {
+                        apontamentoPA.setProperty(nomeCampo, TimeUtils.buildTimeawareDate(valorCampo));
+                    }
+                }
+            }
+        }
+
+        apontamentoPA = (DynamicVO)this.dwfEntityFacade.createEntity("ApontamentoPA", (EntityVO)apontamentoPA).getValueObject();
+        return apontamentoPA;
+    }
+
+    private DynamicVO criarApontamentoPA(BigDecimal nuApo, ProdutoControle produtoPA, BigDecimal qtdNovoApontamento, BigDecimal qtdPerda, BigDecimal codMpe) throws Exception {
+        return this.criarApontamentoPA(nuApo, produtoPA, qtdNovoApontamento, qtdPerda, codMpe, (BigDecimal)null, (HashMap)null);
+    }
+
+    public BigDecimal calculaQtdPARepositorioOperacaoAtividade(BigDecimal idIProc, BigDecimal idRPAOper, BigDecimal codprodPa, String controlePa) throws Exception {
+        NativeSql sqlMovimentacaoEst = this.buildQueryMovimentacaoEstoque(idIProc, idRPAOper);
+        BigDecimal qtdBase = BigDecimal.ZERO;
+        sqlMovimentacaoEst.setNamedParameter("CODPRODPA", codprodPa);
+        sqlMovimentacaoEst.setNamedParameter("CONTROLEPA", controlePa);
+        ResultSet rsetMovimentacaoEst = sqlMovimentacaoEst.executeQuery();
+        if (rsetMovimentacaoEst.next()) {
+            qtdBase = BigDecimalUtil.getValueOrZero(rsetMovimentacaoEst.getBigDecimal("QTD"));
+        }
+
+        rsetMovimentacaoEst.close();
+        return qtdBase;
+    }
+
+    public BigDecimal calculaQtdSaiuPARepositorioOperacaoAtividade(BigDecimal idIProc, BigDecimal idRPAOper, BigDecimal idIatv, BigDecimal codprodPa, String controlePa) throws Exception {
+        BigDecimal qtdBase = BigDecimal.ZERO;
+        NativeSql sqlMovimentacaoEst = this.buildQueryMovimentacaoEstoqueSaida(idIProc, idRPAOper, idIatv);
+        sqlMovimentacaoEst.setNamedParameter("CODPRODPA", codprodPa);
+        sqlMovimentacaoEst.setNamedParameter("CONTROLEPA", controlePa);
+        ResultSet rsetMovimentacaoEst = sqlMovimentacaoEst.executeQuery();
+        if (rsetMovimentacaoEst.next()) {
+            qtdBase = BigDecimalUtil.getValueOrZero(rsetMovimentacaoEst.getBigDecimal("QTD"));
+        }
+
+        rsetMovimentacaoEst.close();
+        return qtdBase;
+    }
+
+    private BigDecimal calculaQtdApontadaPAAtividade(BigDecimal idIProc, BigDecimal idEfx, BigDecimal codprodPa, String controlePa, BigDecimal idRPAOper) throws Exception {
+        BigDecimal qtdJaApontada = BigDecimal.ZERO;
+        NativeSql sqlQtdJaApontada = this.buildQueryQtdApontada(idIProc, idEfx, idRPAOper);
+        sqlQtdJaApontada.setNamedParameter("CODPRODPA", codprodPa);
+        sqlQtdJaApontada.setNamedParameter("CONTROLEPA", ComercialUtils.trimControleEstoque(controlePa));
+        ResultSet rsetQtdJaApontada = sqlQtdJaApontada.executeQuery();
+        if (rsetQtdJaApontada.next()) {
+            qtdJaApontada = BigDecimalUtil.getValueOrZero(rsetQtdJaApontada.getBigDecimal("SOMAQTDAPONTADA"));
+        }
+
+        rsetQtdJaApontada.close();
+        return qtdJaApontada;
+    }
+
+    public BigDecimal calculaQtdNovoApontamento(BigDecimal idIProc, BigDecimal idRPAOper, BigDecimal idEfx, BigDecimal qtdProduzirPA, BigDecimal codprodPa, String controlePa) throws Exception {
+        BigDecimal qtdBase = BigDecimal.ZERO;
+        BigDecimal qtdTransferida = BigDecimal.ZERO;
+        BigDecimal qtdJaApontada = BigDecimal.ZERO;
+        BigDecimal qtdNovoApontamento = BigDecimal.ZERO;
+        DynamicVO atividadeVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Atividade", new Object[]{idEfx});
+        Collection<DynamicVO> coProdutoVO = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("InstanciaCoProdutos", "this.IDIPROC = ?", new Object[]{idIProc}));
+        Boolean sugerirQtdZero = "N".equals(atividadeVO.asString("QTDBASEAPON"));
+        if (sugerirQtdZero && coProdutoVO.size() == 0) {
+            return BigDecimal.ZERO;
+        } else {
+            if (BigDecimalUtil.isEmpty(idRPAOper)) {
+                idRPAOper = atividadeVO.asBigDecimal("IDRPAOPER");
+            }
+
+            qtdBase = this.calculaQtdPARepositorioOperacaoAtividade(idIProc, idRPAOper, codprodPa, controlePa);
+            qtdTransferida = this.calculaQtdSaiuPARepositorioOperacaoAtividade(idIProc, idRPAOper, (BigDecimal)null, codprodPa, controlePa);
+            if (qtdBase.compareTo(BigDecimal.ZERO) == 0) {
+                qtdBase = qtdProduzirPA;
+            }
+
+            qtdJaApontada = this.calculaQtdApontadaPAAtividade(idIProc, idEfx, codprodPa, controlePa, idRPAOper);
+            if (qtdTransferida.compareTo(qtdJaApontada) > 0) {
+                if (BigDecimal.ZERO.compareTo(qtdJaApontada) == 0) {
+                    qtdNovoApontamento = qtdBase.subtract(qtdTransferida);
+                } else {
+                    qtdNovoApontamento = qtdBase.subtract(qtdTransferida).subtract(qtdTransferida.subtract(qtdJaApontada));
+                }
+            } else {
+                qtdNovoApontamento = qtdBase.subtract(qtdJaApontada);
+            }
+
+            if (qtdBase.compareTo(BigDecimal.ZERO) < 0) {
+                qtdNovoApontamento = BigDecimal.ZERO;
+            }
+
+            if (qtdNovoApontamento.compareTo(BigDecimal.ZERO) < 0) {
+                qtdNovoApontamento = BigDecimal.ZERO;
+            }
+
+            return qtdNovoApontamento;
+        }
+    }
+
+    private void validarPrecondicoesCriacaoApontamento(DynamicVO instanciaAtividadeVO) throws Exception {
+        if (instanciaAtividadeVO.asTimestamp("DHINICIO") == null) {
+            throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00048", new Exception("Atividade ainda não foi iniciada!"));
+        } else if (instanciaAtividadeVO.asTimestamp("DHFINAL") != null) {
+            throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00049", new Exception("Atividade já foi finalizada!"));
+        } else if (instanciaAtividadeVO.asTimestamp("DHACEITE") == null) {
+            throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00050", new Exception("Atividade não foi aceita!"));
+        } else if ("P".equalsIgnoreCase(instanciaAtividadeVO.asString("SITUACAO"))) {
+            throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00050", new Exception("Atividade está pausada!"));
+        } else {
+            DynamicVO cabInstanciaProcVO = instanciaAtividadeVO.asDymamicVO("CabecalhoInstanciaProcesso");
+            if ("S".equals(cabInstanciaProcVO.asString("STATUSPROC"))) {
+                throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00051", new Exception("Ordem de produção suspensa!"));
+            } else if ("C".equals(cabInstanciaProcVO.asString("STATUSPROC"))) {
+                throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00052", new Exception("Ordem de produção cancelada!"));
+            }
+        }
+    }
+
+    private DynamicVO criarCabecalhoApontamento(BigDecimal codusu, BigDecimal idIAtv, String observacao) throws Exception {
+        return this.criarCabecalhoApontamento(codusu, idIAtv, observacao, (Timestamp)null);
+    }
+
+    private DynamicVO criarCabecalhoApontamento(BigDecimal codusu, BigDecimal idIAtv, String observacao, Timestamp dhFimExecucao) throws Exception {
+        DynamicVO cabecalhoApontamento = (DynamicVO)this.dwfEntityFacade.getDefaultValueObjectInstance("CabecalhoApontamento");
+        DynamicVO instanciaAtividade = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("InstanciaAtividade", new Object[]{idIAtv});
+        DynamicVO atividade = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Atividade", new Object[]{instanciaAtividade.asBigDecimal("IDEFX")});
+        cabecalhoApontamento.setProperty("IDIATV", idIAtv);
+        cabecalhoApontamento.setProperty("CODUSU", codusu);
+        cabecalhoApontamento.setProperty("OBSERVACAO", observacao);
+        if (dhFimExecucao != null) {
+            cabecalhoApontamento.setProperty("DHAPO", dhFimExecucao);
+        } else {
+            cabecalhoApontamento.setProperty("DHAPO", "S".equals(atividade.asString("DATAHORAAPONTAMENTO")) ? null : TimeUtils.getNow());
+        }
+
+        cabecalhoApontamento = (DynamicVO)this.dwfEntityFacade.createEntity("CabecalhoApontamento", (EntityVO)cabecalhoApontamento).getValueObject();
+        return cabecalhoApontamento;
+    }
+
+    private NativeSql buildQueryMovimentacaoEstoque(BigDecimal idIProc, BigDecimal idRPAOper) {
+        if (this.sqlMovimentacaoEstoque != null) {
+            return this.sqlMovimentacaoEstoque;
+        } else {
+            this.sqlMovimentacaoEstoque = new NativeSql(this.jdbc);
+            this.sqlMovimentacaoEstoque.appendSql(" SELECT SUM(QTD) AS QTD ");
+            this.sqlMovimentacaoEstoque.appendSql(" FROM TPRMER ");
+            this.sqlMovimentacaoEstoque.appendSql(" WHERE CODPRODPA = :CODPRODPA ");
+            this.sqlMovimentacaoEstoque.appendSql(" \tAND CONTROLEPA = :CONTROLEPA ");
+            this.sqlMovimentacaoEstoque.appendSql(" \tAND IDRPA = :IDRPA ");
+            this.sqlMovimentacaoEstoque.appendSql(" \tAND IDIPROC = :IDIPROC ");
+            this.sqlMovimentacaoEstoque.appendSql(" \tAND SINAL = 1 ");
+            this.sqlMovimentacaoEstoque.appendSql(" \tAND STATUSEXEC = 'N' ");
+            this.sqlMovimentacaoEstoque.setNamedParameter("IDRPA", idRPAOper);
+            this.sqlMovimentacaoEstoque.setNamedParameter("IDIPROC", idIProc);
+            this.sqlMovimentacaoEstoque.setReuseStatements(true);
+            return this.sqlMovimentacaoEstoque;
+        }
+    }
+
+    private NativeSql buildQueryMovimentacaoEstoqueSaida(BigDecimal idIProc, BigDecimal idRPAOper, BigDecimal idIatv) {
+        NativeSql sqlMovimentacaoEstoqueSaida = new NativeSql(this.jdbc);
+        sqlMovimentacaoEstoqueSaida.appendSql(" SELECT (SUM(QTD) + SUM(QTDPERDA)) AS QTD ");
+        sqlMovimentacaoEstoqueSaida.appendSql(" FROM TPRMER ");
+        sqlMovimentacaoEstoqueSaida.appendSql(" WHERE CODPRODPA = :CODPRODPA ");
+        sqlMovimentacaoEstoqueSaida.appendSql(" \tAND CONTROLEPA = :CONTROLEPA ");
+        sqlMovimentacaoEstoqueSaida.appendSql(" \tAND IDRPA = :IDRPA ");
+        sqlMovimentacaoEstoqueSaida.appendSql(" \tAND IDIPROC = :IDIPROC ");
+        sqlMovimentacaoEstoqueSaida.appendSql(" \tAND SINAL = -1 ");
+        sqlMovimentacaoEstoqueSaida.appendSql(" \tAND STATUSEXEC = 'N' ");
+        if (idIatv != null) {
+            sqlMovimentacaoEstoqueSaida.appendSql(" \tAND IDIATV = :IDIATV ");
+        }
+
+        sqlMovimentacaoEstoqueSaida.setNamedParameter("IDRPA", idRPAOper);
+        sqlMovimentacaoEstoqueSaida.setNamedParameter("IDIPROC", idIProc);
+        if (idIatv != null) {
+            sqlMovimentacaoEstoqueSaida.setNamedParameter("IDIATV", idIatv);
+        }
+
+        return sqlMovimentacaoEstoqueSaida;
+    }
+
+    private NativeSql buildQueryQtdApontada(BigDecimal idIProc, BigDecimal idEfx, BigDecimal idRPAOper) {
+        if (this.sqlQtdJaApontada != null) {
+            this.sqlQtdJaApontada.setNamedParameter("IDEFX", idEfx);
+            this.sqlQtdJaApontada.setNamedParameter("IDIPROC", idIProc);
+            return this.sqlQtdJaApontada;
+        } else {
+            this.sqlQtdJaApontada = new NativeSql(this.jdbc);
+            this.sqlQtdJaApontada.appendSql("SELECT SUM (nullValue(APA.QTDAPONTADA,0) + nullValue(APA_PERDA.QTDPERDA,0)) AS SOMAQTDAPONTADA ");
+            this.sqlQtdJaApontada.appendSql(" FROM TPRIPA IPA, ");
+            this.sqlQtdJaApontada.appendSql("    (SELECT SUM(APA.QTDAPONTADA) AS QTDAPONTADA ");
+            this.sqlQtdJaApontada.appendSql("          FROM TPRAPA APA ");
+            this.sqlQtdJaApontada.appendSql("      WHERE EXISTS ( SELECT APO.NUAPO ");
+            this.sqlQtdJaApontada.appendSql("                           FROM TPRAPO APO ");
+            this.sqlQtdJaApontada.appendSql("                           INNER JOIN TPRIATV IATV ON (IATV.IDIATV = APO.IDIATV) ");
+            this.sqlQtdJaApontada.appendSql("                       WHERE APO.NUAPO   = APA.NUAPO ");
+            this.sqlQtdJaApontada.appendSql("                       AND IATV.IDEFX = :IDEFX AND IATV.IDIPROC = :IDIPROC ");
+            this.sqlQtdJaApontada.appendSql("                       AND APA.CODPRODPA = :CODPRODPA ");
+            this.sqlQtdJaApontada.appendSql("                       AND APA.CONTROLEPA = :CONTROLEPA ");
+            this.sqlQtdJaApontada.appendSql("                  ) ");
+            this.sqlQtdJaApontada.appendSql("    ) APA, ");
+            this.sqlQtdJaApontada.appendSql("    (SELECT SUM(APA.QTDPERDA) AS QTDPERDA ");
+            this.sqlQtdJaApontada.appendSql("        FROM TPRAPA APA ");
+            this.sqlQtdJaApontada.appendSql("        INNER JOIN TPRAPO APO ON (APO.NUAPO = APA.NUAPO) ");
+            this.sqlQtdJaApontada.appendSql("    WHERE EXISTS (SELECT 1  ");
+            this.sqlQtdJaApontada.appendSql("        FROM TPRIATV IATV  ");
+            this.sqlQtdJaApontada.appendSql("            WHERE IATV.IDIPROC = :IDIPROC ");
+            if (idRPAOper != null) {
+                this.sqlQtdJaApontada.appendSql(" AND IATV.IDEFX = :IDEFX ");
+            }
+
+            this.sqlQtdJaApontada.appendSql("                AND APO.IDIATV = IATV.IDIATV ");
+            this.sqlQtdJaApontada.appendSql("            ) ");
+            this.sqlQtdJaApontada.appendSql("          AND APA.CODPRODPA = :CODPRODPA ");
+            this.sqlQtdJaApontada.appendSql("          AND APA.CONTROLEPA = :CONTROLEPA ");
+            this.sqlQtdJaApontada.appendSql("    ) APA_PERDA ");
+            this.sqlQtdJaApontada.appendSql(" WHERE IPA.IDIPROC   = :IDIPROC ");
+            this.sqlQtdJaApontada.appendSql(" AND IPA.CODPRODPA = :CODPRODPA ");
+            this.sqlQtdJaApontada.appendSql(" AND IPA.CONTROLEPA = :CONTROLEPA ");
+            this.sqlQtdJaApontada.setNamedParameter("IDEFX", idEfx);
+            this.sqlQtdJaApontada.setNamedParameter("IDIPROC", idIProc);
+            this.sqlQtdJaApontada.setReuseStatements(true);
+            return this.sqlQtdJaApontada;
+        }
+    }
+
+    public void confirmarApontamento(BigDecimal nuApontamento, boolean aceitarQtdMaior) throws Exception {
+        this.confirmarApontamento(nuApontamento, aceitarQtdMaior, true);
+    }
+
+    public void confirmarApontamento(BigDecimal nuApontamento, boolean aceitarQtdMaior, boolean aceitaProporcaoInvalidaMpAlternativa) throws Exception {
+        PersistentLocalEntity cabecalhoApontamentoEntity = this.dwfEntityFacade.findEntityByPrimaryKey("CabecalhoApontamento", new Object[]{nuApontamento});
+        DynamicVO cabecalhoApontamentoVO = (DynamicVO)cabecalhoApontamentoEntity.getValueObject();
+        DynamicVO instanciaAtividadeVO = cabecalhoApontamentoVO.asDymamicVO("InstanciaAtividade");
+        DynamicVO atividadeVO = instanciaAtividadeVO.asDymamicVO("Atividade");
+        BigDecimal idIProc = instanciaAtividadeVO.asBigDecimal("IDIPROC");
+        BigDecimal idRPAOper = atividadeVO.asBigDecimal("IDRPAOPER");
+        BigDecimal idProc = atividadeVO.asBigDecimal("IDPROC");
+        BigDecimal idiAtv = instanciaAtividadeVO.asBigDecimal("IDIATV");
+        if (!aceitarQtdMaior && idRPAOper != null) {
+            NativeSql sqlMovimentacaoEst = this.buildQueryMovimentacaoEstoque(idIProc, idRPAOper);
+            StringBuffer msgApontamentoQtdMaior = new StringBuffer();
+            NativeSql sqlQtdTotalApontada = this.buildQueryQtdApontada(idIProc, instanciaAtividadeVO.asBigDecimal("IDEFX"), idRPAOper);
+
+            for(DynamicVO apontamentoPAVO : cabecalhoApontamentoVO.asCollection("ApontamentoPA")) {
+                BigDecimal codprodPa = apontamentoPAVO.asBigDecimal("CODPRODPA");
+                String controlePa = apontamentoPAVO.asString("CONTROLEPA");
+                sqlMovimentacaoEst.setNamedParameter("CODPRODPA", codprodPa);
+                sqlMovimentacaoEst.setNamedParameter("CONTROLEPA", controlePa);
+                ResultSet rsetMovimentacaoEst = sqlMovimentacaoEst.executeQuery();
+                if (rsetMovimentacaoEst.next()) {
+                    double qtdMovEntradaRepoOper = rsetMovimentacaoEst.getDouble("QTD");
+                    sqlQtdTotalApontada.setNamedParameter("CODPRODPA", codprodPa);
+                    sqlQtdTotalApontada.setNamedParameter("CONTROLEPA", controlePa);
+                    ResultSet rset = sqlQtdTotalApontada.executeQuery();
+                    double qtdTotalApontada = (double)0.0F;
+                    if (rset.next()) {
+                        qtdTotalApontada = rset.getDouble("SOMAQTDAPONTADA");
+                    }
+
+                    rset.close();
+                    MovimentoRepositorio movRepo = new MovimentoRepositorio(idIProc, idiAtv, this.jdbc);
+                    boolean isDesvioPA = movRepo.validaDesvio(idProc, BigDecimal.valueOf(qtdTotalApontada), true, nuApontamento);
+                    if (qtdTotalApontada > qtdMovEntradaRepoOper && !isDesvioPA) {
+                        String descricaoPa = apontamentoPAVO.asString("Produto.DESCRPROD");
+                        msgApontamentoQtdMaior.append(codprodPa).append(" - ").append(descricaoPa).append(" ").append(controlePa);
+                        msgApontamentoQtdMaior.append("\n");
+                    }
+                }
+
+                rsetMovimentacaoEst.close();
+            }
+
+            if (msgApontamentoQtdMaior.length() > 0) {
+                throw (ApontamentoInvalidoException)SKError.registry(TSLevel.ERROR, "PROD_E00053", new ApontamentoInvalidoException(msgApontamentoQtdMaior.toString()));
+            }
+        }
+
+        cabecalhoApontamentoVO.setProperty("SITUACAO", "C");
+        cabecalhoApontamentoEntity.setValueObject((EntityVO)cabecalhoApontamentoVO);
+    }
+
+    public void validarConfirmacaoApontamento(DynamicVO cabecalhoApontamentoVO, boolean aceitaProporcaoInvalidaMpAlternativa) throws Exception {
+        if ("C".equals(cabecalhoApontamentoVO.asString("SITUACAO"))) {
+            throw (IllegalStateException)SKError.registry(TSLevel.ERROR, "PROD_E00054", new IllegalStateException("Apontamento já confirmado"));
+        } else {
+            Collection<DynamicVO> apontamentosPA = cabecalhoApontamentoVO.asCollection("ApontamentoPA");
+            if (apontamentosPA.size() == 0) {
+                throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00055", new Exception("Não é possível confirmar o apontamento sem itens (PA)."));
+            } else {
+                Boolean permitePerdaTotal = this.permiteApontamentoComPerdaTotal(cabecalhoApontamentoVO);
+
+                for(DynamicVO apontamentoVO : apontamentosPA) {
+                    BigDecimal qtdApontada = apontamentoVO.asBigDecimalOrZero("QTDAPONTADA");
+                    if (permitePerdaTotal) {
+                        BigDecimal qtdPerda = apontamentoVO.asBigDecimalOrZero("QTDPERDA");
+                        if (qtdApontada.compareTo(BigDecimal.ZERO) == 0 && qtdPerda.compareTo(BigDecimal.ZERO) == 0) {
+                            throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00065", new Exception("Não é possível confirmar o apontamento pois existem itens (PA) com quantidade apontada e quantidade de perda iguais a zero no mesmo apontamento."));
+                        }
+                    } else if (qtdApontada.compareTo(BigDecimal.ZERO) == 0) {
+                        throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00056", new Exception("Não é possível confirmar o apontamento pois existem itens (PA) com quantidade apontada igual a zero."));
+                    }
+
+                    for(DynamicVO apontamentoRecWCVO : apontamentoVO.asCollection("ApontamentoRecursosWorkCenter")) {
+                        BigDecimal qtdApontadaRecWC = apontamentoRecWCVO.asBigDecimalOrZero("QTDAPONTADA");
+                        BigDecimal qtdItensRecWC = apontamentoRecWCVO.asBigDecimalOrZero("QTDITENSREC");
+                        if (qtdApontadaRecWC.compareTo(BigDecimal.ZERO) <= 0) {
+                            throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00058", new Exception("Não é possível confirmar o apontamento pois existem itens (Recursos CT) com quantidade apontada igual ou menor que zero."));
+                        }
+
+                        if (qtdItensRecWC.compareTo(BigDecimal.ZERO) <= 0) {
+                            throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00057", new Exception("Não é possível confirmar o apontamento pois não foi apontando os itens (Recursos CT)."));
+                        }
+                    }
+                }
+
+                DynamicVO instanciaAtividadeVO = cabecalhoApontamentoVO.asDymamicVO("InstanciaAtividade");
+                DynamicVO instanciaProcessoVO = instanciaAtividadeVO.asDymamicVO("CabecalhoInstanciaProcesso");
+                BigDecimal idiproc = instanciaProcessoVO.asBigDecimal("IDIPROC");
+                NativeSql sql = new NativeSql(this.jdbc);
+                sql.loadSql(this.getClass(), "ApontamentoHelper_queConfirmacaoApontamentoLoteItem.sql");
+                sql.setNamedParameter("IDIPROC", idiproc);
+                ResultSet rs = sql.executeQuery();
+                ArrayList<BigDecimal> mpsQueExigemNumLote = new ArrayList();
+
+                while(rs.next()) {
+                    BigDecimal codprod = rs.getBigDecimal("CODPROD");
+                    if (!mpsQueExigemNumLote.contains(codprod)) {
+                        mpsQueExigemNumLote.add(codprod);
+                    }
+                }
+
+                rs.close();
+                BigDecimal nuapo = cabecalhoApontamentoVO.asBigDecimal("NUAPO");
+                Collection<DynamicVO> apontamentosMP = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ApontamentoMateriais", "this.NUAPO = ?", new Object[]{nuapo}));
+                ArrayList<BigDecimal> mpsQueEstaoSemLote = new ArrayList();
+
+                for(DynamicVO mpVO : apontamentosMP) {
+                    BigDecimal codprodmp = mpVO.asBigDecimal("CODPRODMP");
+                    String controlemp = mpVO.asString("CONTROLEMP");
+                    BigDecimal qtdApontada = mpVO.asBigDecimalOrZero("QTD");
+                    Pair<Boolean, BigDecimal> isTipoQtdFixaEQtdMisturaMP = this.getIsTipoQtdFixaEQtdMisturaMP(new ProdutoControle(codprodmp, controlemp), instanciaAtividadeVO.asBigDecimal("IDEFX"));
+                    boolean isTipoQtdFixa = (Boolean)isTipoQtdFixaEQtdMisturaMP.getLeft();
+                    if (isTipoQtdFixa) {
+                        BigDecimal qtdMistura = (BigDecimal)isTipoQtdFixaEQtdMisturaMP.getRight();
+                        this.confirmarProporcaoQtdMisturaTipoQtdFixa(mpVO, idiproc, instanciaAtividadeVO.asBigDecimal("IDEFX"), qtdMistura);
+                    } else if (qtdApontada.compareTo(BigDecimal.ZERO) <= 0) {
+                        throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00561", new Exception("Não é possível confirmar o apontamento pois existem itens (MPs) com quantidade apontada igual ou menor que zero. Produto " + codprodmp + "."));
+                    }
+
+                    if (StringUtils.getEmptyAsNull(controlemp) == null && mpsQueExigemNumLote.contains(codprodmp)) {
+                        mpsQueEstaoSemLote.add(codprodmp);
+                    }
+                }
+
+                if (mpsQueEstaoSemLote.size() > 0) {
+                    String mensagemErro = this.constroiMsgErroControleMP(mpsQueEstaoSemLote);
+                    throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00059", new Exception(mensagemErro));
+                } else {
+                    if (!aceitaProporcaoInvalidaMpAlternativa) {
+                        this.validaProporcaoApontamentoMPAlternativa(apontamentosPA, idiproc, nuapo);
+                    }
+
+                }
+            }
+        }
+    }
+
+    public boolean permiteApontamentoComPerdaTotal(DynamicVO cabecalhoApontamentoVO) throws Exception {
+        boolean permiteApontamentoComPerdaTotal = false;
+        DynamicVO instanciaAtividadeVO = cabecalhoApontamentoVO.asDymamicVO("InstanciaAtividade");
+        DynamicVO atividadeVO = instanciaAtividadeVO.asDymamicVO("Atividade");
+        permiteApontamentoComPerdaTotal = atividadeVO.asBoolean("PERMITEPERDATOTAL");
+        return permiteApontamentoComPerdaTotal;
+    }
+
+    public boolean permiteApontamentoComPerdaTotal(BigDecimal idefx) throws Exception {
+        boolean permitePerda100Porcento = false;
+        ResultSet rsetAtividade = null;
+
+        try {
+            rsetAtividade = this.queryBuscaAtividadePermitePerda100Porcento(idefx);
+            if (rsetAtividade.next()) {
+                permitePerda100Porcento = "S".equals(rsetAtividade.getString("PERMITEPERDATOTAL"));
+            }
+        } finally {
+            JdbcUtils.closeResultSet(rsetAtividade);
+        }
+
+        return permitePerda100Porcento;
+    }
+
+    private ResultSet queryBuscaAtividadePermitePerda100Porcento(BigDecimal idefx) throws Exception {
+        NativeSql sqlAtividade = null;
+        sqlAtividade = new NativeSql(this.jdbc);
+        sqlAtividade.appendSql(" SELECT ATV.PERMITEPERDATOTAL ");
+        sqlAtividade.appendSql(" FROM TPRATV ATV ");
+        sqlAtividade.appendSql(" WHERE ATV.IDEFX = :IDEFX ");
+        sqlAtividade.setNamedParameter("IDEFX", idefx);
+        sqlAtividade.setReuseStatements(true);
+        return sqlAtividade.executeQuery();
+    }
+
+    private String constroiMsgErroControleMP(ArrayList<BigDecimal> mpsQueExigemNumLote) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(I18nServerSideBundle.getString("apontamentoComMPSemLote", ApontamentoHelper.class));
+        boolean firstFlag = true;
+
+        for(BigDecimal codprodmp : mpsQueExigemNumLote) {
+            if (firstFlag) {
+                firstFlag = false;
+            } else {
+                sb.append(",");
+            }
+
+            sb.append(" MP ");
+            sb.append(codprodmp);
+        }
+
+        sb.append(".");
+        return sb.toString();
+    }
+
+    public ArrayList<ProdutoControle> getProdutosAcabadosAtividade(BigDecimal idiatv) throws Exception {
+        ArrayList<ProdutoControle> produtos = new ArrayList();
+        DynamicVO instanciaAtividadeVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("InstanciaAtividade", new Object[]{idiatv});
+        DynamicVO atividadeVO = instanciaAtividadeVO.asDymamicVO("Atividade");
+        DynamicVO instanciaProcessoVO = instanciaAtividadeVO.asDymamicVO("CabecalhoInstanciaProcesso");
+        DynamicVO processoVO = instanciaProcessoVO.asDymamicVO("ProcessoProdutivo");
+        BigDecimal idiproc = instanciaProcessoVO.asBigDecimal("IDIPROC");
+        BigDecimal idrpa = atividadeVO.asBigDecimal("IDRPAOPER");
+        if (processoVO.asBigDecimal("IDRPAINICIAL") != null && idrpa != null && !processoVO.asString("TIPOPROC").equals("M")) {
+            for(DynamicVO itemRepositorioVO : this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("EstoqueRepositorioPA", "this.IDIPROC = ? AND this.IDRPA = ?", new Object[]{idiproc, idrpa}))) {
+                ProdutoControle produto = new ProdutoControle(itemRepositorioVO.asBigDecimal("CODPRODPA"), itemRepositorioVO.asString("CONTROLEPA"));
+                produtos.add(produto);
+            }
+        } else {
+            for(DynamicVO produtoAcabadosVO : this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ProdutoAcabadoAProduzir", "this.IDIPROC = ? AND this.CONCLUIDO = 'N'", new Object[]{idiproc}))) {
+                ProdutoControle produto = new ProdutoControle(produtoAcabadosVO.asBigDecimal("CODPRODPA"), produtoAcabadosVO.asString("CONTROLEPA"));
+                produtos.add(produto);
+            }
+        }
+
+        return produtos;
+    }
+
+    public ArrayList<ProdutoControle> getProdutosAusentesApontamento(BigDecimal nuApo) throws Exception {
+        ArrayList<ProdutoControle> produtosAusentes = new ArrayList();
+        DynamicVO cabApontamentoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("CabecalhoApontamento", new Object[]{nuApo});
+        BigDecimal idiproc = cabApontamentoVO.asBigDecimal("InstanciaAtividade.CabecalhoInstanciaProcesso.IDIPROC");
+        NativeSql queryPaForaDoApontamento = this.buildQueryProdutosAusentesApontamento(nuApo, idiproc);
+        ResultSet rs = queryPaForaDoApontamento.executeQuery();
+
+        while(rs.next()) {
+            BigDecimal codprod = rs.getBigDecimal("CODPROD");
+            String controle = rs.getString("CONTROLE");
+            ProdutoControle produtoControle = new ProdutoControle(codprod, controle);
+            produtosAusentes.add(produtoControle);
+        }
+
+        rs.close();
+        return produtosAusentes;
+    }
+
+    private NativeSql buildQueryProdutosAusentesApontamento(BigDecimal nuApo, BigDecimal idiproc) {
+        NativeSql queryPaForaDoApontamento = new NativeSql(this.jdbc);
+        queryPaForaDoApontamento.appendSql(" SELECT IPA.CODPRODPA AS CODPROD, IPA.CONTROLEPA AS CONTROLE ");
+        queryPaForaDoApontamento.appendSql(" \tFROM TPRIPA IPA ");
+        queryPaForaDoApontamento.appendSql(" WHERE IPA.IDIPROC = :IDIPROC ");
+        queryPaForaDoApontamento.appendSql("\tAND CONCLUIDO = 'N' ");
+        queryPaForaDoApontamento.appendSql("\tAND NOT EXISTS ( ");
+        queryPaForaDoApontamento.appendSql("\t\t\t\t\tSELECT 1 FROM TPRAPA APA ");
+        queryPaForaDoApontamento.appendSql("\t\t\t\t\tWHERE APA.NUAPO = :NUAPO ");
+        queryPaForaDoApontamento.appendSql("\t\t\t\t\t\tAND APA.CODPRODPA = IPA.CODPRODPA AND APA.CONTROLEPA = IPA.CONTROLEPA)");
+        queryPaForaDoApontamento.setNamedParameter("IDIPROC", idiproc);
+        queryPaForaDoApontamento.setNamedParameter("NUAPO", nuApo);
+        return queryPaForaDoApontamento;
+    }
+
+    public void incluirProdutoAcabado(BigDecimal nuapo, BigDecimal codprod, String controle) throws Exception {
+        DynamicVO cabApontamentoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("CabecalhoApontamento", new Object[]{nuapo});
+        DynamicVO instanciaAtividadeVO = cabApontamentoVO.asDymamicVO("InstanciaAtividade");
+        BigDecimal idiproc = instanciaAtividadeVO.asBigDecimal("IDIPROC");
+        Collection<DynamicVO> produtos = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ProdutoAcabadoAProduzir", "this.IDIPROC = ? AND CODPRODPA = ? AND CONTROLEPA = ?", new Object[]{idiproc, codprod, controle}));
+        if (produtos.size() > 0) {
+            DynamicVO produtoProduzirVO = (DynamicVO)produtos.iterator().next();
+            BigDecimal codprodPa = produtoProduzirVO.asBigDecimal("CODPRODPA");
+            String controlePa = produtoProduzirVO.asString("CONTROLEPA");
+            BigDecimal qtdProduzirPa = produtoProduzirVO.asBigDecimal("QTDPRODUZIR");
+            this.criarApontamentoProdutoAcabadoAProduzir(cabApontamentoVO, new ProdutoControle(codprodPa, controlePa), qtdProduzirPa, (BigDecimal)null, false, false, (BigDecimal)null);
+        } else {
+            throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00060", new Exception("Impssível incluir produto (cód. produto " + codprod + ") no apontamento."));
+        }
+    }
+
+    public BigDecimal criarApontamentoTotem(ApontamentoTotem apontamentoTotem, BigDecimal codusuResponsavel, Timestamp dhFimExecucao) throws Exception {
+        Collection<ProdutoAcabadoApontamentoTotem> produtosAcabados = apontamentoTotem.getProdutosAcabados();
+        BigDecimal idiatv = apontamentoTotem.getIdiatv();
+        DynamicVO instanciaAtividadeVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("InstanciaAtividade", new Object[]{idiatv});
+        DynamicVO atividadeVO = instanciaAtividadeVO.asDymamicVO("Atividade");
+        DynamicVO instanciaProcessoVO = instanciaAtividadeVO.asDymamicVO("CabecalhoInstanciaProcesso");
+        DynamicVO processoVO = instanciaProcessoVO.asDymamicVO("ProcessoProdutivo");
+        BigDecimal codLocalAlmoxarife = processoVO.asBigDecimal("CODLOCALALMOXARIFE");
+        boolean isProcessoDeDesmonte = processoVO.asBoolean("PROCDESMONTE");
+        BigDecimal idefx = atividadeVO.asBigDecimal("IDEFX");
+        DynamicVO cabecalhoApontamentoVO = this.criarCabecalhoApontamento(codusuResponsavel, idiatv, apontamentoTotem.getObservacao(), dhFimExecucao);
+        BigDecimal nuapo = cabecalhoApontamentoVO.asBigDecimal("NUAPO");
+
+        for(ProdutoAcabadoApontamentoTotem produtoAcabadoApontamentoTotem : produtosAcabados) {
+            ProdutoControle produtoPA = produtoAcabadoApontamentoTotem.getProdutoPA();
+            BigDecimal quantidadePA = produtoAcabadoApontamentoTotem.getQuantidadePA();
+            BigDecimal quantidadePerda = produtoAcabadoApontamentoTotem.getQuantidadePerda();
+            BigDecimal quantidadeMotivosPerda = produtoAcabadoApontamentoTotem.getQuantidadeMotivosPerda();
+            BigDecimal motivoPerda = produtoAcabadoApontamentoTotem.getMotivoPerda();
+            DynamicVO apontamentoPAVO = this.criarApontamentoPA(nuapo, produtoPA, quantidadePA, quantidadePerda, motivoPerda, quantidadeMotivosPerda, produtoAcabadoApontamentoTotem.getMapCamposAdicionais());
+            BigDecimal seqapa = apontamentoPAVO.asBigDecimal("SEQAPA");
+            HashMap<BigDecimal, BigDecimal> detalhesPerda = produtoAcabadoApontamentoTotem.getQuantidadesPerda();
+            this.removerApontamentoDetalhesPerda(nuapo, seqapa);
+
+            for(Map.Entry<BigDecimal, BigDecimal> detalhePerdaEntry : detalhesPerda.entrySet()) {
+                BigDecimal motivoPerdaDet = (BigDecimal)detalhePerdaEntry.getKey();
+                BigDecimal quantidadePerdaDet = (BigDecimal)detalhePerdaEntry.getValue();
+                this.criarApontamentoDetalhePerda(nuapo, seqapa, motivoPerdaDet, quantidadePerdaDet);
+            }
+
+            HashMap<ProdutoControle, BigDecimal> materiasPrimas = produtoAcabadoApontamentoTotem.getMateriasPrimas();
+
+            for(Map.Entry<ProdutoControle, BigDecimal> materiaPrimaEntry : materiasPrimas.entrySet()) {
+                ProdutoControle produtoMP = (ProdutoControle)materiaPrimaEntry.getKey();
+                BigDecimal quantidadeMP = (BigDecimal)materiaPrimaEntry.getValue();
+                Collection<DynamicVO> materiaPrimaAtividade = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ListaMateriaisAtividade", "this.IDEFX = ? AND this.CODPRODMP = ? AND nullValue(this.CONTROLEMP, ' ') = ? AND this.CODPRODPA = ? AND nullValue(this.CONTROLEPA, ' ') = ?", new Object[]{idefx, produtoMP.getCodProd(), produtoMP.getControleOrEmpty(), produtoPA.getCodProd(), produtoPA.getControleOrEmpty()}));
+                String codvol = null;
+                BigDecimal codLocalOrig = null;
+                String tipoUsoMP = "N";
+                if (materiaPrimaAtividade.size() > 0) {
+                    DynamicVO materialAtividadeVO = (DynamicVO)materiaPrimaAtividade.iterator().next();
+                    codvol = materialAtividadeVO.asString("CODVOL");
+                    codLocalOrig = materialAtividadeVO.asBigDecimal("CODLOCALORIG");
+                    tipoUsoMP = materialAtividadeVO.asString("TIPOUSOMP");
+                } else {
+                    Collection<DynamicVO> materialAlternativoAtividade = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("MaterialAlternativo", "this.IDEFX = ? AND this.CODPRODPA = ? AND this.CONTROLEPA = ? AND this.CODPRODMPALT = ? AND this.CONTROLEMPALT = ?", new Object[]{idefx, produtoPA.getCodProd(), produtoPA.getControle(), produtoMP.getCodProd(), produtoMP.getControleOrEmpty()}));
+                    if (materialAlternativoAtividade.size() > 0) {
+                        DynamicVO materialAlternativoVO = (DynamicVO)materialAlternativoAtividade.iterator().next();
+                        codvol = materialAlternativoVO.asString("CODVOL");
+                        codLocalOrig = materialAlternativoVO.asBigDecimal("CODLOCALORIG");
+                    }
+                }
+
+                if (codvol == null) {
+                    DynamicVO produtoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{produtoMP.getCodProd()});
+                    codvol = produtoVO.asString("CODVOL");
+                }
+
+                if (codLocalOrig == null) {
+                    codLocalOrig = codLocalAlmoxarife;
+                }
+
+                OperacoesEstoqueAtividade.MPBean mpBean = new OperacoesEstoqueAtividade.MPBean(produtoMP, codvol, quantidadeMP, codLocalOrig, tipoUsoMP);
+                mpBean.podeFazerExplosaoLote = false;
+                mpBean.qtdMpe = (BigDecimal)produtoAcabadoApontamentoTotem.getQuantidadeMotivosMP().get(produtoMP);
+                mpBean.qtdTotalPerda = (BigDecimal)produtoAcabadoApontamentoTotem.getQtdTotalMP().get(produtoMP);
+                mpBean.codMpe = (BigDecimal)produtoAcabadoApontamentoTotem.getCodMpeMP().get(produtoMP);
+                mpBean.localBaixaMP = (BigDecimal)produtoAcabadoApontamentoTotem.getLocaisBaixaMP().get(produtoMP);
+                if (!produtoAcabadoApontamentoTotem.getQuantidadesPerdaMP().isEmpty() && produtoAcabadoApontamentoTotem.getQuantidadesPerdaMP().get(produtoMP) != null) {
+                    mpBean.getPerdas().putAll((Map)produtoAcabadoApontamentoTotem.getQuantidadesPerdaMP().get(produtoMP));
+                }
+
+                this.criarApontamentoMP(instanciaProcessoVO.asBigDecimal("IDIPROC"), nuapo, seqapa, mpBean);
+            }
+
+            HashMap<ProdutoControle, BigDecimal> subprodutos = produtoAcabadoApontamentoTotem.getSubprodutos();
+
+            for(Map.Entry<ProdutoControle, BigDecimal> subprodutoEntry : subprodutos.entrySet()) {
+                ProdutoControle produtoSP = (ProdutoControle)subprodutoEntry.getKey();
+                BigDecimal quantidadeSP = (BigDecimal)subprodutoEntry.getValue();
+                Collection<DynamicVO> subprodutoAtividade = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ListaSubprodutos", "this.IDEFX = ? AND this.CODPRODSP = ? AND nullValue(this.CONTROLESP, ' ') = ? AND this.CODPRODPA = ? AND nullValue(this.CONTROLEPA, ' ') = ?", new Object[]{idefx, produtoSP.getCodProd(), produtoSP.getControleOrEmpty(), produtoPA.getCodProd(), produtoPA.getControleOrEmpty()}));
+                String codvol = null;
+                BigDecimal codLocalOrig = null;
+                if (subprodutoAtividade.size() > 0) {
+                    DynamicVO subprodutoAtividadeVO = (DynamicVO)subprodutoAtividade.iterator().next();
+                    codvol = subprodutoAtividadeVO.asString("CODVOL");
+                    codLocalOrig = subprodutoAtividadeVO.asBigDecimal("CODLOCAL");
+                }
+
+                if (codvol == null) {
+                    DynamicVO produtoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{produtoSP.getCodProd()});
+                    codvol = produtoVO.asString("CODVOL");
+                }
+
+                if (codLocalOrig == null) {
+                    codLocalOrig = codLocalAlmoxarife;
+                }
+
+                OperacoesEstoqueAtividade.SubprodutoBean subprodutoBean = new OperacoesEstoqueAtividade.SubprodutoBean(produtoSP, codvol, quantidadeSP, codLocalOrig);
+                this.criarApontamentoSubproduto(nuapo, seqapa, subprodutoBean);
+            }
+
+            HashMap<RecursoControle, BigDecimal> recursosWC = produtoAcabadoApontamentoTotem.getRecursosWC();
+
+            for(Map.Entry<RecursoControle, BigDecimal> recursoWCEntry : recursosWC.entrySet()) {
+                RecursoControle recursoWC = (RecursoControle)recursoWCEntry.getKey();
+                BigDecimal quantidadeUtilizada = (BigDecimal)recursoWCEntry.getValue();
+                DynamicVO categoriaRecursoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("CategoriaRecurso", new Object[]{recursoWC.getCodcre()});
+                String codvol = categoriaRecursoVO.asString("CODVOL");
+                if (codvol == null) {
+                    DynamicVO produtoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{categoriaRecursoVO.asBigDecimal("CODSERVAPONTA")});
+                    codvol = produtoVO.asString("CODVOL");
+                }
+
+                OperacoesEstoqueAtividade.RecursosBean recursosBean = new OperacoesEstoqueAtividade.RecursosBean(recursoWC.getCodcre(), recursoWC.getCodwcp(), recursoWC.getQtdApontada(), quantidadeUtilizada, codvol);
+                this.criarApontamentoRecurso(nuapo, seqapa, recursosBean, recursoWC.getCodwcp());
+
+                for(Map<String, BigDecimal> item : recursoWC.getItensRec()) {
+                    OperacoesEstoqueAtividade.ItensRecursosBean itensRecursosBean = new OperacoesEstoqueAtividade.ItensRecursosBean((BigDecimal)item.get("CODMQP"), (BigDecimal)item.get("CODRHP"), (BigDecimal)item.get("NUEQP"));
+                    this.criarApontamentoItensRecurso(nuapo, seqapa, recursosBean, itensRecursosBean);
+                }
+            }
+        }
+
+        return nuapo;
+    }
+
+    private void removerApontamentoDetalhesPerdaMP(BigDecimal nuapo, BigDecimal seqapa, BigDecimal codProd, String controle) throws Exception {
+        this.dwfEntityFacade.removeByCriteria(new FinderWrapper("MotivosPerdaApontamentoMP", "NUAPO = ? AND SEQAPA = ? AND CODPRODMP = ? AND CONTROLEMP = ?", new Object[]{nuapo, seqapa, codProd, controle}));
+    }
+
+    private void criarApontamentoDetalhePerdaMP(BigDecimal nuapo, BigDecimal seqapa, BigDecimal motivoPerdaDet, BigDecimal quantidadePerdaDet, BigDecimal codProd, String controle) throws Exception {
+        DynamicVO motivosPerdaApontamentoVO = (DynamicVO)this.dwfEntityFacade.getDefaultValueObjectInstance("MotivosPerdaApontamentoMP");
+        motivosPerdaApontamentoVO.setProperty("NUAPO", nuapo);
+        motivosPerdaApontamentoVO.setProperty("SEQAPA", seqapa);
+        motivosPerdaApontamentoVO.setProperty("CODMPE", motivoPerdaDet);
+        motivosPerdaApontamentoVO.setProperty("QTDPERDA", quantidadePerdaDet);
+        motivosPerdaApontamentoVO.setProperty("CODPRODMP", codProd);
+        motivosPerdaApontamentoVO.setProperty("CONTROLEMP", controle);
+        this.dwfEntityFacade.createEntity("MotivosPerdaApontamentoMP", (EntityVO)motivosPerdaApontamentoVO);
+    }
+
+    public boolean reproporcionalizaQuantidadeApontadaMP(DynamicVO novoApontamentoPAVO) throws Exception {
+        boolean quantidadeMPSuprida = true;
+        EntityFacade dwfEntityFacade = EntityFacadeFactory.getDWFFacade();
+        DynamicVO cabecalhoApontamentoVO = novoApontamentoPAVO.asDymamicVO("CabecalhoApontamento");
+        DynamicVO instanciaAtividadeVO = cabecalhoApontamentoVO.asDymamicVO("InstanciaAtividade");
+        DynamicVO cabecalhoInstanciaProcessoVO = instanciaAtividadeVO.asDymamicVO("CabecalhoInstanciaProcesso");
+        DynamicVO processoProdutivoVO = cabecalhoInstanciaProcessoVO.asDymamicVO("ProcessoProdutivo");
+        DynamicVO atividadeVO = instanciaAtividadeVO.asDymamicVO("Atividade");
+        BigDecimal idiproc = cabecalhoInstanciaProcessoVO.asBigDecimal("IDIPROC");
+        BigDecimal nuapo = novoApontamentoPAVO.asBigDecimal("NUAPO");
+        BigDecimal seqapa = novoApontamentoPAVO.asBigDecimal("SEQAPA");
+        BigDecimal qtdApontadaComPerda = novoApontamentoPAVO.asBigDecimal("QTDAPONTADA").add(BigDecimalUtil.getValueOrZero(novoApontamentoPAVO.asBigDecimal("QTDPERDA")));
+        Collection<String> tiposUsoMP = new ArrayList();
+        tiposUsoMP.add("N");
+        if (processoProdutivoVO.asBoolean("PROCDESMONTE")) {
+            tiposUsoMP.add("R");
+        }
+
+        ProdutoControle produtoPA = new ProdutoControle(novoApontamentoPAVO.asBigDecimal("CODPRODPA"), novoApontamentoPAVO.asString("CONTROLEPA"));
+        Collection<OperacoesEstoqueAtividade.MPBean> mps = OperacoesEstoqueAtividade.getMateriasPrimasPAParaApontamento(produtoPA, qtdApontadaComPerda, processoProdutivoVO.asBigDecimal("IDPROC"), instanciaAtividadeVO.asBigDecimal("IDEFX"), atividadeVO.asString("APONTAMP"), tiposUsoMP, this.jdbc);
+        ArrayList<OperacoesEstoqueAtividade.MPBean> materiaisMP = OperacoesEstoqueAtividade.vinculaMateriaPrimaAlternativa(mps, produtoPA, (String)null, idiproc, this.jdbc, nuapo, seqapa);
+        OperacoesEstoqueAtividade.getPerdasMP(materiaisMP, produtoPA, this.jdbc, nuapo, seqapa);
+        this.removerApontamentosMpAlternativa(produtoPA, mps, idiproc, nuapo, seqapa);
+
+        for(OperacoesEstoqueAtividade.MPBean mp : materiaisMP) {
+            DynamicVO produtoVO = null;
+
+            try {
+                produtoVO = (DynamicVO)dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{mp.produto.getCodProd()});
+            } catch (FinderException var26) {
+                continue;
+            }
+
+            if ("F".equals(mp.tipoQtd) && "S".equals(mp.propmpfixa)) {
+                BigDecimal qtdAProduzirPA = this.getQtdAProduzirProdutoAcabadoPorOP(idiproc, produtoPA);
+                NecessidadeApontamentoPA necessidadeApontamentoPA = new NecessidadeApontamentoPA(idiproc, instanciaAtividadeVO.asBigDecimal("IDEFX"), qtdApontadaComPerda, qtdAProduzirPA);
+                this.proporcionarQtdMisturaMateriaPrimaTipoQtdFixa(mp, necessidadeApontamentoPA);
+            }
+
+            if (!mp.fixarQtdApontada) {
+                if (!"L".equals(produtoVO.asString("TIPCONTEST"))) {
+                    try {
+                        PersistentLocalEntity apontamentoMPEntity = dwfEntityFacade.findEntityByPrimaryKey("ApontamentoMateriais", new Object[]{novoApontamentoPAVO.asBigDecimal("NUAPO"), novoApontamentoPAVO.asBigDecimal("SEQAPA"), mp.produto.getCodProd(), ComercialUtils.trimControleEstoque(mp.produto.getControle())});
+                        DynamicVO apontamentoMPVO = (DynamicVO)apontamentoMPEntity.getValueObject();
+                        BigDecimal quantidade = mp.qtdmistura;
+                        if (!mp.codvol.equals(apontamentoMPVO.asString("CODVOL"))) {
+                            quantidade = UnidadeProdutoUtils.converteQuantidadePorUnidadeVolume(apontamentoMPVO.asDymamicVO("ProdutoMateriaPrima"), mp.qtdmistura, mp.produto.getControle(), mp.codvol, apontamentoMPVO.asString("CODVOL"));
+                        }
+
+                        apontamentoMPVO.setProperty("QTD", quantidade);
+                        apontamentoMPEntity.setValueObject((EntityVO)apontamentoMPVO);
+                    } catch (FinderException var24) {
+                        this.criarApontamentoMP(idiproc, nuapo, seqapa, mp);
+                    }
+                } else {
+                    dwfEntityFacade.removeByCriteria(new FinderWrapper("ApontamentoMateriais", "this.NUAPO = ? AND this.SEQAPA = ? AND this.CODPRODMP = ?", new Object[]{novoApontamentoPAVO.asBigDecimal("NUAPO"), novoApontamentoPAVO.asBigDecimal("SEQAPA"), mp.produto.getCodProd()}));
+                    List<DynamicVO> apontamentosMPCriados = this.criarApontamentoMP(idiproc, nuapo, seqapa, mp);
+                    if (quantidadeMPSuprida) {
+                        BigDecimal qtdApontada = BigDecimal.ZERO;
+
+                        for(DynamicVO apontamentoMP : apontamentosMPCriados) {
+                            qtdApontada = qtdApontada.add(apontamentoMP.asBigDecimal("QTD"));
+                        }
+
+                        if (mp.qtdmistura.compareTo(qtdApontada) > 0) {
+                            quantidadeMPSuprida = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        ProdutoControle produto = new ProdutoControle(novoApontamentoPAVO.asBigDecimal("CODPRODPA"), novoApontamentoPAVO.asString("CONTROLEPA"));
+
+        for(OperacoesEstoqueAtividade.SubprodutoBean subprodutoBean : OperacoesEstoqueAtividade.getSubprodutosPA(produto, qtdApontadaComPerda, processoProdutivoVO.asBigDecimal("IDPROC"), instanciaAtividadeVO.asBigDecimal("IDEFX"), atividadeVO.asString("APONTASP"), this.jdbc, instanciaAtividadeVO.asBigDecimal("IDIPROC"))) {
+            PersistentLocalEntity apontamentoSPEntity = null;
+
+            try {
+                apontamentoSPEntity = dwfEntityFacade.findEntityByPrimaryKey("ApontamentoSubproduto", new Object[]{novoApontamentoPAVO.asBigDecimal("NUAPO"), novoApontamentoPAVO.asBigDecimal("SEQAPA"), subprodutoBean.produto.getCodProd(), ComercialUtils.trimControleEstoque(subprodutoBean.produto.getControle())});
+            } catch (FinderException var25) {
+                continue;
+            }
+
+            DynamicVO apontamentoSPVO = (DynamicVO)apontamentoSPEntity.getValueObject();
+            BigDecimal quantidade = subprodutoBean.qtdmistura;
+            if (!subprodutoBean.codvol.equals(apontamentoSPVO.asString("CODVOL"))) {
+                quantidade = UnidadeProdutoUtils.converteQuantidadePorUnidadeVolume(apontamentoSPVO.asDymamicVO("Produto"), subprodutoBean.qtdmistura, subprodutoBean.produto.getControle(), subprodutoBean.codvol, apontamentoSPVO.asString("CODVOL"));
+            }
+
+            apontamentoSPVO.setProperty("QTD", quantidade);
+            apontamentoSPEntity.setValueObject((EntityVO)apontamentoSPVO);
+        }
+
+        return quantidadeMPSuprida;
+    }
+
+    public BigDecimal criarApontamentoConferencia(BigDecimal codUsu, BigDecimal nuConf) throws Exception {
+        DynamicVO conferenciaVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("CabecalhoConfProducao", nuConf);
+        DynamicVO instanciaAtividadeVO = conferenciaVO.asDymamicVO("InstanciaAtividade");
+        BigDecimal idiatv = instanciaAtividadeVO.asBigDecimal("IDIATV");
+        this.validarPrecondicoesCriacaoApontamento(instanciaAtividadeVO);
+        DynamicVO cabecalhoApontamentoVO = null;
+        Collection<DynamicVO> itensConferidosVO = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ItemConferenciaProducao", "this.NUCONF = ?", new Object[]{nuConf}));
+        BigDecimal nuapo = null;
+
+        for(DynamicVO dynamicVO : itensConferidosVO) {
+            if (cabecalhoApontamentoVO == null) {
+                cabecalhoApontamentoVO = this.criarCabecalhoApontamento(codUsu, idiatv, "");
+            }
+
+            BigDecimal codprodPa = dynamicVO.asBigDecimal("CODPROD");
+            String controlePa = dynamicVO.asString("CONTROLE");
+            BigDecimal qtdProduzirPa = dynamicVO.asBigDecimal("QTDCONF");
+            nuapo = cabecalhoApontamentoVO.asBigDecimal("NUAPO");
+            this.criarApontamentoPA(nuapo, new ProdutoControle(codprodPa, controlePa), qtdProduzirPa, (BigDecimal)null);
+        }
+
+        return nuapo;
+    }
+
+    private void adicionaInformacoesMpAlterantiva(ProdutoControle produtoAcabado, JdbcWrapper jdbc, BigDecimal idiproc, DynamicVO apontamentoMP) throws Exception {
+        NativeSql sqlBuscaConjuntoMpAlternativa = null;
+
+        try {
+            ProdutoControle materiaPrima = new ProdutoControle(apontamentoMP.asBigDecimal("CODPRODMP"), apontamentoMP.asString("CONTROLEMP"));
+            sqlBuscaConjuntoMpAlternativa = new NativeSql(jdbc, ApontamentoHelper.class, "ApontamentoHelper_queBuscaInformacaoMPAlternativa.sql");
+            sqlBuscaConjuntoMpAlternativa.setNamedParameter("IDIPROC", idiproc);
+            sqlBuscaConjuntoMpAlternativa.setNamedParameter("CODPRODPA", produtoAcabado.getCodProd());
+            sqlBuscaConjuntoMpAlternativa.setNamedParameter("CONTROLEPA", produtoAcabado.getControleOrEmpty());
+            sqlBuscaConjuntoMpAlternativa.setNamedParameter("CODPRODMPALT", materiaPrima.getCodProd());
+            sqlBuscaConjuntoMpAlternativa.setNamedParameter("CONTROLEMPALT", materiaPrima.getControleOrEmpty());
+            ResultSet rsetBuscaQtdSubstituida = sqlBuscaConjuntoMpAlternativa.executeQuery();
+            if (rsetBuscaQtdSubstituida.next()) {
+                apontamentoMP.setProperty("_ALT_CONJUNTO", rsetBuscaQtdSubstituida.getBigDecimal("CONJUNTO"));
+                apontamentoMP.setProperty("_ALT_QTD_UNITARIA", rsetBuscaQtdSubstituida.getBigDecimal("QTD_UNITARIA"));
+                apontamentoMP.setProperty("_ALT_ORDEM", rsetBuscaQtdSubstituida.getBigDecimal("ORDEM"));
+            }
+
+            rsetBuscaQtdSubstituida.close();
+        } finally {
+            NativeSql.releaseResources(sqlBuscaConjuntoMpAlternativa);
+        }
+
+    }
+
+    private void validaProporcaoApontamentoMPAlternativa(Collection<DynamicVO> apontamentosPA, BigDecimal idiproc, BigDecimal nuapo) throws Exception {
+        Map<BigDecimal, List<DynamicVO>> conjuntos = new HashMap();
+        Comparator comparator = new 1(this);
+
+        for(DynamicVO apontamentoVO : apontamentosPA) {
+            ProdutoControle pa = new ProdutoControle(apontamentoVO.asBigDecimal("CODPRODPA"), apontamentoVO.asString("CONTROLEPA"));
+            Collection<DynamicVO> apontamentosMP = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ApontamentoMateriais", "this.NUAPO = ?", new Object[]{nuapo}));
+            conjuntos.clear();
+
+            for(DynamicVO apontamentoMP : apontamentosMP) {
+                apontamentoMP.setAceptTransientProperties(true);
+                apontamentoMP.setProperty("_ALT_CONJUNTO", (Object)null);
+                this.adicionaInformacoesMpAlterantiva(pa, this.jdbc, idiproc, apontamentoMP);
+                BigDecimal conjunto = apontamentoMP.asBigDecimal("_ALT_CONJUNTO");
+                if (conjunto != null) {
+                    List<DynamicVO> lstMP = (List)conjuntos.get(conjunto);
+                    if (lstMP == null) {
+                        lstMP = new ArrayList();
+                        conjuntos.put(conjunto, lstMP);
+                    }
+
+                    lstMP.add(apontamentoMP);
+                }
+            }
+
+            for(List<DynamicVO> lstApontamentoConjunto : conjuntos.values()) {
+                Collections.sort(lstApontamentoConjunto, comparator);
+                Iterator<DynamicVO> ite = lstApontamentoConjunto.iterator();
+                DynamicVO primeiroElementoConjuntoVO = (DynamicVO)ite.next();
+                BigDecimal qtdUnitaria = primeiroElementoConjuntoVO.asBigDecimal("_ALT_QTD_UNITARIA");
+                BigDecimal qtd = primeiroElementoConjuntoVO.asBigDecimal("QTD");
+
+                while(ite.hasNext()) {
+                    DynamicVO apontamentoConjuntoVO = (DynamicVO)ite.next();
+                    BigDecimal proporcao = apontamentoConjuntoVO.asBigDecimal("_ALT_QTD_UNITARIA").divide(qtdUnitaria);
+                    BigDecimal qtdProporcao = proporcao.multiply(qtd);
+                    if (qtdProporcao.doubleValue() != apontamentoConjuntoVO.asBigDecimal("QTD").doubleValue()) {
+                        throw (ProporcaoApontamentoInvalidaException)SKError.registry(TSLevel.ERROR, "PROD_E00061", new ProporcaoApontamentoInvalidaException());
+                    }
+                }
+            }
+        }
+
+    }
+
+    private void removerApontamentosMpAlternativa(ProdutoControle produtoPA, Collection<OperacoesEstoqueAtividade.MPBean> mps, BigDecimal idiproc, BigDecimal nuapo, BigDecimal seqapa) throws Exception {
+        for(OperacoesEstoqueAtividade.MaterialAlternativo materialAlternativo : OperacoesEstoqueAtividade.getListaMPAlternativas(produtoPA, mps, this.jdbc, idiproc)) {
+            this.removerApontamento(materialAlternativo.produto, nuapo, seqapa);
+
+            for(OperacoesEstoqueAtividade.MaterialAlternativo materialAlternativoConjunto : materialAlternativo.getItensConjunto()) {
+                this.removerApontamento(materialAlternativoConjunto.produto, nuapo, seqapa);
+            }
+        }
+
+    }
+
+    private void removerApontamento(ProdutoControle materialAlternativo, BigDecimal nuapo, BigDecimal seqapa) throws Exception {
+        DynamicVO produtoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{materialAlternativo.getCodProd()});
+        String controle = materialAlternativo.getControleOrEmpty();
+        if ("L".equals(produtoVO.asString("TIPCONTEST"))) {
+            controle = "*";
+        }
+
+        FinderWrapper finderForRemove = new FinderWrapper("ApontamentoMateriais", "this.NUAPO = ? AND this.SEQAPA = ? AND this.CODPRODMP = ? AND (? = '*' OR nullValue(this.CONTROLEMP, ' ') = ?)", new Object[]{nuapo, seqapa, materialAlternativo.getCodProd(), controle, controle});
+        this.dwfEntityFacade.removeByCriteria(finderForRemove);
+    }
+
+    public void finalizarProducaoProdutoAcabadosApontamento(BigDecimal idiproc, BigDecimal nuApontamento) throws Exception {
+        for(DynamicVO paVO : this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ApontamentoPA", " this.NUAPO = ? ", new Object[]{nuApontamento}))) {
+            PersistentLocalEntity ordemPAsProduzirEntity = this.dwfEntityFacade.findEntityByPrimaryKey("ProdutoAcabadoAProduzir", new Object[]{idiproc, paVO.asBigDecimal("CODPRODPA"), paVO.asString("CONTROLEPA")});
+            DynamicVO ordemPAsProduzirVO = (DynamicVO)ordemPAsProduzirEntity.getValueObject();
+            ordemPAsProduzirVO.setProperty("CONCLUIDO", "S");
+            ordemPAsProduzirEntity.setValueObject((EntityVO)ordemPAsProduzirVO);
+        }
+
+    }
+
+    public Collection<LiberacaoSolicitada> validarQtdApontada(BigDecimal nuapo, BigDecimal idefx, Collection<DynamicVO> apontamentosPA) throws Exception {
+        NativeSql sql = null;
+        Collection<LiberacaoSolicitada> liberacoesMPs = new ArrayList();
+        OperacaoProducaoHelper operacaoHelper = OperacaoProducaoHelper.getInstance();
+
+        try {
+            sql = new NativeSql(this.jdbc);
+            sql.appendSql("SELECT AMP.CODPRODMP, CASE WHEN TIPCONTEST = 'L' THEN ' ' ELSE AMP.CONTROLEMP END AS CONTROLEMP, MAX(AMP.CODVOL) AS CODVOL, SUM(AMP.QTD) AS QTD ");
+            sql.appendSql("FROM TPRAMP AMP ");
+            sql.appendSql("INNER JOIN TGFPRO PRODMP ON (PRODMP.CODPROD = AMP.CODPRODMP) ");
+            sql.appendSql("WHERE AMP.NUAPO = :NUAPO ");
+            sql.appendSql("\tAND AMP.SEQAPA = :SEQAPA ");
+            sql.appendSql("GROUP BY AMP.CODPRODMP, CASE WHEN TIPCONTEST = 'L' THEN ' ' ELSE AMP.CONTROLEMP END ");
+            sql.setReuseStatements(true);
+            JapeWrapper materialAlternativoDAO = JapeFactory.dao("MaterialAlternativo");
+            JapeWrapper apontamentoMateriaisDAO = JapeFactory.dao("ApontamentoMateriais");
+            JapeWrapper listaMateriaisAtividadeDAO = JapeFactory.dao("ListaMateriaisAtividade");
+            JapeWrapper atividadeDAO = JapeFactory.dao("Atividade");
+            List<ProdutoControle> materialProcessado = new ArrayList();
+
+            for(DynamicVO apontamentoVO : apontamentosPA) {
+                sql.setNamedParameter("NUAPO", apontamentoVO.asBigDecimal("NUAPO"));
+                sql.setNamedParameter("SEQAPA", apontamentoVO.asBigDecimal("SEQAPA"));
+                ResultSet rset = sql.executeQuery();
+                ProdutoControle produtoControlePA = new ProdutoControle(apontamentoVO.asBigDecimal("CODPRODPA"), apontamentoVO.asString("CONTROLEPA"));
+                Map<ProdutoControle, ApontamentoMP> apontamentosMap = new HashMap();
+
+                while(rset.next()) {
+                    Collection<DynamicVO> materialAlternativoVoLst = materialAlternativoDAO.find("this.IDEFX = ? AND this.CODPRODPA = ? AND nullValue(this.CONTROLEPA, ' ') = ? AND this.CODPRODMP = ? AND nullValue(this.CONTROLEMP, ' ') = ?", new Object[]{idefx, apontamentoVO.asBigDecimal("CODPRODPA"), ComercialUtils.trimControleEstoque(apontamentoVO.asString("CONTROLEPA")), rset.getBigDecimal("CODPRODMP"), ComercialUtils.trimControleEstoque(rset.getString("CONTROLEMP"))});
+                    if (!materialAlternativoVoLst.isEmpty()) {
+                        ProdutoControle produtoControleMPPrincipal = new ProdutoControle(rset.getBigDecimal("CODPRODMP"), rset.getString("CONTROLEMP"));
+                        ApontamentoMP apontamentoMPPrincipal = (ApontamentoMP)apontamentosMap.get(produtoControleMPPrincipal);
+                        if (apontamentoMPPrincipal == null) {
+                            apontamentoMPPrincipal = new ApontamentoMP(produtoControleMPPrincipal, produtoControlePA);
+                            apontamentosMap.put(produtoControleMPPrincipal, apontamentoMPPrincipal);
+                        }
+
+                        apontamentoMPPrincipal.qtdApontada = rset.getDouble("QTD");
+                        apontamentoMPPrincipal.codvol = rset.getString("CODVOL");
+                        apontamentoMPPrincipal.qtdApontadaPA = apontamentoVO.asDouble("QTDAPONTADA");
+
+                        for(DynamicVO materialAlternativoVO : materialAlternativoVoLst) {
+                            DynamicVO apontamentoMaterialVO = apontamentoMateriaisDAO.findByPK(new Object[]{apontamentoVO.asBigDecimal("NUAPO"), apontamentoVO.asBigDecimal("SEQAPA"), materialAlternativoVO.asBigDecimal("CODPRODMPALT"), materialAlternativoVO.asString("CONTROLEMPALT")});
+                            if (apontamentoMaterialVO != null) {
+                                ProdutoControle produtoControleMPAlt = new ProdutoControle(apontamentoMaterialVO.asBigDecimal("CODPRODMP"), apontamentoMaterialVO.asString("CONTROLEMP"));
+                                if (!materialProcessado.contains(produtoControleMPAlt)) {
+                                    ApontamentoMP apontamentoMPAlt = new ApontamentoMP(produtoControleMPPrincipal, produtoControlePA);
+                                    apontamentoMPAlt.codProdMpAlt = produtoControleMPAlt.getCodProd();
+                                    apontamentoMPAlt.controleMpAlt = produtoControleMPAlt.getControleOrEmpty();
+                                    apontamentoMPAlt.qtdApontada = apontamentoMaterialVO.asDouble("QTD");
+                                    apontamentoMPAlt.qtdMistura = materialAlternativoVO.asDouble("QTDMISTURA");
+                                    apontamentoMPAlt.conjunto = materialAlternativoVO.asBigDecimal("CONJUNTO");
+                                    apontamentoMPAlt.codvol = apontamentoMaterialVO.asString("CODVOL");
+                                    if (apontamentoMPAlt.conjunto != null) {
+                                        apontamentoMPPrincipal.addItemConjuntoMPAlt(apontamentoMPAlt);
+                                    } else {
+                                        apontamentoMPPrincipal.addApontamentoMPAlt(apontamentoMPAlt);
+                                    }
+
+                                    materialProcessado.add(produtoControleMPAlt);
+                                }
+                            }
+                        }
+                    } else {
+                        DynamicVO materialAlternativoVO = materialAlternativoDAO.findOne("this.IDEFX = ? AND this.CODPRODPA = ? AND nullValue(this.CONTROLEPA, ' ') = ? AND this.CODPRODMPALT = ? AND nullValue(this.CONTROLEMPALT, ' ') = ?", new Object[]{idefx, apontamentoVO.asBigDecimal("CODPRODPA"), ComercialUtils.trimControleEstoque(apontamentoVO.asString("CONTROLEPA")), rset.getBigDecimal("CODPRODMP"), ComercialUtils.trimControleEstoque(rset.getString("CONTROLEMP"))});
+                        if (materialAlternativoVO != null) {
+                            ProdutoControle produtoControleMPPrincipal = new ProdutoControle(materialAlternativoVO.asBigDecimal("CODPRODMP"), materialAlternativoVO.asString("CONTROLEMP"));
+                            ApontamentoMP apontamentoMPPrincipal = (ApontamentoMP)apontamentosMap.get(produtoControleMPPrincipal);
+                            if (apontamentoMPPrincipal == null) {
+                                apontamentoMPPrincipal = new ApontamentoMP(produtoControleMPPrincipal, produtoControlePA);
+                                DynamicVO listaMateriaisAtividadeVO = listaMateriaisAtividadeDAO.findOne("this.IDEFX = ? AND this.CODPRODMP = ? AND nullValue(this.CONTROLEMP, ' ') = ? AND this.CODPRODPA = ? AND nullValue(this.CONTROLEPA, ' ') = ?", new Object[]{idefx, produtoControleMPPrincipal.getCodProd(), produtoControleMPPrincipal.getControleOrEmpty(), produtoControlePA.getCodProd(), produtoControlePA.getControleOrEmpty()});
+                                String codvol = null;
+                                if (listaMateriaisAtividadeVO != null) {
+                                    codvol = listaMateriaisAtividadeVO.asString("CODVOL");
+                                }
+
+                                if (codvol == null) {
+                                    DynamicVO produtoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{produtoControleMPPrincipal.getCodProd()});
+                                    codvol = produtoVO.asString("CODVOL");
+                                }
+
+                                apontamentoMPPrincipal.codvol = codvol;
+                                apontamentoMPPrincipal.qtdApontadaPA = apontamentoVO.asDouble("QTDAPONTADA");
+                                apontamentosMap.put(produtoControleMPPrincipal, apontamentoMPPrincipal);
+                            }
+
+                            ProdutoControle produtoControleMPAlt = new ProdutoControle(rset.getBigDecimal("CODPRODMP"), rset.getString("CONTROLEMP"));
+                            if (!materialProcessado.contains(produtoControleMPAlt)) {
+                                ApontamentoMP apontamentoMPAlt = new ApontamentoMP(produtoControleMPPrincipal, produtoControlePA);
+                                apontamentoMPAlt.codProdMpAlt = produtoControleMPAlt.getCodProd();
+                                apontamentoMPAlt.controleMpAlt = produtoControleMPAlt.getControleOrEmpty();
+                                apontamentoMPAlt.qtdMistura = materialAlternativoVO.asDouble("QTDMISTURA");
+                                apontamentoMPAlt.qtdApontada = rset.getDouble("QTD");
+                                apontamentoMPAlt.conjunto = materialAlternativoVO.asBigDecimal("CONJUNTO");
+                                apontamentoMPAlt.codvol = rset.getString("CODVOL");
+                                if (apontamentoMPAlt.conjunto != null) {
+                                    apontamentoMPPrincipal.addItemConjuntoMPAlt(apontamentoMPAlt);
+                                } else {
+                                    apontamentoMPPrincipal.addApontamentoMPAlt(apontamentoMPAlt);
+                                }
+
+                                materialProcessado.add(produtoControleMPAlt);
+                            }
+                        } else {
+                            ProdutoControle produtoControleMP = new ProdutoControle(rset.getBigDecimal("CODPRODMP"), rset.getString("CONTROLEMP"));
+                            if (!materialProcessado.contains(produtoControleMP)) {
+                                ApontamentoMP apontamentoMP = new ApontamentoMP(produtoControleMP, produtoControlePA);
+                                apontamentoMP.qtdApontada = rset.getDouble("QTD");
+                                apontamentoMP.codvol = rset.getString("CODVOL");
+                                apontamentoMP.qtdApontadaPA = apontamentoVO.asDouble("QTDAPONTADA");
+                                apontamentosMap.put(produtoControleMP, apontamentoMP);
+                                materialProcessado.add(produtoControleMP);
+                            }
+                        }
+                    }
+                }
+
+                rset.close();
+
+                for(ApontamentoMP apontamentoMP : apontamentosMap.values()) {
+                    double totalApontamentoMpAlt = (double)0.0F;
+
+                    for(ApontamentoMP apontamentoMPAlt : apontamentoMP.getApontamentosMPAlt()) {
+                        if (apontamentoMPAlt.qtdApontada > (double)0.0F && apontamentoMPAlt.qtdMistura > (double)0.0F) {
+                            totalApontamentoMpAlt += apontamentoMPAlt.qtdApontada / apontamentoMPAlt.qtdMistura;
+                        }
+                    }
+
+                    for(BigDecimal conjunto : apontamentoMP.getConjuntosMPAlt().keySet()) {
+                        ApontamentoMP apontamentoMPConjunto = apontamentoMP.getMenorApontamentoConjunto(conjunto);
+                        if (apontamentoMPConjunto != null) {
+                            totalApontamentoMpAlt += apontamentoMPConjunto.qtdApontada / apontamentoMPConjunto.qtdMistura;
+                        }
+                    }
+
+                    apontamentoMP.qtdApontada += totalApontamentoMpAlt;
+                    DynamicVO produtoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{apontamentoMP.codProdMp});
+                    int decQtd = produtoVO.asInt("DECQTD") == 0 ? 2 : produtoVO.asInt("DECQTD");
+                    apontamentoMP.qtdApontada = BigDecimalUtil.getRoundedDouble(apontamentoMP.qtdApontada, decQtd);
+                }
+
+                for(ApontamentoMP apontamentoMP : apontamentosMap.values()) {
+                    DynamicVO atividadeVO = atividadeDAO.findByPK(new Object[]{idefx});
+                    DynamicVO tprlmpVO = ListaMateriaisUtils.buscaMateriaPrima(apontamentoMP.codProdPa, apontamentoMP.controlePa, apontamentoMP.codProdMp, apontamentoMP.controleMp, apontamentoMP.codvol, idefx, this.jdbc);
+                    if (tprlmpVO == null) {
+                        tprlmpVO = this.getMPsOutrasAtividadesProcesso(apontamentoMP, atividadeVO);
+                    }
+
+                    if (tprlmpVO != null && (tprlmpVO.getProperty("PERCDESVIOINF") != null || tprlmpVO.getProperty("PERCDESVIOSUP") != null)) {
+                        boolean isSolicitaLiberacaoDesvio = tprlmpVO.asBoolean("LIBERADESVIO");
+                        BigDecimal sequenciaMP = tprlmpVO.asBigDecimal("SEQMP");
+                        LiberacaoSolicitada ls = null;
+                        if (!"F".equals(tprlmpVO.asString("TIPOQTD"))) {
+                            ProdutoControle produtoControleMP = new ProdutoControle(apontamentoMP.codProdMp, apontamentoMP.controleMp);
+                            DynamicVO produtoVO = tprlmpVO.asDymamicVO("ProdutoMateriaPrima");
+                            int decQtd = produtoVO.asInt("DECQTD") == 0 ? 2 : produtoVO.asInt("DECQTD");
+                            String controleMP = StringUtils.getEmptyAsNull(apontamentoMP.controleMp);
+                            double qtdEsperada = BigDecimalUtil.getRoundedDouble(tprlmpVO.asDouble("QTDMISTURA") * ("V".equals(tprlmpVO.asString("TIPOQTD")) ? apontamentoMP.qtdApontadaPA : (double)1.0F), decQtd);
+                            if (tprlmpVO.getProperty("PERCDESVIOINF") != null) {
+                                double qtdLimiteInferior = qtdEsperada - qtdEsperada * ((double)1.0F - tprlmpVO.asDouble("PERCDESVIOINF") / (double)100.0F);
+                                qtdLimiteInferior = BigDecimalUtil.getRoundedDouble(qtdEsperada - qtdLimiteInferior, decQtd);
+                                if (apontamentoMP.qtdApontada < qtdLimiteInferior) {
+                                    StringBuilder sb = new StringBuilder("Qtd. apontada abaixo do desvio permitido (" + apontamentoMP.qtdApontada + " menor que " + qtdLimiteInferior + ") para a MP " + apontamentoMP.codProdMp + (controleMP != null ? " Controle: " + controleMP : ""));
+                                    if (!apontamentoMP.getApontamentosMPAlt().isEmpty() || !apontamentoMP.getConjuntosMPAlt().isEmpty()) {
+                                        sb.append(". Verifique o Apontamento da Materia Prima Principal (Quando necessário) e do Material Alternativo.");
+                                        sb.append(" MPs: " + apontamentoMP.getListaCodProdMaterialAlternativo());
+                                        sb.append(".");
+                                    }
+
+                                    if (!isSolicitaLiberacaoDesvio) {
+                                        throw (IllegalStateException)SKError.registry(TSLevel.ERROR, "PROD_E00062", new IllegalStateException(sb.toString()));
+                                    }
+
+                                    ls = operacaoHelper.processarSolicitaLiberacaoDesvioInferiorMP(produtoControleMP, apontamentoVO.asBigDecimal("NUAPO"), apontamentoVO.asBigDecimal("SEQAPA"), sequenciaMP, BigDecimal.valueOf(qtdEsperada), BigDecimal.valueOf(apontamentoMP.qtdApontada), BigDecimal.valueOf(qtdLimiteInferior));
+                                    if (ls != null) {
+                                        liberacoesMPs.add(ls);
+                                        continue;
+                                    }
+                                }
+                            }
+
+                            if (tprlmpVO.getProperty("PERCDESVIOSUP") != null) {
+                                double qtdLimiteSuperior = qtdEsperada - qtdEsperada * ((double)1.0F - tprlmpVO.asDouble("PERCDESVIOSUP") / (double)100.0F);
+                                qtdLimiteSuperior = BigDecimalUtil.getRoundedDouble(qtdEsperada + qtdLimiteSuperior, decQtd);
+                                BigDecimal perdaMaterial = BigDecimalUtil.getValueOrZero(NativeSql.getBigDecimal("SUM(QTDPERDA)", "TPRAMP", "NUAPO = ? AND CODPRODMP = ?", new Object[]{apontamentoVO.getProperty("NUAPO"), tprlmpVO.getProperty("CODPRODMP")}));
+                                perdaMaterial = perdaMaterial.add(BigDecimal.valueOf(apontamentoMP.qtdApontada));
+                                if (isSolicitaLiberacaoDesvio) {
+                                    BigDecimal vlrLiberado = BigDecimalUtil.getValueOrZero(NativeSql.getBigDecimal("VLRLIBERADO", "TSILIB", "NUCHAVE = ? AND EVENTO = ? AND TABELA = 'TPRAPO' AND SEQUENCIA = ? AND NUCLL = ? AND DHLIB IS NOT NULL", new Object[]{apontamentoVO.asBigDecimal("NUAPO"), BigDecimal.valueOf(80L), BigDecimalUtil.getValueOrZero(apontamentoVO.asBigDecimal("SEQAPA")), BigDecimalUtil.getValueOrZero(sequenciaMP)}));
+                                    if (BigDecimal.ZERO.compareTo(vlrLiberado) < 0) {
+                                        qtdLimiteSuperior += vlrLiberado.doubleValue();
+                                    }
+                                }
+
+                                if (perdaMaterial.doubleValue() > qtdLimiteSuperior) {
+                                    StringBuilder sb = new StringBuilder("Qtd. apontada acima do desvio permitido (" + apontamentoMP.qtdApontada + " maior que " + qtdLimiteSuperior + ") para a MP " + apontamentoMP.codProdMp + (controleMP != null ? " Controle: " + controleMP : ""));
+                                    if (!apontamentoMP.getApontamentosMPAlt().isEmpty() || !apontamentoMP.getConjuntosMPAlt().isEmpty()) {
+                                        sb.append(". Verifique o Apontamento da Materia Prima Principal (Quando necessário) e do Material Alternativo.");
+                                        sb.append(" MPs: " + apontamentoMP.getListaCodProdMaterialAlternativo());
+                                        sb.append(".");
+                                    }
+
+                                    if (!isSolicitaLiberacaoDesvio) {
+                                        throw (IllegalStateException)SKError.registry(TSLevel.ERROR, "PROD_E00062", new IllegalStateException(sb.toString()));
+                                    }
+
+                                    ls = operacaoHelper.processarSolicitaLiberacaoDesvioSuperiorMP(produtoControleMP, apontamentoVO.asBigDecimal("NUAPO"), apontamentoVO.asBigDecimal("SEQAPA"), sequenciaMP, BigDecimal.valueOf(qtdEsperada), BigDecimal.valueOf(apontamentoMP.qtdApontada), BigDecimal.valueOf(qtdLimiteSuperior));
+                                    if (ls != null) {
+                                        liberacoesMPs.add(ls);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                this.validaMotivoDePerda(apontamentoVO);
+            }
+        } finally {
+            NativeSql.releaseResources(sql);
+        }
+
+        return liberacoesMPs;
+    }
+
+    private DynamicVO getMPsOutrasAtividadesProcesso(ApontamentoMP apontamentoMP, DynamicVO atividadeVO) throws Exception {
+        DynamicVO tprlmpVO = null;
+        if ("O".equals(atividadeVO.asString("APONTAMP"))) {
+            for(DynamicVO atividade : this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("Atividade", "this.IDPROC = ? AND this.IDEFX <> ? ", new Object[]{atividadeVO.asBigDecimal("IDPROC"), atividadeVO.asBigDecimal("IDEFX")}))) {
+                tprlmpVO = ListaMateriaisUtils.buscaMateriaPrima(apontamentoMP.codProdPa, apontamentoMP.controlePa, apontamentoMP.codProdMp, apontamentoMP.controleMp, apontamentoMP.codvol, atividade.asBigDecimal("IDEFX"), this.jdbc);
+                if (tprlmpVO != null) {
+                    break;
+                }
+            }
+        }
+
+        return tprlmpVO;
+    }
+
+    public void validaMotivoDePerda(DynamicVO apontamentoVO) throws Exception {
+        if (!JapeSession.getPropertyAsBoolean("br.com.sankhya.mgeprod.confirmar.apontamento.producao.conjunta", false) && (Boolean)MGECoreParameter.getParameter("com.prod.obrigatorio.motivo.perda") && BigDecimal.ZERO.compareTo(apontamentoVO.asBigDecimalOrZero("QTDPERDA")) < 0 && BigDecimal.ZERO.compareTo(apontamentoVO.asBigDecimalOrZero("CODMPE")) >= 0 && NativeSql.getBigDecimal("COUNT(*)", "TPRMPEAPA", "NUAPO = ? AND SEQAPA = ?", new Object[]{apontamentoVO.asBigDecimal("NUAPO"), apontamentoVO.asBigDecimal("SEQAPA")}).intValue() == 0) {
+            throw (IllegalStateException)SKError.registry(TSLevel.ERROR, "PROD_E00063", new IllegalStateException("É obrigatório o usuário selecionar um motivo para perda sempre que apontar 'qtd. perda'."));
+        }
+    }
+
+    public JsonArray getListMpAtvJson(BigDecimal idefx, BigDecimal idproc, BigDecimal idiproc, ProdutoControle produtoPA, String lastAtvExec, String tipoApontamentoMateriaPrima, BigDecimal idIcop) throws Exception {
+        JapeWrapper icopDAO = JapeFactory.dao("InstanciaCoProdutos");
+        JsonArray listMpAtvJson = new JsonArray();
+        Collection<OperacoesEstoqueAtividade.MPBean> mps = OperacoesEstoqueAtividade.getMateriasPrimasPAParaApontamento(produtoPA, BigDecimal.ZERO, idproc, idefx, tipoApontamentoMateriaPrima, (Collection)null, this.jdbc);
+
+        for(OperacoesEstoqueAtividade.MPBean mp : OperacoesEstoqueAtividade.vinculaMateriaPrimaAlternativa(mps, produtoPA, (String)null, idiproc, this.jdbc)) {
+            Collection<Object> params = new ArrayList();
+            StringBuffer strWhere = new StringBuffer("this.IDEFX = ? AND this.CODPRODPA = ? AND nullValue(this.CONTROLEPA, ' ') = ? ");
+            params.add(idefx);
+            params.add(produtoPA.getCodProd());
+            params.add(ComercialUtils.trimControleEstoque(produtoPA.getControle()));
+
+            for(DynamicVO mpAtvVO : this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ListaMateriaisAtividade", strWhere.toString(), params.toArray()))) {
+                BigDecimal qtd = BigDecimal.ZERO;
+                JsonObject mpObjectJson = new JsonObject();
+                DynamicVO mpVO = mpAtvVO.asDymamicVO("ProdutoMateriaPrima");
+                int decQtd = mpVO.asBigDecimal("DECQTD") == null ? 2 : mpVO.asInt("DECQTD");
+                DynamicVO icopVO = icopDAO.findOne(" this.IDICOP = ? AND EXISTS (SELECT 1 FROM TPRCOP WHERE this.IDIPROC = ? AND CODPRODMP = ? AND nullValue(CONTROLEMP, ' ') = ?)", new Object[]{idIcop, idiproc, mpAtvVO.asBigDecimal("CODPRODMP"), ComercialUtils.trimControleEstoque(mpAtvVO.asString("CONTROLEMP"))});
+                mpObjectJson.addProperty("CODPRODMP", mpAtvVO.asBigDecimal("CODPRODMP"));
+                mpObjectJson.addProperty("DESCRPROD", mpVO.asString("DESCRPROD"));
+                mpObjectJson.addProperty("CONTROLEMP", ComercialUtils.trimControleEstoque(mpAtvVO.asString("CONTROLEMP")));
+                mpObjectJson.addProperty("REFERENCIA", mpVO.asString("REFERENCIA"));
+                mpObjectJson.addProperty("CODVOL", mpAtvVO.asString("CODVOL"));
+                mpObjectJson.addProperty("LAST_ATV_EXEC", lastAtvExec);
+                mpObjectJson.addProperty("DECQTD", decQtd);
+                mpObjectJson.addProperty("IDEFX", idefx);
+                mpObjectJson.addProperty("TIPCONTEST", mpVO.asString("TIPCONTEST"));
+                mpObjectJson.addProperty("TITCONTEST", mpVO.asString("TITCONTEST"));
+                mpObjectJson.addProperty("LISCONTEST", mpVO.asString("LISCONTEST"));
+                if (icopVO != null) {
+                    qtd = icopVO.asBigDecimal("QTDCONSUMIDA");
+                }
+
+                mpObjectJson.addProperty("QTD", qtd);
+                listMpAtvJson.add(mpObjectJson);
+            }
+        }
+
+        return listMpAtvJson;
+    }
+
+    public BigDecimal buildApontamentoConjunta(BigDecimal idiatv, BigDecimal idiproc, BigDecimal codUsu, ProdutoControle produtoPA, Collection<OperacoesEstoqueAtividade.MPBean> listMpBean, BigDecimal qtdApontadaPA, BigDecimal qtdPerdaPA) throws Exception {
+        DynamicVO cabecalhoApontamentoVO = this.criarCabecalhoApontamento(codUsu, idiatv, (String)null);
+        DynamicVO apontamentoPaVO = this.criarApontamentoPA(cabecalhoApontamentoVO.asBigDecimal("NUAPO"), produtoPA, qtdApontadaPA, qtdPerdaPA, (BigDecimal)null);
+
+        for(OperacoesEstoqueAtividade.MPBean mpBean : listMpBean) {
+            this.criarApontamentoMP(idiproc, cabecalhoApontamentoVO.asBigDecimal("NUAPO"), apontamentoPaVO.asBigDecimal("SEQAPA"), mpBean, true);
+        }
+
+        return cabecalhoApontamentoVO.asBigDecimal("NUAPO");
+    }
+
+    public NativeSql buildQueryTotalPerda(BigDecimal idIproc) {
+        NativeSql queryTotalPerda = new NativeSql(this.jdbc);
+        queryTotalPerda.appendSql(" SELECT SUM(APA_PERDA.QTDPERDA) AS TOTAL_PERDA ");
+        queryTotalPerda.appendSql(" FROM TPRIPA IPA, ");
+        queryTotalPerda.appendSql("    (SELECT SUM(APA.QTDPERDA) AS QTDPERDA ");
+        queryTotalPerda.appendSql("        FROM TPRAPA APA ");
+        queryTotalPerda.appendSql("        INNER JOIN TPRAPO APO ON (APO.NUAPO = APA.NUAPO) ");
+        queryTotalPerda.appendSql("    WHERE EXISTS (SELECT 1  ");
+        queryTotalPerda.appendSql("        FROM TPRIATV IATV  ");
+        queryTotalPerda.appendSql("           WHERE IATV.IDIPROC = :IDIPROC ");
+        queryTotalPerda.appendSql("                AND APO.IDIATV = IATV.IDIATV ");
+        queryTotalPerda.appendSql("            ) ");
+        queryTotalPerda.appendSql("    ) APA_PERDA ");
+        queryTotalPerda.appendSql("WHERE IPA.IDIPROC   = :IDIPROC ");
+        queryTotalPerda.setNamedParameter("IDIPROC", idIproc);
+        queryTotalPerda.setReuseStatements(true);
+        return queryTotalPerda;
+    }
+
+    public Element criarApontamentosAtividadePorProduto(BigDecimal codUsu, BigDecimal idIAtv, BigDecimal codProd, String controle, BigDecimal quantidade, BigDecimal qtdPerda, BigDecimal codmpe) throws Exception {
+        DynamicVO instanciaAtividadeVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("InstanciaAtividade", idIAtv);
+        DynamicVO atividadeVO = instanciaAtividadeVO.asDymamicVO("Atividade");
+        this.validarPrecondicoesCriacaoApontamento(instanciaAtividadeVO);
+        DynamicVO cabecalhoApontamentoVO = null;
+        BigDecimal idIProc = instanciaAtividadeVO.asBigDecimal("IDIPROC");
+        DynamicVO produtoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{codProd});
+        JapeWrapper processoProdutivoDAO = JapeFactory.dao("ProcessoProdutivo");
+        DynamicVO processoProdutivoVO = processoProdutivoDAO.findByPK(new Object[]{atividadeVO.asBigDecimal("IDPROC")});
+        if (processoProdutivoVO != null) {
+            boolean isProcessoProdutivoUsaLoteCuringa = "MN".equals(processoProdutivoVO.asString("TIPONROLOTE")) && StringUtils.isNotEmpty(processoProdutivoVO.asString("LOTECURINGA"));
+            if ("L".equals(produtoVO.asString("TIPCONTEST")) && !isProcessoProdutivoUsaLoteCuringa) {
+                controle = " ";
+            }
+        }
+
+        Collection<DynamicVO> produtosAProduzir = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ProdutoAcabadoAProduzir", " this.IDIPROC = ? AND this.CONCLUIDO = 'N' AND this.CODPRODPA = ? AND nullValue(this.CONTROLEPA, ' ') = ?", new Object[]{idIProc, codProd, controle}));
+        if (codProd != null && produtosAProduzir.isEmpty()) {
+            throw (Exception)SKError.registry(TSLevel.ERROR, "PROD_E00064", new Exception("Produto não consta na lista para ser produzido!"));
+        } else {
+            if (atividadeVO.asBigDecimal("IDRPAOPER") != null && "R".equals(atividadeVO.asString("QTDBASEAPON"))) {
+                produtosAProduzir = this.removerProdutosForaDoRepositorio(produtosAProduzir, atividadeVO.asBigDecimal("IDRPAOPER"));
+            }
+
+            List<ProdutoControle> listaProdutosControlePendentesApontamento = this.buscaApontamentosPendetes(idIProc, instanciaAtividadeVO.asBigDecimal("IDEFX"), (BigDecimal)null, codProd, controle);
+
+            for(DynamicVO produtoProduzirVO : produtosAProduzir) {
+                if ((listaProdutosControlePendentesApontamento.isEmpty() || !listaProdutosControlePendentesApontamento.contains(new ProdutoControle(produtoProduzirVO.asBigDecimal("CODPRODPA"), produtoProduzirVO.asString("CONTROLEPA")))) && !produtoProduzirVO.asBoolean("CONCLUIDO")) {
+                    if (cabecalhoApontamentoVO == null) {
+                        cabecalhoApontamentoVO = this.criarCabecalhoApontamento(codUsu, idIAtv, "");
+                    }
+
+                    BigDecimal codprodPa = produtoProduzirVO.asBigDecimal("CODPRODPA");
+                    String controlePa = produtoProduzirVO.asString("CONTROLEPA");
+                    BigDecimal qtdProduzirPa = null;
+                    boolean permitePerda100Porcento = this.permiteApontamentoComPerdaTotal(cabecalhoApontamentoVO);
+                    if (!(BigDecimalUtil.getValueOrZero(quantidade).doubleValue() > (double)0.0F) && !permitePerda100Porcento) {
+                        qtdProduzirPa = produtoProduzirVO.asBigDecimal("QTDPRODUZIR");
+                    } else {
+                        qtdProduzirPa = quantidade;
+                    }
+
+                    this.criarApontamentoProdutoAcabadoAProduzir(cabecalhoApontamentoVO, new ProdutoControle(codprodPa, controlePa), qtdProduzirPa, qtdPerda, false, true, codmpe);
+                }
+            }
+
+            BigDecimal nuapo = null;
+            if (cabecalhoApontamentoVO != null) {
+                nuapo = cabecalhoApontamentoVO.asBigDecimal("NUAPO");
+            }
+
+            Element retornoCriacaoApontamento = new Element("apontamento");
+            retornoCriacaoApontamento.setAttribute("NUAPO", StringUtils.getNullAsEmpty(nuapo));
+            StringBuffer controles = new StringBuffer();
+
+            for(ProdutoControle produtoControle : listaProdutosControlePendentesApontamento) {
+                if (controles.length() > 0) {
+                    controles.append(", ");
+                }
+
+                controles.append(produtoControle.getCodProd()).append("-").append(produtoControle.getControle());
+            }
+
+            retornoCriacaoApontamento.setAttribute("LISTAPENDENTES", controles.toString());
+            return retornoCriacaoApontamento;
+        }
+    }
+
+    public BigDecimal getNuApoApontamentoPendenteAtividade(BigDecimal idiatv) throws Exception {
+        BigDecimal nuApo = null;
+        JapeWrapper cabecalhoApontamentoDAO = JapeFactory.dao("CabecalhoApontamento");
+        DynamicVO cabecalhoApontamentoVO = cabecalhoApontamentoDAO.findOne("this.IDIATV = ? AND this.SITUACAO = 'P' AND EXISTS (SELECT 1 FROM TPRAPA WHERE NUAPO = this.NUAPO)", new Object[]{idiatv});
+        if (cabecalhoApontamentoVO != null) {
+            nuApo = cabecalhoApontamentoVO.asBigDecimal("NUAPO");
+        }
+
+        return nuApo;
+    }
+
+    public DynamicVO getApontamentoMPPendenteAtividade(BigDecimal idiatv) throws Exception {
+        JapeWrapper cabecalhoApontamentoDAO = JapeFactory.dao("CabecalhoApontamento");
+        DynamicVO cabecalhoApontamentoVO = cabecalhoApontamentoDAO.findOne("this.IDIATV = ? AND this.SITUACAO = 'P' AND EXISTS (SELECT 1 FROM TPRAMP WHERE NUAPO = this.NUAPO)", new Object[]{idiatv});
+        return cabecalhoApontamentoVO;
+    }
+
+    public void atualizaQtdApontamentoTotem(ApontamentoTotem apontamentoTotem, BigDecimal nuApo) throws Exception {
+        JapeWrapper apontamentoPaDAO = JapeFactory.dao("ApontamentoPA");
+        JapeWrapper apontamentoMpDAO = JapeFactory.dao("ApontamentoMateriais");
+        JapeWrapper apontamentoSpDAO = JapeFactory.dao("ApontamentoSubproduto");
+        JapeWrapper apontamentoRecursosWcDAO = JapeFactory.dao("ApontamentoRecursosWorkCenter");
+
+        for(ProdutoAcabadoApontamentoTotem produtoAcabadoApontamentoTotem : apontamentoTotem.getProdutosAcabados()) {
+            ProdutoControle produtoPA = produtoAcabadoApontamentoTotem.getProdutoPA();
+            BigDecimal quantidadePA = produtoAcabadoApontamentoTotem.getQuantidadePA();
+            BigDecimal quantidadePerda = produtoAcabadoApontamentoTotem.getQuantidadePerda();
+            DynamicVO apontamentoPaVO = apontamentoPaDAO.findOne("this.NUAPO = ? AND this.CODPRODPA = ? AND (nullValue(this.CONTROLEPA, ' ' ) = ' ' OR this.CONTROLEPA = ?)", new Object[]{nuApo, produtoPA.getCodProd(), produtoPA.getControle()});
+            FluidUpdateVO apaUpdateVO = apontamentoPaDAO.prepareToUpdate(apontamentoPaVO);
+            apaUpdateVO.set("QTDAPONTADA", quantidadePA);
+            apaUpdateVO.set("QTDPERDA", quantidadePerda);
+            HashMap<String, Pair<String, String>> mapCamposAdicionais = produtoAcabadoApontamentoTotem.getMapCamposAdicionais();
+
+            for(Map.Entry<String, Pair<String, String>> campoAdicional : mapCamposAdicionais.entrySet()) {
+                String nomeCampo = (String)campoAdicional.getKey();
+                String tipoCampo = (String)((Pair)campoAdicional.getValue()).getLeft();
+                String valorCampo = (String)((Pair)campoAdicional.getValue()).getRight();
+                if (valorCampo != null) {
+                    if ("I-F-T".indexOf(tipoCampo) > -1) {
+                        apaUpdateVO.set(nomeCampo, BigDecimalUtil.valueOf(valorCampo));
+                    } else if ("S".equals(tipoCampo)) {
+                        apaUpdateVO.set(nomeCampo, valorCampo);
+                    } else if ("C".equals(tipoCampo)) {
+                        apaUpdateVO.set(nomeCampo, valorCampo);
+                    } else if ("H-D".indexOf(tipoCampo) > -1) {
+                        apaUpdateVO.set(nomeCampo, TimeUtils.buildTimeawareDate(valorCampo));
+                    }
+                }
+            }
+
+            apaUpdateVO.update();
+            BigDecimal seqapa = apontamentoPaVO.asBigDecimal("SEQAPA");
+            HashMap<ProdutoControle, BigDecimal> materiasPrimas = produtoAcabadoApontamentoTotem.getMateriasPrimas();
+
+            for(Map.Entry<ProdutoControle, BigDecimal> materiaPrimaEntry : materiasPrimas.entrySet()) {
+                ProdutoControle produtoMP = (ProdutoControle)materiaPrimaEntry.getKey();
+                BigDecimal quantidadeMP = (BigDecimal)materiaPrimaEntry.getValue();
+                DynamicVO apontamentoMpVO = apontamentoMpDAO.findByPK(new Object[]{nuApo, seqapa, produtoMP.getCodProd(), produtoMP.getControle()});
+                FluidUpdateVO ampUpdateVO = apontamentoMpDAO.prepareToUpdate(apontamentoMpVO);
+                ampUpdateVO.set("QTD", quantidadeMP);
+                ampUpdateVO.update();
+            }
+
+            HashMap<ProdutoControle, BigDecimal> subprodutos = produtoAcabadoApontamentoTotem.getSubprodutos();
+
+            for(Map.Entry<ProdutoControle, BigDecimal> subprodutoEntry : subprodutos.entrySet()) {
+                ProdutoControle produtoSP = (ProdutoControle)subprodutoEntry.getKey();
+                BigDecimal quantidadeSP = (BigDecimal)subprodutoEntry.getValue();
+                DynamicVO apontamentoSpVO = apontamentoSpDAO.findByPK(new Object[]{nuApo, seqapa, produtoSP.getCodProd(), produtoSP.getControle()});
+                FluidUpdateVO aspUpdateVO = apontamentoSpDAO.prepareToUpdate(apontamentoSpVO);
+                aspUpdateVO.set("QTD", quantidadeSP);
+                aspUpdateVO.update();
+            }
+
+            HashMap<RecursoControle, BigDecimal> recursosWC = produtoAcabadoApontamentoTotem.getRecursosWC();
+
+            for(Map.Entry<RecursoControle, BigDecimal> recursoWCEntry : recursosWC.entrySet()) {
+                RecursoControle recursoWC = (RecursoControle)recursoWCEntry.getKey();
+                BigDecimal quantidadeUtilizada = (BigDecimal)recursoWCEntry.getValue();
+                DynamicVO apontamentoRecursosWcVO = apontamentoRecursosWcDAO.findByPK(new Object[]{nuApo, seqapa, recursoWC.getCodwcp(), recursoWC.getCodcre()});
+                FluidUpdateVO recursosWcUpdateVO = apontamentoRecursosWcDAO.prepareToUpdate(apontamentoRecursosWcVO);
+                recursosWcUpdateVO.set("QTDAPONTADA", recursoWC.getQtdApontada());
+                recursosWcUpdateVO.set("QTDUTILIZADA", quantidadeUtilizada);
+                recursosWcUpdateVO.set("QTDRECAPONTAR", quantidadeUtilizada);
+                recursosWcUpdateVO.update();
+            }
+        }
+
+    }
+
+    public Element getElementDetalhesPerdatoPA(BigDecimal nuApo, BigDecimal seqApa) throws Exception {
+        JapeWrapper dao = JapeFactory.dao("MotivosPerdaApontamentoPA");
+        Element detalhesPerdaElement = new Element("detalhesperda");
+
+        for(DynamicVO detVO : dao.find("this.NUAPO = ? AND this.SEQAPA = ?", new Object[]{nuApo, seqApa})) {
+            Element detElement = new Element("det");
+            detElement.setAttribute("CODMPE", detVO.asBigDecimalOrZero("CODMPE").toString());
+            detElement.setAttribute("QTDPERDA", detVO.asBigDecimalOrZero("QTDPERDA").toString());
+            detalhesPerdaElement.addContent(detElement);
+        }
+
+        return detalhesPerdaElement;
+    }
+
+    public Element getElementMPtoPA(BigDecimal nuApo, BigDecimal seqApa) throws Exception {
+        JapeWrapper apontamentoMpDAO = JapeFactory.dao("ApontamentoMateriais");
+        Element materiasPrimasElement = new Element("materiasprimas");
+
+        for(DynamicVO ampVO : apontamentoMpDAO.find("this.NUAPO = ? AND this.SEQAPA = ?", new Object[]{nuApo, seqApa})) {
+            Element mpElement = new Element("mp");
+            BigDecimal codProdMP = ampVO.asBigDecimal("CODPRODMP");
+            String contorleMP = ampVO.asString("CONTROLEMP");
+            String codVol = ampVO.asString("CODVOL");
+            BigDecimal qtdMP = ampVO.asBigDecimal("QTD");
+            DynamicVO produtoMpVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{codProdMP});
+            DynamicVO volumeVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Volume", new Object[]{codVol});
+            String referencia = " ";
+            if (produtoMpVO.asString("REFERENCIA") != null) {
+                referencia = produtoMpVO.asString("REFERENCIA");
+            }
+
+            mpElement.setAttribute("codprodmp", codProdMP.toString());
+            mpElement.setAttribute("descricao", produtoMpVO.asString("DESCRPROD"));
+            mpElement.setAttribute("referencia", referencia);
+            mpElement.setAttribute("controlemp", contorleMP);
+            mpElement.setAttribute("codvol", codVol);
+            mpElement.setAttribute("qtd", qtdMP.toString());
+            mpElement.setAttribute("tipouso", ampVO.asString("TIPOUSO"));
+            mpElement.setAttribute("descrvol", volumeVO.asString("DESCRVOL"));
+            mpElement.setAttribute("fixaQtdApontadaMP", "N");
+            mpElement.setAttribute("DECQTD", StringUtils.isEmpty(produtoMpVO.asBigDecimal("DECQTD")) ? "2" : produtoMpVO.asBigDecimal("DECQTD").toString());
+            mpElement.setAttribute("tipContest", produtoMpVO.asString("TIPCONTEST"));
+            mpElement.setAttribute("vinculoSeriePA", ampVO.asString("VINCULOSERIEPA"));
+            mpElement.setAttribute("seqmp", ampVO.asBigDecimal("SEQMP") != null ? ampVO.asBigDecimal("SEQMP").toString() : "");
+            mpElement.addContent(this.getElementDetalhesPerdatoMP(nuApo, seqApa, codProdMP, contorleMP));
+            mpElement.setAttribute("qtdMotivosPerda", ampVO.asBigDecimal("QTDMPE") != null ? ampVO.asBigDecimal("QTDMPE").toString() : "");
+            mpElement.setAttribute("codMpe", ampVO.asBigDecimal("CODMPE") != null ? ampVO.asBigDecimalOrZero("CODMPE").toString() : "");
+            mpElement.setAttribute("qtdPerda", ampVO.asBigDecimal("QTDPERDA") != null ? ampVO.asBigDecimal("QTDPERDA").toString() : "");
+            materiasPrimasElement.addContent(mpElement);
+        }
+
+        return materiasPrimasElement;
+    }
+
+    public Element getElementSubprodutosToPA(BigDecimal nuApo, BigDecimal seqApa) throws Exception {
+        JapeWrapper apontamentoSpDAO = JapeFactory.dao("ApontamentoSubproduto");
+        Element subProdutosElement = new Element("subprodutos");
+
+        for(DynamicVO spVO : apontamentoSpDAO.find("this.NUAPO = ? AND this.SEQAPA = ?", new Object[]{nuApo, seqApa})) {
+            Element subProdutoElement = new Element("sp");
+            BigDecimal codProdSP = spVO.asBigDecimal("CODPRODSP");
+            String contorleSP = spVO.asString("CONTROLESP");
+            String codVol = spVO.asString("CODVOL");
+            BigDecimal qtdSP = spVO.asBigDecimal("QTD");
+            DynamicVO produtoVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Produto", new Object[]{codProdSP});
+            DynamicVO volumeVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("Volume", new Object[]{codVol});
+            subProdutoElement.setAttribute("codprod", codProdSP.toString());
+            subProdutoElement.setAttribute("descricao", produtoVO.asString("DESCRPROD"));
+            subProdutoElement.setAttribute("controle", ComercialUtils.trimControleEstoque(contorleSP));
+            subProdutoElement.setAttribute("codvol", codVol);
+            subProdutoElement.setAttribute("referencia", StringUtils.getNullAsEmpty(produtoVO.asString("REFERENCIA")));
+            subProdutoElement.setAttribute("qtd", qtdSP.toString());
+            subProdutoElement.setAttribute("qtdmistura", qtdSP.toString());
+            subProdutoElement.setAttribute("descrvol", volumeVO.asString("DESCRVOL"));
+            subProdutoElement.setAttribute("DECQTD", StringUtils.isEmpty(produtoVO.asBigDecimal("DECQTD")) ? "2" : produtoVO.asBigDecimal("DECQTD").toString());
+            subProdutoElement.setAttribute("BALANCA", produtoVO.asString("BALANCA"));
+            subProdutosElement.addContent(subProdutoElement);
+        }
+
+        return subProdutosElement;
+    }
+
+    public Element getElementRecursosToPA(BigDecimal nuApo, BigDecimal seqApa) throws Exception {
+        JapeWrapper apontamentoRecursosWcDAO = JapeFactory.dao("ApontamentoRecursosWorkCenter");
+        Element recursosElement = new Element("recursos");
+
+        for(DynamicVO recursosVO : apontamentoRecursosWcDAO.find("this.NUAPO = ? AND this.SEQAPA = ?", new Object[]{nuApo, seqApa})) {
+            DynamicVO categoriaVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("CategoriaRecurso", new Object[]{recursosVO.asBigDecimal("CODCRE")});
+            DynamicVO workCenterVO = (DynamicVO)this.dwfEntityFacade.findEntityByPrimaryKeyAsVO("WorkCenter", new Object[]{recursosVO.asBigDecimal("CODWCP")});
+            Element recursoElement = new Element("recurso");
+            recursoElement.setAttribute("codCre", recursosVO.asBigDecimal("CODCRE") != null ? recursosVO.asBigDecimal("CODCRE").toString() : "");
+            recursoElement.setAttribute("qtdUtilizacao", recursosVO.asBigDecimal("QTDUTILIZADA") != null ? recursosVO.asBigDecimal("QTDUTILIZADA").toString() : "");
+            recursoElement.setAttribute("codWcp", recursosVO.asBigDecimal("CODWCP") != null ? recursosVO.asBigDecimal("CODWCP").toString() : "");
+            recursoElement.setAttribute("unidade", recursosVO.asBigDecimal("CODVOL") != null ? recursosVO.asBigDecimal("CODVOL").toString() : "");
+            recursoElement.setAttribute("nomeCre", categoriaVO.asString("NOME") != null ? categoriaVO.asString("NOME") : "");
+            recursoElement.setAttribute("nomeWcp", workCenterVO.asString("NOME") != null ? workCenterVO.asString("NOME") : "");
+            recursoElement.setAttribute("descrvol", categoriaVO.asDymamicVO("Volume") != null ? categoriaVO.asDymamicVO("Volume").asString("DESCRVOL") : "");
+            recursosElement.addContent(recursoElement);
+        }
+
+        return recursosElement;
+    }
+
+    public void removeApontamentosAtividadeProdutoTotem(BigDecimal idiatv, ProdutoControle produtoControlePA) throws Exception {
+        NativeSql sql = new NativeSql(this.jdbc);
+        sql.appendSql("SELECT APO.NUAPO, ");
+        sql.appendSql("\t\t  APA.SEQAPA ");
+        sql.appendSql("FROM TPRIATV IATV INNER JOIN TPRAPO APO ON (APO.IDIATV = IATV.IDIATV) ");
+        sql.appendSql("\t\t\t\t\t INNER JOIN TPRAPA APA ON (APA.NUAPO = APO.NUAPO) ");
+        sql.appendSql(" WHERE APO.SITUACAO = 'P' ");
+        sql.appendSql(" \tAND IATV.IDIATV = :IDIATV ");
+        sql.appendSql(" \tAND APA.CODPRODPA = :CODPRODPA ");
+        sql.appendSql(" \tAND (nullValue(APA.CONTROLEPA, ' ') = ' ' OR APA.CONTROLEPA = :CONTROLEPA) ");
+        sql.setNamedParameter("IDIATV", idiatv);
+        sql.setNamedParameter("CODPRODPA", produtoControlePA.getCodProd());
+        sql.setNamedParameter("CONTROLEPA", produtoControlePA.getControle());
+        ResultSet result = sql.executeQuery();
+        if (result.next()) {
+            BigDecimal nuApo = result.getBigDecimal("NUAPO");
+            this.dwfEntityFacade.removeEntity("ApontamentoPA", new Object[]{nuApo, result.getString("SEQAPA")});
+            Collection<DynamicVO> apontamentoPAsVO = this.dwfEntityFacade.findByDynamicFinderAsVO(new FinderWrapper("ApontamentoPA", "this.NUAPO = ?", new Object[]{nuApo}));
+            if (apontamentoPAsVO.isEmpty()) {
+                this.dwfEntityFacade.removeEntity("CabecalhoApontamento", new Object[]{nuApo});
+            }
+        }
+
+        result.close();
+    }
+
+    public Element getElementDetalhesPerdatoMP(BigDecimal nuApo, BigDecimal seqApo, BigDecimal codProdMP, String controleMP) throws Exception {
+        JapeWrapper dao = JapeFactory.dao("MotivosPerdaApontamentoMP");
+        Element detalhesPerdaElement = new Element("detalhesperda");
+
+        for(DynamicVO detVO : dao.find("this.NUAPO = ? AND this.SEQAPA = ? AND CODPRODMP = ? AND CONTROLEMP = ?", new Object[]{nuApo, seqApo, codProdMP, controleMP})) {
+            Element detElement = new Element("det");
+            detElement.setAttribute("CODMPE", detVO.asBigDecimalOrZero("CODMPE").toString());
+            detElement.setAttribute("QTDPERDA", detVO.asBigDecimalOrZero("QTDPERDA").toString());
+            detalhesPerdaElement.addContent(detElement);
+        }
+
+        return detalhesPerdaElement;
+    }
+
+    private BigDecimal getApontamentoPendenteAtividade(BigDecimal idiatv) throws Exception {
+        BigDecimal nuApo = null;
+        JapeWrapper cabecalhoApontamentoDAO = JapeFactory.dao("CabecalhoApontamento");
+        DynamicVO cabecalhoApontamentoVO = cabecalhoApontamentoDAO.findOne("this.IDIATV = ? AND this.SITUACAO = 'P' AND EXISTS (SELECT 1 FROM TPRAMP WHERE NUAPO = this.NUAPO)", new Object[]{idiatv});
+        if (cabecalhoApontamentoVO != null) {
+            nuApo = cabecalhoApontamentoVO.asBigDecimal("NUAPO");
+        }
+
+        return nuApo;
+    }
+
+    public void proporcionarQtdMisturaMateriaPrimaTipoQtdFixa(OperacoesEstoqueAtividade.MPBean materiasPrima, NecessidadeApontamentoPA necessidadeApontamentoPA) throws Exception {
+        if (materiasPrima != null && necessidadeApontamentoPA != null) {
+            BigDecimal qtdAProduzirPA = BigDecimalUtil.getValueOrZero(necessidadeApontamentoPA.qtdAProduzirPA);
+            BigDecimal qtdApontadaPA = BigDecimalUtil.getValueOrZero(necessidadeApontamentoPA.qtdApontadaPA);
+            BigDecimal qtdMisturaMP = BigDecimalUtil.getValueOrZero(materiasPrima.qtdmistura);
+            int decQtd = ProducaoUtils.getDecQtdProduto(materiasPrima.produto.getCodProd());
+            if (qtdAProduzirPA.doubleValue() > (double)0.0F) {
+                BigDecimal novaQtdMistura = BigDecimalUtil.getValueOrZero(qtdApontadaPA.multiply(qtdMisturaMP).divide(qtdAProduzirPA, BigDecimalUtil.MATH_CTX));
+                novaQtdMistura = BigDecimalUtil.getRounded(novaQtdMistura, decQtd);
+                BigDecimal qtdRestanteParaApontarMP = this.getQtdRestanteParaApontarMP(materiasPrima.produto, necessidadeApontamentoPA.idIproc, necessidadeApontamentoPA.idEfx, qtdMisturaMP);
+                if (novaQtdMistura.doubleValue() != qtdMisturaMP.doubleValue()) {
+                    boolean isQtdNovaMisturaMaiorIgualQtdRestanteParaApontarMP = BigDecimalUtil.getRounded(novaQtdMistura, decQtd).doubleValue() >= BigDecimalUtil.getRounded(qtdRestanteParaApontarMP, decQtd).doubleValue();
+                    if (isQtdNovaMisturaMaiorIgualQtdRestanteParaApontarMP) {
+                        novaQtdMistura = qtdRestanteParaApontarMP;
+                    }
+                } else {
+                    novaQtdMistura = qtdRestanteParaApontarMP;
+                }
+
+                materiasPrima.qtdmistura = novaQtdMistura;
+            }
+
+        }
+    }
+
+    public BigDecimal getQtdAProduzirProdutoAcabadoPorOP(BigDecimal idIproc, ProdutoControle produtoControlePA) throws Exception {
+        BigDecimal qtdProduzirPA = BigDecimal.ZERO;
+        JapeWrapper produtoAcabadoAProduzirDAO = JapeFactory.dao("ProdutoAcabadoAProduzir");
+        DynamicVO produtoAcabadoAProduzirVO = produtoAcabadoAProduzirDAO.findByPK(new Object[]{idIproc, produtoControlePA.getCodProd(), produtoControlePA.getControle()});
+        if (produtoAcabadoAProduzirVO != null) {
+            qtdProduzirPA = BigDecimalUtil.getValueOrZero(produtoAcabadoAProduzirVO.asBigDecimal("QTDPRODUZIR"));
+        }
+
+        return qtdProduzirPA;
+    }
+
+    private BigDecimal getQtdRestanteParaApontarMP(ProdutoControle produtoControleMP, BigDecimal idIproc, BigDecimal idEfx, BigDecimal qtdMistura) throws Exception {
+        BigDecimal qtdJaApontadaDaMP = this.getQtdJaApontadaDaMateriaPrima(produtoControleMP, idIproc, idEfx);
+        BigDecimal qtdRestanteParaApontarMP = qtdMistura.subtract(qtdJaApontadaDaMP);
+        return qtdRestanteParaApontarMP.doubleValue() < (double)0.0F ? BigDecimal.ZERO : ProducaoUtils.getValorArredondadoPorDecQtd(produtoControleMP.getCodProd(), qtdRestanteParaApontarMP);
+    }
+
+    private BigDecimal getQtdJaApontadaDaMateriaPrima(ProdutoControle produtoControleMP, BigDecimal idIproc, BigDecimal idEfx) throws Exception {
+        NativeSql sql = new NativeSql(this.jdbc);
+        ResultSet rset = null;
+        BigDecimal qtdApontada = BigDecimal.ZERO;
+
+        try {
+            sql = new NativeSql(this.jdbc, this.getClass(), "ApontamentoHelper_queBuscaQtdJaApontadaDaMateriaPrima.sql");
+            sql.setNamedParameter("IDIPROC", idIproc);
+            sql.setNamedParameter("IDEFX", idEfx);
+            sql.setNamedParameter("CODPRODMP", produtoControleMP.getCodProd());
+            sql.setNamedParameter("CONTROLEMP", produtoControleMP.getControle());
+            rset = sql.executeQuery();
+            if (rset.next()) {
+                qtdApontada = rset.getBigDecimal("QTD_APONTADA");
+            }
+
+            rset.close();
+        } finally {
+            JdbcUtils.closeResultSet(rset);
+            NativeSql.releaseResources(sql);
+        }
+
+        return qtdApontada;
+    }
+
+    private Pair<Boolean, BigDecimal> getIsTipoQtdFixaEQtdMisturaMP(ProdutoControle produtoControleMP, BigDecimal idEfx) throws Exception {
+        NativeSql sql = new NativeSql(this.jdbc);
+        ResultSet rset = null;
+        String tipoQtd = null;
+        BigDecimal qtdMistura = BigDecimal.ZERO;
+
+        try {
+            sql.appendSql(" SELECT LMP.TIPOQTD, ");
+            sql.appendSql(" \t   LMP.QTDMISTURA ");
+            sql.appendSql("\tFROM TPRLMP LMP ");
+            sql.appendSql("\tWHERE LMP.IDEFX = :IDEFX ");
+            sql.appendSql("\t\tAND LMP.CODPRODMP = :CODPRODMP ");
+            sql.appendSql("\t\tAND nullValue(LMP.CONTROLEMP, ' ') = nullValue(:CONTROLEMP, ' ') ");
+            sql.setNamedParameter("IDEFX", idEfx);
+            sql.setNamedParameter("CODPRODMP", produtoControleMP.getCodProd());
+            sql.setNamedParameter("CONTROLEMP", produtoControleMP.getControle());
+            rset = sql.executeQuery();
+            if (rset.next()) {
+                tipoQtd = rset.getString("TIPOQTD");
+                qtdMistura = rset.getBigDecimal("QTDMISTURA");
+            }
+        } finally {
+            JdbcUtils.closeResultSet(rset);
+            NativeSql.releaseResources(sql);
+        }
+
+        return new Pair("F".equals(tipoQtd), qtdMistura);
+    }
+
+    private void confirmarProporcaoQtdMisturaTipoQtdFixa(DynamicVO apontamentoMateriaisVO, BigDecimal idIproc, BigDecimal idEfx, BigDecimal qtdMistura) throws Exception {
+        boolean isUltimoApontamentoQueGeraNotaProducao = JapeSession.getPropertyAsBoolean("br.com.sankhya.mgeprod.is.ultimo.apontamento", false);
+        boolean isGeraNotaProducao = JapeSession.getPropertyAsBoolean("br.com.sankhya.mgeprod.gera.nota.producao", false);
+        boolean isMostradoPopUpUltimoApontamentoMpFixa = JapeSession.getPropertyAsBoolean("br.com.sankhya.mgeprod.popup.apresentado.ult.apontamento.mp.fixa", false);
+        boolean isConfirmadoUltimoApontamentoMpFixa = JapeSession.getPropertyAsBoolean("br.com.sankhya.mgeprod.confirmado.ult.apontamento.mp.fixa", false);
+        ProdutoControle produtoControleMP = new ProdutoControle(apontamentoMateriaisVO.asBigDecimal("CODPRODMP"), apontamentoMateriaisVO.asString("CONTROLEMP"));
+        BigDecimal qtdRestanteParaApontarMP = this.getQtdRestanteParaApontarMP(produtoControleMP, idIproc, idEfx, qtdMistura);
+        BigDecimal qtdApontadaMP = BigDecimalUtil.getValueOrZero(apontamentoMateriaisVO.asBigDecimal("QTD"));
+        boolean isExisteRestoParaApontarMP = qtdRestanteParaApontarMP.doubleValue() > (double)0.0F && qtdApontadaMP.doubleValue() != qtdRestanteParaApontarMP.doubleValue();
+        if (isExisteRestoParaApontarMP) {
+            if (!isUltimoApontamentoQueGeraNotaProducao && !isConfirmadoUltimoApontamentoMpFixa) {
+                if (!isGeraNotaProducao && !isMostradoPopUpUltimoApontamentoMpFixa) {
+                    ServiceContext.getCurrent().addClientEvent("br.com.sankhya.mgeprod.confirma.ultimo.apontamento.mp.fixo", (Element)null);
+                    throw (ServiceCanceledException)SKError.registry(TSLevel.ERROR, "PROD_E00515", new ServiceCanceledException());
+                }
+            } else {
+                JapeWrapper apontamentoMateriaisDAO = JapeFactory.dao("ApontamentoMateriais");
+                BigDecimal novaQtdMistura = qtdMistura;
+                if (qtdRestanteParaApontarMP.doubleValue() != qtdMistura.doubleValue()) {
+                    novaQtdMistura = qtdRestanteParaApontarMP;
+                }
+
+                FluidUpdateVO updateApontamentoMpVO = apontamentoMateriaisDAO.prepareToUpdate(apontamentoMateriaisVO);
+                updateApontamentoMpVO.set("QTD", novaQtdMistura);
+                updateApontamentoMpVO.update();
+            }
+        }
+
+    }
+}
