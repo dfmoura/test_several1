@@ -182,6 +182,12 @@
       border-bottom: 1px solid var(--cinza-tabela);
       transition: background 0.15s;
     }
+    .tabela tr:nth-child(even) {
+      background: rgba(246, 254, 249, 0.8);
+    }
+    .tabela tr:nth-child(odd) {
+      background: var(--branco);
+    }
     .tabela tr:last-child { border-bottom: none; }
     .tabela td {
       color: var(--cinza-texto);
@@ -189,6 +195,13 @@
     .tabela tr[data-clicavel="true"]:hover {
       background: var(--verde-claro);
       cursor: pointer;
+    }
+    /* Linhas de materiais com cores alternadas */
+    .tabela tr.materiais-linha:nth-child(even) {
+      background: rgba(187, 247, 208, 0.25);
+    }
+    .tabela tr.materiais-linha:nth-child(odd) {
+      background: rgba(187, 247, 208, 0.08);
     }
     .sem-registros {
       text-align: center;
@@ -648,6 +661,7 @@
         // Linha de materiais (oculta por padrão)
         if (!ap.oculto) {
           const trMat = document.createElement('tr');
+          trMat.className = 'materiais-linha';
           trMat.innerHTML = `<td colspan='9'>${renderMateriais(ap, idx)}</td>`;
           tbody.appendChild(trMat);
         }
