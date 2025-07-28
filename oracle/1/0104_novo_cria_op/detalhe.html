@@ -446,7 +446,8 @@
       <table class="tabela" id="tabelaApont">
         <thead>
           <tr>
-            <th>Ações</th>
+            <th>Editar</th>
+            <th>Confirmar</th>
             <th></th>
             <th>Nota</th>
             <th>Usuário</th>
@@ -641,6 +642,10 @@
           <td>
             ${ap.situacao === 'Pendente' ? `
               <button class="acao-btn editar-btn" onclick='editarApont(${idx})' title="Editar">✏️</button>
+            ` : ''}
+          </td>
+          <td>
+            ${ap.situacao === 'Pendente' ? `
               <button class="acao-btn confirmar-btn" onclick='confirmarApont(${idx})' title="Confirmar">✔️</button>
             ` : ''}
           </td>
@@ -662,15 +667,15 @@
         if (!ap.oculto) {
           const trMat = document.createElement('tr');
           trMat.className = 'materiais-linha';
-          trMat.innerHTML = `<td colspan='9'>${renderMateriais(ap, idx)}</td>`;
+          trMat.innerHTML = `<td colspan='10'>${renderMateriais(ap, idx)}</td>`;
           tbody.appendChild(trMat);
         }
       });
     }
     function renderMateriais(ap, idxAp) {
-      let html = `<div class='materiais-lista'><table class='materiais-tabela' style='width:100%'><thead><tr><th>Cód.</th><th>Material</th><th>Lote</th><th>Qtd.</th><th>Estoque</th><th>UN</th><th>Ações</th></tr></thead><tbody>`;
+      let html = `<div class='materiais-lista'><table class='materiais-tabela' style='width:100%'><thead><tr><th>Editar</th><th>Cód.</th><th>Material</th><th>Lote</th><th>Qtd.</th><th>Estoque</th><th>UN</th><th>Excluir</th></tr></thead><tbody>`;
       ap.materiais.forEach((mat, idxMat) => {
-        html += `<tr><td>${mat.codMaterial}</td><td>${mat.material}</td><td>${mat.lote}</td><td>${mat.qtdApontada}</td><td>${mat.estoque}</td><td>${mat.un}</td><td>${ap.situacao === 'Pendente' ? `<button class="acao-btn editar-btn" onclick='editarMaterial(${idxAp},${idxMat})' title="Editar">✏️</button> <button class="acao-btn excluir-btn" onclick='excluirMaterial(${idxAp},${idxMat})' title="Excluir">🗑️</button>` : ''}</td></tr>`;
+        html += `<tr><td>${ap.situacao === 'Pendente' ? `<button class="acao-btn editar-btn" onclick='editarMaterial(${idxAp},${idxMat})' title="Editar">✏️</button>` : ''}</td><td>${mat.codMaterial}</td><td>${mat.material}</td><td>${mat.lote}</td><td>${mat.qtdApontada}</td><td>${mat.estoque}</td><td>${mat.un}</td><td>${ap.situacao === 'Pendente' ? `<button class="acao-btn excluir-btn" onclick='excluirMaterial(${idxAp},${idxMat})' title="Excluir">🗑️</button>` : ''}</td></tr>`;
       });
       html += `</tbody></table></div>`;
       return html;
