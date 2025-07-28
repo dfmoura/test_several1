@@ -1,5 +1,29 @@
--- Query final que utiliza todas as views modulares
--- Esta query aplica os filtros com parâmetros e retorna o resultado final
+-- Exemplo de uso da query final com parâmetros
+-- Este arquivo mostra como usar a query final com diferentes parâmetros
+
+-- Exemplo 1: Consulta para uma empresa específica
+-- :P_EMPRESA = 1
+-- :P_CODTAB = NULL (todas as tabelas)
+-- :P_CODPROD = NULL (todos os produtos)
+-- :P_MARCA = 'MARCA1,MARCA2' (marcas específicas)
+
+-- Exemplo 2: Consulta para um produto específico
+-- :P_EMPRESA = 1
+-- :P_CODTAB = 1
+-- :P_CODPROD = 12345
+-- :P_MARCA = NULL (todas as marcas)
+
+-- Exemplo 3: Consulta para uma tabela específica
+-- :P_EMPRESA = 1
+-- :P_CODTAB = 2
+-- :P_CODPROD = NULL
+-- :P_MARCA = 'MARCA1'
+
+-- Para executar a query final, use:
+-- @final_query.sql
+
+-- Ou execute diretamente:
+/*
 SELECT 
   NVL(NUTAB,0) NUTAB,
   CODTAB,
@@ -103,4 +127,5 @@ FROM (
     MARCA,
     TICKET_MEDIO_OBJETIVO_MARCA
 )
-ORDER BY 2, 6, 4 DESC; 
+ORDER BY 2, 6, 4 DESC;
+*/ 

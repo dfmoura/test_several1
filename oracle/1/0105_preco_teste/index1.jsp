@@ -29,7 +29,19 @@
             <th class="py-2 px-2 text-center">CODPROD</th>
             <th class="py-2 px-2 text-center">DESCRPROD</th>
             <th class="py-2 px-2 text-center">MARCA</th>
-
+            <th class="py-2 px-2 text-center">AD_QTDVOLLT</th>
+            <th class="py-2 px-2 text-center">POND_MARCA</th>
+            <th class="py-2 px-2 text-center">CUSTO_SATIS</th>
+            <th class="py-2 px-2 text-center">PRECO_TAB</th>
+            <th class="py-2 px-2 text-center">MARGEM</th>
+            <th class="py-2 px-2 text-center">PRECO_TAB_MENOS15</th>
+            <th class="py-2 px-2 text-center">MARGEM_MENOS15</th>
+            <th class="py-2 px-2 text-center">PRECO_TAB_MENOS65</th>
+            <th class="py-2 px-2 text-center">MARGEM_MENOS65</th>
+            <th class="py-2 px-2 text-center">TICKET_MEDIO_OBJETIVO</th>
+            <th class="py-2 px-2 text-center">TICKET_MEDIO_ULT_12_M</th>
+            <th class="py-2 px-2 text-center">TICKET_MEDIO_SAFRA</th>
+            <th class="py-2 px-2 text-center">CUSTO_SATIS_ATU</th>
           </tr>
         </thead>
         <tbody id="tbodyResumoMaterial">
@@ -49,26 +61,29 @@
 
     function listarResumoMaterial() {
       const sql = `
-      SELECT 
-      NVL(NUTAB,0)NUTAB,
-      CODTAB,
-      SUBSTR(NOMETAB, 1, 3) NOMETAB,
-      CODPROD,
-      DESCRPROD,
-      MARCA,
-      AD_QTDVOLLT,
-      POND_MARCA,
-      CUSTO_SATIS,
-      PRECO_TAB,
-      MARGEM,
-      PRECO_TAB_MENOS15,
-      MARGEM_MENOS15,
-      PRECO_TAB_MENOS65,
-      MARGEM_MENOS65,
-      TICKET_MEDIO_OBJETIVO,
-      TICKET_MEDIO_ULT_12_M,
-      TICKET_MEDIO_SAFRA,
-      CUSTO_SATIS_ATU 
+      
+      
+      
+  SELECT 
+      NVL(NUTAB,0) AS NUTAB,
+      NVL(CODTAB,0)CODTAB,
+      NVL(SUBSTR(NOMETAB, 1, 3),'0')  AS NOMETAB,
+      NVL(CODPROD,0) AS CODPROD,
+      NVL(DESCRPROD,0) AS DESCRPROD,
+      NVL(MARCA,0) AS MARCA,
+      NVL(AD_QTDVOLLT,0) AS AD_QTDVOLLT,
+      NVL(POND_MARCA,0) AS POND_MARCA,
+      NVL(CUSTO_SATIS,0) AS CUSTO_SATIS,
+      NVL(PRECO_TAB,0) AS PRECO_TAB,
+      NVL(MARGEM,0) AS MARGEM,
+      NVL(PRECO_TAB_MENOS15,0) AS PRECO_TAB_MENOS15,
+      NVL(MARGEM_MENOS15,0) AS MARGEM_MENOS15,
+      NVL(PRECO_TAB_MENOS65,0) AS PRECO_TAB_MENOS65,
+      NVL(MARGEM_MENOS65,0) AS MARGEM_MENOS65,
+      NVL(TICKET_MEDIO_OBJETIVO,0) AS TICKET_MEDIO_OBJETIVO,
+      NVL(TICKET_MEDIO_ULT_12_M,0) AS TICKET_MEDIO_ULT_12_M,
+      NVL(TICKET_MEDIO_SAFRA,0) AS TICKET_MEDIO_SAFRA,
+      NVL(CUSTO_SATIS_ATU,0) AS CUSTO_SATIS_ATU 
     FROM (
 
     WITH CUS AS (
@@ -328,7 +343,7 @@
     MARCA,
     TICKET_MEDIO_OBJETIVO_MARCA
     )
-    ORDER BY 2,6,4 DESC     
+    ORDER BY 2,6,4 DESC  
       `;
       // Substitua o conteúdo de ... pelo WITH e UNION ALL do query.sql, se necessário
       JX.consultar(sql).then(res => {
@@ -344,6 +359,19 @@
             <td class='py-2 px-2 text-center'>${row.CODPROD ?? ''}</td>
             <td class='py-2 px-2 text-center'>${row.DESCRPROD ?? ''}</td>
             <td class='py-2 px-2 text-center'>${row.MARCA ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.AD_QTDVOLLT ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.POND_MARCA ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.CUSTO_SATIS ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.PRECO_TAB ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.MARGEM ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.PRECO_TAB_MENOS15 ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.MARGEM_MENOS15 ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.PRECO_TAB_MENOS65 ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.MARGEM_MENOS65 ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.TICKET_MEDIO_OBJETIVO ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.TICKET_MEDIO_ULT_12_M ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.TICKET_MEDIO_SAFRA ?? ''}</td>
+            <td class='py-2 px-2 text-center'>${row.CUSTO_SATIS_ATU ?? ''}</td>
           `;
           tbody.appendChild(tr);
         });
