@@ -1,0 +1,1674 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resumo Material</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+  <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js"></script> 
+  <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js"></script>
+  <!-- Add Flatpickr CSS and JS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+  <style>
+    html, body {
+      overflow-x: visible;
+    }
+    .filter-container {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin: 0 0 20px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      overflow: visible;
+    }
+
+    .filter-header {
+      padding: 12px 20px;
+      background: #ffffff;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+      transition: background-color 0.2s ease;
+    }
+
+    .filter-header:hover {
+      background: #f8f9fa;
+    }
+
+    .filter-content {
+      padding: 0 20px;
+      max-height: 0;
+      overflow: visible;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    .filter-content.expanded {
+      padding: 20px;
+      max-height: 500px;
+      opacity: 1;
+      transform: translateY(0);
+      overflow: visible;
+    }
+
+    .toggle-icon {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      color: #666;
+      font-size: 12px;
+    }
+
+    .toggle-icon.expanded {
+      transform: rotate(180deg);
+    }
+
+    .filter-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      align-items: end;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-group label {
+      font-size: 13px;
+      color: #444;
+      font-weight: 500;
+    }
+
+    input[type="text"] {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #23a059;
+      box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #23a059;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      height: 40px;
+      min-width: 120px;
+    }
+
+    button:hover {
+      background: #0e4928;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .flatpickr-input {
+      background-color: white;
+      cursor: pointer;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      width: 100%;
+    }
+    
+    .flatpickr-input:focus {
+      outline: none;
+      border-color: #23a059;
+      box-shadow: 0 0 0 3px rgba(35, 160, 89, 0.1);
+    }
+
+    select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      width: 100%;
+      background-color: white;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #23a059;
+      box-shadow: 0 0 0 3px rgba(35, 160, 89, 0.1);
+    }
+
+    /* Filtro Múltiplo por Marca */
+    .filter-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+
+    .filter-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow: hidden;
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+    }
+
+    .filter-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8f9fa;
+    }
+
+    .filter-modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin: 0;
+    }
+
+    .filter-modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #666;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+
+    .filter-modal-close:hover {
+      background: #e9ecef;
+      color: #333;
+    }
+
+    .filter-modal-content {
+      padding: 24px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .filter-search {
+      margin-bottom: 20px;
+    }
+
+    .filter-search input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .filter-search input:focus {
+      outline: none;
+      border-color: #23a059;
+      box-shadow: 0 0 0 3px rgba(35, 160, 89, 0.1);
+    }
+
+    .filter-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .filter-option {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: white;
+    }
+
+    .filter-option:hover {
+      border-color: #23a059;
+      background: #f8fff9;
+    }
+
+    .filter-option.selected {
+      background: #23a059;
+      border-color: #23a059;
+      color: white;
+    }
+
+    .filter-option input[type="checkbox"] {
+      margin-right: 8px;
+      accent-color: #23a059;
+    }
+
+    .filter-option label {
+      cursor: pointer;
+      font-size: 14px;
+      margin: 0;
+      flex: 1;
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+
+    .filter-actions button {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .filter-actions .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .filter-actions .btn-secondary:hover {
+      background: #5a6268;
+    }
+
+    .filter-actions .btn-primary {
+      background: #23a059;
+      color: white;
+    }
+
+    .filter-actions .btn-primary:hover {
+      background: #0e4928;
+    }
+
+    .filter-badge {
+      display: inline-flex;
+      align-items: center;
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin: 2px;
+      border: 1px solid #bbdefb;
+    }
+
+    .filter-badge .remove {
+      margin-left: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      opacity: 0.7;
+    }
+
+    .filter-badge .remove:hover {
+      opacity: 1;
+    }
+
+    .filter-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+      color: #495057;
+    }
+
+    .filter-trigger:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
+    }
+
+    .filter-trigger i {
+      font-size: 12px;
+    }
+
+    .filter-summary {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .no-filters {
+      color: #6c757d;
+      font-style: italic;
+      font-size: 14px;
+    }
+
+    /* Custom Select Styles */
+    .custom-select-container {
+      position: relative;
+      width: 100%;
+      overflow: visible;
+    }
+
+    .custom-select-trigger {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 38px;
+    }
+
+    .custom-select-trigger:hover {
+      border-color: #23a059;
+    }
+
+    .custom-select-trigger.active {
+      border-color: #23a059;
+      box-shadow: 0 0 0 3px rgba(35, 160, 89, 0.1);
+    }
+
+    .custom-select-trigger i {
+      transition: transform 0.2s ease;
+      color: #666;
+      font-size: 12px;
+    }
+
+    .custom-select-trigger.active i {
+      transform: rotate(180deg);
+    }
+
+    .custom-select-dropdown {
+      position: fixed;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 9999;
+      max-height: 300px;
+      overflow: visible;
+      display: none;
+      margin-top: 2px;
+      min-width: 300px;
+    }
+
+    .custom-select-search {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .custom-select-search input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .custom-select-search input:focus {
+      border-color: #23a059;
+      box-shadow: 0 0 0 2px rgba(35, 160, 89, 0.1);
+    }
+
+    .custom-select-options {
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 0;
+    }
+
+    .custom-select-option {
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      border-bottom: 1px solid #f5f5f5;
+    }
+
+    .custom-select-option:hover {
+      background-color: #f8f9fa;
+    }
+
+    .custom-select-option.selected {
+      background-color: #23a059;
+      color: white;
+    }
+
+    .custom-select-option:last-child {
+      border-bottom: none;
+    }
+
+    .custom-select-option .parceiro-code {
+      font-weight: 600;
+      color: #666;
+    }
+
+    .custom-select-option.selected .parceiro-code {
+      color: #fff;
+    }
+
+    .custom-select-option .parceiro-name {
+      margin-left: 8px;
+      color: #333;
+    }
+
+    .custom-select-option.selected .parceiro-name {
+      color: #fff;
+    }
+
+    .custom-select-no-results {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+      font-style: italic;
+    }
+
+    .custom-select-loading {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+    }
+
+    .custom-select-loading i {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .custom-select-stats {
+      background: #f8f9fa;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .custom-select-stats small {
+      font-size: 11px;
+      color: #6c757d;
+    }
+
+    .custom-select-group-header {
+      font-weight: 600;
+      font-size: 12px;
+    }
+  </style>
+  <snk:load/>
+</head>
+<body>
+  <div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-6 text-center">Resumo Material</h1>
+    
+    <!-- Filtros -->
+    <div class="filter-container">
+      <div class="filter-header" onclick="toggleFilters()">
+        <h3 style="margin: 0;">Filtros de Pesquisa</h3>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="filter-content" id="filterContent">
+        <div class="filter-form">
+          <div class="input-group">
+            <label for="empresaSelect">Empresa: *</label>
+            <select id="empresaSelect" name="empresaSelect" required>
+              <option value="">Carregando...</option>
+            </select>
+          </div>
+          
+          <div class="input-group">
+            <label for="periodoInput">Período de Referência: *</label>
+            <input type="text" id="periodoInput" name="periodoInput" placeholder="DD/MM/YYYY (obrigatório)" maxlength="10" required>
+          </div>
+          
+          <div class="input-group">
+            <label for="parceiroSelect">Parceiro:</label>
+            <div class="custom-select-container">
+              <div class="custom-select-trigger" onclick="toggleParceiroDropdown()">
+                <span id="parceiroDisplay">Selecione um parceiro</span>
+                <i class="fas fa-chevron-down"></i>
+              </div>
+              <input type="hidden" id="parceiroSelect" name="parceiroSelect" value="">
+            </div>
+          </div>
+          
+          <!-- Dropdown movido para fora do container para evitar overflow -->
+          <div class="custom-select-dropdown" id="parceiroDropdown">
+            <div class="custom-select-search">
+              <input type="text" id="parceiroSearch" placeholder="Buscar parceiro..." onkeyup="filterParceiros()">
+            </div>
+            <div class="custom-select-options" id="parceiroOptions">
+              <div class="custom-select-option" data-value="" onclick="selectParceiro('', 'Todos os parceiros')">
+                <span>Todos os parceiros</span>
+              </div>
+            </div>
+          </div>
+          
+
+          
+          <button onclick="listarResumoMaterial()">Consultar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtro Múltiplo por Marca -->
+    <div class="filter-overlay" id="filterOverlay">
+      <div class="filter-modal">
+        <div class="filter-modal-header">
+          <h3 class="filter-modal-title">Filtrar por Marca</h3>
+          <button class="filter-modal-close" onclick="closeFilterModal()">&times;</button>
+        </div>
+        <div class="filter-modal-content">
+          <div class="filter-search">
+            <input type="text" id="filterSearch" placeholder="Pesquisar marcas..." onkeyup="filterBrands()">
+          </div>
+          <div class="filter-options" id="filterOptions">
+            <!-- Opções serão carregadas dinamicamente -->
+          </div>
+          <div class="filter-actions">
+            <button class="btn-secondary" onclick="clearAllFilters()">Limpar Todos</button>
+            <button class="btn-primary" onclick="applyFilters()">Aplicar Filtros</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtro Múltiplo por Tabela de Preço -->
+    <div class="filter-overlay" id="priceTableFilterOverlay">
+      <div class="filter-modal">
+        <div class="filter-modal-header">
+          <h3 class="filter-modal-title">Filtrar por Tabela de Preço</h3>
+          <button class="filter-modal-close" onclick="closePriceTableFilterModal()">&times;</button>
+        </div>
+        <div class="filter-modal-content">
+          <div class="filter-search">
+            <input type="text" id="priceTableFilterSearch" placeholder="Pesquisar tabelas..." onkeyup="filterPriceTables()">
+          </div>
+          <div class="filter-options" id="priceTableFilterOptions">
+            <!-- Opções serão carregadas dinamicamente -->
+          </div>
+          <div class="filter-actions">
+            <button class="btn-secondary" onclick="clearAllPriceTableFilters()">Limpar Todos</button>
+            <button class="btn-primary" onclick="applyPriceTableFilters()">Aplicar Filtros</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controles de Filtro -->
+    <div class="mb-4">
+      <div class="flex items-center gap-4 mb-2">
+        <button class="filter-trigger" onclick="openFilterModal()">
+          <i class="fas fa-filter"></i>
+          Filtrar por Marca
+        </button>
+        <button class="filter-trigger" onclick="openPriceTableFilterModal()" style="background: #e3f2fd; border-color: #bbdefb; color: #1976d2;">
+          <i class="fas fa-table"></i>
+          Filtrar por Tabela de Preço
+        </button>
+        <button class="filter-trigger" onclick="clearAllFilters()" style="background: #fff3cd; border-color: #ffeaa7; color: #856404;">
+          <i class="fas fa-times"></i>
+          Limpar Filtros
+        </button>
+      </div>
+      <div class="filter-summary" id="filterSummary">
+        <span class="no-filters">Nenhum filtro aplicado</span>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white rounded shadow">
+        <thead>
+          <tr class="bg-gray-200 text-gray-700">
+            <th class="py-2 px-2 text-center">NUTAB</th>
+            <th class="py-2 px-2 text-center">CODTAB</th>
+            <th class="py-2 px-2 text-center">NOMETAB</th>
+            <th class="py-2 px-2 text-center">CODPROD</th>
+            <th class="py-2 px-2 text-center">DESCRPROD</th>
+            <th class="py-2 px-2 text-center">MARCA</th>
+            <th class="py-2 px-2 text-center">AD_QTDVOLLT</th>
+            <th class="py-2 px-2 text-center">POND_MARCA</th>
+            <th class="py-2 px-2 text-center">CUSTO_SATIS</th>
+            <th class="py-2 px-2 text-center">PRECO_TAB</th>
+            <th class="py-2 px-2 text-center">MARGEM</th>
+            <th class="py-2 px-2 text-center">PRECO_TAB_MENOS15</th>
+            <th class="py-2 px-2 text-center">MARGEM_MENOS15</th>
+            <th class="py-2 px-2 text-center">PRECO_TAB_MENOS65</th>
+            <th class="py-2 px-2 text-center">MARGEM_MENOS65</th>
+            <th class="py-2 px-2 text-center">TICKET_MEDIO_OBJETIVO</th>
+            <th class="py-2 px-2 text-center">TICKET_MEDIO_ULT_12_M</th>
+            <th class="py-2 px-2 text-center">TICKET_MEDIO_SAFRA</th>
+            <th class="py-2 px-2 text-center">CUSTO_SATIS_ATU</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyResumoMaterial">
+          <!-- Dados dinâmicos -->
+        </tbody>
+      </table>
+    </div>
+    <div id="msg" class="mt-4 text-center"></div>
+  </div>
+  <script>
+    // Variáveis globais para o filtro múltiplo
+    let allBrands = [];
+    let selectedBrands = [];
+    let allPriceTables = [];
+    let selectedPriceTables = [];
+    let currentTableData = [];
+    let originalTableData = [];
+
+    // Função para formatar data de DD/MM/YYYY para DDMMYYYY
+    function formatDateForQuery(dateStr) {
+      if (!dateStr) return '';
+      // Remove barras e espaços
+      return dateStr.replace(/[\/\s]/g, '');
+    }
+
+    // Função para validar formato de data DD/MM/YYYY
+    function isValidDate(dateStr) {
+      if (!dateStr) return true; // Vazio é válido
+      const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+      if (!regex.test(dateStr)) return false;
+      
+      const [, day, month, year] = dateStr.match(regex);
+      const date = new Date(year, month - 1, day);
+      return date.getDate() === parseInt(day) &&
+             date.getMonth() === parseInt(month) - 1 &&
+             date.getFullYear() === parseInt(year) &&
+             date <= new Date(); // Garante que a data não é no futuro
+    }
+
+    function showMsg(msg, success = true) {
+      const el = document.getElementById('msg');
+      el.textContent = msg;
+      el.className = success ? 'text-green-600' : 'text-red-600';
+      setTimeout(() => { el.textContent = ''; }, 4000);
+    }
+
+    function toggleFilters() {
+      const content = document.getElementById('filterContent');
+      const icon = document.querySelector('.toggle-icon');
+      
+      content.classList.toggle('expanded');
+      icon.classList.toggle('expanded');
+    }
+
+    function carregarEmpresas() {
+      const sql = `SELECT CODEMP, NOMEFANTASIA FROM TSIEMP WHERE CODEMP <> 999 ORDER BY 1`;
+      
+      JX.consultar(sql).then(res => {
+        const empresas = res || [];
+        const select = document.getElementById('empresaSelect');
+        select.innerHTML = '<option value="">Selecione uma empresa *</option>';
+        
+        empresas.forEach(empresa => {
+          const option = document.createElement('option');
+          option.value = empresa.CODEMP;
+          option.textContent = `${empresa.CODEMP} - ${empresa.NOMEFANTASIA}`;
+          select.appendChild(option);
+        });
+      }).catch(() => {
+        showMsg('Erro ao carregar empresas', false);
+      });
+    }
+
+    // Variáveis globais para o dropdown de parceiros
+    let allParceiros = [];
+    let filteredParceiros = [];
+
+    function carregarParceiros() {
+      const sql = `SELECT CODPARC, PARCEIRO FROM VGF_VENDAS_SATIS GROUP BY CODPARC, PARCEIRO ORDER BY 2`;
+      
+      // Mostrar loading
+      const optionsContainer = document.getElementById('parceiroOptions');
+      optionsContainer.innerHTML = '<div class="custom-select-loading"><i class="fas fa-spinner"></i> Carregando parceiros...</div>';
+      
+      JX.consultar(sql).then(res => {
+        const parceiros = res || [];
+        allParceiros = parceiros;
+        filteredParceiros = [...parceiros];
+        
+        renderParceirosOptions();
+      }).catch(() => {
+        showMsg('Erro ao carregar parceiros', false);
+        optionsContainer.innerHTML = '<div class="custom-select-no-results">Erro ao carregar parceiros</div>';
+      });
+    }
+
+    function renderParceirosOptions() {
+      const optionsContainer = document.getElementById('parceiroOptions');
+      optionsContainer.innerHTML = '';
+      
+      // Opção padrão
+      const defaultOption = document.createElement('div');
+      defaultOption.className = 'custom-select-option';
+      defaultOption.setAttribute('data-value', '');
+      defaultOption.onclick = () => selectParceiro('', 'Todos os parceiros');
+      defaultOption.innerHTML = '<span>Todos os parceiros</span>';
+      optionsContainer.appendChild(defaultOption);
+      
+      // Mostrar estatísticas se não houver filtro
+      const searchInput = document.getElementById('parceiroSearch');
+      if (!searchInput.value) {
+        const statsDiv = document.createElement('div');
+        statsDiv.className = 'custom-select-stats';
+        statsDiv.innerHTML = `<small style="color: #666; padding: 8px 12px; display: block; border-bottom: 1px solid #eee;">
+          ${filteredParceiros.length} parceiro(s) disponível(is)
+        </small>`;
+        optionsContainer.appendChild(statsDiv);
+      }
+      
+      // Opções filtradas - agrupadas por letra inicial se não houver filtro
+      if (!searchInput.value && filteredParceiros.length > 20) {
+        // Agrupar por letra inicial para melhor organização
+        const grouped = {};
+        filteredParceiros.forEach(parceiro => {
+          const firstLetter = parceiro.PARCEIRO.charAt(0).toUpperCase();
+          if (!grouped[firstLetter]) {
+            grouped[firstLetter] = [];
+          }
+          grouped[firstLetter].push(parceiro);
+        });
+        
+        Object.keys(grouped).sort().forEach(letter => {
+          // Cabeçalho do grupo
+          const groupHeader = document.createElement('div');
+          groupHeader.className = 'custom-select-group-header';
+          groupHeader.innerHTML = `<strong style="color: #23a059; padding: 8px 12px; display: block; background: #f8f9fa; border-bottom: 1px solid #e9ecef;">${letter}</strong>`;
+          optionsContainer.appendChild(groupHeader);
+          
+          // Opções do grupo
+          grouped[letter].forEach(parceiro => {
+            const option = document.createElement('div');
+            option.className = 'custom-select-option';
+            option.setAttribute('data-value', parceiro.CODPARC);
+            option.onclick = () => selectParceiro(parceiro.CODPARC, `${parceiro.CODPARC} - ${parceiro.PARCEIRO}`);
+            
+            option.innerHTML = `
+              <span class="parceiro-code">${parceiro.CODPARC}</span>
+              <span class="parceiro-name">${parceiro.PARCEIRO}</span>
+            `;
+            
+            optionsContainer.appendChild(option);
+          });
+        });
+      } else {
+        // Lista simples quando há filtro ou poucos itens
+        filteredParceiros.forEach(parceiro => {
+          const option = document.createElement('div');
+          option.className = 'custom-select-option';
+          option.setAttribute('data-value', parceiro.CODPARC);
+          option.onclick = () => selectParceiro(parceiro.CODPARC, `${parceiro.CODPARC} - ${parceiro.PARCEIRO}`);
+          
+          option.innerHTML = `
+            <span class="parceiro-code">${parceiro.CODPARC}</span>
+            <span class="parceiro-name">${parceiro.PARCEIRO}</span>
+          `;
+          
+          optionsContainer.appendChild(option);
+        });
+      }
+      
+      if (filteredParceiros.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'custom-select-no-results';
+        noResults.textContent = 'Nenhum parceiro encontrado';
+        optionsContainer.appendChild(noResults);
+      }
+    }
+
+    function toggleParceiroDropdown() {
+      const dropdown = document.getElementById('parceiroDropdown');
+      const trigger = document.querySelector('.custom-select-trigger');
+      const isOpen = dropdown.style.display === 'block';
+      
+      if (isOpen) {
+        dropdown.style.display = 'none';
+        trigger.classList.remove('active');
+      } else {
+        // Fechar outros dropdowns se existirem
+        document.querySelectorAll('.custom-select-dropdown').forEach(d => d.style.display = 'none');
+        document.querySelectorAll('.custom-select-trigger').forEach(t => t.classList.remove('active'));
+        
+        // Posicionar o dropdown
+        const triggerRect = trigger.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        const dropdownHeight = 300; // altura máxima do dropdown
+        
+        let topPosition = triggerRect.bottom + 5;
+        
+        // Verificar se o dropdown vai sair da tela
+        if (topPosition + dropdownHeight > windowHeight) {
+          topPosition = triggerRect.top - dropdownHeight - 5;
+        }
+        
+        const windowWidth = window.innerWidth;
+        let leftPosition = triggerRect.left;
+        
+        // Verificar se o dropdown vai sair da tela horizontalmente
+        if (leftPosition + triggerRect.width > windowWidth) {
+          leftPosition = windowWidth - triggerRect.width - 10;
+        }
+        
+        dropdown.style.left = leftPosition + 'px';
+        dropdown.style.top = topPosition + 'px';
+        dropdown.style.width = triggerRect.width + 'px';
+        
+        dropdown.style.display = 'block';
+        trigger.classList.add('active');
+        
+        // Focar no campo de busca
+        setTimeout(() => {
+          const searchInput = document.getElementById('parceiroSearch');
+          if (searchInput) {
+            searchInput.focus();
+          }
+        }, 100);
+      }
+    }
+
+    function selectParceiro(value, displayText) {
+      const hiddenInput = document.getElementById('parceiroSelect');
+      const displaySpan = document.getElementById('parceiroDisplay');
+      const trigger = document.querySelector('.custom-select-trigger');
+      const dropdown = document.getElementById('parceiroDropdown');
+      
+      hiddenInput.value = value;
+      displaySpan.textContent = displayText;
+      
+      // Atualizar seleção visual
+      document.querySelectorAll('#parceiroOptions .custom-select-option').forEach(option => {
+        option.classList.remove('selected');
+        if (option.getAttribute('data-value') === value) {
+          option.classList.add('selected');
+        }
+      });
+      
+      // Fechar dropdown
+      dropdown.style.display = 'none';
+      trigger.classList.remove('active');
+    }
+
+    function filterParceiros() {
+      const searchTerm = document.getElementById('parceiroSearch').value.toLowerCase();
+      
+      if (!searchTerm) {
+        filteredParceiros = [...allParceiros];
+      } else {
+        filteredParceiros = allParceiros.filter(parceiro => 
+          parceiro.CODPARC.toString().toLowerCase().includes(searchTerm) ||
+          parceiro.PARCEIRO.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      renderParceirosOptions();
+    }
+
+    // Navegação por teclado no dropdown de parceiros
+    document.addEventListener('keydown', function(event) {
+      const parceiroDropdown = document.getElementById('parceiroDropdown');
+      const parceiroSearch = document.getElementById('parceiroSearch');
+      
+      if (parceiroDropdown && parceiroDropdown.style.display === 'block') {
+        const options = parceiroDropdown.querySelectorAll('.custom-select-option');
+        const selectedOption = parceiroDropdown.querySelector('.custom-select-option.selected');
+        let currentIndex = -1;
+        
+        if (selectedOption) {
+          currentIndex = Array.from(options).indexOf(selectedOption);
+        }
+        
+        switch (event.key) {
+          case 'ArrowDown':
+            event.preventDefault();
+            if (currentIndex < options.length - 1) {
+              if (selectedOption) selectedOption.classList.remove('selected');
+              options[currentIndex + 1].classList.add('selected');
+            }
+            break;
+          case 'ArrowUp':
+            event.preventDefault();
+            if (currentIndex > 0) {
+              if (selectedOption) selectedOption.classList.remove('selected');
+              options[currentIndex - 1].classList.add('selected');
+            }
+            break;
+          case 'Enter':
+            event.preventDefault();
+            if (selectedOption) {
+              const value = selectedOption.getAttribute('data-value');
+              const text = selectedOption.textContent.trim();
+              selectParceiro(value, text);
+            }
+            break;
+          case 'Escape':
+            event.preventDefault();
+            parceiroDropdown.style.display = 'none';
+            document.querySelector('.custom-select-trigger').classList.remove('active');
+            break;
+        }
+      }
+    });
+
+
+
+    function listarResumoMaterial() {
+      const periodoInput = document.getElementById('periodoInput').value;
+      const empresaSelect = document.getElementById('empresaSelect');
+      const parceiroSelect = document.getElementById('parceiroSelect');
+      const empresa = empresaSelect.value;
+      const codparc = parceiroSelect.value;
+
+      // Validar se empresa foi selecionada
+      if (!empresa) {
+        showMsg('Por favor, selecione uma empresa', false);
+        return;
+      }
+
+      // Validar se período foi informado
+      if (!periodoInput) {
+        showMsg('Por favor, informe o período de referência', false);
+        return;
+      }
+
+      // Validar formato da data
+      if (!isValidDate(periodoInput)) {
+        showMsg('Por favor, insira a data no formato DD/MM/YYYY', false);
+        return;
+      }
+
+      const periodo = formatDateForQuery(periodoInput);
+
+      const sql = `
+      
+      SELECT 
+          NVL(NUTAB,0) AS NUTAB,
+          NVL(CODTAB,0)CODTAB,
+          NVL(SUBSTR(NOMETAB, 1, 3),'0')  AS NOMETAB,
+          NVL(CODPROD,0) AS CODPROD,
+          NVL(DESCRPROD,0) AS DESCRPROD,
+          NVL(MARCA,0) AS MARCA,
+          NVL(AD_QTDVOLLT,0) AS AD_QTDVOLLT,
+          NVL(POND_MARCA,0) AS POND_MARCA,
+          NVL(CUSTO_SATIS,0) AS CUSTO_SATIS,
+          NVL(PRECO_TAB,0) AS PRECO_TAB,
+          NVL(MARGEM,0) AS MARGEM,
+          NVL(PRECO_TAB_MENOS15,0) AS PRECO_TAB_MENOS15,
+          NVL(MARGEM_MENOS15,0) AS MARGEM_MENOS15,
+          NVL(PRECO_TAB_MENOS65,0) AS PRECO_TAB_MENOS65,
+          NVL(MARGEM_MENOS65,0) AS MARGEM_MENOS65,
+          NVL(TICKET_MEDIO_OBJETIVO,0) AS TICKET_MEDIO_OBJETIVO,
+          NVL(TICKET_MEDIO_ULT_12_M,0) AS TICKET_MEDIO_ULT_12_M,
+          NVL(TICKET_MEDIO_SAFRA,0) AS TICKET_MEDIO_SAFRA,
+          NVL(CUSTO_SATIS_ATU,0) AS CUSTO_SATIS_ATU 
+        FROM (
+
+        WITH CUS AS (
+        SELECT CODPROD, CODEMP, CUSTO_SATIS
+        FROM (
+        SELECT
+          CODPROD,
+          CODEMP,
+          OBTEMCUSTO_SATIS(CODPROD, 'S', CODEMP, 'N', 0, 'N', ' ', TO_DATE('${periodo}', 'DDMMYYYY'), 3) AS CUSTO_SATIS,
+          ROW_NUMBER() OVER (PARTITION BY CODEMP, CODPROD ORDER BY DTATUAL DESC) AS RN
+        FROM TGFCUS
+        WHERE DTATUAL <= TO_DATE('${periodo}', 'DDMMYYYY')
+        AND CODEMP = ${empresa} 
+        )
+        WHERE RN = 1
+        ),
+        CUS_ATUAL AS (
+        SELECT CODPROD, CODEMP, CUSTO_SATIS
+        FROM (
+        SELECT
+          CODPROD,
+          CODEMP,
+          OBTEMCUSTO_SATIS(CODPROD, 'S', CODEMP, 'N', 0, 'N', ' ', TO_DATE('${periodo}', 'DDMMYYYY'), 3) AS CUSTO_SATIS,
+          ROW_NUMBER() OVER (PARTITION BY CODEMP, CODPROD ORDER BY DTATUAL DESC) AS RN
+        FROM TGFCUS
+        WHERE DTATUAL <= TO_DATE('${periodo}', 'DDMMYYYY')
+        AND CODEMP =  ${empresa} 
+        )
+        WHERE RN = 1
+        ),
+        PON AS (
+        SELECT 
+        CODEMP,
+        PROD,
+        CODPROD,
+        DESCRPROD,
+        MARCA,
+        CODGRUPOPROD,
+        DESCRGRUPOPROD,
+        ROUND(SUM(QTD) /  NULLIF(SUM(SUM(QTD)) OVER (PARTITION BY CODEMP),0),2) AS POND_MARCA
+
+        FROM VGF_VENDAS_SATIS
+        WHERE DTNEG >= ADD_MONTHS(TO_DATE('${periodo}', 'DDMMYYYY'), -12)
+        AND DTNEG < TO_DATE('${periodo}', 'DDMMYYYY')
+        AND CODEMP =  ${empresa} 
+
+        GROUP BY CODEMP, PROD, CODPROD, DESCRPROD, MARCA, CODGRUPOPROD, DESCRGRUPOPROD
+        ),
+        MET AS (
+        SELECT 
+        MARCA, 
+        SUM(QTDPREV) AS QTDPREV,
+        SUM(VLR_PREV) AS VLR_PREV,
+        SUM(VLR_PREV) / NULLIF(SUM(QTDPREV), 0) AS TICKET_MEDIO_OBJETIVO
+        FROM (
+        SELECT DISTINCT
+          MET.CODMETA,
+          MET.DTREF,
+          MET.CODVEND,
+          MET.CODPARC,
+          MET.MARCA,
+          MET.QTDPREV,
+          MET.QTDPREV * PRC.VLRVENDALT AS VLR_PREV
+        FROM TGFMET MET
+        LEFT JOIN VGF_VENDAS_SATIS VGF 
+          ON MET.DTREF = TRUNC(VGF.DTMOV, 'MM') 
+        AND MET.CODVEND = VGF.CODVEND 
+        AND MET.CODPARC = VGF.CODPARC 
+        AND MET.MARCA = VGF.MARCA 
+        AND VGF.BONIFICACAO = 'N'
+        LEFT JOIN AD_PRECOMARCA PRC 
+          ON MET.MARCA = PRC.MARCA 
+        AND PRC.CODMETA = MET.CODMETA 
+        AND PRC.DTREF = (
+            SELECT MAX(DTREF)
+            FROM AD_PRECOMARCA
+            WHERE CODMETA = MET.CODMETA
+              AND DTREF <= MET.DTREF
+              AND MARCA = MET.MARCA
+        )
+        LEFT JOIN TGFPAR PAR ON MET.CODPARC = PAR.CODPARC
+        LEFT JOIN TGFVEN VEN ON MET.CODVEND = VEN.CODVEND
+        WHERE MET.CODMETA = 4
+        AND (${codparc || 'NULL'} IS NULL OR MET.CODPARC = ${codparc || 'NULL'})
+        AND MET.DTREF BETWEEN 
+            CASE 
+                WHEN EXTRACT(MONTH FROM TO_DATE('${periodo}', 'DDMMYYYY')) <= 6 
+                THEN TRUNC(TO_DATE('${periodo}', 'DDMMYYYY'), 'YYYY') - INTERVAL '6' MONTH
+                ELSE TRUNC(TO_DATE('${periodo}', 'DDMMYYYY'), 'YYYY') + INTERVAL '6' MONTH
+            END
+        AND 
+            CASE 
+                WHEN EXTRACT(MONTH FROM TO_DATE('${periodo}', 'DDMMYYYY')) <= 6 
+                THEN LAST_DAY(TRUNC(TO_DATE('${periodo}', 'DDMMYYYY'), 'YYYY') + INTERVAL '5' MONTH)
+                ELSE LAST_DAY(TRUNC(TO_DATE('${periodo}', 'DDMMYYYY'), 'YYYY') + INTERVAL '17' MONTH)
+            END
+        )
+        GROUP BY MARCA
+        ),
+        FAT AS (
+        SELECT CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD, NVL(SUM(QTD),0) QTD,NVL(SUM(VLR),0) VLR,
+        NVL(SUM(VLR)/NULLIF(SUM(QTD),0),0) TICKET_MEDIO_ULT_12_M,NVL(SUM(VLR)/NULLIF(SUM(QTDNEG),0),0) TICKET_MEDIO_PRO_ULT_12_M
+        FROM VGF_VENDAS_SATIS
+        WHERE 
+        DTNEG >= ADD_MONTHS(TO_DATE('${periodo}', 'DDMMYYYY'), -12)
+        AND DTNEG < TO_DATE('${periodo}', 'DDMMYYYY')
+        AND CODEMP =  ${empresa} 
+        AND (${codparc || 'NULL'} IS NULL OR CODPARC = ${codparc || 'NULL'})
+        GROUP BY CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD
+        ),
+        FAT1 AS (
+        SELECT CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD, NVL(SUM(QTD),0) QTD_SAFRA,NVL(SUM(VLR),0) VLR_SAFRA,
+        NVL(SUM(VLR)/NULLIF(SUM(QTD),0),0) TICKET_MEDIO_SAFRA,NVL(SUM(VLR)/NULLIF(SUM(QTDNEG),0),0) TICKET_MEDIO_PRO_SAFRA
+        FROM VGF_VENDAS_SATIS
+        WHERE 
+        DTNEG BETWEEN 
+        CASE 
+        WHEN EXTRACT(MONTH FROM TO_DATE('${periodo}', 'DDMMYYYY')) <= 6 
+        THEN TRUNC(TO_DATE('${periodo}', 'DDMMYYYY'), 'YYYY') - INTERVAL '6' MONTH
+        ELSE TRUNC(TO_DATE('${periodo}', 'DDMMYYYY'), 'YYYY') + INTERVAL '6' MONTH
+        END
+        AND 
+        CASE 
+        WHEN EXTRACT(MONTH FROM TO_DATE('${periodo}', 'DDMMYYYY')) <= 6 
+        THEN LAST_DAY(TRUNC(TO_DATE('${periodo}', 'DDMMYYYY'), 'YYYY') + INTERVAL '5' MONTH)
+        ELSE LAST_DAY(TRUNC(TO_DATE('${periodo}', 'DDMMYYYY'), 'YYYY') + INTERVAL '17' MONTH)
+        END
+        AND CODEMP = ${empresa}
+        AND (${codparc || 'NULL'} IS NULL OR CODPARC = ${codparc || 'NULL'})
+        GROUP BY CODEMP,PROD,CODPROD,DESCRPROD,MARCA,CODGRUPOPROD,DESCRGRUPOPROD
+        ),
+        PRE_ATUAL AS (
+        SELECT 
+        CODTAB,NOMETAB,DTVIGOR,CODPROD,VLRVENDA_ATUAL
+        FROM (
+        SELECT
+        TAB.CODTAB,
+        NTA.NOMETAB,
+        TAB.DTVIGOR,
+        PRO.CODPROD,
+        NVL(EXC.VLRVENDA,0) VLRVENDA_ATUAL,
+        ROW_NUMBER() OVER (PARTITION BY TAB.CODTAB,PRO.CODPROD ORDER BY TAB.DTVIGOR DESC) AS RN
+        FROM TGFPRO PRO
+        INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
+        LEFT JOIN TGFEXC EXC ON PRO.CODPROD = EXC.CODPROD
+        LEFT JOIN TGFTAB TAB ON EXC.NUTAB = TAB.NUTAB
+        LEFT JOIN TGFNTA NTA ON TAB.CODTAB = NTA.CODTAB
+        WHERE SUBSTR(PRO.CODGRUPOPROD, 1, 1) = '1'
+        AND NTA.ATIVO = 'S' AND PRO.ATIVO = 'S' AND TAB.DTVIGOR <= TO_DATE('${periodo}', 'DDMMYYYY')
+
+        ) SUB
+        WHERE RN = 1
+        ),
+        BAS AS (
+        SELECT * FROM (
+        SELECT DISTINCT
+        TAB.NUTAB,
+        NTA.CODTAB, 
+        NTA.NOMETAB, 
+        PRO.CODPROD, 
+        PRO.DESCRPROD, 
+        PRO.MARCA,
+        PRO.AD_QTDVOLLT,
+        NVL(PON.POND_MARCA, 0) AS POND_MARCA,
+        TAB.DTVIGOR,
+        NVL(SNK_GET_PRECO(TAB.NUTAB, PRO.CODPROD, TO_DATE('${periodo}', 'DDMMYYYY')), 0) AS PRECO_TAB,
+        NVL(CUS.CUSTO_SATIS, 0) AS CUSTO_SATIS,
+        MET.TICKET_MEDIO_OBJETIVO * PRO.AD_QTDVOLLT AS TICKET_MEDIO_OBJETIVO,
+        MET.TICKET_MEDIO_OBJETIVO TICKET_MEDIO_OBJETIVO_MARCA,
+        FAT.TICKET_MEDIO_ULT_12_M,
+        FAT.TICKET_MEDIO_PRO_ULT_12_M,
+        FAT1.TICKET_MEDIO_SAFRA,
+        FAT1.TICKET_MEDIO_PRO_SAFRA,
+        PRE.VLRVENDA_ATUAL,
+        CUS_ATU.CUSTO_SATIS CUSTO_SATIS_ATU,
+        ROW_NUMBER() OVER (PARTITION BY TAB.CODTAB, PRO.CODPROD ORDER BY TAB.DTVIGOR DESC) AS RN
+        FROM TGFPRO PRO
+        INNER JOIN TGFGRU GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
+        LEFT JOIN TGFEXC EXC ON PRO.CODPROD = EXC.CODPROD
+        LEFT JOIN TGFTAB TAB ON EXC.NUTAB = TAB.NUTAB
+        LEFT JOIN TGFNTA NTA ON TAB.CODTAB = NTA.CODTAB
+
+        LEFT JOIN CUS ON PRO.CODPROD = CUS.CODPROD
+        LEFT JOIN CUS_ATUAL CUS_ATU ON PRO.CODPROD = CUS_ATU.CODPROD
+        LEFT JOIN PON ON PRO.CODPROD = PON.CODPROD
+        LEFT JOIN MET ON PRO.MARCA = MET.MARCA
+        LEFT JOIN FAT ON PRO.CODPROD = FAT.CODPROD
+        LEFT JOIN FAT1 ON PRO.CODPROD = FAT1.CODPROD
+        LEFT JOIN PRE_ATUAL PRE ON PRO.CODPROD = PRE.CODPROD AND TAB.CODTAB = PRE.CODTAB
+        WHERE NTA.ATIVO = 'S'
+        AND PRO.CODGRUPOPROD LIKE '1%'
+        AND PRO.ATIVO = 'S'
+        AND TAB.DTVIGOR <= TO_DATE('${periodo}', 'DDMMYYYY')
+
+        ORDER BY NTA.CODTAB, PRO.CODPROD
+        )WHERE RN = 1)
+
+        SELECT 
+        NUTAB,
+        CODTAB, 
+        NOMETAB, 
+        CODPROD, 
+        DESCRPROD, 
+        MARCA,
+        AD_QTDVOLLT,
+        POND_MARCA,
+        DTVIGOR,
+        CUSTO_SATIS,
+        PRECO_TAB,
+        NVL(((PRECO_TAB - CUSTO_SATIS) / NULLIF(PRECO_TAB, 0)) * 100, 0) AS MARGEM,
+        PRECO_TAB * 0.85 AS PRECO_TAB_MENOS15,
+        NVL((((PRECO_TAB * 0.85) - CUSTO_SATIS) / NULLIF(PRECO_TAB * 0.85, 0)) * 100, 0) AS MARGEM_MENOS15,
+        PRECO_TAB * 0.65 AS PRECO_TAB_MENOS65,
+        NVL((((PRECO_TAB * 0.65) - CUSTO_SATIS) / NULLIF(PRECO_TAB * 0.65, 0)) * 100, 0) AS MARGEM_MENOS65,
+        NVL(TICKET_MEDIO_OBJETIVO,0)TICKET_MEDIO_OBJETIVO,
+        NVL(TICKET_MEDIO_PRO_ULT_12_M,0)TICKET_MEDIO_ULT_12_M,
+        NVL(TICKET_MEDIO_PRO_SAFRA,0)TICKET_MEDIO_SAFRA,
+        NVL(CUSTO_SATIS_ATU,0) CUSTO_SATIS_ATU
+        FROM BAS
+
+        UNION ALL
+
+        SELECT 
+        NULL NUTAB,
+        CODTAB,
+        NOMETAB,
+        NULL CODPROD,
+        '1' DESCRPROD,
+        MARCA,
+        NULL AD_QTDVOLLT,
+        NULL POND_MARCA,
+        NULL DTVIGOR,
+        SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA) AS CUSTO_SATIS,
+        SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA) AS PRECO_TAB,
+
+        NVL((
+        SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA) - 
+        SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)
+        ) / NULLIF(SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA), 0) * 100, 0) AS MARGEM,
+
+        SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)*0.85 AS PRECO_TAB_MENOS15,
+
+        NVL((
+        SUM(((PRECO_TAB*0.85) / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA) - 
+        SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)
+        ) / NULLIF( SUM(((PRECO_TAB*0.85) / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA) , 0) * 100, 0) AS MARGEM_MENOS15,
+
+        SUM((PRECO_TAB / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)*0.65 AS PRECO_TAB_MENOS65,
+
+        NVL((
+        SUM(((PRECO_TAB*0.65)  / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA) - 
+        SUM((CUSTO_SATIS / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA)
+        ) / NULLIF(SUM(((PRECO_TAB*0.65)  / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA), 0) * 100, 0) AS MARGEM_MENOS65,
+
+
+        TICKET_MEDIO_OBJETIVO_MARCA TICKET_MEDIO_OBJETIVO,
+        SUM(TICKET_MEDIO_ULT_12_M  * POND_MARCA) AS TICKET_MEDIO_ULT_12_M,
+        SUM(TICKET_MEDIO_SAFRA  * POND_MARCA) AS TICKET_MEDIO_SAFRA,
+        SUM((CUSTO_SATIS_ATU / NULLIF(AD_QTDVOLLT, 0)) * POND_MARCA) CUSTO_SATIS_ATU
+        FROM BAS
+        GROUP BY 
+        CODTAB,
+        NOMETAB,
+        MARCA,
+        TICKET_MEDIO_OBJETIVO_MARCA
+        )
+        ORDER BY 2,6,4 DESC  
+          
+      `;
+      
+      JX.consultar(sql).then(res => {
+        const dados = res || [];
+        
+        // Armazenar dados originais e atuais
+        originalTableData = [...dados];
+        currentTableData = [...dados];
+        
+        // Limpar filtros anteriores
+        selectedBrands = [];
+        selectedPriceTables = [];
+        allBrands = [];
+        allPriceTables = [];
+        
+        // Renderizar dados
+        renderTableData();
+        updateFilterSummary();
+        
+        showMsg('Dados carregados com sucesso!', true);
+      }).catch(() => showMsg('Erro ao listar dados', false));
+    }
+
+    // Funções do Filtro Múltiplo por Marca
+    function openFilterModal() {
+      document.getElementById('filterOverlay').style.display = 'block';
+      loadBrandsForFilter();
+    }
+
+    function closeFilterModal() {
+      document.getElementById('filterOverlay').style.display = 'none';
+    }
+
+    function openPriceTableFilterModal() {
+      document.getElementById('priceTableFilterOverlay').style.display = 'block';
+      loadPriceTablesForFilter();
+    }
+
+    function closePriceTableFilterModal() {
+      document.getElementById('priceTableFilterOverlay').style.display = 'none';
+    }
+
+    function loadBrandsForFilter() {
+      if (allBrands.length === 0) {
+        // Extrair marcas únicas dos dados atuais
+        const brands = [...new Set(currentTableData.map(row => row.MARCA).filter(marca => marca))];
+        allBrands = brands.sort();
+      }
+      
+      renderFilterOptions();
+    }
+
+    function loadPriceTablesForFilter() {
+      if (allPriceTables.length === 0) {
+        // Extrair tabelas de preço únicas dos dados atuais
+        const allCodTabs = currentTableData.map(row => row.CODTAB);
+        
+        // Filtrar valores válidos (incluindo 0)
+        const validCodTabs = allCodTabs.filter(codtab => 
+          codtab !== null && 
+          codtab !== undefined && 
+          codtab !== '' && 
+          codtab !== 'null' && 
+          codtab !== 'undefined'
+        );
+        
+        // Remover duplicatas e ordenar
+        const priceTables = [...new Set(validCodTabs)];
+        allPriceTables = priceTables.sort((a, b) => {
+          // Ordenar numericamente se possível
+          const numA = Number(a);
+          const numB = Number(b);
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+          }
+          // Ordenar alfabeticamente se não for numérico
+          return String(a).localeCompare(String(b));
+        });
+      }
+      
+      renderPriceTableFilterOptions();
+    }
+
+    function renderFilterOptions() {
+      const container = document.getElementById('filterOptions');
+      container.innerHTML = '';
+      
+      allBrands.forEach(brand => {
+        const isSelected = selectedBrands.includes(brand);
+        const option = document.createElement('div');
+        option.className = `filter-option ${isSelected ? 'selected' : ''}`;
+        option.onclick = () => toggleBrandSelection(brand);
+        
+        option.innerHTML = `
+          <input type="checkbox" id="brand_${brand}" ${isSelected ? 'checked' : ''}>
+          <label for="brand_${brand}">${brand}</label>
+        `;
+        
+        container.appendChild(option);
+      });
+    }
+
+    function renderPriceTableFilterOptions() {
+      const container = document.getElementById('priceTableFilterOptions');
+      container.innerHTML = '';
+      
+      allPriceTables.forEach(table => {
+        const isSelected = selectedPriceTables.includes(table);
+        const option = document.createElement('div');
+        option.className = `filter-option ${isSelected ? 'selected' : ''}`;
+        option.onclick = () => togglePriceTableSelection(table);
+        
+        option.innerHTML = `
+          <input type="checkbox" id="table_${table}" ${isSelected ? 'checked' : ''}>
+          <label for="table_${table}">${table}</label>
+        `;
+        
+        container.appendChild(option);
+      });
+    }
+
+    function toggleBrandSelection(brand) {
+      const index = selectedBrands.indexOf(brand);
+      if (index > -1) {
+        selectedBrands.splice(index, 1);
+      } else {
+        selectedBrands.push(brand);
+      }
+      renderFilterOptions();
+    }
+
+    function togglePriceTableSelection(table) {
+      const index = selectedPriceTables.indexOf(table);
+      if (index > -1) {
+        selectedPriceTables.splice(index, 1);
+      } else {
+        selectedPriceTables.push(table);
+      }
+      renderPriceTableFilterOptions();
+    }
+
+    function filterBrands() {
+      const searchTerm = document.getElementById('filterSearch').value.toLowerCase();
+      const options = document.querySelectorAll('#filterOptions .filter-option');
+      
+      options.forEach(option => {
+        const label = option.querySelector('label').textContent.toLowerCase();
+        if (label.includes(searchTerm)) {
+          option.style.display = 'flex';
+        } else {
+          option.style.display = 'none';
+        }
+      });
+    }
+
+    function filterPriceTables() {
+      const searchTerm = document.getElementById('priceTableFilterSearch').value.toLowerCase();
+      const options = document.querySelectorAll('#priceTableFilterOptions .filter-option');
+      
+      options.forEach(option => {
+        const label = option.querySelector('label').textContent.toLowerCase();
+        if (label.includes(searchTerm)) {
+          option.style.display = 'flex';
+        } else {
+          option.style.display = 'none';
+        }
+      });
+    }
+
+    function applyFilters() {
+      applyCombinedFilters();
+      closeFilterModal();
+      showMsg(`Filtro aplicado: ${selectedBrands.length} marca(s) e ${selectedPriceTables.length} tabela(s) selecionada(s)`, true);
+    }
+
+    function applyPriceTableFilters() {
+      applyCombinedFilters();
+      closePriceTableFilterModal();
+      showMsg(`Filtro aplicado: ${selectedBrands.length} marca(s) e ${selectedPriceTables.length} tabela(s) selecionada(s)`, true);
+    }
+
+    function clearAllFilters() {
+      selectedBrands = [];
+      selectedPriceTables = [];
+      currentTableData = [...originalTableData];
+      renderTableData();
+      updateFilterSummary();
+      closeFilterModal();
+      closePriceTableFilterModal();
+      showMsg('Filtros removidos', true);
+    }
+
+    function clearAllPriceTableFilters() {
+      selectedPriceTables = [];
+      currentTableData = [...originalTableData];
+      renderTableData();
+      updateFilterSummary();
+      closePriceTableFilterModal();
+      showMsg('Filtros de tabela removidos', true);
+    }
+
+    function updateFilterSummary() {
+      const summary = document.getElementById('filterSummary');
+      
+      const brandFilters = selectedBrands.length > 0 ? `
+        <span style="font-size: 12px; color: #666;">Marcas selecionadas:</span>
+        ${selectedBrands.map(brand => `
+          <span class="filter-badge">
+            ${brand}
+            <span class="remove" onclick="removeBrandFilter('${brand}')">&times;</span>
+          </span>
+        `).join('')}
+      ` : '';
+      
+      const priceTableFilters = selectedPriceTables.length > 0 ? `
+        <span style="font-size: 12px; color: #666;">Tabelas selecionadas:</span>
+        ${selectedPriceTables.map(table => `
+          <span class="filter-badge" style="background: #e3f2fd; color: #1976d2; border-color: #bbdefb;">
+            ${table}
+            <span class="remove" onclick="removePriceTableFilter('${table}')">&times;</span>
+          </span>
+        `).join('')}
+      ` : '';
+      
+      if (selectedBrands.length === 0 && selectedPriceTables.length === 0) {
+        summary.innerHTML = '<span class="no-filters">Nenhum filtro aplicado</span>';
+      } else {
+        summary.innerHTML = brandFilters + priceTableFilters;
+      }
+    }
+
+    function removeBrandFilter(brand) {
+      const index = selectedBrands.indexOf(brand);
+      if (index > -1) {
+        selectedBrands.splice(index, 1);
+        applyCombinedFilters();
+      }
+    }
+
+    function removePriceTableFilter(table) {
+      const index = selectedPriceTables.indexOf(table);
+      if (index > -1) {
+        selectedPriceTables.splice(index, 1);
+        applyCombinedFilters();
+      }
+    }
+
+    function applyCombinedFilters() {
+      let filteredData = [...originalTableData];
+      
+      // Aplicar filtro de marcas
+      if (selectedBrands.length > 0) {
+        filteredData = filteredData.filter(row => 
+          selectedBrands.includes(row.MARCA)
+        );
+      }
+      
+      // Aplicar filtro de tabelas de preço
+      if (selectedPriceTables.length > 0) {
+        filteredData = filteredData.filter(row => 
+          selectedPriceTables.includes(row.CODTAB)
+        );
+      }
+      
+      currentTableData = filteredData;
+      renderTableData();
+      updateFilterSummary();
+    }
+
+    function renderTableData() {
+      const tbody = document.getElementById('tbodyResumoMaterial');
+      tbody.innerHTML = '';
+      
+      currentTableData.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class='py-2 px-2 text-center'>${row.NUTAB ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.CODTAB ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.NOMETAB ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.CODPROD ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.DESCRPROD ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.MARCA ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.AD_QTDVOLLT ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.POND_MARCA ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.CUSTO_SATIS ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.PRECO_TAB ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.MARGEM ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.PRECO_TAB_MENOS15 ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.MARGEM_MENOS15 ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.PRECO_TAB_MENOS65 ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.MARGEM_MENOS65 ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.TICKET_MEDIO_OBJETIVO ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.TICKET_MEDIO_ULT_12_M ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.TICKET_MEDIO_SAFRA ?? ''}</td>
+          <td class='py-2 px-2 text-center'>${row.CUSTO_SATIS_ATU ?? ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Fechar modal ao clicar fora dele
+    document.addEventListener('click', function(event) {
+      const overlay = document.getElementById('filterOverlay');
+      const priceTableOverlay = document.getElementById('priceTableFilterOverlay');
+      const modal = document.querySelector('.filter-modal');
+      
+      if (event.target === overlay) {
+        closeFilterModal();
+      }
+      
+      if (event.target === priceTableOverlay) {
+        closePriceTableFilterModal();
+      }
+      
+      // Fechar dropdown de parceiros ao clicar fora
+      const parceiroDropdown = document.getElementById('parceiroDropdown');
+      const parceiroTrigger = document.querySelector('.custom-select-trigger');
+      
+      if (parceiroDropdown && parceiroTrigger && 
+          !parceiroDropdown.contains(event.target) && 
+          !parceiroTrigger.contains(event.target)) {
+        parceiroDropdown.style.display = 'none';
+        parceiroTrigger.classList.remove('active');
+      }
+    });
+
+          // Inicialização
+      document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar Flatpickr para o campo de data
+        const dateConfig = {
+          dateFormat: "d/m/Y",
+          locale: "pt",
+          allowInput: true,
+          maxDate: "today",
+          wrap: true
+        };
+
+        flatpickr("#periodoInput", dateConfig);
+        
+        // Carregar empresas e parceiros
+        carregarEmpresas();
+        carregarParceiros();
+        
+
+      });
+  </script>
+</body>
+</html>

@@ -145,7 +145,7 @@
       background: var(--verde-claro);
       color: var(--verde-escuro);
       border: none;
-      padding: 10px 0;
+      padding: 12px 0;
       font-size: 1rem;
       font-weight: 500;
       cursor: pointer;
@@ -155,7 +155,10 @@
       background: var(--verde-medio);
       color: var(--branco);
     }
-    .conteudo-aba { display: none; }
+    .conteudo-aba { 
+      display: none; 
+      min-height: 400px;
+    }
     .conteudo-aba.ativa { display: block; }
     /* Tabela padrão */
     .tabela {
@@ -166,6 +169,7 @@
       overflow: hidden;
       box-shadow: var(--sombra);
       margin-bottom: 16px;
+      min-height: 350px;
     }
     .tabela th, .tabela td {
       padding: 10px 6px;
@@ -290,10 +294,24 @@
       margin-bottom: 12px;
       box-shadow: var(--sombra);
       padding: 8px 0 0 0;
+      width: 100%;
+    }
+    .materiais-tabela {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--cinza-fundo);
     }
     .materiais-tabela th, .materiais-tabela td {
       font-size: 0.95rem;
       padding: 7px 4px;
+      text-align: left;
+      border-bottom: 1px solid var(--cinza-tabela);
+    }
+    .materiais-tabela th {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-weight: 600;
+      border-bottom: 2px solid var(--cinza-borda);
     }
     .expandir-btn {
       background: none;
@@ -414,6 +432,12 @@
       .tabela th, .tabela td {
         padding: 8px 4px;
         font-size: 0.9rem;
+      }
+      .conteudo-aba {
+        min-height: 350px;
+      }
+      .tabela {
+        min-height: 300px;
       }
     }
   </style>
@@ -673,7 +697,7 @@
       });
     }
     function renderMateriais(ap, idxAp) {
-      let html = `<div class='materiais-lista'><table class='materiais-tabela' style='width:100%'><thead><tr><th>Editar</th><th>Cód.</th><th>Material</th><th>Lote</th><th>Qtd.</th><th>Estoque</th><th>UN</th><th>Excluir</th></tr></thead><tbody>`;
+      let html = `<div class='materiais-lista'><table class='materiais-tabela'><thead><tr><th>Editar</th><th>Cód.</th><th>Material</th><th>Lote</th><th>Qtd.</th><th>Estoque</th><th>UN</th><th>Excluir</th></tr></thead><tbody>`;
       ap.materiais.forEach((mat, idxMat) => {
         html += `<tr><td>${ap.situacao === 'Pendente' ? `<button class="acao-btn editar-btn" onclick='editarMaterial(${idxAp},${idxMat})' title="Editar">✏️</button>` : ''}</td><td>${mat.codMaterial}</td><td>${mat.material}</td><td>${mat.lote}</td><td>${mat.qtdApontada}</td><td>${mat.estoque}</td><td>${mat.un}</td><td>${ap.situacao === 'Pendente' ? `<button class="acao-btn excluir-btn" onclick='excluirMaterial(${idxAp},${idxMat})' title="Excluir">🗑️</button>` : ''}</td></tr>`;
       });

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teste Botão</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js"></script>
+  <style>
+    .export-btn-overlay {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+    
+    .export-btn-overlay:hover {
+      background-color: #45a049;
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4">Teste do Botão insertDataBtn</h1>
+    
+    <button id="insertDataBtn" class="export-btn-overlay" title="Inserir no Banco" style="bottom: 20px; right: 90px;">
+      <i class="fas fa-database"></i>
+    </button>
+    
+    <div id="result" class="mt-4 p-4 bg-gray-100 rounded"></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM carregado');
+      
+      const insertDataBtn = document.getElementById('insertDataBtn');
+      console.log('Procurando botão insertDataBtn:', insertDataBtn);
+      
+      if (insertDataBtn) {
+        console.log('Botão encontrado, adicionando evento...');
+        insertDataBtn.addEventListener('click', function() {
+          console.log('Botão clicado!');
+          document.getElementById('result').innerHTML = '<p class="text-green-600">Botão funcionando corretamente!</p>';
+        });
+      } else {
+        console.error('Botão não encontrado!');
+        document.getElementById('result').innerHTML = '<p class="text-red-600">Erro: Botão não encontrado!</p>';
+      }
+    });
+  </script>
+</body>
+</html> 
