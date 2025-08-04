@@ -1024,6 +1024,17 @@
     </div>
     <h1 class="header-title">Simulação de Preço</h1>
     <div class="header-actions">
+      <!-- Campo de usuário atual -->
+      <div id="usuario-info" class="text-white text-xs mr-4 px-3 py-1 bg-white bg-opacity-20 rounded border border-white border-opacity-30">
+        <i class="fas fa-user mr-1"></i>
+        <span id="usuario-display">Carregando usuário...</span>
+      </div>
+      <button id="loadSimulationBtn" class="header-btn" title="Carregar Simulação">
+        <i class="fas fa-folder-open"></i>
+      </button>
+      <button id="saveSimulationBtn" class="header-btn" title="Salvar Simulação">
+        <i class="fas fa-save"></i>
+      </button>
       <button id="exportToExcelBtn" class="header-btn" title="Exportar para Excel">
         <i class="fas fa-file-excel"></i>
       </button>
@@ -1293,6 +1304,92 @@
       <div id="statusTitle" class="status-title"></div>
       <div id="statusMessage" class="status-message"></div>
       <button id="statusCloseBtn" class="status-button">OK</button>
+    </div>
+  </div>
+
+  <!-- Modal para descrição da simulação -->
+  <div id="descriptionModal" class="status-overlay">
+    <div class="status-content" style="max-width: 500px;">
+      <div class="status-icon success">
+        <i class="fas fa-save"></i>
+      </div>
+      <div class="status-title">Salvar Simulação</div>
+      <div class="status-message">
+        <p style="margin-bottom: 15px; text-align: left; color: #374151;">
+          Digite uma descrição para esta simulação. Esta descrição ajudará a identificar a simulação posteriormente.
+        </p>
+        <div style="margin-bottom: 15px;">
+          <label for="simulationDescription" style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151; text-align: left;">
+            Descrição da Simulação: *
+          </label>
+          <textarea 
+            id="simulationDescription" 
+            placeholder="Ex: Simulação de preços para produtos da marca X - Janeiro 2024"
+            style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; min-height: 80px; resize: vertical; font-family: inherit;"
+            maxlength="500"
+          ></textarea>
+          <div style="text-align: right; margin-top: 5px; font-size: 12px; color: #6b7280;">
+            <span id="charCount">0</span>/500 caracteres
+          </div>
+        </div>
+        <div style="background: #f3f4f6; padding: 10px; border-radius: 6px; text-align: left; font-size: 13px; color: #374151;">
+          <strong>Informações da simulação:</strong><br>
+          • Registros com dados preenchidos: <span id="recordCount">0</span><br>
+          • Usuário: <span id="currentUser">-</span><br>
+          • Data/Hora: <span id="currentDateTime">-</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <button id="cancelDescriptionBtn" class="status-button" style="background-color: #6b7280; margin-right: 10px;">
+          Cancelar
+        </button>
+        <button id="confirmDescriptionBtn" class="status-button" style="background-color: #10b981;">
+          Salvar Simulação
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para selecionar simulação -->
+  <div id="loadSimulationModal" class="status-overlay">
+    <div class="status-content" style="max-width: 700px; max-height: 80vh;">
+      <div class="status-icon success">
+        <i class="fas fa-folder-open"></i>
+      </div>
+      <div class="status-title">Carregar Simulação</div>
+      <div class="status-message">
+        <p style="margin-bottom: 15px; text-align: left; color: #374151;">
+          Selecione uma simulação para carregar na tabela atual. Os dados da simulação serão aplicados aos registros correspondentes.
+        </p>
+        <div style="margin-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <label style="font-weight: 600; color: #374151;">
+              Simulações Disponíveis:
+            </label>
+            <div style="font-size: 12px; color: #6b7280;">
+              <span id="simulationCount">0</span> simulação(ões) encontrada(s)
+            </div>
+          </div>
+          <div id="simulationList" style="max-height: 300px; overflow-y: auto; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
+            <!-- Lista de simulações será carregada aqui -->
+          </div>
+        </div>
+        <div style="background: #f3f4f6; padding: 10px; border-radius: 6px; text-align: left; font-size: 13px; color: #374151;">
+          <strong>Informações:</strong><br>
+          • Apenas simulações com dados válidos serão aplicadas<br>
+          • Registros não encontrados na tabela atual serão ignorados<br>
+          • Os dados atuais da tabela serão substituídos pelos da simulação<br>
+          • <strong>Dica:</strong> Duplo clique em uma simulação para carregar automaticamente com os filtros aplicados
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <button id="cancelLoadBtn" class="status-button" style="background-color: #6b7280; margin-right: 10px;">
+          Cancelar
+        </button>
+        <button id="confirmLoadBtn" class="status-button" style="background-color: #10b981;" disabled>
+          Carregar Simulação
+        </button>
+      </div>
     </div>
   </div>
 
@@ -2743,8 +2840,66 @@
       });
     }
 
+    // Função para carregar o usuário atual
+    async function carregarUsuarioAtual() {
+        try {
+            // Consulta SQL para obter o usuário logado
+            const sql = "SELECT (STP_GET_CODUSULOGADO) AS CODUSU FROM DUAL";
+            
+            // Usar JX.consultar para executar a consulta
+            const resultado = await JX.consultar(sql);
+            
+            if (resultado && resultado.length > 0) {
+                const codigoUsuario = resultado[0].CODUSU;
+                console.log('Usuário atual:', codigoUsuario);
+                
+                // Armazenar o código do usuário em uma variável global
+                window.usuarioAtual = codigoUsuario;
+                
+                // Exibir o usuário na página
+                const usuarioDisplay = document.getElementById('usuario-display');
+                if (usuarioDisplay) {
+                    usuarioDisplay.textContent = `Usuário: ${codigoUsuario}`;
+                }
+                
+                return codigoUsuario;
+            } else {
+                console.error('Não foi possível obter o usuário atual');
+                const usuarioDisplay = document.getElementById('usuario-display');
+                if (usuarioDisplay) {
+                    usuarioDisplay.textContent = 'Usuário: N/A';
+                }
+                return null;
+            }
+        } catch (erro) {
+            console.error('Erro ao carregar usuário atual:', erro);
+            const usuarioDisplay = document.getElementById('usuario-display');
+            if (usuarioDisplay) {
+                usuarioDisplay.textContent = 'Usuário: Erro';
+            }
+            return null;
+        }
+    }
+
+    // Função para obter o usuário atual do cabeçalho da tela
+    function obterUsuarioAtual() {
+        const usuarioDisplay = document.getElementById('usuario-display');
+        if (usuarioDisplay) {
+            const textoUsuario = usuarioDisplay.textContent;
+            // Extrair o código do usuário do texto "Usuário: XXXX"
+            const match = textoUsuario.match(/Usuário:\s*(\d+)/);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        return null;
+    }
+
     // Inicialização quando a página carregar
     document.addEventListener('DOMContentLoaded', function() {
+      // Carregar usuário atual
+      carregarUsuarioAtual();
+      
       // Carregar dados iniciais
       carregarEmpresas();
       carregarParceiros();
@@ -3152,6 +3307,577 @@ function hideStatusOverlay() {
     // Close button event listener
     document.getElementById('statusCloseBtn').addEventListener('click', hideStatusOverlay);
 
+    // Event listener para o botão "Salvar Simulação"
+    document.getElementById('saveSimulationBtn').addEventListener('click', async function() {
+      // Verificar se há dados na tabela
+      const tableData = collectTableDataForSimulation();
+      
+      if (tableData.length === 0) {
+        showStatusOverlay('Aviso', 'Nenhum dado encontrado na tabela para salvar. Execute uma consulta primeiro.', 'error');
+        return;
+      }
+      
+      // Preparar e mostrar modal de descrição
+      await showDescriptionModal(tableData);
+    });
+
+    // Event listener para o botão "Carregar Simulação"
+    document.getElementById('loadSimulationBtn').addEventListener('click', async function() {
+      // Mostrar modal de seleção de simulação
+      await showLoadSimulationModal();
+    });
+
+    // Função para mostrar modal de descrição
+    async function showDescriptionModal(tableData) {
+      const modal = document.getElementById('descriptionModal');
+      const textarea = document.getElementById('simulationDescription');
+      const charCount = document.getElementById('charCount');
+      const recordCount = document.getElementById('recordCount');
+      const currentUser = document.getElementById('currentUser');
+      const currentDateTime = document.getElementById('currentDateTime');
+      
+      // Limpar textarea
+      textarea.value = '';
+      charCount.textContent = '0';
+      
+      // Preencher informações
+      recordCount.textContent = tableData.length;
+      currentUser.textContent = obterUsuarioAtual() || window.usuarioAtual || 'N/A';
+      currentDateTime.textContent = new Date().toLocaleString('pt-BR');
+      
+      // Mostrar modal
+      modal.style.display = 'flex';
+      
+      // Focar no textarea
+      setTimeout(() => {
+        textarea.focus();
+      }, 100);
+      
+      // Event listener para contador de caracteres
+      textarea.addEventListener('input', function() {
+        const length = this.value.length;
+        charCount.textContent = length;
+        
+        // Mudar cor se exceder limite
+        if (length > 450) {
+          charCount.style.color = '#ef4444';
+        } else {
+          charCount.style.color = '#6b7280';
+        }
+      });
+      
+      // Retornar Promise que resolve com a descrição ou rejeita se cancelado
+      return new Promise((resolve, reject) => {
+        // Event listener para botão confirmar
+        document.getElementById('confirmDescriptionBtn').onclick = async function() {
+          const descricao = textarea.value.trim();
+          
+          if (!descricao) {
+            showStatusOverlay('Aviso', 'É obrigatório informar uma descrição para a simulação.', 'error');
+            return;
+          }
+          
+          // Esconder modal
+          modal.style.display = 'none';
+          
+          // Desabilitar botão durante o processo
+          const btn = document.getElementById('saveSimulationBtn');
+          btn.disabled = true;
+
+          try {
+            // Mostrar overlay de processamento
+            showStatusOverlay('Processando...', 'Salvando simulação no banco de dados...', 'processing');
+
+            // PRIMEIRO INSERT: Obter próximo código da tabela AD_SIMCAB
+            const nextCodigo = await getNextCodigoSimCab();
+            
+            // Obter usuário atual do cabeçalho da tela
+            const codusu = obterUsuarioAtual() || window.usuarioAtual || await carregarUsuarioAtual();
+            
+            if (!codusu) {
+              throw new Error('Não foi possível obter o usuário atual');
+            }
+
+            // Função para formatar data no formato DD/MM/YYYY HH:MM
+            function formatDateForDHSIM(date) {
+              const day = String(date.getDate()).padStart(2, '0');
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const year = date.getFullYear();
+              const hours = String(date.getHours()).padStart(2, '0');
+              const minutes = String(date.getMinutes()).padStart(2, '0');
+              return `${day}/${month}/${year} ${hours}:${minutes}`;
+            }
+
+            // Inserir na tabela AD_SIMCAB
+            const simCabRecord = {
+              CODIGO: nextCodigo,
+              CODUSU: codusu.toString(),
+              DHSIM: formatDateForDHSIM(new Date()), // Formato DD/MM/YYYY HH:MM
+              DESCRICAO: descricao,
+              CODEMP: document.getElementById('empresaSelect').value,
+              PERIODO: document.getElementById('periodoInput').value // Período de referência do filtro
+            };
+
+            await JX.salvar(simCabRecord, 'AD_SIMCAB');
+            console.log(`Registro AD_SIMCAB salvo com código: ${nextCodigo}`);
+
+            // SEGUNDO INSERT: Inserir registros na tabela AD_SIMITE
+            let registrosInseridos = 0;
+            
+            for (const item of tableData) {
+              const nextId = await getNextIdSimIte();
+              
+              const simIteRecord = {
+                ID: nextId,
+                CODIGO: nextCodigo,
+                NUTAB: item.NUTAB || '',
+                CODTAB: item.CODTAB || '',
+                CODPROD: item.CODPROD || '',
+                MARGEM: item.NOVA_MARGEM || '',
+                PRECO: item.NOVO_PRECO || '',
+                DTVIGOR: item.NOVA_DTVIGOR || ''
+              };
+
+              await JX.salvar(simIteRecord, 'AD_SIMITE');
+              registrosInseridos++;
+              console.log(`Registro AD_SIMITE ${nextId} salvo com sucesso.`);
+            }
+
+            showStatusOverlay('Sucesso', `Simulação salva com sucesso!\n\nCódigo da simulação: ${nextCodigo}\nDescrição: ${descricao}\nRegistros salvos: ${registrosInseridos}`, 'success');
+
+          } catch (error) {
+            console.error('Erro ao salvar simulação:', error);
+            showStatusOverlay('Erro', `Erro ao salvar simulação: ${error.message}`, 'error');
+          } finally {
+            btn.disabled = false;
+          }
+        };
+        
+        // Event listener para botão cancelar
+        document.getElementById('cancelDescriptionBtn').onclick = function() {
+          modal.style.display = 'none';
+          reject(new Error('Operação cancelada pelo usuário'));
+        };
+        
+        // Event listener para tecla Escape
+        document.addEventListener('keydown', function escapeHandler(event) {
+          if (event.key === 'Escape') {
+            document.removeEventListener('keydown', escapeHandler);
+            modal.style.display = 'none';
+            reject(new Error('Operação cancelada pelo usuário'));
+          }
+        });
+      });
+    }
+
+    // Função para coletar dados da tabela para simulação
+    function collectTableDataForSimulation() {
+      const table = document.getElementById('dataTable');
+      const rows = table.querySelectorAll('tbody tr');
+      const data = [];
+      
+      rows.forEach(row => {
+        // Only process visible rows (not filtered out)
+        if (row.style.display === 'none') {
+          return;
+        }
+        
+        const cells = row.cells;
+        const priceInput = row.querySelector('.row-price');
+        const marginInput = row.querySelector('.row-margin');
+        const dtVigorInput = row.querySelector('.row-dtvigor');
+        
+        // Só incluir se pelo menos um dos campos editáveis tiver valor
+        if ((priceInput && priceInput.value.trim()) || 
+            (marginInput && marginInput.value.trim()) || 
+            (dtVigorInput && dtVigorInput.value.trim())) {
+          
+          const rowData = {
+            NUTAB: cells[0].textContent.trim(),
+            CODTAB: cells[1].textContent.trim(),
+            CODPROD: cells[3].textContent.trim(),
+            NOVA_MARGEM: marginInput ? marginInput.value.trim() : '',
+            NOVO_PRECO: priceInput ? priceInput.value.trim() : '',
+            NOVA_DTVIGOR: dtVigorInput ? dtVigorInput.value.trim() : ''
+          };
+          
+          data.push(rowData);
+        }
+      });
+      
+      return data;
+    }
+
+    // Função para obter próximo código da tabela AD_SIMCAB
+    async function getNextCodigoSimCab() {
+      try {
+        const result = await JX.consultar('SELECT MAX(CODIGO) AS MAXCODIGO FROM AD_SIMCAB');
+        const maxCodigo = result?.[0]?.MAXCODIGO || 0;
+        return parseInt(maxCodigo, 10) + 1;
+      } catch (error) {
+        console.error('Erro ao obter próximo código AD_SIMCAB:', error);
+        throw new Error('Erro ao obter próximo código da simulação');
+      }
+    }
+
+    // Função para obter próximo ID da tabela AD_SIMITE
+    async function getNextIdSimIte() {
+      try {
+        const result = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_SIMITE');
+        const maxId = result?.[0]?.MAXID || 0;
+        return parseInt(maxId, 10) + 1;
+      } catch (error) {
+        console.error('Erro ao obter próximo ID AD_SIMITE:', error);
+        throw new Error('Erro ao obter próximo ID do item da simulação');
+      }
+    }
+
+    // Função para mostrar modal de carregamento de simulação
+    async function showLoadSimulationModal() {
+      const modal = document.getElementById('loadSimulationModal');
+      const simulationList = document.getElementById('simulationList');
+      const simulationCount = document.getElementById('simulationCount');
+      const confirmLoadBtn = document.getElementById('confirmLoadBtn');
+      
+      // Limpar lista anterior
+      simulationList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;"><i class="fas fa-spinner fa-spin"></i> Carregando simulações...</div>';
+      
+      // Mostrar modal
+      modal.style.display = 'flex';
+      
+      try {
+        // Carregar simulações do banco
+        const simulations = await loadSimulations();
+        
+        // Atualizar contador
+        simulationCount.textContent = simulations.length;
+        
+        // Renderizar lista de simulações
+        renderSimulationList(simulations);
+        
+        // Habilitar botão de confirmação se houver simulações
+        confirmLoadBtn.disabled = simulations.length === 0;
+        
+      } catch (error) {
+        console.error('Erro ao carregar simulações:', error);
+        simulationList.innerHTML = '<div style="padding: 20px; text-align: center; color: #ef4444;"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar simulações</div>';
+        simulationCount.textContent = '0';
+        confirmLoadBtn.disabled = true;
+      }
+      
+      // Retornar Promise que resolve com a simulação selecionada ou rejeita se cancelado
+      return new Promise((resolve, reject) => {
+        let selectedSimulation = null;
+        
+        // Event listener para botão confirmar
+        document.getElementById('confirmLoadBtn').onclick = async function() {
+          if (!selectedSimulation) {
+            showStatusOverlay('Aviso', 'Por favor, selecione uma simulação para carregar.', 'error');
+            return;
+          }
+          
+          // Esconder modal
+          modal.style.display = 'none';
+          
+          // Desabilitar botão durante o processo
+          const btn = document.getElementById('loadSimulationBtn');
+          btn.disabled = true;
+
+          try {
+            // Mostrar overlay de processamento
+            showStatusOverlay('Processando...', 'Carregando dados da simulação...', 'processing');
+
+            // Carregar dados da simulação selecionada
+            await loadSimulationData(selectedSimulation.CODIGO);
+            
+                         // Aplicar filtros da simulação
+             const empresaSelect = document.getElementById('empresaSelect');
+             const periodoInput = document.getElementById('periodoInput');
+             
+             if (empresaSelect && selectedSimulation.CODEMP) {
+               empresaSelect.value = selectedSimulation.CODEMP;
+             }
+             
+             if (periodoInput && selectedSimulation.PERIODO) {
+               periodoInput.value = selectedSimulation.PERIODO;
+             }
+             
+             // Carregar dados da simulação selecionada
+             const simulationData = await loadSimulationData(selectedSimulation.CODIGO);
+             
+             // Se não há dados na tabela, executar consulta primeiro
+             if (!currentTableData || currentTableData.length === 0) {
+               await listarResumoMaterial();
+             } else {
+               // Aplicar dados da simulação na tabela atual
+               applySimulationDataToTable(simulationData);
+             }
+            
+            showStatusOverlay('Sucesso', `Simulação carregada com sucesso!\n\nCódigo: ${selectedSimulation.CODIGO}\nDescrição: ${selectedSimulation.DESCRICAO}`, 'success');
+
+          } catch (error) {
+            console.error('Erro ao carregar simulação:', error);
+            showStatusOverlay('Erro', `Erro ao carregar simulação: ${error.message}`, 'error');
+          } finally {
+            btn.disabled = false;
+          }
+        };
+        
+        // Event listener para botão cancelar
+        document.getElementById('cancelLoadBtn').onclick = function() {
+          modal.style.display = 'none';
+          reject(new Error('Operação cancelada pelo usuário'));
+        };
+        
+        // Event listener para tecla Escape
+        document.addEventListener('keydown', function escapeHandler(event) {
+          if (event.key === 'Escape') {
+            document.removeEventListener('keydown', escapeHandler);
+            modal.style.display = 'none';
+            reject(new Error('Operação cancelada pelo usuário'));
+          }
+        });
+        
+        // Função para selecionar simulação
+        window.selectSimulation = function(simulation) {
+          selectedSimulation = simulation;
+          
+          // Atualizar seleção visual
+          document.querySelectorAll('.simulation-item').forEach(item => {
+            item.classList.remove('selected');
+          });
+          
+          // Adicionar classe selected ao item clicado
+          const clickedItem = document.querySelector(`[data-codigo="${simulation.CODIGO}"]`);
+          if (clickedItem) {
+            clickedItem.classList.add('selected');
+          }
+          
+          // Habilitar botão de confirmação
+          document.getElementById('confirmLoadBtn').disabled = false;
+        };
+      });
+    }
+
+    // Função para carregar simulações do banco
+    async function loadSimulations() {
+      const sql = `
+        SELECT 
+          cab.CODUSU, 
+          usu.NOMEUSU,
+          cab.DHSIM,
+          cab.DESCRICAO,
+          cab.CODEMP,
+          emp.NOMEFANTASIA,
+          cab.PERIODO
+        FROM AD_SIMCAB cab
+        INNER JOIN TSIUSU usu ON TO_NUMBER(cab.CODUSU) = usu.CODUSU
+        INNER JOIN TSIEMP emp ON cab.CODEMP = emp.CODEMP
+        ORDER BY cab.DHSIM DESC
+      `;
+      
+      const result = await JX.consultar(sql);
+      return result || [];
+    }
+
+    // Função para renderizar lista de simulações
+    function renderSimulationList(simulations) {
+      const simulationList = document.getElementById('simulationList');
+      
+      if (simulations.length === 0) {
+        simulationList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;"><i class="fas fa-info-circle"></i> Nenhuma simulação encontrada</div>';
+        return;
+      }
+      
+      simulationList.innerHTML = '';
+      
+      simulations.forEach(simulation => {
+        const item = document.createElement('div');
+        item.className = 'simulation-item';
+        item.setAttribute('data-codigo', simulation.CODIGO);
+        item.setAttribute('data-codemp', simulation.CODEMP);
+        item.setAttribute('data-periodo', simulation.PERIODO);
+        item.onclick = () => selectSimulation(simulation);
+        item.ondblclick = () => loadSimulationWithFilters(simulation);
+        
+        // Formatar data/hora
+        const dhSim = simulation.DHSIM ? new Date(simulation.DHSIM) : new Date();
+        const formattedDate = dhSim.toLocaleString('pt-BR');
+        
+        item.innerHTML = `
+          <div style="padding: 12px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: background-color 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div style="font-weight: 600; color: #374151; font-size: 13px;">
+                Código: ${simulation.CODIGO}
+              </div>
+              <div style="font-size: 11px; color: #6b7280;">
+                ${formattedDate}
+              </div>
+            </div>
+            <div style="margin-bottom: 6px; font-size: 12px; color: #374151;">
+              <strong>Descrição:</strong> ${simulation.DESCRICAO}
+            </div>
+            <div style="font-size: 11px; color: #6b7280;">
+              <strong>Usuário:</strong> ${simulation.NOMEUSU} (${simulation.CODUSU}) | 
+              <strong>Empresa:</strong> ${simulation.NOMEFANTASIA} (${simulation.CODEMP}) | 
+              <strong>Período:</strong> ${simulation.PERIODO}
+            </div>
+            <div style="font-size: 10px; color: #9ca3af; margin-top: 4px;">
+              <i class="fas fa-info-circle"></i> Clique para selecionar | Duplo clique para carregar com filtros
+            </div>
+          </div>
+        `;
+        
+        simulationList.appendChild(item);
+      });
+      
+      // Adicionar estilos CSS para seleção
+      const style = document.createElement('style');
+      style.textContent = `
+        .simulation-item:hover {
+          background-color: #f3f4f6;
+        }
+        .simulation-item.selected {
+          background-color: #dbeafe;
+          border-left: 3px solid #3b82f6;
+        }
+        .simulation-item.selected:hover {
+          background-color: #bfdbfe;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Função para carregar dados de uma simulação específica
+    async function loadSimulationData(codigo) {
+      const sql = `
+        SELECT 
+          ID,
+          CODIGO,
+          NUTAB,
+          CODTAB,
+          CODPROD,
+          MARGEM,
+          PRECO,
+          DTVIGOR
+        FROM AD_SIMITE
+        WHERE CODIGO = ${codigo}
+        ORDER BY ID
+      `;
+      
+      const result = await JX.consultar(sql);
+      return result || [];
+    }
+
+    // Função para carregar simulação com filtros (duplo clique)
+    async function loadSimulationWithFilters(simulation) {
+      try {
+        // Fechar modal
+        document.getElementById('loadSimulationModal').style.display = 'none';
+        
+        // Desabilitar botão durante o processo
+        const btn = document.getElementById('loadSimulationBtn');
+        btn.disabled = true;
+
+        // Mostrar overlay de processamento
+        showStatusOverlay('Processando...', 'Carregando simulação com filtros...', 'processing');
+
+        // Aplicar filtros da simulação
+        const empresaSelect = document.getElementById('empresaSelect');
+        const periodoInput = document.getElementById('periodoInput');
+        
+        if (empresaSelect && simulation.CODEMP) {
+          empresaSelect.value = simulation.CODEMP;
+        }
+        
+        if (periodoInput && simulation.PERIODO) {
+          periodoInput.value = simulation.PERIODO;
+        }
+        
+        // Executar consulta automaticamente
+        await listarResumoMaterial();
+        
+        // Aguardar um pouco para garantir que a tabela foi renderizada
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Carregar dados da simulação selecionada
+        const simulationData = await loadSimulationData(simulation.CODIGO);
+        
+        // Aplicar dados da simulação na tabela
+        if (simulationData && simulationData.length > 0) {
+          applySimulationDataToTable(simulationData);
+        }
+        
+        showStatusOverlay('Sucesso', `Simulação carregada com sucesso!\n\nCódigo: ${simulation.CODIGO}\nDescrição: ${simulation.DESCRICAO}\nFiltros aplicados automaticamente.`, 'success');
+
+      } catch (error) {
+        console.error('Erro ao carregar simulação com filtros:', error);
+        showStatusOverlay('Erro', `Erro ao carregar simulação: ${error.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Função para aplicar dados da simulação na tabela
+    function applySimulationDataToTable(simulationData) {
+      const table = document.getElementById('dataTable');
+      const rows = table.querySelectorAll('tbody tr');
+      
+      // Criar mapa dos dados da simulação por CODTAB e CODPROD
+      const simulationMap = new Map();
+      simulationData.forEach(item => {
+        const key = `${item.CODTAB}_${item.CODPROD}`;
+        simulationMap.set(key, item);
+      });
+      
+      // Aplicar dados na tabela
+      rows.forEach(row => {
+        const cells = row.cells;
+        const codtab = cells[1].textContent.trim(); // Código da tabela
+        const codprod = cells[3].textContent.trim(); // Código do produto
+        
+        const key = `${codtab}_${codprod}`;
+        const simulationItem = simulationMap.get(key);
+        
+        if (simulationItem) {
+          // Aplicar preço
+          const priceInput = row.querySelector('.row-price');
+          if (priceInput && simulationItem.PRECO) {
+            priceInput.value = simulationItem.PRECO;
+            // Atualizar margem automaticamente
+            const custo = parseFloat(priceInput.dataset.custo);
+            const price = parseFloat(simulationItem.PRECO);
+            const rowMargin = row.querySelector('.row-margin');
+            if (rowMargin && !isNaN(price) && !isNaN(custo)) {
+              rowMargin.value = calcMargin(price, custo);
+            }
+            // Atualizar seta de preço
+            updatePriceArrow(priceInput);
+          }
+          
+          // Aplicar margem (se não foi calculada automaticamente)
+          const marginInput = row.querySelector('.row-margin');
+          if (marginInput && simulationItem.MARGEM && !marginInput.value) {
+            marginInput.value = simulationItem.MARGEM;
+            // Atualizar preço automaticamente
+            const custo = parseFloat(marginInput.dataset.custo);
+            const margin = parseFloat(simulationItem.MARGEM);
+            const rowPrice = row.querySelector('.row-price');
+            if (rowPrice && !isNaN(margin) && !isNaN(custo)) {
+              rowPrice.value = calcPrice(margin, custo);
+              updatePriceArrow(rowPrice);
+            }
+          }
+          
+          // Aplicar data de vigor
+          const dtVigorInput = row.querySelector('.row-dtvigor');
+          if (dtVigorInput && simulationItem.DTVIGOR) {
+            dtVigorInput.value = simulationItem.DTVIGOR;
+          }
+        }
+      });
+    }
+
     // Table filtering functionality
     const tableFilter = document.getElementById('tableFilter');
     const dataTable = document.getElementById('dataTable');
@@ -3185,6 +3911,8 @@ function hideStatusOverlay() {
 
     // Add event listener for real-time filtering
     tableFilter.addEventListener('input', filterTable);
+
+
 </script>
 </body>
 </html>

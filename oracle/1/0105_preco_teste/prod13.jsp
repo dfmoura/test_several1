@@ -1024,6 +1024,12 @@
     </div>
     <h1 class="header-title">Simulação de Preço</h1>
     <div class="header-actions">
+      <button id="loadSimulationBtn" class="header-btn" title="Carregar Simulação">
+        <i class="fas fa-folder-open"></i>
+      </button>
+      <button id="saveSimulationBtn" class="header-btn" title="Salvar Simulação">
+        <i class="fas fa-save"></i>
+      </button>
       <button id="exportToExcelBtn" class="header-btn" title="Exportar para Excel">
         <i class="fas fa-file-excel"></i>
       </button>
@@ -3185,6 +3191,219 @@ function hideStatusOverlay() {
 
     // Add event listener for real-time filtering
     tableFilter.addEventListener('input', filterTable);
+
+    // Event listeners for simulation buttons
+    document.getElementById('saveSimulationBtn').addEventListener('click', function() {
+      saveCurrentSimulation();
+    });
+
+    document.getElementById('loadSimulationBtn').addEventListener('click', function() {
+      loadSimulation();
+    });
+
+    // Function to save current simulation
+    function saveCurrentSimulation() {
+      const simulationData = {
+        empresa: document.getElementById('empresaSelect').value,
+        periodo: document.getElementById('periodoInput').value,
+        parceiro: document.getElementById('parceiroSelect').value,
+        tableData: collectTableDataForSimulation(),
+        filters: {
+          selectedBrands: selectedBrands,
+          selectedPriceTables: selectedPriceTables
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      try {
+        // Save to localStorage
+        const simulations = JSON.parse(localStorage.getItem('simulacoes') || '[]');
+        const simulationName = `Simulação_${new Date().toLocaleString('pt-BR')}`;
+        
+        simulations.push({
+          name: simulationName,
+          data: simulationData
+        });
+
+        // Keep only the last 10 simulations
+        if (simulations.length > 10) {
+          simulations.splice(0, simulations.length - 10);
+        }
+
+        localStorage.setItem('simulacoes', JSON.stringify(simulations));
+        
+        showStatusOverlay('Sucesso', 'Simulação salva com sucesso!', 'success');
+      } catch (error) {
+        console.error('Erro ao salvar simulação:', error);
+        showStatusOverlay('Erro', 'Erro ao salvar simulação. Verifique o console para detalhes.', 'error');
+      }
+    }
+
+    // Function to load simulation
+    function loadSimulation() {
+      try {
+        const simulations = JSON.parse(localStorage.getItem('simulacoes') || '[]');
+        
+        if (simulations.length === 0) {
+          showStatusOverlay('Aviso', 'Nenhuma simulação salva encontrada.', 'error');
+          return;
+        }
+
+        // Create modal for simulation selection
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 10000;
+        `;
+
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+          background: white;
+          border-radius: 8px;
+          padding: 20px;
+          max-width: 500px;
+          width: 90%;
+          max-height: 80vh;
+          overflow-y: auto;
+        `;
+
+        modalContent.innerHTML = `
+          <h3 style="margin-bottom: 15px; color: #333; font-size: 16px;">Selecionar Simulação</h3>
+          <div style="margin-bottom: 15px;">
+            ${simulations.map((sim, index) => `
+              <div style="padding: 10px; border: 1px solid #ddd; margin-bottom: 8px; border-radius: 4px; cursor: pointer; hover: background-color: #f5f5f5;" 
+                   onclick="loadSelectedSimulation(${index})">
+                <div style="font-weight: bold; color: #333;">${sim.name}</div>
+                <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                  Empresa: ${sim.data.empresa || 'N/A'} | 
+                  Período: ${sim.data.periodo || 'N/A'} | 
+                  Parceiro: ${sim.data.parceiro || 'Todos'}
+                </div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">
+                  ${new Date(sim.data.timestamp).toLocaleString('pt-BR')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="text-align: right;">
+            <button onclick="closeSimulationModal()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancelar</button>
+          </div>
+        `;
+
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+
+        // Add global functions for modal interaction
+        window.loadSelectedSimulation = function(index) {
+          const simulations = JSON.parse(localStorage.getItem('simulacoes') || '[]');
+          const simulation = simulations[index];
+          
+          if (simulation) {
+            // Load form data
+            document.getElementById('empresaSelect').value = simulation.data.empresa || '';
+            document.getElementById('periodoInput').value = simulation.data.periodo || '';
+            document.getElementById('parceiroSelect').value = simulation.data.parceiro || '';
+            document.getElementById('parceiroDisplay').textContent = simulation.data.parceiro ? 
+              allParceiros.find(p => p.CODPARC == simulation.data.parceiro)?.PARCEIRO || 'Selecione' : 'Todos os parceiros';
+
+            // Load table data
+            if (simulation.data.tableData && simulation.data.tableData.length > 0) {
+              loadTableDataFromSimulation(simulation.data.tableData);
+            }
+
+            // Load filters
+            if (simulation.data.filters) {
+              selectedBrands = simulation.data.filters.selectedBrands || [];
+              selectedPriceTables = simulation.data.filters.selectedPriceTables || [];
+            }
+
+            closeSimulationModal();
+            showStatusOverlay('Sucesso', 'Simulação carregada com sucesso!', 'success');
+          }
+        };
+
+        window.closeSimulationModal = function() {
+          if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+          }
+        };
+
+      } catch (error) {
+        console.error('Erro ao carregar simulações:', error);
+        showStatusOverlay('Erro', 'Erro ao carregar simulações. Verifique o console para detalhes.', 'error');
+      }
+    }
+
+    // Function to collect table data for simulation
+    function collectTableDataForSimulation() {
+      const table = document.getElementById('dataTable');
+      const rows = table.querySelectorAll('tbody tr');
+      const data = [];
+      
+      rows.forEach(row => {
+        if (row.style.display === 'none') {
+          return;
+        }
+        
+        const cells = row.cells;
+        const priceInput = row.querySelector('.row-price');
+        const marginInput = row.querySelector('.row-margin');
+        const dtVigorInput = row.querySelector('.row-dtvigor');
+        
+        const rowData = {
+          numeroTabela: cells[0].textContent.trim(),
+          codigoTabela: cells[1].textContent.trim(),
+          codigoProduto: cells[3].textContent.trim(),
+          novoPreco: priceInput ? priceInput.value : '',
+          novaMargem: marginInput ? marginInput.value : '',
+          dataVigor: dtVigorInput ? dtVigorInput.value : ''
+        };
+        
+        data.push(rowData);
+      });
+      
+      return data;
+    }
+
+    // Function to load table data from simulation
+    function loadTableDataFromSimulation(simulationData) {
+      const rows = document.querySelectorAll('#dataTable tbody tr');
+      
+      rows.forEach(row => {
+        const cells = row.cells;
+        const codigoProduto = cells[3].textContent.trim();
+        const codigoTabela = cells[1].textContent.trim();
+        
+        // Find matching simulation data
+        const simData = simulationData.find(item => 
+          item.codigoProduto === codigoProduto && 
+          item.codigoTabela === codigoTabela
+        );
+        
+        if (simData) {
+          const priceInput = row.querySelector('.row-price');
+          const marginInput = row.querySelector('.row-margin');
+          const dtVigorInput = row.querySelector('.row-dtvigor');
+          
+          if (priceInput) priceInput.value = simData.novoPreco || '';
+          if (marginInput) marginInput.value = simData.novaMargem || '';
+          if (dtVigorInput) dtVigorInput.value = simData.dataVigor || '';
+          
+          // Update price arrow if price was loaded
+          if (priceInput && simData.novoPreco) {
+            updatePriceArrow(priceInput);
+          }
+        }
+      });
+    }
 </script>
 </body>
 </html>

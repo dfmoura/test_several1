@@ -1024,6 +1024,17 @@
     </div>
     <h1 class="header-title">Simulação de Preço</h1>
     <div class="header-actions">
+      <!-- Campo de usuário atual -->
+      <div id="usuario-info" class="text-white text-xs mr-4 px-3 py-1 bg-white bg-opacity-20 rounded border border-white border-opacity-30">
+        <i class="fas fa-user mr-1"></i>
+        <span id="usuario-display">Carregando usuário...</span>
+      </div>
+      <button id="loadSimulationBtn" class="header-btn" title="Carregar Simulação">
+        <i class="fas fa-folder-open"></i>
+      </button>
+      <button id="saveSimulationBtn" class="header-btn" title="Salvar Simulação">
+        <i class="fas fa-save"></i>
+      </button>
       <button id="exportToExcelBtn" class="header-btn" title="Exportar para Excel">
         <i class="fas fa-file-excel"></i>
       </button>
@@ -1293,6 +1304,91 @@
       <div id="statusTitle" class="status-title"></div>
       <div id="statusMessage" class="status-message"></div>
       <button id="statusCloseBtn" class="status-button">OK</button>
+    </div>
+  </div>
+
+  <!-- Modal para descrição da simulação -->
+  <div id="descriptionModal" class="status-overlay">
+    <div class="status-content" style="max-width: 500px;">
+      <div class="status-icon success">
+        <i class="fas fa-save"></i>
+      </div>
+      <div class="status-title">Salvar Simulação</div>
+      <div class="status-message">
+        <p style="margin-bottom: 15px; text-align: left; color: #374151;">
+          Digite uma descrição para esta simulação. Esta descrição ajudará a identificar a simulação posteriormente.
+        </p>
+        <div style="margin-bottom: 15px;">
+          <label for="simulationDescription" style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151; text-align: left;">
+            Descrição da Simulação: *
+          </label>
+          <textarea 
+            id="simulationDescription" 
+            placeholder="Ex: Simulação de preços para produtos da marca X - Janeiro 2024"
+            style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; min-height: 80px; resize: vertical; font-family: inherit;"
+            maxlength="500"
+          ></textarea>
+          <div style="text-align: right; margin-top: 5px; font-size: 12px; color: #6b7280;">
+            <span id="charCount">0</span>/500 caracteres
+          </div>
+        </div>
+        <div style="background: #f3f4f6; padding: 10px; border-radius: 6px; text-align: left; font-size: 13px; color: #374151;">
+          <strong>Informações da simulação:</strong><br>
+          • Registros com dados preenchidos: <span id="recordCount">0</span><br>
+          • Usuário: <span id="currentUser">-</span><br>
+          • Data/Hora: <span id="currentDateTime">-</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <button id="cancelDescriptionBtn" class="status-button" style="background-color: #6b7280; margin-right: 10px;">
+          Cancelar
+        </button>
+        <button id="confirmDescriptionBtn" class="status-button" style="background-color: #10b981;">
+          Salvar Simulação
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para selecionar simulação -->
+  <div id="loadSimulationModal" class="status-overlay">
+    <div class="status-content" style="max-width: 700px; max-height: 80vh;">
+      <div class="status-icon success">
+        <i class="fas fa-folder-open"></i>
+      </div>
+      <div class="status-title">Carregar Simulação</div>
+      <div class="status-message">
+        <p style="margin-bottom: 15px; text-align: left; color: #374151;">
+          Selecione uma simulação para carregar na tabela atual. Os dados da simulação serão aplicados aos registros correspondentes.
+        </p>
+        <div style="margin-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <label style="font-weight: 600; color: #374151;">
+              Simulações Disponíveis:
+            </label>
+            <div style="font-size: 12px; color: #6b7280;">
+              <span id="simulationCount">0</span> simulação(ões) encontrada(s)
+            </div>
+          </div>
+          <div id="simulationList" style="max-height: 300px; overflow-y: auto; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
+            <!-- Lista de simulações será carregada aqui -->
+          </div>
+        </div>
+        <div style="background: #f3f4f6; padding: 10px; border-radius: 6px; text-align: left; font-size: 13px; color: #374151;">
+          <strong>Informações:</strong><br>
+          • Apenas simulações com dados válidos serão aplicadas<br>
+          • Registros não encontrados na tabela atual serão ignorados<br>
+          • Os dados atuais da tabela serão substituídos pelos da simulação
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <button id="cancelLoadBtn" class="status-button" style="background-color: #6b7280; margin-right: 10px;">
+          Cancelar
+        </button>
+        <button id="confirmLoadBtn" class="status-button" style="background-color: #10b981;" disabled>
+          Carregar Simulação
+        </button>
+      </div>
     </div>
   </div>
 
@@ -2743,8 +2839,66 @@
       });
     }
 
+    // Função para carregar o usuário atual
+    async function carregarUsuarioAtual() {
+        try {
+            // Consulta SQL para obter o usuário logado
+            const sql = "SELECT (STP_GET_CODUSULOGADO) AS CODUSU FROM DUAL";
+            
+            // Usar JX.consultar para executar a consulta
+            const resultado = await JX.consultar(sql);
+            
+            if (resultado && resultado.length > 0) {
+                const codigoUsuario = resultado[0].CODUSU;
+                console.log('Usuário atual:', codigoUsuario);
+                
+                // Armazenar o código do usuário em uma variável global
+                window.usuarioAtual = codigoUsuario;
+                
+                // Exibir o usuário na página
+                const usuarioDisplay = document.getElementById('usuario-display');
+                if (usuarioDisplay) {
+                    usuarioDisplay.textContent = `Usuário: ${codigoUsuario}`;
+                }
+                
+                return codigoUsuario;
+            } else {
+                console.error('Não foi possível obter o usuário atual');
+                const usuarioDisplay = document.getElementById('usuario-display');
+                if (usuarioDisplay) {
+                    usuarioDisplay.textContent = 'Usuário: N/A';
+                }
+                return null;
+            }
+        } catch (erro) {
+            console.error('Erro ao carregar usuário atual:', erro);
+            const usuarioDisplay = document.getElementById('usuario-display');
+            if (usuarioDisplay) {
+                usuarioDisplay.textContent = 'Usuário: Erro';
+            }
+            return null;
+        }
+    }
+
+    // Função para obter o usuário atual do cabeçalho da tela
+    function obterUsuarioAtual() {
+        const usuarioDisplay = document.getElementById('usuario-display');
+        if (usuarioDisplay) {
+            const textoUsuario = usuarioDisplay.textContent;
+            // Extrair o código do usuário do texto "Usuário: XXXX"
+            const match = textoUsuario.match(/Usuário:\s*(\d+)/);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        return null;
+    }
+
     // Inicialização quando a página carregar
     document.addEventListener('DOMContentLoaded', function() {
+      // Carregar usuário atual
+      carregarUsuarioAtual();
+      
       // Carregar dados iniciais
       carregarEmpresas();
       carregarParceiros();
@@ -3152,6 +3306,225 @@ function hideStatusOverlay() {
     // Close button event listener
     document.getElementById('statusCloseBtn').addEventListener('click', hideStatusOverlay);
 
+    // Event listener para o botão "Salvar Simulação"
+    document.getElementById('saveSimulationBtn').addEventListener('click', async function() {
+      // Verificar se há dados na tabela
+      const tableData = collectTableDataForSimulation();
+      
+      if (tableData.length === 0) {
+        showStatusOverlay('Aviso', 'Nenhum dado encontrado na tabela para salvar. Execute uma consulta primeiro.', 'error');
+        return;
+      }
+      
+      // Preparar e mostrar modal de descrição
+      await showDescriptionModal(tableData);
+    });
+
+    // Função para mostrar modal de descrição
+    async function showDescriptionModal(tableData) {
+      const modal = document.getElementById('descriptionModal');
+      const textarea = document.getElementById('simulationDescription');
+      const charCount = document.getElementById('charCount');
+      const recordCount = document.getElementById('recordCount');
+      const currentUser = document.getElementById('currentUser');
+      const currentDateTime = document.getElementById('currentDateTime');
+      
+      // Limpar textarea
+      textarea.value = '';
+      charCount.textContent = '0';
+      
+      // Preencher informações
+      recordCount.textContent = tableData.length;
+      currentUser.textContent = obterUsuarioAtual() || window.usuarioAtual || 'N/A';
+      currentDateTime.textContent = new Date().toLocaleString('pt-BR');
+      
+      // Mostrar modal
+      modal.style.display = 'flex';
+      
+      // Focar no textarea
+      setTimeout(() => {
+        textarea.focus();
+      }, 100);
+      
+      // Event listener para contador de caracteres
+      textarea.addEventListener('input', function() {
+        const length = this.value.length;
+        charCount.textContent = length;
+        
+        // Mudar cor se exceder limite
+        if (length > 450) {
+          charCount.style.color = '#ef4444';
+        } else {
+          charCount.style.color = '#6b7280';
+        }
+      });
+      
+      // Retornar Promise que resolve com a descrição ou rejeita se cancelado
+      return new Promise((resolve, reject) => {
+        // Event listener para botão confirmar
+        document.getElementById('confirmDescriptionBtn').onclick = async function() {
+          const descricao = textarea.value.trim();
+          
+          if (!descricao) {
+            showStatusOverlay('Aviso', 'É obrigatório informar uma descrição para a simulação.', 'error');
+            return;
+          }
+          
+          // Esconder modal
+          modal.style.display = 'none';
+          
+          // Desabilitar botão durante o processo
+          const btn = document.getElementById('saveSimulationBtn');
+          btn.disabled = true;
+
+          try {
+            // Mostrar overlay de processamento
+            showStatusOverlay('Processando...', 'Salvando simulação no banco de dados...', 'processing');
+
+            // PRIMEIRO INSERT: Obter próximo código da tabela AD_SIMCAB
+            const nextCodigo = await getNextCodigoSimCab();
+            
+            // Obter usuário atual do cabeçalho da tela
+            const codusu = obterUsuarioAtual() || window.usuarioAtual || await carregarUsuarioAtual();
+            
+            if (!codusu) {
+              throw new Error('Não foi possível obter o usuário atual');
+            }
+
+            // Função para formatar data no formato DD/MM/YYYY HH:MM
+            function formatDateForDHSIM(date) {
+              const day = String(date.getDate()).padStart(2, '0');
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const year = date.getFullYear();
+              const hours = String(date.getHours()).padStart(2, '0');
+              const minutes = String(date.getMinutes()).padStart(2, '0');
+              return `${day}/${month}/${year} ${hours}:${minutes}`;
+            }
+
+            // Inserir na tabela AD_SIMCAB
+            const simCabRecord = {
+              CODIGO: nextCodigo,
+              CODUSU: codusu.toString(),
+              DHSIM: formatDateForDHSIM(new Date()), // Formato DD/MM/YYYY HH:MM
+              DESCRICAO: descricao,
+              CODEMP: document.getElementById('empresaSelect').value,
+              PERIODO: document.getElementById('periodoInput').value // Período de referência do filtro
+            };
+
+            await JX.salvar(simCabRecord, 'AD_SIMCAB');
+            console.log(`Registro AD_SIMCAB salvo com código: ${nextCodigo}`);
+
+            // SEGUNDO INSERT: Inserir registros na tabela AD_SIMITE
+            let registrosInseridos = 0;
+            
+            for (const item of tableData) {
+              const nextId = await getNextIdSimIte();
+              
+              const simIteRecord = {
+                ID: nextId,
+                CODIGO: nextCodigo,
+                NUTAB: item.NUTAB || '',
+                CODTAB: item.CODTAB || '',
+                CODPROD: item.CODPROD || '',
+                MARGEM: item.NOVA_MARGEM || '',
+                PRECO: item.NOVO_PRECO || '',
+                DTVIGOR: item.NOVA_DTVIGOR || ''
+              };
+
+              await JX.salvar(simIteRecord, 'AD_SIMITE');
+              registrosInseridos++;
+              console.log(`Registro AD_SIMITE ${nextId} salvo com sucesso.`);
+            }
+
+            showStatusOverlay('Sucesso', `Simulação salva com sucesso!\n\nCódigo da simulação: ${nextCodigo}\nDescrição: ${descricao}\nRegistros salvos: ${registrosInseridos}`, 'success');
+
+          } catch (error) {
+            console.error('Erro ao salvar simulação:', error);
+            showStatusOverlay('Erro', `Erro ao salvar simulação: ${error.message}`, 'error');
+          } finally {
+            btn.disabled = false;
+          }
+        };
+        
+        // Event listener para botão cancelar
+        document.getElementById('cancelDescriptionBtn').onclick = function() {
+          modal.style.display = 'none';
+          reject(new Error('Operação cancelada pelo usuário'));
+        };
+        
+        // Event listener para tecla Escape
+        document.addEventListener('keydown', function escapeHandler(event) {
+          if (event.key === 'Escape') {
+            document.removeEventListener('keydown', escapeHandler);
+            modal.style.display = 'none';
+            reject(new Error('Operação cancelada pelo usuário'));
+          }
+        });
+      });
+    }
+
+    // Função para coletar dados da tabela para simulação
+    function collectTableDataForSimulation() {
+      const table = document.getElementById('dataTable');
+      const rows = table.querySelectorAll('tbody tr');
+      const data = [];
+      
+      rows.forEach(row => {
+        // Only process visible rows (not filtered out)
+        if (row.style.display === 'none') {
+          return;
+        }
+        
+        const cells = row.cells;
+        const priceInput = row.querySelector('.row-price');
+        const marginInput = row.querySelector('.row-margin');
+        const dtVigorInput = row.querySelector('.row-dtvigor');
+        
+        // Só incluir se pelo menos um dos campos editáveis tiver valor
+        if ((priceInput && priceInput.value.trim()) || 
+            (marginInput && marginInput.value.trim()) || 
+            (dtVigorInput && dtVigorInput.value.trim())) {
+          
+          const rowData = {
+            NUTAB: cells[0].textContent.trim(),
+            CODTAB: cells[1].textContent.trim(),
+            CODPROD: cells[3].textContent.trim(),
+            NOVA_MARGEM: marginInput ? marginInput.value.trim() : '',
+            NOVO_PRECO: priceInput ? priceInput.value.trim() : '',
+            NOVA_DTVIGOR: dtVigorInput ? dtVigorInput.value.trim() : ''
+          };
+          
+          data.push(rowData);
+        }
+      });
+      
+      return data;
+    }
+
+    // Função para obter próximo código da tabela AD_SIMCAB
+    async function getNextCodigoSimCab() {
+      try {
+        const result = await JX.consultar('SELECT MAX(CODIGO) AS MAXCODIGO FROM AD_SIMCAB');
+        const maxCodigo = result?.[0]?.MAXCODIGO || 0;
+        return parseInt(maxCodigo, 10) + 1;
+      } catch (error) {
+        console.error('Erro ao obter próximo código AD_SIMCAB:', error);
+        throw new Error('Erro ao obter próximo código da simulação');
+      }
+    }
+
+    // Função para obter próximo ID da tabela AD_SIMITE
+    async function getNextIdSimIte() {
+      try {
+        const result = await JX.consultar('SELECT MAX(ID) AS MAXID FROM AD_SIMITE');
+        const maxId = result?.[0]?.MAXID || 0;
+        return parseInt(maxId, 10) + 1;
+      } catch (error) {
+        console.error('Erro ao obter próximo ID AD_SIMITE:', error);
+        throw new Error('Erro ao obter próximo ID do item da simulação');
+      }
+    }
+
     // Table filtering functionality
     const tableFilter = document.getElementById('tableFilter');
     const dataTable = document.getElementById('dataTable');
@@ -3185,6 +3558,8 @@ function hideStatusOverlay() {
 
     // Add event listener for real-time filtering
     tableFilter.addEventListener('input', filterTable);
+
+
 </script>
 </body>
 </html>

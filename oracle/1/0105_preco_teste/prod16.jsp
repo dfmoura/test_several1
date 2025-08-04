@@ -1024,6 +1024,17 @@
     </div>
     <h1 class="header-title">Simulação de Preço</h1>
     <div class="header-actions">
+      <!-- Campo de usuário atual -->
+      <div id="usuario-info" class="text-white text-xs mr-4 px-3 py-1 bg-white bg-opacity-20 rounded border border-white border-opacity-30">
+        <i class="fas fa-user mr-1"></i>
+        <span id="usuario-display">Carregando usuário...</span>
+      </div>
+      <button id="loadSimulationBtn" class="header-btn" title="Carregar Simulação">
+        <i class="fas fa-folder-open"></i>
+      </button>
+      <button id="saveSimulationBtn" class="header-btn" title="Salvar Simulação">
+        <i class="fas fa-save"></i>
+      </button>
       <button id="exportToExcelBtn" class="header-btn" title="Exportar para Excel">
         <i class="fas fa-file-excel"></i>
       </button>
@@ -2743,8 +2754,52 @@
       });
     }
 
+    // Função para carregar o usuário atual
+    async function carregarUsuarioAtual() {
+        try {
+            // Consulta SQL para obter o usuário logado
+            const sql = "SELECT (STP_GET_CODUSULOGADO) AS CODUSU FROM DUAL";
+            
+            // Usar JX.consultar para executar a consulta
+            const resultado = await JX.consultar(sql);
+            
+            if (resultado && resultado.length > 0) {
+                const codigoUsuario = resultado[0].CODUSU;
+                console.log('Usuário atual:', codigoUsuario);
+                
+                // Armazenar o código do usuário em uma variável global
+                window.usuarioAtual = codigoUsuario;
+                
+                // Exibir o usuário na página
+                const usuarioDisplay = document.getElementById('usuario-display');
+                if (usuarioDisplay) {
+                    usuarioDisplay.textContent = `Usuário: ${codigoUsuario}`;
+                }
+                
+                return codigoUsuario;
+            } else {
+                console.error('Não foi possível obter o usuário atual');
+                const usuarioDisplay = document.getElementById('usuario-display');
+                if (usuarioDisplay) {
+                    usuarioDisplay.textContent = 'Usuário: N/A';
+                }
+                return null;
+            }
+        } catch (erro) {
+            console.error('Erro ao carregar usuário atual:', erro);
+            const usuarioDisplay = document.getElementById('usuario-display');
+            if (usuarioDisplay) {
+                usuarioDisplay.textContent = 'Usuário: Erro';
+            }
+            return null;
+        }
+    }
+
     // Inicialização quando a página carregar
     document.addEventListener('DOMContentLoaded', function() {
+      // Carregar usuário atual
+      carregarUsuarioAtual();
+      
       // Carregar dados iniciais
       carregarEmpresas();
       carregarParceiros();
@@ -3152,6 +3207,25 @@ function hideStatusOverlay() {
     // Close button event listener
     document.getElementById('statusCloseBtn').addEventListener('click', hideStatusOverlay);
 
+    // Event listener para o botão "Salvar Simulação"
+    document.getElementById('saveSimulationBtn').addEventListener('click', function() {
+      // Verificar se o usuário realmente deseja salvar a simulação
+      const confirmacao = confirm('Deseja realmente salvar esta simulação?\n\nEsta ação irá armazenar os dados da simulação atual para uso futuro.\n\nClique "OK" para confirmar ou "Cancelar" para abortar.');
+      
+      if (!confirmacao) {
+        // Se não confirmou, fechar (não fazer nada)
+        console.log('Usuário cancelou a operação de salvar simulação');
+        return;
+      }
+      
+      // Se confirmou, continuar com a rotina (por enquanto não terá nada)
+      console.log('Usuário confirmou salvar simulação - rotina será implementada posteriormente');
+      
+      // Aqui você pode adicionar a lógica para salvar a simulação
+      // Por enquanto, apenas mostra uma mensagem de sucesso
+      showStatusOverlay('Simulação', 'Funcionalidade de salvar simulação será implementada em breve.', 'success');
+    });
+
     // Table filtering functionality
     const tableFilter = document.getElementById('tableFilter');
     const dataTable = document.getElementById('dataTable');
@@ -3185,6 +3259,14 @@ function hideStatusOverlay() {
 
     // Add event listener for real-time filtering
     tableFilter.addEventListener('input', filterTable);
+
+
+
+
+
+
+
+
 </script>
 </body>
 </html>
