@@ -1,0 +1,294 @@
+01/08/2025
+
+13 as 17 e 
+17:30 as 19
+20 as 22
+
+sem perder nada das funcionalidades atuais:
+
+mudar de local os botões
+- Exportar para Excel
+- Inserir no Banco
+para o head na barra fixa, mas continuando overlay, colocando eles no meio da metade do lado direito.
+o tamanho dos botões tem que diminuir para ficar dentro da barra
+
+A area do botao nao precisa ter um comprimento grande somente o necessario para o icone.
+
+*manter o titulo no meio 'Simulação de Preço'
+
+* botoes com 5% de distancia da margem direita
+
+------------------------
+
+
+------
+colocar 
+no arquivo atual carregar o usuario atual utlizando a bibliote SankhyaJX o metodo JX.consultar 
+
+(https://github.com/wansleynery/SankhyaJX)
+
+o usuario atual capturado com este select:
+SELECT (STP_GET_CODUSULOGADO) AS CODUSU FROM DUAL
+
+---------------------------
+
+
+no head 
+criar um botão antes do 'Exportar para Excel' no mesmo padrão dos botões criados com o intuito de salvar a simulação atual.
+criar um botão antes deste de salvar no mesmo padrão dos botões criados com o intuito de carregar a simulação atual.
+
+
+
+----
+
+antes deste botão de 'Carregar Simulação' colocar um campo que demonstra o usuario atual, utilizar como exemplo a função utilizada no arquivo teste1.jsp na pasta atual.
+
+
+
+02/08/2025 -----07 as 10
+----
+para os botoes de 'Carregar Simulação' e 'Salvar Simulação' deixar somente o html e css
+
+---
+
+o usuario ao clicar neste botao de 'Salvar Simulação' 
+
+VERICAR SE REALMENTE DESEJA SALVAR SIMULAÇÃO (SIM OU NAO)
+
+SE NAO FECHAR.
+
+SE SIM: continuar rotina que por enquanto nao tera nada.
+
+------------
+
+Melhorar o texto de verificação do sim ou nao
+
+
+-------
+
+
+Desenvolver a logo de quando o usuario escolheu 'Ok' para salvar a simulação:
+
+executar os passos a seguir:
+
+OBTENÇÃO DE DADOS DA TABELA:
+obtenção dos dados apresentaDOS atuaLmente na tabela da tela. para as colunas: NUTAB,CODTAB,CODPROD,NOVA_MARGEM,NOVO_PREÇO,NOVA_DTVIGOR
+
+
+PRIMEIRO INSERT:
+pegar o primeiro registro ou proximo registro da tabela 'AD_SIMCAB' do campo 'CODIGO'.
+com isso ele efetuara um insert na propria tabela 'AD_SIMCAB', COM ESTE CODIGO no campo CODIGO, o usario atual logado obtido COM campo CODUSU, sysdate e a descrição digitar agora (é importante que o usuario digite uma descrição valida).
+
+
+OS CAMPOS DA TABELA QUE VAI RECEBER O PRIMEIRO INSERT NA TABELA 'AD_SIMCAB':
+CODIGO	NUMBER
+CODUSU	TEXTO
+DHSIM	TEXTO
+DESCRICAO	TEXTO
+
+
+
+
+SEGUNDO INSERT:
+pegar o primeiro registro ou proximo registro da tabela 'AD_SIMITE' do campo 'ID'.
+com isso efetura os insert's utilizando o campo 'CODIGO' da tabela 'AD_SIMCAB', o 'ID' sequencial para cada registro obtido da tabela com a OBTENÇÃO DE DADOS DA TABELA.
+
+OS CAMPOS DA TABELA QUE VAI RECEBER O SEGUNDO INSERT 'AD_SIMITE':
+ID NUMBER
+CODIGO NUMBER
+NUTAB	TEXTO
+CODTAB	TEXTO
+CODPROD	TEXTO
+MARGEM	TEXTO
+PRECO	TEXTO
+DTVIGOR	TEXTO
+
+*obs: os campos de data nao precisam ser tratados pois tambem serao inseridos como texto.
+
+* muita atenção a cadencia do processo e para se fornecessario converter corretamente os tipos de dados para os insert's
+
+
+
+--------------------
+
+ao inves de utilizar o codusu carregado no overlay pegar o codusu direto feito no head da tela do html
+pois no overlay o codusu nao aparece
+
+--------------------
+
+
+03/08/2025 
+17 as 20 e 21 23:40
+
+-------------
+
+arrumar a data 
+
+
+ficou correto tudo, mas sem estraga nada verificar este ponto:
+antes de salvar na tabela 'AD_SIMCAB' o campo 'DHSIM', mesmo mantendo o ultimo formato como string, o sisdate que ele pega deve fica com DD/MM/YYYY hh:mm
+
+------
+
+colocar o codemp
+
+tudo ficou certo, mas sem estragar nada do codigo, quero que faça mais isto:
+na inserção feita na tabela 'AD_SIMCAB' incluir mais o campo 'CODEMP' com a informação obtida a partir do filtro de empresa.
+
+
+------
+
+colocar o perido que ser refere ao Periodo de Referência colocado no filtro
+
+tudo ficou certo, mas sem estragar nada do codigo, quero que faça mais isto:
+na inserção feita na tabela 'AD_SIMCAB' incluir mais o campo 'PERIODO' nesta tabela,
+o perido se refere ao Periodo de Referência e é obtido no filtro, marter o ultimo formato como string, mas antes tratar a informação como DD/MM/YYYY
+
+-----
+
+referente ao botao 'Carregar Simulação' deixar somente o html e o css o resto retirar
+
+--
+
+sem estragar o html e css, limpar com qualquer coisa relacinada a 'Carregar Simulação'
+
+so deixar esta parte:
+      <button id="loadSimulationBtn" class="header-btn" title="Carregar Simulação">
+        <i class="fas fa-folder-open"></i>
+      </button>
+
+---------------
+
+
+
+tudo ficou certo. Agora, sem estragar nada do codigo, quero que faça mais isto:
+tentar utilizar o padrao mesmo que foi foito ao clicar no 'Salvar Simulação' de abrir o overlay.
+Fazer ao apertar o botão 'Carregar Simulação', abrir uma tela no padrao do layout existente e colocar um botao para fechar.
+
+
+
+com um componente tipo tabela ou outro melhor mais inteligente contendo o select (utilizar os metodos ja existentes no codigo como exemplo JX.consultar)
+select
+cab.codusu, usu.nomeusu,cab.dhsim,cab.descricao,cab.codemp,emp.nomefantasia,cab.periodo
+from AD_SIMCAB cab
+inner join tsiusu usu on to_number(cab.codusu) = usu.codusu
+inner join tsiemp emp on cab.codemp = emp.codemp
+
+nesta tabela o usuario ao clicar duas vezes em uma das linhas
+ele ira capturar o codemp e o periodo, colocar os mesmos no filtro da tela principal, executar a consulta, a mesma função do botão consutar ... e voltar para tela principal
+
+focar somente no que foi solicitado.
+
+
+-------------------
+
+tudo ficou certo. Agora, sem estragar nada do codigo, quero que faça mais isto:
+
+para o overlay de 'Carregar Simulação' na tabela ter colocar uma coluna so com o 'codigo' e chamar codigo na tabela do select, e concatenar coduso com nomeusu e chamar usuario na tabela
+
+-------------------
+
+tudo ficou certo. Agora, sem estragar nada do codigo, quero que faça mais isto:
+preciso de um forma inteligente para encaixar na logica, referente ao 'Carregar Simulação' depois de carregar a tabela,
+de alguma forma preencher as colunas respectivas nova margem, novo preço e nova dt.vigor da tabela 
+
+utilizar o cab.codigo da AD_SIMCAB, filtrar no select a seguir
+SELECT
+ITE.CODIGO,ITE.ID,ITE.NUTAB,ITE.CODTAB, ITE.CODPROD, ITE.MARGEM,ITE.PRECO,ITE.DTVIGOR
+FROM AD_SIMITE ITE
+
+e para cada ITE.NUTAB,ITE.CODTAB, ITE.CODPROD colocar seu respectivo ITE.MARGEM,ITE.PRECO,ITE.DTVIGOR
+nas colunas de nova margem, novo preço e nova dt.vigor da tabela carregada.
+sem estragar o codigo e o que ja exite, pois esta correto.
+
+
+---------------------------------------
+
+
+paragrafo 1) 8:30 as 12:10
+
+tudo ficou certo. Agora, sem estragar nada do codigo, quero que faça mais isto:
+
+a tabela do overlay de 'Carregar Simulação', esta aumentando muito a tela a cada novo registro, 
+colocar um scroll na vertical para rolar a tabela, deixar o cabeçalho fixo, e diminuir a altura das linha da tabela
+para ficar mais compactado.
+
+
+------
+
+tudo ficou certo. Agora, sem estragar nada do codigo, quero que faça mais isto:
+a seta ao lado do novo preço nao altera o comportamento quando é digitado uma nova margem
+
+------------------------
+
+
+tudo ficou certo. Agora, sem estragar nada do codigo, quero que faça mais isto:
+Alterar o nome do botão de "Inserir no Banco" para "Efetivar Preço"
+
+--------
+
+
+tudo ficou certo. Agora, sem estragar nada do codigo, quero que faça mais isto:
+incluir o campo 'CODPARC' nos select' da AD_SIMCAB e ajustar a parte do codigo relacionada, 
+ao botao salvar simulação, que significa o parceiro.
+
+nao é um campo obrigatorio preenchimento.
+
+
+
+----------------------------
+
+paragrafo 2) 13:30 as 16:10
+
+
+tudo ficou certo. Agora, sem estragar nada do codigo, quero que faça mais isto:
+RETIRAR TUDO NO CODIGO JS CSS HTML relacionado ao botao 'Carregar Simulação'
+deixar somente este tag e o css relacionado a ela:
+      <button id="loadSimulationBtn" class="header-btn" title="Carregar Simulação">
+        <i class="fas fa-folder-open"></i>
+      </button>
+
+----------------------------
+
+
+32
+tudo ficou certo. Agora, sem estragar nada do codigo, quero que faça mais isto:
+tentar utilizar o padrao mesmo que foi foito ao clicar no 'Salvar Simulação' de abrir o overlay.
+Fazer ao apertar o botão 'Carregar Simulação', abrir uma tela no padrao do layout existente e colocar um botao para fechar.
+com um componente tipo tabela contendo o select (utilizar os metodos ja existentes no codigo como exemplo JX.consultar)
+
+select
+cab.codigo,cab.codusu, usu.nomeusu,cab.dhsim,cab.descricao,cab.codemp,emp.nomefantasia,cab.periodo,cab.codparc
+from AD_SIMCAB cab
+inner join tsiusu usu on to_number(cab.codusu) = usu.codusu
+inner join tsiemp emp on cab.codemp = emp.codemp
+
+nesta tabela o usuario ao clicar duas vezes em uma das linhas
+ele ira capturar o codemp, o periodo e o codparc, e colocar os mesmos no filtro da tela principal, executar a consulta, a mesma função do botão consutar ... e voltar para tela principal
+
+focar somente no que foi solicitado.
+
+
+
+----------------------------------------------------
+
+paragrafo 3) 16:30 as 20:30
+
+
+33
+
+tudo ficou certo. Agora, sem estragar nada do codigo, quero que faça mais isto:
+preciso de um forma inteligente para encaixar na logica, referente ao 'Carregar Simulação' depois de carregar a tabela,
+de alguma forma preencher as colunas respectivas nova margem, novo preço e nova dt.vigor da tabela 
+
+utilizar o cab.codigo da AD_SIMCAB, filtrar no select a seguir
+SELECT
+ITE.CODIGO,ITE.ID,ITE.NUTAB,ITE.CODTAB, ITE.CODPROD, ITE.MARGEM,ITE.PRECO,ITE.DTVIGOR
+FROM AD_SIMITE ITE
+
+e para cada ITE.NUTAB,ITE.CODTAB, ITE.CODPROD colocar seu respectivo ITE.MARGEM,ITE.PRECO,ITE.DTVIGOR
+nas colunas de nova margem, novo preço e nova dt.vigor da tabela carregada.
+sem estragar o codigo e o que ja exite, pois esta correto.
+
+
+

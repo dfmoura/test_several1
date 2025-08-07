@@ -1,0 +1,29 @@
+preciso criar uma sistema de solicitaçoes de atividades de desenvolvimento de sistemas
+o foco deste sistema sera um usuario (funcionario de uma empresa de representando uma determinada ou diversas area(s) da empresa)
+entrar no sistema e submeter uma determainada solicitação
+cada solcitação recebida será processada e informado o custo e o prazo de entrega.
+o usuario ira aprovar, custo e prazo
+e seguiremos para executar
+
+
+
+
+uma tela de login
+com 
+empresa
+usuario
+senha
+cadastro da empresa com e usario associado a empresa e senha para o usuario
+
+
+uma tela de solicitação que possibilite cadastrar / atualizar / excluir socilicitação
+na visao completa para o usuario
+
+
+uma tela para gerir a solicitação para os executantes com visao completa para executante
+
+
+
+UTILIZAR JS HTML CSS
+E PERSISTIR OS DADOS NO BANCO EXISTENTE.... POSTGREES:
+e8316ac757e0   postgres:latest     "docker-entrypoint.s…"   4 months ago   Up 16 hours   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp                                                postgres-container

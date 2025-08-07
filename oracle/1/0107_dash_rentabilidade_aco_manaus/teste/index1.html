@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Rentabilidade - Ações Manaus</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .search-section {
+            padding: 40px 30px;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .search-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2d3748;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group.disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .form-group.disabled::after {
+            content: "⏳ Aguardando carregamento...";
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            color: #718096;
+            background: #f7fafc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .form-group.associated {
+            border-left: 3px solid #3182ce;
+            padding-left: 12px;
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 8px 0;
+        }
+
+        .form-group.associated label::after {
+            content: " (Associado)";
+            color: #3182ce;
+            font-size: 0.75rem;
+            font-weight: 400;
+        }
+
+        .form-group input, .form-group select {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            background: #ffffff;
+            color: #2d3748;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+        }
+
+        .form-group.disabled input, .form-group.disabled select {
+            background: #f7fafc;
+            cursor: not-allowed;
+        }
+
+        .filters-status {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .filters-status.loading {
+            background: #fef5e7;
+            border-color: #f6ad55;
+        }
+
+        .filters-status.ready {
+            background: #f0fff4;
+            border-color: #68d391;
+        }
+
+        .filters-status .spinner {
+            width: 20px;
+            height: 20px;
+            border-width: 2px;
+        }
+
+        .search-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 48px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(49, 130, 206, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: #718096;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #3182ce;
+            border: 2px solid #3182ce;
+        }
+
+        .btn-outline:hover {
+            background: #3182ce;
+            color: white;
+        }
+
+        .results-section {
+            padding: 40px 30px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #3182ce;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 24px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .results-table th {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            color: white;
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .results-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.875rem;
+        }
+
+        .results-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .results-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 24px 0;
+            border: 1px solid #feb2b2;
+            border-left: 4px solid #e53e3e;
+        }
+
+        .success {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 24px 0;
+            border: 1px solid #9ae6b4;
+            border-left: 4px solid #38a169;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #3182ce;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.875rem;
+        }
+
+        .filters-summary {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .filters-summary h3 {
+            margin-bottom: 12px;
+            color: #2d3748;
+            font-size: 1.1em;
+        }
+
+        .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .filter-tag {
+            background: #3182ce;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .loading-filters {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #718096;
+            font-size: 0.875rem;
+        }
+
+        .loading-filters .spinner {
+            width: 16px;
+            height: 16px;
+            border-width: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .search-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-buttons {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .results-table {
+                font-size: 0.75rem;
+            }
+
+            .results-table th,
+            .results-table td {
+                padding: 12px 8px;
+            }
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Dashboard de Rentabilidade</h1>
+            <p>Sistema de Análise de Dados Financeiros - Ações Manaus</p>
+        </div>
+
+        <div class="search-section">
+            <!-- Status dos filtros -->
+            <div id="filtersStatus" class="filters-status loading">
+                <div class="spinner"></div>
+                <span>Carregando filtros dinâmicos...</span>
+            </div>
+
+            <form class="search-form" id="searchForm">
+                <div class="form-group">
+                    <label for="top">📊 Quantidade de Registros</label>
+                    <input type="number" id="top" name="top" value="100" min="1" max="1000">
+                </div>
+                <div class="form-group">
+                    <label for="skip">⏭️ Pular Registros</label>
+                    <input type="number" id="skip" name="skip" value="0" min="0">
+                </div>
+                <div class="form-group disabled" id="segmentoGroup">
+                    <label for="segmento">🏢 Segmento</label>
+                    <select id="segmento" name="segmento">
+                        <option value="">Carregando segmentos...</option>
+                    </select>
+                </div>
+                <div class="form-group disabled associated" id="modalidadeGroup">
+                    <label for="modalidade">💼 Modalidade</label>
+                    <select id="modalidade" name="modalidade">
+                        <option value="">Carregando modalidades...</option>
+                    </select>
+                </div>
+            </form>
+
+            <div class="search-buttons">
+                <button class="btn btn-primary" id="searchBtn" onclick="searchData()" disabled>
+                    <span>🔍</span>
+                    Pesquisar Dados
+                </button>
+                <button class="btn btn-secondary" onclick="clearResults()">
+                    <span>🗑️</span>
+                    Limpar Resultados
+                </button>
+                <button class="btn btn-outline" onclick="clearAllFilters()">
+                    <span>🔄</span>
+                    Limpar Filtros
+                </button>
+                <a href="https://olinda.bcb.gov.br/olinda/servico/taxaJuros/versao/v2/odata/TaxasJurosDiariaPorInicioPeriodo?$top=100&$skip=0&$format=json&$select=InicioPeriodo,FimPeriodo,Segmento,Modalidade,Posicao,InstituicaoFinanceira,TaxaJurosAoMes,TaxaJurosAoAno,cnpj8" 
+                   target="_blank" class="btn btn-outline">
+                    <span>🌐</span>
+                    Ver API
+                </a>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div id="filtersSummary" class="filters-summary" style="display: none;"></div>
+            <div id="stats" class="stats" style="display: none;"></div>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://olinda.bcb.gov.br/olinda/servico/taxaJuros/versao/v2/odata/TaxasJurosDiariaPorInicioPeriodo';
+
+        // Cache para dados dinâmicos
+        let segmentosDisponiveis = [];
+        let modalidadesDisponiveis = [];
+        let filtersLoaded = false;
+
+        // Função para atualizar status dos filtros
+        function updateFiltersStatus(status, message) {
+            const statusDiv = document.getElementById('filtersStatus');
+            const searchBtn = document.getElementById('searchBtn');
+            
+            statusDiv.className = `filters-status ${status}`;
+            
+            if (status === 'loading') {
+                statusDiv.innerHTML = `
+                    <div class="spinner"></div>
+                    <span>${message}</span>
+                `;
+                searchBtn.disabled = true;
+            } else if (status === 'ready') {
+                statusDiv.innerHTML = `
+                    <span style="color: #38a169;">✅ ${message}</span>
+                `;
+                searchBtn.disabled = false;
+            } else if (status === 'error') {
+                statusDiv.innerHTML = `
+                    <span style="color: #e53e3e;">⚠️ ${message}</span>
+                `;
+                searchBtn.disabled = false;
+            }
+        }
+
+        // Função para habilitar/desabilitar filtros
+        function toggleFilters(enable) {
+            const segmentoGroup = document.getElementById('segmentoGroup');
+            const modalidadeGroup = document.getElementById('modalidadeGroup');
+            
+            if (enable) {
+                segmentoGroup.classList.remove('disabled');
+                modalidadeGroup.classList.remove('disabled');
+            } else {
+                segmentoGroup.classList.add('disabled');
+                modalidadeGroup.classList.add('disabled');
+            }
+        }
+
+        // Função para carregar dados dinâmicos da API
+        async function loadDynamicFilters() {
+            try {
+                updateFiltersStatus('loading', 'Carregando filtros dinâmicos...');
+                toggleFilters(false);
+
+                // Carregar dados para obter segmentos e modalidades únicos
+                const params = new URLSearchParams();
+                params.append('$format', 'json');
+                params.append('$select', 'Segmento,Modalidade');
+                params.append('$top', '500'); // Reduzir para evitar timeout
+                params.append('$skip', '0');
+
+                const url = `${API_BASE_URL}?${params.toString()}`;
+                console.log('Carregando filtros dinâmicos de:', url);
+
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.value && data.value.length > 0) {
+                    // Extrair segmentos únicos
+                    const segmentosSet = new Set();
+                    const modalidadesSet = new Set();
+                    
+                    data.value.forEach(item => {
+                        if (item.Segmento) segmentosSet.add(item.Segmento);
+                        if (item.Modalidade) modalidadesSet.add(item.Modalidade);
+                    });
+
+                    segmentosDisponiveis = Array.from(segmentosSet).sort();
+                    modalidadesDisponiveis = Array.from(modalidadesSet).sort();
+
+                    console.log('Segmentos encontrados:', segmentosDisponiveis);
+                    console.log('Modalidades encontradas:', modalidadesDisponiveis);
+
+                    // Atualizar os selects
+                    updateSegmentoSelect();
+                    updateModalidadeSelect();
+                    
+                    // Habilitar filtros
+                    toggleFilters(true);
+                    filtersLoaded = true;
+                    
+                    updateFiltersStatus('ready', 'Filtros carregados com sucesso! Pronto para pesquisar.');
+                    console.log('Filtros dinâmicos carregados com sucesso!');
+                } else {
+                    throw new Error('Nenhum dado encontrado para carregar filtros');
+                }
+
+            } catch (error) {
+                console.error('Erro ao carregar filtros dinâmicos:', error);
+                // Usar valores padrão em caso de erro
+                loadDefaultFilters();
+                updateFiltersStatus('error', 'Erro ao carregar filtros. Usando valores padrão.');
+            }
+        }
+
+        // Função para carregar filtros padrão em caso de erro
+        function loadDefaultFilters() {
+            segmentosDisponiveis = ['PESSOAL', 'EMPRESARIAL'];
+            modalidadesDisponiveis = [
+                'CHEQUE_ESPECIAL',
+                'CREDITO_PESSOAL',
+                'CREDITO_IMOBILIARIO',
+                'CREDITO_RURAL',
+                'CREDITO_EMPRESARIAL',
+                'FINANCIAMENTO_VEICULOS',
+                'CREDITO_CONSIGNADO',
+                'CREDITO_DIRETO_AO_CONSUMIDOR',
+                'CREDITO_MICROEMPRESA',
+                'CREDITO_PEQUENA_EMPRESA',
+                'CREDITO_MEDIA_EMPRESA',
+                'CREDITO_GRANDE_EMPRESA'
+            ];
+            
+            updateSegmentoSelect();
+            updateModalidadeSelect();
+            toggleFilters(true);
+            filtersLoaded = true;
+        }
+
+        // Função para atualizar select de segmento
+        function updateSegmentoSelect() {
+            const segmentoSelect = document.getElementById('segmento');
+            segmentoSelect.innerHTML = '<option value="">Todos os Segmentos</option>';
+            
+            segmentosDisponiveis.forEach(segmento => {
+                const option = document.createElement('option');
+                option.value = segmento;
+                option.textContent = formatSegmento(segmento);
+                segmentoSelect.appendChild(option);
+            });
+        }
+
+        // Função para atualizar select de modalidade
+        function updateModalidadeSelect() {
+            const modalidadeSelect = document.getElementById('modalidade');
+            modalidadeSelect.innerHTML = '<option value="">Todas as Modalidades</option>';
+            
+            modalidadesDisponiveis.forEach(modalidade => {
+                const option = document.createElement('option');
+                option.value = modalidade;
+                option.textContent = formatModalidade(modalidade);
+                modalidadeSelect.appendChild(option);
+            });
+        }
+
+        // Função para atualizar modalidades baseado no segmento selecionado
+        function updateModalidades() {
+            if (!filtersLoaded) return; // Só atualizar se os filtros estiverem carregados
+            
+            const segmentoSelect = document.getElementById('segmento');
+            const modalidadeSelect = document.getElementById('modalidade');
+            const modalidadeGroup = document.getElementById('modalidadeGroup');
+            const selectedSegmento = segmentoSelect.value;
+            
+            // Limpar modalidades atuais
+            modalidadeSelect.innerHTML = '<option value="">Todas as Modalidades</option>';
+            
+            if (selectedSegmento) {
+                // Filtrar modalidades que pertencem ao segmento selecionado
+                const modalidadesFiltradas = modalidadesDisponiveis.filter(modalidade => {
+                    // Lógica de associação baseada no nome da modalidade
+                    if (selectedSegmento === 'PESSOAL') {
+                        return ['CHEQUE_ESPECIAL', 'CREDITO_PESSOAL', 'CREDITO_IMOBILIARIO', 
+                                'FINANCIAMENTO_VEICULOS', 'CREDITO_CONSIGNADO', 
+                                'CREDITO_DIRETO_AO_CONSUMIDOR'].includes(modalidade);
+                    } else if (selectedSegmento === 'EMPRESARIAL') {
+                        return ['CREDITO_EMPRESARIAL', 'CREDITO_RURAL', 'CREDITO_MICROEMPRESA',
+                                'CREDITO_PEQUENA_EMPRESA', 'CREDITO_MEDIA_EMPRESA', 
+                                'CREDITO_GRANDE_EMPRESA'].includes(modalidade);
+                    }
+                    return true; // Se não conseguir associar, mostrar todas
+                });
+                
+                modalidadesFiltradas.forEach(modalidade => {
+                    const option = document.createElement('option');
+                    option.value = modalidade;
+                    option.textContent = formatModalidade(modalidade);
+                    modalidadeSelect.appendChild(option);
+                });
+                
+                // Atualizar visual para mostrar associação
+                modalidadeGroup.style.borderLeftColor = '#3182ce';
+                modalidadeGroup.style.background = '#f7fafc';
+            } else {
+                // Se nenhum segmento selecionado, mostrar todas as modalidades
+                modalidadesDisponiveis.forEach(modalidade => {
+                    const option = document.createElement('option');
+                    option.value = modalidade;
+                    option.textContent = formatModalidade(modalidade);
+                    modalidadeSelect.appendChild(option);
+                });
+                
+                // Resetar visual
+                modalidadeGroup.style.borderLeftColor = '#e2e8f0';
+                modalidadeGroup.style.background = '#ffffff';
+            }
+        }
+
+        // Função para limpar todos os filtros
+        function clearAllFilters() {
+            document.getElementById('top').value = '100';
+            document.getElementById('skip').value = '0';
+            document.getElementById('segmento').value = '';
+            document.getElementById('modalidade').value = '';
+            updateModalidades();
+        }
+
+        async function searchData() {
+            if (!filtersLoaded) {
+                alert('Aguarde o carregamento dos filtros antes de pesquisar.');
+                return;
+            }
+
+            const form = document.getElementById('searchForm');
+            const resultsDiv = document.getElementById('results');
+            const statsDiv = document.getElementById('stats');
+            const filtersSummaryDiv = document.getElementById('filtersSummary');
+
+            // Show loading
+            resultsDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando dados da API...</p>
+                </div>
+            `;
+
+            try {
+                // Build query parameters
+                const params = new URLSearchParams();
+                params.append('$format', 'json');
+                params.append('$select', 'InicioPeriodo,FimPeriodo,Segmento,Modalidade,Posicao,InstituicaoFinanceira,TaxaJurosAoMes,TaxaJurosAoAno,cnpj8');
+                
+                const top = document.getElementById('top').value;
+                const skip = document.getElementById('skip').value;
+                const segmento = document.getElementById('segmento').value;
+                const modalidade = document.getElementById('modalidade').value;
+
+                // Validações básicas
+                if (!top || top < 1 || top > 1000) {
+                    throw new Error('Quantidade de registros deve estar entre 1 e 1000');
+                }
+
+                if (!skip || skip < 0) {
+                    throw new Error('Pular registros deve ser 0 ou maior');
+                }
+
+                params.append('$top', top);
+                params.append('$skip', skip);
+
+                let filters = [];
+                let filterConditions = [];
+
+                // Adicionar filtro de segmento se selecionado
+                if (segmento) {
+                    filterConditions.push(`Segmento eq '${segmento}'`);
+                    filters.push(`Segmento: ${formatSegmento(segmento)}`);
+                }
+
+                // Adicionar filtro de modalidade se selecionado
+                if (modalidade) {
+                    filterConditions.push(`Modalidade eq '${modalidade}'`);
+                    filters.push(`Modalidade: ${formatModalidade(modalidade)}`);
+                }
+
+                // Combinar filtros se houver mais de um
+                if (filterConditions.length > 0) {
+                    const combinedFilter = filterConditions.join(' and ');
+                    params.append('$filter', combinedFilter);
+                }
+
+                // Display filters summary
+                if (filters.length > 0) {
+                    filtersSummaryDiv.innerHTML = `
+                        <h3>Filtros Aplicados:</h3>
+                        <div class="filter-tags">
+                            ${filters.map(filter => `<span class="filter-tag">${filter}</span>`).join('')}
+                        </div>
+                    `;
+                    filtersSummaryDiv.style.display = 'block';
+                } else {
+                    filtersSummaryDiv.style.display = 'none';
+                }
+
+                const url = `${API_BASE_URL}?${params.toString()}`;
+                
+                console.log('Fazendo requisição para:', url);
+                console.log('Filtros aplicados:', filters);
+
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Resposta da API:', errorText);
+                    throw new Error(`Erro na API: ${response.status} - ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                displayResults(data);
+                displayStats(data);
+
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                resultsDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Erro ao carregar dados</h3>
+                        <p>Erro: ${error.message}</p>
+                        <p>Verifique sua conexão com a internet e tente novamente.</p>
+                        <p><small>Dica: Tente reduzir a quantidade de registros ou ajustar os filtros.</small></p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayStats(data) {
+            const statsDiv = document.getElementById('stats');
+            
+            if (!data.value || data.value.length === 0) {
+                statsDiv.style.display = 'none';
+                return;
+            }
+
+            const totalRecords = data.value.length;
+            const uniqueInstitutions = new Set(data.value.map(item => item.InstituicaoFinanceira)).size;
+            const avgMonthlyRate = data.value.reduce((sum, item) => sum + (parseFloat(item.TaxaJurosAoMes) || 0), 0) / totalRecords;
+            const avgAnnualRate = data.value.reduce((sum, item) => sum + (parseFloat(item.TaxaJurosAoAno) || 0), 0) / totalRecords;
+
+            // Estatísticas por segmento
+            const segmentos = {};
+            data.value.forEach(item => {
+                const segmento = item.Segmento || 'Não informado';
+                if (!segmentos[segmento]) {
+                    segmentos[segmento] = { count: 0, totalMonthly: 0, totalAnnual: 0 };
+                }
+                segmentos[segmento].count++;
+                segmentos[segmento].totalMonthly += parseFloat(item.TaxaJurosAoMes) || 0;
+                segmentos[segmento].totalAnnual += parseFloat(item.TaxaJurosAoAno) || 0;
+            });
+
+            let statsHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${totalRecords.toLocaleString('pt-BR')}</div>
+                    <div class="stat-label">Total de Registros</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${uniqueInstitutions}</div>
+                    <div class="stat-label">Instituições Únicas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${avgMonthlyRate.toFixed(2)}%</div>
+                    <div class="stat-label">Taxa Média Mensal</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${avgAnnualRate.toFixed(2)}%</div>
+                    <div class="stat-label">Taxa Média Anual</div>
+                </div>
+            `;
+
+            // Adicionar estatísticas por segmento se houver mais de um
+            if (Object.keys(segmentos).length > 1) {
+                Object.keys(segmentos).forEach(segmento => {
+                    const stats = segmentos[segmento];
+                    const avgMonthly = stats.totalMonthly / stats.count;
+                    const avgAnnual = stats.totalAnnual / stats.count;
+                    
+                    statsHTML += `
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.count}</div>
+                            <div class="stat-label">${formatSegmento(segmento)}</div>
+                            <div style="font-size: 0.75rem; color: #718096; margin-top: 4px;">
+                                ${avgMonthly.toFixed(2)}% mensal / ${avgAnnual.toFixed(2)}% anual
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            statsDiv.innerHTML = statsHTML;
+            statsDiv.style.display = 'grid';
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            
+            if (!data.value || data.value.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="success">
+                        <h3>ℹ️ Nenhum resultado encontrado</h3>
+                        <p>Tente ajustar os filtros de pesquisa.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <div class="table-container">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Início Período</th>
+                                <th>Fim Período</th>
+                                <th>Segmento</th>
+                                <th>Modalidade</th>
+                                <th>Posição</th>
+                                <th>Instituição</th>
+                                <th>Taxa Mensal (%)</th>
+                                <th>Taxa Anual (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            data.value.forEach(item => {
+                tableHTML += `
+                    <tr>
+                        <td>${formatDate(item.InicioPeriodo)}</td>
+                        <td>${formatDate(item.FimPeriodo)}</td>
+                        <td>${formatSegmento(item.Segmento)}</td>
+                        <td>${formatModalidade(item.Modalidade)}</td>
+                        <td>${item.Posicao || '-'}</td>
+                        <td>${item.InstituicaoFinanceira || '-'}</td>
+                        <td>${formatRate(item.TaxaJurosAoMes)}</td>
+                        <td>${formatRate(item.TaxaJurosAoAno)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = tableHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('pt-BR');
+            } catch {
+                return dateString;
+            }
+        }
+
+        function formatRate(rate) {
+            if (!rate) return '-';
+            const numRate = parseFloat(rate);
+            return isNaN(numRate) ? '-' : numRate.toFixed(2);
+        }
+
+        function formatSegmento(segmento) {
+            if (!segmento) return '-';
+            
+            const segmentos = {
+                'PESSOAL': 'Pessoal',
+                'EMPRESARIAL': 'Empresarial'
+            };
+            
+            return segmentos[segmento] || segmento;
+        }
+
+        function formatModalidade(modalidade) {
+            if (!modalidade) return '-';
+            
+            const modalidades = {
+                'CHEQUE_ESPECIAL': 'Cheque Especial',
+                'CREDITO_PESSOAL': 'Crédito Pessoal',
+                'CREDITO_IMOBILIARIO': 'Crédito Imobiliário',
+                'CREDITO_RURAL': 'Crédito Rural',
+                'CREDITO_EMPRESARIAL': 'Crédito Empresarial',
+                'FINANCIAMENTO_VEICULOS': 'Financiamento de Veículos',
+                'CREDITO_CONSIGNADO': 'Crédito Consignado',
+                'CREDITO_DIRETO_AO_CONSUMIDOR': 'Crédito Direto ao Consumidor',
+                'CREDITO_MICROEMPRESA': 'Crédito Microempresa',
+                'CREDITO_PEQUENA_EMPRESA': 'Crédito Pequena Empresa',
+                'CREDITO_MEDIA_EMPRESA': 'Crédito Média Empresa',
+                'CREDITO_GRANDE_EMPRESA': 'Crédito Grande Empresa'
+            };
+            
+            return modalidades[modalidade] || modalidade;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('stats').style.display = 'none';
+            document.getElementById('filtersSummary').style.display = 'none';
+        }
+
+        // Event listeners para filtros associados
+        document.addEventListener('DOMContentLoaded', function() {
+            // Carregar filtros dinâmicos primeiro
+            loadDynamicFilters().then(() => {
+                // Adicionar event listener para o select de segmento
+                document.getElementById('segmento').addEventListener('change', updateModalidades);
+                
+                // Inicializar modalidades
+                updateModalidades();
+                
+                // Auto-search após carregar filtros (removido para evitar pesquisa automática)
+                // setTimeout(searchData, 1000);
+            });
+        });
+    </script>
+</body>
+</html> 

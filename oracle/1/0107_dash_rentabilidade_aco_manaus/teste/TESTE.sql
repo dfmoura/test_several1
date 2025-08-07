@@ -1,0 +1,45 @@
+WITH GRU AS (
+    SELECT 
+        G.CODGRUPOPROD,
+        CASE 
+            WHEN G.GRAU = 1 THEN G.CODGRUPOPROD
+            WHEN G.GRAU IN (2, 3) THEN G.CODGRUPAI
+            ELSE NULL
+        END AS CODGRUPAI,
+        COALESCE(G1.DESCRGRUPOPROD, G.DESCRGRUPOPROD) AS DESCRGRUPO_NIVEL1
+    FROM 
+        TGFGRU G
+        LEFT JOIN TGFGRU G1 ON
+            (
+                (G.GRAU = 1 AND G1.CODGRUPOPROD = G.CODGRUPOPROD)
+                OR
+                (G.GRAU = 2 AND G1.CODGRUPOPROD = G.CODGRUPAI AND G1.GRAU = 1)
+                OR
+                (
+                    G.GRAU = 3 
+                    AND G1.CODGRUPOPROD = (
+                        SELECT G2.CODGRUPAI
+                        FROM TGFGRU G2
+                        WHERE G2.CODGRUPOPROD = G.CODGRUPAI
+                    )
+                    AND G1.GRAU = 1
+                )
+            )
+    WHERE 
+        G.CODGRUPOPROD > 0
+)
+
+GRU1 AS(
+SELECT 
+PRO.CODPROD,
+PRO.DESCRPROD,
+GRU.CODGRUPAI,
+GRU.DESCRGRUPO_NIVEL1,
+VOA.CODVOL,
+VOA.DIVIDEMULTIPLICA,
+VOA.QUANTIDADE
+from TGFPRO PRO
+INNER JOIN TGFVOA VOA ON PRO.CODPROD = VOA.CODPROD
+INNER JOIN GRU ON PRO.CODGRUPOPROD = GRU.CODGRUPOPROD
+WHERE VOA.CODVOL = 'KG' AND PRO.CODGRUPOPROD > 0
+)

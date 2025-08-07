@@ -1,0 +1,63 @@
+
+8:30 12:20
+CRIAÇÃO DE FLAG TOP
+INSERSAO DE CAMPO
+
+CRIAÇAO DO DASH RENTABILIDADE E PUBLICAÇÃO
+DIVISAO NIVEL PRINCIPAL EM DUAS PARTES
+ONGANIZAÇÃO DE PARAMETRO PRINCIPAIS PARA O DASH
+ORGANIZAÇÃO DO SELECT 
+VLRFAT - OK
+GRUPO PRODUTOS - feito o select para obter o grupo pai.
+PRE FORMATAÇÃO DAS CORES DAS COLUNAS NA PRIMEIRA TABELA DO NIVE PRICIPAL
+arrumar o titulo DAS COLUNAS da primeira tabela
+
+
+13 as 15:40 
+ADICIONAR O GRAFICO DE RENTABILIDADE PARA A PRIMEIRA TABELA E JA CONFIGURAR OS ARGUMENTOS
+AJUSTAR EVENTO DE ATUALIZAÇÃO NA TABELA PARA RESPONDER AO GRAFICO DE RENTABILIDADE.
+SEGUIR EXECUÇÃO DA COLUNA QUE BUSCA O KG
+	fazendo a vericação de quando nao for kg consultar
+	aplicado o kg e o ton no dash
+
+iniciado a execução do custo
+de 16 ate 19	
+-----------------------------------
+
+
+8:30 as 12:20
+13:30 16:30
+19:00 as 21
+criacao de view com todos os dados para montar o dash envolvendo, faturamento, devoluções,custos,volumes,impostos e margem bruta.
+
+
+----------------
+8:30 as 11:00 
+moldagem do laytou principal com replicação do existente, deixando somente o html e o css.
+ajuste na escrita do card de volume de HL para KG
+
+
+----------
+12:10 as
+Deixar o head colado no top da tela.
+	atualizar o layout do header 
+	semelhante ao que foi utilizado no fixed-header do arquivo prod35.jsp
+
+
+
+retirar o este html e css correspondente:
+    <div class="header-actions">
+      <!-- Campo de usuário atual -->
+      <div id="usuario-info" class="text-white text-xs mr-4 px-3 py-1 bg-white bg-opacity-20 rounded border border-white border-opacity-30">
+        <i class="fas fa-user mr-1"></i>
+        <span id="usuario-display">Carregando usuário...</span>
+      </div>
+    </div>
+
+
+deixar o 'Rentabilidade Financeira 2.0' centralizado
+
+para o Fixed Header mutar o verde para o mesmo azul dos cards
+
+
+para o select da view fazer o primeiro card faturamento periodo atual e anterior

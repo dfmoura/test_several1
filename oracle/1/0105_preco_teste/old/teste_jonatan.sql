@@ -1,0 +1,44 @@
+SELECT 
+DISTINCT
+SUM(CAB.VLRNOTA) AS VLR,
+COUNT(CAB.NUNOTA) AS QTD,
+VW.STATUS AS TIPO,
+CASE WHEN VW.STATUS =  'A'    THEN 1
+     WHEN VW.STATUS =  'ANF'  THEN 2
+     WHEN VW.STATUS =  'C'    THEN 3
+     WHEN VW.STATUS =  'PE'   THEN 4 
+     WHEN VW.STATUS =  'R'    THEN 5
+     WHEN VW.STATUS =  'MA'   THEN 6 
+     WHEN VW.STATUS =  'PS'   THEN 7
+     WHEN VW.STATUS =  'EE'   THEN 8
+     WHEN VW.STATUS =  'PFP'  THEN 9
+END AS CODHIST,
+CASE WHEN VW.STATUS ='A'   THEN  'Pedido Aprovado'
+     WHEN VW.STATUS ='ANF' THEN  'Aguardando NF'
+     WHEN VW.STATUS ='C'   THEN  'Pedido Cancelado'
+     WHEN VW.STATUS ='PE'  THEN  'Progamado Entrega'
+     WHEN VW.STATUS ='R'   THEN  'Reprovado'
+     WHEN VW.STATUS ='MA'  THEN  'Mercadoria a Caminho'
+     WHEN VW.STATUS ='PS'  THEN  'Pedido em Separação'
+     WHEN VW.STATUS ='EE'  THEN  'Pedido em Analise'
+     WHEN VW.STATUS ='PFP' THEN  'Faturado Parcial'
+END AS STATUS,
+-- Percentual de participação do valor
+ROUND(
+    (SUM(CAB.VLRNOTA) * 100.0 / SUM(SUM(CAB.VLRNOTA)) OVER()), 2
+) AS PCT_VLR,
+-- Percentual de participação da quantidade
+ROUND(
+    (COUNT(CAB.NUNOTA) * 100.0 / SUM(COUNT(CAB.NUNOTA)) OVER()), 2
+) AS PCT_QTD
+
+FROM  
+AD_VGFSTATUSA2W VW 
+LEFT JOIN TGFCAB CAB ON VW.NUNOTA = CAB.NUNOTA
+
+WHERE CAB.PENDENTE = 'S'
+AND CAB.TIPMOV = 'P'
+AND CAB.AD_DTENTREGAEFETIVA IS NULL 
+
+GROUP BY VW.STATUS
+ORDER BY CODHIST;

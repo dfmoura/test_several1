@@ -11,7 +11,6 @@
     <title>Pendentes de Faturamento</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
      <style>
-        /* ===== BASE STYLES ===== */
         * {
             margin: 0;
             padding: 0;
@@ -30,7 +29,6 @@
             margin: 0 auto;
         }
 
-        /* ===== HEADER ===== */
         .header {
             text-align: center;
             margin-bottom: 30px;
@@ -48,27 +46,7 @@
             opacity: 0.9;
         }
 
-        /* ===== NEUON LOGO ===== */
-        .neuon-logo {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            z-index: 1000;
-        }
-
-        .neuon-logo img {
-            height: 40px;
-            width: auto;
-            transition: all 0.3s ease;
-            filter: brightness(0) invert(1);
-        }
-
-        .neuon-logo:hover img {
-            transform: scale(1.05);
-            filter: brightness(0) invert(1) drop-shadow(0 0 6px rgba(255,255,255,0.6));
-        }
-
-        /* ===== KPI CARDS ===== */
+        /* KPI Cards no Topo - Quadrados lado a lado */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -77,18 +55,30 @@
         }
 
         .kpi-card {
-            background: rgba(255,255,255,0.95);
+            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
             backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             border: 1px solid rgba(255,255,255,0.2);
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
             text-align: center;
             aspect-ratio: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f5f5f5, #764ba2);
         }
 
         .kpi-card:hover {
@@ -128,7 +118,7 @@
             line-height: 1.2;
         }
 
-        /* ===== MAIN ANALYTICS ===== */
+        /* Área Principal - Gráficos e Tabelas */
         .main-analytics {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -143,6 +133,18 @@
             padding: 25px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analytics-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
         }
 
         .panel-header {
@@ -158,7 +160,30 @@
             color: #333;
         }
 
-        /* ===== STATUS TABLE ===== */
+        .refresh-btn {
+            background: linear-gradient(135deg, #ffffff, #438d6e);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Tabela de Status */
         .status-table {
             width: 100%;
         }
@@ -167,14 +192,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 18px;
+            padding: 18px 0;
+            border-bottom: 1px solid #eee;
             cursor: pointer;
             transition: all 0.3s ease;
             border-radius: 10px;
             margin-bottom: 8px;
-            background: rgba(248, 249, 255, 0.8);
-            border: 2px solid transparent;
-            position: relative;
         }
 
         .status-row:hover {
@@ -182,36 +205,16 @@
             transform: translateX(8px);
         }
 
-        /* STATUS ROW ACTIVE - Linha destacada quando clicada */
         .status-row.active {
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(139, 195, 74, 0.2));
-            border-color: #4CAF50;
-            transform: translateX(12px) scale(1.02);
-            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
-        }
-
-        /* Indicador visual para linha ativa */
-        .status-row.active::before {
-            content: '●';
-            position: absolute;
-            left: -15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #4CAF50;
-            font-size: 1.5rem;
-            animation: pulse 2s ease-in-out infinite;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+            border-left: 5px solid #667eea;
+            padding-left: 15px;
         }
 
         .status-label {
             font-weight: 600;
             color: #333;
             font-size: 1.1rem;
-            transition: color 0.3s ease;
-        }
-
-        .status-row.active .status-label {
-            color: #2E7D32;
-            font-weight: bold;
         }
 
         .status-values {
@@ -225,11 +228,6 @@
             font-weight: bold;
             color: #667eea;
             font-size: 1.2rem;
-            transition: color 0.3s ease;
-        }
-
-        .status-row.active .status-value {
-            color: #4CAF50;
         }
 
         .status-count {
@@ -240,7 +238,7 @@
             border-radius: 12px;
         }
 
-        /* ===== CHART CONTAINER ===== */
+        /* Gráfico de Pizza */
         .chart-container {
             position: relative;
             height: 400px;
@@ -249,7 +247,7 @@
             justify-content: center;
         }
 
-        /* ===== DETAILS SECTION ===== */
+        /* Tabela de Detalhes */
         .details-section {
             background: rgba(255,255,255,0.95);
             backdrop-filter: blur(10px);
@@ -257,6 +255,18 @@
             padding: 30px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .details-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4CAF50, #2196F3);
         }
 
         .details-header {
@@ -281,33 +291,6 @@
             font-weight: 500;
         }
 
-        /* ===== EXPORT BUTTON ===== */
-        .export-btn-overlay {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        .export-btn-overlay:hover {
-            background-color: #45a049;
-            transform: scale(1.1);
-        }
-
-        /* ===== TABLE STYLES ===== */
         .table-container {
             overflow-x: auto;
             border-radius: 12px;
@@ -375,19 +358,31 @@
             font-size: 1rem;
         }
 
-        /* ===== ANIMATIONS ===== */
-        @keyframes pulse {
-            0%, 100% { 
-                opacity: 1; 
-                transform: translateY(-50%) scale(1);
-            }
-            50% { 
-                opacity: 0.6; 
-                transform: translateY(-50%) scale(1.2);
-            }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-size: 1.1rem;
         }
 
-        /* ===== RESPONSIVE ===== */
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsividade */
         @media (max-width: 1400px) {
             .kpi-grid {
                 grid-template-columns: repeat(3, 1fr);
@@ -451,67 +446,111 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <snk:load/>
 </head>
 <body>
+
     <snk:query var="Pedidos_pend">
 SELECT 
-(SELECT SUM(VLRNOTA) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) = 0 AND CODTIPOPER = 1009 AND CAB.AD_DTENTREGAEFETIVA IS NULL ) AS PENDENTE_FAT,
-
-(SELECT COUNT(*) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) = 0 AND CODTIPOPER = 1009 AND CAB.AD_DTENTREGAEFETIVA IS NULL ) AS COUNT_PENDENTE_FAT,
-
-(SELECT SUM(VLRNOTA) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) > 0 AND CODTIPOPER = 1009 AND CAB.AD_DTENTREGAEFETIVA IS NULL )AS PENDENTE_LIB,
-
-(SELECT COUNT(*) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) > 0 AND CODTIPOPER = 1009 AND CAB.AD_DTENTREGAEFETIVA IS NULL )AS COUNT_PENDENTE_LIB,
-
-(SELECT AVG(VLRNOTA) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND CODTIPOPER = 1009 AND CAB.AD_DTENTREGAEFETIVA IS NULL ) AS MED_PED,
-
-(SELECT SUM(VLRNOTA) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) = 0 AND CODTIPOPER = 1009 AND CAB.AD_DTENTREGAEFETIVA IS NULL )
+(SELECT SUM(VLRNOTA) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) = 0) AS PENDENTE_FAT,
+(SELECT COUNT(*) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) = 0) AS COUNT_PENDENTE_FAT,
+(SELECT SUM(VLRNOTA) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) > 0 )AS PENDENTE_LIB,
+(SELECT COUNT(*) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) > 0 )AS COUNT_PENDENTE_LIB,
+(SELECT AVG(VLRNOTA) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S') AS MED_PED,
+(SELECT SUM(VLRNOTA) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) = 0)
 +
-(SELECT SUM(VLRNOTA) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) > 0 AND CODTIPOPER = 1009 AND CAB.AD_DTENTREGAEFETIVA IS NULL ) AS VLRTOT
-
+(SELECT SUM(VLRNOTA) FROM TGFCAB CAB WHERE TIPMOV = 'P' AND PENDENTE = 'S' AND (SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND DHLIB IS NULL AND TABELA IN ('TGFCAB','TGFITE')) > 0 ) AS VLRTOT
 FROM DUAL
     </snk:query>
 
     <snk:query var="tipos">
-SELECT 
-DISTINCT
-SUM(CAB.VLRNOTA) AS VLR,
-COUNT(CAB.NUNOTA)AS QTD,
-VW.STATUS AS TIPO,
-CASE WHEN VW.STATUS =  'A'    THEN 1
-     WHEN VW.STATUS =  'ANF'  THEN 2
-     WHEN VW.STATUS =  'C'    THEN 3
-     WHEN VW.STATUS =  'PE'   THEN 4 
-     WHEN VW.STATUS =  'R'    THEN 5
-     WHEN VW.STATUS =  'MA'   THEN 6 
-     WHEN VW.STATUS =  'PS'   THEN 7
-     WHEN VW.STATUS =  'EE'   THEN 8
-     WHEN VW.STATUS =  'PFP'  THEN 9
 
-END AS CODHIST,
-CASE WHEN VW.STATUS ='A'   THEN  'Pedido Aprovado'
-     WHEN VW.STATUS ='ANF' THEN  'Aguardando NF'
-     WHEN VW.STATUS ='C'   THEN  'Pedido Cancelado'
-     WHEN VW.STATUS ='PE'  THEN  'Progamado Entrega'
-     WHEN VW.STATUS ='R'   THEN  'Reprovado'
-     WHEN VW.STATUS ='MA'  THEN  'Mercadoria a Caminho'
-     WHEN VW.STATUS ='PS'  THEN  'Pedido em Separação'
-     WHEN VW.STATUS ='EE'  THEN  'Pedido em Analise'
-     WHEN VW.STATUS ='PFP' THEN  'Faturado Parcial'
-END AS STATUS
+    SELECT 
+    DISTINCT
+    SUM(CAB.VLRNOTA) AS VLR,
+    COUNT(CAB.NUNOTA) AS QTD,
+    VW.STATUS AS TIPO,
+    CASE WHEN VW.STATUS =  'A'    THEN 1
+         WHEN VW.STATUS =  'ANF'  THEN 2
+         WHEN VW.STATUS =  'C'    THEN 3
+         WHEN VW.STATUS =  'PE'   THEN 4 
+         WHEN VW.STATUS =  'R'    THEN 5
+         WHEN VW.STATUS =  'MA'   THEN 6 
+         WHEN VW.STATUS =  'PS'   THEN 7
+         WHEN VW.STATUS =  'EE'   THEN 8
+         WHEN VW.STATUS =  'PFP'  THEN 9
+    END AS CODHIST,
+    CASE WHEN VW.STATUS ='A'   THEN  'Pedido Aprovado'
+         WHEN VW.STATUS ='ANF' THEN  'Aguardando NF'
+         WHEN VW.STATUS ='C'   THEN  'Pedido Cancelado'
+         WHEN VW.STATUS ='PE'  THEN  'Progamado Entrega'
+         WHEN VW.STATUS ='R'   THEN  'Reprovado'
+         WHEN VW.STATUS ='MA'  THEN  'Mercadoria a Caminho'
+         WHEN VW.STATUS ='PS'  THEN  'Pedido em Separação'
+         WHEN VW.STATUS ='EE'  THEN  'Pedido em Analise'
+         WHEN VW.STATUS ='PFP' THEN  'Faturado Parcial'
+    END AS STATUS,
+    -- Percentual de participação do valor
+    ROUND(
+        (SUM(CAB.VLRNOTA) * 100.0 / SUM(SUM(CAB.VLRNOTA)) OVER()), 2
+    ) AS PCT_VLR,
+    -- Percentual de participação da quantidade
+    ROUND(
+        (COUNT(CAB.NUNOTA) * 100.0 / SUM(COUNT(CAB.NUNOTA)) OVER()), 2
+    ) AS PCT_QTD
+    
+    FROM  
+    AD_VGFSTATUSA2W VW 
+    LEFT JOIN TGFCAB CAB ON VW.NUNOTA = CAB.NUNOTA
+    
+    WHERE CAB.PENDENTE = 'S'
+    AND CAB.TIPMOV = 'P'
+    AND CAB.AD_DTENTREGAEFETIVA IS NULL 
+    
+    GROUP BY VW.STATUS
+    ORDER BY CODHIST    
 
-FROM  
-TGFCAB CAB 
-INNER JOIN AD_VGFSTATUSA2W VW ON CAB.NUNOTA = VW.NUNOTA
+    </snk:query>
 
-WHERE CAB.PENDENTE = 'S'
-AND CAB.TIPMOV = 'P'
-AND CAB.AD_DTENTREGAEFETIVA IS NULL 
-AND CAB.CODTIPOPER = 1009
-GROUP BY VW.STATUS
+    <!-- Query alternativa para testar se a view existe -->
+    <snk:query var="teste_view">
+    SELECT COUNT(*) AS TOTAL_REGISTROS
+    FROM AD_VGFSTATUSA2W
+    </snk:query>
 
+    <!-- Query alternativa caso a view não exista -->
+    <snk:query var="tipos_alternativo">
+    SELECT 
+    SUM(CAB.VLRNOTA) AS VLR,
+    COUNT(CAB.NUNOTA) AS QTD,
+    CAB.STATUSNOTA AS TIPO,
+    CASE WHEN CAB.STATUSNOTA = 'A' THEN 1
+         WHEN CAB.STATUSNOTA = 'C' THEN 2
+         WHEN CAB.STATUSNOTA = 'P' THEN 3
+         WHEN CAB.STATUSNOTA = 'E' THEN 4
+         ELSE 5
+    END AS CODHIST,
+    CASE WHEN CAB.STATUSNOTA = 'A' THEN 'Pedido Aprovado'
+         WHEN CAB.STATUSNOTA = 'C' THEN 'Pedido Cancelado'
+         WHEN CAB.STATUSNOTA = 'P' THEN 'Pedido Pendente'
+         WHEN CAB.STATUSNOTA = 'E' THEN 'Pedido Enviado'
+         ELSE 'Outros Status'
+    END AS STATUS,
+    ROUND(
+        (SUM(CAB.VLRNOTA) * 100.0 / SUM(SUM(CAB.VLRNOTA)) OVER()), 2
+    ) AS PCT_VLR,
+    ROUND(
+        (COUNT(CAB.NUNOTA) * 100.0 / SUM(COUNT(CAB.NUNOTA)) OVER()), 2
+    ) AS PCT_QTD
+    
+    FROM TGFCAB CAB
+    
+    WHERE CAB.PENDENTE = 'S'
+    AND CAB.TIPMOV = 'P'
+    AND CAB.AD_DTENTREGAEFETIVA IS NULL 
+    
+    GROUP BY CAB.STATUSNOTA
+    ORDER BY CODHIST
     </snk:query>
 
         <snk:query var="analiticos">
@@ -527,8 +566,7 @@ LIB_FAT,
 LIB_LOG,
 VLRNOTA,
 STATUS,
-CODHIST,
-LIB_PEND
+CODHIST
 
 FROM 
 
@@ -543,7 +581,6 @@ CAB.CODEMP||' - '||(SELECT NOMEFANTASIA FROM TSIEMP WHERE CODEMP = CAB.CODEMP) A
 CASE WHEN NVL(CAB.AD_LIBFATURAMENTO,'N') = 'N' THEN 'Não' ELSE 'Sim' END AS LIB_FAT,
 CASE WHEN NVL(CAB.AD_LIBERADO,'N') = 'N' THEN 'Não' ELSE 'Sim' END AS LIB_LOG,
 CAB.VLRNOTA,
-(SELECT COUNT(*) FROM TSILIB WHERE NUCHAVE = CAB.NUNOTA AND TABELA IN ('TGFCAB','TGFITE') AND DHLIB IS NULL)AS lIB_PEND,
 CASE WHEN VW.STATUS ='A'   THEN  'Pedido Aprovado'
      WHEN VW.STATUS ='ANF' THEN  'Aguardando NF'
      WHEN VW.STATUS ='C'   THEN  'Pedido Cancelado'
@@ -573,20 +610,18 @@ LEFT JOIN TGFCAB CAB ON VW.NUNOTA = CAB.NUNOTA
 
 WHERE CAB.PENDENTE = 'S'
 AND CAB.TIPMOV = 'P'
-AND CAB.CODTIPOPER = 1009
 AND CAB.AD_DTENTREGAEFETIVA IS NULL 
 
 )
 WHERE CODHIST = :A_CODHIST
         </snk:query>
-            <div class="dashboard-container">
+
+    <div class="dashboard-container">
         <div class="header">
-            <a href="https://neuon.com.br/" target="_blank" rel="noopener noreferrer" class="neuon-logo">
-                <img src="https://neuon.com.br/wp-content/uploads/2025/07/Logotipo-9.svg" alt="Neuon Logo">
-            </a>
             <h1>Dash Analise de Pedidos </h1>
             <p>Controle de pendentes de Liberações e Faturamento</p>
         </div>
+
         <!-- Grid de KPIs no Topo -->
         <div class="kpi-grid">
             <c:forEach items="${Pedidos_pend.rows}" var="row">
@@ -603,7 +638,7 @@ WHERE CODHIST = :A_CODHIST
                     <div class="kpi-value">
                         <h2><fmt:formatNumber value="${row.MED_PED}" type="number" maxFractionDigits="2" /></h2>
                     </div>
-                    <div class="kpi-subtitle">Valor médio por Pedidos</div>
+                    <div class="kpi-subtitle">Valor médio por nota</div>
                 </div>
 
                 <div class="kpi-card">
@@ -631,14 +666,35 @@ WHERE CODHIST = :A_CODHIST
                 </div>
 
                 <div class="kpi-card">
-                    <div class="kpi-header">Qtd Pend. Faturamento Liberadas</div>
+                    <div class="kpi-header">Qtd Pend. Faturamento</div>
                     <div class="kpi-value">
                         <h2>${row.COUNT_PENDENTE_FAT}</h2>
                     </div>
-                    <div class="kpi-subtitle">Quantidade de Pedidos</div>
+                    <div class="kpi-subtitle">Quantidade de notas</div>
                 </div>
             </c:forEach>
 
+        </div>
+
+        <!-- Debug Info -->
+        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
+            <strong>Debug Info:</strong><br>
+            Total de registros na view: <c:forEach items="${teste_view.rows}" var="row">${row.TOTAL_REGISTROS}</c:forEach><br>
+            Total de tipos encontrados: ${tipos.rowCount}<br>
+            <c:choose>
+                <c:when test="${tipos.rowCount > 0}">
+                    <strong>Usando query principal:</strong><br>
+                    <c:forEach items="${tipos.rows}" var="row" varStatus="status">
+                        Tipo ${status.index + 1}: ${row.STATUS} - Valor: ${row.VLR} - Qtd: ${row.QTD}<br>
+                    </c:forEach>
+                </c:when>
+                <c:otherwise>
+                    <strong>Usando query alternativa:</strong><br>
+                    <c:forEach items="${tipos_alternativo.rows}" var="row" varStatus="status">
+                        Tipo ${status.index + 1}: ${row.STATUS} - Valor: ${row.VLR} - Qtd: ${row.QTD}<br>
+                    </c:forEach>
+                </c:otherwise>
+            </c:choose>
         </div>
 
         <!-- Área Principal: Tabela de Status + Gráfico -->
@@ -650,61 +706,81 @@ WHERE CODHIST = :A_CODHIST
                 </div>
                 
                 <div class="status-table">
-                    <c:forEach items="${tipos.rows}" var="row" varStatus="status">
-                        <c:set var="statusType" value="" />
-                        <c:set var="statusLabel" value="" />
-                        <c:choose>
-                            <c:when test="${row.TIPO == 'A'}">
-                                <c:set var="statusType" value="1" />
-                                <c:set var="statusLabel" value="Pedido Aprovado" />
-                            </c:when>
-                            <c:when test="${row.TIPO == 'ANF'}">
-                                <c:set var="statusType" value="2" />
-                                <c:set var="statusLabel" value="Aguardando NF" />
-                            </c:when>
-                            <c:when test="${row.TIPO == 'C'}">
-                                <c:set var="statusType" value="3" />
-                                <c:set var="statusLabel" value="Pedido Cancelado" />
-                            </c:when>
-                            <c:when test="${row.TIPO == 'PE'}">
-                                <c:set var="statusType" value="4" />
-                                <c:set var="statusLabel" value="Progamado Entrega" />
-                            </c:when>
-                            <c:when test="${row.TIPO == 'R'}">
-                                <c:set var="statusType" value="5" />
-                                <c:set var="statusLabel" value="Reprovado" />
-                            </c:when>
-                            <c:when test="${row.TIPO == 'MA'}">
-                                <c:set var="statusType" value="6" />
-                                <c:set var="statusLabel" value="Mercadoria a Caminho" />
-                            </c:when>
-                            <c:when test="${row.TIPO == 'PS'}">
-                                <c:set var="statusType" value="7" />
-                                <c:set var="statusLabel" value="Pedido em Separação" />
-                            </c:when>
-                            <c:when test="${row.TIPO == 'EE'}">
-                                <c:set var="statusType" value="8" />
-                                <c:set var="statusLabel" value="Pedido em Analise" />
-                            </c:when>
-                            <c:when test="${row.TIPO == 'PFP'}">
-                                <c:set var="statusType" value="9" />
-                                <c:set var="statusLabel" value="Faturado Parcial" />
-                            </c:when>
-                        </c:choose>
-                        
-                        <div class="status-row ${status.first ? 'active' : ''}" 
-                             onclick="filterByStatus('${row.CODHIST}', '${statusLabel}')" 
-                             data-codhist="${row.CODHIST}"
-                             data-status="${row.TIPO}">
-                            <div class="status-label">${statusLabel}</div>
-                            <div class="status-values">
-                                <div class="status-value">
-                                    <fmt:formatNumber value="${row.VLR}" type="currency" currencySymbol="R$ " />
+                    <c:choose>
+                        <c:when test="${tipos.rowCount > 0}">
+                            <c:forEach items="${tipos.rows}" var="row" varStatus="status">
+                                <c:set var="statusType" value="" />
+                                <c:set var="statusLabel" value="" />
+                                <c:choose>
+                                    <c:when test="${row.TIPO == 'A'}">
+                                        <c:set var="statusType" value="1" />
+                                        <c:set var="statusLabel" value="Pedido Aprovado" />
+                                    </c:when>
+                                    <c:when test="${row.TIPO == 'ANF'}">
+                                        <c:set var="statusType" value="2" />
+                                        <c:set var="statusLabel" value="Aguardando NF" />
+                                    </c:when>
+                                    <c:when test="${row.TIPO == 'C'}">
+                                        <c:set var="statusType" value="3" />
+                                        <c:set var="statusLabel" value="Pedido Cancelado" />
+                                    </c:when>
+                                    <c:when test="${row.TIPO == 'PE'}">
+                                        <c:set var="statusType" value="4" />
+                                        <c:set var="statusLabel" value="Progamado Entrega" />
+                                    </c:when>
+                                    <c:when test="${row.TIPO == 'R'}">
+                                        <c:set var="statusType" value="5" />
+                                        <c:set var="statusLabel" value="Reprovado" />
+                                    </c:when>
+                                    <c:when test="${row.TIPO == 'MA'}">
+                                        <c:set var="statusType" value="6" />
+                                        <c:set var="statusLabel" value="Mercadoria a Caminho" />
+                                    </c:when>
+                                    <c:when test="${row.TIPO == 'PS'}">
+                                        <c:set var="statusType" value="7" />
+                                        <c:set var="statusLabel" value="Pedido em Separação" />
+                                    </c:when>
+                                    <c:when test="${row.TIPO == 'EE'}">
+                                        <c:set var="statusType" value="8" />
+                                        <c:set var="statusLabel" value="Pedido em Analise" />
+                                    </c:when>
+                                    <c:when test="${row.TIPO == 'PFP'}">
+                                        <c:set var="statusType" value="9" />
+                                        <c:set var="statusLabel" value="Faturado Parcial" />
+                                    </c:when>
+                                </c:choose>
+                                
+                                <div class="status-row ${status.first ? 'active' : ''}" 
+                                     onclick="filterByStatus('${row.CODHIST}', '${statusLabel}')" 
+                                     data-codhist="${row.CODHIST}"
+                                     data-status="${row.TIPO}">
+                                    <div class="status-label">${statusLabel}</div>
+                                    <div class="status-values">
+                                        <div class="status-value">
+                                            <fmt:formatNumber value="${row.VLR}" type="currency" currencySymbol="R$ " />
+                                        </div>
+                                        <div class="status-count">${row.QTD} notas</div>
+                                    </div>
                                 </div>
-                                <div class="status-count">${row.QTD} notas</div>
-                            </div>
-                        </div>
-                    </c:forEach>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <c:forEach items="${tipos_alternativo.rows}" var="row" varStatus="status">
+                                <div class="status-row ${status.first ? 'active' : ''}" 
+                                     onclick="filterByStatus('${row.CODHIST}', '${row.STATUS}')" 
+                                     data-codhist="${row.CODHIST}"
+                                     data-status="${row.TIPO}">
+                                    <div class="status-label">${row.STATUS}</div>
+                                    <div class="status-values">
+                                        <div class="status-value">
+                                            <fmt:formatNumber value="${row.VLR}" type="currency" currencySymbol="R$ " />
+                                        </div>
+                                        <div class="status-count">${row.QTD} notas</div>
+                                    </div>
+                                </div>
+                            </c:forEach>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
             </div>
             <!-- Gráfico de Pizza -->
@@ -722,9 +798,6 @@ WHERE CODHIST = :A_CODHIST
         <!-- Tabela de Detalhes -->
         <div class="details-section">
             <div class="details-header">
-                <button class="export-btn-overlay" onclick="exportarParaExcel()" title="Exportar para Excel">
-  <i class="fas fa-file-excel"></i>
-</button>
                 <h3 class="details-title">Detalhes dos Pedidos</h3>
                 <div class="filter-info" id="current-filter">Todos os Status</div>
             </div>
@@ -740,8 +813,6 @@ WHERE CODHIST = :A_CODHIST
                             <th>Top</th>
                             <th>Empresa</th>
                             <th>Lib. Fat</th>
-                            <th>Lib. log</th>
-                            <th>Lib. Pend</th>
                             <th>Valor</th>
                             <th>Status</th>
                         </tr>
@@ -762,12 +833,6 @@ WHERE CODHIST = :A_CODHIST
                                                 ${row.LIB_FAT}
                                             </span>
                                         </td>
-                                                                                <td>
-                                            <span class="${row.LIB_FAT == 'Sim' ? 'status-sim' : 'status-nao'}">
-                                                ${row.LIB_LOG}
-                                            </span>
-                                        </td>
-                                        <td>${row.LIB_PEND}</td>
                                         <td class="valor-cell">
                                             <fmt:formatNumber value="${row.VLRNOTA}" type="currency" currencySymbol="R$ " />
                                         </td>
@@ -789,74 +854,44 @@ WHERE CODHIST = :A_CODHIST
         </div>
     </div>
 
-
     <script>
-
 
         function ref_mot(codhist) {
             console.log('Chamando ref_mot com CODHIST:', codhist);
             const params = {'A_CODHIST': codhist};
-            refreshDetails('html5_awiaiwf', params);
-            
-            // Preserva o foco no status selecionado após atualização
-            setTimeout(() => {
-                maintainFocus(codhist);
-            }, 100);
+            refreshDetails('html5_ah5fq7x', params); 
         }
 
-        // Criando os dados do gráfico diretamente do JSP de forma mais segura
+        // Criando os dados do gráfico diretamente do JSP
         const chartData = {
             labels: [],
             values: [],
             tipos: [],
             codhists: [],
-            colors: ['#FF6B6B', '#4ECDC4', '#FFEAA7', '#A8E6CF', '#FFD93D', '#6C5CE7', '#74B9FF', '#FD79A8', '#FDCB6E']
+            qtds: []
         };
 
         // Processando os dados da consulta tipos
-        <c:forEach items="${tipos.rows}" var="row" varStatus="row.status">
-            <c:set var="valorSeguro" value="${row.VLR != null ? row.VLR : 0}" />
-            <c:if test="${valorSeguro > 0}">
-                <c:choose>
-                    <c:when test="${row.TIPO == 'A'}">
-                        chartData.labels.push('Pedido Aprovado');
-                    </c:when>
-                    <c:when test="${row.TIPO == 'ANF'}">
-                        chartData.labels.push('Aguardando NF');
-                    </c:when>
-                    <c:when test="${row.TIPO == 'C'}">
-                        chartData.labels.push('Pedido Cancelado');
-                    </c:when>
-                    <c:when test="${row.TIPO == 'PE'}">
-                        chartData.labels.push('Progamado Entrega');
-                    </c:when>
-                    <c:when test="${row.TIPO == 'R'}">
-                        chartData.labels.push('Reprovado');
-                    </c:when>
-                    <c:when test="${row.TIPO == 'MA'}">
-                        chartData.labels.push('Mercadoria a Caminho');
-                    </c:when>
-                    <c:when test="${row.TIPO == 'PS'}">
-                        chartData.labels.push('Pedido em Separação');
-                    </c:when>
-                    <c:when test="${row.TIPO == 'EE'}">
-                        chartData.labels.push('Pedido em Analise');
-                    </c:when>
-                    <c:when test="${row.TIPO == 'PFP'}">
-                        chartData.labels.push('Faturado Parcial');
-                    </c:when>
-                    <c:otherwise>
-                        chartData.labels.push('${row.TIPO}');
-                    </c:otherwise>
-                </c:choose>
-                
-                chartData.values.push(${valorSeguro});
-                chartData.tipos.push('${row.TIPO}');
-                chartData.codhists.push(${row.CODHIST});
-            </c:if>
-        </c:forEach>
-
-        let chart;
+        <c:choose>
+            <c:when test="${tipos.rowCount > 0}">
+                <c:forEach items="${tipos.rows}" var="row">
+                    chartData.labels.push('${row.STATUS}');
+                    chartData.values.push(parseFloat(${row.VLR}));
+                    chartData.tipos.push('${row.TIPO}');
+                    chartData.codhists.push(${row.CODHIST});
+                    chartData.qtds.push(parseInt(${row.QTD}));
+                </c:forEach>
+            </c:when>
+            <c:otherwise>
+                <c:forEach items="${tipos_alternativo.rows}" var="row">
+                    chartData.labels.push('${row.STATUS}');
+                    chartData.values.push(parseFloat(${row.VLR}));
+                    chartData.tipos.push('${row.TIPO}');
+                    chartData.codhists.push(${row.CODHIST});
+                    chartData.qtds.push(parseInt(${row.QTD}));
+                </c:forEach>
+            </c:otherwise>
+        </c:choose>
 
         function formatCurrency(value) {
             return new Intl.NumberFormat('pt-BR', {
@@ -881,16 +916,29 @@ WHERE CODHIST = :A_CODHIST
 
             console.log('Dados do gráfico:', chartData);
 
+            // Cores para o gráfico
+            const colors = [
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(199, 199, 199, 0.8)',
+                'rgba(83, 102, 255, 0.8)',
+                'rgba(255, 99, 132, 0.8)'
+            ];
+
             chart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: chartData.labels,
                     datasets: [{
                         data: chartData.values,
-                        backgroundColor: chartData.colors.slice(0, chartData.values.length),
-                        borderWidth: 3,
-                        borderColor: '#ffffff',
-                        hoverBorderWidth: 5,
+                        backgroundColor: colors.slice(0, chartData.values.length),
+                        borderColor: colors.slice(0, chartData.values.length).map(color => color.replace('0.8', '1')),
+                        borderWidth: 2,
+                        hoverBorderWidth: 4,
                         hoverOffset: 15
                     }]
                 },
@@ -901,7 +949,7 @@ WHERE CODHIST = :A_CODHIST
                         legend: {
                             position: 'bottom',
                             labels: {
-                                padding: 25,
+                                padding: 20,
                                 usePointStyle: true,
                                 font: {
                                     size: 12,
@@ -930,17 +978,27 @@ WHERE CODHIST = :A_CODHIST
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            backgroundColor: 'rgba(0,0,0,0.9)',
                             titleColor: '#ffffff',
                             bodyColor: '#ffffff',
                             borderColor: '#ffffff',
                             borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: true,
                             callbacks: {
+                                title: function(context) {
+                                    return context[0].label;
+                                },
                                 label: function(context) {
                                     const value = formatCurrency(context.raw);
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : '0.0';
-                                    return `${context.label}: ${value} (${percentage}%)`;
+                                    return `Valor: ${value} (${percentage}%)`;
+                                },
+                                afterLabel: function(context) {
+                                    const index = context.dataIndex;
+                                    const qtd = chartData.qtds ? chartData.qtds[index] : 0;
+                                    return `Quantidade: ${qtd} pedidos`;
                                 }
                             }
                         }
@@ -955,6 +1013,9 @@ WHERE CODHIST = :A_CODHIST
                             
                             // Atualizar visualmente qual status está selecionado
                             filterByStatus(codhist, label);
+                            
+                            // Chamar a função para atualizar os dados da tabela
+                            ref_mot(codhist);
                         }
                     },
                     animation: {
@@ -969,13 +1030,18 @@ WHERE CODHIST = :A_CODHIST
         function filterByStatus(codhist, statusLabel) {
             console.log('filterByStatus chamado com CODHIST:', codhist, 'Label:', statusLabel);
             
-            // Evita processamento desnecessário se o mesmo status já está selecionado
-            if (lastSelectedStatus === codhist) {
-                return;
-            }
+            // Atualiza visual da tabela de status
+            document.querySelectorAll('.status-row').forEach(row => {
+                row.classList.remove('active');
+            });
             
-            // Usa a função maintainFocus para garantir foco correto
-            maintainFocus(codhist);
+            const targetRow = document.querySelector(`[data-codhist="${codhist}"]`);
+            if (targetRow) {
+                targetRow.classList.add('active');
+                console.log('Status row ativado:', targetRow);
+            } else {
+                console.warn('Status row não encontrado para CODHIST:', codhist);
+            }
             
             // Atualiza o filtro atual
             document.getElementById('current-filter').textContent = statusLabel || `Status ${codhist}`;
@@ -1013,9 +1079,6 @@ WHERE CODHIST = :A_CODHIST
         }
 
         function initializeFilter() {
-            // Reset do controle de foco
-            resetFocusControl();
-            
             // Inicializa com o primeiro status disponível se não há dados carregados
             const firstStatus = document.querySelector('.status-row');
             if (firstStatus && !document.querySelector('#details-tbody tr td[class*="valor-cell"]')) {
@@ -1024,16 +1087,6 @@ WHERE CODHIST = :A_CODHIST
                 if (firstCodhist) {
                     console.log('Inicializando com primeiro status:', firstCodhist, firstLabel);
                     filterByStatus(firstCodhist, firstLabel);
-                }
-            }
-            
-            // Garante que o primeiro status tenha a classe active na inicialização
-            const activeRow = document.querySelector('.status-row.active');
-            if (!activeRow && firstStatus) {
-                firstStatus.classList.add('active');
-                const firstCodhist = firstStatus.getAttribute('data-codhist');
-                if (firstCodhist) {
-                    lastSelectedStatus = firstCodhist;
                 }
             }
         }
@@ -1049,47 +1102,6 @@ WHERE CODHIST = :A_CODHIST
                 console.log('Dashboard de Notas Sankhya carregado!');
             }, 100);
         });
-        
-        // Variável para controlar o último status selecionado
-        let lastSelectedStatus = null;
-        
-        // Função para garantir que o foco seja mantido corretamente
-        function maintainFocus(codhist) {
-            // Evita processamento desnecessário se o mesmo status já está selecionado
-            if (lastSelectedStatus === codhist) {
-                return;
-            }
-            
-            // Remove active de todas as linhas
-            document.querySelectorAll('.status-row').forEach(row => {
-                row.classList.remove('active');
-            });
-            
-            // Adiciona active apenas na linha correta
-            const targetRow = document.querySelector(`[data-codhist="${codhist}"]`);
-            if (targetRow) {
-                targetRow.classList.add('active');
-                lastSelectedStatus = codhist;
-            }
-        }
-        
-        // Função para resetar o controle de foco
-        function resetFocusControl() {
-            lastSelectedStatus = null;
-        }
-
-  function exportarParaExcel() {
-    const table = document.querySelector(".table-container table"); // ⬅️ ESSA É A LINHA
-    if (!table) {
-      alert("Tabela não encontrada!");
-      return;
-    }
-
-    const wb = XLSX.utils.book_new(); // Cria um novo "livro" Excel
-    const ws = XLSX.utils.table_to_sheet(table); // Converte a tabela HTML em planilha
-    XLSX.utils.book_append_sheet(wb, ws, "DetalhesPedidos"); // Adiciona a planilha no livro
-    XLSX.writeFile(wb, "DetalhesPedidos.xlsx"); // Faz download do arquivo
-  }
 
         // Função para debug - pode ser removida em produção
         function debugChartData() {
@@ -1098,6 +1110,7 @@ WHERE CODHIST = :A_CODHIST
             console.log('Values:', chartData.values);
             console.log('Tipos:', chartData.tipos);
             console.log('CODHISTs:', chartData.codhists);
+            console.log('Quantidades:', chartData.qtds);
             console.log('Total de itens:', chartData.values.length);
         }
 

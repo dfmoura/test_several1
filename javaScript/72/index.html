@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Solicitações - Desenvolvimento</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Tela de Login -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <h1>Sistema de Solicitações</h1>
+                <h2>Desenvolvimento de Sistemas</h2>
+                
+                <form id="login-form" class="login-form">
+                    <div class="form-group">
+                        <label for="empresa">Empresa:</label>
+                        <select id="empresa" required>
+                            <option value="">Selecione uma empresa</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="usuario">Usuário:</label>
+                        <input type="text" id="usuario" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="senha">Senha:</label>
+                        <input type="password" id="senha" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Entrar</button>
+                </form>
+                
+                <div class="login-actions">
+                    <button id="btn-cadastro-empresa" class="btn-secondary">Cadastrar Empresa</button>
+                    <button id="btn-cadastro-usuario" class="btn-secondary">Cadastrar Usuário</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela de Cadastro de Empresa -->
+        <div id="cadastro-empresa-screen" class="screen">
+            <div class="container">
+                <h2>Cadastro de Empresa</h2>
+                <form id="empresa-form" class="form">
+                    <div class="form-group">
+                        <label for="nome-empresa">Nome da Empresa:</label>
+                        <input type="text" id="nome-empresa" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cnpj-empresa">CNPJ:</label>
+                        <input type="text" id="cnpj-empresa" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email-empresa">Email:</label>
+                        <input type="email" id="email-empresa" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="telefone-empresa">Telefone:</label>
+                        <input type="text" id="telefone-empresa" required>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Cadastrar</button>
+                        <button type="button" id="btn-voltar-empresa" class="btn-secondary">Voltar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tela de Cadastro de Usuário -->
+        <div id="cadastro-usuario-screen" class="screen">
+            <div class="container">
+                <h2>Cadastro de Usuário</h2>
+                <form id="usuario-form" class="form">
+                    <div class="form-group">
+                        <label for="empresa-usuario">Empresa:</label>
+                        <select id="empresa-usuario" required>
+                            <option value="">Selecione uma empresa</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="nome-usuario">Nome Completo:</label>
+                        <input type="text" id="nome-usuario" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email-usuario">Email:</label>
+                        <input type="email" id="email-usuario" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="login-usuario">Login:</label>
+                        <input type="text" id="login-usuario" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="senha-usuario">Senha:</label>
+                        <input type="password" id="senha-usuario" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tipo-usuario">Tipo de Usuário:</label>
+                        <select id="tipo-usuario" required>
+                            <option value="">Selecione o tipo</option>
+                            <option value="solicitante">Solicitante</option>
+                            <option value="executante">Executante</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Cadastrar</button>
+                        <button type="button" id="btn-voltar-usuario" class="btn-secondary">Voltar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard Principal -->
+        <div id="dashboard-screen" class="screen">
+            <header class="header">
+                <h1>Sistema de Solicitações</h1>
+                <div class="user-info">
+                    <span id="user-name"></span>
+                    <button id="btn-logout" class="btn-logout">Sair</button>
+                </div>
+            </header>
+            
+            <nav class="nav">
+                <button id="btn-solicitacoes" class="nav-btn active">Minhas Solicitações</button>
+                <button id="btn-nova-solicitacao" class="nav-btn">Nova Solicitação</button>
+                <button id="btn-execucao" class="nav-btn">Execução</button>
+            </nav>
+            
+            <main class="main-content">
+                <!-- Área de Solicitações -->
+                <div id="solicitacoes-area" class="content-area active">
+                    <h2>Minhas Solicitações</h2>
+                    <div id="solicitacoes-list" class="solicitacoes-grid"></div>
+                </div>
+                
+                <!-- Área de Nova Solicitação -->
+                <div id="nova-solicitacao-area" class="content-area">
+                    <h2>Nova Solicitação</h2>
+                    <form id="solicitacao-form" class="form">
+                        <div class="form-group">
+                            <label for="titulo-solicitacao">Título:</label>
+                            <input type="text" id="titulo-solicitacao" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="descricao-solicitacao">Descrição:</label>
+                            <textarea id="descricao-solicitacao" rows="5" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="prioridade-solicitacao">Prioridade:</label>
+                            <select id="prioridade-solicitacao" required>
+                                <option value="">Selecione a prioridade</option>
+                                <option value="baixa">Baixa</option>
+                                <option value="media">Média</option>
+                                <option value="alta">Alta</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="area-solicitacao">Área:</label>
+                            <input type="text" id="area-solicitacao" required>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Enviar Solicitação</button>
+                            <button type="button" id="btn-cancelar-solicitacao" class="btn-secondary">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Área de Execução -->
+                <div id="execucao-area" class="content-area">
+                    <h2>Solicitações para Execução</h2>
+                    <div id="execucao-list" class="execucao-grid"></div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Modal de Detalhes da Solicitação -->
+        <div id="modal-solicitacao" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="modal-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

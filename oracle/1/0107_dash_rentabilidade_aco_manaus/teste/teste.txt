@@ -1,0 +1,6 @@
+fazer um uma tela html css js
+
+que pesquisa da melhor forma possivel
+
+
+https://olinda.bcb.gov.br/olinda/servico/taxaJuros/versao/v2/odata/TaxasJurosDiariaPorInicioPeriodo?$top=100&$skip=0&$format=json&$select=InicioPeriodo,FimPeriodo,Segmento,Modalidade,Posicao,InstituicaoFinanceira,TaxaJurosAoMes,TaxaJurosAoAno,cnpj8 
