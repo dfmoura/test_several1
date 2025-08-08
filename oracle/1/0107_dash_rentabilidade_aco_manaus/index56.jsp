@@ -11,11 +11,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard</title>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <style>
     /* Estilos adicionais aqui */
     body {
-        
         margin-top: 10px; /* Remove o espaço no topo da página */
+        padding-top: 140px !important; /* Espaço para header fixo + filtros fixos */
     }
     .card {
         border-radius: 15px;
@@ -69,28 +70,120 @@
         margin-bottom: -2.5rem; /* Reduz o espaçamento inferior */
     }
 
-    /* Estilos para o cabeçalho */
+    /* Estilos para o cabeçalho fixo */
     header {
-        justify-content: space-between;
-        padding: 10px 20px;
-        background-color: rgba(19, 4, 85); /* com 50% de transparência */ /* Cor de fundo do cabeçalho */
-        border-bottom: 0.2px solid #130455; /* Cor da borda inferior */
-        border-radius: 15px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        background-color: rgba(19, 4, 85, 0.95);
+        border-bottom: 0.2px solid #130455;
+        border-radius: 0;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 20px;
     }
     .logo-header {
         max-width: 60px;
     }
     .titulo-header {       
-        font-size: 30px; /* Ajuste o tamanho da fonte conforme necessário */
+        font-size: 30px;
         text-align: center;
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 6vh; /* Garante que o h1 esteja centralizado verticalmente dentro do header */
-        margin: 0; /* Remove qualquer margem padrão */
+        height: 60px;
+        margin: 0;
         color: #fff;
     }        
+
+    /* Estilos para o filtro de datas fixo - Melhorado baseado no prod35.jsp */
+    .filtros-fixos {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-bottom: 1px solid #dee2e6;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 999;
+        padding: 10px 0;
+    }
+    
+    .filtros-container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+    
+    .filtros-card {
+        background: transparent;
+        border: none;
+        margin: 0;
+    }
+    
+    .filtros-card .card-body {
+        padding: 0;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 5px;
+        font-size: 14px;
+    }
+    
+    .form-control {
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        font-size: 14px;
+        height: 35px;
+    }
+    
+    .form-control:focus {
+        border-color: #130455;
+        box-shadow: 0 0 0 0.2rem rgba(19, 4, 85, 0.25);
+    }
+    
+    .btn-primary {
+        background-color: #130455;
+        border-color: #130455;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        height: 35px;
+        font-size: 14px;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0f0340;
+        border-color: #0f0340;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(19, 4, 85, 0.3);
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        height: 35px;
+        font-size: 14px;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+    }
 
     /* Estilos para as tags <p> e <h1> */
     p {
@@ -125,6 +218,38 @@
         } 
     }
 
+    // Função para converter data de YYYY-MM-DD para DD/MM/YYYY
+    function converterData(data) {
+        if (!data) return '';
+        const [ano, mes, dia] = data.split('-');
+        return `${dia}/${mes}/${ano}`;
+    }
+
+    // Função para aplicar os filtros de data
+    function aplicarFiltros() {
+        const dataInicio = document.getElementById('dataInicio').value;
+        const dataFim = document.getElementById('dataFim').value;
+        
+        if (!dataInicio || !dataFim) {
+            alert('Por favor, selecione as datas de início e fim.');
+            return;
+        }
+        
+        if (dataInicio > dataFim) {
+            alert('A data de início não pode ser maior que a data de fim.');
+            return;
+        }
+        
+        // Aqui você pode implementar a lógica para recarregar os dados
+        // Por enquanto, apenas mostra um alerta
+        alert('Filtros aplicados! Data início: ' + dataInicio + ', Data fim: ' + dataFim);
+    }
+
+    // Função para resetar os filtros para os valores padrão
+    function resetarFiltros() {
+        document.getElementById('dataInicio').value = '2025-08-01';
+        document.getElementById('dataFim').value = '2025-08-31';
+    }
 
     function abrir_fat(){
         var params = '';
@@ -202,9 +327,42 @@
 </head>
 
 <body class="bg-light">
+    <!-- Header Fixo -->
     <header>
         <h1 class="titulo-header">Rentabilidade Financeira 2.0</h1>
     </header>
+
+    <!-- Filtros de Data Fixos - Melhorado -->
+    <div class="filtros-fixos">
+        <div class="filtros-container">
+            <div class="card shadow-sm filtros-card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <label for="dataInicio" class="form-label"><strong>Data Início:</strong></label>
+                            <input type="date" class="form-control" id="dataInicio" value="2025-08-01">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dataFim" class="form-label"><strong>Data Fim:</strong></label>
+                            <input type="date" class="form-control" id="dataFim" value="2025-08-31">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-primary btn-block" onclick="aplicarFiltros()">
+                                <i class="fas fa-filter"></i> Aplicar Filtros
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-secondary btn-block" onclick="resetarFiltros()">
+                                <i class="fas fa-undo"></i> Resetar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
 <snk:query var="dias">  

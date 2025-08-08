@@ -25,20 +25,21 @@ de 16 ate 19
 -----------------------------------
 
 
-8:30 as 12:20
-13:30 16:30
-19:00 as 21
+1 paragrafo) 8:30 as 12:20
+2 paragrafo) 13:30 16:30
+3 paragrafo) 19:00 as 21
 criacao de view com todos os dados para montar o dash envolvendo, faturamento, devoluções,custos,volumes,impostos e margem bruta.
 
 
 ----------------
+07/08/2025
 8:30 as 11:00 
 moldagem do laytou principal com replicação do existente, deixando somente o html e o css.
 ajuste na escrita do card de volume de HL para KG
 
 
 ----------
-12:10 as
+12:10 as 16:00 
 Deixar o head colado no top da tela.
 	atualizar o layout do header 
 	semelhante ao que foi utilizado no fixed-header do arquivo prod35.jsp
@@ -60,4 +61,177 @@ deixar o 'Rentabilidade Financeira 2.0' centralizado
 para o Fixed Header mutar o verde para o mesmo azul dos cards
 
 
-para o select da view fazer o primeiro card faturamento periodo atual e anterior
+para o select da view fazer o primeiro card faturamento periodo atual e anterior e variação
+
+--->
+select 
+    sum(case when dtneg between '01/08/2025' and '31/08/2025' then totalliq else 0 end) as totalliq_atual,
+    sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+    and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end) as totalliq_anterior,
+    case 
+        when sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+        and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end) = 0 then null
+        else round(((sum(case when dtneg between '01/08/2025' and '31/08/2025' then totalliq else 0 end) - 
+          sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+          and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end)) * 100.0 / 
+         sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+         and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end)), 2)
+    end as variacao_percentual
+from vw_rentabilidade_aco 
+where tipmov = 'V' and ATIVO_TOP = 'S' and AD_COMPOE_FAT = 'S'
+
+prod6.jsp = colocar este select no jsp. 
+
+
+nesta parte do codigo:
+
+</div>
+<h1>Faturamento</h1>
+<p>Faturamento</p>
+</div>
+<div class="card-footer text-muted">
+<b>Per. Ant.:</b> 0 <b>Var.%:</b> 0
+</div>
+
+
+de acordo com o select a seguir preencher as partes:
+<p>Faturamento</p>
+<b>Per. Ant.:</b> 0 <b>Var.%:</b> 0
+
+
+utilizar o arquivo prod35.jsp pois ele possui uma implementação do metodo JX.consultar da biblioteca SankhyaJX
+e pode auxiliar no processo
+
+
+select para utilizar
+select 
+    sum(case when dtneg between '01/08/2025' and '31/08/2025' then totalliq else 0 end) as totalliq_atual,
+    sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+    and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end) as totalliq_anterior,
+    case 
+        when sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+        and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end) = 0 then null
+        else round(((sum(case when dtneg between '01/08/2025' and '31/08/2025' then totalliq else 0 end) - 
+          sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+          and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end)) * 100.0 / 
+         sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+         and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end)), 2)
+    end as variacao_percentual
+from vw_rentabilidade_aco 
+where tipmov = 'V' and ATIVO_TOP = 'S' and AD_COMPOE_FAT = 'S'
+
+
+----------------
+
+16:20 20:00
+
+sem estragar os dados e o codigo
+retirar este html do codigo e o css js relacionado sem comprometar nada:
+
+    <div class="header-buttons">
+      <button onclick="atualizarDadosFaturamento()" class="header-btn" title="Atualizar Dados">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+
+----
+
+
+
+sem estragar os dados e o codigo:
+organizar o codigo para a seta para cima verde quando maior igual a zero e seta para baixo vermelha quando menor que zero
+deixar o layout css e script js no padrao 
+
+sem comprometer nada do codigo.
+
+
+-----
+
+sem estragar os dados e o codigo:
+a seta ficou muito grande desproporcional aos outros registros
+sem comprometer nada do codigo
+
+----------------------
+
+
+
+sem estragar os dados e o codigo:
+
+sem estragar o codigo criar campos de filtro de data em alguma parte da tela, 
+
+as datas estao em 'DD/MM/YYYY'
+      
+
+de modo a nao comprometer o layout
+este filtro ira atuar diretamente nos pontos de data da query que nao estao dinamicos
+
+
+      const sql = `
+        select 
+            sum(case when dtneg between '01/08/2025' and '31/08/2025' then totalliq else 0 end) as totalliq_atual,
+            sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+            and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end) as totalliq_anterior,
+            case 
+                when sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+                and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end) = 0 then null
+                else round(((sum(case when dtneg between '01/08/2025' and '31/08/2025' then totalliq else 0 end) - 
+                  sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+                  and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end)) * 100.0 / 
+                 sum(case when dtneg between DATEADD(month, -1, '01/08/2025') 
+                 and DATEADD(day, 30, DATEADD(month, -1, '01/08/2025')) then totalliq else 0 end)), 2)
+            end as variacao_percentual
+        from vw_rentabilidade_aco 
+        where tipmov = 'V' and ATIVO_TOP = 'S' and AD_COMPOE_FAT = 'S'
+      `;
+
+
+
+
+----------------------
+20:30 as 22:00
+
+
+
+prod16.jsp
+
+sem estragar os dados e o codigo:
+melhorar o layout do filtro de datas para ficar fixo, colocar debaixo rente ao 'header fixo', utilizando toda extensão da tela
+
+
+tentar utilizar como modelo o jeito que foi feito o layout dos filtros no arquivo prod35.jsp
+
+cuidado, so mexer no layout.
+
+nao deu certo ainda, ja fiz varias tentativas
+
+------------------------------------
+prod17.jsp
+
+sem estragar os dados e o codigo:
+
+
+criar um multi-list para pesquisar a empresa, colocar lado direito do filtro de datas,
+para interagir no where da query feita
+
+
+SELECT 
+    EMP.CODEMP AS VALUE,
+    CAST(EMP.CODEMP AS VARCHAR) + ' - ' + EMP.RAZAOSOCIAL AS LABEL
+FROM TSIEMP EMP
+GROUP BY
+    EMP.CODEMP,
+    EMP.RAZAOSOCIAL
+ORDER BY EMP.CODEMP
+
+--------------------------------------
+prod18.jsp
+
+sem estragar o codigo
+
+deixar o filtro de empresa mais moderno,
+
+tem um exemplo de filtro de parceiro no arquivo prod35.jsp
+
+verificar para adaptar no de empresa, lembrando que tem que manter multilist
+
+muita atenção para nao estragar o codigo
