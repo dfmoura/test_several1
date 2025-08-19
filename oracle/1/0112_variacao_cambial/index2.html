@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Compras - Exposição Cambial</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .products-table th {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .products-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e1e8ed;
+        }
+
+        .products-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .chart-container {
+            height: 400px;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-pago {
+            background: #27ae60;
+        }
+
+        .status-pendente {
+            background: #f39c12;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .success {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Gestão de Compras - Exposição Cambial</h1>
+            <p>Controle de insumos importados e análise de risco cambial</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Seção de Cadastro de Produtos -->
+            <div class="section">
+                <h2>📦 Cadastro de Produtos</h2>
+                
+                <form id="productForm">
+                    <div class="form-group">
+                        <label for="productName">Nome do Produto:</label>
+                        <input type="text" id="productName" required placeholder="Ex: Matéria-prima A">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="purchaseDate">Data da Compra:</label>
+                        <input type="date" id="purchaseDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="amount">Valor em USD:</label>
+                        <input type="number" id="amount" step="0.01" required placeholder="0.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="paymentStatus">Status do Pagamento:</label>
+                        <select id="paymentStatus" required>
+                            <option value="pendente">Pendente</option>
+                            <option value="pago">Pago</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="paymentDate">Data do Pagamento (se pago):</label>
+                        <input type="date" id="paymentDate">
+                    </div>
+                    
+                    <button type="submit" class="btn">➕ Adicionar Produto</button>
+                </form>
+
+                <div id="message"></div>
+            </div>
+
+            <!-- Seção de Gráfico -->
+            <div class="section">
+                <h2>📈 Análise de Exposição Cambial</h2>
+                
+                <div class="chart-container">
+                    <canvas id="exposureChart"></canvas>
+                </div>
+                
+                <div id="chartLoading" class="loading" style="display: none;">
+                    Carregando dados de câmbio...
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Produtos -->
+        <div style="padding: 30px;">
+            <h2 style="color: #2c3e50; margin-bottom: 20px;">📋 Produtos Cadastrados</h2>
+            <table class="products-table" id="productsTable">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Data Compra</th>
+                        <th>Valor USD</th>
+                        <th>PTAX Compra</th>
+                        <th>Valor BRL</th>
+                        <th>Status</th>
+                        <th>Data Pagamento</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="productsTableBody">
+                    <!-- Produtos serão inseridos aqui dinamicamente -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Classe para gerenciar os produtos
+        class ProductManager {
+            constructor() {
+                this.products = JSON.parse(localStorage.getItem('products')) || [];
+                this.chart = null;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.renderProducts();
+                this.updateChart();
+            }
+
+            setupEventListeners() {
+                document.getElementById('productForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addProduct();
+                });
+
+                // Atualizar campo de data de pagamento baseado no status
+                document.getElementById('paymentStatus').addEventListener('change', (e) => {
+                    const paymentDateField = document.getElementById('paymentDate');
+                    if (e.target.value === 'pago') {
+                        paymentDateField.required = true;
+                        paymentDateField.disabled = false;
+                    } else {
+                        paymentDateField.required = false;
+                        paymentDateField.disabled = true;
+                        paymentDateField.value = '';
+                    }
+                });
+            }
+
+            async addProduct() {
+                const formData = new FormData(document.getElementById('productForm'));
+                const product = {
+                    id: Date.now(),
+                    name: document.getElementById('productName').value,
+                    purchaseDate: document.getElementById('purchaseDate').value,
+                    amount: parseFloat(document.getElementById('amount').value),
+                    status: document.getElementById('paymentStatus').value,
+                    paymentDate: document.getElementById('paymentDate').value || null
+                };
+
+                // Buscar PTAX da data de compra
+                try {
+                    product.ptaxPurchase = await this.getPTAX(product.purchaseDate);
+                    product.valueBRL = product.amount * product.ptaxPurchase;
+                    
+                    // Se o produto já foi pago, buscar PTAX da data de pagamento
+                    if (product.status === 'pago' && product.paymentDate) {
+                        product.ptaxPayment = await this.getPTAX(product.paymentDate);
+                    }
+                } catch (error) {
+                    this.showMessage('Erro ao buscar PTAX da data de compra', 'error');
+                    return;
+                }
+
+                this.products.push(product);
+                this.saveProducts();
+                this.renderProducts();
+                this.updateChart();
+                this.resetForm();
+                this.showMessage('Produto adicionado com sucesso!', 'success');
+            }
+
+            async getPTAX(date) {
+                const formattedDate = this.formatDateForAPI(date);
+                const url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${formattedDate}'&$top=100&$format=json`;
+                
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.value && data.value.length > 0) {
+                        return parseFloat(data.value[0].cotacaoVenda);
+                    } else {
+                        // Se não há PTAX para a data, buscar a última disponível
+                        return await this.getLastAvailablePTAX();
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar PTAX:', error);
+                    throw new Error('Falha ao buscar cotação PTAX');
+                }
+            }
+
+            async getLastAvailablePTAX() {
+                // Buscar PTAX de hoje e retroceder até encontrar uma cotação
+                const today = new Date();
+                for (let i = 0; i < 30; i++) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const formattedDate = this.formatDateForAPI(date.toISOString().split('T')[0]);
+                    
+                    try {
+                        const url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${formattedDate}'&$top=100&$format=json`;
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        
+                        if (data.value && data.value.length > 0) {
+                            return parseFloat(data.value[0].cotacaoVenda);
+                        }
+                    } catch (error) {
+                        continue;
+                    }
+                }
+                throw new Error('Não foi possível encontrar cotação PTAX');
+            }
+
+            async getCurrentDollarRate() {
+                try {
+                    // API gratuita para cotação atual do dólar
+                    const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+                    const data = await response.json();
+                    return data.rates.BRL;
+                } catch (error) {
+                    console.error('Erro ao buscar cotação atual:', error);
+                    // Fallback para uma cotação estimada
+                    return 5.0;
+                }
+            }
+
+            formatDateForAPI(date) {
+                const [year, month, day] = date.split('-');
+                return `${day}-${month}-${year}`;
+            }
+
+            renderProducts() {
+                const tbody = document.getElementById('productsTableBody');
+                tbody.innerHTML = '';
+
+                this.products.forEach(product => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${product.name}</td>
+                        <td>${this.formatDate(product.purchaseDate)}</td>
+                        <td>$${product.amount.toFixed(2)}</td>
+                        <td>R$ ${product.ptaxPurchase.toFixed(4)}</td>
+                        <td>R$ ${product.valueBRL.toFixed(2)}</td>
+                        <td>
+                            <span class="status-indicator status-${product.status}"></span>
+                            ${product.status}
+                        </td>
+                        <td>${product.paymentDate ? this.formatDate(product.paymentDate) : '-'}</td>
+                        <td>
+                            <button class="btn btn-danger" onclick="productManager.deleteProduct(${product.id})">
+                                🗑️ Excluir
+                            </button>
+                            ${product.status === 'pendente' ? 
+                                `<button class="btn" onclick="productManager.markAsPaid(${product.id})" style="margin-left: 5px;">
+                                    ✅ Marcar como Pago
+                                </button>` : ''
+                            }
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('pt-BR');
+            }
+
+            async updateChart() {
+                const loading = document.getElementById('chartLoading');
+                loading.style.display = 'block';
+
+                try {
+                    const chartData = await this.prepareChartData();
+                    this.renderChart(chartData);
+                } catch (error) {
+                    console.error('Erro ao atualizar gráfico:', error);
+                    this.showMessage('Erro ao carregar dados do gráfico', 'error');
+                } finally {
+                    loading.style.display = 'none';
+                }
+            }
+
+            async prepareChartData() {
+                if (this.products.length === 0) {
+                    return { labels: [], datasets: [] };
+                }
+
+                // Encontrar a data mais antiga de compra
+                const earliestDate = new Date(Math.min(...this.products.map(p => new Date(p.purchaseDate))));
+                const today = new Date();
+                
+                const labels = [];
+                const datasets = [];
+
+                // Gerar todas as datas desde a compra mais antiga até hoje
+                const currentDate = new Date(earliestDate);
+                while (currentDate <= today) {
+                    const dateStr = currentDate.toISOString().split('T')[0];
+                    labels.push(this.formatDate(dateStr));
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+
+                // Criar dataset para cada produto
+                for (let i = 0; i < this.products.length; i++) {
+                    const product = this.products[i];
+                    const productData = await this.calculateProductExposure(product, labels);
+                    
+                    datasets.push({
+                        label: `${product.name} - Exposição (R$)`,
+                        data: productData.exposure,
+                        borderColor: this.getProductColor(i),
+                        backgroundColor: this.getProductColor(i, 0.1),
+                        borderWidth: 2,
+                        fill: false,
+                        yAxisID: 'y1'
+                    });
+
+                    datasets.push({
+                        label: `${product.name} - PTAX Compra`,
+                        data: productData.ptaxPurchase,
+                        borderColor: this.getProductColor(i, 0.5),
+                        backgroundColor: 'transparent',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        fill: false,
+                        yAxisID: 'y'
+                    });
+
+                    if (product.status === 'pago' && product.paymentDate) {
+                        datasets.push({
+                            label: `${product.name} - PTAX Pagamento`,
+                            data: productData.ptaxPayment,
+                            borderColor: this.getProductColor(i, 0.7),
+                            backgroundColor: 'transparent',
+                            borderWidth: 1,
+                            borderDash: [10, 5],
+                            fill: false,
+                            yAxisID: 'y'
+                        });
+                    }
+                }
+
+                // Adicionar linha do dólar spot
+                const spotData = await this.getSpotDollarData(labels);
+                datasets.push({
+                    label: 'Dólar Spot Diário',
+                    data: spotData,
+                    borderColor: '#2c3e50',
+                    backgroundColor: 'rgba(44, 62, 80, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    yAxisID: 'y'
+                });
+
+                return { labels, datasets };
+            }
+
+            async calculateProductExposure(product, labels) {
+                const exposure = [];
+                const ptaxPurchase = [];
+                const ptaxPayment = [];
+                
+                const purchaseDate = new Date(product.purchaseDate);
+                const paymentDate = product.paymentDate ? new Date(product.paymentDate) : null;
+                const today = new Date();
+
+                for (let i = 0; i < labels.length; i++) {
+                    const currentDate = new Date(labels[i].split('/').reverse().join('-'));
+                    
+                    // PTAX de compra (linha horizontal)
+                    ptaxPurchase.push(product.ptaxPurchase);
+                    
+                    // PTAX de pagamento (se pago)
+                    if (product.status === 'pago' && paymentDate && product.ptaxPayment) {
+                        if (currentDate >= paymentDate) {
+                            ptaxPayment.push(product.ptaxPayment); // Usar PTAX do pagamento
+                        } else {
+                            ptaxPayment.push(null);
+                        }
+                    } else {
+                        ptaxPayment.push(null);
+                    }
+
+                    // Calcular exposição
+                    if (currentDate >= purchaseDate) {
+                        if (product.status === 'pago' && paymentDate && currentDate >= paymentDate) {
+                            // Produto pago - usar PTAX do pagamento
+                            exposure.push(product.amount * (product.ptaxPayment || product.ptaxPurchase));
+                        } else {
+                            // Produto pendente ou ainda não pago - usar dólar spot
+                            const spotRate = await this.getSpotDollarRate(currentDate);
+                            exposure.push(product.amount * spotRate);
+                        }
+                    } else {
+                        exposure.push(null);
+                    }
+                }
+
+                return { exposure, ptaxPurchase, ptaxPayment };
+            }
+
+            async getSpotDollarData(labels) {
+                const spotData = [];
+                
+                for (let i = 0; i < labels.length; i++) {
+                    const date = new Date(labels[i].split('/').reverse().join('-'));
+                    const spotRate = await this.getSpotDollarRate(date);
+                    spotData.push(spotRate);
+                }
+
+                return spotData;
+            }
+
+            async getSpotDollarRate(date) {
+                try {
+                    // Para simular dados históricos do dólar spot, vamos usar uma variação da cotação atual
+                    const currentRate = await this.getCurrentDollarRate();
+                    const daysDiff = Math.floor((new Date() - date) / (1000 * 60 * 60 * 24));
+                    
+                    // Simular variação histórica (em produção, você usaria uma API de dados históricos)
+                    const variation = 1 + (Math.random() - 0.5) * 0.1; // ±5% de variação
+                    return currentRate * variation;
+                } catch (error) {
+                    return 5.0; // Fallback
+                }
+            }
+
+            getProductColor(index, alpha = 1) {
+                const colors = [
+                    `rgba(231, 76, 60, ${alpha})`,   // Vermelho
+                    `rgba(52, 152, 219, ${alpha})`,  // Azul
+                    `rgba(46, 204, 113, ${alpha})`,  // Verde
+                    `rgba(155, 89, 182, ${alpha})`,  // Roxo
+                    `rgba(241, 196, 15, ${alpha})`,  // Amarelo
+                    `rgba(230, 126, 34, ${alpha})`,  // Laranja
+                    `rgba(26, 188, 156, ${alpha})`,  // Turquesa
+                    `rgba(149, 165, 166, ${alpha})`  // Cinza
+                ];
+                return colors[index % colors.length];
+            }
+
+            renderChart(data) {
+                const ctx = document.getElementById('exposureChart').getContext('2d');
+                
+                if (this.chart) {
+                    this.chart.destroy();
+                }
+
+                if (data.labels.length === 0) {
+                    // Mostrar mensagem quando não há produtos
+                    const chartContainer = document.querySelector('.chart-container');
+                    chartContainer.innerHTML = '<div style="text-align: center; padding: 50px; color: #7f8c8d;">Adicione produtos para visualizar o gráfico de exposição cambial</div>';
+                    return;
+                }
+
+                // Restaurar canvas se foi removido
+                if (!document.getElementById('exposureChart')) {
+                    const chartContainer = document.querySelector('.chart-container');
+                    chartContainer.innerHTML = '<canvas id="exposureChart"></canvas>';
+                }
+
+                this.chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: data.datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Data'
+                                }
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Cotação USD/BRL'
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Exposição Cambial (R$)'
+                                },
+                                grid: {
+                                    drawOnChartArea: false,
+                                },
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Análise de Exposição Cambial por Produto'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.dataset.label;
+                                        if (label.includes('Exposição')) {
+                                            return `${label}: R$ ${context.parsed.y.toFixed(2)}`;
+                                        } else {
+                                            return `${label}: R$ ${context.parsed.y.toFixed(4)}`;
+                                        }
+                                    }
+                                }
+                            },
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            deleteProduct(id) {
+                if (confirm('Tem certeza que deseja excluir este produto?')) {
+                    this.products = this.products.filter(p => p.id !== id);
+                    this.saveProducts();
+                    this.renderProducts();
+                    this.updateChart();
+                    this.showMessage('Produto excluído com sucesso!', 'success');
+                }
+            }
+
+            async markAsPaid(id) {
+                const product = this.products.find(p => p.id === id);
+                if (!product) return;
+
+                const paymentDate = prompt('Digite a data do pagamento (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+                if (!paymentDate) return;
+
+                try {
+                    // Buscar PTAX da data de pagamento
+                    const ptaxPayment = await this.getPTAX(paymentDate);
+                    
+                    product.status = 'pago';
+                    product.paymentDate = paymentDate;
+                    product.ptaxPayment = ptaxPayment;
+
+                    this.saveProducts();
+                    this.renderProducts();
+                    this.updateChart();
+                    this.showMessage('Produto marcado como pago com sucesso!', 'success');
+                } catch (error) {
+                    this.showMessage('Erro ao buscar PTAX da data de pagamento', 'error');
+                }
+            }
+
+            saveProducts() {
+                localStorage.setItem('products', JSON.stringify(this.products));
+            }
+
+            resetForm() {
+                document.getElementById('productForm').reset();
+                document.getElementById('paymentDate').disabled = true;
+            }
+
+            showMessage(message, type) {
+                const messageDiv = document.getElementById('message');
+                messageDiv.className = type;
+                messageDiv.textContent = message;
+                
+                setTimeout(() => {
+                    messageDiv.textContent = '';
+                    messageDiv.className = '';
+                }, 5000);
+            }
+        }
+
+        // Inicializar o gerenciador de produtos
+        const productManager = new ProductManager();
+    </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+com hmtl css js criar um card com uma tela de espaço limite 390 x 208 px 
+
+para mostrar os agendamentos feito para cada time por, dia, semana, mes,
+
+simular o calendario do google
+
+utilizar o padrao brasileiro de datas,
+
+e ao clicar so dar um breve detalhamento do agendamento (bem pequeno e compacto a tela deste detalhamento, menor que o calendario se possivel)
+
+popular com dados de exemplo
+utilizar dados de exemplo direto no js
+
+fazer tudo em um unico arquivo
+
+
+
+muita atenção para nao ultrapassar este espaço limite 390 x 174px 
+o importante mesmo é mostrar o calendar nas suas divisoes de dia, semana e mes
+
+
+sinalizando os agendamento de alguma forma, quando for dia, semana e mes
+fazer bem profissional
+
+
+manter o scroll na vertical para ambos as abas de dia, semana e mes
+
+
+todas as abas de dia, semana e mes, devem possibilitar com um click ou passar um mouse, pegar detalhes do agendamento.
+
+
+-----
+
+sem estragar o codigo fazer o seguinte:
+
+cada agendamento estar associado a um colaborador,
+no exemplo vincular colaboradores aos agendamenteos e possibilidar com um dropdown que o usuario selecione o repectivo colaborador para filtrar suas informações do calendario

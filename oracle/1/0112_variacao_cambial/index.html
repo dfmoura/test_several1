@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Exposição Cambial - Insumos Importados</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="dados_exemplo.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 30px;
+            height: calc(100vh - 200px);
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow-y: auto;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-section h3 {
+            color: #4a5568;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .products-list {
+            margin-top: 20px;
+        }
+
+        .product-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .product-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .product-item.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .product-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .product-status {
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-pendente {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .status-pago {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+
+        .product-details {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .product-details div {
+            margin-bottom: 5px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .current-rate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+        }
+
+        .chart-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #feb2b2;
+        }
+
+        .success-message {
+            background: #c6f6d5;
+            color: #2f855a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #9ae6b4;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .sidebar {
+                order: 2;
+            }
+            
+            .chart-container {
+                order: 1;
+                height: 500px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Gestão de Exposição Cambial</h1>
+            <p>Controle de insumos importados e análise de risco cambial</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Sidebar com formulário e lista -->
+            <div class="sidebar">
+                <!-- Formulário de cadastro -->
+                <div class="form-section">
+                    <h3>➕ Adicionar Produto</h3>
+                    <form id="productForm">
+                        <div class="form-group">
+                            <label for="productName">Nome do Produto</label>
+                            <input type="text" id="productName" required placeholder="Ex: Matéria-prima A">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="supplier">Fornecedor</label>
+                            <input type="text" id="supplier" required placeholder="Ex: Fornecedor XYZ">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="purchaseDate">Data de Compra</label>
+                            <input type="date" id="purchaseDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="paymentDate">Data de Pagamento</label>
+                            <input type="date" id="paymentDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="valueUSD">Valor (USD)</label>
+                            <input type="number" id="valueUSD" step="0.01" required placeholder="0.00">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="purchaseRate">Taxa de Compra (PTAX)</label>
+                            <input type="number" id="purchaseRate" step="0.0001" required placeholder="0.0000">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="paymentStatus">Status do Pagamento</label>
+                            <select id="paymentStatus" required>
+                                <option value="pendente">Pendente</option>
+                                <option value="pago">Pago</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn">Adicionar Produto</button>
+                    </form>
+                </div>
+
+                <!-- Lista de produtos -->
+                <div class="form-section">
+                    <h3>📦 Produtos Cadastrados</h3>
+                    <div id="productsList" class="products-list">
+                        <!-- Produtos serão inseridos aqui dinamicamente -->
+                    </div>
+                    
+                    <!-- Controles de dados de exemplo -->
+                    <div class="form-section" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                        <h3>🛠️ Controles de Demonstração</h3>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn" style="flex: 1; min-width: 120px;" onclick="adicionarDadosExemplo(); location.reload();">
+                                ➕ Adicionar Exemplos
+                            </button>
+                            <button type="button" class="btn" style="flex: 1; min-width: 120px; background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);" onclick="limparDados(); location.reload();">
+                                🗑️ Limpar Dados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Container do gráfico -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <div class="chart-title">📈 Exposição Cambial</div>
+                    <div class="current-rate">
+                        💰 Dólar Atual: <span id="currentRate">Carregando...</span>
+                    </div>
+                </div>
+                
+                <!-- Informações detalhadas do produto selecionado -->
+                <div id="productDetails" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px; color: #4a5568;">📋 Detalhes do Produto Selecionado</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <strong>Nome:</strong> <span id="detailName"></span>
+                        </div>
+                        <div>
+                            <strong>Fornecedor:</strong> <span id="detailSupplier"></span>
+                        </div>
+                        <div>
+                            <strong>Valor USD:</strong> <span id="detailValueUSD"></span>
+                        </div>
+                        <div>
+                            <strong>Taxa Compra:</strong> <span id="detailPurchaseRate"></span>
+                        </div>
+                        <div>
+                            <strong>Valor BRL:</strong> <span id="detailValueBRL"></span>
+                        </div>
+                        <div>
+                            <strong>Status:</strong> <span id="detailStatus"></span>
+                        </div>
+                        <div>
+                            <strong>Exposição Atual:</strong> <span id="detailExposure"></span>
+                        </div>
+                        <div>
+                            <strong>Variação:</strong> <span id="detailVariation"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-wrapper">
+                    <canvas id="exposureChart"></canvas>
+                </div>
+                
+                <!-- Estatísticas -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalExposure">R$ 0,00</div>
+                        <div class="stat-label">Exposição Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalVariation">R$ 0,00</div>
+                        <div class="stat-label">Variação Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="productsCount">0</div>
+                        <div class="stat-label">Produtos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="pendingCount">0</div>
+                        <div class="stat-label">Pendentes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados globais
+        let products = [];
+        let currentRate = 0;
+        let selectedProduct = null;
+        let chart = null;
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            // Carregar dados de exemplo se não existirem dados
+            carregarDadosExemplo();
+            
+            loadProducts();
+            fetchCurrentRate();
+            setupEventListeners();
+            updateChart();
+        });
+
+        // Configuração dos event listeners
+        function setupEventListeners() {
+            document.getElementById('productForm').addEventListener('submit', handleProductSubmit);
+        }
+
+        // Buscar taxa atual do dólar
+        async function fetchCurrentRate() {
+            try {
+                const response = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+                const data = await response.json();
+                currentRate = parseFloat(data.USDBRL.bid);
+                document.getElementById('currentRate').textContent = `R$ ${currentRate.toFixed(4)}`;
+                updateChart();
+            } catch (error) {
+                console.error('Erro ao buscar taxa atual:', error);
+                currentRate = 5.20; // Taxa de fallback
+                document.getElementById('currentRate').textContent = `R$ ${currentRate.toFixed(4)} (estimativa)`;
+            }
+        }
+
+        // Buscar PTAX do Banco Central
+        async function fetchPTAX(date) {
+            try {
+                const formattedDate = formatDateForBCB(date);
+                const url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${formattedDate}'&$top=100&$format=json`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.value && data.value.length > 0) {
+                    return parseFloat(data.value[0].cotacaoCompra);
+                } else {
+                    // Se não encontrar PTAX para a data, buscar a última disponível
+                    return await fetchLastPTAX();
+                }
+            } catch (error) {
+                console.error('Erro ao buscar PTAX:', error);
+                return await fetchLastPTAX();
+            }
+        }
+
+        // Buscar última PTAX disponível
+        async function fetchLastPTAX() {
+            try {
+                const today = new Date();
+                const url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${formatDateForBCB(today)}'&$top=100&$format=json`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.value && data.value.length > 0) {
+                    return parseFloat(data.value[0].cotacaoCompra);
+                }
+            } catch (error) {
+                console.error('Erro ao buscar última PTAX:', error);
+            }
+            
+            return 5.20; // Taxa de fallback
+        }
+
+        // Formatar data para API do Banco Central (MM-DD-YYYY)
+        function formatDateForBCB(date) {
+            const d = new Date(date);
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${month}-${day}-${year}`;
+        }
+
+        // Manipular envio do formulário
+        async function handleProductSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const product = {
+                id: Date.now(),
+                name: formData.get('productName'),
+                supplier: formData.get('supplier'),
+                purchaseDate: formData.get('purchaseDate'),
+                paymentDate: formData.get('paymentDate'),
+                valueUSD: parseFloat(formData.get('valueUSD')),
+                purchaseRate: parseFloat(formData.get('purchaseRate')),
+                paymentStatus: formData.get('paymentStatus'),
+                ptaxPurchase: await fetchPTAX(formData.get('purchaseDate')),
+                ptaxPayment: formData.get('paymentStatus') === 'pago' ? await fetchPTAX(formData.get('paymentDate')) : null
+            };
+
+            products.push(product);
+            saveProducts();
+            renderProductsList();
+            updateChart();
+            e.target.reset();
+            
+            showMessage('Produto adicionado com sucesso!', 'success');
+        }
+
+        // Salvar produtos no localStorage
+        function saveProducts() {
+            localStorage.setItem('exposureProducts', JSON.stringify(products));
+        }
+
+        // Carregar produtos do localStorage
+        function loadProducts() {
+            const saved = localStorage.getItem('exposureProducts');
+            if (saved) {
+                products = JSON.parse(saved);
+                renderProductsList();
+            }
+        }
+
+        // Renderizar lista de produtos
+        function renderProductsList() {
+            const container = document.getElementById('productsList');
+            container.innerHTML = '';
+
+            if (products.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #718096; font-style: italic;">Nenhum produto cadastrado</p>';
+                return;
+            }
+
+            products.forEach(product => {
+                const productElement = document.createElement('div');
+                productElement.className = 'product-item';
+                productElement.onclick = () => selectProduct(product);
+                
+                const valueBRL = product.valueUSD * product.purchaseRate;
+                const currentValueBRL = product.valueUSD * currentRate;
+                const variation = currentValueBRL - valueBRL;
+                const variationPercent = (variation / valueBRL) * 100;
+
+                productElement.innerHTML = `
+                    <div class="product-header">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-status status-${product.paymentStatus}">${product.paymentStatus}</div>
+                    </div>
+                    <div class="product-details">
+                        <div><strong>Fornecedor:</strong> ${product.supplier}</div>
+                        <div><strong>Valor:</strong> $${product.valueUSD.toFixed(2)}</div>
+                        <div><strong>Taxa Compra:</strong> R$ ${product.purchaseRate.toFixed(4)}</div>
+                        <div><strong>Valor BRL:</strong> R$ ${valueBRL.toFixed(2)}</div>
+                        <div><strong>Variação:</strong> <span style="color: ${variation >= 0 ? '#2f855a' : '#c53030'}">R$ ${variation.toFixed(2)} (${variationPercent.toFixed(2)}%)</span></div>
+                        <div><strong>Compra:</strong> ${new Date(product.purchaseDate).toLocaleDateString('pt-BR')}</div>
+                        <div><strong>Pagamento:</strong> ${new Date(product.paymentDate).toLocaleDateString('pt-BR')}</div>
+                    </div>
+                `;
+
+                container.appendChild(productElement);
+            });
+
+            updateStats();
+        }
+
+        // Selecionar produto para visualização no gráfico
+        function selectProduct(product) {
+            selectedProduct = product;
+            
+            // Atualizar seleção visual
+            document.querySelectorAll('.product-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // Mostrar detalhes do produto
+            showProductDetails(product);
+            
+            updateChart();
+        }
+
+        // Mostrar detalhes do produto selecionado
+        function showProductDetails(product) {
+            const detailsDiv = document.getElementById('productDetails');
+            const valueBRL = product.valueUSD * product.purchaseRate;
+            const currentValueBRL = product.valueUSD * currentRate;
+            const variation = currentValueBRL - valueBRL;
+            const variationPercent = (variation / valueBRL) * 100;
+            const exposure = product.paymentStatus === 'pendente' ? currentValueBRL : 0;
+
+            document.getElementById('detailName').textContent = product.name;
+            document.getElementById('detailSupplier').textContent = product.supplier;
+            document.getElementById('detailValueUSD').textContent = `$${product.valueUSD.toFixed(2)}`;
+            document.getElementById('detailPurchaseRate').textContent = `R$ ${product.purchaseRate.toFixed(4)}`;
+            document.getElementById('detailValueBRL').textContent = `R$ ${valueBRL.toFixed(2)}`;
+            document.getElementById('detailStatus').textContent = product.paymentStatus;
+            document.getElementById('detailExposure').textContent = `R$ ${exposure.toFixed(2)}`;
+            document.getElementById('detailVariation').textContent = 
+                `R$ ${variation.toFixed(2)} (${variationPercent.toFixed(2)}%)`;
+            document.getElementById('detailVariation').style.color = variation >= 0 ? '#2f855a' : '#c53030';
+
+            detailsDiv.style.display = 'block';
+        }
+
+        // Atualizar estatísticas
+        function updateStats() {
+            const totalExposure = products.reduce((sum, p) => {
+                if (p.paymentStatus === 'pendente') {
+                    return sum + (p.valueUSD * currentRate);
+                }
+                return sum;
+            }, 0);
+
+            const totalVariation = products.reduce((sum, p) => {
+                const valueBRL = p.valueUSD * p.purchaseRate;
+                const currentValueBRL = p.valueUSD * currentRate;
+                return sum + (currentValueBRL - valueBRL);
+            }, 0);
+
+            const pendingCount = products.filter(p => p.paymentStatus === 'pendente').length;
+
+            document.getElementById('totalExposure').textContent = `R$ ${totalExposure.toFixed(2)}`;
+            document.getElementById('totalVariation').textContent = `R$ ${totalVariation.toFixed(2)}`;
+            document.getElementById('productsCount').textContent = products.length;
+            document.getElementById('pendingCount').textContent = pendingCount;
+        }
+
+        // Atualizar gráfico
+        function updateChart() {
+            const ctx = document.getElementById('exposureChart').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+
+            if (!selectedProduct) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#718096';
+                ctx.textAlign = 'center';
+                ctx.fillText('Selecione um produto para visualizar o gráfico de exposição cambial', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            // Gerar dados do gráfico
+            const chartData = generateChartData(selectedProduct);
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Taxa de Compra (PTAX)',
+                            data: chartData.purchaseRates,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Dólar Spot',
+                            data: chartData.spotRates,
+                            borderColor: '#764ba2',
+                            backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Taxa de Pagamento (PTAX)',
+                            data: chartData.paymentRates,
+                            borderColor: '#f093fb',
+                            backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Exposição Cambial - ${selectedProduct.name}`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Taxa de Câmbio (R$/USD)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        // Gerar dados para o gráfico
+        function generateChartData(product) {
+            const labels = [];
+            const purchaseRates = [];
+            const spotRates = [];
+            const paymentRates = [];
+
+            const startDate = new Date(product.purchaseDate);
+            const endDate = new Date();
+            const currentDate = new Date(startDate);
+
+            // Gerar variação mais realista do dólar
+            let baseRate = product.purchaseRate;
+            const volatility = 0.02; // 2% de volatilidade
+            const trend = (currentRate - product.purchaseRate) / Math.max(1, Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)));
+
+            while (currentDate <= endDate) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                labels.push(dateStr);
+
+                // Taxa de compra (constante)
+                purchaseRates.push(product.purchaseRate);
+
+                // Dólar spot (simulação mais realista)
+                const daysDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+                
+                // Tendência linear + volatilidade aleatória
+                const trendComponent = baseRate + (trend * daysDiff);
+                const volatilityComponent = Math.sin(daysDiff * 0.3) * volatility * baseRate;
+                const randomComponent = (Math.random() - 0.5) * volatility * baseRate * 0.5;
+                
+                const spotRate = Math.max(4.5, Math.min(6.0, trendComponent + volatilityComponent + randomComponent));
+                spotRates.push(spotRate);
+
+                // Taxa de pagamento (se pago)
+                if (product.paymentStatus === 'pago' && currentDate >= new Date(product.paymentDate)) {
+                    paymentRates.push(product.ptaxPayment || product.purchaseRate);
+                } else {
+                    paymentRates.push(null);
+                }
+
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            return { labels, purchaseRates, spotRates, paymentRates };
+        }
+
+        // Mostrar mensagem
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `${type}-message`;
+            messageDiv.textContent = message;
+            
+            document.querySelector('.sidebar').insertBefore(messageDiv, document.querySelector('.form-section'));
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // Atualizar taxa a cada 5 minutos
+        setInterval(fetchCurrentRate, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
+

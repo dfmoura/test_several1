@@ -1,0 +1,51 @@
+<level id="lvl_aevdk6z" description="Fat">
+  <args>
+    <arg  id="A_DtFinal" type="integer" label="A_DtFinal : Número Inteiro"/>
+    <arg  id="A_DtInicial" type="text" label="A_DtInicial : Texto"/>
+    <arg  id="A_DtInicial_Ano" type="text" label="A_DtInicial_Ano : Texto"/>
+    <arg  id="A_DtInicial_Dia" type="text" label="A_DtInicial_Dia : Texto"/>
+    <arg  id="A_DtInicial_Mes" type="text" label="A_DtInicial_Mes : Texto"/>
+  </args>
+  <container orientacao="V" tamanhoRelativo="100">
+    <container orientacao="V" tamanhoRelativo="83.61501512186443">
+      <html5component id="html5_0AH" entryPoint="zteste2.jsp">
+      </html5component>
+    </container>
+    <container orientacao="V" tamanhoRelativo="17.395085888236576">
+      <simple-value id="svl_0KD">
+        <expression type="sql" data-source="MGEDS">
+          <![CDATA[select 
+:A_DtIncial a, 
+:A_DtFinal b,
+:A_DtInicial_Dia c,
+:A_DtInicial_Mes d,
+:A_DtInicial_Ano e
+
+
+
+
+from dual]]>
+        </expression>
+        <metadata>
+          <field name="a" label="a" type="S" visible="true" useFooter="false">
+          </field>
+          <field name="b" label="b" type="S" visible="true" useFooter="false">
+          </field>
+          <field name="c" label="c" type="S" visible="true" useFooter="false">
+          </field>
+          <field name="d" label="d" type="S" visible="true" useFooter="false">
+          </field>
+          <field name="e" label="e" type="S" visible="true" useFooter="false">
+          </field>
+        </metadata>
+        <value-expression>
+          <![CDATA[:A_DtFinal
+:A_DtInicial
+Dia: :A_DtInicial_Dia
+Mes: :A_DtInicial_Mes
+Ano: :A_DtInicial_Ano]]>
+        </value-expression>
+      </simple-value>
+    </container>
+  </container>
+</level>

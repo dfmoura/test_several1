@@ -133,13 +133,192 @@
 
 <body>
     
+<snk:query var="tot_impostos">
+    SELECT
+    SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS) TOT_IMP
+    FROM VGF_CONSOLIDADOR_NOTAS_GM
+    WHERE 
+    GOLSINAL = -1
+    AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+    AND TIPMOV IN ('V', 'D')
+    AND ATIVO = 'S'
+    AND CODEMP IN (:P_EMPRESA)
+    AND CODNAT IN (:P_NATUREZA)
+    AND CODCENCUS IN (:P_CR)
+    AND CODVEND IN (:P_VENDEDOR)
+    AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+    AND CODGER IN (:P_GERENTE)
+    AND AD_ROTA IN (:P_ROTA)
+    AND CODTIPOPER IN (:P_TOP)
+
+</snk:query>
+
+
+<snk:query var="impostos">
+WITH IMP AS
+(
+SELECT
+VLRIPI,VLRSUBST,VLRICMS,VLRPIS,VLRCOFINS
+FROM VGF_CONSOLIDADOR_NOTAS_GM 
+WHERE 
+GOLSINAL = -1
+AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+AND TIPMOV IN ('V', 'D')
+AND ATIVO = 'S'
+AND CODEMP IN (:P_EMPRESA)
+AND CODNAT IN (:P_NATUREZA)
+AND CODCENCUS IN (:P_CR)
+AND CODVEND IN (:P_VENDEDOR)
+AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+AND CODGER IN (:P_GERENTE)
+AND AD_ROTA IN (:P_ROTA)
+AND CODTIPOPER IN (:P_TOP)
+)
+SELECT 1 AS COD,'VLRSUBST' AS IMPOSTO, SUM(VLRSUBST) AS VALOR FROM IMP 
+UNION ALL
+SELECT 2 AS COD,'VLRIPI' AS IMPOSTO, SUM(VLRIPI) AS VALOR FROM IMP
+UNION ALL
+SELECT 3 AS COD,'VLRICMS' AS IMPOSTO, SUM(VLRICMS) AS VALOR FROM IMP
+UNION ALL
+SELECT 4 AS COD,'VLRPIS' AS IMPOSTO, SUM(VLRPIS) AS VALOR FROM IMP
+UNION ALL
+SELECT 5 AS COD,'VLRCOFINS' AS IMPOSTO, SUM(VLRCOFINS) AS VALOR FROM IMP
+
+</snk:query>   
+
+
+<snk:query var="impostos_emp">  
+    SELECT
+    CODEMP,
+    EMPRESA,
+    COD,
+    IMPOSTO,
+    VALOR
+    FROM
+    (
+    WITH IMP AS
+    (
+    SELECT
+    CODEMP,EMPRESA,VLRIPI,VLRSUBST,VLRICMS,VLRPIS,VLRCOFINS
+    FROM VGF_CONSOLIDADOR_NOTAS_GM 
+    WHERE 
+    GOLSINAL = -1
+    AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+    AND TIPMOV IN ('V', 'D')
+    AND ATIVO = 'S'
+    AND CODEMP IN (:P_EMPRESA)
+    AND CODNAT IN (:P_NATUREZA)
+    AND CODCENCUS IN (:P_CR)
+    AND CODVEND IN (:P_VENDEDOR)
+    AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+    AND CODGER IN (:P_GERENTE)
+    AND AD_ROTA IN (:P_ROTA)
+    AND CODTIPOPER IN (:P_TOP)
+    )
+    SELECT CODEMP,EMPRESA,1 AS COD,'VLRSUBST' AS IMPOSTO, SUM(VLRSUBST) AS VALOR FROM IMP GROUP BY CODEMP,EMPRESA
+    UNION ALL
+    SELECT CODEMP,EMPRESA,2 AS COD,'VLRIPI' AS IMPOSTO, SUM(VLRIPI) AS VALOR FROM IMP GROUP BY CODEMP,EMPRESA
+    UNION ALL
+    SELECT CODEMP,EMPRESA,3 AS COD,'VLRICMS' AS IMPOSTO, SUM(VLRICMS) AS VALOR FROM IMP GROUP BY CODEMP,EMPRESA
+    UNION ALL
+    SELECT CODEMP,EMPRESA,4 AS COD,'PIS' AS IMPOSTO, SUM(VLRPIS) AS VALOR FROM IMP GROUP BY CODEMP,EMPRESA
+    UNION ALL
+    SELECT CODEMP,EMPRESA,5 AS COD,'COFINS' AS IMPOSTO, SUM(VLRCOFINS) AS VALOR FROM IMP GROUP BY CODEMP,EMPRESA
+    )
+    WHERE COD = :A_IMPOSTOS OR ( COD = 3 AND :A_IMPOSTOS IS NULL)
+    ORDER BY VALOR DESC    
+    
+</snk:query>  
+
+<snk:query var="impostos_tipo">  
+
+SELECT * FROM(
+
+WITH IMP AS
+(
+SELECT
+CODEMP,EMPRESA,AD_TPPROD,TIPOPROD,VLRIPI,VLRSUBST,VLRICMS,VLRPIS,VLRCOFINS
+FROM VGF_CONSOLIDADOR_NOTAS_GM 
+WHERE 
+GOLSINAL = -1
+AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+AND TIPMOV IN ('V', 'D')
+AND ATIVO = 'S'
+AND CODEMP IN (:P_EMPRESA)
+AND CODNAT IN (:P_NATUREZA)
+AND CODCENCUS IN (:P_CR)
+AND CODVEND IN (:P_VENDEDOR)
+AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+AND CODGER IN (:P_GERENTE)
+AND AD_ROTA IN (:P_ROTA)
+AND CODTIPOPER IN (:P_TOP)
+)
+
+SELECT AD_TPPROD,TIPOPROD,1 AS COD,'VLRSUBST' AS IMPOSTO, SUM(VLRSUBST) AS VALOR FROM IMP GROUP BY AD_TPPROD,TIPOPROD
+UNION ALL
+SELECT AD_TPPROD,TIPOPROD,2 AS COD,'VLRIPI' AS IMPOSTO, SUM(VLRIPI) AS VALOR FROM IMP GROUP BY AD_TPPROD,TIPOPROD
+UNION ALL
+SELECT AD_TPPROD,TIPOPROD,3 AS COD,'VLRICMS' AS IMPOSTO, SUM(VLRICMS) AS VALOR FROM IMP GROUP BY AD_TPPROD,TIPOPROD
+UNION ALL
+SELECT AD_TPPROD,TIPOPROD,4 AS COD,'PIS' AS IMPOSTO, SUM(VLRPIS) AS VALOR FROM IMP GROUP BY AD_TPPROD,TIPOPROD
+UNION ALL
+SELECT AD_TPPROD,TIPOPROD,5 AS COD,'COFINS' AS IMPOSTO, SUM(VLRCOFINS) AS VALOR FROM IMP GROUP BY AD_TPPROD,TIPOPROD
+)
+
+WHERE COD = :A_IMPOSTOS OR ( COD = 3 AND :A_IMPOSTOS IS NULL) 
+ORDER BY VALOR DESC
+
+
+</snk:query>  
+
+<snk:query var="impostos_produto">  
+    SELECT * FROM(
+
+    WITH IMP AS
+    (
+    SELECT
+    CODEMP,EMPRESA,AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,VLRIPI,VLRSUBST,VLRICMS,VLRPIS,VLRCOFINS
+    FROM VGF_CONSOLIDADOR_NOTAS_GM 
+    WHERE 
+    GOLSINAL = -1
+    AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+    AND TIPMOV IN ('V', 'D')
+    AND ATIVO = 'S'
+    AND CODEMP IN (:P_EMPRESA)
+    AND CODNAT IN (:P_NATUREZA)
+    AND CODCENCUS IN (:P_CR)
+    AND CODVEND IN (:P_VENDEDOR)
+    AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+    AND CODGER IN (:P_GERENTE)
+    AND AD_ROTA IN (:P_ROTA)
+    AND CODTIPOPER IN (:P_TOP)
+    )
+    
+    SELECT AD_TPPROD,1 AS COD,'VLRSUBST' AS IMPOSTO,CODPROD,DESCRPROD, SUM(VLRSUBST) AS VALOR FROM IMP GROUP BY AD_TPPROD,CODPROD,DESCRPROD
+    UNION ALL
+    SELECT AD_TPPROD,2 AS COD,'VLRIPI' AS IMPOSTO,CODPROD,DESCRPROD, SUM(VLRIPI) AS VALOR FROM IMP GROUP BY AD_TPPROD,CODPROD,DESCRPROD
+    UNION ALL
+    SELECT AD_TPPROD,3 AS COD,'VLRICMS' AS IMPOSTO,CODPROD,DESCRPROD, SUM(VLRICMS) AS VALOR FROM IMP GROUP BY AD_TPPROD,CODPROD,DESCRPROD
+    UNION ALL
+    SELECT AD_TPPROD,4 AS COD,'PIS' AS IMPOSTO,CODPROD,DESCRPROD, SUM(VLRPIS) AS VALOR FROM IMP GROUP BY AD_TPPROD,CODPROD,DESCRPROD
+    UNION ALL
+    SELECT AD_TPPROD,5 AS COD,'COFINS' AS IMPOSTO,CODPROD,DESCRPROD, SUM(VLRCOFINS) AS VALOR FROM IMP GROUP BY AD_TPPROD,CODPROD,DESCRPROD
+    
+    )
+    WHERE COD = :A_IMPOSTOS OR ( COD = 3 AND :A_IMPOSTOS IS NULL) 
+    ORDER BY VALOR DESC
+</snk:query>  
+
+
     <div class="container">
         <div class="section">
             <div class="part" id="left-top">
                 <div class="part-title">Impostos</div>
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
-                    <div class="chart-overlay" onclick="abrir_par()" title="Acessar por perfil de Cliente" id="total-overlay"></div>
+                    <c:forEach items="${tot_impostos.rows}" var="row">
+                        <div class="chart-overlay" onclick="abrir_par()" title="Acessar por perfil de Cliente"><fmt:formatNumber value="${row.TOT_IMP}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
+                    </c:forEach>
                 </div>
             </div>
             <div class="part" id="left-bottom">
@@ -169,7 +348,24 @@
                                 <th>Valor</th>
                             </tr>
                         </thead>
-                        <tbody id="produto-tbody">
+                        <tbody>
+                            <c:set var="total" value="0" />
+                            <c:forEach var="item" items="${impostos_produto.rows}">
+                                <tr>
+                                    <td>${item.COD}</td>
+                                    <td>${item.AD_TPPROD}</td>
+                                    <td onclick="abrir_prod('${item.CODPROD}')">${item.CODPROD}</td>
+                                    <td>${item.DESCRPROD}</td>
+                                    <td><fmt:formatNumber value="${item.VALOR}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <c:set var="total" value="${total + item.VALOR}" />
+                                </tr>
+                            </c:forEach>
+                            <tr>
+                                <td><b>Total</b></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td><b><fmt:formatNumber value="${total}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
                         </tbody>
                     </table>
                 </div>
@@ -185,92 +381,19 @@
     <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
     <script>
 
-        // Dados diretos para substituir as queries SQL
-        const dadosImpostos = [
-            { COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 150000.00 },
-            { COD: 2, IMPOSTO: 'VLRIPI', VALOR: 25000.00 },
-            { COD: 3, IMPOSTO: 'VLRICMS', VALOR: 300000.00 },
-            { COD: 4, IMPOSTO: 'PIS', VALOR: 15000.00 },
-            { COD: 5, IMPOSTO: 'COFINS', VALOR: 69000.00 }
-        ];
 
-        const dadosImpostosEmp = [
-            { CODEMP: 1, EMPRESA: 'Empresa A', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 150000.00 },
-            { CODEMP: 2, EMPRESA: 'Empresa B', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 120000.00 },
-            { CODEMP: 3, EMPRESA: 'Empresa C', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 30000.00 },
-            { CODEMP: 1, EMPRESA: 'Empresa A', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 80000.00 },
-            { CODEMP: 2, EMPRESA: 'Empresa B', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 70000.00 }
-        ];
+   // Função para atualizar a query
+   function ref_imp(imposto) {
+        const params = {'A_IMPOSTOS': imposto};
+        refreshDetails('html5_a7wgpux', params); 
+    }       
 
-        const dadosImpostosTipo = [
-            { AD_TPPROD: 1, TIPOPROD: 'Tipo A', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 100000.00 },
-            { AD_TPPROD: 2, TIPOPROD: 'Tipo B', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 120000.00 },
-            { AD_TPPROD: 3, TIPOPROD: 'Tipo C', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 80000.00 },
-            { AD_TPPROD: 1, TIPOPROD: 'Tipo A', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 50000.00 },
-            { AD_TPPROD: 2, TIPOPROD: 'Tipo B', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 60000.00 }
-        ];
 
-        const dadosImpostosProduto = [
-            { AD_TPPROD: 1, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 1001, DESCRPROD: 'Produto A1', VALOR: 50000.00 },
-            { AD_TPPROD: 1, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 1002, DESCRPROD: 'Produto A2', VALOR: 50000.00 },
-            { AD_TPPROD: 2, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 2001, DESCRPROD: 'Produto B1', VALOR: 60000.00 },
-            { AD_TPPROD: 2, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 2002, DESCRPROD: 'Produto B2', VALOR: 60000.00 },
-            { AD_TPPROD: 1, COD: 1, IMPOSTO: 'VLRSUBST', CODPROD: 1001, DESCRPROD: 'Produto A1', VALOR: 25000.00 },
-            { AD_TPPROD: 1, COD: 1, IMPOSTO: 'VLRSUBST', CODPROD: 1002, DESCRPROD: 'Produto A2', VALOR: 25000.00 }
-        ];
-
-        // Função para calcular o total dos impostos
-        function calcularTotalImpostos() {
-            return dadosImpostos.reduce((total, item) => total + item.VALOR, 0);
-        }
-
-        // Função para popular a tabela de produtos
-        function popularTabelaProdutos() {
-            const tbody = document.getElementById('produto-tbody');
-            let html = '';
-            let total = 0;
-
-            dadosImpostosProduto.forEach(item => {
-                html += `
-                    <tr>
-                        <td>${item.COD}</td>
-                        <td>${item.AD_TPPROD}</td>
-                        <td onclick="abrir_prod('${item.CODPROD}')">${item.CODPROD}</td>
-                        <td>${item.DESCRPROD}</td>
-                        <td>${item.VALOR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                `;
-                total += item.VALOR;
-            });
-
-            html += `
-                <tr>
-                    <td><b>Total</b></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td><b>${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b></td>
-                </tr>
-            `;
-
-            tbody.innerHTML = html;
-        }
-
-        // Função para atualizar o overlay do total
-        function atualizarOverlayTotal() {
-            const total = calcularTotalImpostos();
-            document.getElementById('total-overlay').textContent = total.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        }
-
-        // Função para atualizar a query
-        function ref_imp(imposto) {
-            const params = {'A_IMPOSTOS': imposto};
-            refreshDetails('html5_a7wgpux', params); 
-        }       
-/*
         // Função para abrir o novo nível
         function abrir_emp(grupo) {
             var params = { 
+                
+                
                 'A_CODEMP': parseInt(grupo)
              };
             var level = 'lvl_vkan0l';
@@ -280,6 +403,7 @@
 
         function abrir_tpprod(grupo) {
             var params = { 
+                
                 'A_TPPROD': parseInt(grupo)
              };
             var level = 'lvl_vkan0l';
@@ -289,6 +413,7 @@
 
         function abrir_prod(grupo) {
             var params = { 
+                
                 'A_CODPROD': parseInt(grupo)
              };
             var level = 'lvl_vkan0l';
@@ -301,23 +426,17 @@
             var level = 'lvl_7ko4mp';
             openLevel(level, params);
         }          
-*/
-        // Inicialização dos dados
-        document.addEventListener('DOMContentLoaded', function() {
-            popularTabelaProdutos();
-            atualizarOverlayTotal();
-        });
 
-        // Obtendo os dados para o gráfico de rosca
+
+    // Obtendo os dados da query JSP para o gráfico de rosca
+
         var impostos = [];
         var valoresImpostos = [];
-        
-        dadosImpostos.forEach(item => {
-            impostos.push(item.COD + ' - ' + item.IMPOSTO);
-            valoresImpostos.push(item.VALOR);
-        });
-
-        // Dados para o gráfico de rosca
+        <c:forEach items="${impostos.rows}" var="row">
+            impostos.push('${row.COD} - ${row.IMPOSTO}');
+            valoresImpostos.push('${row.VALOR}');
+        </c:forEach>
+        // Dados fictícios para o gráfico de rosca
         const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
         const doughnutChart = new Chart(ctxDoughnut, {
             type: 'doughnut',
@@ -366,14 +485,14 @@
             }
         });
 
-        // Dados para o gráfico de barras verticais
+        // Dados fictícios para o gráfico de barras verticais
         var empresaLabels1 = [];
         var vlrEmpData1 = [];
 
-        dadosImpostosEmp.forEach(item => {
-            empresaLabels1.push(item.COD + ' - ' + item.CODEMP + ' - ' + item.EMPRESA);
-            vlrEmpData1.push(item.VALOR);
-        });
+        <c:forEach items="${impostos_emp.rows}" var="row">
+            empresaLabels1.push('${row.COD} - ${row.CODEMP} - ${row.EMPRESA}');
+            vlrEmpData1.push('${row.VALOR}');
+        </c:forEach> 
 
         const ctxBar = document.getElementById('barChart').getContext('2d');
         const barChart = new Chart(ctxBar, {
@@ -416,15 +535,13 @@
             }
         });
 
-        // Dados para o gráfico de colunas verticais
+        // Dados fictícios para o gráfico de colunas verticais
         var tipoLabels = [];
         var tipoData = [];
-        
-        dadosImpostosTipo.forEach(item => {
-            tipoLabels.push(item.COD + ' - ' + item.AD_TPPROD + ' - ' + item.TIPOPROD);
-            tipoData.push(item.VALOR);
-        });
-                      
+        <c:forEach items="${impostos_tipo.rows}" var="row">
+            tipoLabels.push('${row.COD} - ${row.AD_TPPROD} - ${row.TIPOPROD}');
+            tipoData.push('${row.VALOR}');
+        </c:forEach>                      
         const ctxBarRight = document.getElementById('barChartRight').getContext('2d');
         const barChartRight = new Chart(ctxBarRight, {
             type: 'bar',

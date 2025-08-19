@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário de Agendamentos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .calendar-container {
+            width: 390px;
+            height: 174px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .calendar-header {
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calendar-icon {
+            width: 20px;
+            height: 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .view-selector {
+            display: flex;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            padding: 2px;
+        }
+
+        .view-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .view-btn.active {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .calendar-body {
+            padding: 12px 16px;
+            height: calc(100% - 48px);
+            overflow: hidden;
+        }
+
+        .week-view {
+            display: none;
+        }
+
+        .week-view.active {
+            display: block;
+        }
+
+        .week-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 8px;
+        }
+
+        .day-header {
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            font-weight: 500;
+            padding: 4px 0;
+        }
+
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            height: 80px;
+        }
+
+        .day-cell {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 2px;
+            font-size: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .day-cell:hover {
+            background: #f8f9fa;
+        }
+
+        .day-number {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .event {
+            background: #4285f4;
+            color: white;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 8px;
+            margin: 1px 0;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event.team-a { background: #ea4335; }
+        .event.team-b { background: #fbbc04; }
+        .event.team-c { background: #34a853; }
+
+        .month-view {
+            display: none;
+        }
+
+        .month-view.active {
+            display: block;
+        }
+
+        .month-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            height: 100px;
+        }
+
+        .month-day {
+            border: 1px solid #e0e0e0;
+            border-radius: 3px;
+            padding: 1px;
+            font-size: 9px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .month-day:hover {
+            background: #f8f9fa;
+        }
+
+        .month-day-number {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .month-event {
+            background: #4285f4;
+            color: white;
+            padding: 1px 2px;
+            border-radius: 2px;
+            font-size: 7px;
+            margin: 1px 0;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .month-event.team-a { background: #ea4335; }
+        .month-event.team-b { background: #fbbc04; }
+        .month-event.team-c { background: #34a853; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 300px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .event-details {
+            margin-bottom: 16px;
+        }
+
+        .event-detail {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .event-detail strong {
+            color: #333;
+        }
+
+        .event-detail span {
+            color: #666;
+        }
+
+        .team-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .team-a { background: #ea4335; }
+        .team-b { background: #fbbc04; }
+        .team-c { background: #34a853; }
+    </style>
+</head>
+<body>
+    <div class="calendar-container">
+        <div class="calendar-header">
+            <div class="header-left">
+                <div class="calendar-icon">📅</div>
+                <span id="current-date">Janeiro 2024</span>
+            </div>
+            <div class="view-selector">
+                <button class="view-btn active" data-view="week">Semana</button>
+                <button class="view-btn" data-view="month">Mês</button>
+            </div>
+        </div>
+        
+        <div class="calendar-body">
+            <!-- Vista Semanal -->
+            <div class="week-view active" id="week-view">
+                <div class="week-header" id="week-header">
+                    <!-- Cabeçalhos dos dias serão inseridos via JavaScript -->
+                </div>
+                <div class="week-grid" id="week-grid">
+                    <!-- Grade da semana será inserida via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Vista Mensal -->
+            <div class="month-view" id="month-view">
+                <div class="month-grid" id="month-grid">
+                    <!-- Grade do mês será inserida via JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes do Evento -->
+    <div class="modal" id="event-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Detalhes do Agendamento</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="event-details" id="event-details">
+                <!-- Detalhes do evento serão inseridos via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados de exemplo para agendamentos
+        const eventos = [
+            {
+                id: 1,
+                titulo: "Reunião de Planejamento",
+                time: "team-a",
+                data: "2024-01-08",
+                hora: "09:00",
+                duracao: "1 hora",
+                descricao: "Reunião para planejar as atividades da semana"
+            },
+            {
+                id: 2,
+                titulo: "Apresentação de Projeto",
+                time: "team-b",
+                data: "2024-01-08",
+                hora: "14:00",
+                duracao: "2 horas",
+                descricao: "Apresentação do novo projeto para stakeholders"
+            },
+            {
+                id: 3,
+                titulo: "Daily Standup",
+                time: "team-c",
+                data: "2024-01-09",
+                hora: "08:30",
+                duracao: "15 minutos",
+                descricao: "Reunião diária da equipe de desenvolvimento"
+            },
+            {
+                id: 4,
+                titulo: "Code Review",
+                time: "team-a",
+                data: "2024-01-10",
+                hora: "16:00",
+                duracao: "45 minutos",
+                descricao: "Revisão de código do sprint atual"
+            },
+            {
+                id: 5,
+                titulo: "Retrospectiva",
+                time: "team-b",
+                data: "2024-01-11",
+                hora: "10:00",
+                duracao: "1 hora",
+                descricao: "Retrospectiva do sprint finalizado"
+            },
+            {
+                id: 6,
+                titulo: "Workshop de Treinamento",
+                time: "team-c",
+                data: "2024-01-12",
+                hora: "13:00",
+                duracao: "3 horas",
+                descricao: "Workshop sobre novas tecnologias"
+            },
+            {
+                id: 7,
+                titulo: "Reunião com Cliente",
+                time: "team-a",
+                data: "2024-01-15",
+                hora: "11:00",
+                duracao: "1.5 horas",
+                descricao: "Demonstração do produto para cliente potencial"
+            },
+            {
+                id: 8,
+                titulo: "Sprint Planning",
+                time: "team-b",
+                data: "2024-01-15",
+                hora: "15:00",
+                duracao: "2 horas",
+                descricao: "Planejamento das tarefas do próximo sprint"
+            },
+            {
+                id: 9,
+                titulo: "Deploy em Produção",
+                time: "team-c",
+                data: "2024-01-16",
+                hora: "22:00",
+                duracao: "1 hora",
+                descricao: "Deploy da nova versão em ambiente de produção"
+            },
+            {
+                id: 10,
+                titulo: "Reunião de Arquitetura",
+                time: "team-a",
+                data: "2024-01-17",
+                hora: "14:30",
+                duracao: "1 hora",
+                descricao: "Discussão sobre arquitetura do sistema"
+            },
+            {
+                id: 11,
+                titulo: "Teste de Integração",
+                time: "team-b",
+                data: "2024-01-17",
+                hora: "16:00",
+                duracao: "2 horas",
+                descricao: "Execução dos testes de integração"
+            },
+            {
+                id: 12,
+                titulo: "Daily Standup",
+                time: "team-c",
+                data: "2024-01-18",
+                hora: "08:30",
+                duracao: "15 minutos",
+                descricao: "Reunião diária da equipe de desenvolvimento"
+            },
+            {
+                id: 13,
+                titulo: "Reunião de Status",
+                time: "team-a",
+                data: "2024-01-18",
+                hora: "10:00",
+                duracao: "30 minutos",
+                descricao: "Atualização do status dos projetos em andamento"
+            },
+            {
+                id: 14,
+                titulo: "Workshop de UX",
+                time: "team-b",
+                data: "2024-01-19",
+                hora: "09:00",
+                duracao: "4 horas",
+                descricao: "Workshop sobre design de experiência do usuário"
+            },
+            {
+                id: 15,
+                titulo: "Code Review",
+                time: "team-c",
+                data: "2024-01-19",
+                hora: "14:00",
+                duracao: "1 hora",
+                descricao: "Revisão de código das funcionalidades"
+            },
+            {
+                id: 16,
+                titulo: "Reunião de Equipe",
+                time: "team-a",
+                data: "2024-01-22",
+                hora: "13:00",
+                duracao: "1 hora",
+                descricao: "Reunião geral da equipe para alinhamento"
+            },
+            {
+                id: 17,
+                titulo: "Demo do Produto",
+                time: "team-b",
+                data: "2024-01-22",
+                hora: "16:00",
+                duracao: "45 minutos",
+                descricao: "Demonstração das novas funcionalidades"
+            },
+            {
+                id: 18,
+                titulo: "Daily Standup",
+                time: "team-c",
+                data: "2024-01-23",
+                hora: "08:30",
+                duracao: "15 minutos",
+                descricao: "Reunião diária da equipe de desenvolvimento"
+            },
+            {
+                id: 19,
+                titulo: "Reunião de Segurança",
+                time: "team-a",
+                data: "2024-01-23",
+                hora: "11:00",
+                duracao: "1 hora",
+                descricao: "Discussão sobre vulnerabilidades de segurança"
+            },
+            {
+                id: 20,
+                titulo: "Teste de Performance",
+                time: "team-b",
+                data: "2024-01-24",
+                hora: "09:00",
+                duracao: "3 horas",
+                descricao: "Execução dos testes de performance do sistema"
+            },
+            {
+                id: 21,
+                titulo: "Code Review",
+                time: "team-c",
+                data: "2024-01-24",
+                hora: "14:00",
+                duracao: "1 hora",
+                descricao: "Revisão de código das correções"
+            },
+            {
+                id: 22,
+                titulo: "Reunião de Planejamento",
+                time: "team-a",
+                data: "2024-01-25",
+                hora: "10:00",
+                duracao: "1.5 horas",
+                descricao: "Planejamento das próximas entregas"
+            },
+            {
+                id: 23,
+                titulo: "Workshop de DevOps",
+                time: "team-b",
+                data: "2024-01-25",
+                hora: "15:00",
+                duracao: "2 horas",
+                descricao: "Workshop sobre práticas de DevOps"
+            },
+            {
+                id: 24,
+                titulo: "Daily Standup",
+                time: "team-c",
+                data: "2024-01-26",
+                hora: "08:30",
+                duracao: "15 minutos",
+                descricao: "Reunião diária da equipe de desenvolvimento"
+            },
+            {
+                id: 25,
+                titulo: "Reunião de Cliente",
+                time: "team-a",
+                data: "2024-01-26",
+                hora: "13:00",
+                duracao: "1 hora",
+                descricao: "Reunião de acompanhamento com cliente"
+            },
+            {
+                id: 26,
+                titulo: "Sprint Review",
+                time: "team-b",
+                data: "2024-01-29",
+                hora: "14:00",
+                duracao: "2 horas",
+                descricao: "Revisão das entregas do sprint atual"
+            },
+            {
+                id: 27,
+                titulo: "Code Review",
+                time: "team-c",
+                data: "2024-01-29",
+                hora: "16:30",
+                duracao: "1 hora",
+                descricao: "Revisão de código das funcionalidades"
+            },
+            {
+                id: 28,
+                titulo: "Reunião de Arquitetura",
+                time: "team-a",
+                data: "2024-01-30",
+                hora: "10:00",
+                duracao: "1.5 horas",
+                descricao: "Discussão sobre evolução da arquitetura"
+            },
+            {
+                id: 29,
+                titulo: "Workshop de Testes",
+                time: "team-b",
+                data: "2024-01-30",
+                hora: "15:00",
+                duracao: "2 horas",
+                descricao: "Workshop sobre estratégias de teste"
+            },
+            {
+                id: 30,
+                titulo: "Daily Standup",
+                time: "team-c",
+                data: "2024-01-31",
+                hora: "08:30",
+                duracao: "15 minutos",
+                descricao: "Reunião diária da equipe de desenvolvimento"
+            },
+            {
+                id: 31,
+                titulo: "Reunião de Encerramento",
+                time: "team-a",
+                data: "2024-01-31",
+                hora: "16:00",
+                duracao: "1 hora",
+                descricao: "Reunião de encerramento do mês"
+            },
+            {
+                id: 32,
+                titulo: "Deploy de Hotfix",
+                time: "team-b",
+                data: "2024-02-01",
+                hora: "08:00",
+                duracao: "30 minutos",
+                descricao: "Deploy de correção urgente em produção"
+            },
+            {
+                id: 33,
+                titulo: "Reunião de Início de Mês",
+                time: "team-c",
+                data: "2024-02-01",
+                hora: "10:00",
+                duracao: "1 hora",
+                descricao: "Reunião de planejamento do novo mês"
+            },
+            {
+                id: 34,
+                titulo: "Code Review",
+                time: "team-a",
+                data: "2024-02-02",
+                hora: "14:00",
+                duracao: "1 hora",
+                descricao: "Revisão de código das funcionalidades"
+            },
+            {
+                id: 35,
+                titulo: "Workshop de Frontend",
+                time: "team-b",
+                data: "2024-02-02",
+                hora: "16:00",
+                duracao: "2 horas",
+                descricao: "Workshop sobre frameworks frontend modernos"
+            }
+        ];
+
+        // Configurações de time
+        const times = {
+            'team-a': { nome: 'Equipe A', cor: '#ea4335' },
+            'team-b': { nome: 'Equipe B', cor: '#fbbc04' },
+            'team-c': { nome: 'Equipe C', cor: '#34a853' }
+        };
+
+        let dataAtual = new Date();
+        let vistaAtual = 'week';
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarCalendario();
+            configurarEventos();
+        });
+
+        // Configurar eventos de clique
+        function configurarEventos() {
+            // Botões de vista
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const view = this.dataset.view;
+                    mudarVista(view);
+                });
+            });
+        }
+
+        // Mudar entre vistas
+        function mudarVista(view) {
+            vistaAtual = view;
+            
+            // Atualizar botões ativos
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.view === view) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Mostrar vista correspondente
+            document.getElementById('week-view').classList.remove('active');
+            document.getElementById('month-view').classList.remove('active');
+            
+            if (view === 'week') {
+                document.getElementById('week-view').classList.add('active');
+            } else {
+                document.getElementById('month-view').classList.add('active');
+            }
+
+            atualizarCalendario();
+        }
+
+        // Atualizar calendário
+        function atualizarCalendario() {
+            if (vistaAtual === 'week') {
+                atualizarVistaSemanal();
+            } else {
+                atualizarVistaMensal();
+            }
+            atualizarDataAtual();
+        }
+
+        // Atualizar vista semanal
+        function atualizarVistaSemanal() {
+            const inicioSemana = new Date(dataAtual);
+            inicioSemana.setDate(dataAtual.getDate() - dataAtual.getDay());
+
+            // Cabeçalho da semana
+            const weekHeader = document.getElementById('week-header');
+            weekHeader.innerHTML = '';
+
+            for (let i = 0; i < 7; i++) {
+                const data = new Date(inicioSemana);
+                data.setDate(inicioSemana.getDate() + i);
+                
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'day-header';
+                dayHeader.innerHTML = `
+                    <div>${data.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
+                    <div>${data.getDate()}</div>
+                `;
+                weekHeader.appendChild(dayHeader);
+            }
+
+            // Grade da semana
+            const weekGrid = document.getElementById('week-grid');
+            weekGrid.innerHTML = '';
+
+            for (let i = 0; i < 7; i++) {
+                const data = new Date(inicioSemana);
+                data.setDate(inicioSemana.getDate() + i);
+                const dataStr = data.toISOString().split('T')[0];
+                
+                const dayCell = document.createElement('div');
+                dayCell.className = 'day-cell';
+                
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = data.getDate();
+                dayCell.appendChild(dayNumber);
+
+                // Adicionar eventos do dia
+                const eventosDoDia = eventos.filter(evento => evento.data === dataStr);
+                eventosDoDia.forEach(evento => {
+                    const eventDiv = document.createElement('div');
+                    eventDiv.className = `event ${evento.time}`;
+                    eventDiv.textContent = evento.titulo;
+                    eventDiv.onclick = () => mostrarDetalhesEvento(evento);
+                    dayCell.appendChild(eventDiv);
+                });
+
+                weekGrid.appendChild(dayCell);
+            }
+        }
+
+        // Atualizar vista mensal
+        function atualizarVistaMensal() {
+            const primeiroDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1);
+            const ultimoDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, 0);
+            const inicioGrid = new Date(primeiroDia);
+            inicioGrid.setDate(primeiroDia.getDate() - primeiroDia.getDay());
+
+            const monthGrid = document.getElementById('month-grid');
+            monthGrid.innerHTML = '';
+
+            for (let i = 0; i < 42; i++) {
+                const data = new Date(inicioGrid);
+                data.setDate(inicioGrid.getDate() + i);
+                const dataStr = data.toISOString().split('T')[0];
+                
+                const monthDay = document.createElement('div');
+                monthDay.className = 'month-day';
+                
+                const monthDayNumber = document.createElement('div');
+                monthDayNumber.className = 'month-day-number';
+                monthDayNumber.textContent = data.getDate();
+                monthDay.appendChild(monthDayNumber);
+
+                // Adicionar eventos do dia
+                const eventosDoDia = eventos.filter(evento => evento.data === dataStr);
+                eventosDoDia.forEach(evento => {
+                    const eventDiv = document.createElement('div');
+                    eventDiv.className = `month-event ${evento.time}`;
+                    eventDiv.textContent = evento.titulo.substring(0, 8) + '...';
+                    eventDiv.onclick = () => mostrarDetalhesEvento(evento);
+                    monthDay.appendChild(eventDiv);
+                });
+
+                monthGrid.appendChild(monthDay);
+            }
+        }
+
+        // Atualizar data atual no cabeçalho
+        function atualizarDataAtual() {
+            const dataFormatada = dataAtual.toLocaleDateString('pt-BR', { 
+                month: 'long', 
+                year: 'numeric' 
+            });
+            document.getElementById('current-date').textContent = dataFormatada;
+        }
+
+        // Mostrar modal com detalhes do evento
+        function mostrarDetalhesEvento(evento) {
+            const modal = document.getElementById('event-modal');
+            const eventDetails = document.getElementById('event-details');
+            
+            eventDetails.innerHTML = `
+                <div class="event-detail">
+                    <strong>Título:</strong> <span>${evento.titulo}</span>
+                </div>
+                <div class="event-detail">
+                    <strong>Time:</strong> 
+                    <span class="team-badge ${evento.time}">${times[evento.time].nome}</span>
+                </div>
+                <div class="event-detail">
+                    <strong>Data:</strong> 
+                    <span>${new Date(evento.data).toLocaleDateString('pt-BR')}</span>
+                </div>
+                <div class="event-detail">
+                    <strong>Hora:</strong> <span>${evento.hora}</span>
+                </div>
+                <div class="event-detail">
+                    <strong>Duração:</strong> <span>${evento.duracao}</span>
+                </div>
+                <div class="event-detail">
+                    <strong>Descrição:</strong> <span>${evento.descricao}</span>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+
+        // Fechar modal
+        function closeModal() {
+            document.getElementById('event-modal').style.display = 'none';
+        }
+
+        // Fechar modal ao clicar fora dele
+        window.onclick = function(event) {
+            const modal = document.getElementById('event-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

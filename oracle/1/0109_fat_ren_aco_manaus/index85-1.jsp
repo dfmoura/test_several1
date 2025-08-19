@@ -6,7 +6,6 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -66,6 +65,7 @@
             justify-content: center; /* Centraliza horizontalmente o gráfico */
             align-items: center; /* Centraliza verticalmente o gráfico */
         }
+
         .chart-overlay {
             position: absolute;
             display: flex;
@@ -74,10 +74,11 @@
             font-size: 18px;
             font-weight: bold;
             color: #333;
-            left: 50%; /* Move o overlay 10% para a direita */
+            left: 53%; /* Move o overlay 10% para a direita */
             transform: translateX(45%); /* Ajusta a posição do texto para centralizá-lo */
             /*text-align: center; Opcional, para centralizar o texto se ele tiver várias linhas */            
-        }        
+        }
+
         .dropdown-container {
             display: flex;
             justify-content: flex-start; /* Alinha o dropdown à esquerda */
@@ -126,24 +127,166 @@
     </style>
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
+
     <snk:load/>
 
 </head>
 
+<snk:query var="mar_tot">
+    SELECT SUM(MARGEMNON) MARGEMNON
+    FROM (
+    SELECT
+    MARGEMNON
+    FROM VGF_CONSOLIDADOR_NOTAS_GM 
+    WHERE 
+    GOLSINAL = -1
+    AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+    AND TIPMOV IN ('V', 'D')
+    AND ATIVO = 'S'
+    AND CODEMP IN (:P_EMPRESA)
+    AND CODNAT IN (:P_NATUREZA)
+    AND CODCENCUS IN (:P_CR)
+    AND CODVEND IN (:P_VENDEDOR)
+    AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+    AND CODGER IN (:P_GERENTE)
+    AND AD_ROTA IN (:P_ROTA)
+    AND CODTIPOPER IN (:P_TOP)
+    )
+        
+</snk:query>
+
+
+
+<snk:query var="mar_tipo">
+    WITH BAS AS(
+        SELECT
+        AD_TPPROD,TIPOPROD,MARGEMNON
+        FROM VGF_CONSOLIDADOR_NOTAS_GM 
+        WHERE 
+        GOLSINAL = -1
+        AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+        AND TIPMOV IN ('V', 'D')
+        AND ATIVO = 'S'
+        AND CODEMP IN (:P_EMPRESA)
+        AND CODNAT IN (:P_NATUREZA)
+        AND CODCENCUS IN (:P_CR)
+        AND CODVEND IN (:P_VENDEDOR)
+        AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND CODGER IN (:P_GERENTE)
+        AND AD_ROTA IN (:P_ROTA)
+        AND CODTIPOPER IN (:P_TOP)
+        )
+        SELECT 
+        AD_TPPROD,TIPOPROD,SUM(MARGEMNON) MARGEMNON
+        FROM BAS
+        GROUP BY AD_TPPROD,TIPOPROD
+        
+
+</snk:query>
+
+
+<snk:query var="mar_ger">
+    WITH BAS AS(
+        SELECT
+        AD_TPPROD,TIPOPROD,CODGER,GERENTE,MARGEMNON
+        FROM VGF_CONSOLIDADOR_NOTAS_GM 
+        WHERE 
+        GOLSINAL = -1
+        AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+        AND TIPMOV IN ('V', 'D')
+        AND ATIVO = 'S'
+        AND CODEMP IN (:P_EMPRESA)
+        AND CODNAT IN (:P_NATUREZA)
+        AND CODCENCUS IN (:P_CR)
+        AND CODVEND IN (:P_VENDEDOR)
+        AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND CODGER IN (:P_GERENTE)
+        AND AD_ROTA IN (:P_ROTA)
+        AND CODTIPOPER IN (:P_TOP)
+        )
+        SELECT 
+        AD_TPPROD,CODGER,GERENTE,SUM(MARGEMNON) MARGEMNON
+        FROM BAS
+        WHERE AD_TPPROD = :A_TPPROD OR ( AD_TPPROD = 4 AND :A_TPPROD IS NULL)
+        GROUP BY AD_TPPROD,CODGER,GERENTE
+        ORDER BY 4 DESC        
+</snk:query>
+
+
+<snk:query var="mar_cli">
+    SELECT * FROM (
+        WITH BAS AS(
+        SELECT
+        AD_TPPROD,TIPOPROD,CODGER,GERENTE,CODPARC,SUBSTR(NOMEPARC,1,13) AS NOMEPARC,MARGEMNON
+        FROM VGF_CONSOLIDADOR_NOTAS_GM 
+        WHERE 
+        GOLSINAL = -1
+        AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+        AND TIPMOV IN ('V', 'D')
+        AND ATIVO = 'S'
+        AND CODEMP IN (:P_EMPRESA)
+        AND CODNAT IN (:P_NATUREZA)
+        AND CODCENCUS IN (:P_CR)
+        AND CODVEND IN (:P_VENDEDOR)
+        AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND CODGER IN (:P_GERENTE)
+        AND AD_ROTA IN (:P_ROTA)
+        AND CODTIPOPER IN (:P_TOP)
+        )
+        SELECT 
+        AD_TPPROD,CODPARC,NOMEPARC,SUM(MARGEMNON) MARGEMNON
+        FROM BAS
+        WHERE AD_TPPROD = :A_TPPROD OR ( AD_TPPROD = 4 AND :A_TPPROD IS NULL)
+        GROUP BY AD_TPPROD,CODPARC,NOMEPARC
+        ORDER BY 4 DESC
+        )WHERE ROWNUM <=10
+        
+</snk:query>
+
+
+<snk:query var="mar_prod">
+    WITH BAS AS(
+        SELECT
+        AD_TPPROD,TIPOPROD,CODGER,GERENTE,CODPARC,NOMEPARC,CODPROD,DESCRPROD,HL,MARGEMNON
+        FROM VGF_CONSOLIDADOR_NOTAS_GM 
+        WHERE 
+        GOLSINAL = -1
+        AND (DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN)
+        AND TIPMOV IN ('V', 'D')
+        AND ATIVO = 'S'
+        AND CODEMP IN (:P_EMPRESA)
+        AND CODNAT IN (:P_NATUREZA)
+        AND CODCENCUS IN (:P_CR)
+        AND CODVEND IN (:P_VENDEDOR)
+        AND AD_SUPERVISOR IN (:P_SUPERVISOR)
+        AND CODGER IN (:P_GERENTE)
+        AND AD_ROTA IN (:P_ROTA)
+        AND CODTIPOPER IN (:P_TOP)
+        )
+        SELECT 
+        AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD,SUM(HL)HL,SUM(MARGEMNON) MARGEMNON
+        FROM BAS
+        WHERE AD_TPPROD = :A_TPPROD OR ( AD_TPPROD = 4 AND :A_TPPROD IS NULL)
+        GROUP BY AD_TPPROD,TIPOPROD,CODPROD,DESCRPROD
+        ORDER BY 6 DESC
+        
+</snk:query>
+
 
 <body>
-    
     <div class="container">
         <div class="section">
             <div class="part" id="left-top">
-                <div class="part-title">Impostos</div>
+                <div class="part-title">Margem por Tipo Produto</div>
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
-                    <div class="chart-overlay" onclick="abrir_par()" title="Acessar por perfil de Cliente" id="total-overlay"></div>
+                    <c:forEach items="${mar_tot.rows}" var="row">
+                        <div class="chart-overlay"><fmt:formatNumber value="${row.MARGEMNON}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="0" maxFractionDigits="0"/></div>
+                    </c:forEach>
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">Impostos por Empresa</div>
+                <div class="part-title">Margem Por Gerente</div>
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
                 </div>
@@ -151,25 +294,45 @@
         </div>
         <div class="section">
             <div class="part" id="right-top">
-                <div class="part-title">Impostos por Grupo de Produtos</div>
+                <div class="part-title">TOP 10 - Margem Por Cliente</div>
                 <div class="chart-container">
-                    <canvas id="barChartRight"></canvas>
+                    <canvas id="barChart1"></canvas>
                 </div>
             </div>
             <div class="part" id="right-bottom">
-                <div class="part-title">Impostos por Produto</div>
-                <div class="table-container">
-                    <table id="motivo_prod_table">
+                <div class="part-title">Margem por Produto</div>
+                <div class="table-container">mar_prod
+                    <table>
                         <thead>
                             <tr>
-                                <th>Cód. Imp.</th>
-                                <th>Cód. Tp. Prod.</th>
+                                <th>Cód. Tp.Prod.</th>
+                                <th>Tp. Prod.</th>
                                 <th>Cód. Prod.</th>
                                 <th>Produto</th>
-                                <th>Valor</th>
+                                <th>HL</th>
+                                <th>Margem Nom.</th>
                             </tr>
                         </thead>
-                        <tbody id="produto-tbody">
+                        <tbody>
+                            <c:set var="total" value="0" />
+                            <c:forEach var="item" items="${mar_prod.rows}">
+                                <tr>
+                                    <td>${item.AD_TPPROD}</td>
+                                    <td>${item.TIPOPROD}</td>
+                                    <td onclick="abrir_pro('${item.AD_TPPROD}','${item.CODPROD}')">${item.CODPROD}</td>
+                                    <td>${item.DESCRPROD}</td>
+                                    <td>${item.HL}</td>
+                                    <td><fmt:formatNumber value="${item.MARGEMNON}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <c:set var="total" value="${total + item.MARGEMNON}" />
+                                </tr>
+                            </c:forEach>
+                            <tr>
+                                <td><b>Total</b></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td><b><fmt:formatNumber value="${total}" type="number" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></b></td>
                         </tbody>
                     </table>
                 </div>
@@ -185,147 +348,67 @@
     <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
     <script>
 
-        // Dados diretos para substituir as queries SQL
-        const dadosImpostos = [
-            { COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 150000.00 },
-            { COD: 2, IMPOSTO: 'VLRIPI', VALOR: 25000.00 },
-            { COD: 3, IMPOSTO: 'VLRICMS', VALOR: 300000.00 },
-            { COD: 4, IMPOSTO: 'PIS', VALOR: 15000.00 },
-            { COD: 5, IMPOSTO: 'COFINS', VALOR: 69000.00 }
-        ];
-
-        const dadosImpostosEmp = [
-            { CODEMP: 1, EMPRESA: 'Empresa A', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 150000.00 },
-            { CODEMP: 2, EMPRESA: 'Empresa B', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 120000.00 },
-            { CODEMP: 3, EMPRESA: 'Empresa C', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 30000.00 },
-            { CODEMP: 1, EMPRESA: 'Empresa A', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 80000.00 },
-            { CODEMP: 2, EMPRESA: 'Empresa B', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 70000.00 }
-        ];
-
-        const dadosImpostosTipo = [
-            { AD_TPPROD: 1, TIPOPROD: 'Tipo A', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 100000.00 },
-            { AD_TPPROD: 2, TIPOPROD: 'Tipo B', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 120000.00 },
-            { AD_TPPROD: 3, TIPOPROD: 'Tipo C', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 80000.00 },
-            { AD_TPPROD: 1, TIPOPROD: 'Tipo A', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 50000.00 },
-            { AD_TPPROD: 2, TIPOPROD: 'Tipo B', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 60000.00 }
-        ];
-
-        const dadosImpostosProduto = [
-            { AD_TPPROD: 1, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 1001, DESCRPROD: 'Produto A1', VALOR: 50000.00 },
-            { AD_TPPROD: 1, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 1002, DESCRPROD: 'Produto A2', VALOR: 50000.00 },
-            { AD_TPPROD: 2, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 2001, DESCRPROD: 'Produto B1', VALOR: 60000.00 },
-            { AD_TPPROD: 2, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 2002, DESCRPROD: 'Produto B2', VALOR: 60000.00 },
-            { AD_TPPROD: 1, COD: 1, IMPOSTO: 'VLRSUBST', CODPROD: 1001, DESCRPROD: 'Produto A1', VALOR: 25000.00 },
-            { AD_TPPROD: 1, COD: 1, IMPOSTO: 'VLRSUBST', CODPROD: 1002, DESCRPROD: 'Produto A2', VALOR: 25000.00 }
-        ];
-
-        // Função para calcular o total dos impostos
-        function calcularTotalImpostos() {
-            return dadosImpostos.reduce((total, item) => total + item.VALOR, 0);
-        }
-
-        // Função para popular a tabela de produtos
-        function popularTabelaProdutos() {
-            const tbody = document.getElementById('produto-tbody');
-            let html = '';
-            let total = 0;
-
-            dadosImpostosProduto.forEach(item => {
-                html += `
-                    <tr>
-                        <td>${item.COD}</td>
-                        <td>${item.AD_TPPROD}</td>
-                        <td onclick="abrir_prod('${item.CODPROD}')">${item.CODPROD}</td>
-                        <td>${item.DESCRPROD}</td>
-                        <td>${item.VALOR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                `;
-                total += item.VALOR;
-            });
-
-            html += `
-                <tr>
-                    <td><b>Total</b></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td><b>${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b></td>
-                </tr>
-            `;
-
-            tbody.innerHTML = html;
-        }
-
-        // Função para atualizar o overlay do total
-        function atualizarOverlayTotal() {
-            const total = calcularTotalImpostos();
-            document.getElementById('total-overlay').textContent = total.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        }
 
         // Função para atualizar a query
-        function ref_imp(imposto) {
-            const params = {'A_IMPOSTOS': imposto};
-            refreshDetails('html5_a7wgpux', params); 
-        }       
-/*
+        function ref_tpprod(tipoprod) {
+                const params = {'A_TPPROD': parseInt(tipoprod)};
+                refreshDetails('html5_a73fhjt', params); 
+            }
+
+
+
         // Função para abrir o novo nível
-        function abrir_emp(grupo) {
+
+        function abrir_ger(grupo,grupo1) {
             var params = { 
-                'A_CODEMP': parseInt(grupo)
+                'A_TPPROD' : parseInt(grupo),
+                'A_CODGER': parseInt(grupo1)
              };
-            var level = 'lvl_vkan0l';
+            var level = 'lvl_1f45rd';
             
             openLevel(level, params);
         }
 
-        function abrir_tpprod(grupo) {
+
+        function abrir_cli(grupo,grupo1) {
             var params = { 
-                'A_TPPROD': parseInt(grupo)
+                'A_TPPROD' : parseInt(grupo),
+                'A_CODPARC': parseInt(grupo1)
              };
-            var level = 'lvl_vkan0l';
+            var level = 'lvl_1f45rd';
             
             openLevel(level, params);
         }
 
-        function abrir_prod(grupo) {
+
+        function abrir_pro(grupo,grupo1) {
             var params = { 
-                'A_CODPROD': parseInt(grupo)
+                'A_TPPROD' : parseInt(grupo),
+                'A_CODPROD': parseInt(grupo1)
              };
-            var level = 'lvl_vkan0l';
+            var level = 'lvl_1f45rd';
             
             openLevel(level, params);
         }
 
-        function abrir_par(){
-            var params = '';
-            var level = 'lvl_7ko4mp';
-            openLevel(level, params);
-        }          
-*/
-        // Inicialização dos dados
-        document.addEventListener('DOMContentLoaded', function() {
-            popularTabelaProdutos();
-            atualizarOverlayTotal();
-        });
 
-        // Obtendo os dados para o gráfico de rosca
-        var impostos = [];
-        var valoresImpostos = [];
-        
-        dadosImpostos.forEach(item => {
-            impostos.push(item.COD + ' - ' + item.IMPOSTO);
-            valoresImpostos.push(item.VALOR);
-        });
-
-        // Dados para o gráfico de rosca
+        // Dados fictícios para o gráfico de rosca
         const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
+
+        var marTpProdLabel = [];
+        var marTpProdData = [];
+        <c:forEach items="${mar_tipo.rows}" var="row">
+            marTpProdLabel.push('${row.AD_TPPROD} - ${row.TIPOPROD}');
+            marTpProdData.push(parseFloat(${row.MARGEMNON}));
+        </c:forEach>
+
         const doughnutChart = new Chart(ctxDoughnut, {
             type: 'doughnut',
             data: {
-                labels: impostos,
+                labels: marTpProdLabel,
                 datasets: [{
-                    label: 'Impostos',
-                    data: valoresImpostos,
+                    label: 'Margem por Tipo',
+                    data: marTpProdData,
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.2)',
                         'rgba(54, 162, 235, 0.2)',
@@ -352,37 +435,37 @@
                     legend: {
                         position: 'left',
                         align: 'center', // Alinhamento vertical da legenda
-
                     }
                 },
                 onClick: function(event, elements) {
                     if (elements.length > 0) {
                         var index = elements[0].index;
-                        var label = impostos[index].split('-')[0];
-                        ref_imp(label);
+                        var label = marTpProdLabel[index].split('-')[0];
+                        
+                        ref_tpprod(label);
                         //alert(label);
                     }
                 }
             }
         });
 
-        // Dados para o gráfico de barras verticais
-        var empresaLabels1 = [];
-        var vlrEmpData1 = [];
-
-        dadosImpostosEmp.forEach(item => {
-            empresaLabels1.push(item.COD + ' - ' + item.CODEMP + ' - ' + item.EMPRESA);
-            vlrEmpData1.push(item.VALOR);
-        });
-
+        // Dados fictícios para o gráfico de barras verticais
         const ctxBar = document.getElementById('barChart').getContext('2d');
+
+        var marGerLabel = [];
+        var marGerData = [];
+        <c:forEach items="${mar_ger.rows}" var="row">
+            marGerLabel.push('${row.AD_TPPROD} - ${row.CODGER} - ${row.GERENTE}');
+            marGerData.push(parseFloat(${row.MARGEMNON}));
+        </c:forEach>        
+
         const barChart = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: empresaLabels1,
+                labels: marGerLabel,
                 datasets: [{
-                    label: 'Imposto',
-                    data: vlrEmpData1,
+                    label: 'Margem por Gerente',
+                    data: marGerData,
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
@@ -407,32 +490,31 @@
                 onClick: function(evt, activeElements) {
                     if (activeElements.length > 0) {
                         const index = activeElements[0].index;
-                        const grupo = empresaLabels1[index].split('-')[0];
-                        const grupo2 = empresaLabels1[index].split('-')[1];
-                        
-                        abrir_emp(grupo2);
+                        const grupo = marGerLabel[index].split('-')[0];
+                        const grupo1 = marGerLabel[index].split('-')[1];
+                        abrir_ger(grupo,grupo1);
                     }
                 }
             }
         });
 
-        // Dados para o gráfico de colunas verticais
-        var tipoLabels = [];
-        var tipoData = [];
-        
-        dadosImpostosTipo.forEach(item => {
-            tipoLabels.push(item.COD + ' - ' + item.AD_TPPROD + ' - ' + item.TIPOPROD);
-            tipoData.push(item.VALOR);
-        });
-                      
-        const ctxBarRight = document.getElementById('barChartRight').getContext('2d');
+        // Dados fictícios para o gráfico de colunas verticais
+        const ctxBarRight = document.getElementById('barChart1').getContext('2d');
+
+        var marCliLabel = [];
+        var marCliData = [];
+        <c:forEach items="${mar_cli.rows}" var="row">
+            marCliLabel.push('${row.AD_TPPROD} - ${row.CODPARC} - ${row.NOMEPARC}');
+            marCliData.push(parseFloat(${row.MARGEMNON}));
+        </c:forEach>   
+
         const barChartRight = new Chart(ctxBarRight, {
             type: 'bar',
             data: {
-                labels: tipoLabels,
+                labels: marCliLabel,
                 datasets: [{
-                    label: 'Por Tipo Produto',
-                    data: tipoData,
+                    label: 'Margem por Cliente',
+                    data: marCliData,
                     backgroundColor: 'rgba(153, 102, 255, 0.2)',
                     borderColor: 'rgba(153, 102, 255, 1)',
                     borderWidth: 1
@@ -457,14 +539,16 @@
                 onClick: function(evt, activeElements) {
                     if (activeElements.length > 0) {
                         const index = activeElements[0].index;
-                        const grupo = tipoLabels[index].split('-')[0];
-                        const grupo2 = tipoLabels[index].split('-')[1];
-                        
-                        abrir_tpprod(grupo2);
+                        const grupo = marCliLabel[index].split('-')[0];
+                        const grupo1 = marCliLabel[index].split('-')[1];
+                        abrir_cli(grupo,grupo1);
                     }
                 }
             }
         });
+
+
+
         
     </script>
 </body>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card de Agendamentos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .card-container {
+            width: 390px;
+            height: 174px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card-header {
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .period-selector {
+            display: flex;
+            gap: 4px;
+        }
+
+        .period-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .period-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+        }
+
+        .period-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .card-content {
+            padding: 12px 16px;
+            height: calc(100% - 48px);
+            overflow-y: auto;
+        }
+
+        .schedule-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .schedule-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+
+        .schedule-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .schedule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .team-name {
+            font-weight: 600;
+            font-size: 12px;
+            color: #1e293b;
+        }
+
+        .schedule-time {
+            font-size: 11px;
+            color: #64748b;
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .schedule-details {
+            font-size: 11px;
+            color: #475569;
+            line-height: 1.3;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 350px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #64748b;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .close-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .modal-body {
+            margin-bottom: 16px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .detail-value {
+            color: #1e293b;
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            padding: 20px 0;
+        }
+
+        /* Scrollbar personalizado */
+        .card-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .card-content::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .card-content::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        .card-content::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="card-container">
+        <div class="card-header">
+            <div class="card-title">📅 Agendamentos</div>
+            <div class="period-selector">
+                <button class="period-btn active" data-period="day">Dia</button>
+                <button class="period-btn" data-period="week">Semana</button>
+                <button class="period-btn" data-period="month">Mês</button>
+            </div>
+        </div>
+        <div class="card-content" id="scheduleContent">
+            <!-- Conteúdo será carregado via JavaScript -->
+        </div>
+    </div>
+
+    <!-- Modal para detalhes do agendamento -->
+    <div class="modal" id="scheduleModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Detalhes do Agendamento</div>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo do modal será carregado via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados de exemplo para os agendamentos
+        const scheduleData = {
+            day: [
+                {
+                    id: 1,
+                    team: "Desenvolvimento Frontend",
+                    time: "09:00 - 10:30",
+                    date: "08/01/2025",
+                    description: "Reunião de planejamento do sprint",
+                    location: "Sala de Reuniões A",
+                    participants: "João, Maria, Pedro",
+                    priority: "Alta"
+                },
+                {
+                    id: 2,
+                    team: "Marketing Digital",
+                    time: "14:00 - 15:00",
+                    date: "08/01/2025",
+                    description: "Apresentação da campanha Q1",
+                    location: "Auditório Principal",
+                    participants: "Ana, Carlos, Fernanda",
+                    priority: "Média"
+                },
+                {
+                    id: 3,
+                    team: "Suporte Técnico",
+                    time: "16:30 - 17:00",
+                    date: "08/01/2025",
+                    description: "Daily standup",
+                    location: "Sala de Reuniões B",
+                    participants: "Roberto, Juliana, Lucas",
+                    priority: "Baixa"
+                }
+            ],
+            week: [
+                {
+                    id: 4,
+                    team: "Recursos Humanos",
+                    time: "10:00 - 11:00",
+                    date: "06/01/2025",
+                    description: "Entrevista candidato desenvolvedor",
+                    location: "Sala de Entrevistas",
+                    participants: "Mariana, Ricardo",
+                    priority: "Alta"
+                },
+                {
+                    id: 5,
+                    team: "Financeiro",
+                    time: "13:00 - 14:30",
+                    date: "07/01/2025",
+                    description: "Revisão orçamentária mensal",
+                    location: "Sala de Reuniões C",
+                    participants: "Patrícia, Fernando, Simone",
+                    priority: "Alta"
+                },
+                {
+                    id: 6,
+                    team: "Vendas",
+                    time: "15:00 - 16:00",
+                    date: "08/01/2025",
+                    description: "Treinamento de novos produtos",
+                    location: "Sala de Treinamento",
+                    participants: "Toda equipe de vendas",
+                    priority: "Média"
+                },
+                {
+                    id: 7,
+                    team: "Operações",
+                    time: "09:30 - 10:00",
+                    date: "09/01/2025",
+                    description: "Check-in operacional",
+                    location: "Sala de Operações",
+                    participants: "Equipe de operações",
+                    priority: "Baixa"
+                }
+            ],
+            month: [
+                {
+                    id: 8,
+                    team: "Diretoria",
+                    time: "14:00 - 16:00",
+                    date: "15/01/2025",
+                    description: "Reunião estratégica trimestral",
+                    location: "Sala da Diretoria",
+                    participants: "Diretores e gerentes",
+                    priority: "Alta"
+                },
+                {
+                    id: 9,
+                    team: "TI",
+                    time: "10:00 - 12:00",
+                    date: "20/01/2025",
+                    description: "Manutenção preventiva dos servidores",
+                    location: "Data Center",
+                    participants: "Equipe de infraestrutura",
+                    priority: "Média"
+                },
+                {
+                    id: 10,
+                    team: "Qualidade",
+                    time: "13:00 - 15:00",
+                    date: "25/01/2025",
+                    description: "Auditoria de qualidade",
+                    location: "Sala de Auditoria",
+                    participants: "Equipe de qualidade",
+                    priority: "Alta"
+                },
+                {
+                    id: 11,
+                    team: "Comunicação",
+                    time: "16:00 - 17:00",
+                    date: "28/01/2025",
+                    description: "Planejamento de comunicação interna",
+                    location: "Sala de Reuniões A",
+                    participants: "Equipe de comunicação",
+                    priority: "Média"
+                }
+            ]
+        };
+
+        let currentPeriod = 'day';
+
+        // Função para formatar data no padrão brasileiro
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR');
+        }
+
+        // Função para renderizar os agendamentos
+        function renderSchedules(period) {
+            const content = document.getElementById('scheduleContent');
+            const schedules = scheduleData[period] || [];
+            
+            if (schedules.length === 0) {
+                content.innerHTML = '<div class="empty-state">Nenhum agendamento para este período</div>';
+                return;
+            }
+
+            content.innerHTML = schedules.map(schedule => `
+                <div class="schedule-item" onclick="showScheduleDetails(${schedule.id})">
+                    <div class="schedule-header">
+                        <div class="team-name">${schedule.team}</div>
+                        <div class="schedule-time">${schedule.time}</div>
+                    </div>
+                    <div class="schedule-details">${schedule.description}</div>
+                </div>
+            `).join('');
+        }
+
+        // Função para mostrar detalhes do agendamento
+        function showScheduleDetails(scheduleId) {
+            const period = currentPeriod;
+            const schedule = scheduleData[period].find(s => s.id === scheduleId);
+            
+            if (!schedule) return;
+
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="detail-row">
+                    <span class="detail-label">Time:</span>
+                    <span class="detail-value">${schedule.team}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Data:</span>
+                    <span class="detail-value">${schedule.date}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Horário:</span>
+                    <span class="detail-value">${schedule.time}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Descrição:</span>
+                    <span class="detail-value">${schedule.description}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Local:</span>
+                    <span class="detail-value">${schedule.location}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Participantes:</span>
+                    <span class="detail-value">${schedule.participants}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Prioridade:</span>
+                    <span class="detail-value">${schedule.priority}</span>
+                </div>
+            `;
+
+            document.getElementById('scheduleModal').style.display = 'flex';
+        }
+
+        // Função para fechar o modal
+        function closeModal() {
+            document.getElementById('scheduleModal').style.display = 'none';
+        }
+
+        // Função para trocar o período
+        function changePeriod(period) {
+            currentPeriod = period;
+            
+            // Atualizar botões ativos
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Renderizar agendamentos do novo período
+            renderSchedules(period);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Renderizar agendamentos iniciais
+            renderSchedules('day');
+            
+            // Adicionar event listeners para os botões de período
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    changePeriod(this.dataset.period);
+                });
+            });
+            
+            // Fechar modal ao clicar fora dele
+            document.getElementById('scheduleModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

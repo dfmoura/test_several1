@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário Compacto</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .calendar-card {
+            width: 390px;
+            height: 174px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .calendar-header {
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .view-tabs {
+            display: flex;
+            gap: 2px;
+        }
+
+        .view-tab {
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: background 0.2s;
+        }
+
+        .view-tab.active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .view-tab:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .calendar-body {
+            padding: 8px;
+            height: calc(100% - 40px);
+        }
+
+        /* Visualização por Dia */
+        .day-view {
+            display: none;
+        }
+
+        .day-view.active {
+            display: block;
+        }
+
+        .day-header {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: 40px 1fr;
+            gap: 4px;
+            font-size: 10px;
+        }
+
+        .time-slot {
+            padding: 2px 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .time-slot:hover {
+            background: #f0f0f0;
+        }
+
+        .time-slot.has-event {
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+
+        .time-slot.has-event:hover {
+            background: #bbdefb;
+        }
+
+        /* Visualização por Semana */
+        .week-view {
+            display: none;
+        }
+
+        .week-view.active {
+            display: block;
+        }
+
+        .week-grid {
+            display: grid;
+            grid-template-columns: 30px repeat(7, 1fr);
+            gap: 2px;
+            font-size: 9px;
+        }
+
+        .week-header {
+            text-align: center;
+            font-weight: bold;
+            color: #666;
+            padding: 2px;
+        }
+
+        .week-cell {
+            border: 1px solid #eee;
+            padding: 2px;
+            min-height: 20px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .week-cell.has-event {
+            background: #e8f5e8;
+            border-color: #4caf50;
+        }
+
+        .week-cell.has-event::after {
+            content: '•';
+            color: #4caf50;
+            position: absolute;
+            top: 1px;
+            right: 2px;
+            font-weight: bold;
+        }
+
+        /* Visualização por Mês */
+        .month-view {
+            display: none;
+        }
+
+        .month-view.active {
+            display: block;
+        }
+
+        .month-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            font-size: 9px;
+        }
+
+        .month-header {
+            text-align: center;
+            font-weight: bold;
+            color: #666;
+            padding: 2px;
+            background: #f8f9fa;
+        }
+
+        .month-cell {
+            border: 1px solid #eee;
+            padding: 2px;
+            min-height: 18px;
+            cursor: pointer;
+            text-align: center;
+            position: relative;
+        }
+
+        .month-cell.has-event {
+            background: #fff3e0;
+            border-color: #ff9800;
+        }
+
+        .month-cell.has-event::after {
+            content: '•';
+            color: #ff9800;
+            position: absolute;
+            bottom: 1px;
+            right: 2px;
+            font-weight: bold;
+        }
+
+        .month-cell.other-month {
+            color: #ccc;
+        }
+
+        /* Modal de Detalhes */
+        .event-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .event-modal.active {
+            display: flex;
+        }
+
+        .event-content {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            max-width: 300px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .event-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .event-details {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .event-list-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            margin-right: 8px;
+        }
+
+        .event-list-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .event-list-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .event-list-modal.active {
+            display: flex;
+        }
+
+        .event-list-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .event-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .event-list-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .event-list-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .event-item-list {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .event-item-list:hover {
+            border-color: #4285f4;
+            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2);
+        }
+
+        .event-item-list .event-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .event-item-list .event-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .event-item-list .event-meta span {
+            background: #f5f5f5;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .event-item-list .event-time {
+            color: #4285f4;
+            font-weight: bold;
+        }
+
+        .event-item-list .event-team {
+            color: #34a853;
+            font-weight: bold;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .filter-btn:hover {
+            background: #3367d6;
+        }
+
+        .no-events {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-card">
+        <div class="calendar-header">
+            <span>Calendário</span>
+            <div class="view-tabs">
+                <div class="view-tab active" data-view="day">Dia</div>
+                <div class="view-tab" data-view="week">Semana</div>
+                <div class="view-tab" data-view="month">Mês</div>
+            </div>
+            <button class="event-list-btn" onclick="showEventList()">Ver Eventos</button>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        
+        <div class="calendar-body">
+            <!-- Visualização por Dia -->
+            <div class="day-view active" id="day-view">
+                <div class="day-header" id="day-header">Segunda-feira, 8 de Janeiro</div>
+                <div class="time-slots" id="time-slots">
+                    <!-- Slots de tempo serão gerados dinamicamente -->
+                </div>
+            </div>
+
+            <!-- Visualização por Semana -->
+            <div class="week-view" id="week-view">
+                <div class="week-grid" id="week-grid">
+                    <!-- Grade da semana será gerada dinamicamente -->
+                </div>
+            </div>
+
+            <!-- Visualização por Mês -->
+            <div class="month-view" id="month-view">
+                <div class="month-grid" id="month-grid">
+                    <!-- Grade do mês será gerada dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes do Evento -->
+    <div class="event-modal" id="event-modal">
+        <div class="event-content">
+            <div class="event-title" id="modal-title"></div>
+            <div class="event-details" id="modal-details"></div>
+        </div>
+    </div>
+
+    <!-- Modal de Lista de Eventos -->
+    <div class="event-list-modal" id="event-list-modal">
+        <div class="event-list-content">
+            <div class="event-list-header">
+                <div class="event-list-title">Lista de Agendamentos</div>
+                <button class="event-list-close" onclick="closeEventList()">&times;</button>
+            </div>
+            
+            <div class="filter-controls">
+                <select class="filter-select" id="team-filter">
+                    <option value="">Todos os Times</option>
+                    <option value="Desenvolvimento">Desenvolvimento</option>
+                    <option value="QA">QA</option>
+                    <option value="Frontend">Frontend</option>
+                    <option value="DevOps">DevOps</option>
+                    <option value="Product">Product</option>
+                    <option value="Todos">Todos</option>
+                </select>
+                
+                <select class="filter-select" id="date-filter">
+                    <option value="">Todas as Datas</option>
+                    <option value="today">Hoje</option>
+                    <option value="week">Esta Semana</option>
+                    <option value="month">Este Mês</option>
+                </select>
+                
+                <button class="filter-btn" onclick="applyFilters()">Filtrar</button>
+                <button class="filter-btn" onclick="clearFilters()">Limpar</button>
+            </div>
+            
+            <div id="events-list-container">
+                <!-- Lista de eventos será populada dinamicamente -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados de exemplo dos agendamentos
+        const eventos = [
+            {
+                id: 1,
+                titulo: "Reunião de Planejamento",
+                time: "Desenvolvimento",
+                data: "2024-01-08",
+                hora: "09:00",
+                duracao: 60,
+                descricao: "Reunião semanal para planejamento das próximas sprints"
+            },
+            {
+                id: 2,
+                titulo: "Daily Standup",
+                time: "QA",
+                data: "2024-01-08",
+                hora: "10:00",
+                duracao: 15,
+                descricao: "Standup diário da equipe de qualidade"
+            },
+            {
+                id: 3,
+                titulo: "Code Review",
+                time: "Frontend",
+                data: "2024-01-08",
+                hora: "14:00",
+                duracao: 45,
+                descricao: "Revisão de código da feature de autenticação"
+            },
+            {
+                id: 4,
+                titulo: "Sprint Retrospective",
+                time: "Todos",
+                data: "2024-01-09",
+                hora: "16:00",
+                duracao: 90,
+                descricao: "Retrospectiva da sprint 23"
+            },
+            {
+                id: 5,
+                titulo: "Workshop React",
+                time: "Desenvolvimento",
+                data: "2024-01-10",
+                hora: "13:00",
+                duracao: 120,
+                descricao: "Workshop sobre hooks avançados do React"
+            },
+            {
+                id: 6,
+                titulo: "Deploy Produção",
+                time: "DevOps",
+                data: "2024-01-11",
+                hora: "22:00",
+                duracao: 60,
+                descricao: "Deploy da versão 2.1.0 em produção"
+            },
+            {
+                id: 7,
+                titulo: "Reunião Cliente",
+                time: "Product",
+                data: "2024-01-12",
+                hora: "11:00",
+                duracao: 60,
+                descricao: "Apresentação das novas funcionalidades"
+            }
+        ];
+
+        // Configurações do calendário
+        const config = {
+            dataAtual: new Date(),
+            visualizacaoAtual: 'day'
+        };
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarCalendario();
+            configurarTabs();
+        });
+
+        function inicializarCalendario() {
+            atualizarVisualizacao();
+            popularEventos();
+        }
+
+        function configurarTabs() {
+            const tabs = document.querySelectorAll('.view-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const view = this.dataset.view;
+                    mudarVisualizacao(view);
+                });
+            });
+        }
+
+        function mudarVisualizacao(view) {
+            // Remover classe active de todas as visualizações
+            document.querySelectorAll('.day-view, .week-view, .month-view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+
+            // Ativar visualização selecionada
+            document.getElementById(view + '-view').classList.add('active');
+            document.querySelector(`[data-view="${view}"]`).classList.add('active');
+
+            config.visualizacaoAtual = view;
+            atualizarVisualizacao();
+        }
+
+        function atualizarVisualizacao() {
+            switch(config.visualizacaoAtual) {
+                case 'day':
+                    atualizarVisualizacaoDia();
+                    break;
+                case 'week':
+                    atualizarVisualizacaoSemana();
+                    break;
+                case 'month':
+                    atualizarVisualizacaoMes();
+                    break;
+            }
+        }
+
+        function atualizarVisualizacaoDia() {
+            const hoje = new Date();
+            const opcoes = { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long' 
+            };
+            const dataFormatada = hoje.toLocaleDateString('pt-BR', opcoes);
+            document.getElementById('day-header').textContent = dataFormatada;
+
+            const timeSlots = document.getElementById('time-slots');
+            timeSlots.innerHTML = '';
+
+            // Gerar slots de tempo das 8h às 18h
+            for (let hora = 8; hora <= 18; hora++) {
+                const timeSlot = document.createElement('div');
+                timeSlot.className = 'time-slot';
+                timeSlot.innerHTML = `
+                    <div>${hora.toString().padStart(2, '0')}:00</div>
+                    <div class="event-slot" data-hora="${hora}"></div>
+                `;
+                timeSlots.appendChild(timeSlot);
+            }
+
+            popularEventosDia();
+        }
+
+        function atualizarVisualizacaoSemana() {
+            const weekGrid = document.getElementById('week-grid');
+            weekGrid.innerHTML = '';
+
+            // Cabeçalhos dos dias da semana
+            const diasSemana = ['Hora', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+            diasSemana.forEach(dia => {
+                const header = document.createElement('div');
+                header.className = 'week-header';
+                header.textContent = dia;
+                weekGrid.appendChild(header);
+            });
+
+            // Gerar células para cada hora do dia
+            for (let hora = 8; hora <= 18; hora++) {
+                // Célula da hora
+                const timeCell = document.createElement('div');
+                timeCell.className = 'week-cell';
+                timeCell.textContent = `${hora.toString().padStart(2, '0')}:00`;
+                weekGrid.appendChild(timeCell);
+
+                // Células para cada dia da semana
+                for (let dia = 0; dia < 7; dia++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'week-cell';
+                    cell.dataset.hora = hora;
+                    cell.dataset.dia = dia;
+                    cell.addEventListener('click', () => mostrarDetalhesEvento(hora, dia));
+                    weekGrid.appendChild(cell);
+                }
+            }
+
+            popularEventosSemana();
+        }
+
+        function atualizarVisualizacaoMes() {
+            const monthGrid = document.getElementById('month-grid');
+            monthGrid.innerHTML = '';
+
+            // Cabeçalhos dos dias da semana
+            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            diasSemana.forEach(dia => {
+                const header = document.createElement('div');
+                header.className = 'month-header';
+                header.textContent = dia;
+                monthGrid.appendChild(header);
+            });
+
+            // Calcular primeiro dia do mês e último dia
+            const primeiroDia = new Date(config.dataAtual.getFullYear(), config.dataAtual.getMonth(), 1);
+            const ultimoDia = new Date(config.dataAtual.getFullYear(), config.dataAtual.getMonth() + 1, 0);
+            const primeiroDiaSemana = primeiroDia.getDay();
+
+            // Células vazias antes do primeiro dia do mês
+            for (let i = 0; i < primeiroDiaSemana; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'month-cell other-month';
+                monthGrid.appendChild(cell);
+            }
+
+            // Células dos dias do mês
+            for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
+                const cell = document.createElement('div');
+                cell.className = 'month-cell';
+                cell.textContent = dia;
+                cell.dataset.dia = dia;
+                cell.addEventListener('click', () => mostrarDetalhesEventoMes(dia));
+                monthGrid.appendChild(cell);
+            }
+
+            popularEventosMes();
+        }
+
+        function popularEventos() {
+            popularEventosDia();
+            popularEventosSemana();
+            popularEventosMes();
+        }
+
+        function popularEventosDia() {
+            const hoje = new Date();
+            const dataHoje = hoje.toISOString().split('T')[0];
+            
+            eventos.forEach(evento => {
+                if (evento.data === dataHoje) {
+                    const hora = parseInt(evento.hora.split(':')[0]);
+                    const eventSlot = document.querySelector(`[data-hora="${hora}"]`);
+                    if (eventSlot) {
+                        eventSlot.innerHTML = `
+                            <div class="event-item" onclick="mostrarDetalhesEvento(${evento.id})">
+                                <strong>${evento.titulo}</strong><br>
+                                <small>${evento.time} - ${evento.hora}</small>
+                            </div>
+                        `;
+                        eventSlot.classList.add('has-event');
+                    }
+                }
+            });
+        }
+
+        function popularEventosSemana() {
+            const hoje = new Date();
+            const inicioSemana = new Date(hoje);
+            inicioSemana.setDate(hoje.getDate() - hoje.getDay() + 1);
+
+            eventos.forEach(evento => {
+                const dataEvento = new Date(evento.data);
+                const diffDias = Math.floor((dataEvento - inicioSemana) / (1000 * 60 * 60 * 24));
+                
+                if (diffDias >= 0 && diffDias < 7) {
+                    const hora = parseInt(evento.hora.split(':')[0]);
+                    const cell = document.querySelector(`[data-hora="${hora}"][data-dia="${diffDias}"]`);
+                    if (cell) {
+                        cell.classList.add('has-event');
+                    }
+                }
+            });
+        }
+
+        function popularEventosMes() {
+            eventos.forEach(evento => {
+                const dataEvento = new Date(evento.data);
+                if (dataEvento.getMonth() === config.dataAtual.getMonth()) {
+                    const dia = dataEvento.getDate();
+                    const cell = document.querySelector(`[data-dia="${dia}"]`);
+                    if (cell) {
+                        cell.classList.add('has-event');
+                    }
+                }
+            });
+        }
+
+        function mostrarDetalhesEvento(id) {
+            const evento = eventos.find(e => e.id === id);
+            if (evento) {
+                document.getElementById('modal-title').textContent = evento.titulo;
+                document.getElementById('modal-details').innerHTML = `
+                    <strong>Time:</strong> ${evento.time}<br>
+                    <strong>Data:</strong> ${formatarData(evento.data)}<br>
+                    <strong>Hora:</strong> ${evento.hora}<br>
+                    <strong>Duração:</strong> ${evento.duracao} min<br>
+                    <strong>Descrição:</strong> ${evento.descricao}
+                `;
+                document.getElementById('event-modal').classList.add('active');
+            }
+        }
+
+        function mostrarDetalhesEventoMes(dia) {
+            const eventosDia = eventos.filter(e => {
+                const dataEvento = new Date(e.data);
+                return dataEvento.getDate() === dia && dataEvento.getMonth() === config.dataAtual.getMonth();
+            });
+
+            if (eventosDia.length > 0) {
+                const evento = eventosDia[0]; // Mostra o primeiro evento do dia
+                document.getElementById('modal-title').textContent = `Eventos do dia ${dia}`;
+                document.getElementById('modal-details').innerHTML = `
+                    <strong>${evento.titulo}</strong><br>
+                    <strong>Time:</strong> ${evento.time}<br>
+                    <strong>Hora:</strong> ${evento.hora}<br>
+                    <strong>Descrição:</strong> ${evento.descricao}
+                `;
+                document.getElementById('event-modal').classList.add('active');
+            }
+        }
+
+        function mostrarDetalhesEvento(hora, dia) {
+            const hoje = new Date();
+            const inicioSemana = new Date(hoje);
+            inicioSemana.setDate(hoje.getDate() - hoje.getDay() + 1);
+            const dataEvento = new Date(inicioSemana);
+            dataEvento.setDate(inicioSemana.getDate() + dia);
+
+            const dataEventoStr = dataEvento.toISOString().split('T')[0];
+            const eventosHora = eventos.filter(e => e.data === dataEventoStr && parseInt(e.hora.split(':')[0]) === hora);
+
+            if (eventosHora.length > 0) {
+                const evento = eventosHora[0];
+                document.getElementById('modal-title').textContent = evento.titulo;
+                document.getElementById('modal-details').innerHTML = `
+                    <strong>Time:</strong> ${evento.time}<br>
+                    <strong>Data:</strong> ${formatarData(evento.data)}<br>
+                    <strong>Hora:</strong> ${evento.hora}<br>
+                    <strong>Descrição:</strong> ${evento.descricao}
+                `;
+                document.getElementById('event-modal').classList.add('active');
+            }
+        }
+
+        function formatarData(data) {
+            const [ano, mes, dia] = data.split('-');
+            const meses = [
+                'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+            ];
+            return `${dia} de ${meses[parseInt(mes) - 1]} de ${ano}`;
+        }
+
+        function closeModal() {
+            document.getElementById('event-modal').classList.remove('active');
+        }
+
+        // Fechar modal ao clicar fora dele
+        document.getElementById('event-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Fechar modal de lista ao clicar fora dele
+        document.getElementById('event-list-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEventList();
+            }
+        });
+
+        // Funções para gerenciar a lista de eventos
+        function showEventList() {
+            document.getElementById('event-list-modal').classList.add('active');
+            populateEventList();
+        }
+
+        function closeEventList() {
+            document.getElementById('event-list-modal').classList.remove('active');
+        }
+
+        function populateEventList(filteredEvents = null) {
+            const container = document.getElementById('events-list-container');
+            const eventsToShow = filteredEvents || eventos;
+            
+            if (eventsToShow.length === 0) {
+                container.innerHTML = '<div class="no-events">Nenhum evento encontrado com os filtros aplicados.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            eventsToShow.forEach(evento => {
+                const eventItem = document.createElement('div');
+                eventItem.className = 'event-item-list';
+                eventItem.onclick = () => showEventDetails(evento);
+                
+                eventItem.innerHTML = `
+                    <div class="event-title">${evento.titulo}</div>
+                    <div class="event-meta">
+                        <span class="event-team">${evento.time}</span>
+                        <span class="event-time">${evento.hora}</span>
+                        <span>${formatarData(evento.data)}</span>
+                        <span>${evento.duracao} min</span>
+                    </div>
+                `;
+                
+                container.appendChild(eventItem);
+            });
+        }
+
+        function showEventDetails(evento) {
+            document.getElementById('modal-title').textContent = evento.titulo;
+            document.getElementById('modal-details').innerHTML = `
+                <strong>Time:</strong> ${evento.time}<br>
+                <strong>Data:</strong> ${formatarData(evento.data)}<br>
+                <strong>Hora:</strong> ${evento.hora}<br>
+                <strong>Duração:</strong> ${evento.duracao} min<br>
+                <strong>Descrição:</strong> ${evento.descricao}
+            `;
+            
+            closeEventList();
+            document.getElementById('event-modal').classList.add('active');
+        }
+
+        function applyFilters() {
+            const teamFilter = document.getElementById('team-filter').value;
+            const dateFilter = document.getElementById('date-filter').value;
+            
+            let filteredEvents = [...eventos];
+            
+            // Filtro por time
+            if (teamFilter) {
+                filteredEvents = filteredEvents.filter(evento => evento.time === teamFilter);
+            }
+            
+            // Filtro por data
+            if (dateFilter) {
+                const hoje = new Date();
+                const hojeStr = hoje.toISOString().split('T')[0];
+                
+                switch(dateFilter) {
+                    case 'today':
+                        filteredEvents = filteredEvents.filter(evento => evento.data === hojeStr);
+                        break;
+                    case 'week':
+                        const inicioSemana = new Date(hoje);
+                        inicioSemana.setDate(hoje.getDate() - hoje.getDay() + 1);
+                        const fimSemana = new Date(inicioSemana);
+                        fimSemana.setDate(inicioSemana.getDate() + 6);
+                        
+                        filteredEvents = filteredEvents.filter(evento => {
+                            const dataEvento = new Date(evento.data);
+                            return dataEvento >= inicioSemana && dataEvento <= fimSemana;
+                        });
+                        break;
+                    case 'month':
+                        filteredEvents = filteredEvents.filter(evento => {
+                            const dataEvento = new Date(evento.data);
+                            return dataEvento.getMonth() === hoje.getMonth() && 
+                                   dataEvento.getFullYear() === hoje.getFullYear();
+                        });
+                        break;
+                }
+            }
+            
+            populateEventList(filteredEvents);
+        }
+
+        function clearFilters() {
+            document.getElementById('team-filter').value = '';
+            document.getElementById('date-filter').value = '';
+            populateEventList();
+        }
+    </script>
+</body>
+</html>

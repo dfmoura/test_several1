@@ -539,7 +539,12 @@ pode utilizar o arquivo prod39.jsp como exemplo
 
 
 ------------------
+11/08/2025
 
+8:40 as 12:30
+
+13:50 as 16:30
+17:00 as 19:30
 
 prod33.jsp
 
@@ -612,6 +617,10 @@ para o arquivo zteste.jsp tem o exemplo da função openLevel
 
 -----------------------
 12/08/2025
+8:40 as 10:50
+12:10 as 15:30
+
+
 
 prod33_1.jsp
 
@@ -639,4 +648,77 @@ este é o nivel inferior de uma tela customizada, da opção 'construtor de comp
 
 
 ---------------
+12/08
+16 as 18:30 e 20 as 23:30
 
+*** redefinido dash para busca e replicado para nivel principal e niveis inferiores pelos card's
+nivel principal 
+faturamento
+Devolução
+impostos
+CMV
+ton
+Desconto
+Margem
+Margem %
+Despesa Operacional
+Investimento
+
+
+
+
+13/08/2025
+
+18 as 20
+
+sem estragar nada do layout atual
+reduzir o tamanho do h1 nos cards
+pois quando aparece um numero muito grande ele quebra a linha
+
+
+sem estragar na do layout reduzir o espaçamento horizontamente entre o card's
+muito cuidado
+sem estragar nada...
+
+o espaçamento horizontal do card de Resultado ainda esta muito grande, corrigir
+muito cuidado para nao mudar o tamanho do card,
+nem estragar nada do layout atual
+
+
+SEM ESTRAGAR O CODIGO CHEAR UM POUCO PARA DIREITA O OVERLAY
+
+
+--- para o nivel de faturamento 
+colocado densehenk para a primeira query 
+colocado <=5 no case
+centraliado valor no grafico rosca
+--- para o nivel de devolução
+colocado densehenk para a primeira query 
+colocado <=5 no case E tambem a ordem é crescente pois o vlrdev é negativo
+centraliado valor no grafico rosca
+
+--------------------
+14/08/25
+--- para o nivel de imposto
+colocado densehenk para a primeira query 
+colocado <=5 no case E tambem a ordem é desc
+centraliado valor no grafico rosca
+--- para o nivel de cmv
+colocado densehenk para a primeira query 
+colocado <=5 no case E tambem a ordem é desc
+centraliado valor no grafico rosca
+--- para o nivel de ton
+colocado densehenk para a primeira query 
+colocado <=5 no case E tambem a ordem é desc
+centraliado valor no grafico rosca
+--- para o nivel de desc
+colocado densehenk para a primeira query 
+colocado <=5 no case E tambem a ordem é desc
+centraliado valor no grafico rosca
+--- para o nivel de margem
+colocado densehenk para a primeira query 
+colocado <=5 no case E tambem a ordem é desc
+centraliado valor no grafico rosca
+--- para o nivel de des / inv
+centraliado valor no grafico rosca
+corrigido campo e where da query que mostra o total do grafico de rosca 

@@ -1,12 +1,10 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="UTF-8" isELIgnored="false" %>
+<!DOCTYPE html>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="java.util.*" %>
 <%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
 <%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-
-<html lang="en">
-
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -66,6 +64,7 @@
             justify-content: center; /* Centraliza horizontalmente o gráfico */
             align-items: center; /* Centraliza verticalmente o gráfico */
         }
+
         .chart-overlay {
             position: absolute;
             display: flex;
@@ -74,10 +73,11 @@
             font-size: 18px;
             font-weight: bold;
             color: #333;
-            left: 50%; /* Move o overlay 10% para a direita */
+            left: 53%; /* Move o overlay 10% para a direita */
             transform: translateX(45%); /* Ajusta a posição do texto para centralizá-lo */
             /*text-align: center; Opcional, para centralizar o texto se ele tiver várias linhas */            
-        }        
+        }
+
         .dropdown-container {
             display: flex;
             justify-content: flex-start; /* Alinha o dropdown à esquerda */
@@ -126,24 +126,23 @@
     </style>
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
+
     <snk:load/>
 
 </head>
 
-
 <body>
-    
     <div class="container">
         <div class="section">
             <div class="part" id="left-top">
-                <div class="part-title">Impostos</div>
+                <div class="part-title">Margem por Tipo Produto</div>
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
-                    <div class="chart-overlay" onclick="abrir_par()" title="Acessar por perfil de Cliente" id="total-overlay"></div>
+                    <div class="chart-overlay" id="total-overlay">R$ 1.250.000</div>
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">Impostos por Empresa</div>
+                <div class="part-title">Margem Por Gerente</div>
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
                 </div>
@@ -151,25 +150,27 @@
         </div>
         <div class="section">
             <div class="part" id="right-top">
-                <div class="part-title">Impostos por Grupo de Produtos</div>
+                <div class="part-title">TOP 10 - Margem Por Cliente</div>
                 <div class="chart-container">
-                    <canvas id="barChartRight"></canvas>
+                    <canvas id="barChart1"></canvas>
                 </div>
             </div>
             <div class="part" id="right-bottom">
-                <div class="part-title">Impostos por Produto</div>
+                <div class="part-title">Margem por Produto</div>
                 <div class="table-container">
-                    <table id="motivo_prod_table">
+                    <table>
                         <thead>
                             <tr>
-                                <th>Cód. Imp.</th>
-                                <th>Cód. Tp. Prod.</th>
+                                <th>Cód. Tp.Prod.</th>
+                                <th>Tp. Prod.</th>
                                 <th>Cód. Prod.</th>
                                 <th>Produto</th>
-                                <th>Valor</th>
+                                <th>HL</th>
+                                <th>Margem Nom.</th>
                             </tr>
                         </thead>
-                        <tbody id="produto-tbody">
+                        <tbody id="produtos-tbody">
+                            <!-- Dados serão preenchidos via JavaScript -->
                         </tbody>
                     </table>
                 </div>
@@ -185,147 +186,145 @@
     <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
     <script>
 
-        // Dados diretos para substituir as queries SQL
-        const dadosImpostos = [
-            { COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 150000.00 },
-            { COD: 2, IMPOSTO: 'VLRIPI', VALOR: 25000.00 },
-            { COD: 3, IMPOSTO: 'VLRICMS', VALOR: 300000.00 },
-            { COD: 4, IMPOSTO: 'PIS', VALOR: 15000.00 },
-            { COD: 5, IMPOSTO: 'COFINS', VALOR: 69000.00 }
-        ];
+        // Dados de exemplo para substituir as queries
+        const dadosExemplo = {
+            mar_tot: [
+                { MARGEMNON: 1250000 }
+            ],
+            mar_tipo: [
+                { AD_TPPROD: 1, TIPOPROD: "Produto A", MARGEMNON: 450000 },
+                { AD_TPPROD: 2, TIPOPROD: "Produto B", MARGEMNON: 380000 },
+                { AD_TPPROD: 3, TIPOPROD: "Produto C", MARGEMNON: 320000 },
+                { AD_TPPROD: 4, TIPOPROD: "Produto D", MARGEMNON: 100000 }
+            ],
+            mar_ger: [
+                { AD_TPPROD: 1, CODGER: 101, GERENTE: "João Silva", MARGEMNON: 180000 },
+                { AD_TPPROD: 1, CODGER: 102, GERENTE: "Maria Santos", MARGEMNON: 150000 },
+                { AD_TPPROD: 1, CODGER: 103, GERENTE: "Pedro Costa", MARGEMNON: 120000 },
+                { AD_TPPROD: 2, CODGER: 201, GERENTE: "Ana Oliveira", MARGEMNON: 200000 },
+                { AD_TPPROD: 2, CODGER: 202, GERENTE: "Carlos Lima", MARGEMNON: 180000 },
+                { AD_TPPROD: 3, CODGER: 301, GERENTE: "Lucia Ferreira", MARGEMNON: 160000 },
+                { AD_TPPROD: 3, CODGER: 302, GERENTE: "Roberto Alves", MARGEMNON: 160000 }
+            ],
+            mar_cli: [
+                { AD_TPPROD: 1, CODPARC: 1001, NOMEPARC: "Cliente A", MARGEMNON: 85000 },
+                { AD_TPPROD: 1, CODPARC: 1002, NOMEPARC: "Cliente B", MARGEMNON: 72000 },
+                { AD_TPPROD: 1, CODPARC: 1003, NOMEPARC: "Cliente C", MARGEMNON: 68000 },
+                { AD_TPPROD: 2, CODPARC: 2001, NOMEPARC: "Cliente D", MARGEMNON: 95000 },
+                { AD_TPPROD: 2, CODPARC: 2002, NOMEPARC: "Cliente E", MARGEMNON: 88000 },
+                { AD_TPPROD: 2, CODPARC: 2003, NOMEPARC: "Cliente F", MARGEMNON: 82000 },
+                { AD_TPPROD: 3, CODPARC: 3001, NOMEPARC: "Cliente G", MARGEMNON: 78000 },
+                { AD_TPPROD: 3, CODPARC: 3002, NOMEPARC: "Cliente H", MARGEMNON: 75000 },
+                { AD_TPPROD: 3, CODPARC: 3003, NOMEPARC: "Cliente I", MARGEMNON: 72000 },
+                { AD_TPPROD: 4, CODPARC: 4001, NOMEPARC: "Cliente J", MARGEMNON: 100000 }
+            ],
+            mar_prod: [
+                { AD_TPPROD: 1, TIPOPROD: "Produto A", CODPROD: 1001, DESCRPROD: "Produto A1", HL: 150, MARGEMNON: 45000 },
+                { AD_TPPROD: 1, TIPOPROD: "Produto A", CODPROD: 1002, DESCRPROD: "Produto A2", HL: 120, MARGEMNON: 38000 },
+                { AD_TPPROD: 1, TIPOPROD: "Produto A", CODPROD: 1003, DESCRPROD: "Produto A3", HL: 100, MARGEMNON: 32000 },
+                { AD_TPPROD: 2, TIPOPROD: "Produto B", CODPROD: 2001, DESCRPROD: "Produto B1", HL: 180, MARGEMNON: 58000 },
+                { AD_TPPROD: 2, TIPOPROD: "Produto B", CODPROD: 2002, DESCRPROD: "Produto B2", HL: 160, MARGEMNON: 52000 },
+                { AD_TPPROD: 2, TIPOPROD: "Produto B", CODPROD: 2003, DESCRPROD: "Produto B3", HL: 140, MARGEMNON: 45000 },
+                { AD_TPPROD: 3, TIPOPROD: "Produto C", CODPROD: 3001, DESCRPROD: "Produto C1", HL: 200, MARGEMNON: 65000 },
+                { AD_TPPROD: 3, TIPOPROD: "Produto C", CODPROD: 3002, DESCRPROD: "Produto C2", HL: 180, MARGEMNON: 58000 },
+                { AD_TPPROD: 4, TIPOPROD: "Produto D", CODPROD: 4001, DESCRPROD: "Produto D1", HL: 250, MARGEMNON: 100000 }
+            ]
+        };
 
-        const dadosImpostosEmp = [
-            { CODEMP: 1, EMPRESA: 'Empresa A', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 150000.00 },
-            { CODEMP: 2, EMPRESA: 'Empresa B', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 120000.00 },
-            { CODEMP: 3, EMPRESA: 'Empresa C', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 30000.00 },
-            { CODEMP: 1, EMPRESA: 'Empresa A', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 80000.00 },
-            { CODEMP: 2, EMPRESA: 'Empresa B', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 70000.00 }
-        ];
-
-        const dadosImpostosTipo = [
-            { AD_TPPROD: 1, TIPOPROD: 'Tipo A', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 100000.00 },
-            { AD_TPPROD: 2, TIPOPROD: 'Tipo B', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 120000.00 },
-            { AD_TPPROD: 3, TIPOPROD: 'Tipo C', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 80000.00 },
-            { AD_TPPROD: 1, TIPOPROD: 'Tipo A', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 50000.00 },
-            { AD_TPPROD: 2, TIPOPROD: 'Tipo B', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 60000.00 }
-        ];
-
-        const dadosImpostosProduto = [
-            { AD_TPPROD: 1, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 1001, DESCRPROD: 'Produto A1', VALOR: 50000.00 },
-            { AD_TPPROD: 1, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 1002, DESCRPROD: 'Produto A2', VALOR: 50000.00 },
-            { AD_TPPROD: 2, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 2001, DESCRPROD: 'Produto B1', VALOR: 60000.00 },
-            { AD_TPPROD: 2, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 2002, DESCRPROD: 'Produto B2', VALOR: 60000.00 },
-            { AD_TPPROD: 1, COD: 1, IMPOSTO: 'VLRSUBST', CODPROD: 1001, DESCRPROD: 'Produto A1', VALOR: 25000.00 },
-            { AD_TPPROD: 1, COD: 1, IMPOSTO: 'VLRSUBST', CODPROD: 1002, DESCRPROD: 'Produto A2', VALOR: 25000.00 }
-        ];
-
-        // Função para calcular o total dos impostos
-        function calcularTotalImpostos() {
-            return dadosImpostos.reduce((total, item) => total + item.VALOR, 0);
-        }
-
-        // Função para popular a tabela de produtos
-        function popularTabelaProdutos() {
-            const tbody = document.getElementById('produto-tbody');
-            let html = '';
+        // Função para preencher a tabela de produtos
+        function preencherTabelaProdutos() {
+            const tbody = document.getElementById('produtos-tbody');
             let total = 0;
-
-            dadosImpostosProduto.forEach(item => {
-                html += `
-                    <tr>
-                        <td>${item.COD}</td>
-                        <td>${item.AD_TPPROD}</td>
-                        <td onclick="abrir_prod('${item.CODPROD}')">${item.CODPROD}</td>
-                        <td>${item.DESCRPROD}</td>
-                        <td>${item.VALOR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
+            
+            dadosExemplo.mar_prod.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.AD_TPPROD}</td>
+                    <td>${item.TIPOPROD}</td>
+                    <td onclick="abrir_pro('${item.AD_TPPROD}','${item.CODPROD}')">${item.CODPROD}</td>
+                    <td>${item.DESCRPROD}</td>
+                    <td>${item.HL}</td>
+                    <td>${item.MARGEMNON.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 `;
-                total += item.VALOR;
+                tbody.appendChild(row);
+                total += item.MARGEMNON;
             });
-
-            html += `
-                <tr>
-                    <td><b>Total</b></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td><b>${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b></td>
-                </tr>
+            
+            // Adicionar linha de total
+            const totalRow = document.createElement('tr');
+            totalRow.innerHTML = `
+                <td><b>Total</b></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td><b>${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b></td>
             `;
-
-            tbody.innerHTML = html;
-        }
-
-        // Função para atualizar o overlay do total
-        function atualizarOverlayTotal() {
-            const total = calcularTotalImpostos();
-            document.getElementById('total-overlay').textContent = total.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            tbody.appendChild(totalRow);
         }
 
         // Função para atualizar a query
-        function ref_imp(imposto) {
-            const params = {'A_IMPOSTOS': imposto};
-            refreshDetails('html5_a7wgpux', params); 
-        }       
+        function ref_tpprod(tipoprod) {
+                const params = {'A_TPPROD': parseInt(tipoprod)};
+                refreshDetails('html5_a73fhjt', params); 
+            }
+
+
 /*
         // Função para abrir o novo nível
-        function abrir_emp(grupo) {
+
+        function abrir_ger(grupo,grupo1) {
             var params = { 
-                'A_CODEMP': parseInt(grupo)
+                'A_TPPROD' : parseInt(grupo),
+                'A_CODGER': parseInt(grupo1)
              };
-            var level = 'lvl_vkan0l';
+            var level = 'lvl_1f45rd';
             
             openLevel(level, params);
         }
 
-        function abrir_tpprod(grupo) {
+
+        function abrir_cli(grupo,grupo1) {
             var params = { 
-                'A_TPPROD': parseInt(grupo)
+                'A_TPPROD' : parseInt(grupo),
+                'A_CODPARC': parseInt(grupo1)
              };
-            var level = 'lvl_vkan0l';
+            var level = 'lvl_1f45rd';
             
             openLevel(level, params);
         }
 
-        function abrir_prod(grupo) {
+
+        function abrir_pro(grupo,grupo1) {
             var params = { 
-                'A_CODPROD': parseInt(grupo)
+                'A_TPPROD' : parseInt(grupo),
+                'A_CODPROD': parseInt(grupo1)
              };
-            var level = 'lvl_vkan0l';
+            var level = 'lvl_1f45rd';
             
             openLevel(level, params);
         }
-
-        function abrir_par(){
-            var params = '';
-            var level = 'lvl_7ko4mp';
-            openLevel(level, params);
-        }          
 */
-        // Inicialização dos dados
-        document.addEventListener('DOMContentLoaded', function() {
-            popularTabelaProdutos();
-            atualizarOverlayTotal();
-        });
-
-        // Obtendo os dados para o gráfico de rosca
-        var impostos = [];
-        var valoresImpostos = [];
-        
-        dadosImpostos.forEach(item => {
-            impostos.push(item.COD + ' - ' + item.IMPOSTO);
-            valoresImpostos.push(item.VALOR);
-        });
 
         // Dados para o gráfico de rosca
         const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
+
+        var marTpProdLabel = [];
+        var marTpProdData = [];
+        
+        // Preencher dados do gráfico de rosca
+        dadosExemplo.mar_tipo.forEach(item => {
+            marTpProdLabel.push(`${item.AD_TPPROD} - ${item.TIPOPROD}`);
+            marTpProdData.push(item.MARGEMNON);
+        });
+
         const doughnutChart = new Chart(ctxDoughnut, {
             type: 'doughnut',
             data: {
-                labels: impostos,
+                labels: marTpProdLabel,
                 datasets: [{
-                    label: 'Impostos',
-                    data: valoresImpostos,
+                    label: 'Margem por Tipo',
+                    data: marTpProdData,
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.2)',
                         'rgba(54, 162, 235, 0.2)',
@@ -352,14 +351,14 @@
                     legend: {
                         position: 'left',
                         align: 'center', // Alinhamento vertical da legenda
-
                     }
                 },
                 onClick: function(event, elements) {
                     if (elements.length > 0) {
                         var index = elements[0].index;
-                        var label = impostos[index].split('-')[0];
-                        ref_imp(label);
+                        var label = marTpProdLabel[index].split('-')[0];
+                        
+                        ref_tpprod(label);
                         //alert(label);
                     }
                 }
@@ -367,22 +366,24 @@
         });
 
         // Dados para o gráfico de barras verticais
-        var empresaLabels1 = [];
-        var vlrEmpData1 = [];
-
-        dadosImpostosEmp.forEach(item => {
-            empresaLabels1.push(item.COD + ' - ' + item.CODEMP + ' - ' + item.EMPRESA);
-            vlrEmpData1.push(item.VALOR);
-        });
-
         const ctxBar = document.getElementById('barChart').getContext('2d');
+
+        var marGerLabel = [];
+        var marGerData = [];
+        
+        // Preencher dados do gráfico de barras
+        dadosExemplo.mar_ger.forEach(item => {
+            marGerLabel.push(`${item.AD_TPPROD} - ${item.CODGER} - ${item.GERENTE}`);
+            marGerData.push(item.MARGEMNON);
+        });       
+
         const barChart = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: empresaLabels1,
+                labels: marGerLabel,
                 datasets: [{
-                    label: 'Imposto',
-                    data: vlrEmpData1,
+                    label: 'Margem por Gerente',
+                    data: marGerData,
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
@@ -407,32 +408,33 @@
                 onClick: function(evt, activeElements) {
                     if (activeElements.length > 0) {
                         const index = activeElements[0].index;
-                        const grupo = empresaLabels1[index].split('-')[0];
-                        const grupo2 = empresaLabels1[index].split('-')[1];
-                        
-                        abrir_emp(grupo2);
+                        const grupo = marGerLabel[index].split('-')[0];
+                        const grupo1 = marGerLabel[index].split('-')[1];
+                        abrir_ger(grupo,grupo1);
                     }
                 }
             }
         });
 
         // Dados para o gráfico de colunas verticais
-        var tipoLabels = [];
-        var tipoData = [];
+        const ctxBarRight = document.getElementById('barChart1').getContext('2d');
+
+        var marCliLabel = [];
+        var marCliData = [];
         
-        dadosImpostosTipo.forEach(item => {
-            tipoLabels.push(item.COD + ' - ' + item.AD_TPPROD + ' - ' + item.TIPOPROD);
-            tipoData.push(item.VALOR);
-        });
-                      
-        const ctxBarRight = document.getElementById('barChartRight').getContext('2d');
+        // Preencher dados do gráfico de clientes
+        dadosExemplo.mar_cli.forEach(item => {
+            marCliLabel.push(`${item.AD_TPPROD} - ${item.CODPARC} - ${item.NOMEPARC}`);
+            marCliData.push(item.MARGEMNON);
+        });   
+
         const barChartRight = new Chart(ctxBarRight, {
             type: 'bar',
             data: {
-                labels: tipoLabels,
+                labels: marCliLabel,
                 datasets: [{
-                    label: 'Por Tipo Produto',
-                    data: tipoData,
+                    label: 'Margem por Cliente',
+                    data: marCliData,
                     backgroundColor: 'rgba(153, 102, 255, 0.2)',
                     borderColor: 'rgba(153, 102, 255, 1)',
                     borderWidth: 1
@@ -457,14 +459,19 @@
                 onClick: function(evt, activeElements) {
                     if (activeElements.length > 0) {
                         const index = activeElements[0].index;
-                        const grupo = tipoLabels[index].split('-')[0];
-                        const grupo2 = tipoLabels[index].split('-')[1];
-                        
-                        abrir_tpprod(grupo2);
+                        const grupo = marCliLabel[index].split('-')[0];
+                        const grupo1 = marCliLabel[index].split('-')[1];
+                        abrir_cli(grupo,grupo1);
                     }
                 }
             }
         });
+
+        // Preencher a tabela quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            preencherTabelaProdutos();
+        });
+
         
     </script>
 </body>

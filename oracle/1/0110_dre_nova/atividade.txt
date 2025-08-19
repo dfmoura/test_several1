@@ -1,0 +1,147 @@
+para o sql server
+deixar esta query mais inteligente,
+
+e criar um ultimo nivel de Lucro bruto
+---
+
+o cmv esta positivo o certo seria negativo
+----
+
+acrescentar mais este nivel
+deduzindo tambem:
+        select 
+        6 COD,
+        '(-) Despesas Administrativas' Conta,
+        sum(
+        ISNULL(ROUND(VLRBAIXA, 2), 0) )
+         as Valor
+        FROM TGFFIN FIN
+        INNER JOIN  TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
+        INNER JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
+        INNER JOIN TSICUS CUS ON FIN.CODCENCUS = CUS.CODCENCUS
+        WHERE 
+        FIN.RECDESP = -1 
+        AND NAT.ATIVA = 'S'
+        AND FIN.DHBAIXA IS NOT NULL
+        AND FIN.dhbaixa BETWEEN '01/01/2025' AND '31/12/2025'
+        AND FIN.codnat LIKE '3%'
+
+
+e fazer mais uma na sequencia:
+'(=) Lucro Antes dos Juros'
+
+---
+colocar a '(-) Despesa Comercial' zerado depois da (-) Despesas Administrativas
+e reorganizar
+
+
+----
+acrecentar na sequencia tambem a '(-) Despesas Financeiras' zerado e na sequencia puxar o resultado com '(-) Lucro Líquido'
+
+
+------------
+na sequencia 
+'(+) Receita não Operacional' zerado, depois
+'(+) Derivativos' 
+
+e puxar um resultado como '(=) Resultado Final'
+
+-----
+na sequencia colocar 
+'(-) Investimento'
+depois
+'(-) Depreciações'
+
+e por fim puxar o final
+'(=) Resultado Final Considerando Depreciação'
+
+
+---
+
+testado o select
+
+------------
+
+criação dash inicial de tabela nativa no contrutor de componentes do sankhya
+
+-------------
+onde estiver a data chapada 
+'01/01/2025' AND '31/12/2025'
+
+colocar 
+:P_PERIODO.INI E :P_PERIODO.FIN
+
+----
+--
+inclusao dos parametros no select e no dash
+:P_PERIODO.INI AND :P_PERIODO.FIN = PERIODO
+:P_CODEMP = MULTLIST
+
+
+--------
+
+
+criado tabela para testes
+lado direito periodo1 e lado esquerdo periodo
+
+---------------
+
+criado parametro de periodo comparativo :P_PERIODO1
+ajustado no select do lado direito para utilizar o periodo1
+
+e criado uma condição quando :P_PERIODO1 estiver nulo colocar o ano anterior em relação a :P_PERIODO
+
+----------------
+ CRIANDO SELECT PARA TON E CMV/TON para  :P_PERIODO e :P_PERIODO1
+
+-----
+
+criado a estrutra html5 somente com as 4 query's
+com o <!-- Fixed Header --> padrao
+
+-----------
+
+criar uma estrutura com um quadrante dividido em lado esquerdo e lado direito
+
+cada lado tera um titulo respectivo
+Lado esquerdo:
+Período Considerado de :P_PERIODO.INI até :P_PERIODO.FIN
+Lado direito:
+Período Considerado de :P_PERIODO1.INI até :P_PERIODO1.FIN
+
+com base na query datas
+
+
+Logo abaixo de cada titulo do lado esquerdo e do lado direito colocar este resumo:
+o esquerdo o sera representado com os campos da query ton_cus_atual
+o direito o sera representado com os campos da query ton_cus_comparativo
+
+
+logo abaixo colocar do lado esquerdo e do lado direito o dre, com base nas querys:
+
+lado esquerdo:dre_atual
+Lado direito: dre_coparativo
+* tem um listagem para auxiliar nesta parte o arquivo dre.txt
+
+
+
+-----
+
+15/08/2025
+8:00 as 11
+TEM UM ESPAÇO GRANDE DESPEDIÇADO ENTRE O HEADER FIXO E O CONTAINER
+CRIAR UM CALCULO PARA A COLUNA DE AV (%)
+ajuste detalhes no layout pois estava desorganizado
+----
+nivel de detalhamento com todas as informações para formar o faturamento bruto
+nivel de gráfico para mostrar o faturamento bruto.
+
+17/08/2025 
+
+
+
+18:00 
+Ajuste do select da tabela referente ao detalhamento da receita bruta.
+Ajuste do select do grafico referente ao detalhamento da receita bruta.
+criação de link para acessar a tabela e grafico a partir do nivel principal.
+criação de botoes de acessa tabela e grafico sem estragar o layout atual

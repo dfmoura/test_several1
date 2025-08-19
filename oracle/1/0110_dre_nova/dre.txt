@@ -1,0 +1,16 @@
+1	(+) Receita Bruta	113511499.10000032
+2	(-) Deduções	-9666728.170000002
+3	(+) Receita Líquida	103844770.93000033
+4	(-) CMV	-64104706.07986058
+5	(=) Lucro Bruto	39740064.85013971
+6	(-) Despesas Administrativas	-35759767.41
+7	(-) Despesas Comerciais	0
+8	(=) Lucro Antes dos Juros	3980297.4401397705
+9	(-) Despesas Financeiras	0
+10	(=) Lucro Líquido	3980297.440139748
+11	(+) Receita não Operacional	0
+12	(+) Derivativos	0
+13	(=) Resultado Final	3980297.4401395693
+14	(-) Investimento	0
+15	(-) Depreciações	0
+16	(=) Resultado Final Considerando Depreciação	3980297.4401396215

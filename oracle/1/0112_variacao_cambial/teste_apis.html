@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste das APIs - PTAX e Dólar</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-color: #4CAF50; background: #f1f8e9; }
+        .error { border-color: #f44336; background: #ffebee; }
+        .loading { border-color: #2196F3; background: #e3f2fd; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1976D2; }
+        pre {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste das APIs - PTAX e Dólar</h1>
+        
+        <div class="test-section">
+            <h3>Teste da API do Banco Central (PTAX)</h3>
+            <button onclick="testarPTAX()">Testar PTAX</button>
+            <div id="resultadoPTAX"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Teste da API do Dólar (AwesomeAPI)</h3>
+            <button onclick="testarDolar()">Testar Dólar</button>
+            <div id="resultadoDolar"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Teste Completo</h3>
+            <button onclick="testarCompleto()">Testar Ambas APIs</button>
+            <div id="resultadoCompleto"></div>
+        </div>
+    </div>
+
+    <script>
+        // Função para converter data para formato MM-DD-YYYY
+        function formatarDataParaAPI(data) {
+            const d = new Date(data);
+            const mes = String(d.getMonth() + 1).padStart(2, '0');
+            const dia = String(d.getDate()).padStart(2, '0');
+            const ano = d.getFullYear();
+            return `${mes}-${dia}-${ano}`;
+        }
+
+        // Função para buscar PTAX
+        async function buscarPTAX(data) {
+            try {
+                const dataFormatada = formatarDataParaAPI(data);
+                const url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${dataFormatada}'&$top=100&$format=json`;
+                
+                console.log('Buscando PTAX para:', dataFormatada);
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.value && data.value.length > 0) {
+                    return {
+                        sucesso: true,
+                        valor: parseFloat(data.value[0].cotacaoCompra),
+                        data: dataFormatada,
+                        resposta: data
+                    };
+                }
+                
+                return {
+                    sucesso: false,
+                    erro: 'Nenhum PTAX encontrado para a data',
+                    data: dataFormatada,
+                    resposta: data
+                };
+            } catch (error) {
+                return {
+                    sucesso: false,
+                    erro: error.message,
+                    data: dataFormatada
+                };
+            }
+        }
+
+        // Função para buscar dólar atual
+        async function buscarDolarAtual() {
+            try {
+                const response = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+                const data = await response.json();
+                
+                if (data.USDBRL && data.USDBRL.bid) {
+                    return {
+                        sucesso: true,
+                        valor: parseFloat(data.USDBRL.bid),
+                        resposta: data
+                    };
+                }
+                
+                return {
+                    sucesso: false,
+                    erro: 'Nenhuma cotação encontrada',
+                    resposta: data
+                };
+            } catch (error) {
+                return {
+                    sucesso: false,
+                    erro: error.message
+                };
+            }
+        }
+
+        // Função para testar PTAX
+        async function testarPTAX() {
+            const resultadoDiv = document.getElementById('resultadoPTAX');
+            resultadoDiv.className = 'test-section loading';
+            resultadoDiv.innerHTML = '<p>🔄 Testando API do Banco Central...</p>';
+            
+            // Testar com data recente
+            const hoje = new Date();
+            const resultado = await buscarPTAX(hoje);
+            
+            if (resultado.sucesso) {
+                resultadoDiv.className = 'test-section success';
+                resultadoDiv.innerHTML = `
+                    <p>✅ <strong>PTAX encontrado!</strong></p>
+                    <p><strong>Data:</strong> ${resultado.data}</p>
+                    <p><strong>Valor:</strong> R$ ${resultado.valor.toFixed(4)}</p>
+                    <details>
+                        <summary>Ver resposta completa</summary>
+                        <pre>${JSON.stringify(resultado.resposta, null, 2)}</pre>
+                    </details>
+                `;
+            } else {
+                resultadoDiv.className = 'test-section error';
+                resultadoDiv.innerHTML = `
+                    <p>❌ <strong>Erro ao buscar PTAX</strong></p>
+                    <p><strong>Erro:</strong> ${resultado.erro}</p>
+                    <details>
+                        <summary>Ver resposta completa</summary>
+                        <pre>${JSON.stringify(resultado, null, 2)}</pre>
+                    </details>
+                `;
+            }
+        }
+
+        // Função para testar dólar
+        async function testarDolar() {
+            const resultadoDiv = document.getElementById('resultadoDolar');
+            resultadoDiv.className = 'test-section loading';
+            resultadoDiv.innerHTML = '<p>🔄 Testando API do Dólar...</p>';
+            
+            const resultado = await buscarDolarAtual();
+            
+            if (resultado.sucesso) {
+                resultadoDiv.className = 'test-section success';
+                resultadoDiv.innerHTML = `
+                    <p>✅ <strong>Cotação do dólar encontrada!</strong></p>
+                    <p><strong>Valor:</strong> R$ ${resultado.valor.toFixed(4)}</p>
+                    <details>
+                        <summary>Ver resposta completa</summary>
+                        <pre>${JSON.stringify(resultado.resposta, null, 2)}</pre>
+                    </details>
+                `;
+            } else {
+                resultadoDiv.className = 'test-section error';
+                resultadoDiv.innerHTML = `
+                    <p>❌ <strong>Erro ao buscar cotação do dólar</strong></p>
+                    <p><strong>Erro:</strong> ${resultado.erro}</p>
+                    <details>
+                        <summary>Ver resposta completa</summary>
+                        <pre>${JSON.stringify(resultado, null, 2)}</pre>
+                    </details>
+                `;
+            }
+        }
+
+        // Função para testar completo
+        async function testarCompleto() {
+            const resultadoDiv = document.getElementById('resultadoCompleto');
+            resultadoDiv.className = 'test-section loading';
+            resultadoDiv.innerHTML = '<p>🔄 Testando ambas as APIs...</p>';
+            
+            const [ptaxResult, dolarResult] = await Promise.all([
+                buscarPTAX(new Date()),
+                buscarDolarAtual()
+            ]);
+            
+            let html = '<h4>Resultado dos Testes:</h4>';
+            
+            // Resultado PTAX
+            if (ptaxResult.sucesso) {
+                html += `
+                    <p>✅ <strong>PTAX:</strong> R$ ${ptaxResult.valor.toFixed(4)} (${ptaxResult.data})</p>
+                `;
+            } else {
+                html += `<p>❌ <strong>PTAX:</strong> ${ptaxResult.erro}</p>`;
+            }
+            
+            // Resultado Dólar
+            if (dolarResult.sucesso) {
+                html += `<p>✅ <strong>Dólar:</strong> R$ ${dolarResult.valor.toFixed(4)}</p>`;
+            } else {
+                html += `<p>❌ <strong>Dólar:</strong> ${dolarResult.erro}</p>`;
+            }
+            
+            // Status geral
+            if (ptaxResult.sucesso && dolarResult.sucesso) {
+                resultadoDiv.className = 'test-section success';
+                html += '<p><strong>🎉 Todas as APIs estão funcionando perfeitamente!</strong></p>';
+            } else {
+                resultadoDiv.className = 'test-section error';
+                html += '<p><strong>⚠️ Algumas APIs apresentaram problemas</strong></p>';
+            }
+            
+            resultadoDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

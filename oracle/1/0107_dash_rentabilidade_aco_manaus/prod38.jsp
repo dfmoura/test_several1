@@ -1,16 +1,15 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="UTF-8" isELIgnored="false" %>
+<!DOCTYPE html>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="java.util.*" %>
 <%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
 <%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-
-<html lang="en">
+<html lang="pt">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tela de Devoluções</title>
+    <title>Tela de Desconto</title>
     <style>
         body {
             display: flex;
@@ -66,18 +65,20 @@
             justify-content: center; /* Centraliza horizontalmente o gráfico */
             align-items: center; /* Centraliza verticalmente o gráfico */
         }
+
         .chart-overlay {
             position: absolute;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
             color: #333;
-            left: 50%; /* Move o overlay 10% para a direita */
+            left: 58%; /* Move o overlay 10% para a direita */
             transform: translateX(45%); /* Ajusta a posição do texto para centralizá-lo */
             /*text-align: center; Opcional, para centralizar o texto se ele tiver várias linhas */            
-        }        
+        }
+        
         .dropdown-container {
             display: flex;
             justify-content: flex-start; /* Alinha o dropdown à esquerda */
@@ -129,21 +130,19 @@
     <snk:load/>
 
 </head>
-
-
 <body>
-    
+
     <div class="container">
         <div class="section">
             <div class="part" id="left-top">
-                <div class="part-title">Impostos</div>
+                <div class="part-title">Desconto por Tipo Produto</div>
                 <div class="chart-container">
                     <canvas id="doughnutChart"></canvas>
-                    <div class="chart-overlay" onclick="abrir_par()" title="Acessar por perfil de Cliente" id="total-overlay"></div>
+                    <div class="chart-overlay">R$ 125.450,00</div>
                 </div>
             </div>
             <div class="part" id="left-bottom">
-                <div class="part-title">Impostos por Empresa</div>
+                <div class="part-title">Desconto Por Gerente</div>
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
                 </div>
@@ -151,25 +150,67 @@
         </div>
         <div class="section">
             <div class="part" id="right-top">
-                <div class="part-title">Impostos por Grupo de Produtos</div>
+                <div class="part-title">TOP 10 - Desconto Por Cliente</div>
                 <div class="chart-container">
                     <canvas id="barChartRight"></canvas>
                 </div>
             </div>
             <div class="part" id="right-bottom">
-                <div class="part-title">Impostos por Produto</div>
+                <div class="part-title">Desconto por Produto</div>
                 <div class="table-container">
-                    <table id="motivo_prod_table">
+                    <table>
                         <thead>
                             <tr>
-                                <th>Cód. Imp.</th>
-                                <th>Cód. Tp. Prod.</th>
+                                <th>Cód. Tp.Prod.</th>
+                                <th>Tp. Prod.</th>
                                 <th>Cód. Prod.</th>
                                 <th>Produto</th>
-                                <th>Valor</th>
+                                <th>Vlr. Desconto</th>
                             </tr>
                         </thead>
-                        <tbody id="produto-tbody">
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>Produto A</td>
+                                <td onclick="abrir_prod('1','1001')">1001</td>
+                                <td>Produto Exemplo 1</td>
+                                <td>25.450,00</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>Produto B</td>
+                                <td onclick="abrir_prod('2','1002')">1002</td>
+                                <td>Produto Exemplo 2</td>
+                                <td>18.750,00</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>Produto C</td>
+                                <td onclick="abrir_prod('3','1003')">1003</td>
+                                <td>Produto Exemplo 3</td>
+                                <td>15.200,00</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>Produto D</td>
+                                <td onclick="abrir_prod('4','1004')">1004</td>
+                                <td>Produto Exemplo 4</td>
+                                <td>12.800,00</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>Produto E</td>
+                                <td onclick="abrir_prod('5','1005')">1005</td>
+                                <td>Produto Exemplo 5</td>
+                                <td>10.500,00</td>
+                            </tr>
+                            <tr>
+                                <td><b>Total</b></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td><b>82.700,00</b></td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -185,147 +226,71 @@
     <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
     <script>
 
-        // Dados diretos para substituir as queries SQL
-        const dadosImpostos = [
-            { COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 150000.00 },
-            { COD: 2, IMPOSTO: 'VLRIPI', VALOR: 25000.00 },
-            { COD: 3, IMPOSTO: 'VLRICMS', VALOR: 300000.00 },
-            { COD: 4, IMPOSTO: 'PIS', VALOR: 15000.00 },
-            { COD: 5, IMPOSTO: 'COFINS', VALOR: 69000.00 }
-        ];
+   // Função para atualizar a query
+   function ref_desc(tipoprod) {
+        const params = {'A_TPPROD': tipoprod};
+        refreshDetails('html5_a73fhib', params); 
+    }          
 
-        const dadosImpostosEmp = [
-            { CODEMP: 1, EMPRESA: 'Empresa A', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 150000.00 },
-            { CODEMP: 2, EMPRESA: 'Empresa B', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 120000.00 },
-            { CODEMP: 3, EMPRESA: 'Empresa C', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 30000.00 },
-            { CODEMP: 1, EMPRESA: 'Empresa A', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 80000.00 },
-            { CODEMP: 2, EMPRESA: 'Empresa B', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 70000.00 }
-        ];
-
-        const dadosImpostosTipo = [
-            { AD_TPPROD: 1, TIPOPROD: 'Tipo A', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 100000.00 },
-            { AD_TPPROD: 2, TIPOPROD: 'Tipo B', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 120000.00 },
-            { AD_TPPROD: 3, TIPOPROD: 'Tipo C', COD: 3, IMPOSTO: 'VLRICMS', VALOR: 80000.00 },
-            { AD_TPPROD: 1, TIPOPROD: 'Tipo A', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 50000.00 },
-            { AD_TPPROD: 2, TIPOPROD: 'Tipo B', COD: 1, IMPOSTO: 'VLRSUBST', VALOR: 60000.00 }
-        ];
-
-        const dadosImpostosProduto = [
-            { AD_TPPROD: 1, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 1001, DESCRPROD: 'Produto A1', VALOR: 50000.00 },
-            { AD_TPPROD: 1, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 1002, DESCRPROD: 'Produto A2', VALOR: 50000.00 },
-            { AD_TPPROD: 2, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 2001, DESCRPROD: 'Produto B1', VALOR: 60000.00 },
-            { AD_TPPROD: 2, COD: 3, IMPOSTO: 'VLRICMS', CODPROD: 2002, DESCRPROD: 'Produto B2', VALOR: 60000.00 },
-            { AD_TPPROD: 1, COD: 1, IMPOSTO: 'VLRSUBST', CODPROD: 1001, DESCRPROD: 'Produto A1', VALOR: 25000.00 },
-            { AD_TPPROD: 1, COD: 1, IMPOSTO: 'VLRSUBST', CODPROD: 1002, DESCRPROD: 'Produto A2', VALOR: 25000.00 }
-        ];
-
-        // Função para calcular o total dos impostos
-        function calcularTotalImpostos() {
-            return dadosImpostos.reduce((total, item) => total + item.VALOR, 0);
-        }
-
-        // Função para popular a tabela de produtos
-        function popularTabelaProdutos() {
-            const tbody = document.getElementById('produto-tbody');
-            let html = '';
-            let total = 0;
-
-            dadosImpostosProduto.forEach(item => {
-                html += `
-                    <tr>
-                        <td>${item.COD}</td>
-                        <td>${item.AD_TPPROD}</td>
-                        <td onclick="abrir_prod('${item.CODPROD}')">${item.CODPROD}</td>
-                        <td>${item.DESCRPROD}</td>
-                        <td>${item.VALOR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                `;
-                total += item.VALOR;
-            });
-
-            html += `
-                <tr>
-                    <td><b>Total</b></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td><b>${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b></td>
-                </tr>
-            `;
-
-            tbody.innerHTML = html;
-        }
-
-        // Função para atualizar o overlay do total
-        function atualizarOverlayTotal() {
-            const total = calcularTotalImpostos();
-            document.getElementById('total-overlay').textContent = total.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        }
-
-        // Função para atualizar a query
-        function ref_imp(imposto) {
-            const params = {'A_IMPOSTOS': imposto};
-            refreshDetails('html5_a7wgpux', params); 
-        }       
 /*
+
         // Função para abrir o novo nível
-        function abrir_emp(grupo) {
+
+        function abrir_ger(grupo,grupo1) {
             var params = { 
-                'A_CODEMP': parseInt(grupo)
+                'A_TPPROD' : parseInt(grupo),
+                'A_CODGER': parseInt(grupo1)
              };
-            var level = 'lvl_vkan0l';
+            var level = 'lvl_w1rozi';
             
             openLevel(level, params);
         }
 
-        function abrir_tpprod(grupo) {
+
+        function abrir_cli(grupo,grupo1) {
             var params = { 
-                'A_TPPROD': parseInt(grupo)
+                'A_TPPROD' : parseInt(grupo),
+                'A_CODPARC': parseInt(grupo1)
              };
-            var level = 'lvl_vkan0l';
+            var level = 'lvl_w1rozi';
             
             openLevel(level, params);
         }
 
-        function abrir_prod(grupo) {
+
+
+
+        function abrir_prod(grupo,grupo1) {
             var params = { 
-                'A_CODPROD': parseInt(grupo)
+                'A_TPPROD' : parseInt(grupo),
+                'A_CODPROD': parseInt(grupo1)
              };
-            var level = 'lvl_vkan0l';
+            var level = 'lvl_w1rozi';
             
             openLevel(level, params);
-        }
+        }    
 
-        function abrir_par(){
-            var params = '';
-            var level = 'lvl_7ko4mp';
-            openLevel(level, params);
-        }          
 */
-        // Inicialização dos dados
-        document.addEventListener('DOMContentLoaded', function() {
-            popularTabelaProdutos();
-            atualizarOverlayTotal();
-        });
 
-        // Obtendo os dados para o gráfico de rosca
-        var impostos = [];
-        var valoresImpostos = [];
-        
-        dadosImpostos.forEach(item => {
-            impostos.push(item.COD + ' - ' + item.IMPOSTO);
-            valoresImpostos.push(item.VALOR);
-        });
 
-        // Dados para o gráfico de rosca
+    // Obtendo os dados da query JSP para o gráfico de rosca
         const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
+
+        var descTipoLabel = [];
+        var descTipoData = [];
+        
+        // Dados de exemplo para o gráfico de rosca - Desconto por Tipo Produto
+        descTipoLabel = ['1 - Produto A', '2 - Produto B', '3 - Produto C', '4 - Produto D', '5 - Produto E'];
+        descTipoData = [25450.00, 18750.00, 15200.00, 12800.00, 10500.00];
+    
+        // Dados fictícios para o gráfico de rosca
         const doughnutChart = new Chart(ctxDoughnut, {
             type: 'doughnut',
             data: {
-                labels: impostos,
+                labels: descTipoLabel,
                 datasets: [{
-                    label: 'Impostos',
-                    data: valoresImpostos,
+                    label: 'Vlr. Desc.',
+                    data: descTipoData,
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.2)',
                         'rgba(54, 162, 235, 0.2)',
@@ -352,37 +317,38 @@
                     legend: {
                         position: 'left',
                         align: 'center', // Alinhamento vertical da legenda
-
                     }
                 },
                 onClick: function(event, elements) {
                     if (elements.length > 0) {
                         var index = elements[0].index;
-                        var label = impostos[index].split('-')[0];
-                        ref_imp(label);
-                        //alert(label);
+                        var label = descTipoLabel[index].split('-')[0];
+                        
+                        ref_desc(label);
+                        
                     }
                 }
             }
         });
 
-        // Dados para o gráfico de barras verticais
-        var empresaLabels1 = [];
-        var vlrEmpData1 = [];
+        // Dados fictícios para o gráfico de barras verticais
 
-        dadosImpostosEmp.forEach(item => {
-            empresaLabels1.push(item.COD + ' - ' + item.CODEMP + ' - ' + item.EMPRESA);
-            vlrEmpData1.push(item.VALOR);
-        });
+        var gerDescLabels = [];
+        var gerDescData = [];
 
+        // Dados de exemplo para o gráfico de barras - Desconto por Gerente
+        gerDescLabels = ['1 - 101 - João Silva', '2 - 102 - Maria Santos', '3 - 103 - Pedro Costa', '4 - 104 - Ana Oliveira', '5 - 105 - Carlos Lima'];
+        gerDescData = [18500.00, 16200.00, 14300.00, 12100.00, 9800.00];
+
+        // Dados fictícios para o gráfico de barras verticais
         const ctxBar = document.getElementById('barChart').getContext('2d');
         const barChart = new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: empresaLabels1,
+                labels: gerDescLabels,
                 datasets: [{
-                    label: 'Imposto',
-                    data: vlrEmpData1,
+                    label: 'Desconto por Gerente',
+                    data: gerDescData,
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
@@ -407,32 +373,32 @@
                 onClick: function(evt, activeElements) {
                     if (activeElements.length > 0) {
                         const index = activeElements[0].index;
-                        const grupo = empresaLabels1[index].split('-')[0];
-                        const grupo2 = empresaLabels1[index].split('-')[1];
-                        
-                        abrir_emp(grupo2);
+                        const grupo = gerDescLabels[index].split('-')[0];
+                        const grupo1 = gerDescLabels[index].split('-')[1];
+                        abrir_ger(grupo,grupo1);
                     }
                 }
             }
         });
 
-        // Dados para o gráfico de colunas verticais
-        var tipoLabels = [];
-        var tipoData = [];
-        
-        dadosImpostosTipo.forEach(item => {
-            tipoLabels.push(item.COD + ' - ' + item.AD_TPPROD + ' - ' + item.TIPOPROD);
-            tipoData.push(item.VALOR);
-        });
-                      
+        // Dados fictícios para o gráfico de colunas verticais
+
+        var clienteLabels = [];
+        var clienteData = [];
+
+        // Dados de exemplo para o gráfico de barras - Desconto por Cliente
+        clienteLabels = ['1 - 1001 - Cliente A Ltda', '2 - 1002 - Cliente B S/A', '3 - 1003 - Cliente C ME', '4 - 1004 - Cliente D Eireli', '5 - 1005 - Cliente E Ltda'];
+        clienteData = [12500.00, 9800.00, 8700.00, 7200.00, 6500.00];
+
+        // Dados fictícios para o gráfico de colunas verticais
         const ctxBarRight = document.getElementById('barChartRight').getContext('2d');
         const barChartRight = new Chart(ctxBarRight, {
             type: 'bar',
             data: {
-                labels: tipoLabels,
+                labels: clienteLabels,
                 datasets: [{
-                    label: 'Por Tipo Produto',
-                    data: tipoData,
+                    label: 'Desconto por Cliente',
+                    data: clienteData,
                     backgroundColor: 'rgba(153, 102, 255, 0.2)',
                     borderColor: 'rgba(153, 102, 255, 1)',
                     borderWidth: 1
@@ -457,14 +423,17 @@
                 onClick: function(evt, activeElements) {
                     if (activeElements.length > 0) {
                         const index = activeElements[0].index;
-                        const grupo = tipoLabels[index].split('-')[0];
-                        const grupo2 = tipoLabels[index].split('-')[1];
-                        
-                        abrir_tpprod(grupo2);
+                        const grupo = clienteLabels[index].split('-')[0];
+                        const grupo1 = clienteLabels[index].split('-')[1];
+                        abrir_cli(grupo,grupo1);
                     }
                 }
             }
         });
+
+
+
+
         
     </script>
 </body>

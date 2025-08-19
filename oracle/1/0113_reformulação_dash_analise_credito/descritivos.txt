@@ -1,0 +1,62 @@
+
+
+criar uma tela em html5 css js
+
+lado esquerdo :::
+uma tabela com estas informações:
+
+cod.parceiro
+parceiro
+limite credito total
+limite credito consumido
+Dt. Venc. Cadastro (possui mas não apresentado)
+Status : Cadastro Não Vencido, Cadastro Vencido, Sem Data Cadastro (possui mas não apresentado)
+
+lado direito :::
+
+card indicativos de pontualidade 
+(no pagamento das duplicatas)
+
+card indicativos de atualização do cadastro
+
+
+demonstrativo sintetico de analise de credito
+pode ter uma ou mais analises
+
+por exemplo 1 analise:
+{
+Cód. Parc.: 41 - Parceiro: ASTOR ROBERTO STROSCHON - Análise de Crédito:1
+Dta Sugestão Crédito(DataCrédito): / / - Crédito:0,00 - Rating:
+Abertura Empresa: / / - Data Consulta Serasa:27/06/2024 - Score:0
+Observação Serasa:NADA CONSTA
+Data Cartório:30/07/24 - Observações:NADA CONSTA
+Ano DRE:0 - Rec. DRE:0,00 - Luc. DRE:0,00
+Dados IR:
+ATIVIDADE RURAL
+RECEITA: R$ 122.909.918,36
+LUCRO/PREJUÍZO: R$ 10.271.258,55
+DÍVIDAS ATIVIDADE RURAL :R$ 51.177.851,05
+
+PESSOA FÍSICA
+RENDIMENTOS R$ 10.714.233,23
+BENS E DIREITOS R$ 40.253.119,53
+ENDIVIDAMENTO R$ 0,00
+Pretensão Compra:400.000,00 - Compra Satis Safra anterior:7.000,00 - Carta Fiança: / /
+Observações:
+Parecer:
+Cliente confiável, bom pagador, compra a anos.
+CR /APELIDO:CODCR: 903030102, DESCRICAO: 20.2.1/2 (PV FORMOSA), APELIDO: PV HIAGO
+Ano Análise: - 2024 - Ano Fat.:
+Valor Fat.:0,00
+
+}
+
+
+
+o lado direito é responsivo ao que é selecionado no lado esquerdo
+
+colocar filtro:
+
+se possui ou nao limite os parceiro apresentados: sim ou nao
+se possui anlise de credito: sim ou nao
+e o periodo de analise de: ate:

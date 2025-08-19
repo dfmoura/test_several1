@@ -1,0 +1,187 @@
+aqui vai um prompt pronto (e bem detalhado) para você colar no Cursor AI e ele gerar tudo em um único arquivo HTML/CSS/JS, profissional e clean, usando apenas APIs públicas e gratuitas (BCB PTAX + AwesomeAPI).
+
+---
+
+## Prompt para Cursor AI
+
+Quero que você gere **um único arquivo `index.html`** com **HTML, CSS e JavaScript puro (vanilla)**, sem build step, totalmente funcional, responsivo e com visual **clean/profissional**. Use **Chart.js via CDN** para o gráfico. Todo o resto deve ser JavaScript nativo (sem frameworks).
+A página é uma **tela gerencial de controle de exposição cambial** com:
+
+### 1) Layout (2 colunas)
+
+* **Coluna esquerda**: lista de insumos importados (dados de exemplo) em uma tabela limpa.
+* **Coluna direita**: um **gráfico de linha** (Chart.js) mostrando a exposição cambial ao longo do tempo, conforme regras abaixo.
+* Topo com título “Exposição Cambial – Controles” e um pequeno filtro (dropdown) para selecionar um item e atualizar o gráfico.
+* Tema claro, tipografia legível, cards com cantos arredondados, sombras suaves, espaçamento confortável.
+
+### 2) Dados de exemplo (mock)
+
+Crie localmente (no JS) um array de objetos com uns 6–8 itens, por ex.:
+
+```js
+[
+  {
+    id: "PO-1001",
+    produto: "Resina XYZ",
+    quantidade: 1200,
+    moeda: "USD",
+    valorUsd: 55000,
+    dataCompra: "2025-06-18",  // ISO YYYY-MM-DD
+    dataPagamento: "2025-08-05" // ou null se ainda não pago
+  },
+  ...
+]
+```
+
+* Misture casos: alguns pagos, outros em aberto.
+* Datas distribuídas entre **2025-06-01** e **2025-08-15**.
+* `dataPagamento` pode ser `null` ou posterior à compra.
+* `valorUsd` é apenas informativo (não precisa converter para BRL no gráfico, o foco é as **taxas**).
+
+### 3) Regras do gráfico (3 linhas)
+
+Ao selecionar um item, renderize **três linhas**:
+
+1. **Linha PTAX da data da compra (venda) – flat**
+
+   * Valor único: a **PTAX de venda** do **dia da compra**.
+   * Período: **da data da compra** até **hoje** (data corrente, timezone Brasil), **ou até a data do pagamento** se já pago.
+   * Se **não existir PTAX** exatamente no dia, usar **a última cotação anterior disponível** (regra do “último anterior”).
+   * Esta linha é **horizontal** (flat), representando a trava/markup da compra.
+
+2. **Linha Dólar Spot (AwesomeAPI) – diário**
+
+   * Período: **do dia seguinte à compra** até **hoje** (ou até a data do pagamento, se pago).
+   * Fonte: **AwesomeAPI** (endpoint diário):
+
+     ```
+     https://economia.awesomeapi.com.br/json/daily/USD-BRL/?start_date=YYYYMMDD&end_date=YYYYMMDD
+     ```
+   * Use a cotação de **fechamento (close)** para cada dia útil retornado. Para dias sem cotação (fins de semana/feriados), **carregar o último valor anterior** para manter continuidade da série.
+
+3. **Linha PTAX diária (venda) – do dia seguinte em diante**
+
+   * Período: **do dia seguinte à compra** até **hoje** (ou data de pagamento).
+   * Fonte: **BCB PTAX** via OData (serviço oficial). **Formato da data para a PTAX é `MM-DD-YYYY`**.
+   * Endpoint (ajuste datas dinamicamente):
+
+     ```
+     https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/
+     CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)?
+       @dataInicial='MM-DD-YYYY'&
+       @dataFinalCotacao='MM-DD-YYYY'&
+       $top=10000&$format=json
+     ```
+   * **Usar a “cotação de venda”** (`cotacaoVenda`) por dia.
+   * Para dias sem cotação (fins de semana/feriados), **carregar o último valor anterior** para continuidade.
+
+> Observação: pode haver defasagem em horários de publicação. Trate faltas pontuais com a regra do “último valor anterior”.
+
+### 4) Lógica de datas (crítica)
+
+* **Timezone Brasil** (America/Sao\_Paulo) para “hoje”.
+* Períodos:
+
+  * `inicioFlat = dataCompra`
+  * `fim = min(hoje, dataPagamento || hoje)`
+  * `inicioSeries = dataCompra + 1 dia`
+* Gere uma lista contínua de datas diárias entre `inicioFlat` e `fim`.
+* Para chamadas às APIs:
+
+  * **PTAX OData**: datas em **`MM-DD-YYYY`**.
+  * **AwesomeAPI**: datas em **`YYYYMMDD`**.
+* Garanta que os intervalos passados às APIs **cobrem todo o range** necessário.
+* Ordene e indexe as respostas por data; **preencha lacunas** com último valor conhecido.
+
+### 5) APIs (somente grátis)
+
+* **PTAX (Banco Central)** – OData:
+
+  * Endpoint de período mostrado acima.
+  * Campos de interesse: `cotacaoCompra`, `cotacaoVenda`, `dataHoraCotacao`.
+  * Para a **PTAX do dia da compra** (linha flat): se o dia não existir, busque **um período retroativo** (ex.: 30 dias antes até a data da compra) e pegue a **última cotação anterior** ao timestamp de compra (usar `cotacaoVenda`).
+* **Dólar spot (AwesomeAPI)**:
+
+  * Endpoint diário de período mostrado acima.
+  * Use os campos de **fechamento** (ex.: `bid`/`ask`/`close` conforme documentação — selecione o fechamento consistente em BRL por USD; se houver só `bid`, use `bid` como proxy).
+* **Sem chaves** (gratuitas). Trate erros de rede/limites com mensagens amigáveis no UI.
+
+### 6) UI/UX e Interações
+
+* Tabela de itens com colunas: **ID, Produto, Data Compra, Data Pagamento, USD**, e um botão/ícone “Ver Gráfico”.
+* Um **select** no topo também permite escolher o item ativo. Ao trocar, recarrega séries e atualiza o gráfico.
+* Mostre **legendas** e **tooltips** no Chart.js (datas no eixo X, valores em BRL no eixo Y).
+* **Loading states** enquanto busca APIs e **mensagens de erro** claras (ex.: “Não foi possível obter PTAX; tente novamente”).
+* Rodapé discreto com nota: “Cotação PTAX (venda) – BCB; Dólar Spot – AwesomeAPI”.
+
+### 7) Técnicas/Implementação
+
+* **Um único arquivo `index.html`** contendo:
+
+  * `<head>`: meta viewport, título, import do **Chart.js via CDN**.
+  * `<style>`: CSS moderno (CSS Grid/Flex), responsivo, tom claro, componentes em card.
+  * `<script>`: todo o JS.
+* **Módulos/funções sugeridas**:
+
+  * `formatDateToBCB(date) -> 'MM-DD-YYYY'`
+  * `formatDateToAwesome(date) -> 'YYYYMMDD'`
+  * `toISO(date) -> 'YYYY-MM-DD'`
+  * `addDays(date, n)`
+  * `rangeDates(startISO, endISO) -> string[]` (lista diária ISO)
+  * `fetchPtaxPeriodo(startISO, endISO) -> Map<ISO, { venda: number }>`
+  * `fetchPtaxCompra(dateISO) -> number` (aplica busca retroativa se faltar o dia)
+  * `fetchAwesomePeriodo(startISO, endISO) -> Map<ISO, number>`
+  * `fillForward(mapSeries, allDates) -> Map<ISO, number>` (carrega último valor)
+  * `buildFlatSeries(value, dates) -> number[]`
+  * `buildChart(dates, series)` (instancia/atualiza Chart.js)
+  * `loadItemAndRender(item)`
+* **Desempenho**: cache simples em memória por intervalo/item para evitar refetch ao alternar itens.
+* **Acessibilidade**: contraste suficiente, `aria-labels` em botões, foco visível.
+
+### 8) Detalhes do Chart.js
+
+* 3 datasets:
+
+  * **“PTAX (venda) na compra”** – linha sólida, espessura maior.
+  * **“Dólar Spot (daily)”** – linha.
+  * **“PTAX (venda) diária”** – linha.
+* Eixo X: datas (rotule inteligentemente, exibir a cada 3–5 dias se o range for grande).
+* Eixo Y: valores numéricos (BRL).
+* Tooltips com **data** e **valor** formatado `R$ 0.000,000` (pt-BR).
+
+### 9) Casos de borda
+
+* `dataCompra == hoje`: flat só em um dia; séries diárias começam no dia seguinte (pode não existir ainda — então ficam vazias).
+* Intervalos longos (> 100 dias): lidar com paginação/limite (`$top` grande) no OData; para AwesomeAPI, respeitar o formato e limite do provedor.
+* Finais de semana/feriados: **preencher com último valor anterior** para manter trilhas contínuas.
+* Se nenhuma série for obtida por erro de rede, mostrar um **placeholder** amigável e permitir **tentar novamente**.
+
+### 10) Qualidade e testes manuais
+
+* Inclua ao menos **dois itens pagos e dois em aberto** para verificar corte do período no **pagamento** vs **hoje**.
+* Logue no console as URLs chamadas para depuração.
+* Código bem comentado explicando cada etapa, especialmente o **fallback da PTAX**.
+
+### 11) Entrega
+
+* **Somente um arquivo** `index.html` pronto para abrir no navegador.
+* Nada de dependências externas além do **Chart.js por CDN**.
+* Visual **clean e profissional**.
+
+---
+
+**Critérios de Aceite (checklist):**
+
+* [ ] Tabela de itens mock carregada e selecionável.
+* [ ] Ao selecionar um item, gráfico com **3 linhas** aparece.
+* [ ] Linha **PTAX (venda) na compra** é **flat** do dia da compra até **hoje** ou **data de pagamento**.
+* [ ] Linha **Dólar Spot** inicia **D+1** e vai até **hoje**/**pagamento**.
+* [ ] Linha **PTAX diária (venda)** inicia **D+1** e vai até **hoje**/**pagamento**.
+* [ ] **Formatação de datas correta** para cada API (PTAX: `MM-DD-YYYY`; Awesome: `YYYYMMDD`).
+* [ ] **Fallback** para “último anterior” implementado (PTAX e Spot).
+* [ ] UI responsiva, clean, com loading, erros e tooltips.
+* [ ] Código comentado, organizado e sem frameworks (só Chart.js via CDN).
+
+---
+
+se quiser depois, posso transformar esse prompt em um `index.html` completo já com tudo implementado.

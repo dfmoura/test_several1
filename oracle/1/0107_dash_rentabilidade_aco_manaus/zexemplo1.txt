@@ -1,0 +1,25 @@
+// Url a serem resgatados os parametros
+// Ex.: "https://skw.sankhya.com.br/mge/service.sbr?serviceName=ParametroSistemaSP.getParametro&counter=0&application=workspace"
+
+
+/// url para pegar:
+/// https://sistema.acomanaus.com.br/mge/html5component.mge?entryPoint=zteste1.jsp&nuGdg=167&gadGetID=html5_0AH&userID=0
+
+
+                   // Objeto contendo a URL da pagina atual
+const urlSankhya = window.location.search;
+                   // Objeto que resgata todas as propriedades da URL
+const parametros = new URLSearchParams (urlSankhya);
+
+// Resgata os valores do parametro especifico
+const application = parametros.get ("application");   // -> "workspace"
+const counter = parametros.get ("counter");           // -> 0
+const naoExistente = parametros.get ("naoExistente"); // -> undefined
+
+// Iterar os parametros de busca
+for (let parametro of parametros) {
+
+    // Imprime os parametros como objetos iteradores
+    console.log (parametro);
+
+}

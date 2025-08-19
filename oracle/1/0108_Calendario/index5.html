@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário de Agendamentos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .calendar-container {
+            width: 390px;
+            height: 209px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calendar-header {
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            color: white;
+            padding: 12px 16px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .filter-section {
+            background: #f8f9fa;
+            padding: 8px 16px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-label {
+            font-size: 11px;
+            color: #495057;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .collaborator-select {
+            padding: 4px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 11px;
+            background: white;
+            color: #495057;
+            cursor: pointer;
+            min-width: 120px;
+        }
+
+        .collaborator-select:focus {
+            outline: none;
+            border-color: #4285f4;
+            box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+        }
+
+        .calendar-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 8px 12px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.2s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            color: #4285f4;
+            border-bottom-color: #4285f4;
+            background: white;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .calendar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            background: white;
+        }
+
+        /* Estilos para visualização diária */
+        .day-view {
+            display: none;
+        }
+
+        .day-view.active {
+            display: block;
+        }
+
+        .time-slot {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .time-label {
+            width: 40px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .appointment {
+            flex: 1;
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+            padding: 6px 8px;
+            margin-left: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 10px;
+            color: #1976d2;
+        }
+
+        .appointment:hover {
+            background: #bbdefb;
+            transform: translateX(2px);
+        }
+
+        /* Estilos para visualização semanal */
+        .week-view {
+            display: none;
+        }
+
+        .week-view.active {
+            display: block;
+        }
+
+        .week-grid {
+            display: grid;
+            grid-template-columns: 30px repeat(7, 1fr);
+            gap: 2px;
+            font-size: 10px;
+        }
+
+        .week-header {
+            background: #f8f9fa;
+            padding: 4px;
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            border-radius: 4px;
+        }
+
+        .week-cell {
+            background: #f8f9fa;
+            padding: 4px;
+            text-align: center;
+            border-radius: 4px;
+            min-height: 20px;
+            position: relative;
+        }
+
+        .week-appointment {
+            background: #e8f5e8;
+            border-left: 2px solid #4caf50;
+            padding: 2px 4px;
+            margin: 1px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 9px;
+            color: #2e7d32;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .week-appointment:hover {
+            background: #c8e6c9;
+        }
+
+        /* Estilos para visualização mensal */
+        .month-view {
+            display: none;
+        }
+
+        .month-view.active {
+            display: block;
+        }
+
+        .month-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            font-size: 9px;
+        }
+
+        .month-header {
+            background: #f8f9fa;
+            padding: 4px;
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            border-radius: 2px;
+        }
+
+        .month-day {
+            background: #f8f9fa;
+            padding: 3px;
+            text-align: center;
+            border-radius: 2px;
+            min-height: 18px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .month-day:hover {
+            background: #e9ecef;
+        }
+
+        .month-day.has-appointments {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+        }
+
+        .month-appointment {
+            background: #d4edda;
+            border-left: 2px solid #28a745;
+            padding: 1px 3px;
+            margin: 1px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 8px;
+            color: #155724;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .month-appointment:hover {
+            background: #c3e6cb;
+        }
+
+        /* Modal de detalhes */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 8px;
+            border-radius: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            max-width: 250px;
+            width: 80%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modal-title {
+            font-weight: 600;
+            color: #495057;
+            font-size: 12px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            color: #6c757d;
+        }
+
+        .modal-body {
+            font-size: 10px;
+            color: #495057;
+            line-height: 1.2;
+        }
+
+        .appointment-detail {
+            margin-bottom: 4px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 9px;
+        }
+
+        /* Scrollbar personalizada */
+        .calendar-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .calendar-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .calendar-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+
+        .calendar-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-container">
+        <div class="calendar-header">
+            Calendário de Agendamentos
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-label">Filtrar por:</div>
+            <select class="collaborator-select" id="collaboratorFilter">
+                <option value="">Todos os Colaboradores</option>
+                <option value="João Silva">João Silva</option>
+                <option value="Maria Santos">Maria Santos</option>
+                <option value="Pedro Costa">Pedro Costa</option>
+                <option value="Ana Oliveira">Ana Oliveira</option>
+                <option value="Carlos Ferreira">Carlos Ferreira</option>
+                <option value="Juliana Lima">Juliana Lima</option>
+            </select>
+        </div>
+        
+        <div class="calendar-tabs">
+            <div class="tab active" data-view="day">Dia</div>
+            <div class="tab" data-view="week">Semana</div>
+            <div class="tab" data-view="month">Mês</div>
+        </div>
+        
+        <div class="calendar-content">
+            <!-- Visualização Diária -->
+            <div class="day-view active" id="dayView">
+                <div class="time-slot">
+                    <div class="time-label">08:00</div>
+                    <div class="appointment" data-appointment="1">Reunião Equipe A - Planejamento Sprint</div>
+                </div>
+                <div class="time-slot">
+                    <div class="time-label">10:00</div>
+                    <div class="appointment" data-appointment="2">Call Cliente - Apresentação Projeto</div>
+                </div>
+                <div class="time-slot">
+                    <div class="time-label">14:00</div>
+                    <div class="appointment" data-appointment="3">Code Review - Equipe B</div>
+                </div>
+                <div class="time-slot">
+                    <div class="time-label">16:00</div>
+                    <div class="appointment" data-appointment="4">Daily Standup - Equipe C</div>
+                </div>
+                <div class="time-slot">
+                    <div class="time-label">17:00</div>
+                    <div class="appointment" data-appointment="5">Retrospectiva - Equipe A</div>
+                </div>
+            </div>
+            
+            <!-- Visualização Semanal -->
+            <div class="week-view" id="weekView">
+                <div class="week-grid">
+                    <div class="week-header">Hora</div>
+                    <div class="week-header">Seg</div>
+                    <div class="week-header">Ter</div>
+                    <div class="week-header">Qua</div>
+                    <div class="week-header">Qui</div>
+                    <div class="week-header">Sex</div>
+                    <div class="week-header">Sáb</div>
+                    <div class="week-header">Dom</div>
+                    
+                    <div class="week-cell">08:00</div>
+                    <div class="week-cell">
+                        <div class="week-appointment" data-appointment="1">Reunião A</div>
+                    </div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell">
+                        <div class="week-appointment" data-appointment="6">Planning</div>
+                    </div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell"></div>
+                    
+                    <div class="week-cell">10:00</div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell">
+                        <div class="week-appointment" data-appointment="2">Call Cliente</div>
+                    </div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell">
+                        <div class="week-appointment" data-appointment="7">Demo</div>
+                    </div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell"></div>
+                    
+                    <div class="week-cell">14:00</div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell">
+                        <div class="week-appointment" data-appointment="3">Code Review</div>
+                    </div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell">
+                        <div class="week-appointment" data-appointment="8">Testes</div>
+                    </div>
+                    <div class="week-cell"></div>
+                    
+                    <div class="week-cell">16:00</div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell">
+                        <div class="week-appointment" data-appointment="4">Daily</div>
+                    </div>
+                    <div class="week-cell"></div>
+                    <div class="week-cell"></div>
+                </div>
+            </div>
+            
+            <!-- Visualização Mensal -->
+            <div class="month-view" id="monthView">
+                <div class="month-grid">
+                    <div class="month-header">Dom</div>
+                    <div class="month-header">Seg</div>
+                    <div class="month-header">Ter</div>
+                    <div class="month-header">Qua</div>
+                    <div class="month-header">Qui</div>
+                    <div class="month-header">Sex</div>
+                    <div class="month-header">Sáb</div>
+                    
+                    <div class="month-day"></div>
+                    <div class="month-day">1</div>
+                    <div class="month-day has-appointments">2
+                        <div class="month-appointment" data-appointment="1">Reunião</div>
+                    </div>
+                    <div class="month-day">3</div>
+                    <div class="month-day has-appointments">4
+                        <div class="month-appointment" data-appointment="6">Planning</div>
+                    </div>
+                    <div class="month-day">5</div>
+                    <div class="month-day">6</div>
+                    
+                    <div class="month-day">7</div>
+                    <div class="month-day has-appointments">8
+                        <div class="month-appointment" data-appointment="2">Call</div>
+                    </div>
+                    <div class="month-day">9</div>
+                    <div class="month-day has-appointments">10
+                        <div class="month-appointment" data-appointment="3">Review</div>
+                    </div>
+                    <div class="month-day has-appointments">11
+                        <div class="month-appointment" data-appointment="7">Demo</div>
+                    </div>
+                    <div class="month-day">12</div>
+                    <div class="month-day">13</div>
+                    
+                    <div class="month-day">14</div>
+                    <div class="month-day">15</div>
+                    <div class="month-day has-appointments">16
+                        <div class="month-appointment" data-appointment="4">Daily</div>
+                    </div>
+                    <div class="month-day">17</div>
+                    <div class="month-day has-appointments">18
+                        <div class="month-appointment" data-appointment="5">Retro</div>
+                    </div>
+                    <div class="month-day has-appointments">19
+                        <div class="month-appointment" data-appointment="8">Testes</div>
+                    </div>
+                    <div class="month-day">20</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes -->
+    <div class="modal" id="appointmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Detalhes do Agendamento</div>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo será preenchido via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados de exemplo dos agendamentos
+        const appointments = {
+            1: {
+                title: "Reunião Equipe A - Planejamento Sprint",
+                time: "08:00 - 09:00",
+                date: "02/12/2024",
+                team: "Equipe A",
+                description: "Planejamento das tarefas para o próximo sprint, definição de prioridades e estimativas.",
+                location: "Sala de Reunião 1",
+                participants: "João, Maria, Pedro, Ana",
+                collaborator: "João Silva"
+            },
+            2: {
+                title: "Call Cliente - Apresentação Projeto",
+                time: "10:00 - 11:30",
+                date: "08/12/2024",
+                team: "Equipe B",
+                description: "Apresentação do progresso do projeto para o cliente, demonstração das funcionalidades implementadas.",
+                location: "Google Meet",
+                participants: "Carlos, Juliana, Cliente",
+                collaborator: "Carlos Ferreira"
+            },
+            3: {
+                title: "Code Review - Equipe B",
+                time: "14:00 - 15:00",
+                date: "10/12/2024",
+                team: "Equipe B",
+                description: "Revisão de código das funcionalidades desenvolvidas, verificação de qualidade e padrões.",
+                location: "GitHub Pull Request",
+                participants: "Desenvolvedores Equipe B",
+                collaborator: "Juliana Lima"
+            },
+            4: {
+                title: "Daily Standup - Equipe C",
+                time: "16:00 - 16:15",
+                date: "16/12/2024",
+                team: "Equipe C",
+                description: "Standup diário para alinhamento do progresso, identificação de impedimentos.",
+                location: "Slack Huddle",
+                participants: "Equipe C Completa",
+                collaborator: "Pedro Costa"
+            },
+            5: {
+                title: "Retrospectiva - Equipe A",
+                time: "17:00 - 18:00",
+                date: "18/12/2024",
+                team: "Equipe A",
+                description: "Reflexão sobre o sprint anterior, identificação de melhorias e ações para o próximo ciclo.",
+                location: "Sala de Reunião 2",
+                participants: "Equipe A + Scrum Master",
+                collaborator: "Ana Oliveira"
+            },
+            6: {
+                title: "Planning Sprint - Equipe A",
+                time: "08:00 - 10:00",
+                date: "04/12/2024",
+                team: "Equipe A",
+                description: "Planejamento detalhado do sprint, criação de user stories e estimativas de tempo.",
+                location: "Sala de Reunião 1",
+                participants: "Equipe A + Product Owner",
+                collaborator: "João Silva"
+            },
+            7: {
+                title: "Demo Funcionalidades - Equipe B",
+                time: "10:00 - 11:00",
+                date: "11/12/2024",
+                team: "Equipe B",
+                description: "Demonstração das funcionalidades desenvolvidas para stakeholders e usuários finais.",
+                location: "Auditório",
+                participants: "Equipe B + Stakeholders",
+                collaborator: "Carlos Ferreira"
+            },
+            8: {
+                title: "Execução de Testes - Equipe C",
+                time: "14:00 - 16:00",
+                date: "19/12/2024",
+                team: "Equipe C",
+                description: "Execução de testes automatizados e manuais para validação das funcionalidades.",
+                location: "Ambiente de Testes",
+                participants: "QA Team + Equipe C",
+                collaborator: "Maria Santos"
+            }
+        };
+
+        // Função para alternar entre as visualizações
+        function switchView(view) {
+            // Remove classe active de todas as abas e visualizações
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.day-view, .week-view, .month-view').forEach(v => v.classList.remove('active'));
+            
+            // Adiciona classe active na aba e visualização selecionada
+            document.querySelector(`[data-view="${view}"]`).classList.add('active');
+            document.getElementById(`${view}View`).classList.add('active');
+        }
+
+        // Função para filtrar agendamentos por colaborador
+        function filterByCollaborator() {
+            const selectedCollaborator = document.getElementById('collaboratorFilter').value;
+            
+            // Filtra todos os agendamentos
+            Object.keys(appointments).forEach(id => {
+                const appointment = appointments[id];
+                const shouldShow = !selectedCollaborator || appointment.collaborator === selectedCollaborator;
+                
+                // Encontra todos os elementos que representam este agendamento
+                const elements = document.querySelectorAll(`[data-appointment="${id}"]`);
+                elements.forEach(element => {
+                    if (shouldShow) {
+                        element.style.display = 'block';
+                        element.style.opacity = '1';
+                    } else {
+                        element.style.display = 'none';
+                        element.style.opacity = '0.3';
+                    }
+                });
+            });
+        }
+
+        // Função para abrir modal com detalhes do agendamento
+        function openModal(appointmentId) {
+            const appointment = appointments[appointmentId];
+            if (!appointment) return;
+
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="appointment-detail">
+                    <span class="detail-label">Título:</span> ${appointment.title}
+                </div>
+                <div class="appointment-detail">
+                    <span class="detail-label">Data:</span> ${appointment.date}
+                </div>
+                <div class="appointment-detail">
+                    <span class="detail-label">Horário:</span> ${appointment.time}
+                </div>
+                <div class="appointment-detail">
+                    <span class="detail-label">Colaborador:</span> ${appointment.collaborator}
+                </div>
+                <div class="appointment-detail">
+                    <span class="detail-label">Equipe:</span> ${appointment.team}
+                </div>
+                <div class="appointment-detail">
+                    <span class="detail-label">Local:</span> ${appointment.location}
+                </div>
+                <div class="appointment-detail">
+                    <span class="detail-label">Participantes:</span> ${appointment.participants}
+                </div>
+                <div class="appointment-detail">
+                    <span class="detail-label">Descrição:</span> ${appointment.description}
+                </div>
+            `;
+
+            document.getElementById('appointmentModal').style.display = 'block';
+        }
+
+        // Função para fechar modal
+        function closeModal() {
+            document.getElementById('appointmentModal').style.display = 'none';
+        }
+
+        // Event listeners para as abas
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const view = tab.getAttribute('data-view');
+                switchView(view);
+            });
+        });
+
+        // Event listener para o filtro de colaborador
+        document.getElementById('collaboratorFilter').addEventListener('change', filterByCollaborator);
+
+        // Event listeners para agendamentos (clique)
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('appointment') || 
+                e.target.classList.contains('week-appointment') || 
+                e.target.classList.contains('month-appointment')) {
+                const appointmentId = e.target.getAttribute('data-appointment');
+                openModal(appointmentId);
+            }
+        });
+
+        // Event listeners para agendamentos (hover - opcional)
+        document.addEventListener('mouseover', (e) => {
+            if (e.target.classList.contains('appointment') || 
+                e.target.classList.contains('week-appointment') || 
+                e.target.classList.contains('month-appointment')) {
+                e.target.style.transform = 'scale(1.02)';
+            }
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            if (e.target.classList.contains('appointment') || 
+                e.target.classList.contains('week-appointment') || 
+                e.target.classList.contains('month-appointment')) {
+                e.target.style.transform = 'scale(1)';
+            }
+        });
+
+        // Fechar modal ao clicar fora dele
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('appointmentModal');
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Fechar modal com tecla ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            // Define a visualização padrão como "Dia"
+            switchView('day');
+        });
+    </script>
+</body>
+</html>

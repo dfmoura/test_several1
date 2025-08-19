@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório Comparativo</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #fafafa;
+        margin: 20px;
+    }
+    .container {
+        display: flex;
+        gap: 20px;
+    }
+    .panel {
+        flex: 1;
+        background: #fff;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .title {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 10px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 5px;
+    }
+    .resumo {
+        background: #f9f9f9;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        font-size: 0.95rem;
+    }
+    .dre {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    .dre th {
+        text-align: left;
+        background-color: #f0f0f0;
+        padding: 6px;
+    }
+    .dre td {
+        padding: 6px;
+        border-bottom: 1px solid #eee;
+    }
+    .dre .negativo {
+        color: #c0392b;
+    }
+    .dre .positivo {
+        color: #27ae60;
+    }
+    .av {
+        font-size: 0.85rem;
+        color: #666;
+        text-align: right;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Lado Esquerdo -->
+    <div class="panel">
+        <div class="title">
+            Período Considerado de :P_PERIODO.INI até :P_PERIODO.FIN
+        </div>
+        <div class="resumo">
+            <strong>Ton:</strong> 1500 <br>
+            <strong>Cus/Ton Atual:</strong> R$ 230,00
+        </div>
+        <table class="dre">
+            <tr><th>#</th><th>Descrição</th><th>Valor</th><th class="av">AV (%)</th></tr>
+            <tr><td>1</td><td>(+) Receita Bruta</td><td class="positivo">113.511.499,10</td><td class="av">100%</td></tr>
+            <tr><td>2</td><td>(-) Deduções</td><td class="negativo">-9.666.728,17</td><td class="av">-8,5%</td></tr>
+            <tr><td>3</td><td>(+) Receita Líquida</td><td class="positivo">103.844.770,93</td><td class="av">91,5%</td></tr>
+            <!-- Continuar para todas as linhas do DRE -->
+        </table>
+    </div>
+
+    <!-- Lado Direito -->
+    <div class="panel">
+        <div class="title">
+            Período Considerado de :P_PERIODO1.INI até :P_PERIODO1.FIN
+        </div>
+        <div class="resumo">
+            <strong>Ton:</strong> 1450 <br>
+            <strong>Cus/Ton Comparativo:</strong> R$ 240,00
+        </div>
+        <table class="dre">
+            <tr><th>#</th><th>Descrição</th><th>Valor</th><th class="av">AV (%)</th></tr>
+            <tr><td>1</td><td>(+) Receita Bruta</td><td class="positivo">110.000.000,00</td><td class="av">100%</td></tr>
+            <tr><td>2</td><td>(-) Deduções</td><td class="negativo">-9.000.000,00</td><td class="av">-8,18%</td></tr>
+            <tr><td>3</td><td>(+) Receita Líquida</td><td class="positivo">101.000.000,00</td><td class="av">91,82%</td></tr>
+            <!-- Continuar para todas as linhas do DRE -->
+        </table>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+<%@ page language="java" contentType="text/html;" pageEncoding="UTF-8" isELIgnored="false" %>
+  <%@ page import="java.util.*" %>
+    <%@ taglib uri="http://java.sun.com/jstl/core_rt" prefix="c" %>
+      <%@ taglib prefix="snk" uri="/WEB-INF/tld/sankhyaUtil.tld" %>
+        <!DOCTYPE html>
+        <html lang="en">
+
+        <head>
+
+          <snk:load />
+
+          <script>
+            var pPerIni = "${P_PERIODO_INI}"
+          </script>

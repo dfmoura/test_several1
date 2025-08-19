@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparativo de Períodos</title>
+<style>
+    body {
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background-color: #f8f9fa;
+        margin: 0;
+        padding: 0;
+        color: #333;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 20px;
+        max-width: 1400px;
+        margin: auto;
+    }
+
+    .quadrante {
+        flex: 1;
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    h2 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        color: #0d6efd;
+    }
+
+    .resumo, .dre {
+        margin-top: 15px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+    }
+
+    th, td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #e9ecef;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f1f3f5;
+        font-weight: bold;
+    }
+
+    .valor {
+        text-align: right;
+        font-family: monospace;
+    }
+
+    @media (max-width: 900px) {
+        .container {
+            flex-direction: column;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Lado Esquerdo -->
+    <div class="quadrante" id="lado-esquerdo">
+        <h2 id="titulo-esquerdo"></h2>
+        <div class="resumo">
+            <h3>Resumo</h3>
+            <table id="resumo-esquerdo"></table>
+        </div>
+        <div class="dre">
+            <h3>DRE</h3>
+            <table id="dre-esquerdo"></table>
+        </div>
+    </div>
+
+    <!-- Lado Direito -->
+    <div class="quadrante" id="lado-direito">
+        <h2 id="titulo-direito"></h2>
+        <div class="resumo">
+            <h3>Resumo</h3>
+            <table id="resumo-direito"></table>
+        </div>
+        <div class="dre">
+            <h3>DRE</h3>
+            <table id="dre-direito"></table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Simulação das queries
+const datas = {
+    "P_PERIODO.INI": "01/01/2024",
+    "P_PERIODO.FIN": "31/03/2024",
+    "P_PERIODO1.INI": "01/01/2023",
+    "P_PERIODO1.FIN": "31/03/2023"
+};
+
+const ton_cus_atual = [
+    { indicador: "Toneladas", valor: 1500 },
+    { indicador: "Custo Médio", valor: 230.50 }
+];
+
+const ton_cus_comparativo = [
+    { indicador: "Toneladas", valor: 1400 },
+    { indicador: "Custo Médio", valor: 210.75 }
+];
+
+const dre_atual = [
+    { conta: "Receita Bruta", valor: 500000 },
+    { conta: "(-) Custos", valor: -200000 },
+    { conta: "Lucro Bruto", valor: 300000 },
+    { conta: "(-) Despesas Operacionais", valor: -100000 },
+    { conta: "Lucro Líquido", valor: 200000 }
+];
+
+const dre_comparativo = [
+    { conta: "Receita Bruta", valor: 450000 },
+    { conta: "(-) Custos", valor: -180000 },
+    { conta: "Lucro Bruto", valor: 270000 },
+    { conta: "(-) Despesas Operacionais", valor: -95000 },
+    { conta: "Lucro Líquido", valor: 175000 }
+];
+
+// Função para preencher título
+function preencherTitulo(id, texto) {
+    document.getElementById(id).textContent = texto;
+}
+
+// Função para preencher tabelas
+function preencherTabela(idTabela, dados, colunas) {
+    const tabela = document.getElementById(idTabela);
+    tabela.innerHTML = "";
+    const thead = document.createElement("thead");
+    const trHead = document.createElement("tr");
+    colunas.forEach(col => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+    tabela.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    dados.forEach(linha => {
+        const tr = document.createElement("tr");
+        colunas.forEach(col => {
+            const td = document.createElement("td");
+            if (col.toLowerCase().includes("valor")) {
+                td.textContent = linha.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                td.classList.add("valor");
+            } else {
+                td.textContent = linha.indicador || linha.conta;
+            }
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+    tabela.appendChild(tbody);
+}
+
+// Preencher dados
+preencherTitulo("titulo-esquerdo", `Período Considerado de ${datas["P_PERIODO.INI"]} até ${datas["P_PERIODO.FIN"]}`);
+preencherTitulo("titulo-direito", `Período Considerado de ${datas["P_PERIODO1.INI"]} até ${datas["P_PERIODO1.FIN"]}`);
+
+preencherTabela("resumo-esquerdo", ton_cus_atual, ["Indicador", "Valor"]);
+preencherTabela("resumo-direito", ton_cus_comparativo, ["Indicador", "Valor"]);
+
+preencherTabela("dre-esquerdo", dre_atual, ["Conta", "Valor"]);
+preencherTabela("dre-direito", dre_comparativo, ["Conta", "Valor"]);
+</script>
+
+</body>
+</html>

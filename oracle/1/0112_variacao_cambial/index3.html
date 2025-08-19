@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<!-- 
+    Sistema de Análise de Exposição Cambial - Insumos Importados
+    Desenvolvido para demonstrar a exposição cambial de produtos importados
+    Utiliza APIs gratuitas do Banco Central (PTAX) e simulação de cotação do dólar
+    Autor: Sistema de Análise Cambial
+    Versão: 1.0
+-->
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Exposição Cambial - Insumos Importados</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            flex: 1;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+
+        .product-list {
+            margin-bottom: 20px;
+        }
+
+        .product-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid #3498db;
+        }
+
+        .product-item:hover {
+            background: #e3f2fd;
+            transform: translateX(5px);
+        }
+
+        .product-item.active {
+            background: #3498db;
+            color: white;
+            border-left-color: #2980b9;
+        }
+
+        .product-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .product-details {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .chart-container {
+            flex: 1;
+            position: relative;
+            background: #fafafa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .metrics-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-positive {
+            color: #27ae60;
+        }
+
+        .metric-negative {
+            color: #e74c3c;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .refresh-btn:active {
+            transform: translateY(0);
+        }
+
+        .chart-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-panel {
+            background: #e8f5e8;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .info-panel h3 {
+            color: #27ae60;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .info-panel p {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-paid {
+            background: #27ae60;
+        }
+
+        .status-pending {
+            background: #f39c12;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar com lista de produtos -->
+        <div class="sidebar">
+            <div class="header">
+                <h1>Insumos Importados</h1>
+                <p>Análise de Exposição Cambial</p>
+            </div>
+
+            <div class="info-panel">
+                <h3>📊 Como interpretar o gráfico:</h3>
+                <p><strong>Linha Azul:</strong> PTAX de compra<br>
+                <strong>Linha Laranja:</strong> Dólar spot diário<br>
+                <strong>Linha Verde:</strong> PTAX do pagamento (quando aplicável)</p>
+            </div>
+
+            <div class="product-list" id="productList">
+                <!-- Produtos serão carregados dinamicamente -->
+            </div>
+        </div>
+
+        <!-- Conteúdo principal com gráfico -->
+        <div class="main-content">
+            <div class="chart-header">
+                <div class="chart-title" id="chartTitle">Selecione um produto para visualizar a exposição cambial</div>
+                <button class="refresh-btn" id="refreshBtn" onclick="atualizarDados()" style="display: none;">
+                    🔄 Atualizar Dados
+                </button>
+            </div>
+            
+            <div class="metrics-panel" id="metricsPanel" style="display: none;">
+                <div class="metric-card">
+                    <div class="metric-value" id="exposicaoAtual">-</div>
+                    <div class="metric-label">Exposição Atual (R$)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="variacaoCambial">-</div>
+                    <div class="metric-label">Variação Cambial (%)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="impactoFinanceiro">-</div>
+                    <div class="metric-label">Impacto Financeiro (R$)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="diasExposicao">-</div>
+                    <div class="metric-label">Dias de Exposição</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div id="loadingMessage" class="loading">
+                    <div class="spinner"></div>
+                    Carregando dados...
+                </div>
+                <canvas id="exposureChart" style="display: none;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados de exemplo dos produtos importados
+        const produtos = [
+            {
+                id: 1,
+                nome: "Matéria Prima A",
+                dataCompra: "2024-01-15",
+                valorUSD: 50000,
+                pago: false,
+                dataPagamento: null,
+                ptaxCompra: 4.85
+            },
+            {
+                id: 2,
+                nome: "Componente B",
+                dataCompra: "2024-02-20",
+                valorUSD: 75000,
+                pago: true,
+                dataPagamento: "2024-03-15",
+                ptaxCompra: 4.92
+            },
+            {
+                id: 3,
+                nome: "Insumo C",
+                dataCompra: "2024-03-10",
+                valorUSD: 120000,
+                pago: false,
+                dataPagamento: null,
+                ptaxCompra: 4.88
+            },
+            {
+                id: 4,
+                nome: "Material D",
+                dataCompra: "2024-04-05",
+                valorUSD: 85000,
+                pago: false,
+                dataPagamento: null,
+                ptaxCompra: 4.95
+            },
+            {
+                id: 5,
+                nome: "Produto E",
+                dataCompra: "2024-05-12",
+                valorUSD: 95000,
+                pago: true,
+                dataPagamento: "2024-06-01",
+                ptaxCompra: 4.89
+            }
+        ];
+
+        let chart = null;
+        let dadosCambiais = {};
+
+        // Função para formatar data
+        function formatarData(data) {
+            return new Date(data).toLocaleDateString('pt-BR');
+        }
+
+        // Função para formatar valor monetário
+        function formatarMoeda(valor, moeda = 'BRL') {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: moeda
+            }).format(valor);
+        }
+
+        // Função para obter PTAX da API do Banco Central
+        async function obterPTAX(data) {
+            const dataFormatada = data.split('-').reverse().join('-');
+            const url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${dataFormatada}'&$top=100&$format=json`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.value && data.value.length > 0) {
+                    return parseFloat(data.value[0].cotacaoCompra);
+                }
+                return null;
+            } catch (error) {
+                console.error('Erro ao obter PTAX:', error);
+                return null;
+            }
+        }
+
+        // Função para obter cotação do dólar usando API gratuita
+        async function obterCotacaoDolar(data) {
+            try {
+                // Usando API gratuita do ExchangeRate-API (simulada para evitar rate limits)
+                // Em produção, você pode usar: https://api.exchangerate-api.com/v4/latest/USD
+                const baseRate = 4.90;
+                const dataObj = new Date(data);
+                const dayOfYear = Math.floor((dataObj - new Date(dataObj.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+                
+                // Variação baseada no dia do ano para simular tendência realista
+                const variation = Math.sin(dayOfYear * 0.1) * 0.05 + (Math.random() - 0.5) * 0.02;
+                return Math.max(4.50, Math.min(5.30, baseRate + variation));
+            } catch (error) {
+                console.error('Erro ao obter cotação do dólar:', error);
+                return 4.90; // Valor padrão
+            }
+        }
+
+        // Função para obter última PTAX disponível
+        async function obterUltimaPTAX() {
+            const hoje = new Date();
+            for (let i = 0; i < 30; i++) {
+                const data = new Date(hoje);
+                data.setDate(data.getDate() - i);
+                const dataStr = data.toISOString().split('T')[0];
+                const ptax = await obterPTAX(dataStr);
+                if (ptax) return ptax;
+            }
+            return 4.90; // Valor padrão se não conseguir obter
+        }
+
+        // Função para gerar dados do gráfico
+        async function gerarDadosGrafico(produto) {
+            const dadosCompra = new Date(produto.dataCompra);
+            const hoje = new Date();
+            const dias = Math.ceil((hoje - dadosCompra) / (1000 * 60 * 60 * 24));
+            
+            const labels = [];
+            const ptaxCompra = [];
+            const dolarSpot = [];
+            const ptaxPagamento = [];
+
+            for (let i = 0; i <= dias; i++) {
+                const data = new Date(dadosCompra);
+                data.setDate(data.getDate() + i);
+                const dataStr = data.toISOString().split('T')[0];
+                
+                labels.push(formatarData(dataStr));
+                ptaxCompra.push(produto.ptaxCompra);
+                
+                // Obter cotação do dólar para o dia
+                const cotacao = await obterCotacaoDolar(dataStr);
+                dolarSpot.push(cotacao);
+                
+                // PTAX de pagamento (só se já foi pago)
+                if (produto.pago && produto.dataPagamento) {
+                    const dataPagamento = new Date(produto.dataPagamento);
+                    if (data >= dataPagamento) {
+                        const ptaxPag = await obterPTAX(produto.dataPagamento) || produto.ptaxCompra;
+                        ptaxPagamento.push(ptaxPag);
+                    } else {
+                        ptaxPagamento.push(null);
+                    }
+                } else {
+                    ptaxPagamento.push(null);
+                }
+            }
+
+            return { labels, ptaxCompra, dolarSpot, ptaxPagamento };
+        }
+
+        // Função para calcular métricas de exposição cambial
+        function calcularMetricas(produto, dados) {
+            const hoje = new Date();
+            const dataCompra = new Date(produto.dataCompra);
+            const diasExposicao = Math.ceil((hoje - dataCompra) / (1000 * 60 * 60 * 24));
+            
+            // Última cotação do dólar
+            const ultimaCotacao = dados.dolarSpot[dados.dolarSpot.length - 1];
+            
+            // Valor em reais na data de compra
+            const valorCompraBRL = produto.valorUSD * produto.ptaxCompra;
+            
+            // Valor atual em reais
+            const valorAtualBRL = produto.valorUSD * ultimaCotacao;
+            
+            // Variação cambial
+            const variacaoCambial = ((ultimaCotacao - produto.ptaxCompra) / produto.ptaxCompra) * 100;
+            
+            // Impacto financeiro
+            const impactoFinanceiro = valorAtualBRL - valorCompraBRL;
+            
+            // Se já foi pago, usar PTAX do pagamento
+            if (produto.pago && produto.dataPagamento) {
+                const ptaxPagamento = dados.ptaxPagamento.find(ptax => ptax !== null) || produto.ptaxCompra;
+                const valorPagamentoBRL = produto.valorUSD * ptaxPagamento;
+                const impactoReal = valorPagamentoBRL - valorCompraBRL;
+                
+                return {
+                    exposicaoAtual: produto.pago ? 0 : valorAtualBRL,
+                    variacaoCambial: ((ptaxPagamento - produto.ptaxCompra) / produto.ptaxCompra) * 100,
+                    impactoFinanceiro: impactoReal,
+                    diasExposicao: diasExposicao
+                };
+            }
+            
+            return {
+                exposicaoAtual: valorAtualBRL,
+                variacaoCambial: variacaoCambial,
+                impactoFinanceiro: impactoFinanceiro,
+                diasExposicao: diasExposicao
+            };
+        }
+
+        // Função para atualizar painel de métricas
+        function atualizarMetricas(produto, dados) {
+            const metricas = calcularMetricas(produto, dados);
+            
+            document.getElementById('exposicaoAtual').textContent = formatarMoeda(metricas.exposicaoAtual);
+            document.getElementById('exposicaoAtual').className = 'metric-value' + (metricas.exposicaoAtual > 0 ? ' metric-negative' : '');
+            
+            const variacaoClass = metricas.variacaoCambial >= 0 ? 'metric-positive' : 'metric-negative';
+            document.getElementById('variacaoCambial').textContent = metricas.variacaoCambial.toFixed(2) + '%';
+            document.getElementById('variacaoCambial').className = 'metric-value ' + variacaoClass;
+            
+            const impactoClass = metricas.impactoFinanceiro >= 0 ? 'metric-positive' : 'metric-negative';
+            document.getElementById('impactoFinanceiro').textContent = formatarMoeda(metricas.impactoFinanceiro);
+            document.getElementById('impactoFinanceiro').className = 'metric-value ' + impactoClass;
+            
+            document.getElementById('diasExposicao').textContent = metricas.diasExposicao;
+            
+            document.getElementById('metricsPanel').style.display = 'grid';
+        }
+
+        // Função para criar/atualizar gráfico
+        async function criarGrafico(produto) {
+            document.getElementById('loadingMessage').style.display = 'flex';
+            document.getElementById('exposureChart').style.display = 'none';
+            document.getElementById('metricsPanel').style.display = 'none';
+            
+            const dados = await gerarDadosGrafico(produto);
+            
+            const ctx = document.getElementById('exposureChart').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dados.labels,
+                    datasets: [
+                        {
+                            label: 'PTAX de Compra',
+                            data: dados.ptaxCompra,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Dólar Spot',
+                            data: dados.dolarSpot,
+                            borderColor: '#e67e22',
+                            backgroundColor: 'rgba(230, 126, 34, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Exposição Cambial - ${produto.nome}`,
+                            font: {
+                                size: 18,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': R$ ' + context.parsed.y.toFixed(4);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Taxa de Câmbio (R$/USD)'
+                            },
+                            beginAtZero: false
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+
+            // Adicionar linha de PTAX de pagamento se aplicável
+            if (produto.pago && dados.ptaxPagamento.some(val => val !== null)) {
+                chart.data.datasets.push({
+                    label: 'PTAX do Pagamento',
+                    data: dados.ptaxPagamento,
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.1,
+                    borderDash: [5, 5]
+                });
+                chart.update();
+            }
+
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('exposureChart').style.display = 'block';
+            
+            // Atualizar métricas
+            atualizarMetricas(produto, dados);
+        }
+
+        // Função para renderizar lista de produtos
+        function renderizarProdutos() {
+            const productList = document.getElementById('productList');
+            productList.innerHTML = '';
+
+            produtos.forEach(produto => {
+                const productItem = document.createElement('div');
+                productItem.className = 'product-item';
+                productItem.onclick = () => selecionarProduto(produto);
+
+                const statusClass = produto.pago ? 'status-paid' : 'status-pending';
+                const statusText = produto.pago ? 'Pago' : 'Pendente';
+
+                productItem.innerHTML = `
+                    <div class="product-name">
+                        <span class="status-indicator ${statusClass}"></span>
+                        ${produto.nome}
+                    </div>
+                    <div class="product-details">
+                        <div>Compra: ${formatarData(produto.dataCompra)}</div>
+                        <div>Valor: ${formatarMoeda(produto.valorUSD, 'USD')}</div>
+                        <div>PTAX Compra: R$ ${produto.ptaxCompra.toFixed(4)}</div>
+                        <div>Status: ${statusText}</div>
+                        ${produto.pago ? `<div>Pagamento: ${formatarData(produto.dataPagamento)}</div>` : ''}
+                    </div>
+                `;
+
+                productList.appendChild(productItem);
+            });
+        }
+
+        let produtoSelecionado = null;
+
+        // Função para selecionar produto
+        function selecionarProduto(produto) {
+            // Remover seleção anterior
+            document.querySelectorAll('.product-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Selecionar produto atual
+            event.target.closest('.product-item').classList.add('active');
+
+            // Atualizar título do gráfico
+            document.getElementById('chartTitle').textContent = produto.nome;
+
+            // Mostrar botão de atualização
+            document.getElementById('refreshBtn').style.display = 'flex';
+
+            // Armazenar produto selecionado
+            produtoSelecionado = produto;
+
+            // Criar gráfico
+            criarGrafico(produto);
+        }
+
+        // Função para atualizar dados
+        async function atualizarDados() {
+            if (produtoSelecionado) {
+                const btn = document.getElementById('refreshBtn');
+                btn.disabled = true;
+                btn.innerHTML = '⏳ Atualizando...';
+                
+                await criarGrafico(produtoSelecionado);
+                
+                btn.disabled = false;
+                btn.innerHTML = '🔄 Atualizar Dados';
+            }
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            renderizarProdutos();
+            
+            // Selecionar primeiro produto por padrão
+            if (produtos.length > 0) {
+                setTimeout(() => {
+                    document.querySelector('.product-item').click();
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>

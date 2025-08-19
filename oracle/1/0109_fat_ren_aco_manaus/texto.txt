@@ -1,0 +1,3 @@
+Criar uma dash HTML5 reorganizando tabelas, cards e demonstrativo de análise de crédito para layout mais funcional e responsivo com melhor UX/UI.
+
+Criar relatório de parceiro com detalhamento completo da análise de crédito por período.

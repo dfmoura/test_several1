@@ -1,0 +1,148 @@
+eu tenho uma processo de compra de insumos de produção para que sao importados
+quero uma tela para demonstre este produtos comprados de um lado e um grafico de outro neste grafico ira mostrar a exposição cambial da data comprada ate a data de pagamento se nao tiver sido pago mostre o dolar vigente
+fazer tudo por api automatica free de dolar
+fazer tambem tudo em html css js
+
+
+----------------
+
+
+eu tenho uma processo de compra de insumos de produção que sao importados
+quero uma tela para demonstrar este produtos comprados de um lado 
+a data que foi comprado a que taxa ptax conforme api, caso no dia nao tenha ptax pegue a ultima
+https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='08-12-2025'&$top=100&$format=json
+
+
+e de outro lado um grafico que confronte horizontalmente esta ptax de compra com a o dolar vigente por dia, no dia que for pago utilizar a 
+ptax e equanto nao for utiliza o dolar corrente.
+
+o intuito do grafico é demonstrar a exposição cambial
+em uma linha do tempo no grafico.
+
+fazer tudo por api automatica free de dolar e a do banco central para a ptax
+fazer tambem tudo em html css js
+
+
+
+o raciocinio seria
+a ptax de compra
+a taxa de dolar dia a dia spot
+e quando pagar a ptax do dia que foi pago
+o grafico sera por produto comprado
+e devera mostrar todo o horizonte 
+
+
+
+----------------
+
+
+eu tenho uma processo de compra de insumos de produção que sao importados
+quero uma tela para demonstrar este produtos comprados de um lado uma listagem simples (dados de exemplo)
+a data que foi comprado a que taxa ptax conforme api, caso no dia nao tenha ptax pegue a ultima
+https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='08-12-2025'&$top=100&$format=json
+
+
+e de outro lado um grafico que confronte horizontalmente esta ptax de compra com a o dolar vigente por dia, no dia que for pago utilizar a 
+ptax e equanto nao for utiliza o dolar corrente.
+
+o intuito do grafico é demonstrar a exposição cambial
+em uma linha do tempo no grafico.
+
+o raciocinio seria
+a ptax de compra
+a taxa de dolar dia a dia spot
+e quando pagar a ptax do dia que foi pago
+o grafico sera por produto comprado
+e devera mostrar todo o horizonte 
+
+
+o grafico ocupara a maior parte da tela
+a cada produto o grafico altera o comportamento
+
+
+fazer tudo por api automatica free de dolar e a do banco central para a ptax
+fazer tambem tudo em html css js
+
+
+tudo bem profissional e clean
+
+----------------
+
+
+eu tenho uma processo de compra de insumos de produção que sao importados
+quero uma tela para demonstrar este produtos comprados de um lado uma listagem simples (dados de exemplo)
+a data que foi comprado a que taxa ptax conforme api, caso no dia nao tenha ptax pegue a ultima
+https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='08-12-2025'&$top=100&$format=json
+***o formato da data para pegar a ptax no banco centra é MM-DD-YYYY
+
+e de outro lado um grafico que confronte horizontalmente esta ptax de compra com a o dolar vigente por dia, no dia que for pago utilizar a 
+ptax e equanto nao for utiliza o dolar corrente.
+
+o intuito do grafico é demonstrar a exposição cambial
+em uma linha do tempo no grafico.
+
+o raciocinio seria
+a ptax de compra
+
+a taxa de dolar dia a dia spot
+(https://docs.awesomeapi.com.br/api-de-moedas)
+
+e quando pagar a ptax do dia que foi pago
+o grafico sera por produto comprado
+e devera mostrar todo o horizonte 
+
+
+o grafico ocupara a maior parte da tela
+a cada produto o grafico altera o comportamento
+
+
+fazer tudo por api automatica free de dolar e a do banco central para a ptax
+fazer tambem tudo em html css js
+
+
+tudo bem profissional e clean
+
+------
+
+quero fazer uma tela gerencial de controle de exposição cambial
+
+eu tenho uma processo de compra de insumos de produção que sao importados
+quero uma tela para demonstrar este produtos comprados de um lado em uma listagem simples (utilizar dados de exemplo)
+a data que foi comprado o insumo utilizara taxa ptax de venda conforme api, caso no dia nao tenha ptax pegue a ultima anterior
+https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)?@dataInicial='06-16-2025'&@dataFinalCotacao='08-08-2025'&$top=100&$format=json
+***o formato da data para pegar a ptax no banco centra é MM-DD-YYYY
+***utilizar a cotação de venda
+
+e de outro lado um grafico que apresente horizontalmente esta linah da ptax utilizada na compra
+esta linha sera apresentada da data da compra até a data corrente, caso o pagamento tenha ja ocorrido 
+sera apresentado ate a data do pagamento
+
+
+outra linha ira demonstrar o dolar spot a partir de um dia apos a data da compra até a data corrente, ou se 
+tiver pago até a data do pagamento.
+a taxa de dolar dia a dia spot:
+https://economia.awesomeapi.com.br/json/daily/USD-BRL/?start_date=20180901&end_date=20180930
+
+
+
+
+e outra linha que ira demonstrar o dolar ptax de venda a partir de um dia apos a data da compra até a 
+data corrente, ou se tiver pago até a data do pagamento.
+
+
+
+o intuito do grafico é demonstrar o comportamento da exposição cambial em uma linha do tempo no grafico.
+
+
+
+
+
+*** importante se atentar ao intervalo de datas para ser utilizado nas apis
+
+
+fazer tudo por api automatica free de dolar e a do banco central para a ptax
+fazer tambem tudo em html css js
+tudo bem profissional e clean
+
+
+
