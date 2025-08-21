@@ -1,0 +1,2552 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Análise de Crédito</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2d5a27 0%, #4a7c59 100%);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            height: 100vh;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e4d2b 0%, #2d5a27 100%);
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.4em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        .filters {
+            background: #e8f5e8;
+            padding: 8px 15px;
+            border-bottom: 1px solid #c8e6c9;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #2d5a27;
+            font-size: 0.8em;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 4px 8px;
+            border: 1px solid #a5d6a7;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        .filter-group button {
+            background: #2d5a27;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8em;
+            transition: background 0.3s;
+        }
+
+        .filter-group button:hover {
+            background: #1e4d2b;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            margin-top: 0;
+        }
+
+        .left-panel {
+            flex: 1;
+            border-right: 1px solid #c8e6c9;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 10px;
+            background: #f1f8e9;
+            overflow-y: auto;
+        }
+
+        .table-container {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .partners-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.65em;
+        }
+
+        .partners-table th {
+            background: #2d5a27;
+            color: white;
+            padding: 4px 2px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 0.7em;
+        }
+
+        .partners-table td {
+            padding: 2px 2px;
+            border-bottom: 1px solid #e8f5e8;
+        }
+
+        .partners-table tbody tr {
+            cursor: pointer;
+            transition: background 0.2s;
+            display: table-row;
+        }
+
+        .partners-table tbody tr:hover {
+            background: #c8e6c9;
+        }
+
+        .partners-table tbody tr.selected {
+            background: #a5d6a7;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.7em;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status-vencido {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .status-nao-vencido {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .status-sem-data {
+            background: #ffe0b2;
+            color: #ef6c00;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 6px;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 3px solid #2d5a27;
+        }
+
+        .card h3 {
+            color: #2d5a27;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+        }
+
+        .card-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: white;
+        }
+
+        .icon-pontualidade {
+            background: linear-gradient(135deg, #2d5a27, #4a7c59);
+        }
+
+        .icon-atualizacao {
+            background: linear-gradient(135deg, #4a7c59, #6b8e23);
+        }
+
+        .card-info h4 {
+            color: #2d5a27;
+            margin-bottom: 3px;
+            font-size: 0.8em;
+        }
+
+        .card-info p {
+            color: #6c757d;
+            font-size: 0.7em;
+        }
+
+        .analysis-container {
+            background: white;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #c8e6c9;
+        }
+
+        .analysis-title {
+            color: #2d5a27;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        .analysis-badge {
+            background: #2d5a27;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.7em;
+            font-weight: 600;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .analysis-section {
+            background: #f1f8e9;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #2d5a27;
+        }
+
+        .analysis-section h4 {
+            color: #2d5a27;
+            margin-bottom: 6px;
+            font-size: 0.8em;
+        }
+
+        .analysis-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            padding: 2px 0;
+            border-bottom: 1px solid #e8f5e8;
+            font-size: 0.7em;
+        }
+
+        .analysis-item:last-child {
+            border-bottom: none;
+        }
+
+        .analysis-label {
+            font-weight: 600;
+            color: #2d5a27;
+        }
+
+        .analysis-value {
+            color: #6c757d;
+            text-align: right;
+        }
+
+        .no-selection {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 20px;
+            font-size: 0.8em;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .left-panel {
+                border-right: none;
+                border-bottom: 1px solid #c8e6c9;
+                max-height: 40vh;
+            }
+            
+            .cards-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                justify-content: space-between;
+            }
+            
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Dashboard de Análise de Crédito</h1>
+            <p>Sistema de Gestão de Parceiros e Análise de Crédito</p>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label>Possui Limite:</label>
+                <select id="limiteFilter">
+                    <option value="">Todos</option>
+                    <option value="sim">Sim</option>
+                    <option value="nao">Não</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>Possui Análise:</label>
+                <select id="analiseFilter">
+                    <option value="">Todos</option>
+                    <option value="sim">Sim</option>
+                    <option value="nao">Não</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>Período Neg. De:</label>
+                <input type="date" id="dataInicio">
+            </div>
+            
+            <div class="filter-group">
+                <label>Até:</label>
+                <input type="date" id="dataFim">
+            </div>
+            
+            <div class="filter-group">
+                <button onclick="aplicarFiltros()">Aplicar Filtros</button>
+            </div>
+            
+            <div class="filter-group">
+                <button onclick="limparFiltros()">Limpar Filtros</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="table-container">
+                    <table class="partners-table" id="partnersTable">
+                        <thead>
+                            <tr>
+                                <th>Cód. Parceiro</th>
+                                <th>Parceiro</th>
+                                <th>Limite Total</th>
+                                <th>Limite Consumido</th>
+                                <th>Dt.Neg</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partnersTableBody">
+                            <!-- Dados serão carregados via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="cards-container">
+                    <div class="card">
+                        <h3>Indicativos de Pontualidade</h3>
+                        <div class="card-content">
+                            <div class="card-icon icon-pontualidade">📊</div>
+                            <div class="card-info">
+                                <h4 id="pontualidadeTitulo">Selecione um parceiro</h4>
+                                <p id="pontualidadeDescricao">Para visualizar os indicadores de pontualidade</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Indicativos de Atualização</h3>
+                        <div class="card-content">
+                            <div class="card-icon icon-atualizacao">🔄</div>
+                            <div class="card-info">
+                                <h4 id="atualizacaoTitulo">Selecione um parceiro</h4>
+                                <p id="atualizacaoDescricao">Para visualizar os indicadores de atualização</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analysis-container" id="analysisContainer">
+                    <div class="no-selection">
+                        <h3>Demonstrativo Sintético de Análise de Crédito</h3>
+                        <p>Selecione um parceiro na tabela para visualizar a análise de crédito</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados simulados dos parceiros
+        const parceiros = [
+            {
+                codigo: "41",
+                nome: "ASTOR ROBERTO STROSCHON",
+                limiteTotal: 500000.00,
+                limiteConsumido: 150000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-12-31",
+                dtNegociacao: "2024-01-15",
+                possuiAnalise: true,
+                pontualidade: "Excelente",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "41",
+                    parceiro: "ASTOR ROBERTO STROSCHON",
+                    dataCredito: "",
+                    credito: 0.00,
+                    rating: "",
+                    aberturaEmpresa: "",
+                    dataConsultaSerasa: "27/06/2024",
+                    score: 0,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "30/07/24",
+                    observacoes: "NADA CONSTA",
+                    anoDRE: 0,
+                    recDRE: 0.00,
+                    lucDRE: 0.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 122909918.36,
+                            lucro: 10271258.55,
+                            dividas: 51177851.05
+                        },
+                        pessoaFisica: {
+                            rendimentos: 10714233.23,
+                            bensDireitos: 40253119.53,
+                            endividamento: 0.00
+                        }
+                    },
+                    pretensaoCompra: 400000.00,
+                    compraSafraAnterior: 7000.00,
+                    cartaFianca: "",
+                    observacoes: "",
+                    parecer: "Cliente confiável, bom pagador, compra a anos.",
+                    crApelido: {
+                        codigo: "903030102",
+                        descricao: "20.2.1/2 (PV FORMOSA)",
+                        apelido: "PV HIAGO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: "",
+                    valorFat: 0.00
+                }
+            },
+            {
+                codigo: "42",
+                nome: "MARIA SILVA SANTOS",
+                limiteTotal: 300000.00,
+                limiteConsumido: 250000.00,
+                status: "Cadastro Vencido",
+                dtVencimento: "2024-06-15",
+                dtNegociacao: "2024-02-20",
+                possuiAnalise: false,
+                pontualidade: "Regular",
+                atualizacao: "Pendente"
+            },
+            {
+                codigo: "43",
+                nome: "JOSÉ PEREIRA LIMA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Sem Data Cadastro",
+                dtVencimento: null,
+                dtNegociacao: "2024-03-10",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "43",
+                    parceiro: "JOSÉ PEREIRA LIMA",
+                    dataCredito: "15/03/2024",
+                    credito: 250000.00,
+                    rating: "A",
+                    aberturaEmpresa: "10/01/2010",
+                    dataConsultaSerasa: "20/06/2024",
+                    score: 850,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "25/07/24",
+                    observacoes: "NADA CONSTA",
+                    anoDRE: 2023,
+                    recDRE: 1500000.00,
+                    lucDRE: 250000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 85000000.00,
+                            lucro: 7500000.00,
+                            dividas: 25000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 5000000.00,
+                            bensDireitos: 15000000.00,
+                            endividamento: 500000.00
+                        }
+                    },
+                    pretensaoCompra: 300000.00,
+                    compraSafraAnterior: 15000.00,
+                    cartaFianca: "15/01/2024",
+                    observacoes: "Cliente com bom histórico",
+                    parecer: "Cliente aprovado para crédito",
+                    crApelido: {
+                        codigo: "903030103",
+                        descricao: "20.2.1/3 (PV JOSÉ)",
+                        apelido: "PV JOSÉ"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 1500000.00
+                }
+            },
+            {
+                codigo: "44",
+                nome: "EMPRESA MULTI SÓCIOS LTDA",
+                limiteTotal: 750000.00,
+                limiteConsumido: 200000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-08-20",
+                dtNegociacao: "2024-04-05",
+                possuiAnalise: true,
+                pontualidade: "Ótima",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "44",
+                    parceiro: "EMPRESA MULTI SÓCIOS LTDA",
+                    dataCredito: "20/04/2024",
+                    credito: 750000.00,
+                    rating: "AA",
+                    aberturaEmpresa: "05/03/2005",
+                    dataConsultaSerasa: "10/06/2024",
+                    score: 920,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "15/07/24",
+                    observacoes: "NADA CONSTA",
+                    anoDRE: 2023,
+                    recDRE: 2500000.00,
+                    lucDRE: 500000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 180000000.00,
+                            lucro: 20000000.00,
+                            dividas: 60000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 15000000.00,
+                            bensDireitos: 60000000.00,
+                            endividamento: 1000000.00
+                        }
+                    },
+                    pretensaoCompra: 800000.00,
+                    compraSafraAnterior: 25000.00,
+                    cartaFianca: "20/02/2024",
+                    observacoes: "Empresa com múltiplos sócios",
+                    parecer: "Excelente cliente, múltiplos sócios com boa capacidade financeira",
+                    crApelido: {
+                        codigo: "903030104",
+                        descricao: "20.2.1/4 (PV MULTI)",
+                        apelido: "PV MULTI"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 2500000.00,
+                    socios: [
+                        {
+                            nome: "JOÃO SILVA SANTOS",
+                            cpf: "123.456.789-01",
+                            participacao: "40%",
+                            rendimentos: 8000000.00,
+                            bensDireitos: 24000000.00
+                        },
+                        {
+                            nome: "MARIA OLIVEIRA COSTA",
+                            cpf: "987.654.321-02",
+                            participacao: "35%",
+                            rendimentos: 7000000.00,
+                            bensDireitos: 21000000.00
+                        },
+                        {
+                            nome: "PEDRO FERREIRA LIMA",
+                            cpf: "456.789.123-03",
+                            participacao: "25%",
+                            rendimentos: 5000000.00,
+                            bensDireitos: 15000000.00
+                        }
+                    ]
+                }
+            },
+            {
+                codigo: "45",
+                nome: "FERNANDO ALVES MARTINS",
+                limiteTotal: 200000.00,
+                limiteConsumido: 75000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-10-15",
+                dtNegociacao: "2024-01-20",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "45",
+                    parceiro: "FERNANDO ALVES MARTINS",
+                    dataCredito: "10/02/2024",
+                    credito: 200000.00,
+                    rating: "B",
+                    aberturaEmpresa: "15/08/2018",
+                    dataConsultaSerasa: "05/06/2024",
+                    score: 720,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "12/07/24",
+                    observacoes: "Cliente regular",
+                    anoDRE: 2023,
+                    recDRE: 800000.00,
+                    lucDRE: 120000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 60000000.00,
+                            lucro: 5000000.00,
+                            dividas: 20000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 3000000.00,
+                            bensDireitos: 8000000.00,
+                            endividamento: 200000.00
+                        }
+                    },
+                    pretensaoCompra: 150000.00,
+                    compraSafraAnterior: 5000.00,
+                    cartaFianca: "10/01/2024",
+                    observacoes: "Cliente com histórico regular",
+                    parecer: "Cliente aprovado com restrições",
+                    crApelido: {
+                        codigo: "903030105",
+                        descricao: "20.2.1/5 (PV FERNANDO)",
+                        apelido: "PV FERNANDO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 800000.00
+                }
+            },
+            {
+                codigo: "46",
+                nome: "PATRICIA SANTOS RODRIGUES",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Cadastro Vencido",
+                dtVencimento: "2024-03-20",
+                dtNegociacao: "2024-02-15",
+                possuiAnalise: false,
+                pontualidade: "Regular",
+                atualizacao: "Pendente"
+            },
+            {
+                codigo: "47",
+                nome: "ROBERTO CARLOS SILVA",
+                limiteTotal: 1000000.00,
+                limiteConsumido: 300000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2026-01-10",
+                dtNegociacao: "2024-03-25",
+                possuiAnalise: true,
+                pontualidade: "Excelente",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "47",
+                    parceiro: "ROBERTO CARLOS SILVA",
+                    dataCredito: "25/03/2024",
+                    credito: 1000000.00,
+                    rating: "AA",
+                    aberturaEmpresa: "20/05/2000",
+                    dataConsultaSerasa: "15/06/2024",
+                    score: 950,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "20/07/24",
+                    observacoes: "Cliente premium",
+                    anoDRE: 2023,
+                    recDRE: 5000000.00,
+                    lucDRE: 800000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 300000000.00,
+                            lucro: 35000000.00,
+                            dividas: 80000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 20000000.00,
+                            bensDireitos: 80000000.00,
+                            endividamento: 2000000.00
+                        }
+                    },
+                    pretensaoCompra: 1200000.00,
+                    compraSafraAnterior: 50000.00,
+                    cartaFianca: "25/02/2024",
+                    observacoes: "Cliente premium com excelente histórico",
+                    parecer: "Cliente premium, excelente pagador",
+                    crApelido: {
+                        codigo: "903030106",
+                        descricao: "20.2.1/6 (PV ROBERTO)",
+                        apelido: "PV ROBERTO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 5000000.00
+                }
+            },
+            {
+                codigo: "48",
+                nome: "LUCIA MARIA COSTA",
+                limiteTotal: 150000.00,
+                limiteConsumido: 120000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-07-30",
+                dtNegociacao: "2024-01-05",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "48",
+                    parceiro: "LUCIA MARIA COSTA",
+                    dataCredito: "05/01/2024",
+                    credito: 150000.00,
+                    rating: "B",
+                    aberturaEmpresa: "10/12/2015",
+                    dataConsultaSerasa: "08/06/2024",
+                    score: 680,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "15/07/24",
+                    observacoes: "Cliente regular",
+                    anoDRE: 2023,
+                    recDRE: 600000.00,
+                    lucDRE: 80000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 45000000.00,
+                            lucro: 4000000.00,
+                            dividas: 15000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 2500000.00,
+                            bensDireitos: 6000000.00,
+                            endividamento: 300000.00
+                        }
+                    },
+                    pretensaoCompra: 100000.00,
+                    compraSafraAnterior: 3000.00,
+                    cartaFianca: "05/12/2023",
+                    observacoes: "Cliente com bom histórico",
+                    parecer: "Cliente aprovado",
+                    crApelido: {
+                        codigo: "903030107",
+                        descricao: "20.2.1/7 (PV LUCIA)",
+                        apelido: "PV LUCIA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 600000.00
+                }
+            },
+            {
+                codigo: "49",
+                nome: "ANTONIO PEREIRA NETO",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Sem Data Cadastro",
+                dtVencimento: null,
+                dtNegociacao: "2024-02-10",
+                possuiAnalise: false,
+                pontualidade: "N/A",
+                atualizacao: "Não Atualizado"
+            },
+            {
+                codigo: "50",
+                nome: "CAROLINA FERREIRA LIMA",
+                limiteTotal: 800000.00,
+                limiteConsumido: 250000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-11-25",
+                dtNegociacao: "2024-04-18",
+                possuiAnalise: true,
+                pontualidade: "Ótima",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "50",
+                    parceiro: "CAROLINA FERREIRA LIMA",
+                    dataCredito: "18/04/2024",
+                    credito: 800000.00,
+                    rating: "A",
+                    aberturaEmpresa: "25/06/2012",
+                    dataConsultaSerasa: "12/06/2024",
+                    score: 880,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "18/07/24",
+                    observacoes: "Cliente com excelente histórico",
+                    anoDRE: 2023,
+                    recDRE: 3500000.00,
+                    lucDRE: 450000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 200000000.00,
+                            lucro: 25000000.00,
+                            dividas: 60000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 12000000.00,
+                            bensDireitos: 45000000.00,
+                            endividamento: 800000.00
+                        }
+                    },
+                    pretensaoCompra: 600000.00,
+                    compraSafraAnterior: 20000.00,
+                    cartaFianca: "18/03/2024",
+                    observacoes: "Cliente premium",
+                    parecer: "Excelente cliente, aprovado sem restrições",
+                    crApelido: {
+                        codigo: "903030108",
+                        descricao: "20.2.1/8 (PV CAROLINA)",
+                        apelido: "PV CAROLINA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 3500000.00
+                }
+            },
+            {
+                codigo: "51",
+                nome: "MARCOS VINICIUS SANTOS",
+                limiteTotal: 300000.00,
+                limiteConsumido: 180000.00,
+                status: "Cadastro Vencido",
+                dtVencimento: "2024-05-10",
+                dtNegociacao: "2024-01-30",
+                possuiAnalise: true,
+                pontualidade: "Regular",
+                atualizacao: "Pendente",
+                analise: {
+                    codigo: "51",
+                    parceiro: "MARCOS VINICIUS SANTOS",
+                    dataCredito: "20/12/2023",
+                    credito: 300000.00,
+                    rating: "C",
+                    aberturaEmpresa: "08/09/2019",
+                    dataConsultaSerasa: "25/06/2024",
+                    score: 550,
+                    observacaoSerasa: "PROTESTOS EM ABERTO",
+                    dataCartorio: "30/07/24",
+                    observacoes: "Cliente com restrições",
+                    anoDRE: 2023,
+                    recDRE: 1200000.00,
+                    lucDRE: 150000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 80000000.00,
+                            lucro: 6000000.00,
+                            dividas: 30000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 4000000.00,
+                            bensDireitos: 12000000.00,
+                            endividamento: 1500000.00
+                        }
+                    },
+                    pretensaoCompra: 200000.00,
+                    compraSafraAnterior: 8000.00,
+                    cartaFianca: "20/11/2023",
+                    observacoes: "Cliente com restrições cadastrais",
+                    parecer: "Cliente com restrições, análise pendente",
+                    crApelido: {
+                        codigo: "903030109",
+                        descricao: "20.2.1/9 (PV MARCOS)",
+                        apelido: "PV MARCOS"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 1200000.00
+                }
+            },
+            {
+                codigo: "52",
+                nome: "JULIANA ALMEIDA SOUZA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-09-15",
+                dtNegociacao: "2024-03-15",
+                possuiAnalise: false,
+                pontualidade: "N/A",
+                atualizacao: "Não Atualizado"
+            },
+            {
+                codigo: "53",
+                nome: "RAFAEL MENDES OLIVEIRA",
+                limiteTotal: 1200000.00,
+                limiteConsumido: 400000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2026-02-28",
+                dtNegociacao: "2024-04-30",
+                possuiAnalise: true,
+                pontualidade: "Excelente",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "53",
+                    parceiro: "RAFAEL MENDES OLIVEIRA",
+                    dataCredito: "30/04/2024",
+                    credito: 1200000.00,
+                    rating: "AA",
+                    aberturaEmpresa: "15/03/2008",
+                    dataConsultaSerasa: "18/06/2024",
+                    score: 920,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "25/07/24",
+                    observacoes: "Cliente premium",
+                    anoDRE: 2023,
+                    recDRE: 8000000.00,
+                    lucDRE: 1200000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 400000000.00,
+                            lucro: 45000000.00,
+                            dividas: 100000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 25000000.00,
+                            bensDireitos: 100000000.00,
+                            endividamento: 3000000.00
+                        }
+                    },
+                    pretensaoCompra: 1500000.00,
+                    compraSafraAnterior: 75000.00,
+                    cartaFianca: "30/03/2024",
+                    observacoes: "Cliente premium com excelente histórico",
+                    parecer: "Cliente premium, aprovado sem restrições",
+                    crApelido: {
+                        codigo: "903030110",
+                        descricao: "20.2.1/10 (PV RAFAEL)",
+                        apelido: "PV RAFAEL"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 8000000.00
+                }
+            },
+            {
+                codigo: "54",
+                nome: "FABIANA RODRIGUES COSTA",
+                limiteTotal: 250000.00,
+                limiteConsumido: 200000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-06-20",
+                dtNegociacao: "2024-02-12",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "54",
+                    parceiro: "FABIANA RODRIGUES COSTA",
+                    dataCredito: "12/02/2024",
+                    credito: 250000.00,
+                    rating: "B",
+                    aberturaEmpresa: "22/11/2016",
+                    dataConsultaSerasa: "10/06/2024",
+                    score: 750,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "15/07/24",
+                    observacoes: "Cliente regular",
+                    anoDRE: 2023,
+                    recDRE: 1800000.00,
+                    lucDRE: 220000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 120000000.00,
+                            lucro: 12000000.00,
+                            dividas: 40000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 6000000.00,
+                            bensDireitos: 18000000.00,
+                            endividamento: 500000.00
+                        }
+                    },
+                    pretensaoCompra: 180000.00,
+                    compraSafraAnterior: 12000.00,
+                    cartaFianca: "12/01/2024",
+                    observacoes: "Cliente com bom histórico",
+                    parecer: "Cliente aprovado",
+                    crApelido: {
+                        codigo: "903030111",
+                        descricao: "20.2.1/11 (PV FABIANA)",
+                        apelido: "PV FABIANA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 1800000.00
+                }
+            },
+            {
+                codigo: "55",
+                nome: "DANIEL SILVA MARTINS",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Cadastro Vencido",
+                dtVencimento: "2024-04-05",
+                dtNegociacao: "2024-01-25",
+                possuiAnalise: false,
+                pontualidade: "Ruim",
+                atualizacao: "Pendente"
+            },
+            {
+                codigo: "56",
+                nome: "AMANDA COSTA FERREIRA",
+                limiteTotal: 600000.00,
+                limiteConsumido: 150000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-12-10",
+                dtNegociacao: "2024-03-08",
+                possuiAnalise: true,
+                pontualidade: "Ótima",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "56",
+                    parceiro: "AMANDA COSTA FERREIRA",
+                    dataCredito: "08/03/2024",
+                    credito: 600000.00,
+                    rating: "A",
+                    aberturaEmpresa: "30/07/2014",
+                    dataConsultaSerasa: "14/06/2024",
+                    score: 850,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "20/07/24",
+                    observacoes: "Cliente com excelente histórico",
+                    anoDRE: 2023,
+                    recDRE: 2800000.00,
+                    lucDRE: 350000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 180000000.00,
+                            lucro: 20000000.00,
+                            dividas: 55000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 10000000.00,
+                            bensDireitos: 35000000.00,
+                            endividamento: 700000.00
+                        }
+                    },
+                    pretensaoCompra: 450000.00,
+                    compraSafraAnterior: 18000.00,
+                    cartaFianca: "08/02/2024",
+                    observacoes: "Cliente premium",
+                    parecer: "Excelente cliente, aprovado",
+                    crApelido: {
+                        codigo: "903030112",
+                        descricao: "20.2.1/12 (PV AMANDA)",
+                        apelido: "PV AMANDA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 2800000.00
+                }
+            },
+            {
+                codigo: "57",
+                nome: "GUSTAVO PEREIRA LIMA",
+                limiteTotal: 400000.00,
+                limiteConsumido: 320000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-08-25",
+                dtNegociacao: "2024-01-15",
+                possuiAnalise: true,
+                pontualidade: "Regular",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "57",
+                    parceiro: "GUSTAVO PEREIRA LIMA",
+                    dataCredito: "15/01/2024",
+                    credito: 400000.00,
+                    rating: "C",
+                    aberturaEmpresa: "12/04/2020",
+                    dataConsultaSerasa: "22/06/2024",
+                    score: 620,
+                    observacaoSerasa: "RESTRIÇÕES CADASTRAIS",
+                    dataCartorio: "28/07/24",
+                    observacoes: "Cliente com restrições",
+                    anoDRE: 2023,
+                    recDRE: 2200000.00,
+                    lucDRE: 280000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 150000000.00,
+                            lucro: 15000000.00,
+                            dividas: 45000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 8000000.00,
+                            bensDireitos: 25000000.00,
+                            endividamento: 1200000.00
+                        }
+                    },
+                    pretensaoCompra: 300000.00,
+                    compraSafraAnterior: 15000.00,
+                    cartaFianca: "15/12/2023",
+                    observacoes: "Cliente com restrições",
+                    parecer: "Cliente com restrições, análise limitada",
+                    crApelido: {
+                        codigo: "903030113",
+                        descricao: "20.2.1/13 (PV GUSTAVO)",
+                        apelido: "PV GUSTAVO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 2200000.00
+                }
+            },
+            {
+                codigo: "58",
+                nome: "VANESSA SANTOS ALMEIDA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Sem Data Cadastro",
+                dtVencimento: null,
+                dtNegociacao: "2024-02-28",
+                possuiAnalise: false,
+                pontualidade: "N/A",
+                atualizacao: "Não Atualizado"
+            },
+            {
+                codigo: "59",
+                nome: "THIAGO MARTINS RODRIGUES",
+                limiteTotal: 900000.00,
+                limiteConsumido: 280000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2026-03-15",
+                dtNegociacao: "2024-04-22",
+                possuiAnalise: true,
+                pontualidade: "Excelente",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "59",
+                    parceiro: "THIAGO MARTINS RODRIGUES",
+                    dataCredito: "22/04/2024",
+                    credito: 900000.00,
+                    rating: "AA",
+                    aberturaEmpresa: "18/09/2006",
+                    dataConsultaSerasa: "16/06/2024",
+                    score: 930,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "22/07/24",
+                    observacoes: "Cliente premium",
+                    anoDRE: 2023,
+                    recDRE: 6500000.00,
+                    lucDRE: 900000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 350000000.00,
+                            lucro: 40000000.00,
+                            dividas: 90000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 18000000.00,
+                            bensDireitos: 70000000.00,
+                            endividamento: 2500000.00
+                        }
+                    },
+                    pretensaoCompra: 700000.00,
+                    compraSafraAnterior: 35000.00,
+                    cartaFianca: "22/03/2024",
+                    observacoes: "Cliente premium com excelente histórico",
+                    parecer: "Cliente premium, aprovado sem restrições",
+                    crApelido: {
+                        codigo: "903030114",
+                        descricao: "20.2.1/14 (PV THIAGO)",
+                        apelido: "PV THIAGO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 6500000.00
+                }
+            },
+            {
+                codigo: "60",
+                nome: "CAMILA FERREIRA SOUZA",
+                limiteTotal: 180000.00,
+                limiteConsumido: 160000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-07-08",
+                dtNegociacao: "2024-02-03",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "60",
+                    parceiro: "CAMILA FERREIRA SOUZA",
+                    dataCredito: "03/02/2024",
+                    credito: 180000.00,
+                    rating: "B",
+                    aberturaEmpresa: "25/10/2017",
+                    dataConsultaSerasa: "11/06/2024",
+                    score: 710,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "16/07/24",
+                    observacoes: "Cliente regular",
+                    anoDRE: 2023,
+                    recDRE: 1400000.00,
+                    lucDRE: 180000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 90000000.00,
+                            lucro: 8000000.00,
+                            dividas: 28000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 4500000.00,
+                            bensDireitos: 14000000.00,
+                            endividamento: 400000.00
+                        }
+                    },
+                    pretensaoCompra: 120000.00,
+                    compraSafraAnterior: 6000.00,
+                    cartaFianca: "03/01/2024",
+                    observacoes: "Cliente com bom histórico",
+                    parecer: "Cliente aprovado",
+                    crApelido: {
+                        codigo: "903030115",
+                        descricao: "20.2.1/15 (PV CAMILA)",
+                        apelido: "PV CAMILA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 1400000.00
+                }
+            },
+            {
+                codigo: "61",
+                nome: "LEONARDO OLIVEIRA COSTA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Cadastro Vencido",
+                dtVencimento: "2024-02-28",
+                dtNegociacao: "2024-01-10",
+                possuiAnalise: false,
+                pontualidade: "Ruim",
+                atualizacao: "Pendente"
+            },
+            {
+                codigo: "62",
+                nome: "ISABELA RODRIGUES MARTINS",
+                limiteTotal: 1500000.00,
+                limiteConsumido: 500000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2026-04-20",
+                dtNegociacao: "2024-04-28",
+                possuiAnalise: true,
+                pontualidade: "Excelente",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "62",
+                    parceiro: "ISABELA RODRIGUES MARTINS",
+                    dataCredito: "28/04/2024",
+                    credito: 1500000.00,
+                    rating: "AA",
+                    aberturaEmpresa: "10/06/2004",
+                    dataConsultaSerasa: "19/06/2024",
+                    score: 960,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "26/07/24",
+                    observacoes: "Cliente premium",
+                    anoDRE: 2023,
+                    recDRE: 12000000.00,
+                    lucDRE: 1800000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 500000000.00,
+                            lucro: 55000000.00,
+                            dividas: 120000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 30000000.00,
+                            bensDireitos: 120000000.00,
+                            endividamento: 4000000.00
+                        }
+                    },
+                    pretensaoCompra: 2000000.00,
+                    compraSafraAnterior: 100000.00,
+                    cartaFianca: "28/03/2024",
+                    observacoes: "Cliente premium com excelente histórico",
+                    parecer: "Cliente premium, aprovado sem restrições",
+                    crApelido: {
+                        codigo: "903030116",
+                        descricao: "20.2.1/16 (PV ISABELA)",
+                        apelido: "PV ISABELA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 12000000.00
+                }
+            },
+            {
+                codigo: "63",
+                nome: "BRUNO SILVA FERREIRA",
+                limiteTotal: 350000.00,
+                limiteConsumido: 280000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-09-30",
+                dtNegociacao: "2024-01-18",
+                possuiAnalise: true,
+                pontualidade: "Regular",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "63",
+                    parceiro: "BRUNO SILVA FERREIRA",
+                    dataCredito: "18/01/2024",
+                    credito: 350000.00,
+                    rating: "C",
+                    aberturaEmpresa: "05/12/2018",
+                    dataConsultaSerasa: "23/06/2024",
+                    score: 580,
+                    observacaoSerasa: "RESTRIÇÕES CADASTRAIS",
+                    dataCartorio: "29/07/24",
+                    observacoes: "Cliente com restrições",
+                    anoDRE: 2023,
+                    recDRE: 2600000.00,
+                    lucDRE: 320000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 160000000.00,
+                            lucro: 16000000.00,
+                            dividas: 48000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 9000000.00,
+                            bensDireitos: 28000000.00,
+                            endividamento: 1800000.00
+                        }
+                    },
+                    pretensaoCompra: 250000.00,
+                    compraSafraAnterior: 12000.00,
+                    cartaFianca: "18/12/2023",
+                    observacoes: "Cliente com restrições",
+                    parecer: "Cliente com restrições, análise limitada",
+                    crApelido: {
+                        codigo: "903030117",
+                        descricao: "20.2.1/17 (PV BRUNO)",
+                        apelido: "PV BRUNO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 2600000.00
+                }
+            },
+            {
+                codigo: "64",
+                nome: "MARIANA COSTA LIMA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Sem Data Cadastro",
+                dtVencimento: null,
+                dtNegociacao: "2024-03-05",
+                possuiAnalise: false,
+                pontualidade: "N/A",
+                atualizacao: "Não Atualizado"
+            },
+            {
+                codigo: "65",
+                nome: "CARLOS EDUARDO SILVA",
+                limiteTotal: 450000.00,
+                limiteConsumido: 180000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-11-15",
+                dtNegociacao: "2024-05-10",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "65",
+                    parceiro: "CARLOS EDUARDO SILVA",
+                    dataCredito: "05/05/2024",
+                    credito: 450000.00,
+                    rating: "B",
+                    aberturaEmpresa: "18/07/2017",
+                    dataConsultaSerasa: "28/06/2024",
+                    score: 780,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "12/07/24",
+                    observacoes: "Cliente com bom histórico",
+                    anoDRE: 2023,
+                    recDRE: 2100000.00,
+                    lucDRE: 280000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 135000000.00,
+                            lucro: 14000000.00,
+                            dividas: 42000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 7000000.00,
+                            bensDireitos: 22000000.00,
+                            endividamento: 600000.00
+                        }
+                    },
+                    pretensaoCompra: 320000.00,
+                    compraSafraAnterior: 15000.00,
+                    cartaFianca: "05/04/2024",
+                    observacoes: "Cliente regular com bom histórico",
+                    parecer: "Cliente aprovado",
+                    crApelido: {
+                        codigo: "903030118",
+                        descricao: "20.2.1/18 (PV CARLOS)",
+                        apelido: "PV CARLOS"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 2100000.00
+                }
+            },
+            {
+                codigo: "66",
+                nome: "ADRIANA SANTOS PEREIRA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Cadastro Vencido",
+                dtVencimento: "2024-06-30",
+                dtNegociacao: "2024-05-15",
+                possuiAnalise: false,
+                pontualidade: "Regular",
+                atualizacao: "Pendente"
+            },
+            {
+                codigo: "67",
+                nome: "RICARDO ALMEIDA COSTA",
+                limiteTotal: 1100000.00,
+                limiteConsumido: 450000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2026-01-25",
+                dtNegociacao: "2024-05-20",
+                possuiAnalise: true,
+                pontualidade: "Excelente",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "67",
+                    parceiro: "RICARDO ALMEIDA COSTA",
+                    dataCredito: "18/05/2024",
+                    credito: 1100000.00,
+                    rating: "AA",
+                    aberturaEmpresa: "12/03/2007",
+                    dataConsultaSerasa: "30/06/2024",
+                    score: 940,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "18/07/24",
+                    observacoes: "Cliente premium",
+                    anoDRE: 2023,
+                    recDRE: 7200000.00,
+                    lucDRE: 1050000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 380000000.00,
+                            lucro: 42000000.00,
+                            dividas: 95000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 22000000.00,
+                            bensDireitos: 85000000.00,
+                            endividamento: 2800000.00
+                        }
+                    },
+                    pretensaoCompra: 1300000.00,
+                    compraSafraAnterior: 65000.00,
+                    cartaFianca: "18/04/2024",
+                    observacoes: "Cliente premium com excelente histórico",
+                    parecer: "Cliente premium, aprovado sem restrições",
+                    crApelido: {
+                        codigo: "903030119",
+                        descricao: "20.2.1/19 (PV RICARDO)",
+                        apelido: "PV RICARDO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 7200000.00
+                }
+            },
+            {
+                codigo: "68",
+                nome: "BEATRIZ OLIVEIRA LIMA",
+                limiteTotal: 320000.00,
+                limiteConsumido: 240000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-08-12",
+                dtNegociacao: "2024-05-25",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "68",
+                    parceiro: "BEATRIZ OLIVEIRA LIMA",
+                    dataCredito: "22/05/2024",
+                    credito: 320000.00,
+                    rating: "B",
+                    aberturaEmpresa: "08/11/2016",
+                    dataConsultaSerasa: "25/06/2024",
+                    score: 720,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "20/07/24",
+                    observacoes: "Cliente regular",
+                    anoDRE: 2023,
+                    recDRE: 1900000.00,
+                    lucDRE: 240000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 125000000.00,
+                            lucro: 12500000.00,
+                            dividas: 38000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 6500000.00,
+                            bensDireitos: 19000000.00,
+                            endividamento: 550000.00
+                        }
+                    },
+                    pretensaoCompra: 220000.00,
+                    compraSafraAnterior: 11000.00,
+                    cartaFianca: "22/04/2024",
+                    observacoes: "Cliente com bom histórico",
+                    parecer: "Cliente aprovado",
+                    crApelido: {
+                        codigo: "903030120",
+                        descricao: "20.2.1/20 (PV BEATRIZ)",
+                        apelido: "PV BEATRIZ"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 1900000.00
+                }
+            },
+            {
+                codigo: "69",
+                nome: "PAULO HENRIQUE SANTOS",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Sem Data Cadastro",
+                dtVencimento: null,
+                dtNegociacao: "2024-05-30",
+                possuiAnalise: false,
+                pontualidade: "N/A",
+                atualizacao: "Não Atualizado"
+            },
+            {
+                codigo: "70",
+                nome: "HELENA FERREIRA RODRIGUES",
+                limiteTotal: 650000.00,
+                limiteConsumido: 180000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-12-20",
+                dtNegociacao: "2024-06-05",
+                possuiAnalise: true,
+                pontualidade: "Ótima",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "70",
+                    parceiro: "HELENA FERREIRA RODRIGUES",
+                    dataCredito: "02/06/2024",
+                    credito: 650000.00,
+                    rating: "A",
+                    aberturaEmpresa: "15/09/2013",
+                    dataConsultaSerasa: "02/07/2024",
+                    score: 870,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "25/07/24",
+                    observacoes: "Cliente com excelente histórico",
+                    anoDRE: 2023,
+                    recDRE: 3200000.00,
+                    lucDRE: 420000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 190000000.00,
+                            lucro: 22000000.00,
+                            dividas: 58000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 11000000.00,
+                            bensDireitos: 38000000.00,
+                            endividamento: 750000.00
+                        }
+                    },
+                    pretensaoCompra: 520000.00,
+                    compraSafraAnterior: 22000.00,
+                    cartaFianca: "02/05/2024",
+                    observacoes: "Cliente premium",
+                    parecer: "Excelente cliente, aprovado",
+                    crApelido: {
+                        codigo: "903030121",
+                        descricao: "20.2.1/21 (PV HELENA)",
+                        apelido: "PV HELENA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 3200000.00
+                }
+            },
+            {
+                codigo: "71",
+                nome: "SERGIO COSTA MARTINS",
+                limiteTotal: 280000.00,
+                limiteConsumido: 220000.00,
+                status: "Cadastro Vencido",
+                dtVencimento: "2024-07-15",
+                dtNegociacao: "2024-06-10",
+                possuiAnalise: true,
+                pontualidade: "Regular",
+                atualizacao: "Pendente",
+                analise: {
+                    codigo: "71",
+                    parceiro: "SERGIO COSTA MARTINS",
+                    dataCredito: "08/06/2024",
+                    credito: 280000.00,
+                    rating: "C",
+                    aberturaEmpresa: "20/04/2019",
+                    dataConsultaSerasa: "05/07/2024",
+                    score: 590,
+                    observacaoSerasa: "RESTRIÇÕES CADASTRAIS",
+                    dataCartorio: "28/07/24",
+                    observacoes: "Cliente com restrições",
+                    anoDRE: 2023,
+                    recDRE: 1600000.00,
+                    lucDRE: 190000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 105000000.00,
+                            lucro: 9500000.00,
+                            dividas: 32000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 5500000.00,
+                            bensDireitos: 16000000.00,
+                            endividamento: 1100000.00
+                        }
+                    },
+                    pretensaoCompra: 180000.00,
+                    compraSafraAnterior: 9000.00,
+                    cartaFianca: "08/05/2024",
+                    observacoes: "Cliente com restrições cadastrais",
+                    parecer: "Cliente com restrições, análise limitada",
+                    crApelido: {
+                        codigo: "903030122",
+                        descricao: "20.2.1/22 (PV SERGIO)",
+                        apelido: "PV SERGIO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 1600000.00
+                }
+            },
+            {
+                codigo: "72",
+                nome: "CLAUDIA ALVES FERREIRA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-10-05",
+                dtNegociacao: "2024-06-15",
+                possuiAnalise: false,
+                pontualidade: "N/A",
+                atualizacao: "Não Atualizado"
+            },
+            {
+                codigo: "73",
+                nome: "FERNANDO SILVA OLIVEIRA",
+                limiteTotal: 850000.00,
+                limiteConsumido: 320000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2026-02-10",
+                dtNegociacao: "2024-06-20",
+                possuiAnalise: true,
+                pontualidade: "Excelente",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "73",
+                    parceiro: "FERNANDO SILVA OLIVEIRA",
+                    dataCredito: "18/06/2024",
+                    credito: 850000.00,
+                    rating: "A",
+                    aberturaEmpresa: "25/08/2009",
+                    dataConsultaSerasa: "12/07/2024",
+                    score: 890,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "30/07/24",
+                    observacoes: "Cliente premium",
+                    anoDRE: 2023,
+                    recDRE: 5800000.00,
+                    lucDRE: 780000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 290000000.00,
+                            lucro: 32000000.00,
+                            dividas: 75000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 16000000.00,
+                            bensDireitos: 58000000.00,
+                            endividamento: 1800000.00
+                        }
+                    },
+                    pretensaoCompra: 680000.00,
+                    compraSafraAnterior: 32000.00,
+                    cartaFianca: "18/05/2024",
+                    observacoes: "Cliente premium com excelente histórico",
+                    parecer: "Cliente premium, aprovado sem restrições",
+                    crApelido: {
+                        codigo: "903030123",
+                        descricao: "20.2.1/23 (PV FERNANDO)",
+                        apelido: "PV FERNANDO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 5800000.00
+                }
+            },
+            {
+                codigo: "74",
+                nome: "PATRICIA RODRIGUES SANTOS",
+                limiteTotal: 190000.00,
+                limiteConsumido: 150000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-07-25",
+                dtNegociacao: "2024-06-25",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "74",
+                    parceiro: "PATRICIA RODRIGUES SANTOS",
+                    dataCredito: "22/06/2024",
+                    credito: 190000.00,
+                    rating: "B",
+                    aberturaEmpresa: "30/01/2018",
+                    dataConsultaSerasa: "15/07/2024",
+                    score: 740,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "22/07/24",
+                    observacoes: "Cliente regular",
+                    anoDRE: 2023,
+                    recDRE: 1300000.00,
+                    lucDRE: 160000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 85000000.00,
+                            lucro: 7800000.00,
+                            dividas: 26000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 4200000.00,
+                            bensDireitos: 13000000.00,
+                            endividamento: 380000.00
+                        }
+                    },
+                    pretensaoCompra: 130000.00,
+                    compraSafraAnterior: 7000.00,
+                    cartaFianca: "22/05/2024",
+                    observacoes: "Cliente com bom histórico",
+                    parecer: "Cliente aprovado",
+                    crApelido: {
+                        codigo: "903030124",
+                        descricao: "20.2.1/24 (PV PATRICIA)",
+                        apelido: "PV PATRICIA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 1300000.00
+                }
+            },
+            {
+                codigo: "75",
+                nome: "ANDRE LUIS COSTA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Cadastro Vencido",
+                dtVencimento: "2024-08-10",
+                dtNegociacao: "2024-06-30",
+                possuiAnalise: false,
+                pontualidade: "Ruim",
+                atualizacao: "Pendente"
+            },
+            {
+                codigo: "76",
+                nome: "MONICA FERREIRA LIMA",
+                limiteTotal: 720000.00,
+                limiteConsumido: 280000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-11-30",
+                dtNegociacao: "2024-07-05",
+                possuiAnalise: true,
+                pontualidade: "Ótima",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "76",
+                    parceiro: "MONICA FERREIRA LIMA",
+                    dataCredito: "02/07/2024",
+                    credito: 720000.00,
+                    rating: "A",
+                    aberturaEmpresa: "18/06/2011",
+                    dataConsultaSerasa: "18/07/2024",
+                    score: 860,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "02/08/24",
+                    observacoes: "Cliente com excelente histórico",
+                    anoDRE: 2023,
+                    recDRE: 4100000.00,
+                    lucDRE: 520000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 210000000.00,
+                            lucro: 24000000.00,
+                            dividas: 62000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 12500000.00,
+                            bensDireitos: 41000000.00,
+                            endividamento: 820000.00
+                        }
+                    },
+                    pretensaoCompra: 580000.00,
+                    compraSafraAnterior: 25000.00,
+                    cartaFianca: "02/06/2024",
+                    observacoes: "Cliente premium",
+                    parecer: "Excelente cliente, aprovado",
+                    crApelido: {
+                        codigo: "903030125",
+                        descricao: "20.2.1/25 (PV MONICA)",
+                        apelido: "PV MONICA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 4100000.00
+                }
+            },
+            {
+                codigo: "77",
+                nome: "ROBERTO SANTOS ALMEIDA",
+                limiteTotal: 380000.00,
+                limiteConsumido: 300000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-09-18",
+                dtNegociacao: "2024-07-10",
+                possuiAnalise: true,
+                pontualidade: "Regular",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "77",
+                    parceiro: "ROBERTO SANTOS ALMEIDA",
+                    dataCredito: "08/07/2024",
+                    credito: 380000.00,
+                    rating: "C",
+                    aberturaEmpresa: "12/02/2020",
+                    dataConsultaSerasa: "20/07/2024",
+                    score: 610,
+                    observacaoSerasa: "RESTRIÇÕES CADASTRAIS",
+                    dataCartorio: "05/08/24",
+                    observacoes: "Cliente com restrições",
+                    anoDRE: 2023,
+                    recDRE: 2300000.00,
+                    lucDRE: 290000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 140000000.00,
+                            lucro: 14500000.00,
+                            dividas: 43000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 7800000.00,
+                            bensDireitos: 23000000.00,
+                            endividamento: 1300000.00
+                        }
+                    },
+                    pretensaoCompra: 280000.00,
+                    compraSafraAnterior: 14000.00,
+                    cartaFianca: "08/06/2024",
+                    observacoes: "Cliente com restrições",
+                    parecer: "Cliente com restrições, análise limitada",
+                    crApelido: {
+                        codigo: "903030126",
+                        descricao: "20.2.1/26 (PV ROBERTO)",
+                        apelido: "PV ROBERTO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 2300000.00
+                }
+            },
+            {
+                codigo: "78",
+                nome: "SILVIA OLIVEIRA COSTA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Sem Data Cadastro",
+                dtVencimento: null,
+                dtNegociacao: "2024-07-15",
+                possuiAnalise: false,
+                pontualidade: "N/A",
+                atualizacao: "Não Atualizado"
+            },
+            {
+                codigo: "79",
+                nome: "ANTONIO CARLOS FERREIRA",
+                limiteTotal: 1300000.00,
+                limiteConsumido: 520000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2026-03-25",
+                dtNegociacao: "2024-07-20",
+                possuiAnalise: true,
+                pontualidade: "Excelente",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "79",
+                    parceiro: "ANTONIO CARLOS FERREIRA",
+                    dataCredito: "18/07/2024",
+                    credito: 1300000.00,
+                    rating: "AA",
+                    aberturaEmpresa: "05/11/2005",
+                    dataConsultaSerasa: "25/07/2024",
+                    score: 950,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "08/08/24",
+                    observacoes: "Cliente premium",
+                    anoDRE: 2023,
+                    recDRE: 9500000.00,
+                    lucDRE: 1400000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 450000000.00,
+                            lucro: 48000000.00,
+                            dividas: 110000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 28000000.00,
+                            bensDireitos: 95000000.00,
+                            endividamento: 3500000.00
+                        }
+                    },
+                    pretensaoCompra: 1600000.00,
+                    compraSafraAnterior: 85000.00,
+                    cartaFianca: "18/06/2024",
+                    observacoes: "Cliente premium com excelente histórico",
+                    parecer: "Cliente premium, aprovado sem restrições",
+                    crApelido: {
+                        codigo: "903030127",
+                        descricao: "20.2.1/27 (PV ANTONIO)",
+                        apelido: "PV ANTONIO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 9500000.00
+                }
+            },
+            {
+                codigo: "80",
+                nome: "JULIANA COSTA RODRIGUES",
+                limiteTotal: 240000.00,
+                limiteConsumido: 190000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-08-08",
+                dtNegociacao: "2024-07-25",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "80",
+                    parceiro: "JULIANA COSTA RODRIGUES",
+                    dataCredito: "22/07/2024",
+                    credito: 240000.00,
+                    rating: "B",
+                    aberturaEmpresa: "14/09/2017",
+                    dataConsultaSerasa: "28/07/2024",
+                    score: 760,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "12/08/24",
+                    observacoes: "Cliente regular",
+                    anoDRE: 2023,
+                    recDRE: 1700000.00,
+                    lucDRE: 210000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 115000000.00,
+                            lucro: 11200000.00,
+                            dividas: 35000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 5800000.00,
+                            bensDireitos: 17000000.00,
+                            endividamento: 480000.00
+                        }
+                    },
+                    pretensaoCompra: 180000.00,
+                    compraSafraAnterior: 9500.00,
+                    cartaFianca: "22/06/2024",
+                    observacoes: "Cliente com bom histórico",
+                    parecer: "Cliente aprovado",
+                    crApelido: {
+                        codigo: "903030128",
+                        descricao: "20.2.1/28 (PV JULIANA)",
+                        apelido: "PV JULIANA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 1700000.00
+                }
+            },
+            {
+                codigo: "81",
+                nome: "MARCELO SILVA SANTOS",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Cadastro Vencido",
+                dtVencimento: "2024-09-15",
+                dtNegociacao: "2024-07-30",
+                possuiAnalise: false,
+                pontualidade: "Ruim",
+                atualizacao: "Pendente"
+            },
+            {
+                codigo: "82",
+                nome: "VERA LUCIA ALMEIDA",
+                limiteTotal: 950000.00,
+                limiteConsumido: 380000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2026-01-18",
+                dtNegociacao: "2024-08-05",
+                possuiAnalise: true,
+                pontualidade: "Excelente",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "82",
+                    parceiro: "VERA LUCIA ALMEIDA",
+                    dataCredito: "02/08/2024",
+                    credito: 950000.00,
+                    rating: "AA",
+                    aberturaEmpresa: "22/04/2008",
+                    dataConsultaSerasa: "08/08/2024",
+                    score: 920,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "15/08/24",
+                    observacoes: "Cliente premium",
+                    anoDRE: 2023,
+                    recDRE: 6800000.00,
+                    lucDRE: 920000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 340000000.00,
+                            lucro: 38000000.00,
+                            dividas: 85000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 19000000.00,
+                            bensDireitos: 68000000.00,
+                            endividamento: 2200000.00
+                        }
+                    },
+                    pretensaoCompra: 780000.00,
+                    compraSafraAnterior: 42000.00,
+                    cartaFianca: "02/07/2024",
+                    observacoes: "Cliente premium com excelente histórico",
+                    parecer: "Cliente premium, aprovado sem restrições",
+                    crApelido: {
+                        codigo: "903030129",
+                        descricao: "20.2.1/29 (PV VERA)",
+                        apelido: "PV VERA"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 6800000.00
+                }
+            },
+            {
+                codigo: "83",
+                nome: "DIEGO FERREIRA COSTA",
+                limiteTotal: 420000.00,
+                limiteConsumido: 330000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-10-22",
+                dtNegociacao: "2024-08-10",
+                possuiAnalise: true,
+                pontualidade: "Regular",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "83",
+                    parceiro: "DIEGO FERREIRA COSTA",
+                    dataCredito: "08/08/2024",
+                    credito: 420000.00,
+                    rating: "C",
+                    aberturaEmpresa: "18/07/2019",
+                    dataConsultaSerasa: "12/08/2024",
+                    score: 580,
+                    observacaoSerasa: "PROTESTOS EM ABERTO",
+                    dataCartorio: "20/08/24",
+                    observacoes: "Cliente com restrições",
+                    anoDRE: 2023,
+                    recDRE: 2500000.00,
+                    lucDRE: 320000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 155000000.00,
+                            lucro: 15800000.00,
+                            dividas: 47000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 8200000.00,
+                            bensDireitos: 25000000.00,
+                            endividamento: 1500000.00
+                        }
+                    },
+                    pretensaoCompra: 310000.00,
+                    compraSafraAnterior: 16000.00,
+                    cartaFianca: "08/07/2024",
+                    observacoes: "Cliente com restrições cadastrais",
+                    parecer: "Cliente com restrições, análise pendente",
+                    crApelido: {
+                        codigo: "903030130",
+                        descricao: "20.2.1/30 (PV DIEGO)",
+                        apelido: "PV DIEGO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 2500000.00
+                }
+            },
+            {
+                codigo: "84",
+                nome: "CRISTINA SANTOS LIMA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Sem Data Cadastro",
+                dtVencimento: null,
+                dtNegociacao: "2024-08-15",
+                possuiAnalise: false,
+                pontualidade: "N/A",
+                atualizacao: "Não Atualizado"
+            }
+        ];
+
+        let parceirosFiltrados = [...parceiros];
+        let parceiroSelecionado = null;
+
+        // Função para formatar valores monetários
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(valor);
+        }
+
+        // Função para obter classe do status
+        function getStatusClass(status) {
+            switch(status) {
+                case 'Cadastro Vencido':
+                    return 'status-vencido';
+                case 'Cadastro Não Vencido':
+                    return 'status-nao-vencido';
+                case 'Sem Data Cadastro':
+                    return 'status-sem-data';
+                default:
+                    return '';
+            }
+        }
+
+        // Função para renderizar a tabela
+        function renderizarTabela() {
+            const tbody = document.getElementById('partnersTableBody');
+            tbody.innerHTML = '';
+
+            console.log('Renderizando tabela com', parceirosFiltrados.length, 'parceiros');
+
+            parceirosFiltrados.forEach((parceiro, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${parceiro.codigo}</td>
+                    <td>${parceiro.nome}</td>
+                    <td>${formatarMoeda(parceiro.limiteTotal)}</td>
+                    <td>${formatarMoeda(parceiro.limiteConsumido)}</td>
+                    <td>${parceiro.dtNegociacao ? new Date(parceiro.dtNegociacao).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                    <td><span class="status-badge ${getStatusClass(parceiro.status)}">${parceiro.status}</span></td>
+                `;
+                
+                row.addEventListener('click', () => selecionarParceiro(parceiro));
+                tbody.appendChild(row);
+                
+                // Debug: verificar cada linha sendo adicionada
+                if (index < 5) {
+                    console.log('Linha', index + 1, 'adicionada:', parceiro.codigo, parceiro.nome);
+                }
+            });
+            
+            console.log('Tabela renderizada com', tbody.children.length, 'linhas');
+        }
+
+        // Função para selecionar parceiro
+        function selecionarParceiro(parceiro) {
+            // Remove seleção anterior
+            document.querySelectorAll('#partnersTableBody tr').forEach(row => {
+                row.classList.remove('selected');
+            });
+
+            // Adiciona seleção ao item clicado
+            event.target.closest('tr').classList.add('selected');
+            
+            parceiroSelecionado = parceiro;
+            atualizarPainelDireito();
+        }
+
+        // Função para atualizar painel direito
+        function atualizarPainelDireito() {
+            if (!parceiroSelecionado) return;
+
+            // Atualiza cards
+            document.getElementById('pontualidadeTitulo').textContent = parceiroSelecionado.nome;
+            document.getElementById('pontualidadeDescricao').textContent = `Pontualidade: ${parceiroSelecionado.pontualidade}`;
+            
+            document.getElementById('atualizacaoTitulo').textContent = parceiroSelecionado.nome;
+            document.getElementById('atualizacaoDescricao').textContent = `Status: ${parceiroSelecionado.atualizacao}`;
+
+            // Atualiza análise de crédito
+            if (parceiroSelecionado.possuiAnalise && parceiroSelecionado.analise) {
+                renderizarAnaliseCredito(parceiroSelecionado.analise);
+            } else {
+                document.getElementById('analysisContainer').innerHTML = `
+                    <div class="no-selection">
+                        <h3>Demonstrativo Sintético de Análise de Crédito</h3>
+                        <p>Este parceiro não possui análise de crédito disponível</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Função para renderizar análise de crédito
+        function renderizarAnaliseCredito(analise) {
+            let sociosSection = '';
+            if (analise.socios && analise.socios.length > 0) {
+                sociosSection = `
+                    <div class="analysis-section">
+                        <h4>Dados dos Sócios</h4>
+                        ${analise.socios.map(socio => `
+                            <div class="analysis-item">
+                                <span class="analysis-label">Sócio:</span>
+                                <span class="analysis-value">${socio.nome} (${socio.participacao})</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">CPF:</span>
+                                <span class="analysis-value">${socio.cpf}</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Rendimentos:</span>
+                                <span class="analysis-value">${formatarMoeda(socio.rendimentos)}</span>
+                            </div>
+                            <div class="analysis-item">
+                                <span class="analysis-label">Bens e Direitos:</span>
+                                <span class="analysis-value">${formatarMoeda(socio.bensDireitos)}</span>
+                            </div>
+                            <div class="analysis-item" style="border-bottom: 2px solid #c8e6c9; margin-bottom: 8px;"></div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            document.getElementById('analysisContainer').innerHTML = `
+                <div class="analysis-header">
+                    <div class="analysis-title">Análise de Crédito #${analise.codigo}</div>
+                    <div class="analysis-badge">Análise ${analise.anoAnalise}</div>
+                </div>
+                
+                <div class="analysis-grid">
+                    <div class="analysis-section">
+                        <h4>Informações Gerais</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Cód. Parceiro:</span>
+                            <span class="analysis-value">${analise.codigo}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Parceiro:</span>
+                            <span class="analysis-value">${analise.parceiro}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Data Crédito:</span>
+                            <span class="analysis-value">${analise.dataCredito || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Rating:</span>
+                            <span class="analysis-value">${analise.rating || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Abertura Empresa:</span>
+                            <span class="analysis-value">${analise.aberturaEmpresa || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Data Consulta Serasa:</span>
+                            <span class="analysis-value">${analise.dataConsultaSerasa}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Score:</span>
+                            <span class="analysis-value">${analise.score}</span>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h4>Dados Financeiros</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Crédito:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.credito)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Pretensão Compra:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.pretensaoCompra)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Compra Safra Anterior:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.compraSafraAnterior)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Carta Fiança:</span>
+                            <span class="analysis-value">${analise.cartaFianca || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Ano DRE:</span>
+                            <span class="analysis-value">${analise.anoDRE || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Rec. DRE:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.recDRE)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Luc. DRE:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.lucDRE)}</span>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h4>Dados IR - Atividade Rural</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Receita:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.atividadeRural.receita)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Lucro/Prejuízo:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.atividadeRural.lucro)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Dívidas:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.atividadeRural.dividas)}</span>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h4>Dados IR - Pessoa Física</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Rendimentos:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.pessoaFisica.rendimentos)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Bens e Direitos:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.pessoaFisica.bensDireitos)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Endividamento:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.pessoaFisica.endividamento)}</span>
+                        </div>
+                    </div>
+
+                    ${sociosSection}
+
+                    <div class="analysis-section">
+                        <h4>Observações e Parecer</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Observação Serasa:</span>
+                            <span class="analysis-value">${analise.observacaoSerasa}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Data Cartório:</span>
+                            <span class="analysis-value">${analise.dataCartorio}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Observações:</span>
+                            <span class="analysis-value">${analise.observacoes}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Parecer:</span>
+                            <span class="analysis-value">${analise.parecer}</span>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h4>CR / Apelido</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Código:</span>
+                            <span class="analysis-value">${analise.crApelido.codigo}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Descrição:</span>
+                            <span class="analysis-value">${analise.crApelido.descricao}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Apelido:</span>
+                            <span class="analysis-value">${analise.crApelido.apelido}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Ano Análise:</span>
+                            <span class="analysis-value">${analise.anoAnalise}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Ano Fat.:</span>
+                            <span class="analysis-value">${analise.anoFat || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Valor Fat.:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.valorFat)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Função para aplicar filtros
+        function aplicarFiltros() {
+            const limiteFilter = document.getElementById('limiteFilter').value;
+            const analiseFilter = document.getElementById('analiseFilter').value;
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
+
+            // Debug: verificar valores dos filtros
+            console.log('Aplicando filtros:', { limiteFilter, analiseFilter, dataInicio, dataFim });
+
+            parceirosFiltrados = parceiros.filter(parceiro => {
+                // Filtro de limite
+                if (limiteFilter === 'sim' && parceiro.limiteTotal <= 0) return false;
+                if (limiteFilter === 'nao' && parceiro.limiteTotal > 0) return false;
+
+                // Filtro de análise
+                if (analiseFilter === 'sim' && !parceiro.possuiAnalise) return false;
+                if (analiseFilter === 'nao' && parceiro.possuiAnalise) return false;
+
+                // Filtro de período baseado na data de negociação
+                if (dataInicio || dataFim) {
+                    if (!parceiro.dtNegociacao) return false;
+                    
+                    const dataNegociacao = new Date(parceiro.dtNegociacao);
+                    const inicio = dataInicio ? new Date(dataInicio) : null;
+                    const fim = dataFim ? new Date(dataFim) : null;
+                    
+                    if (inicio && dataNegociacao < inicio) return false;
+                    if (fim && dataNegociacao > fim) return false;
+                }
+
+                return true;
+            });
+
+            console.log('Parceiros após filtro:', parceirosFiltrados.length);
+            renderizarTabela();
+        }
+
+        // Função para limpar filtros
+        function limparFiltros() {
+            // Limpar valores dos filtros
+            document.getElementById('limiteFilter').value = '';
+            document.getElementById('analiseFilter').value = '';
+            document.getElementById('dataInicio').value = '';
+            document.getElementById('dataFim').value = '';
+            
+            // Restaurar todos os parceiros
+            parceirosFiltrados = [...parceiros];
+            console.log('Filtros limpos, exibindo todos os', parceirosFiltrados.length, 'parceiros');
+            
+            renderizarTabela();
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            // Debug: verificar quantidade de parceiros
+            console.log('Total de parceiros:', parceiros.length);
+            console.log('Parceiros filtrados:', parceirosFiltrados.length);
+            
+            // Garantir que todos os parceiros sejam exibidos inicialmente
+            parceirosFiltrados = [...parceiros];
+            
+            renderizarTabela();
+            
+            // Debug: verificar após renderização
+            console.log('Tabela renderizada com', document.querySelectorAll('#partnersTableBody tr').length, 'linhas');
+        });
+    </script>
+</body>
+</html>
