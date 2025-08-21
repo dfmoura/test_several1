@@ -342,15 +342,65 @@ AND NAT.ATIVA = 'S'
 AND FIN.DHBAIXA IS NOT NULL AND FIN.CODEMP IN (:P_EMPRESA)
 ),
 
+Notas AS (
+    SELECT 
+        CAB.NUNOTA,
+        SUM(ITE.VLRTOT - ITE.VLRDESC) AS TotalItens,
+        SUM(ITE.VLRDESC) AS DescontoItens,
+        CAB.VLRDESCTOT AS DescontoCab,
+        CAB.VLRSUBST - CAB.VLRREPREDTOT AS DescontoCab1
+    FROM TGFCAB CAB
+    INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+    INNER JOIN TGFTOP TOP1 ON CAB.CODTIPOPER = TOP1.CODTIPOPER
+    WHERE
+        DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+        AND CAB.TIPMOV IN ('V')
+        AND TOP1.ATIVO = 'S'
+        AND TOP1.AD_COMPOE_FAT = 'S'
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND TOP1.DHALTER = ( SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+    GROUP BY CAB.NUNOTA, CAB.VLRDESCTOT,CAB.VLRSUBST,CAB.VLRREPREDTOT
+),
+FAT_DES_MA AS (
+SELECT
+    1 AS COD,
+    SUM(TotalItens) - SUM(DescontoCab) + SUM(DescontoCab1) AS VLRFAT_MA,
+    SUM(DescontoItens) + SUM(DescontoCab) AS VLRDESC_MA
+FROM Notas
+),
+
+Notas1 AS (
+    SELECT 
+        CAB.NUNOTA,
+        SUM(ITE.VLRTOT - ITE.VLRDESC) AS TotalItens,
+        SUM(ITE.VLRDESC) AS DescontoItens,
+        CAB.VLRDESCTOT AS DescontoCab,
+        CAB.VLRSUBST - CAB.VLRREPREDTOT AS DescontoCab1
+    FROM TGFCAB CAB
+    INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+    INNER JOIN TGFTOP TOP1 ON CAB.CODTIPOPER = TOP1.CODTIPOPER
+    WHERE
+        CAB.DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+        AND CAB.TIPMOV IN ('V')
+        AND TOP1.AD_COMPOE_FAT = 'S'
+        AND CAB.CODEMP IN (:P_EMPRESA)
+        AND TOP1.DHALTER = ( SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = CAB.CODTIPOPER)
+    GROUP BY CAB.NUNOTA, CAB.VLRDESCTOT,CAB.VLRSUBST,CAB.VLRREPREDTOT
+),
+FAT_DES AS (
+SELECT
+    1 AS COD,
+    SUM(TotalItens) - SUM(DescontoCab) + SUM(DescontoCab1) AS VLRFAT,
+    SUM(DescontoItens) + SUM(DescontoCab) AS VLRDESC
+FROM Notas1),
 
 
 BAS_MA AS (
 SELECT 
 1 AS COD,
-SUM(VLRNOTA) VLRFAT_MA,
+SUM(TOTALLIQ) VLRFAT_MA,
 SUM(VLRDEV) VLRDEVOL_MA,
-SUM(VLRIPI+VLRICMS+VLRPIS+VLRCOFINS) VLRIMP_MA,
-SUM(VLRSUBST_PROP) AS VLRSUBST_MA,
+SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS) VLRIMP_MA,
 SUM(CUSREP_TOT) VLRCMV_MA,
 SUM(TON) TON_MA,
 SUM(VLRDESC) VLRDESC_MA,
@@ -365,15 +415,14 @@ AND CODEMP IN (:P_EMPRESA)
 BAS AS (
 SELECT 
 1 AS COD,
-SUM(VLRNOTA) AS VLRFAT, 
-SUM(VLRDEV)  AS VLRDEVOL,
-SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS) AS VLRIMP,
-SUM(VLRSUBST_PROP) AS VLRSUBST,
-SUM(CUSREP_TOT) AS VLRCMV,
-SUM(TON) AS TON,
-SUM(VLRDESC) AS VLRDESC, 
-SUM(MARGEMNON) AS VLRMCN,
-AVG(PERCMARGEM) AS VLRMCD
+SUM(TOTALLIQ) VLRFAT,
+SUM(VLRDEV) VLRDEVOL,
+SUM(VLRIPI+VLRICMS+VLRPIS+VLRCOFINS) VLRIMP,
+SUM(CUSREP_TOT) VLRCMV,
+SUM(TON) TON,
+SUM(VLRDESC) VLRDESC,
+SUM(MARGEMNON) VLRMCN,
+AVG(PERCMARGEM) VLRMCD
 FROM vw_rentabilidade_aco
 WHERE
 DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN
@@ -381,15 +430,15 @@ and tipmov in ('V', 'D') and AD_COMPOE_FAT = 'S'
 AND CODEMP IN (:P_EMPRESA)
 )
 SELECT 
-FORMAT(ROUND(BAS.VLRFAT, 2), 'N2') AS VLRFAT,
-FORMAT(ROUND(BAS_MA.VLRFAT_MA, 2), 'N2') AS VLRFAT_MA,
-FORMAT(ROUND(ISNULL(ROUND(((BAS.VLRFAT - BAS_MA.VLRFAT_MA) / NULLIF(BAS_MA.VLRFAT_MA,0)) * 100,2),0), 2), 'N2') AS VAR_VLRFAT,
+FORMAT(ROUND(FAT_DES.VLRFAT, 2), 'N2') AS VLRFAT,
+FORMAT(ROUND(FAT_DES_MA.VLRFAT_MA, 2), 'N2') AS VLRFAT_MA,
+FORMAT(ROUND(ISNULL(ROUND(((FAT_DES.VLRFAT - FAT_DES_MA.VLRFAT_MA) / NULLIF(FAT_DES_MA.VLRFAT_MA,0)) * 100,2),0), 2), 'N2') AS VAR_VLRFAT,
 FORMAT(ROUND(BAS.VLRDEVOL, 2), 'N2') AS VLRDEVOL,
 FORMAT(ROUND(BAS_MA.VLRDEVOL_MA, 2), 'N2') AS VLRDEVOL_MA,
 FORMAT(ROUND(ISNULL(ROUND(((BAS.VLRDEVOL - BAS_MA.VLRDEVOL_MA) / NULLIF(BAS_MA.VLRDEVOL_MA, 0)) * 100, 2), 0), 2), 'N2') AS VAR_VLRDEVOL,
-FORMAT(ROUND(BAS.VLRIMP+BAS.VLRSUBST, 2), 'N2') AS VLRIMP,
-FORMAT(ROUND(BAS_MA.VLRIMP_MA+BAS_MA.VLRSUBST_MA, 2), 'N2') AS VLRIMP_MA,
-FORMAT(ROUND(ISNULL(ROUND((((BAS.VLRIMP+BAS.VLRSUBST) - (BAS_MA.VLRIMP_MA+BAS_MA.VLRSUBST_MA)) / NULLIF(BAS_MA.VLRIMP_MA+BAS_MA.VLRSUBST_MA, 0)) * 100, 2), 0), 2), 'N2') AS VAR_VLRIMP,
+FORMAT(ROUND(BAS.VLRIMP, 2), 'N2') AS VLRIMP,
+FORMAT(ROUND(BAS_MA.VLRIMP_MA, 2), 'N2') AS VLRIMP_MA,
+FORMAT(ROUND(ISNULL(ROUND(((BAS.VLRIMP - BAS_MA.VLRIMP_MA) / NULLIF(BAS_MA.VLRIMP_MA, 0)) * 100, 2), 0), 2), 'N2') AS VAR_VLRIMP,
 FORMAT(ROUND(BAS.VLRCMV, 2), 'N2') AS VLRCMV,
 FORMAT(ROUND(BAS_MA.VLRCMV_MA, 2), 'N2') AS VLRCMV_MA,
 FORMAT(ROUND(ISNULL(ROUND(((BAS.VLRCMV - BAS_MA.VLRCMV_MA) / NULLIF(BAS_MA.VLRCMV_MA, 0)) * 100, 2), 0), 2), 'N2') AS VAR_VLRCMV,
@@ -413,21 +462,30 @@ FORMAT(ROUND(INV.VLRINV_MA, 2), 'N2') AS VLRINV_MA,
 FORMAT(ROUND(ISNULL(ROUND(((INV.VLRINV - INV.VLRINV_MA) / NULLIF(INV.VLRINV_MA, 0)) * 100, 2), 0), 2), 'N2') AS VAR_VLRINV,
 
 
-FORMAT(ROUND(BAS.VLRFAT-BAS.VLRDEVOL-BAS.VLRIMP-BAS.VLRCMV-DOS.VLRDO-INV.VLRINV, 2), 'N2') AS VLRRES,
-FORMAT(ROUND(BAS_MA.VLRFAT_MA-BAS_MA.VLRDEVOL_MA-BAS_MA.VLRIMP_MA-BAS_MA.VLRCMV_MA-DOS.VLRDO_MA-INV.VLRINV_MA, 2), 'N2') AS VLRRES_MA,
+FORMAT(ROUND(FAT_DES.VLRFAT-BAS.VLRDEVOL-BAS.VLRIMP-BAS.VLRCMV-DOS.VLRDO-INV.VLRINV, 2), 'N2') AS VLRRES,
+
+
+FORMAT(ROUND(FAT_DES_MA.VLRFAT_MA-BAS_MA.VLRDEVOL_MA-BAS_MA.VLRIMP_MA-BAS_MA.VLRCMV_MA-DOS.VLRDO_MA-INV.VLRINV_MA, 2), 'N2') AS VLRRES_MA,
+
 
 FORMAT(ROUND(ISNULL(ROUND((
-(BAS.VLRFAT-BAS.VLRDEVOL-BAS.VLRIMP-BAS.VLRCMV-DOS.VLRDO-INV.VLRINV)
+
+(FAT_DES.VLRFAT-BAS.VLRDEVOL-BAS.VLRIMP-BAS.VLRCMV-DOS.VLRDO-INV.VLRINV) 
 - 
-(BAS_MA.VLRFAT_MA-BAS_MA.VLRDEVOL_MA-BAS_MA.VLRIMP_MA-BAS_MA.VLRCMV_MA-DOS.VLRDO_MA-INV.VLRINV_MA)
+(FAT_DES_MA.VLRFAT_MA-BAS_MA.VLRDEVOL_MA-BAS_MA.VLRIMP_MA-BAS_MA.VLRCMV_MA-DOS.VLRDO_MA-INV.VLRINV_MA)
+
 )
+
 / 
-NULLIF((BAS_MA.VLRFAT_MA-BAS_MA.VLRDEVOL_MA-BAS_MA.VLRIMP_MA-BAS_MA.VLRCMV_MA-DOS.VLRDO_MA-INV.VLRINV_MA), 0) 
+NULLIF((FAT_DES_MA.VLRFAT_MA-BAS_MA.VLRDEVOL_MA-BAS_MA.VLRIMP_MA-BAS_MA.VLRCMV_MA-DOS.VLRDO_MA-INV.VLRINV_MA), 0) 
 * 100, 2), 0), 2), 'N2'
+
 ) AS VAR_VLRRES
 
 FROM BAS
 INNER JOIN BAS_MA ON BAS.COD = BAS_MA.COD
+INNER JOIN FAT_DES_MA ON BAS.COD = FAT_DES_MA.COD
+INNER JOIN FAT_DES ON BAS.COD = FAT_DES.COD
 INNER JOIN DOS ON BAS.COD = DOS.COD
 INNER JOIN INV ON BAS.COD = INV.COD
 
@@ -441,7 +499,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
     <!-- Parte Superior - 6 Cards -->
     <div class="row custom-row">
         <div class="col-lg-2 col-md-4 mb-4" >
-            <div class="card shadow-sm" title="Esta informação contempla = (Total dos Produtos - Total de desconto dos produtos) - Desconto Rodapé Nota + Valor de Substituição - Desconto Redução de Base" onclick="abrir_fat()">
+            <div class="card shadow-sm" title="Esta informação contempla o Total dos Produtos + IPI + ST - Desconto - Devoluções" onclick="abrir_fat()">
                 <div class="card-body text-center" >
                     <div class="icon">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4 14.083c0-2.145-2.232-2.742-3.943-3.546-1.039-.54-.908-1.829.581-1.916.826-.05 1.675.195 2.443.465l.362-1.647c-.907-.276-1.719-.402-2.443-.421v-1.018h-1v1.067c-1.945.267-2.984 1.487-2.984 2.85 0 2.438 2.847 2.81 3.778 3.243 1.27.568 1.035 1.75-.114 2.011-.997.226-2.269-.168-3.225-.54l-.455 1.644c.894.462 1.965.708 3 .727v.998h1v-1.053c1.657-.232 3.002-1.146 3-2.864z"/> alt="Ícone de Moeda" class="icon"></svg>
@@ -458,7 +516,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
             </div>
         </div>
         <div class="col-lg-2 col-md-4 mb-4">
-            <div class="card shadow-sm" title = "Esta informação contempla = (Total dos Produtos - Total de desconto dos produtos) - Desconto Rodapé Nota + Valor de Substituição - Desconto Redução de Base" onclick="abrir_dev()">
+            <div class="card shadow-sm" onclick="abrir_dev()">
                 <div class="card-body text-center">
                     <div class="icon">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4 14.083c0-2.145-2.232-2.742-3.943-3.546-1.039-.54-.908-1.829.581-1.916.826-.05 1.675.195 2.443.465l.362-1.647c-.907-.276-1.719-.402-2.443-.421v-1.018h-1v1.067c-1.945.267-2.984 1.487-2.984 2.85 0 2.438 2.847 2.81 3.778 3.243 1.27.568 1.035 1.75-.114 2.011-.997.226-2.269-.168-3.225-.54l-.455 1.644c.894.462 1.965.708 3 .727v.998h1v-1.053c1.657-.232 3.002-1.146 3-2.864z"/> alt="Ícone de Moeda" class="icon"></svg>
@@ -475,7 +533,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
             </div>
         </div>
         <div class="col-lg-2 col-md-4 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = Valor IPI + Valor Substituição + Valor ICMS + Valor PIS + Valor COFINS" onclick="abrir_imp()">
+            <div class="card shadow-sm" title="Esta informação contempla o ICMS + ST + IPI + PIS + COFINS + FEM*** " onclick="abrir_imp()">
                 <div class="card-body text-center">
                     <div class="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4 14.083c0-2.145-2.232-2.742-3.943-3.546-1.039-.54-.908-1.829.581-1.916.826-.05 1.675.195 2.443.465l.362-1.647c-.907-.276-1.719-.402-2.443-.421v-1.018h-1v1.067c-1.945.267-2.984 1.487-2.984 2.85 0 2.438 2.847 2.81 3.778 3.243 1.27.568 1.035 1.75-.114 2.011-.997.226-2.269-.168-3.225-.54l-.455 1.644c.894.462 1.965.708 3 .727v.998h1v-1.053c1.657-.232 3.002-1.146 3-2.864z"/> alt="Ícone de Moeda" class="icon"></svg>
@@ -492,7 +550,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
             </div>
         </div>
         <div class="col-lg-2 col-md-4 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = Último Custo de Reposição * Quantidade Negociada" onclick="abrir_cmv()">
+            <div class="card shadow-sm" onclick="abrir_cmv()">
                 <div class="card-body text-center">
                     <div class="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4 14.083c0-2.145-2.232-2.742-3.943-3.546-1.039-.54-.908-1.829.581-1.916.826-.05 1.675.195 2.443.465l.362-1.647c-.907-.276-1.719-.402-2.443-.421v-1.018h-1v1.067c-1.945.267-2.984 1.487-2.984 2.85 0 2.438 2.847 2.81 3.778 3.243 1.27.568 1.035 1.75-.114 2.011-.997.226-2.269-.168-3.225-.54l-.455 1.644c.894.462 1.965.708 3 .727v.998h1v-1.053c1.657-.232 3.002-1.146 3-2.864z"/> alt="Ícone de Moeda" class="icon"></svg>
@@ -509,7 +567,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
             </div>
         </div>        
         <div class="col-lg-2 col-md-4 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = (Quantidade negociada / ou * Quantidade Unidade Alternativa KG) / 1000" onclick="abrir_hl()">
+            <div class="card shadow-sm" onclick="abrir_hl()">
                 <div class="card-body text-center">
                     <div class="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -528,7 +586,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
         </div>
         
         <div class="col-lg-2 col-md-4 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = Total de desconto dos produtos - Desconto Rodapé da Nota" onclick="abrir_desc()">
+            <div class="card shadow-sm" onclick="abrir_desc()">
                 <div class="card-body text-center">
                     <div class="icon">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4 14.083c0-2.145-2.232-2.742-3.943-3.546-1.039-.54-.908-1.829.581-1.916.826-.05 1.675.195 2.443.465l.362-1.647c-.907-.276-1.719-.402-2.443-.421v-1.018h-1v1.067c-1.945.267-2.984 1.487-2.984 2.85 0 2.438 2.847 2.81 3.778 3.243 1.27.568 1.035 1.75-.114 2.011-.997.226-2.269-.168-3.225-.54l-.455 1.644c.894.462 1.965.708 3 .727v.998h1v-1.053c1.657-.232 3.002-1.146 3-2.864z"/> alt="Ícone de Moeda" class="icon"></svg>
@@ -549,7 +607,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
     <!-- Parte do Meio 1 - 2 Cards -->
     <div class="row custom-row">
         <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = Faturamento - Impostos (com exceção do Valor Substituição) - CMV" onclick="abrir_mar()">
+            <div class="card shadow-sm" title="Esta informação contempla Faturamento - Impostos - CMV " onclick="abrir_mar()">
                 <div class="card-body text-center">
                     <div class="icon">
                         <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd"><path d="M21.19 7h2.81v15h-21v-5h-2.81v-15h21v5zm1.81 1h-19v13h19v-13zm-9.5 1c3.036 0 5.5 2.464 5.5 5.5s-2.464 5.5-5.5 5.5-5.5-2.464-5.5-5.5 2.464-5.5 5.5-5.5zm0 1c2.484 0 4.5 2.016 4.5 4.5s-2.016 4.5-4.5 4.5-4.5-2.016-4.5-4.5 2.016-4.5 4.5-4.5zm.5 8h-1v-.804c-.767-.16-1.478-.689-1.478-1.704h1.022c0 .591.326.886.978.886.817 0 1.327-.915-.167-1.439-.768-.27-1.68-.676-1.68-1.693 0-.796.573-1.297 1.325-1.448v-.798h1v.806c.704.161 1.313.673 1.313 1.598h-1.018c0-.788-.727-.776-.815-.776-.55 0-.787.291-.787.622 0 .247.134.497.957.768 1.056.344 1.663.845 1.663 1.746 0 .651-.376 1.288-1.313 1.448v.788zm6.19-11v-4h-19v13h1.81v-9h17.19z"/></svg>
@@ -566,7 +624,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
             </div>
         </div>
         <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = Margem de Contribuição Nominal / Faturamento" onclick="abrir_mar_perc()">
+            <div class="card shadow-sm" title="Esta informação contempla (Faturamento - Impostos - CMV) / Faturamento " onclick="abrir_mar_perc()">
                 <div class="card-body text-center">
                     <div class="icon">
                         <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd"><path d="M21.19 7h2.81v15h-21v-5h-2.81v-15h21v5zm1.81 1h-19v13h19v-13zm-9.5 1c3.036 0 5.5 2.464 5.5 5.5s-2.464 5.5-5.5 5.5-5.5-2.464-5.5-5.5 2.464-5.5 5.5-5.5zm0 1c2.484 0 4.5 2.016 4.5 4.5s-2.016 4.5-4.5 4.5-4.5-2.016-4.5-4.5 2.016-4.5 4.5-4.5zm.5 8h-1v-.804c-.767-.16-1.478-.689-1.478-1.704h1.022c0 .591.326.886.978.886.817 0 1.327-.915-.167-1.439-.768-.27-1.68-.676-1.68-1.693 0-.796.573-1.297 1.325-1.448v-.798h1v.806c.704.161 1.313.673 1.313 1.598h-1.018c0-.788-.727-.776-.815-.776-.55 0-.787.291-.787.622 0 .247.134.497.957.768 1.056.344 1.663.845 1.663 1.746 0 .651-.376 1.288-1.313 1.448v.788zm6.19-11v-4h-19v13h1.81v-9h17.19z"/></svg>
@@ -587,7 +645,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
     <!-- Parte do Meio 2 - 2 Cards -->
     <div class="row mt-2">
         <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = Soma das despesas financeiras baixadas com as naturezas que indicam Despesa Operacional" onclick="abrir_do()">
+            <div class="card shadow-sm" onclick="abrir_do()">
                 <div class="card-body text-center">
                     <div class="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12.164 7.165c-1.15.191-1.702 1.233-1.231 2.328.498 1.155 1.921 1.895 3.094 1.603 1.039-.257 1.519-1.252 1.069-2.295-.471-1.095-1.784-1.827-2.932-1.636zm1.484 2.998l.104.229-.219.045-.097-.219c-.226.041-.482.035-.719-.027l-.065-.387c.195.03.438.058.623.02l.125-.041c.221-.109.152-.387-.176-.453-.245-.054-.893-.014-1.135-.552-.136-.304-.035-.621.356-.766l-.108-.239.217-.045.104.229c.159-.026.345-.036.563-.017l.087.383c-.17-.021-.353-.041-.512-.008l-.06.016c-.309.082-.21.375.064.446.453.105.994.139 1.208.612.173.385-.028.648-.36.774zm10.312 1.057l-3.766-8.22c-6.178 4.004-13.007-.318-17.951 4.454l3.765 8.22c5.298-4.492 12.519-.238 17.952-4.454zm-2.803-1.852c-.375.521-.653 1.117-.819 1.741-3.593 1.094-7.891-.201-12.018 1.241-.667-.354-1.503-.576-2.189-.556l-1.135-2.487c.432-.525.772-1.325.918-2.094 3.399-1.226 7.652.155 12.198-1.401.521.346 1.13.597 1.73.721l1.315 2.835zm2.843 5.642c-6.857 3.941-12.399-1.424-19.5 5.99l-4.5-9.97 1.402-1.463 3.807 8.406-.002.007c7.445-5.595 11.195-1.176 18.109-4.563.294.648.565 1.332.684 1.593z"/> alt="Ícone de Moeda" class="icon"></svg>
@@ -604,7 +662,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
             </div>
         </div>
         <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = Soma das despesas financeiras baixadas com as naturezas que indicam Investimentos" onclick="abrir_inv()">
+            <div class="card shadow-sm" onclick="abrir_inv()">
                 <div class="card-body text-center">
                     <div class="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12.164 7.165c-1.15.191-1.702 1.233-1.231 2.328.498 1.155 1.921 1.895 3.094 1.603 1.039-.257 1.519-1.252 1.069-2.295-.471-1.095-1.784-1.827-2.932-1.636zm1.484 2.998l.104.229-.219.045-.097-.219c-.226.041-.482.035-.719-.027l-.065-.387c.195.03.438.058.623.02l.125-.041c.221-.109.152-.387-.176-.453-.245-.054-.893-.014-1.135-.552-.136-.304-.035-.621.356-.766l-.108-.239.217-.045.104.229c.159-.026.345-.036.563-.017l.087.383c-.17-.021-.353-.041-.512-.008l-.06.016c-.309.082-.21.375.064.446.453.105.994.139 1.208.612.173.385-.028.648-.36.774zm10.312 1.057l-3.766-8.22c-6.178 4.004-13.007-.318-17.951 4.454l3.765 8.22c5.298-4.492 12.519-.238 17.952-4.454zm-2.803-1.852c-.375.521-.653 1.117-.819 1.741-3.593 1.094-7.891-.201-12.018 1.241-.667-.354-1.503-.576-2.189-.556l-1.135-2.487c.432-.525.772-1.325.918-2.094 3.399-1.226 7.652.155 12.198-1.401.521.346 1.13.597 1.73.721l1.315 2.835zm2.843 5.642c-6.857 3.941-12.399-1.424-19.5 5.99l-4.5-9.97 1.402-1.463 3.807 8.406-.002.007c7.445-5.595 11.195-1.176 18.109-4.563.294.648.565 1.332.684 1.593z"/> alt="Ícone de Moeda" class="icon"></svg>
@@ -625,7 +683,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
     <!-- Parte Inferior - Somente Card -->
     <div class="row parte-inferior">
         <div class="col-lg-12 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = Faturamento - Devoluções - Impostos (com exceção do Valor Substituição) - CMV - Despesas Operacionais - Investimentos" onclick="abrir_res()">
+            <div class="card shadow-sm" title="Esta informação contempla = Faturamento - Impostos - CMV - Despesa Operacional - Investimento " onclick="abrir_res()">
                 <div class="card-body text-center">
                     <div class="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M8.502 5c-.257-1.675.04-3.562 1.229-5h7.259c-.522.736-1.768 2.175-1.391 5h-1.154c-.147-1.336.066-2.853.562-4h-4.725c-.666 1.003-.891 2.785-.657 4h-1.123zm10.498-1v20h-14v-20h2.374v.675c0 .732.583 1.325 1.302 1.325h6.647c.721 0 1.304-.593 1.304-1.325v-.675h2.373zm-9 17h-2v1h2v-1zm0-2h-2v1h2v-1zm0-2h-2v1h2v-1zm3 4h-2v1h2v-1zm0-2h-2v1h2v-1zm0-2h-2v1h2v-1zm3 4h-2v1h2v-1zm0-2h-2v1h2v-1zm0-2h-2v1h2v-1zm-6-2h-2v1h2v-1zm3 0h-2v1h2v-1zm3 0h-2v1h2v-1zm1-7h-10v5h10v-5z"/></svg>

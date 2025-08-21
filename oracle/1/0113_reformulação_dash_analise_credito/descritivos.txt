@@ -60,3 +60,24 @@ colocar filtro:
 se possui ou nao limite os parceiro apresentados: sim ou nao
 se possui anlise de credito: sim ou nao
 e o periodo de analise de: ate:
+--------------
+
+copiando a tela index.html
+utilizar a mesma estrutura e funcionalidades, mudar somente o layout
+
+criar uma mais profissional, clean e bonita
+
+criar um novo arquivo index2.html
+
+
+--------------------
+
+so melhorar no layout as cores para tons de verde
+
+--------------------
+no layout 
+diminuir o tamanho da fonte geral
+
+e tabem melhorar a tabela pois nao tem scroll na vertical
+
+e tambem fica cortando o restante da informação na horizontal

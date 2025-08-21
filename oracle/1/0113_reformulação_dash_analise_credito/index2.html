@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Análise de Crédito</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #059669;
+            --primary-dark: #047857;
+            --primary-light: #d1fae5;
+            --secondary-color: #6b7280;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --background-color: #f0fdf4;
+            --surface-color: #ffffff;
+            --border-color: #d1fae5;
+            --text-primary: #064e3b;
+            --text-secondary: #065f46;
+            --text-muted: #6b7280;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+            overflow-x: hidden;
+            font-size: 0.875rem;
+        }
+
+        .container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 0%, rgba(16, 185, 129, 0.2) 100%);
+            transform: skewX(-15deg);
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        /* Filters */
+        .filters {
+            background: var(--surface-color);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .filters-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--surface-color);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            min-width: 160px;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .filter-group button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            min-width: 160px;
+            margin-top: 1.5rem;
+        }
+
+        .filter-group button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .filter-group button:active {
+            transform: translateY(0);
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 0 2rem;
+            gap: 1.5rem;
+        }
+
+        .left-panel {
+            flex: 1;
+            background: var(--surface-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            margin: 1.5rem 0;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Table */
+        .table-container {
+            overflow: auto;
+            max-height: 60vh;
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: white;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .table-header p {
+            opacity: 0.9;
+            font-size: 0.75rem;
+        }
+
+        .partners-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            min-width: 800px;
+        }
+
+        .partners-table th {
+            background: #f8fafc;
+            color: var(--text-secondary);
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.65rem;
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .partners-table td {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .partners-table tbody tr {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .partners-table tbody tr:hover {
+            background: var(--primary-light);
+            transform: translateX(4px);
+        }
+
+        .partners-table tbody tr.selected {
+            background: var(--primary-light);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: inline-block;
+            min-width: 120px;
+        }
+
+        .status-vencido {
+            background: #fef2f2;
+            color: var(--danger-color);
+            border: 1px solid #fecaca;
+        }
+
+        .status-nao-vencido {
+            background: #f0fdf4;
+            color: var(--success-color);
+            border: 1px solid #bbf7d0;
+        }
+
+        .status-sem-data {
+            background: #fffbeb;
+            color: var(--warning-color);
+            border: 1px solid #fed7aa;
+        }
+
+        /* Cards */
+        .cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .card {
+            background: var(--surface-color);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card h3 {
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .icon-pontualidade {
+            background: linear-gradient(135deg, #059669, #10b981);
+        }
+
+        .icon-atualizacao {
+            background: linear-gradient(135deg, #047857, #065f46);
+        }
+
+        .card-info h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.125rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .card-info p {
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+            margin: 0;
+        }
+
+        /* Analysis Container */
+        .analysis-container {
+            background: var(--surface-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .analysis-title {
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .analysis-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .analysis-section {
+            background: #f0fdf4;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            border-left: 4px solid #059669;
+        }
+
+        .analysis-section h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .analysis-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding: 0.375rem 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+        }
+
+        .analysis-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .analysis-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .analysis-value {
+            color: var(--text-primary);
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .no-selection {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem;
+        }
+
+        .no-selection h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .no-selection p {
+            font-size: 0.875rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+                padding: 0 1rem;
+            }
+            
+            .left-panel {
+                margin: 1rem 0;
+            }
+            
+            .right-panel {
+                padding: 1rem 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .filters {
+                padding: 1rem;
+            }
+            
+            .filters-content {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                min-width: auto;
+            }
+            
+            .cards-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .partners-table {
+                font-size: 0.75rem;
+            }
+            
+            .partners-table th,
+            .partners-table td {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: var(--radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: var(--radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Animações */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card, .analysis-container {
+            animation: fadeIn 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-chart-line"></i> Dashboard de Análise de Crédito</h1>
+                <p>Sistema Inteligente de Gestão de Parceiros e Análise de Crédito</p>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filters-content">
+                <div class="filter-group">
+                    <label><i class="fas fa-filter"></i> Possui Limite</label>
+                    <select id="limiteFilter">
+                        <option value="">Todos os Parceiros</option>
+                        <option value="sim">Com Limite</option>
+                        <option value="nao">Sem Limite</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label><i class="fas fa-search"></i> Possui Análise</label>
+                    <select id="analiseFilter">
+                        <option value="">Todos os Parceiros</option>
+                        <option value="sim">Com Análise</option>
+                        <option value="nao">Sem Análise</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label><i class="fas fa-calendar"></i> Período Neg. De</label>
+                    <input type="date" id="dataInicio">
+                </div>
+                
+                <div class="filter-group">
+                    <label><i class="fas fa-calendar-check"></i> Até</label>
+                    <input type="date" id="dataFim">
+                </div>
+                
+                <div class="filter-group">
+                    <button onclick="aplicarFiltros()">
+                        <i class="fas fa-search"></i> Aplicar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="table-header">
+                    <h3><i class="fas fa-table"></i> Lista de Parceiros</h3>
+                    <p>Selecione um parceiro para visualizar detalhes e análise de crédito</p>
+                </div>
+                <div class="table-container">
+                    <table class="partners-table" id="partnersTable">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-hashtag"></i> Código</th>
+                                <th><i class="fas fa-user"></i> Parceiro</th>
+                                <th><i class="fas fa-dollar-sign"></i> Limite Total</th>
+                                <th><i class="fas fa-chart-pie"></i> Limite Consumido</th>
+                                <th><i class="fas fa-calendar"></i> Data Neg.</th>
+                                <th><i class="fas fa-info-circle"></i> Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partnersTableBody">
+                            <!-- Dados serão carregados via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="cards-container">
+                    <div class="card">
+                        <h3><i class="fas fa-chart-line"></i> Indicativos de Pontualidade</h3>
+                        <div class="card-content">
+                            <div class="card-icon icon-pontualidade">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="card-info">
+                                <h4 id="pontualidadeTitulo">Selecione um parceiro</h4>
+                                <p id="pontualidadeDescricao">Para visualizar os indicadores de pontualidade</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-sync-alt"></i> Indicativos de Atualização</h3>
+                        <div class="card-content">
+                            <div class="card-icon icon-atualizacao">
+                                <i class="fas fa-sync-alt"></i>
+                            </div>
+                            <div class="card-info">
+                                <h4 id="atualizacaoTitulo">Selecione um parceiro</h4>
+                                <p id="atualizacaoDescricao">Para visualizar os indicadores de atualização</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analysis-container" id="analysisContainer">
+                    <div class="no-selection">
+                        <h3><i class="fas fa-file-alt"></i> Demonstrativo Sintético de Análise de Crédito</h3>
+                        <p>Selecione um parceiro na tabela para visualizar a análise de crédito completa</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados simulados dos parceiros (mantidos do arquivo original)
+        const parceiros = [
+            {
+                codigo: "41",
+                nome: "ASTOR ROBERTO STROSCHON",
+                limiteTotal: 500000.00,
+                limiteConsumido: 150000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-12-31",
+                dtNegociacao: "2024-01-15",
+                possuiAnalise: true,
+                pontualidade: "Excelente",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "41",
+                    parceiro: "ASTOR ROBERTO STROSCHON",
+                    dataCredito: "",
+                    credito: 0.00,
+                    rating: "",
+                    aberturaEmpresa: "",
+                    dataConsultaSerasa: "27/06/2024",
+                    score: 0,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "30/07/24",
+                    observacoes: "NADA CONSTA",
+                    anoDRE: 0,
+                    recDRE: 0.00,
+                    lucDRE: 0.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 122909918.36,
+                            lucro: 10271258.55,
+                            dividas: 51177851.05
+                        },
+                        pessoaFisica: {
+                            rendimentos: 10714233.23,
+                            bensDireitos: 40253119.53,
+                            endividamento: 0.00
+                        }
+                    },
+                    pretensaoCompra: 400000.00,
+                    compraSafraAnterior: 7000.00,
+                    cartaFianca: "",
+                    observacoes: "",
+                    parecer: "Cliente confiável, bom pagador, compra a anos.",
+                    crApelido: {
+                        codigo: "903030102",
+                        descricao: "20.2.1/2 (PV FORMOSA)",
+                        apelido: "PV HIAGO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: "",
+                    valorFat: 0.00
+                }
+            },
+            {
+                codigo: "42",
+                nome: "MARIA SILVA SANTOS",
+                limiteTotal: 300000.00,
+                limiteConsumido: 250000.00,
+                status: "Cadastro Vencido",
+                dtVencimento: "2024-06-15",
+                dtNegociacao: "2024-02-20",
+                possuiAnalise: false,
+                pontualidade: "Regular",
+                atualizacao: "Pendente"
+            },
+            {
+                codigo: "43",
+                nome: "JOSÉ PEREIRA LIMA",
+                limiteTotal: 0.00,
+                limiteConsumido: 0.00,
+                status: "Sem Data Cadastro",
+                dtVencimento: null,
+                dtNegociacao: "2024-03-10",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "43",
+                    parceiro: "JOSÉ PEREIRA LIMA",
+                    dataCredito: "15/03/2024",
+                    credito: 250000.00,
+                    rating: "A",
+                    aberturaEmpresa: "10/01/2010",
+                    dataConsultaSerasa: "20/06/2024",
+                    score: 850,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "25/07/24",
+                    observacoes: "NADA CONSTA",
+                    anoDRE: 2023,
+                    recDRE: 1500000.00,
+                    lucDRE: 250000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 85000000.00,
+                            lucro: 7500000.00,
+                            dividas: 25000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 5000000.00,
+                            bensDireitos: 15000000.00,
+                            endividamento: 500000.00
+                        }
+                    },
+                    pretensaoCompra: 300000.00,
+                    compraSafraAnterior: 15000.00,
+                    cartaFianca: "15/01/2024",
+                    observacoes: "Cliente com bom histórico",
+                    parecer: "Cliente aprovado para crédito",
+                    crApelido: {
+                        codigo: "903030103",
+                        descricao: "20.2.1/3 (PV JOSÉ)",
+                        apelido: "PV JOSÉ"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 1500000.00
+                }
+            },
+            {
+                codigo: "44",
+                nome: "EMPRESA MULTI SÓCIOS LTDA",
+                limiteTotal: 750000.00,
+                limiteConsumido: 200000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-08-20",
+                dtNegociacao: "2024-04-05",
+                possuiAnalise: true,
+                pontualidade: "Ótima",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "44",
+                    parceiro: "EMPRESA MULTI SÓCIOS LTDA",
+                    dataCredito: "20/04/2024",
+                    credito: 750000.00,
+                    rating: "AA",
+                    aberturaEmpresa: "05/03/2005",
+                    dataConsultaSerasa: "10/06/2024",
+                    score: 920,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "15/07/24",
+                    observacoes: "NADA CONSTA",
+                    anoDRE: 2023,
+                    recDRE: 2500000.00,
+                    lucDRE: 500000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 180000000.00,
+                            lucro: 20000000.00,
+                            dividas: 60000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 15000000.00,
+                            bensDireitos: 60000000.00,
+                            endividamento: 1000000.00
+                        }
+                    },
+                    pretensaoCompra: 800000.00,
+                    compraSafraAnterior: 25000.00,
+                    cartaFianca: "20/02/2024",
+                    observacoes: "Empresa com múltiplos sócios",
+                    parecer: "Excelente cliente, múltiplos sócios com boa capacidade financeira",
+                    crApelido: {
+                        codigo: "903030104",
+                        descricao: "20.2.1/4 (PV MULTI)",
+                        apelido: "PV MULTI"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 2500000.00
+                }
+            },
+            {
+                codigo: "45",
+                nome: "FERNANDO ALVES MARTINS",
+                limiteTotal: 200000.00,
+                limiteConsumido: 75000.00,
+                status: "Cadastro Não Vencido",
+                dtVencimento: "2025-10-15",
+                dtNegociacao: "2024-01-20",
+                possuiAnalise: true,
+                pontualidade: "Boa",
+                atualizacao: "Atualizado",
+                analise: {
+                    codigo: "45",
+                    parceiro: "FERNANDO ALVES MARTINS",
+                    dataCredito: "10/02/2024",
+                    credito: 200000.00,
+                    rating: "B",
+                    aberturaEmpresa: "15/08/2018",
+                    dataConsultaSerasa: "05/06/2024",
+                    score: 720,
+                    observacaoSerasa: "NADA CONSTA",
+                    dataCartorio: "12/07/24",
+                    observacoes: "Cliente regular",
+                    anoDRE: 2023,
+                    recDRE: 800000.00,
+                    lucDRE: 120000.00,
+                    dadosIR: {
+                        atividadeRural: {
+                            receita: 60000000.00,
+                            lucro: 5000000.00,
+                            dividas: 20000000.00
+                        },
+                        pessoaFisica: {
+                            rendimentos: 3000000.00,
+                            bensDireitos: 8000000.00,
+                            endividamento: 200000.00
+                        }
+                    },
+                    pretensaoCompra: 150000.00,
+                    compraSafraAnterior: 5000.00,
+                    cartaFianca: "10/01/2024",
+                    observacoes: "Cliente com histórico regular",
+                    parecer: "Cliente aprovado com restrições",
+                    crApelido: {
+                        codigo: "903030105",
+                        descricao: "20.2.1/5 (PV FERNANDO)",
+                        apelido: "PV FERNANDO"
+                    },
+                    anoAnalise: 2024,
+                    anoFat: 2023,
+                    valorFat: 800000.00
+                }
+            }
+        ];
+
+        let parceirosFiltrados = [...parceiros];
+        let parceiroSelecionado = null;
+
+        // Função para formatar valores monetários
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(valor);
+        }
+
+        // Função para obter classe do status
+        function getStatusClass(status) {
+            switch(status) {
+                case 'Cadastro Vencido':
+                    return 'status-vencido';
+                case 'Cadastro Não Vencido':
+                    return 'status-nao-vencido';
+                case 'Sem Data Cadastro':
+                    return 'status-sem-data';
+                default:
+                    return '';
+            }
+        }
+
+        // Função para renderizar a tabela
+        function renderizarTabela() {
+            const tbody = document.getElementById('partnersTableBody');
+            tbody.innerHTML = '';
+
+            parceirosFiltrados.forEach(parceiro => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${parceiro.codigo}</strong></td>
+                    <td>${parceiro.nome}</td>
+                    <td><strong>${formatarMoeda(parceiro.limiteTotal)}</strong></td>
+                    <td>${formatarMoeda(parceiro.limiteConsumido)}</td>
+                    <td>${parceiro.dtNegociacao ? new Date(parceiro.dtNegociacao).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                    <td><span class="status-badge ${getStatusClass(parceiro.status)}">${parceiro.status}</span></td>
+                `;
+                
+                row.addEventListener('click', () => selecionarParceiro(parceiro));
+                tbody.appendChild(row);
+            });
+        }
+
+        // Função para selecionar parceiro
+        function selecionarParceiro(parceiro) {
+            // Remove seleção anterior
+            document.querySelectorAll('#partnersTableBody tr').forEach(row => {
+                row.classList.remove('selected');
+            });
+
+            // Adiciona seleção ao item clicado
+            event.target.closest('tr').classList.add('selected');
+            
+            parceiroSelecionado = parceiro;
+            atualizarPainelDireito();
+        }
+
+        // Função para atualizar painel direito
+        function atualizarPainelDireito() {
+            if (!parceiroSelecionado) return;
+
+            // Atualiza cards
+            document.getElementById('pontualidadeTitulo').textContent = parceiroSelecionado.nome;
+            document.getElementById('pontualidadeDescricao').textContent = `Pontualidade: ${parceiroSelecionado.pontualidade}`;
+            
+            document.getElementById('atualizacaoTitulo').textContent = parceiroSelecionado.nome;
+            document.getElementById('atualizacaoDescricao').textContent = `Status: ${parceiroSelecionado.atualizacao}`;
+
+            // Atualiza análise de crédito
+            if (parceiroSelecionado.possuiAnalise && parceiroSelecionado.analise) {
+                renderizarAnaliseCredito(parceiroSelecionado.analise);
+            } else {
+                document.getElementById('analysisContainer').innerHTML = `
+                    <div class="no-selection">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Análise Não Disponível</h3>
+                        <p>Este parceiro não possui análise de crédito disponível no momento</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Função para renderizar análise de crédito
+        function renderizarAnaliseCredito(analise) {
+            document.getElementById('analysisContainer').innerHTML = `
+                <div class="analysis-header">
+                    <div class="analysis-title">
+                        <i class="fas fa-file-alt"></i> Análise de Crédito #${analise.codigo}
+                    </div>
+                    <div class="analysis-badge">Análise ${analise.anoAnalise}</div>
+                </div>
+                
+                <div class="analysis-grid">
+                    <div class="analysis-section">
+                        <h4><i class="fas fa-info-circle"></i> Informações Gerais</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Cód. Parceiro:</span>
+                            <span class="analysis-value">${analise.codigo}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Parceiro:</span>
+                            <span class="analysis-value">${analise.parceiro}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Data Crédito:</span>
+                            <span class="analysis-value">${analise.dataCredito || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Rating:</span>
+                            <span class="analysis-value">${analise.rating || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Abertura Empresa:</span>
+                            <span class="analysis-value">${analise.aberturaEmpresa || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Data Consulta Serasa:</span>
+                            <span class="analysis-value">${analise.dataConsultaSerasa}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Score:</span>
+                            <span class="analysis-value">${analise.score}</span>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h4><i class="fas fa-chart-line"></i> Dados Financeiros</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Crédito:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.credito)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Pretensão Compra:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.pretensaoCompra)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Compra Safra Anterior:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.compraSafraAnterior)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Carta Fiança:</span>
+                            <span class="analysis-value">${analise.cartaFianca || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Ano DRE:</span>
+                            <span class="analysis-value">${analise.anoDRE || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Rec. DRE:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.recDRE)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Luc. DRE:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.lucDRE)}</span>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h4><i class="fas fa-tractor"></i> Dados IR - Atividade Rural</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Receita:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.atividadeRural.receita)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Lucro/Prejuízo:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.atividadeRural.lucro)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Dívidas:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.atividadeRural.dividas)}</span>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h4><i class="fas fa-user"></i> Dados IR - Pessoa Física</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Rendimentos:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.pessoaFisica.rendimentos)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Bens e Direitos:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.pessoaFisica.bensDireitos)}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Endividamento:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.dadosIR.pessoaFisica.endividamento)}</span>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h4><i class="fas fa-comments"></i> Observações e Parecer</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Observação Serasa:</span>
+                            <span class="analysis-value">${analise.observacaoSerasa}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Data Cartório:</span>
+                            <span class="analysis-value">${analise.dataCartorio}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Observações:</span>
+                            <span class="analysis-value">${analise.observacoes}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Parecer:</span>
+                            <span class="analysis-value">${analise.parecer}</span>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h4><i class="fas fa-building"></i> CR / Apelido</h4>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Código:</span>
+                            <span class="analysis-value">${analise.crApelido.codigo}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Descrição:</span>
+                            <span class="analysis-value">${analise.crApelido.descricao}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Apelido:</span>
+                            <span class="analysis-value">${analise.crApelido.apelido}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Ano Análise:</span>
+                            <span class="analysis-value">${analise.anoAnalise}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Ano Fat.:</span>
+                            <span class="analysis-value">${analise.anoFat || 'N/A'}</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Valor Fat.:</span>
+                            <span class="analysis-value">${formatarMoeda(analise.valorFat)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Função para aplicar filtros
+        function aplicarFiltros() {
+            const limiteFilter = document.getElementById('limiteFilter').value;
+            const analiseFilter = document.getElementById('analiseFilter').value;
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
+
+            parceirosFiltrados = parceiros.filter(parceiro => {
+                // Filtro de limite
+                if (limiteFilter === 'sim' && parceiro.limiteTotal <= 0) return false;
+                if (limiteFilter === 'nao' && parceiro.limiteTotal > 0) return false;
+
+                // Filtro de análise
+                if (analiseFilter === 'sim' && !parceiro.possuiAnalise) return false;
+                if (analiseFilter === 'nao' && parceiro.possuiAnalise) return false;
+
+                // Filtro de período baseado na data de negociação
+                if (dataInicio || dataFim) {
+                    if (!parceiro.dtNegociacao) return false;
+                    
+                    const dataNegociacao = new Date(parceiro.dtNegociacao);
+                    const inicio = dataInicio ? new Date(dataInicio) : null;
+                    const fim = dataFim ? new Date(dataFim) : null;
+                    
+                    if (inicio && dataNegociacao < inicio) return false;
+                    if (fim && dataNegociacao > fim) return false;
+                }
+
+                return true;
+            });
+
+            renderizarTabela();
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            renderizarTabela();
+            
+            // Configurar data atual nos filtros de data
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('dataFim').value = hoje;
+        });
+    </script>
+</body>
+</html>

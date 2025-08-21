@@ -722,3 +722,28 @@ centraliado valor no grafico rosca
 --- para o nivel de des / inv
 centraliado valor no grafico rosca
 corrigido campo e where da query que mostra o total do grafico de rosca 
+
+-----
+
+18/08/2025
+13:30 as 17:00
+verifições e validações referente as calculos e campos para obter e validar os dados de acordo com cada conceito.
+
+
+19/07
+8:40 12
+estruturação dos dados a ser apresntado de acordo com redefinição internação sobre como é formado cada valor a ser apresentado.
+
+13:30 as 16:10 e 16:30 as 18:10
+estruturação dos dados a ser apresntado de acordo com redefinição internação sobre como é formado cada valor a ser apresentado.
+
+
+20/07
+9 as 13
+repasse passo a passo para bater valores de cada rubrica do dash de rentabilidade, readequação da view com os novos campos.
+13:30 as 15:40
+readequação da view nas query do dash de rentabilidade.
+
+15:50 as 17
+Ajustar do valor referente ao vlrsubst no total dos impostos. Adequação nas mensagens referente a dica de tela ao passar o mouse em cada card para apresentar
+as informações respectivas que se refere o card.
