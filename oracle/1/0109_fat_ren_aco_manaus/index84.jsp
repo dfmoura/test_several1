@@ -142,7 +142,7 @@
         SUM(VLRDESC) AS VLRDESC
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
-          AND ATIVO_TOP = 'S'
+          
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
           AND CODEMP IN (:P_EMPRESA)
@@ -159,7 +159,7 @@
                 SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
-              AND ATIVO_TOP = 'S'
+              
               AND AD_COMPOE_FAT = 'S'
               AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
               AND CODEMP IN (:P_EMPRESA)
@@ -176,13 +176,13 @@
             FROM bas),
             bas2 as (
             SELECT 
-                    CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END AS codgrupai,
-                    CASE WHEN rn <= 5 THEN descrgrupo_nivel1 ELSE 'Outros' END AS descrgrupo_nivel1,
+                    CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END AS codgrupai,
+                    CASE WHEN rn <=4 THEN descrgrupo_nivel1 ELSE 'Outros' END AS descrgrupo_nivel1,
                     SUM(VLRDESC) AS VLRDESC
                 FROM bas1
                 GROUP BY 
-                    CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END,
-                    CASE WHEN rn <= 5 THEN descrgrupo_nivel1 ELSE 'Outros' END
+                    CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END,
+                    CASE WHEN rn <=4 THEN descrgrupo_nivel1 ELSE 'Outros' END
             )
             Select codgrupai AD_TPPROD,descrgrupo_nivel1 TIPOPROD,SUM(VLRDESC)VLRDESC from bas2
             GROUP BY codgrupai,descrgrupo_nivel1 ORDER BY SUM(VLRDESC) DESC
@@ -202,7 +202,7 @@ SELECT
     SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
-  AND ATIVO_TOP = 'S'
+  
   AND AD_COMPOE_FAT = 'S'
   AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
   AND CODEMP IN (:P_EMPRESA)
@@ -220,18 +220,18 @@ SELECT
 FROM bas),
 bas2 as (
 SELECT 
-        CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END AS codgrupai,
+        CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END AS codgrupai,
         codemp,
         empresa,
         SUM(VLRDESC) AS VLRDESC
     FROM bas1
     GROUP BY 
-        CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END,
+        CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END,
         codemp,
         empresa
 )
 Select SUM(VLRDESC)VLRCIP from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999)) 
+WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000)) 
       
     </snk:query>    
     
@@ -248,7 +248,7 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999))
                 SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
-              AND ATIVO_TOP = 'S'
+              
               AND AD_COMPOE_FAT = 'S'
               AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
               AND CODEMP IN (:P_EMPRESA)
@@ -266,18 +266,18 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999))
             FROM bas),
             bas2 as (
             SELECT 
-                    CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END AS codgrupai,
+                    CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END AS codgrupai,
                     codemp,
                     empresa,
                     SUM(VLRDESC) AS VLRDESC
                 FROM bas1
                 GROUP BY 
-                    CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END,
+                    CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END,
                     codemp,
                     empresa
             )
             Select codgrupai,codemp,empresa,SUM(VLRDESC)VLRDESC from bas2
-            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999)) 
+            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000)) 
             GROUP BY codgrupai,codemp,empresa ORDER BY SUM(VLRDESC) DESC
         
     </snk:query> 
@@ -298,7 +298,7 @@ SELECT
     SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
-  AND ATIVO_TOP = 'S'
+  
   AND AD_COMPOE_FAT = 'S'
   AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
   AND CODEMP IN (:P_EMPRESA)
@@ -317,18 +317,18 @@ SELECT
 FROM bas),
 bas2 as (
 SELECT 
-        CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END AS codgrupai,
+        CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END AS codgrupai,
         codvend,
         vendedor,
         SUM(VLRDESC) AS VLRDESC
     FROM bas1
     GROUP BY 
-        CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END,
+        CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END,
         codvend,
         vendedor
 )
 Select codgrupai,CODVEND,VENDEDOR,SUM(VLRDESC)VLRDESC from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999)) 
+WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000)) 
 GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRDESC) DESC
 </snk:query>    
     
@@ -336,53 +336,56 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRDESC) DESC
 
 
 <snk:query var="fat_produto">
-    with bas as (
-        SELECT 
+
+WITH bas AS (
+    SELECT 
+        codemp,
+        codgrupai,
+        descrgrupo_nivel1,
+        codprod,
+        descrprod,
+        SUM(VLRDESC) AS VLRDESC,
+        -- Soma total por codgrupai usando OVER (PARTITION BY)
+        SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
+    FROM vw_rentabilidade_aco 
+    WHERE tipmov IN ('V', 'D')
+      AND AD_COMPOE_FAT = 'S'
+      AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+      AND CODEMP IN (:P_EMPRESA)
+    GROUP BY codemp,codgrupai,descrgrupo_nivel1,codprod,descrprod
+),
+    bas1 as (
+    SELECT 
+        codemp,
+        codgrupai,
+        descrgrupo_nivel1,
+        codprod,
+        descrprod,
+        VLRDESC,
+        total_grupo,
+        -- Ranking baseado no total_grupo (todos do mesmo grupo recebem o mesmo ranking)
+        DENSE_RANK() OVER (ORDER BY total_grupo desc) AS rn
+    FROM bas),
+    bas2 as (
+    SELECT 
             codemp,
-            codgrupai,
-            descrgrupo_nivel1,
+            CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END AS codgrupai,
+            CASE WHEN rn <=4 THEN descrgrupo_nivel1 ELSE 'Outros' END AS descrgrupo_nivel1,
             codprod,
             descrprod,
-            SUM(VLRDESC) AS VLRDESC,
-            -- Soma total por codgrupai usando OVER (PARTITION BY)
-            SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
-        FROM vw_rentabilidade_aco 
-        WHERE tipmov IN ('V', 'D')
-          AND ATIVO_TOP = 'S'
-          AND AD_COMPOE_FAT = 'S'
-          AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
-        GROUP BY codemp, codgrupai, descrgrupo_nivel1, codprod, descrprod
-        ),
-        bas1 as (
-        SELECT 
+            SUM(VLRDESC) AS VLRDESC
+        FROM bas1
+        GROUP BY 
             codemp,
-            codgrupai,
-            descrgrupo_nivel1,
+            CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END,
+            CASE WHEN rn <=4 THEN descrgrupo_nivel1 ELSE 'Outros' END,
             codprod,
-            descrprod,
-            VLRDESC,
-            total_grupo,
-            -- Ranking baseado no total_grupo (todos do mesmo grupo recebem o mesmo ranking)
-            DENSE_RANK() OVER (ORDER BY total_grupo DESC) AS rn
-        FROM bas),
-        bas2 as (
-        SELECT 
-               codemp, 
-                CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END AS AD_TPPROD,
-                CASE WHEN rn <= 5 THEN descrgrupo_nivel1 ELSE 'Outros' END AS descrgrupo_nivel1,
-                codprod,
-                descrprod, 
-                SUM(VLRDESC) AS VLRDESC
-            FROM bas1
-            GROUP BY 
-               codemp, 
-                CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END,
-                CASE WHEN rn <= 5 THEN descrgrupo_nivel1 ELSE 'Outros' END,
-                codprod,
-                descrprod
-        )
-        Select * from bas2
-        where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 9999)) and CODEMP IN (:P_EMPRESA)
+            descrprod
+    )
+    Select codprod,codgrupai AD_TPPROD,descrgrupo_nivel1 TIPOPROD,codprod,descrprod,SUM(VLRDESC)VLRDESC from bas2
+    where (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000))
+    GROUP BY codprod,codgrupai,descrgrupo_nivel1,codprod,descrprod ORDER BY SUM(VLRDESC) DESC
+
 </snk:query>
 
     <snk:query var="fat_prod_titulo">
@@ -398,7 +401,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRDESC) DESC
                 SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
-              AND ATIVO_TOP = 'S'
+              
               AND AD_COMPOE_FAT = 'S'
               AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
               AND CODEMP IN (:P_EMPRESA)
@@ -419,21 +422,21 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRDESC) DESC
             bas2 as (
             SELECT 
                    codemp, 
-                    CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END AS AD_TPPROD,
-                    CASE WHEN rn <= 5 THEN descrgrupo_nivel1 ELSE 'Outros' END AS descrgrupo_nivel1,
+                    CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END AS AD_TPPROD,
+                    CASE WHEN rn <=4 THEN descrgrupo_nivel1 ELSE 'Outros' END AS descrgrupo_nivel1,
                     codprod,
                     descrprod, 
                     SUM(VLRDESC) AS VLRDESC
                 FROM bas1
                 GROUP BY 
                    codemp, 
-                    CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END,
-                    CASE WHEN rn <= 5 THEN descrgrupo_nivel1 ELSE 'Outros' END,
+                    CASE WHEN rn <=4 THEN codgrupai ELSE 9999 END,
+                    CASE WHEN rn <=4 THEN descrgrupo_nivel1 ELSE 'Outros' END,
                     codprod,
                     descrprod
             )
             Select AD_TPPROD,descrgrupo_nivel1 from bas2
-            where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 9999)) and CODEMP IN (:P_EMPRESA)
+            where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 20000))
             group by AD_TPPROD,descrgrupo_nivel1
     </snk:query>
 

@@ -139,10 +139,9 @@
 
     <snk:query var="fat_total">  
         SELECT 
-        SUM(totalliq) AS VLRFAT
+        SUM(VLRNOTA) AS VLRFAT
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
-          AND ATIVO_TOP = 'S'
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
           AND CODEMP IN (:P_EMPRESA)
@@ -154,12 +153,12 @@
                 codemp,
                 codgrupai,
                 descrgrupo_nivel1,
-                SUM(totalliq) AS totalliq,
+                SUM(VLRNOTA) AS VLRFAT,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(totalliq)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
-              AND ATIVO_TOP = 'S'
+
               AND AD_COMPOE_FAT = 'S'
               AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
               AND CODEMP IN (:P_EMPRESA)
@@ -170,7 +169,7 @@
             SELECT 
                 codgrupai,
                 descrgrupo_nivel1,
-                totalliq,
+                VLRFAT,
                 total_grupo,
                 -- Ranking baseado no total_grupo (todos do mesmo grupo recebem o mesmo ranking)
                 DENSE_RANK() OVER (ORDER BY total_grupo DESC) AS rn
@@ -179,7 +178,7 @@
             SELECT 
                     CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END AS codgrupai,
                     CASE WHEN rn <= 5 THEN descrgrupo_nivel1 ELSE 'Outros' END AS descrgrupo_nivel1,
-                    SUM(TOTALLIQ) AS TOTALLIQ
+                    SUM(VLRFAT) AS VLRFAT
                 FROM bas1
                 GROUP BY 
                     CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END,
@@ -187,9 +186,9 @@
 
             )
 
-            Select codgrupai AD_TPPROD,descrgrupo_nivel1 TIPOPROD,SUM(TOTALLIQ)VLRFAT from bas2
+            Select codgrupai AD_TPPROD,descrgrupo_nivel1 TIPOPROD,SUM(VLRFAT)VLRFAT from bas2
             
-            GROUP BY codgrupai,descrgrupo_nivel1 ORDER BY SUM(TOTALLIQ) DESC
+            GROUP BY codgrupai,descrgrupo_nivel1 ORDER BY SUM(VLRFAT) DESC
     </snk:query> 
 
 
@@ -204,12 +203,12 @@ SELECT
     codemp,
     empresa,
     
-    SUM(totalliq) AS totalliq,
+    SUM(VLRNOTA) AS VLRNOTA,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
-    SUM(SUM(totalliq)) OVER (PARTITION BY codgrupai) AS total_grupo
+    SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
-  AND ATIVO_TOP = 'S'
+  
   AND AD_COMPOE_FAT = 'S'
   AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
   AND CODEMP IN (:P_EMPRESA)
@@ -220,7 +219,7 @@ SELECT
     codgrupai,
     codemp,
     empresa,
-    totalliq,
+    VLRNOTA,
     total_grupo,
     -- Ranking baseado no total_grupo (todos do mesmo grupo recebem o mesmo ranking)
     DENSE_RANK() OVER (ORDER BY total_grupo DESC) AS rn
@@ -230,14 +229,14 @@ SELECT
         CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END AS codgrupai,
         codemp,
         empresa,
-        SUM(TOTALLIQ) AS TOTALLIQ
+        SUM(VLRNOTA) AS VLRNOTA
     FROM bas1
     GROUP BY 
         CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END,
         codemp,
         empresa
 )
-Select SUM(TOTALLIQ)VLRCIP from bas2
+Select SUM(VLRNOTA)VLRCIP from bas2
 WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000)) 
       
     </snk:query>    
@@ -250,12 +249,12 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000))
                 codemp,
                 empresa,
                 
-                SUM(totalliq) AS totalliq,
+                SUM(VLRNOTA) AS VLRNOTA,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(totalliq)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
-              AND ATIVO_TOP = 'S'
+
               AND AD_COMPOE_FAT = 'S'
               AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
               AND CODEMP IN (:P_EMPRESA)
@@ -266,7 +265,7 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000))
                 codgrupai,
                 codemp,
                 empresa,
-                totalliq,
+                VLRNOTA,
                 total_grupo,
                 -- Ranking baseado no total_grupo (todos do mesmo grupo recebem o mesmo ranking)
                 DENSE_RANK() OVER (ORDER BY total_grupo DESC) AS rn
@@ -276,16 +275,16 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000))
                     CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END AS codgrupai,
                     codemp,
                     empresa,
-                    SUM(TOTALLIQ) AS TOTALLIQ
+                    SUM(VLRNOTA) AS VLRNOTA
                 FROM bas1
                 GROUP BY 
                     CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END,
                     codemp,
                     empresa
             )
-            Select codgrupai,codemp,empresa,SUM(TOTALLIQ)VLRFAT from bas2
+            Select codgrupai,codemp,empresa,SUM(VLRNOTA)VLRFAT from bas2
             WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000)) 
-            GROUP BY codgrupai,codemp,empresa ORDER BY SUM(TOTALLIQ) DESC
+            GROUP BY codgrupai,codemp,empresa ORDER BY SUM(VLRNOTA) DESC
             
     </snk:query> 
     
@@ -300,12 +299,12 @@ SELECT
     codgrupai,
     codvend,
     LEFT(vendedor, 8) AS vendedor,
-    SUM(totalliq) AS totalliq,
+    SUM(VLRNOTA) AS VLRNOTA,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
-    SUM(SUM(totalliq)) OVER (PARTITION BY codgrupai) AS total_grupo
+    SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
-  AND ATIVO_TOP = 'S'
+  
   AND AD_COMPOE_FAT = 'S'
   AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
   AND CODEMP IN (:P_EMPRESA)
@@ -317,7 +316,7 @@ SELECT
     codgrupai,
     codvend,
     vendedor,
-    totalliq,
+    VLRNOTA,
     total_grupo,
     -- Ranking baseado no total_grupo (todos do mesmo grupo recebem o mesmo ranking)
     DENSE_RANK() OVER (ORDER BY total_grupo DESC) AS rn
@@ -327,16 +326,16 @@ SELECT
         CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END AS codgrupai,
         codvend,
         vendedor,
-        SUM(TOTALLIQ) AS TOTALLIQ
+        SUM(VLRNOTA) AS VLRNOTA
     FROM bas1
     GROUP BY 
         CASE WHEN rn <= 5 THEN codgrupai ELSE 9999 END,
         codvend,
         vendedor
 )
-Select codgrupai,CODVEND,VENDEDOR,SUM(TOTALLIQ)VLRFAT from bas2
+Select codgrupai,CODVEND,VENDEDOR,SUM(VLRNOTA)VLRFAT from bas2
 WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000)) 
-GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TOTALLIQ) DESC
+GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRNOTA) DESC
 </snk:query>    
     
 
@@ -350,12 +349,12 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TOTALLIQ) DESC
             descrgrupo_nivel1,
             codprod,
             descrprod,
-            SUM(totalliq) AS totalliq,
+            SUM(VLRNOTA) AS VLRNOTA,
             -- Soma total por codgrupai usando OVER (PARTITION BY)
-            SUM(SUM(totalliq)) OVER (PARTITION BY codgrupai) AS total_grupo
+            SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
-          AND ATIVO_TOP = 'S'
+
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
         GROUP BY codemp, codgrupai, descrgrupo_nivel1, codprod, descrprod
@@ -367,7 +366,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TOTALLIQ) DESC
             descrgrupo_nivel1,
             codprod,
             descrprod,
-            totalliq,
+            VLRNOTA,
             total_grupo,
             -- Ranking baseado no total_grupo (todos do mesmo grupo recebem o mesmo ranking)
             DENSE_RANK() OVER (ORDER BY total_grupo DESC) AS rn
@@ -379,7 +378,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TOTALLIQ) DESC
                 CASE WHEN rn <= 5 THEN descrgrupo_nivel1 ELSE 'Outros' END AS descrgrupo_nivel1,
                 codprod,
                 descrprod, 
-                SUM(TOTALLIQ) AS TOTALLIQ
+                SUM(VLRNOTA) AS VLRNOTA
             FROM bas1
             GROUP BY 
                codemp, 
@@ -400,12 +399,12 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TOTALLIQ) DESC
                 descrgrupo_nivel1,
                 codprod,
                 descrprod,
-                SUM(totalliq) AS totalliq,
+                SUM(VLRNOTA) AS VLRNOTA,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(totalliq)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
-              AND ATIVO_TOP = 'S'
+
               AND AD_COMPOE_FAT = 'S'
               AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
               AND CODEMP IN (:P_EMPRESA)
@@ -418,7 +417,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TOTALLIQ) DESC
                 descrgrupo_nivel1,
                 codprod,
                 descrprod,
-                totalliq,
+                VLRNOTA,
                 total_grupo,
                 -- Ranking baseado no total_grupo (todos do mesmo grupo recebem o mesmo ranking)
                 DENSE_RANK() OVER (ORDER BY total_grupo DESC) AS rn
@@ -430,7 +429,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TOTALLIQ) DESC
                     CASE WHEN rn <= 5 THEN descrgrupo_nivel1 ELSE 'Outros' END AS descrgrupo_nivel1,
                     codprod,
                     descrprod, 
-                    SUM(TOTALLIQ) AS TOTALLIQ
+                    SUM(VLRNOTA) AS VLRNOTA
                 FROM bas1
                 GROUP BY 
                    codemp, 

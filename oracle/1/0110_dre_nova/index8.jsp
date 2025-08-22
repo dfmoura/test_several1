@@ -243,14 +243,14 @@
                     '(+) Receita Bruta' AS Conta,
                     SUM(
                         CASE 
-                            WHEN TIPMOV = 'D' THEN (TOTALLIQ - VLRIPI - VLRSUBST + VLRDESC) * -1 
-                            ELSE (TOTALLIQ - VLRIPI - VLRSUBST + VLRDESC) 
+                            WHEN TIPMOV = 'D' THEN (VLRNOTA - VLRIPI - VLRSUBST + VLRDESC) * -1 
+                            ELSE (VLRNOTA - VLRIPI - VLRSUBST + VLRDESC) 
                         END
                     ) AS Valor
                 FROM vw_rentabilidade_aco
                 WHERE DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
                     AND TIPMOV IN ('V', 'D') 
-                    AND ATIVO_TOP = 'S' 
+                    
                     AND AD_COMPOE_FAT = 'S'
                     AND CODEMP IN (:P_EMPRESA)
             ),
@@ -268,7 +268,7 @@
                 FROM vw_rentabilidade_aco
                 WHERE DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
                     AND TIPMOV IN ('V', 'D') 
-                    AND ATIVO_TOP = 'S' 
+                    
                     AND AD_COMPOE_FAT = 'S'
                     AND CODEMP IN (:P_EMPRESA)
             ),
@@ -288,7 +288,7 @@
                 FROM vw_rentabilidade_aco 
                 WHERE DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
                     AND TIPMOV IN ('V', 'D') 
-                    AND ATIVO_TOP = 'S' 
+                    
                     AND AD_COMPOE_FAT = 'S'
                     AND CODEMP IN (:P_EMPRESA)
             ),
@@ -434,14 +434,14 @@
                     '(+) Receita Bruta' AS Conta,
                     SUM(
                         CASE 
-                            WHEN TIPMOV = 'D' THEN (TOTALLIQ - VLRIPI - VLRSUBST + VLRDESC) * -1 
-                            ELSE (TOTALLIQ - VLRIPI - VLRSUBST + VLRDESC) 
+                            WHEN TIPMOV = 'D' THEN (VLRNOTA - VLRIPI - VLRSUBST + VLRDESC) * -1 
+                            ELSE (VLRNOTA - VLRIPI - VLRSUBST + VLRDESC) 
                         END
                     ) AS Valor
                 FROM vw_rentabilidade_aco
                 WHERE DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
                     AND TIPMOV IN ('V', 'D') 
-                    AND ATIVO_TOP = 'S' 
+                    
                     AND AD_COMPOE_FAT = 'S'
                     AND CODEMP IN (:P_EMPRESA)
             ),
@@ -459,7 +459,7 @@
                 FROM vw_rentabilidade_aco
                 WHERE DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
                     AND TIPMOV IN ('V', 'D') 
-                    AND ATIVO_TOP = 'S' 
+                    
                     AND AD_COMPOE_FAT = 'S'
                     AND CODEMP IN (:P_EMPRESA)
             ),
@@ -479,7 +479,7 @@
                 FROM vw_rentabilidade_aco 
                 WHERE DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
                     AND TIPMOV IN ('V', 'D') 
-                    AND ATIVO_TOP = 'S' 
+                    
                     AND AD_COMPOE_FAT = 'S'
                     AND CODEMP IN (:P_EMPRESA)
             ),
@@ -619,7 +619,7 @@
             FROM vw_rentabilidade_aco
             WHERE DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
             AND TIPMOV IN ('V', 'D') 
-            AND ATIVO_TOP = 'S' 
+            
             AND AD_COMPOE_FAT = 'S'
             AND CODEMP IN (:P_EMPRESA)
         </snk:query>
@@ -632,7 +632,7 @@
             FROM vw_rentabilidade_aco
             WHERE DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
             AND TIPMOV IN ('V', 'D') 
-            AND ATIVO_TOP = 'S' 
+            
             AND AD_COMPOE_FAT = 'S'
             AND CODEMP IN (:P_EMPRESA)        
         </snk:query>

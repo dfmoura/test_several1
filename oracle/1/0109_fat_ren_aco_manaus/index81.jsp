@@ -139,10 +139,10 @@
 
     <snk:query var="fat_total">  
         SELECT 
-        SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS) AS VLRIMP
+        SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS) AS VLRIMP
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
-          AND ATIVO_TOP = 'S'
+
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
           AND CODEMP IN (:P_EMPRESA)
@@ -155,12 +155,12 @@
             codemp,
             codgrupai,
             descrgrupo_nivel1,
-            SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
+            SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
             -- Soma total por codgrupai usando OVER (PARTITION BY)
-            SUM(SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
+            SUM(SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
-          AND ATIVO_TOP = 'S'
+
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
           AND CODEMP IN (:P_EMPRESA)
@@ -200,12 +200,12 @@
             codemp,
             empresa,
             
-            SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
+            SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
             -- Soma total por codgrupai usando OVER (PARTITION BY)
-            SUM(SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
+            SUM(SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
-          AND ATIVO_TOP = 'S'
+
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
           AND CODEMP IN (:P_EMPRESA)
@@ -234,7 +234,7 @@
                 empresa
         )
         Select SUM(vlrimp)VLRCIP from bas2
-        WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999))     
+        WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000))     
       
     </snk:query>    
     
@@ -246,12 +246,12 @@
                 codemp,
                 empresa,
                 
-                SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
+                SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
-              AND ATIVO_TOP = 'S'
+    
               AND AD_COMPOE_FAT = 'S'
               AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
               AND CODEMP IN (:P_EMPRESA)
@@ -280,7 +280,7 @@
                     empresa
             )
             Select codemp,empresa,SUM(vlrimp)VLRIMP from bas2
-            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999)) 
+            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
             group by codemp,empresa ORDER BY SUM(vlrimp) DESC
             
     </snk:query> 
@@ -296,9 +296,9 @@ SELECT
     codgrupai,
     codvend,
     LEFT(vendedor, 8) AS vendedor,
-    SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
+    SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
-    SUM(SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
+    SUM(SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
   AND ATIVO_TOP = 'S'
@@ -331,7 +331,7 @@ SELECT
         vendedor
 )
 Select codgrupai,CODVEND,VENDEDOR,SUM(vlrimp)VLRIMP from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999)) 
+WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
 GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(vlrimp) DESC
 </snk:query>    
     
@@ -346,12 +346,12 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(vlrimp) DESC
             descrgrupo_nivel1,
             codprod,
             descrprod,
-            SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
+            SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
             -- Soma total por codgrupai usando OVER (PARTITION BY)
-            SUM(SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
+            SUM(SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
-          AND ATIVO_TOP = 'S'
+
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
         GROUP BY codemp, codgrupai, descrgrupo_nivel1, codprod, descrprod
@@ -385,7 +385,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(vlrimp) DESC
                 descrprod
         )
         Select * from bas2
-        where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 9999)) and CODEMP IN (:P_EMPRESA)
+        where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 80000)) and CODEMP IN (:P_EMPRESA)
 </snk:query>
 
     <snk:query var="fat_prod_titulo">
@@ -396,12 +396,12 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(vlrimp) DESC
                 descrgrupo_nivel1,
                 codprod,
                 descrprod,
-                SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
+                SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS) AS vlrimp,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(VLRIPI+VLRSUBST+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(VLRIPI+VLRSUBST_PROP+VLRICMS+VLRPIS+VLRCOFINS)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
-              AND ATIVO_TOP = 'S'
+    
               AND AD_COMPOE_FAT = 'S'
               AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
               AND CODEMP IN (:P_EMPRESA)
@@ -436,7 +436,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(vlrimp) DESC
                     descrprod
             )
             Select AD_TPPROD,descrgrupo_nivel1 from bas2
-            where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 9999)) and CODEMP IN (:P_EMPRESA)
+            where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 80000)) and CODEMP IN (:P_EMPRESA)
             group by AD_TPPROD,descrgrupo_nivel1
     </snk:query>
 

@@ -2,9 +2,26 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Controle de Produção - Operações</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sistema de Controle de Produção</title>
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #dbeafe;
+            --secondary: #64748b;
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,120 +29,412 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             overflow-x: hidden;
+            min-height: 100vh;
         }
 
+        /* Container principal mobile-first */
         .container {
             width: 100%;
             min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            padding: 10px;
+            justify-content: center;
+            padding: 1rem;
         }
 
+        /* Header do sistema */
+        .system-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .system-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .system-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Container do iframe otimizado para mobile */
         .iframe-container {
             position: relative;
             width: 100%;
-            height: 100vh;
+            height: calc(100vh - 8rem);
             max-width: 100%;
-            border-radius: 8px;
+            border-radius: 1rem;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-lg);
+            background: var(--surface);
+            border: 1px solid var(--border);
         }
 
+        /* Loading otimizado para mobile */
         .loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 18px;
-            color: #666;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
             z-index: 10;
+            color: var(--text-secondary);
         }
 
+        .loading-spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* Iframe responsivo */
         iframe {
             width: 100%;
             height: 100%;
             border: none;
-            border-radius: 8px;
-            background-color: white;
+            border-radius: 1rem;
+            background: var(--surface);
+            transition: opacity 0.3s ease;
         }
 
-        /* Mobile First - Dispositivos móveis (até 768px) */
-        @media (max-width: 768px) {
+        iframe.loaded {
+            opacity: 1;
+        }
+
+        /* Status do sistema */
+        .system-status {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--surface);
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Responsividade Mobile-First */
+        @media (max-width: 480px) {
             .container {
-                padding: 5px;
+                padding: 0.5rem;
             }
-            
+
+            .system-header {
+                margin-bottom: 1.5rem;
+            }
+
+            .system-title {
+                font-size: 1.25rem;
+            }
+
+            .system-subtitle {
+                font-size: 0.875rem;
+            }
+
             .iframe-container {
-                height: calc(100vh - 10px);
-                border-radius: 4px;
+                height: calc(100vh - 6rem);
+                border-radius: 0.75rem;
             }
-            
+
             iframe {
-                border-radius: 4px;
+                border-radius: 0.75rem;
+            }
+
+            .system-status {
+                margin-top: 0.75rem;
+                padding: 0.5rem 0.75rem;
             }
         }
 
         /* Tablets (768px - 1024px) */
-        @media (min-width: 769px) and (max-width: 1024px) {
+        @media (min-width: 768px) and (max-width: 1024px) {
             .container {
-                padding: 15px;
+                padding: 1.5rem;
             }
-            
+
+            .system-header {
+                margin-bottom: 2.5rem;
+            }
+
+            .system-title {
+                font-size: 1.75rem;
+            }
+
             .iframe-container {
-                height: calc(100vh - 30px);
+                height: calc(100vh - 10rem);
+                max-width: 90%;
+            }
+
+            .system-status {
+                max-width: 90%;
             }
         }
 
         /* Desktop (1025px e acima) */
         @media (min-width: 1025px) {
             .container {
-                padding: 20px;
+                padding: 2rem;
             }
-            
-            .iframe-container {
-                height: calc(100vh - 40px);
-                max-width: 1400px;
-            }
-        }
 
-        /* Telas muito grandes (1400px e acima) */
-        @media (min-width: 1400px) {
+            .system-header {
+                margin-bottom: 3rem;
+            }
+
+            .system-title {
+                font-size: 2rem;
+            }
+
             .iframe-container {
-                max-width: 1600px;
+                height: calc(100vh - 12rem);
+                max-width: 1200px;
+            }
+
+            .system-status {
+                max-width: 1200px;
             }
         }
 
         /* Orientação paisagem em dispositivos móveis */
         @media (max-width: 768px) and (orientation: landscape) {
             .iframe-container {
-                height: calc(100vh - 5px);
+                height: calc(100vh - 4rem);
+            }
+
+            .system-header {
+                margin-bottom: 1rem;
+            }
+
+            .system-title {
+                font-size: 1.125rem;
+            }
+
+            .system-subtitle {
+                font-size: 0.75rem;
+                margin-bottom: 0.75rem;
             }
         }
 
         /* Orientação retrato em tablets */
         @media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
             .iframe-container {
-                height: calc(100vh - 20px);
+                height: calc(100vh - 8rem);
+            }
+        }
+
+        /* Animações de entrada */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .system-header,
+        .iframe-container,
+        .system-status {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .iframe-container {
+            animation-delay: 0.2s;
+        }
+
+        .system-status {
+            animation-delay: 0.4s;
+        }
+
+        /* Melhorias para dispositivos touch */
+        @media (hover: none) and (pointer: coarse) {
+            .iframe-container {
+                border-radius: 0.5rem;
+            }
+
+            iframe {
+                border-radius: 0.5rem;
+            }
+        }
+
+        /* Modo escuro (opcional) */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #0f172a;
+                --surface: #1e293b;
+                --text-primary: #f1f5f9;
+                --text-secondary: #94a3b8;
+                --border: #334155;
             }
         }
     </style>
 </head>
 <body>
     <main class="container">
+        <!-- Header do sistema -->
+        <header class="system-header">
+            <h1 class="system-title">Sistema de Controle de Produção</h1>
+            <p class="system-subtitle">Gerencie suas operações de produção de forma eficiente</p>
+        </header>
+
+        <!-- Container do iframe responsivo -->
         <div class="iframe-container">
-            <div class="loading">Carregando...</div>
+            <!-- Loading otimizado para mobile -->
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Carregando sistema...</div>
+            </div>
+
+            <!-- Iframe do sistema -->
             <iframe 
-                src="https://operaprod.netlify.app/index.html" 
+                src="index.html" 
                 title="Sistema de Controle de Produção"
-                onload="this.previousElementSibling.style.display='none'">
+                id="systemFrame"
+                onload="handleIframeLoad()"
+                allow="fullscreen"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups">
             </iframe>
+        </div>
+
+        <!-- Status do sistema -->
+        <div class="system-status">
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>Sistema online e funcionando</span>
+            </div>
         </div>
     </main>
 
+    <script>
+        // Função para lidar com o carregamento do iframe
+        function handleIframeLoad() {
+            const loading = document.getElementById('loading');
+            const iframe = document.getElementById('systemFrame');
+            
+            // Esconde o loading
+            loading.style.display = 'none';
+            
+            // Adiciona classe para animação de entrada
+            iframe.classList.add('loaded');
+            
+            // Log de carregamento
+            console.log('Sistema carregado com sucesso');
+        }
+
+        // Função para recarregar o iframe
+        function reloadSystem() {
+            const iframe = document.getElementById('systemFrame');
+            const loading = document.getElementById('loading');
+            
+            // Mostra loading
+            loading.style.display = 'flex';
+            
+            // Remove classe loaded
+            iframe.classList.remove('loaded');
+            
+            // Recarrega iframe
+            iframe.src = iframe.src;
+        }
+
+        // Detectar mudanças de orientação
+        window.addEventListener('orientationchange', function() {
+            // Aguarda a mudança de orientação
+            setTimeout(() => {
+                // Ajusta altura do iframe se necessário
+                const iframeContainer = document.querySelector('.iframe-container');
+                if (window.innerWidth <= 768) {
+                    iframeContainer.style.height = window.innerHeight <= 500 ? 
+                        'calc(100vh - 4rem)' : 'calc(100vh - 6rem)';
+                }
+            }, 100);
+        });
+
+        // Detectar mudanças de tamanho da janela
+        window.addEventListener('resize', function() {
+            const iframeContainer = document.querySelector('.iframe-container');
+            
+            if (window.innerWidth <= 480) {
+                iframeContainer.style.height = 'calc(100vh - 6rem)';
+            } else if (window.innerWidth <= 768) {
+                iframeContainer.style.height = 'calc(100vh - 8rem)';
+            } else if (window.innerWidth <= 1024) {
+                iframeContainer.style.height = 'calc(100vh - 10rem)';
+            } else {
+                iframeContainer.style.height = 'calc(100vh - 12rem)';
+            }
+        });
+
+        // Verificar se o iframe carregou corretamente
+        window.addEventListener('load', function() {
+            // Timeout de segurança para esconder loading
+            setTimeout(() => {
+                const loading = document.getElementById('loading');
+                if (loading.style.display !== 'none') {
+                    loading.style.display = 'none';
+                    console.log('Loading escondido por timeout');
+                }
+            }, 10000); // 10 segundos
+        });
+
+        // Tratamento de erros do iframe
+        document.getElementById('systemFrame').addEventListener('error', function() {
+            console.error('Erro ao carregar o sistema');
+            // Pode implementar fallback aqui
+        });
+    </script>
 </body>
 </html>

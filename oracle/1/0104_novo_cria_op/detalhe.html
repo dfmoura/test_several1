@@ -2,541 +2,648 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Detalhe da Operação</title>
   <style>
     :root {
-      --verde-escuro: #14532d;
-      --verde-medio: #22c55e;
-      --verde-claro: #bbf7d0;
-      --verde-hover: #16a34a;
-      --cinza-fundo: #f6fef9;
-      --cinza-tabela: #e5e7eb;
-      --cinza-borda: #d1fae5;
-      --cinza-texto: #374151;
-      --branco: #fff;
-      --vermelho: #ef4444;
-      --amarelo: #facc15;
-      --sombra: 0 2px 8px rgba(20,83,45,0.08);
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #dbeafe;
+      --secondary: #64748b;
+      --success: #059669;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: var(--cinza-fundo);
-      color: var(--cinza-texto);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--background);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
     }
-    header {
+
+    /* Header Mobile-First */
+    .header {
       position: fixed;
-      top: 0; left: 0; right: 0;
-      background: var(--verde-escuro);
-      color: var(--branco);
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      z-index: 100;
+      box-shadow: var(--shadow);
+    }
+
+    .header-content {
       display: flex;
       align-items: center;
-      height: 56px;
-      box-shadow: var(--sombra);
-      z-index: 10;
+      gap: 0.75rem;
     }
-    .header-icon {
-      width: 32px; height: 32px;
-      margin: 0 12px;
-      display: flex; align-items: center; justify-content: center;
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
     }
+
+    .back-btn:hover {
+      background: var(--primary-light);
+    }
+
+    .back-btn svg {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+
     .header-title {
-      font-size: 1.15rem;
+      font-size: 1rem;
       font-weight: 600;
-      letter-spacing: 0.5px;
+      color: var(--text-primary);
+      flex: 1;
     }
-    main {
-      flex: 1 1 auto;
-      margin-top: 56px;
-      margin-bottom: 70px;
-      padding: 8px 6px 0 6px;
-      max-width: 600px;
-      width: 100%;
-      margin-left: auto; margin-right: auto;
+
+    /* Main Content */
+    .main {
+      margin-top: 4rem;
+      margin-bottom: 5rem;
+      padding: 1rem;
+      max-width: 100%;
     }
+
+    /* Resumo da operação */
     .resumo {
-      background: var(--branco);
-      border-radius: 6px;
-      box-shadow: var(--sombra);
-      padding: 6px 8px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      background: var(--surface);
+      border-radius: 0.75rem;
+      box-shadow: var(--shadow);
+      padding: 1rem;
+      margin-bottom: 1rem;
     }
+
     .resumo-header {
       display: flex;
       align-items: center;
-      gap: 6px;
-      flex-shrink: 0;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
     }
+
     .resumo-icon {
-      width: 20px;
-      height: 20px;
-      background: var(--verde-medio);
+      width: 2.5rem;
+      height: 2.5rem;
+      background: var(--primary);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--branco);
-      font-size: 0.7rem;
+      color: white;
+      font-size: 1rem;
       font-weight: bold;
     }
-    .resumo-titulo {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-    .resumo-titulo .codigo {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--verde-escuro);
-    }
-    .resumo-titulo .descricao {
-      font-size: 0.7rem;
-      color: var(--cinza-texto);
-      line-height: 1.1;
-    }
-    .resumo-detalhes {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      flex: 1;
-      justify-content: flex-end;
-    }
-    .resumo-card {
-      background: var(--cinza-fundo);
-      border-radius: 3px;
-      padding: 2px 6px;
-      text-align: center;
-      border: 1px solid var(--cinza-borda);
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      min-width: 60px;
-    }
-    .resumo-card-label {
-      font-size: 0.55rem;
-      color: var(--verde-escuro);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.2px;
-    }
-    .resumo-card-valor {
-      font-size: 0.65rem;
-      color: var(--cinza-texto);
-      font-weight: 500;
+
+    .resumo-info h3 {
+      font-size: 1.125rem;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
     }
 
+    .resumo-info p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .resumo-detalhes {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .resumo-card {
+      background: var(--background);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .resumo-card-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .resumo-card-valor {
+      font-size: 1rem;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Controles do processo */
+    .controles {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .controle-btn {
+      padding: 0.875rem 0.5rem;
+      border: none;
+      border-radius: 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-iniciar { 
+      background: var(--success); 
+      color: white; 
+    }
+    
+    .btn-parar { 
+      background: var(--warning); 
+      color: white; 
+    }
+    
+    .btn-continuar { 
+      background: var(--primary); 
+      color: white; 
+    }
+    
+    .btn-finalizar { 
+      background: var(--danger); 
+      color: white; 
+    }
+
+    .controle-btn:disabled { 
+      opacity: 0.6; 
+      cursor: not-allowed; 
+    }
+
+    .controle-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Abas */
     .abas {
       display: flex;
-      border-radius: 12px 12px 0 0;
+      background: var(--surface);
+      border-radius: 0.75rem;
       overflow: hidden;
-      margin-bottom: 0;
-      box-shadow: var(--sombra);
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
     }
+
     .aba-btn {
       flex: 1;
-      background: var(--verde-claro);
-      color: var(--verde-escuro);
+      background: var(--background);
+      color: var(--text-secondary);
       border: none;
-      padding: 12px 0;
-      font-size: 1rem;
+      padding: 0.875rem 0.5rem;
+      font-size: 0.875rem;
       font-weight: 500;
       cursor: pointer;
-      transition: background 0.2s, color 0.2s;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
+
     .aba-btn.ativa {
-      background: var(--verde-medio);
-      color: var(--branco);
+      background: var(--primary);
+      color: white;
     }
+
     .conteudo-aba { 
       display: none; 
-      min-height: 400px;
     }
-    .conteudo-aba.ativa { display: block; }
-    /* Tabela padrão */
+    
+    .conteudo-aba.ativa { 
+      display: block; 
+    }
+
+    /* Tabelas */
+    .tabela-container {
+      background: var(--surface);
+      border-radius: 0.75rem;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
     .tabela {
       width: 100%;
       border-collapse: collapse;
-      background: var(--branco);
-      border-radius: 0 0 12px 12px;
-      overflow: hidden;
-      box-shadow: var(--sombra);
-      margin-bottom: 16px;
-      min-height: 350px;
+      font-size: 0.75rem;
     }
-    .tabela th, .tabela td {
-      padding: 10px 6px;
-      text-align: left;
-      font-size: 0.98rem;
-    }
+
     .tabela th {
-      background: var(--verde-claro);
-      color: var(--verde-escuro);
+      background: var(--primary-light);
+      color: var(--primary-dark);
       font-weight: 600;
-      border-bottom: 2px solid var(--cinza-borda);
-    }
-    .tabela tr {
-      border-bottom: 1px solid var(--cinza-tabela);
-      transition: background 0.15s;
-    }
-    .tabela tr:nth-child(even) {
-      background: rgba(246, 254, 249, 0.8);
-    }
-    .tabela tr:nth-child(odd) {
-      background: var(--branco);
-    }
-    .tabela tr:last-child { border-bottom: none; }
-    .tabela td {
-      color: var(--cinza-texto);
-    }
-    .tabela tr[data-clicavel="true"]:hover {
-      background: var(--verde-claro);
-      cursor: pointer;
-    }
-    /* Linhas de materiais com cores alternadas */
-    .tabela tr.materiais-linha:nth-child(even) {
-      background: rgba(187, 247, 208, 0.25);
-    }
-    .tabela tr.materiais-linha:nth-child(odd) {
-      background: rgba(187, 247, 208, 0.08);
-    }
-    .sem-registros {
-      text-align: center;
-      color: var(--verde-escuro);
-      padding: 24px 0;
-      font-size: 1.1rem;
-    }
-    /* Controles do processo */
-    .controles {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-    .controle-btn {
-      flex: 1 1 120px;
-      padding: 10px 0;
-      border: none;
-      border-radius: 20px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s;
-      margin-bottom: 4px;
-    }
-    .btn-iniciar { background: var(--verde-medio); color: var(--branco); }
-    .btn-parar { background: var(--amarelo); color: var(--verde-escuro); }
-    .btn-continuar { background: var(--verde-hover); color: var(--branco); }
-    .btn-finalizar { background: var(--vermelho); color: var(--branco); }
-    .controle-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    /* Modal */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(20,83,45,0.45);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 100;
-    }
-    .modal {
-      background: var(--branco);
-      border-radius: 16px;
-      box-shadow: var(--sombra);
-      padding: 24px 18px 18px 18px;
-      min-width: 260px;
-      max-width: 95vw;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      animation: modalIn 0.2s;
-    }
-    @keyframes modalIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .modal label { font-weight: 500; color: var(--verde-escuro); }
-    .modal input, .modal textarea {
-      width: 100%;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid var(--cinza-borda);
-      font-size: 1rem;
-      margin-top: 4px;
-    }
-    .modal .modal-btns {
-      display: flex;
-      gap: 10px;
-      margin-top: 8px;
-    }
-    .modal .modal-btns button {
-      flex: 1;
-      padding: 8px 0;
-      border: none;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      background: var(--verde-medio);
-      color: var(--branco);
-      transition: background 0.2s;
-    }
-    .modal .modal-btns .cancelar {
-      background: var(--cinza-tabela);
-      color: var(--verde-escuro);
-    }
-    /* Materiais expandíveis */
-    .materiais-lista {
-      background: var(--cinza-fundo);
-      border-radius: 0 0 12px 12px;
-      margin-top: -8px;
-      margin-bottom: 12px;
-      box-shadow: var(--sombra);
-      padding: 8px 0 0 0;
-      width: 100%;
-    }
-    .materiais-tabela {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--cinza-fundo);
-    }
-    .materiais-tabela th, .materiais-tabela td {
-      font-size: 0.95rem;
-      padding: 7px 4px;
+      padding: 0.75rem 0.5rem;
       text-align: left;
-      border-bottom: 1px solid var(--cinza-tabela);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.7rem;
     }
-    .materiais-tabela th {
-      background: var(--verde-claro);
-      color: var(--verde-escuro);
-      font-weight: 600;
-      border-bottom: 2px solid var(--cinza-borda);
+
+    .tabela td {
+      padding: 0.75rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-primary);
+      font-size: 0.75rem;
     }
-    .expandir-btn {
-      background: none;
-      border: none;
-      color: var(--verde-hover);
-      font-size: 1.1rem;
-      cursor: pointer;
-      margin-left: 4px;
+
+    .tabela tr {
+      transition: background-color 0.2s ease;
     }
+
+    .tabela tr:nth-child(even) {
+      background: rgba(248, 250, 252, 0.8);
+    }
+
+    .tabela tr:last-child td {
+      border-bottom: none;
+    }
+
     /* Botões de ação */
     .acao-btn {
-      width: 32px;
-      height: 32px;
+      width: 2rem;
+      height: 2rem;
       border: none;
-      border-radius: 6px;
-      font-size: 1rem;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
       cursor: pointer;
-      margin: 0 2px;
+      margin: 0 0.125rem;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow);
     }
+
     .editar-btn {
-      background: var(--verde-medio);
-      color: var(--branco);
+      background: var(--primary);
+      color: white;
     }
-    .editar-btn:hover {
-      background: var(--verde-hover);
-      transform: scale(1.05);
-    }
+
     .excluir-btn {
-      background: var(--vermelho);
-      color: var(--branco);
+      background: var(--danger);
+      color: white;
     }
-    .excluir-btn:hover {
-      background: #dc2626;
-      transform: scale(1.05);
-    }
+
     .confirmar-btn {
-      background: var(--amarelo);
-      color: var(--verde-escuro);
+      background: var(--success);
+      color: white;
     }
-    .confirmar-btn:hover {
-      background: #eab308;
-      transform: scale(1.05);
-    }
+
     .acao-btn:active {
       transform: scale(0.95);
     }
-    /* Rodapé fixo */
-    footer {
+
+    /* Estado vazio */
+    .sem-registros {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-secondary);
+    }
+
+    .sem-registros-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      opacity: 0.5;
+    }
+
+    /* Botão adicionar */
+    .btn-add {
+      width: 100%;
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-add:hover {
+      background: #047857;
+    }
+
+    .btn-add:active {
+      transform: scale(0.98);
+    }
+
+    /* Modal */
+    .modal-overlay {
       position: fixed;
-      left: 0; right: 0; bottom: 0;
-      height: 70px;
-      background: var(--verde-escuro);
-      color: var(--branco);
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
+      z-index: 1000;
+      padding: 1rem;
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 1rem;
+      box-shadow: var(--shadow-lg);
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 400px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal label {
+      display: block;
       font-weight: 500;
-      box-shadow: 0 -2px 8px rgba(20,83,45,0.08);
-      z-index: 10;
-      border-top-left-radius: 16px;
-      border-top-right-radius: 16px;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
     }
-    .btn-voltar {
-      background: var(--verde-medio);
-      color: var(--branco);
+
+    .modal input,
+    .modal textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      background: var(--surface);
+    }
+
+    .modal input:focus,
+    .modal textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .modal-btns {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .modal-btns button {
+      flex: 1;
+      padding: 0.75rem;
       border: none;
-      border-radius: 20px;
-      padding: 12px 32px;
-      font-size: 1.1rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
       font-weight: 600;
-      margin-left: 12px;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s ease;
     }
-    .btn-voltar:active { background: var(--verde-hover); }
-    @media (min-width: 600px) {
-      main { padding: 24px 0 0 0; }
+
+    .modal-btns .confirmar {
+      background: var(--primary);
+      color: white;
     }
-    @media (max-width: 480px) {
-      .resumo {
-        padding: 4px 6px;
-        margin-bottom: 6px;
-        gap: 8px;
-        flex-direction: column;
-        align-items: flex-start;
+
+    .modal-btns .cancelar {
+      background: var(--secondary);
+      color: white;
+    }
+
+    .modal-btns button:active {
+      transform: scale(0.98);
+    }
+
+    /* Footer */
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 1rem;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      z-index: 100;
+    }
+
+    /* Responsividade */
+    @media (min-width: 768px) {
+      .main {
+        max-width: 768px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 1.5rem;
       }
-      .resumo-header {
-        gap: 4px;
+
+      .header {
+        padding: 1rem 1.5rem;
       }
-      .resumo-icon {
-        width: 18px;
-        height: 18px;
-        font-size: 0.6rem;
-      }
+
       .resumo-detalhes {
-        gap: 4px;
-        justify-content: flex-start;
-        width: 100%;
+        grid-template-columns: repeat(4, 1fr);
       }
-      .resumo-card {
-        padding: 3px 5px;
-        min-width: 50px;
-        flex: 1;
+
+      .controles {
+        grid-template-columns: repeat(4, 1fr);
       }
-      /* Botões otimizados para mobile */
-      .acao-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 1.1rem;
-        margin: 0 3px;
+
+      .tabela th,
+      .tabela td {
+        padding: 1rem 0.75rem;
+        font-size: 0.875rem;
       }
-      .tabela th, .tabela td {
-        padding: 8px 4px;
-        font-size: 0.9rem;
+
+      .tabela th {
+        font-size: 0.8rem;
       }
-      .conteudo-aba {
-        min-height: 350px;
+    }
+
+    @media (min-width: 1024px) {
+      .main {
+        max-width: 1024px;
+        padding: 2rem;
       }
-      .tabela {
-        min-height: 300px;
+    }
+
+    /* Animações */
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .resumo,
+    .controles,
+    .abas,
+    .tabela-container {
+      animation: slideIn 0.3s ease-out;
+    }
+
+    /* Melhorias para touch */
+    @media (hover: none) and (pointer: coarse) {
+      .controle-btn:active {
+        transform: scale(0.95);
+      }
+
+      .acao-btn:active {
+        transform: scale(0.9);
       }
     }
   </style>
 </head>
 <body>
-  <!-- Cabeçalho fixo -->
-  <header>
-    <span class="header-icon" aria-label="Menu">
-      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
-    </span>
-    <span class="header-title">Detalhe da Operação</span>
-  </header>
-  <main>
-    <!-- Resumo do registro selecionado -->
-    <div class="resumo" id="resumoOp">
-      <!-- Preenchido via JS -->
+  <!-- Header fixo otimizado para mobile -->
+  <header class="header">
+    <div class="header-content">
+      <button class="back-btn" onclick="window.location.href='index.html'" aria-label="Voltar">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+      <h1 class="header-title">Detalhe da Operação</h1>
     </div>
+  </header>
+
+  <!-- Conteúdo principal -->
+  <main class="main">
+    <!-- Resumo da operação -->
+    <div class="resumo" id="resumoOp">
+      <!-- Preenchido via JavaScript -->
+    </div>
+
     <!-- Controles do processo -->
     <div class="controles" id="controlesProc">
-      <!-- Botões gerados via JS -->
+      <!-- Botões gerados via JavaScript -->
     </div>
+
     <!-- Abas -->
     <div class="abas">
       <button class="aba-btn ativa" data-aba="apontamentos">Apontamentos</button>
       <button class="aba-btn" data-aba="execucao">Execução</button>
     </div>
+
     <!-- Conteúdo das abas -->
     <div class="conteudo-aba ativa" id="aba-apontamentos">
-      <!-- Tabela de apontamentos -->
-      <table class="tabela" id="tabelaApont">
-        <thead>
-          <tr>
-            <th>Editar</th>
-            <th>Confirmar</th>
-            <th></th>
-            <th>Nota</th>
-            <th>Usuário</th>
-            <th>Data/Hora</th>
-            <th>Situação</th>
-            <th>Qtd. Apontada</th>
-            <th>Qtd. Perda</th>
-            <th>Excluir</th>
-          </tr>
-        </thead>
-        <tbody id="tbodyApont">
-          <!-- Linhas via JS -->
-        </tbody>
-      </table>
-      <div class="sem-registros" id="semApont" style="display:none;">Nenhum apontamento.</div>
-      <button class="controle-btn btn-iniciar" id="btnAddApont" style="width:100%;margin-bottom:8px;">Adicionar Apontamento</button>
+      <div class="tabela-container">
+        <table class="tabela" id="tabelaApont">
+          <thead>
+            <tr>
+              <th>Ações</th>
+              <th>Nota</th>
+              <th>Usuário</th>
+              <th>Data/Hora</th>
+              <th>Situação</th>
+              <th>Qtd. Apontada</th>
+              <th>Qtd. Perda</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyApont">
+            <!-- Linhas geradas via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="sem-registros" id="semApont" style="display: none;">
+        <div class="sem-registros-icon">📝</div>
+        <p>Nenhum apontamento registrado</p>
+      </div>
+      
+      <button class="btn-add" id="btnAddApont">Adicionar Apontamento</button>
     </div>
+
     <div class="conteudo-aba" id="aba-execucao">
-      <table class="tabela" id="tabelaExec">
-        <thead>
-          <tr>
-            <th>Início</th>
-            <th>Fim</th>
-            <th>Tipo</th>
-            <th>Usuário</th>
-            <th>Motivo</th>
-          </tr>
-        </thead>
-        <tbody id="tbodyExec">
-          <!-- Linhas via JS -->
-        </tbody>
-      </table>
-      <div class="sem-registros" id="semExec" style="display:none;">Nenhuma execução registrada.</div>
+      <div class="tabela-container">
+        <table class="tabela" id="tabelaExec">
+          <thead>
+            <tr>
+              <th>Início</th>
+              <th>Fim</th>
+              <th>Tipo</th>
+              <th>Usuário</th>
+              <th>Motivo</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyExec">
+            <!-- Linhas geradas via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="sem-registros" id="semExec" style="display: none;">
+        <div class="sem-registros-icon">⏱️</div>
+        <p>Nenhuma execução registrada</p>
+      </div>
     </div>
   </main>
-  <!-- Rodapé fixo -->
-  <footer>
-    <button class="btn-voltar" onclick="window.location.href='index.html'">Voltar</button>
-    <span style="flex:1"></span>
-    Sistema de Controle de Produção
+
+  <!-- Footer fixo -->
+  <footer class="footer">
+    Sistema de Controle de Produção &copy; 2024
   </footer>
+
   <!-- Modal genérico -->
-  <div id="modalOverlay" class="modal-overlay" style="display:none;">
+  <div id="modalOverlay" class="modal-overlay" style="display: none;">
     <div class="modal" id="modalContent">
-      <!-- Conteúdo dinâmico via JS -->
+      <!-- Conteúdo dinâmico via JavaScript -->
     </div>
   </div>
+
   <script>
     // Utilitários e dados simulados
     const usuarioAtual = 'usu001';
+    
     function dataHoraAtual() {
       const d = new Date();
-      return d.toISOString().slice(0,16).replace('T',' ');
+      return d.toISOString().slice(0, 16).replace('T', ' ');
     }
+
     // Fatores de consumo simulados para materiais
     const materiaisBase = [
       { codMaterial: 'M001', material: 'Matéria Prima A', fator: 0.5, estoque: 500, un: 'KG' },
       { codMaterial: 'M002', material: 'Matéria Prima B', fator: 0.2, estoque: 300, un: 'KG' },
       { codMaterial: 'M003', material: 'Matéria Prima C', fator: 0.1, estoque: 200, un: 'L' },
     ];
+
     // Estado global da tela
     let op = null;
     let apontamentos = [];
     let execucoes = [];
     let nunotaSeq = 1;
+
     // Carrega dados da operação selecionada
     function carregarOp() {
       const opStr = localStorage.getItem('opSelecionada');
@@ -544,13 +651,15 @@
         window.location.href = 'index.html';
         return;
       }
+      
       op = JSON.parse(opStr);
+      
       document.getElementById('resumoOp').innerHTML = `
         <div class="resumo-header">
           <div class="resumo-icon">${op.codprodpa.charAt(0)}</div>
-          <div class="resumo-titulo">
-            <div class="codigo">${op.codprodpa}</div>
-            <div class="descricao">${op.descprod}</div>
+          <div class="resumo-info">
+            <h3>${op.codprodpa}</h3>
+            <p>${op.descprod}</p>
           </div>
         </div>
         <div class="resumo-detalhes">
@@ -560,11 +669,11 @@
           </div>
           <div class="resumo-card">
             <div class="resumo-card-label">Data</div>
-            <div class="resumo-card-valor">${op.dtfab}</div>
+            <div class="resumo-card-valor">${formatarData(op.dtfab)}</div>
           </div>
           <div class="resumo-card">
             <div class="resumo-card-label">Qtd. Produzir</div>
-            <div class="resumo-card-valor">${op.qtdproduzir}</div>
+            <div class="resumo-card-valor">${op.qtdproduzir.toLocaleString()}</div>
           </div>
           <div class="resumo-card">
             <div class="resumo-card-label">Lote</div>
@@ -573,178 +682,255 @@
         </div>
       `;
     }
-    // Abas
+
+    // Função para formatar data
+    function formatarData(dataStr) {
+      const data = new Date(dataStr);
+      return data.toLocaleDateString('pt-BR');
+    }
+
+    // Sistema de abas
     document.querySelectorAll('.aba-btn').forEach(btn => {
       btn.addEventListener('click', function() {
+        // Remove classe ativa de todos os botões
         document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativa'));
+        
+        // Adiciona classe ativa ao botão clicado
         this.classList.add('ativa');
+        
+        // Esconde todos os conteúdos
         document.querySelectorAll('.conteudo-aba').forEach(c => c.classList.remove('ativa'));
+        
+        // Mostra o conteúdo da aba selecionada
         document.getElementById('aba-' + this.getAttribute('data-aba')).classList.add('ativa');
       });
     });
+
     // Controles do processo
     let estadoProc = 'naoiniciado'; // naoiniciado, emexecucao, parado, finalizado
+    
     function renderControles() {
       const div = document.getElementById('controlesProc');
       div.innerHTML = '';
+      
       if (estadoProc === 'naoiniciado') {
         div.innerHTML = `<button class='controle-btn btn-iniciar' onclick='iniciarProc()'>Iniciar</button>`;
       } else if (estadoProc === 'emexecucao') {
-        div.innerHTML = `<button class='controle-btn btn-parar' onclick='pararProc()'>Parar</button><button class='controle-btn btn-finalizar' onclick='finalizarProc()'>Finalizar</button>`;
+        div.innerHTML = `
+          <button class='controle-btn btn-parar' onclick='pararProc()'>Parar</button>
+          <button class='controle-btn btn-finalizar' onclick='finalizarProc()'>Finalizar</button>
+        `;
       } else if (estadoProc === 'parado') {
         div.innerHTML = `<button class='controle-btn btn-continuar' onclick='continuarProc()'>Continuar</button>`;
       } else if (estadoProc === 'finalizado') {
         div.innerHTML = `<button class='controle-btn btn-finalizar' disabled>Finalizado</button>`;
       }
     }
+
     function iniciarProc() {
       estadoProc = 'emexecucao';
-      execucoes.push({ dhinicio: dataHoraAtual(), dhfinal: '', tipo: 'normal', codusu: usuarioAtual, motivo: '' });
+      execucoes.push({ 
+        dhinicio: dataHoraAtual(), 
+        dhfinal: '', 
+        tipo: 'normal', 
+        codusu: usuarioAtual, 
+        motivo: '' 
+      });
       renderControles();
       renderExecucoes();
     }
+
     function pararProc() {
       abrirModalMotivo('Motivo da Parada', motivo => {
         // Fecha execução anterior
         const exec = execucoes.find(e => !e.dhfinal);
         if (exec) exec.dhfinal = dataHoraAtual();
+        
         // Nova linha tipo parada
-        execucoes.push({ dhinicio: dataHoraAtual(), dhfinal: '', tipo: 'parada', codusu: usuarioAtual, motivo });
+        execucoes.push({ 
+          dhinicio: dataHoraAtual(), 
+          dhfinal: '', 
+          tipo: 'parada', 
+          codusu: usuarioAtual, 
+          motivo 
+        });
+        
         estadoProc = 'parado';
         renderControles();
         renderExecucoes();
       });
     }
+
     function continuarProc() {
       // Fecha linha parada
       const exec = execucoes.find(e => !e.dhfinal && e.tipo === 'parada');
       if (exec) exec.dhfinal = dataHoraAtual();
+      
       // Nova linha normal
-      execucoes.push({ dhinicio: dataHoraAtual(), dhfinal: '', tipo: 'normal', codusu: usuarioAtual, motivo: '' });
+      execucoes.push({ 
+        dhinicio: dataHoraAtual(), 
+        dhfinal: '', 
+        tipo: 'normal', 
+        codusu: usuarioAtual, 
+        motivo: '' 
+      });
+      
       estadoProc = 'emexecucao';
       renderControles();
       renderExecucoes();
     }
+
     function finalizarProc() {
       // Só permite se não estiver parado
       if (estadoProc !== 'emexecucao') return;
+      
       const exec = execucoes.find(e => !e.dhfinal);
       if (exec) exec.dhfinal = dataHoraAtual();
       exec.tipo = 'finalizado';
+      
       estadoProc = 'finalizado';
       renderControles();
       renderExecucoes();
     }
+
     // Modal de motivo
     function abrirModalMotivo(titulo, onConfirm) {
       const overlay = document.getElementById('modalOverlay');
       const content = document.getElementById('modalContent');
-      content.innerHTML = `<label>${titulo}</label><textarea id='motivoInput' rows='3' maxlength='120'></textarea><div class='modal-btns'><button onclick='confirmarMotivo()'>Confirmar</button><button class='cancelar' onclick='fecharModal()'>Cancelar</button></div>`;
+      
+      content.innerHTML = `
+        <label>${titulo}</label>
+        <textarea id='motivoInput' rows='3' maxlength='120' placeholder='Descreva o motivo...'></textarea>
+        <div class='modal-btns'>
+          <button class='confirmar' onclick='confirmarMotivo()'>Confirmar</button>
+          <button class='cancelar' onclick='fecharModal()'>Cancelar</button>
+        </div>
+      `;
+      
       overlay.style.display = 'flex';
+      
       window.confirmarMotivo = function() {
         const motivo = document.getElementById('motivoInput').value.trim();
-        if (!motivo) { alert('Informe o motivo.'); return; }
+        if (!motivo) { 
+          alert('Informe o motivo.'); 
+          return; 
+        }
         fecharModal();
         onConfirm(motivo);
       };
-      window.fecharModal = function() { overlay.style.display = 'none'; };
+      
+      window.fecharModal = function() { 
+        overlay.style.display = 'none'; 
+      };
     }
+
     // Apontamentos
     function renderApontamentos() {
       const tbody = document.getElementById('tbodyApont');
       const sem = document.getElementById('semApont');
+      
       tbody.innerHTML = '';
+      
       if (apontamentos.length === 0) {
         sem.style.display = 'block';
         return;
       } else {
         sem.style.display = 'none';
       }
+
       apontamentos.forEach((ap, idx) => {
         const tr = document.createElement('tr');
+        
         tr.innerHTML = `
           <td>
             ${ap.situacao === 'Pendente' ? `
               <button class="acao-btn editar-btn" onclick='editarApont(${idx})' title="Editar">✏️</button>
-            ` : ''}
-          </td>
-          <td>
-            ${ap.situacao === 'Pendente' ? `
               <button class="acao-btn confirmar-btn" onclick='confirmarApont(${idx})' title="Confirmar">✔️</button>
             ` : ''}
           </td>
-          <td><button class='expandir-btn' onclick='toggleMateriais(${idx})' title='${ap.oculto ? 'Mostrar' : 'Ocultar'} materiais'>${ap.oculto ? '▼' : '▲'}</button></td>
-          <td>${ap.nunota}</td>
+          <td><strong>${ap.nunota}</strong></td>
           <td>${ap.codusu}</td>
-          <td>${ap.dhapontamento}</td>
-          <td>${ap.situacao}</td>
-          <td>${ap.qtdApontada}</td>
-          <td>${ap.qtdPerda}</td>
+          <td>${formatarDataHora(ap.dhapontamento)}</td>
           <td>
-            ${ap.situacao === 'Pendente' ? `
-              <button class="acao-btn excluir-btn" onclick='excluirApont(${idx})' title="Excluir">🗑️</button>
-            ` : ''}
+            <span style="
+              padding: 0.25rem 0.5rem; 
+              border-radius: 0.375rem; 
+              font-size: 0.7rem; 
+              font-weight: 500;
+              background: ${ap.situacao === 'Pendente' ? 'var(--warning)' : 'var(--success)'};
+              color: white;
+            ">${ap.situacao}</span>
           </td>
+          <td><strong>${ap.qtdApontada.toLocaleString()}</strong></td>
+          <td>${ap.qtdPerda.toLocaleString()}</td>
         `;
+        
         tbody.appendChild(tr);
-        // Linha de materiais (oculta por padrão)
-        if (!ap.oculto) {
-          const trMat = document.createElement('tr');
-          trMat.className = 'materiais-linha';
-          trMat.innerHTML = `<td colspan='10'>${renderMateriais(ap, idx)}</td>`;
-          tbody.appendChild(trMat);
-        }
       });
     }
-    function renderMateriais(ap, idxAp) {
-      let html = `<div class='materiais-lista'><table class='materiais-tabela'><thead><tr><th>Editar</th><th>Cód.</th><th>Material</th><th>Lote</th><th>Qtd.</th><th>Estoque</th><th>UN</th><th>Excluir</th></tr></thead><tbody>`;
-      ap.materiais.forEach((mat, idxMat) => {
-        html += `<tr><td>${ap.situacao === 'Pendente' ? `<button class="acao-btn editar-btn" onclick='editarMaterial(${idxAp},${idxMat})' title="Editar">✏️</button>` : ''}</td><td>${mat.codMaterial}</td><td>${mat.material}</td><td>${mat.lote}</td><td>${mat.qtdApontada}</td><td>${mat.estoque}</td><td>${mat.un}</td><td>${ap.situacao === 'Pendente' ? `<button class="acao-btn excluir-btn" onclick='excluirMaterial(${idxAp},${idxMat})' title="Excluir">🗑️</button>` : ''}</td></tr>`;
-      });
-      html += `</tbody></table></div>`;
-      return html;
+
+    function formatarDataHora(dataHoraStr) {
+      const data = new Date(dataHoraStr);
+      return data.toLocaleString('pt-BR');
     }
-    function toggleMateriais(idx) {
-      apontamentos[idx].oculto = !apontamentos[idx].oculto;
-      renderApontamentos();
-    }
+
     // Adicionar Apontamento
     document.getElementById('btnAddApont').onclick = function() {
       abrirModalApontamento();
     };
+
     function abrirModalApontamento(apIdx) {
       const ap = apIdx !== undefined ? apontamentos[apIdx] : null;
       let qtdRestante = op.qtdproduzir - apontamentos.reduce((soma, a) => soma + a.qtdApontada + a.qtdPerda, 0);
+      
       if (ap && ap.situacao !== 'Pendente') return;
+      
       const overlay = document.getElementById('modalOverlay');
       const content = document.getElementById('modalContent');
+      
       content.innerHTML = `
-        <label>Qtd. Apontada</label>
+        <label>Quantidade Apontada</label>
         <input type='number' id='qtdApontadaInput' min='1' max='${qtdRestante}' value='${ap ? ap.qtdApontada : qtdRestante}' />
-        <label>Qtd. Perda</label>
+        
+        <label>Quantidade Perda</label>
         <input type='number' id='qtdPerdaInput' min='0' max='${qtdRestante}' value='${ap ? ap.qtdPerda : 0}' />
+        
         <div class='modal-btns'>
-          <button onclick='confirmarApontamento(${apIdx !== undefined ? apIdx : "null"})'>Confirmar</button>
+          <button class='confirmar' onclick='confirmarApontamento(${apIdx !== undefined ? apIdx : "null"})'>Confirmar</button>
           <button class='cancelar' onclick='fecharModal()'>Cancelar</button>
         </div>
       `;
+      
       overlay.style.display = 'flex';
       window.fecharModal = function() { overlay.style.display = 'none'; };
     }
+
     window.confirmarApontamento = function(apIdx) {
       const qtdApontada = parseInt(document.getElementById('qtdApontadaInput').value, 10);
       const qtdPerda = parseInt(document.getElementById('qtdPerdaInput').value, 10);
+      
       let qtdRestante = op.qtdproduzir - apontamentos.reduce((soma, a) => soma + a.qtdApontada + a.qtdPerda, 0);
+      
       if (apIdx !== null) {
         // Editando: soma do atual não conta
         qtdRestante += apontamentos[apIdx].qtdApontada + apontamentos[apIdx].qtdPerda;
       }
+      
       if (qtdApontada + qtdPerda > qtdRestante) {
         alert('Total não pode ultrapassar quantidade a produzir.');
         return;
       }
-      if (qtdApontada < 1) { alert('Qtd. Apontada deve ser maior que zero.'); return; }
-      if (qtdPerda < 0) { alert('Qtd. Perda não pode ser negativa.'); return; }
+      
+      if (qtdApontada < 1) { 
+        alert('Quantidade apontada deve ser maior que zero.'); 
+        return; 
+      }
+      
+      if (qtdPerda < 0) { 
+        alert('Quantidade perda não pode ser negativa.'); 
+        return; 
+      }
+      
       if (apIdx === null) {
         // Novo apontamento
         const materiais = materiaisBase.map(mat => ({
@@ -752,6 +938,7 @@
           lote: op.nrolote,
           qtdApontada: +(qtdApontada * mat.fator).toFixed(2)
         }));
+        
         apontamentos.push({
           nunota: nunotaSeq++,
           codusu: usuarioAtual,
@@ -771,66 +958,65 @@
           mat.qtdApontada = +(qtdApontada * mat.fator).toFixed(2);
         });
       }
+      
       fecharModal();
       renderApontamentos();
     };
-    window.editarApont = function(idx) { abrirModalApontamento(idx); };
+
+    window.editarApont = function(idx) { 
+      abrirModalApontamento(idx); 
+    };
+
     window.excluirApont = function(idx) {
       if (confirm('Excluir este apontamento?')) {
         apontamentos.splice(idx, 1);
         renderApontamentos();
       }
     };
+
     window.confirmarApont = function(idx) {
       apontamentos[idx].situacao = 'Confirmado';
       renderApontamentos();
     };
-    // Materiais
-    window.editarMaterial = function(idxAp, idxMat) {
-      const ap = apontamentos[idxAp];
-      if (ap.situacao !== 'Pendente') return;
-      const mat = ap.materiais[idxMat];
-      const overlay = document.getElementById('modalOverlay');
-      const content = document.getElementById('modalContent');
-      content.innerHTML = `
-        <label>Qtd. Apontada (${mat.un})</label>
-        <input type='number' id='qtdMatInput' min='0' max='${mat.estoque}' value='${mat.qtdApontada}' />
-        <div class='modal-btns'>
-          <button onclick='confirmarMaterial(${idxAp},${idxMat})'>Confirmar</button>
-          <button class='cancelar' onclick='fecharModal()'>Cancelar</button>
-        </div>
-      `;
-      overlay.style.display = 'flex';
-      window.fecharModal = function() { overlay.style.display = 'none'; };
-    };
-    window.confirmarMaterial = function(idxAp, idxMat) {
-      const val = parseFloat(document.getElementById('qtdMatInput').value);
-      if (val < 0) { alert('Quantidade não pode ser negativa.'); return; }
-      apontamentos[idxAp].materiais[idxMat].qtdApontada = val;
-      fecharModal();
-      renderApontamentos();
-    };
-    window.excluirMaterial = function(idxAp, idxMat) {
-      if (confirm('Excluir este material?')) {
-        apontamentos[idxAp].materiais.splice(idxMat, 1);
-        renderApontamentos();
-      }
-    };
+
     // Execução
     function renderExecucoes() {
       const tbody = document.getElementById('tbodyExec');
       const sem = document.getElementById('semExec');
+      
       tbody.innerHTML = '';
+      
       if (execucoes.length === 0) {
         sem.style.display = 'block';
         return;
       } else {
         sem.style.display = 'none';
       }
+
       execucoes.forEach(exec => {
-        tbody.innerHTML += `<tr><td>${exec.dhinicio}</td><td>${exec.dhfinal || '-'}</td><td>${exec.tipo}</td><td>${exec.codusu}</td><td>${exec.motivo || '-'}</td></tr>`;
+        const tr = document.createElement('tr');
+        
+        tr.innerHTML = `
+          <td>${formatarDataHora(exec.dhinicio)}</td>
+          <td>${exec.dhfinal ? formatarDataHora(exec.dhfinal) : '-'}</td>
+          <td>
+            <span style="
+              padding: 0.25rem 0.5rem; 
+              border-radius: 0.375rem; 
+              font-size: 0.7rem; 
+              font-weight: 500;
+              background: ${exec.tipo === 'normal' ? 'var(--success)' : exec.tipo === 'parada' ? 'var(--warning)' : 'var(--danger)'};
+              color: white;
+            ">${exec.tipo}</span>
+          </td>
+          <td>${exec.codusu}</td>
+          <td>${exec.motivo || '-'}</td>
+        `;
+        
+        tbody.appendChild(tr);
       });
     }
+
     // Inicialização
     carregarOp();
     renderControles();
