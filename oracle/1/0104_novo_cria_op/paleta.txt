@@ -1,0 +1,197 @@
+🎨 CINZENTAS (textos, linhas e elementos de fundo)
+
+Chumbo
+
+CMYK: 0/0/0/70
+
+RGB: 110/110/110
+
+HEX: #6e6e6e
+
+Pantone: 444 C | U
+
+Cinza Claro
+
+CMYK: 0/0/0/10
+
+RGB: 235/235/235
+
+HEX: #ebebeb
+
+Pantone: 427 C | U
+
+Cinza Médio
+
+CMYK: 0/0/0/50
+
+RGB: 155/155/155
+
+HEX: #9c9c9c
+
+Pantone: 430 C | U
+
+❄️ FRIAS
+
+Floresta
+
+CMYK: 100/0/40/45
+
+RGB: 0/105/110
+
+HEX: #00695e
+
+Pantone: 328 C | U
+
+Turquesa
+
+CMYK: 75/0/45/0
+
+RGB: 0/175/160
+
+HEX: #00afa0
+
+Pantone: 3262 C | U
+
+Verde Escuro Satis
+
+CMYK: 90/0/60/20
+
+RGB: 0/138/112
+
+HEX: #008a70
+
+Pantone: 334 C | U
+
+Verde Claro Satis
+
+CMYK: 45/0/90/0
+
+RGB: 162/199/59
+
+HEX: #a2c73b
+
+Pantone: 375 C | U
+
+Água
+
+CMYK: 75/0/20/0
+
+RGB: 0/180/205
+
+HEX: #00b4cd
+
+Pantone: 3115 C | U
+
+Folha
+
+CMYK: 70/0/100/0
+
+RGB: 80/175/50
+
+HEX: #50af32
+
+Pantone: 354 C | U
+
+Ciano
+
+CMYK: 100/0/0/0
+
+RGB: 0/175/240
+
+HEX: #00a0f0
+
+Pantone: 299 C | U
+
+Mirtilo
+
+CMYK: 90/85/5/0
+
+RGB: 80/70/150
+
+HEX: #3c4696
+
+Pantone: 2728 C | U
+
+🔥 QUENTES
+
+Limão
+
+CMYK: 20/0/100/0
+
+RGB: 215/220/35
+
+HEX: #dcdc23
+
+Pantone: 389 C | U
+
+Laranja
+
+CMYK: 0/30/100/0
+
+RGB: 255/185/20
+
+HEX: #ffb914
+
+Pantone: 1375 C | U
+
+Abóbora
+
+CMYK: 0/70/100/0
+
+RGB: 245/110/0
+
+HEX: #f56e1e
+
+Pantone: 165 C | U
+
+Milho
+
+CMYK: 0/5/100/0
+
+RGB: 255/230/0
+
+HEX: #ffe600
+
+Pantone: 109 C | U
+
+Vermelho
+
+CMYK: 0/100/100/0
+
+RGB: 227/6/19
+
+HEX: #e30613
+
+Pantone: 185 C | U
+
+Goiaba
+
+CMYK: 0/80/15/0
+
+RGB: 235/25/70
+
+HEX: #e05a8c
+
+Pantone: 184 C | U
+
+🌈 PALETA SECUNDÁRIA
+
+Uva
+
+CMYK: 70/90/0/0
+
+RGB: 160/60/150
+
+HEX: #a43c96
+
+Pantone: 2597 C | U
+
+Terra
+
+CMYK: 45/75/65/60
+
+RGB: 80/40/40
+
+HEX: #502828
+
+Pantone: 4625 C | U

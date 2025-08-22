@@ -1,202 +1,186 @@
-# Sistema de Controle de Produção - Versão Mobile-First
+# Sistema de Controle de Operações de Produção (OP's)
 
-## 📱 Visão Geral
+## 📋 Descrição
 
-Este projeto é uma recriação completa do sistema de controle de produção, desenvolvido com foco 100% em dispositivos móveis. Todas as funcionalidades e lógicas da versão anterior foram mantidas, mas agora com design otimizado para mobile-first.
+Sistema web responsivo para controle de operações de produção, desenvolvido especificamente para uso em dispositivos móveis na orientação vertical. A aplicação permite gerenciar o ciclo completo de vida das OP's, desde a criação até a finalização.
 
-## ✨ Características Principais
+## ✨ Funcionalidades Principais
 
-### 🎯 Design Mobile-First
-- **100% responsivo** para dispositivos móveis
-- **Touch-friendly** com botões e elementos otimizados para toque
-- **Layout adaptativo** que se ajusta a diferentes tamanhos de tela
-- **Navegação intuitiva** com gestos e interações móveis
+### 🏠 Tela Inicial
+- **Lista de OP's** com informações essenciais
+- **Filtros por status** (Todas, Aguardando, Aceita, Iniciada, Finalizada)
+- **Cards responsivos** com dados da operação
+- **Botões de ação** contextuais baseados no status
 
-### 🔧 Funcionalidades Mantidas
-- ✅ Lista de operações de produção com filtros
-- ✅ Detalhes das operações com abas
-- ✅ Sistema de apontamentos
-- ✅ Controle de execução do processo
-- ✅ Gestão de materiais
-- ✅ Modais para entrada de dados
-- ✅ Sistema de navegação entre telas
+### 🔄 Fluxo de Status
+1. **Aguardando Aceite** → OP criada, aguardando aprovação
+2. **Aceita** → OP aprovada, pode ser iniciada
+3. **Iniciada** → Produção em andamento
+4. **Parada** → Produção interrompida temporariamente
+5. **Finalizada** → Produção concluída
 
-### 🎨 Melhorias de Design
-- **Sistema de cores moderno** com variáveis CSS
-- **Tipografia otimizada** para leitura em dispositivos móveis
-- **Animações suaves** e transições responsivas
-- **Ícones e elementos visuais** aprimorados
-- **Estados visuais claros** para diferentes situações
+### 📊 Gestão de Insumos
+- **Lista de materiais** para cada OP
+- **Quantidade apontada** vs **quantidade pesada**
+- **Sistema de pesagem** com memória de cálculo
+- **Controles de edição** para quantidades
 
-## 📁 Estrutura do Projeto
+### 🎛️ Controles de Produção
+- **Aceitar** OP aguardando
+- **Iniciar** produção
+- **Parar/Continuar** produção com motivo
+- **Finalizar** produção
 
-```
-0104_novo_cria_op/
-├── index.html          # Lista principal de operações
-├── detalhe.html        # Detalhes da operação selecionada
-├── prod.html           # Container principal do sistema
-├── README.md           # Esta documentação
-└── old/                # Versão anterior (referência)
-    ├── index.html
-    ├── detalhe.html
-    └── prod.html
-```
+## 🎨 Design e Interface
 
-## 🚀 Como Usar
+### Paleta de Cores
+Baseada na paleta fornecida:
+- **Verde Floresta** (#00695e) - Cabeçalho e elementos principais
+- **Turquesa** (#00afa0) - Botões de ação
+- **Verde Claro** (#a2c73b) - Destaques e filtros ativos
+- **Laranja** (#ffb914) - Status aguardando
+- **Folha** (#50af32) - Status iniciada
+- **Água** (#00b4cd) - Status aceita
 
-### 1. Acesso Inicial
-- Abra `prod.html` para acessar o sistema completo
-- Ou acesse diretamente `index.html` para a lista de operações
+### Características da Interface
+- **Mobile-first** design otimizado para telas pequenas
+- **Overlay responsivo** para navegação entre níveis
+- **Animações suaves** e feedback visual
+- **Layout adaptativo** para diferentes tamanhos de tela
 
-### 2. Navegação
-- **Filtros**: Use os botões horizontais para filtrar por situação
-- **Operações**: Toque em uma operação pendente para ver detalhes
-- **Voltar**: Use o botão de voltar no cabeçalho para retornar
+## 🛠️ Tecnologias Utilizadas
 
-### 3. Funcionalidades
-- **Apontamentos**: Adicione, edite e confirme apontamentos
-- **Execução**: Controle o processo (iniciar, parar, continuar, finalizar)
-- **Materiais**: Visualize e gerencie materiais consumidos
-
-## 🎨 Sistema de Design
-
-### Cores
-```css
---primary: #2563eb        /* Azul principal */
---success: #059669        /* Verde para sucesso */
---warning: #d97706        /* Amarelo para avisos */
---danger: #dc2626         /* Vermelho para erros */
---background: #f8fafc     /* Fundo da aplicação */
---surface: #ffffff        /* Superfícies dos cards */
-```
-
-### Tipografia
-- **Fonte**: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto
-- **Tamanhos**: Escaláveis de 0.75rem a 2rem
-- **Pesos**: 400 (normal), 500 (medium), 600 (semibold), 700 (bold)
-
-### Espaçamentos
-- **Base**: 0.25rem (4px)
-- **Escala**: 0.5rem, 0.75rem, 1rem, 1.5rem, 2rem
-- **Margens**: Consistentes com o sistema de espaçamento
+- **HTML5** - Estrutura semântica
+- **CSS3** - Estilos e responsividade
+- **JavaScript ES6+** - Lógica da aplicação
+- **LocalStorage** - Persistência de dados
+- **CSS Grid/Flexbox** - Layout moderno
 
 ## 📱 Responsividade
 
 ### Breakpoints
-- **Mobile**: < 768px (padrão)
-- **Tablet**: 768px - 1024px
-- **Desktop**: > 1024px
+- **Mobile**: < 480px - Layout otimizado para telas pequenas
+- **Tablet**: 480px - 768px - Layout intermediário
+- **Desktop**: > 768px - Layout expandido
 
-### Adaptações
-- **Layout em grid** que se ajusta automaticamente
-- **Tabelas responsivas** com scroll horizontal quando necessário
-- **Botões e controles** redimensionados para cada dispositivo
-- **Navegação otimizada** para cada tipo de tela
+### Características Mobile
+- **Navegação por overlay** para economizar espaço
+- **Botões otimizados** para toque
+- **Scroll horizontal** nos filtros
+- **Cards empilhados** verticalmente
 
-## 🔧 Tecnologias Utilizadas
+## 💾 Persistência de Dados
 
-- **HTML5** semântico e acessível
-- **CSS3** com variáveis, grid, flexbox e animações
-- **JavaScript ES6+** para funcionalidades interativas
-- **Design System** próprio com componentes reutilizáveis
-- **Mobile-First** como filosofia de desenvolvimento
+### Estrutura JSON
+```json
+{
+  "id": 1,
+  "codigo": 4,
+  "produto": "PI - FULLAND",
+  "tamanhoLote": "5.040,00",
+  "numeroLote": "040422-0001",
+  "unidadeLote": "LT",
+  "status": "finalizada",
+  "qtdProduzir": 5040,
+  "qtdApontada": 5040,
+  "qtdPerda": 0,
+  "qtdBaixada": 5040
+}
+```
 
-## 📊 Funcionalidades Técnicas
+### Armazenamento
+- **LocalStorage** do navegador
+- **Sincronização automática** das alterações
+- **Backup local** dos dados
 
-### Sistema de Estado
-- Gerenciamento de operações de produção
-- Controle de apontamentos e execuções
-- Filtros dinâmicos por situação
-- Persistência local com localStorage
+## 🚀 Como Usar
 
-### Interações
-- Modais responsivos para entrada de dados
-- Validações em tempo real
-- Feedback visual para ações do usuário
-- Navegação fluida entre telas
+### 1. Acessar a Aplicação
+- Abra o arquivo `index.html` em um navegador web
+- A aplicação carrega automaticamente com dados de exemplo
 
-### Performance
-- CSS otimizado com variáveis
-- JavaScript modular e eficiente
-- Animações CSS para melhor performance
-- Lazy loading de componentes quando necessário
+### 2. Navegar pelas OP's
+- Use os **filtros** para visualizar OP's por status
+- Clique em uma **OP** para ver detalhes
+- Use o botão **Atualizar** para recarregar dados
 
-## 🎯 Melhorias Implementadas
+### 3. Gerenciar Status
+- **Aceitar** OP's aguardando aprovação
+- **Iniciar** produção de OP's aceitas
+- **Parar/Continuar** produção conforme necessário
+- **Finalizar** produção concluída
 
-### Usabilidade
-- **Botões maiores** para dispositivos touch
-- **Espaçamento adequado** entre elementos interativos
-- **Feedback visual** para todas as ações
-- **Navegação intuitiva** com botões de voltar
+### 4. Controlar Insumos
+- Visualizar **quantidades apontadas** vs **pesadas**
+- Editar **quantidades pesadas** diretamente
+- Usar **sistema de pesagem** com memória
 
-### Acessibilidade
-- **Labels ARIA** para elementos interativos
-- **Navegação por teclado** suportada
-- **Contraste adequado** entre cores
-- **Texto legível** em diferentes tamanhos de tela
+## 📁 Estrutura de Arquivos
 
-### Performance
-- **CSS otimizado** com variáveis e reutilização
-- **JavaScript eficiente** sem dependências externas
-- **Animações CSS** para melhor performance
-- **Responsividade nativa** sem frameworks
+```
+0104_novo_cria_op/
+├── index.html          # Página principal
+├── styles.css          # Estilos CSS
+├── app.js             # Lógica JavaScript
+├── README.md          # Documentação
+├── paleta.txt         # Paleta de cores
+└── test.txt           # Especificações originais
+```
 
-## 🚀 Como Executar
+## 🔧 Personalização
 
-1. **Clone ou baixe** o projeto
-2. **Abra** o arquivo `prod.html` em um navegador
-3. **Navegue** pelas funcionalidades do sistema
-4. **Teste** em diferentes dispositivos e orientações
+### Cores
+Edite as variáveis CSS em `styles.css`:
+```css
+:root {
+  --verde-escuro: #00695e;
+  --verde-medio: #00afa0;
+  /* ... outras cores */
+}
+```
 
-## 📱 Testes Recomendados
+### Dados
+Modifique o array `operacoes` em `app.js` para incluir suas OP's:
+```javascript
+let operacoes = [
+  {
+    id: 1,
+    produto: "Seu Produto",
+    // ... outros campos
+  }
+];
+```
+
+## 📋 Requisitos do Sistema
+
+### Navegadores Suportados
+- Chrome 60+
+- Firefox 55+
+- Safari 12+
+- Edge 79+
 
 ### Dispositivos
-- ✅ Smartphones (portrait e landscape)
-- ✅ Tablets (portrait e landscape)
-- ✅ Desktop (diferentes resoluções)
+- **Mobile**: Android 6+, iOS 12+
+- **Tablet**: iPadOS 12+, Android 6+
+- **Desktop**: Windows 10+, macOS 10.14+
 
-### Navegadores
-- ✅ Chrome (mobile e desktop)
-- ✅ Safari (iOS e macOS)
-- ✅ Firefox (mobile e desktop)
-- ✅ Edge (Windows)
+## 🤝 Contribuição
 
-### Funcionalidades
-- ✅ Navegação entre telas
-- ✅ Filtros de operações
-- ✅ Adição de apontamentos
-- ✅ Controle de execução
-- ✅ Modais e formulários
-- ✅ Responsividade em diferentes tamanhos
-
-## 🔮 Próximos Passos
-
-### Melhorias Futuras
-- [ ] **PWA**: Transformar em Progressive Web App
-- [ ] **Offline**: Funcionalidade offline com Service Worker
-- [ ] **Sincronização**: Integração com backend real
-- [ ] **Notificações**: Push notifications para atualizações
-- [ ] **Temas**: Sistema de temas claro/escuro
-- [ ] **Internacionalização**: Suporte a múltiplos idiomas
-
-### Funcionalidades Adicionais
-- [ ] **Relatórios**: Dashboards e gráficos
-- [ ] **Exportação**: PDF e Excel
-- [ ] **Impressão**: Layouts otimizados para impressão
-- [ ] **Backup**: Sistema de backup automático
-- [ ] **Logs**: Histórico de ações do usuário
-
-## 📞 Suporte
-
-Para dúvidas, sugestões ou problemas:
-- **Documentação**: Este README
-- **Código**: Comentários em português brasileiro
-- **Estrutura**: Organização clara e modular
+Para contribuir com o projeto:
+1. Faça um fork do repositório
+2. Crie uma branch para sua feature
+3. Implemente as mudanças
+4. Teste em diferentes dispositivos
+5. Envie um pull request
 
 ## 📄 Licença
 
-Este projeto é desenvolvido para fins educacionais e de demonstração. Todas as funcionalidades e lógicas foram mantidas da versão anterior, com foco na modernização do design e otimização para dispositivos móveis.
+Este projeto é de uso livre para fins educacionais e comerciais.
+
+## 📞 Suporte
+
+Para dúvidas ou sugestões, entre em contato através dos canais disponibilizados pelo projeto.
 
 ---
 
-**Desenvolvido com foco em Mobile-First e experiência do usuário** 📱✨
+**Desenvolvido com ❤️ para otimizar o controle de operações de produção**

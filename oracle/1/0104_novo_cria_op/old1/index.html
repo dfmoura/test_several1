@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Operações de Produção</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #dbeafe;
+      --secondary: #64748b;
+      --success: #059669;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--background);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* Header Mobile-First */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      z-index: 100;
+      box-shadow: var(--shadow);
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 100%;
+    }
+
+    .header-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .refresh-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow);
+    }
+
+    .refresh-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .refresh-btn:active {
+      transform: translateY(0);
+    }
+
+    .refresh-btn svg {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    /* Main Content */
+    .main {
+      margin-top: 4rem;
+      padding: 1rem;
+      max-width: 100%;
+    }
+
+    /* Filtros Mobile-First */
+    .filtros {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .filtro-btn {
+      background: var(--surface);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 1.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .filtro-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .filtro-btn.ativo {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Tabela Mobile-First */
+    .tabela-container {
+      background: var(--surface);
+      border-radius: 0.75rem;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .tabela-op {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .tabela-op th {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-weight: 600;
+      padding: 0.75rem 0.5rem;
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tabela-op td {
+      padding: 0.75rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-primary);
+    }
+
+    .tabela-op tr {
+      transition: background-color 0.2s ease;
+    }
+
+    .tabela-op tr[data-clicavel="true"]:hover {
+      background: var(--primary-light);
+      cursor: pointer;
+    }
+
+    .tabela-op tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Estado vazio */
+    .sem-registros {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-secondary);
+    }
+
+    .sem-registros-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    /* Footer Mobile-First */
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 1rem;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      z-index: 100;
+    }
+
+    /* Responsividade para tablets e desktop */
+    @media (min-width: 768px) {
+      .main {
+        max-width: 768px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 1.5rem;
+      }
+
+      .header {
+        padding: 1rem 1.5rem;
+      }
+
+      .header-content {
+        max-width: 768px;
+        margin: 0 auto;
+      }
+
+      .tabela-op th,
+      .tabela-op td {
+        padding: 1rem 0.75rem;
+        font-size: 0.875rem;
+      }
+
+      .tabela-op th {
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .main {
+        max-width: 1024px;
+        padding: 2rem;
+      }
+
+      .header-content {
+        max-width: 1024px;
+      }
+    }
+
+    /* Animações */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tabela-container {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    /* Melhorias para touch */
+    @media (hover: none) and (pointer: coarse) {
+      .tabela-op tr[data-clicavel="true"]:hover {
+        background: transparent;
+      }
+
+      .tabela-op tr[data-clicavel="true"]:active {
+        background: var(--primary-light);
+      }
+
+      .filtro-btn:active {
+        transform: scale(0.95);
+      }
+
+      .refresh-btn:active {
+        transform: scale(0.95);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header fixo otimizado para mobile -->
+  <header class="header">
+    <div class="header-content">
+      <h1 class="header-title">Operações de Produção</h1>
+      <div class="header-actions">
+        <button class="refresh-btn" onclick="atualizarTabela()" title="Atualizar" aria-label="Atualizar tabela">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Conteúdo principal -->
+  <main class="main">
+    <!-- Filtros horizontais scrolláveis -->
+    <div class="filtros">
+      <button class="filtro-btn ativo" data-situacao="Pendentes">Pendentes</button>
+      <button class="filtro-btn" data-situacao="Finalizadas">Finalizadas</button>
+      <button class="filtro-btn" data-situacao="Canceladas">Canceladas</button>
+    </div>
+
+    <!-- Container da tabela -->
+    <div class="tabela-container">
+      <table class="tabela-op" id="tabelaOp">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data</th>
+            <th>Produto</th>
+            <th>Qtd.</th>
+            <th>Lote</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyOp">
+          <!-- Linhas geradas via JavaScript -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Estado vazio -->
+    <div class="sem-registros" id="semRegistros" style="display: none;">
+      <div class="sem-registros-icon">📋</div>
+      <p>Nenhuma operação encontrada</p>
+    </div>
+  </main>
+
+  <!-- Footer fixo otimizado para mobile -->
+  <footer class="footer">
+    Sistema de Controle de Produção &copy; 2024
+  </footer>
+
+  <script>
+    // Dados simulados de operações de produção
+    const operacoes = [
+      { 
+        idiproc: 101, 
+        dtfab: '2024-06-01', 
+        codprodpa: 'P001', 
+        descprod: 'Produto A - Componente Principal', 
+        qtdproduzir: 1000, 
+        nrolote: 'L001', 
+        situacao: 'Pendentes' 
+      },
+      { 
+        idiproc: 102, 
+        dtfab: '2024-06-02', 
+        codprodpa: 'P002', 
+        descprod: 'Produto B - Subconjunto', 
+        qtdproduzir: 800, 
+        nrolote: 'L002', 
+        situacao: 'Finalizadas' 
+      },
+      { 
+        idiproc: 103, 
+        dtfab: '2024-06-03', 
+        codprodpa: 'P003', 
+        descprod: 'Produto C - Montagem', 
+        qtdproduzir: 1200, 
+        nrolote: 'L003', 
+        situacao: 'Pendentes' 
+      },
+      { 
+        idiproc: 104, 
+        dtfab: '2024-06-04', 
+        codprodpa: 'P004', 
+        descprod: 'Produto D - Teste', 
+        qtdproduzir: 500, 
+        nrolote: 'L004', 
+        situacao: 'Canceladas' 
+      },
+      { 
+        idiproc: 105, 
+        dtfab: '2024-06-05', 
+        codprodpa: 'P005', 
+        descprod: 'Produto E - Finalização', 
+        qtdproduzir: 1500, 
+        nrolote: 'L005', 
+        situacao: 'Pendentes' 
+      },
+    ];
+
+    // Estado do filtro atual
+    let filtroAtual = 'Pendentes';
+
+    // Função para renderizar a tabela de operações
+    function renderTabela() {
+      const tbody = document.getElementById('tbodyOp');
+      const semRegistros = document.getElementById('semRegistros');
+      
+      tbody.innerHTML = '';
+      
+      // Filtra operações pela situação
+      const filtradas = operacoes.filter(op => op.situacao === filtroAtual);
+      
+      if (filtradas.length === 0) {
+        semRegistros.style.display = 'block';
+        return;
+      } else {
+        semRegistros.style.display = 'none';
+      }
+
+      filtradas.forEach(op => {
+        // Apenas pendentes são clicáveis
+        const clicavel = op.situacao === 'Pendentes';
+        const tr = document.createElement('tr');
+        
+        tr.setAttribute('data-clicavel', clicavel);
+        
+        if (clicavel) {
+          tr.tabIndex = 0;
+          tr.setAttribute('role', 'button');
+          tr.setAttribute('aria-label', `Ver detalhes da operação ${op.idiproc}`);
+          
+          // Eventos para mobile e desktop
+          tr.addEventListener('click', () => navegarParaDetalhe(op));
+          tr.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navegarParaDetalhe(op);
+            }
+          });
+        }
+
+        tr.innerHTML = `
+          <td><strong>${op.idiproc}</strong></td>
+          <td>${formatarData(op.dtfab)}</td>
+          <td>
+            <div><strong>${op.codprodpa}</strong></div>
+            <div style="color: var(--text-secondary); font-size: 0.75rem;">${op.descprod}</div>
+          </td>
+          <td><strong>${op.qtdproduzir.toLocaleString()}</strong></td>
+          <td><code>${op.nrolote}</code></td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Função para navegar para detalhes
+    function navegarParaDetalhe(op) {
+      // Salva dados no localStorage para detalhe.html
+      localStorage.setItem('opSelecionada', JSON.stringify(op));
+      window.location.href = 'detalhe.html';
+    }
+
+    // Função para formatar data
+    function formatarData(dataStr) {
+      const data = new Date(dataStr);
+      return data.toLocaleDateString('pt-BR');
+    }
+
+    // Função para alternar filtro
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.filtro-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          // Remove classe ativo de todos os botões
+          document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
+          
+          // Adiciona classe ativo ao botão clicado
+          this.classList.add('ativo');
+          
+          // Atualiza filtro e renderiza tabela
+          filtroAtual = this.getAttribute('data-situacao');
+          renderTabela();
+        });
+      });
+    });
+
+    // Função para atualizar a tabela
+    function atualizarTabela() {
+      const btn = document.querySelector('.refresh-btn');
+      const svg = btn.querySelector('svg');
+      
+      // Desabilita o botão durante a atualização
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+      
+      // Adiciona animação de rotação
+      svg.style.transform = 'rotate(360deg)';
+      svg.style.transition = 'transform 1s ease-in-out';
+      
+      // Simula atualização (pode ser substituído por chamada real à API)
+      setTimeout(() => {
+        renderTabela();
+        
+        // Reseta animação
+        svg.style.transform = 'rotate(0deg)';
+        svg.style.transition = 'transform 0.3s ease-out';
+        
+        // Reabilita botão
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }, 1000);
+    }
+
+    // Renderiza tabela ao carregar a página
+    renderTabela();
+  </script>
+</body>
+</html>
