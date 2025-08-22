@@ -8,16 +8,15 @@ Sistema web responsivo para controle de operações de produção, desenvolvido 
 
 ### 🏠 Tela Inicial
 - **Lista de OP's** com informações essenciais
-- **Filtros por status** (Todas, Aguardando, Aceita, Iniciada, Finalizada)
+- **Filtros por status** (Todas, Aguardando, Iniciada, Finalizada)
 - **Cards responsivos** com dados da operação
 - **Botões de ação** contextuais baseados no status
 
 ### 🔄 Fluxo de Status
 1. **Aguardando Aceite** → OP criada, aguardando aprovação
-2. **Aceita** → OP aprovada, pode ser iniciada
-3. **Iniciada** → Produção em andamento
-4. **Parada** → Produção interrompida temporariamente
-5. **Finalizada** → Produção concluída
+2. **Iniciada** → Produção em andamento
+3. **Parada** → Produção interrompida temporariamente
+4. **Finalizada** → Produção concluída
 
 ### 📊 Gestão de Insumos
 - **Lista de materiais** para cada OP
@@ -26,8 +25,7 @@ Sistema web responsivo para controle de operações de produção, desenvolvido 
 - **Controles de edição** para quantidades
 
 ### 🎛️ Controles de Produção
-- **Aceitar** OP aguardando
-- **Iniciar** produção
+- **Iniciar** produção de OP aguardando
 - **Parar/Continuar** produção com motivo
 - **Finalizar** produção
 
@@ -40,7 +38,6 @@ Baseada na paleta fornecida:
 - **Verde Claro** (#a2c73b) - Destaques e filtros ativos
 - **Laranja** (#ffb914) - Status aguardando
 - **Folha** (#50af32) - Status iniciada
-- **Água** (#00b4cd) - Status aceita
 
 ### Características da Interface
 - **Mobile-first** design otimizado para telas pequenas
@@ -105,8 +102,7 @@ Baseada na paleta fornecida:
 - Use o botão **Atualizar** para recarregar dados
 
 ### 3. Gerenciar Status
-- **Aceitar** OP's aguardando aprovação
-- **Iniciar** produção de OP's aceitas
+- **Iniciar** produção de OP's aguardando aprovação
 - **Parar/Continuar** produção conforme necessário
 - **Finalizar** produção concluída
 

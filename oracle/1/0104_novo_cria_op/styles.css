@@ -8,7 +8,6 @@
   
   /* Cores de status */
   --status-aguardando: #ffb914; /* Laranja */
-  --status-aceita: #00b4cd;     /* Água */
   --status-iniciada: #50af32;   /* Folha */
   --status-finalizada: #9c9c9c; /* Cinza Médio */
   --status-cancelada: #e30613;  /* Vermelho */
@@ -182,7 +181,6 @@ main {
 }
 
 .status-aguardando { background: var(--status-aguardando); color: var(--verde-escuro); }
-.status-aceita { background: var(--status-aceita); color: var(--branco); }
 .status-iniciada { background: var(--status-iniciada); color: var(--branco); }
 .status-finalizada { background: var(--status-finalizada); color: var(--branco); }
 .status-cancelada { background: var(--status-cancelada); color: var(--branco); }
@@ -229,8 +227,7 @@ main {
   transition: all 0.3s ease;
 }
 
-.btn-aceitar { background: var(--verde-medio); color: var(--branco); }
-.btn-iniciar { background: var(--status-iniciada); color: var(--branco); }
+.btn-iniciar { background: var(--verde-medio); color: var(--branco); }
 .btn-parar { background: var(--status-aguardando); color: var(--verde-escuro); }
 .btn-continuar { background: var(--verde-claro); color: var(--verde-escuro); }
 .btn-finalizar { background: var(--status-cancelada); color: var(--branco); }

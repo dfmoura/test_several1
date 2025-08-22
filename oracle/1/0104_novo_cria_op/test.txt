@@ -32,7 +32,6 @@ Nro. OP,Cód. Produto,Descrição do Produto,Tam. Lote,Nro. Lote,Un. Lote,Situa�
 
 2)Esta op's podem estar com o status (o fluxo é nesta ordem):
 Aguardando Aceite (Aguardando Insumos)
-Aceita (Aguardando Insumos)
 Iniciada (Em Produção)
 Finalizada (Finalizada)
 

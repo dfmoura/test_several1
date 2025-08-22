@@ -232,8 +232,7 @@ function carregarDados() {
 function getStatusText(status) {
   const statusMap = {
     'aguardando': 'Aguardando Aceite',
-    'aceita': 'Aceita',
-    'iniciada': 'Iniciada',
+    'iniciada': 'Em Produção',
     'finalizada': 'Finalizada',
     'cancelada': 'Cancelada'
   };
@@ -303,9 +302,6 @@ function renderizarOPs() {
 function renderizarBotoesAcao(op) {
   switch (op.status) {
     case 'aguardando':
-      return `<button class="action-btn btn-aceitar" onclick="event.stopPropagation(); aceitarOP(${op.id})">Aceitar</button>`;
-    
-    case 'aceita':
       return `<button class="action-btn btn-iniciar" onclick="event.stopPropagation(); iniciarOP(${op.id})">Iniciar</button>`;
     
     case 'iniciada':
@@ -366,8 +362,8 @@ function renderizarDetalhesOP(op) {
       </div>
   `;
   
-  // Se a OP foi aceita, mostra os insumos
-  if (['aceita', 'iniciada', 'parada', 'finalizada'].includes(op.status)) {
+  // Se a OP foi iniciada, mostra os insumos
+  if (['iniciada', 'parada', 'finalizada'].includes(op.status)) {
     html += `
       <div class="op-insumos">
         <h3>Insumos da OP</h3>
@@ -414,12 +410,18 @@ function renderizarInsumos(op) {
   if (op.id === 11) {
     insumos = insumosVitakelp;
   } else {
-    // Para outras OP's, gera dados simulados
-    insumos = [
-      { codigo: 'MP001', descricao: 'Matéria Prima A', qtdApontada: op.qtdProduzir * 0.5, qtdPesada: 0 },
-      { codigo: 'MP002', descricao: 'Matéria Prima B', qtdApontada: op.qtdProduzir * 0.3, qtdPesada: 0 },
-      { codigo: 'MP003', descricao: 'Matéria Prima C', qtdApontada: op.qtdProduzir * 0.2, qtdPesada: 0 }
-    ];
+    // Para outras OP's, usa os insumos existentes ou gera novos
+    if (op.insumos) {
+      insumos = op.insumos;
+    } else {
+      insumos = [
+        { codigo: 'MP001', descricao: 'Matéria Prima A', qtdApontada: op.qtdProduzir * 0.5, qtdPesada: 0 },
+        { codigo: 'MP002', descricao: 'Matéria Prima B', qtdApontada: op.qtdProduzir * 0.3, qtdPesada: 0 },
+        { codigo: 'MP003', descricao: 'Matéria Prima C', qtdApontada: op.qtdProduzir * 0.2, qtdPesada: 0 }
+      ];
+      // Salva os insumos na OP para uso futuro
+      op.insumos = insumos;
+    }
   }
   
   return insumos.map(insumo => `
@@ -469,19 +471,9 @@ function renderizarControles(op) {
 }
 
 // Funções de controle das OP's
-function aceitarOP(opId) {
-  const op = operacoes.find(op => op.id === opId);
-  if (op && op.status === 'aguardando') {
-    op.status = 'aceita';
-    salvarDados();
-    renderizarOPs();
-    fecharOverlay();
-  }
-}
-
 function iniciarOP(opId) {
   const op = operacoes.find(op => op.id === opId);
-  if (op && op.status === 'aceita') {
+  if (op && op.status === 'aguardando') {
     op.status = 'iniciada';
     salvarDados();
     renderizarOPs();
@@ -529,9 +521,22 @@ function finalizarOP(opId) {
 function atualizarQtdPesada(opId, codigoInsumo, valor) {
   const op = operacoes.find(op => op.id === opId);
   if (op) {
-    // Atualiza o insumo correspondente
+    // Para a OP 11 (VITAKELP), atualiza os insumos específicos
     if (op.id === 11) {
       const insumo = insumosVitakelp.find(i => i.codigo.toString() === codigoInsumo);
+      if (insumo) {
+        insumo.qtdPesada = parseFloat(valor) || 0;
+      }
+    } else {
+      // Para outras OP's, atualiza os insumos da própria OP
+      if (!op.insumos) {
+        op.insumos = [
+          { codigo: 'MP001', descricao: 'Matéria Prima A', qtdApontada: op.qtdProduzir * 0.5, qtdPesada: 0 },
+          { codigo: 'MP002', descricao: 'Matéria Prima B', qtdApontada: op.qtdProduzir * 0.3, qtdPesada: 0 },
+          { codigo: 'MP003', descricao: 'Matéria Prima C', qtdApontada: op.qtdProduzir * 0.2, qtdPesada: 0 }
+        ];
+      }
+      const insumo = op.insumos.find(i => i.codigo === codigoInsumo);
       if (insumo) {
         insumo.qtdPesada = parseFloat(valor) || 0;
       }
@@ -546,8 +551,20 @@ function abrirModalPesagem(opId, codigoInsumo) {
   if (!op) return;
   
   let insumo = null;
+  
+  // Para a OP 11 (VITAKELP), usa os dados específicos
   if (op.id === 11) {
     insumo = insumosVitakelp.find(i => i.codigo.toString() === codigoInsumo);
+  } else {
+    // Para outras OP's, gera dados simulados se não existirem
+    if (!op.insumos) {
+      op.insumos = [
+        { codigo: 'MP001', descricao: 'Matéria Prima A', qtdApontada: op.qtdProduzir * 0.5, qtdPesada: 0 },
+        { codigo: 'MP002', descricao: 'Matéria Prima B', qtdApontada: op.qtdProduzir * 0.3, qtdPesada: 0 },
+        { codigo: 'MP003', descricao: 'Matéria Prima C', qtdApontada: op.qtdProduzir * 0.2, qtdPesada: 0 }
+      ];
+    }
+    insumo = op.insumos.find(i => i.codigo === codigoInsumo);
   }
   
   if (insumo) {
