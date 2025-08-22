@@ -23,11 +23,26 @@ Sistema web responsivo para controle de operações de produção, desenvolvido 
 - **Quantidade apontada** vs **quantidade pesada**
 - **Sistema de pesagem** com memória de cálculo
 - **Controles de edição** para quantidades
+- **Memória de cálculo** completa com histórico de pesagens
+
+### 🧮 Memória de Cálculo
+- **Registro automático** de cada pesagem individual
+- **Total pesado** destacado em card principal
+- **Lista simples** de pesos com numeração e horário
+- **Valores positivos e negativos** para ajustes
+- **Interface limpa** com botão 📊 ao lado da quantidade
 
 ### 🎛️ Controles de Produção
-- **Iniciar** produção de OP aguardando
+- **Iniciar** produção de OP aguardando aprovação
 - **Parar/Continuar** produção com motivo
 - **Finalizar** produção
+
+### ⏱️ Controle de Tempos
+- **Registro automático** de início, parada, continuação e finalização
+- **Histórico completo** de execução com timestamps
+- **Cálculo de duração** entre operações
+- **Tempo total** de produção por OP
+- **Modal para motivo** de parada
 
 ## 🎨 Design e Interface
 
@@ -110,6 +125,13 @@ Baseada na paleta fornecida:
 - Visualizar **quantidades apontadas** vs **pesadas**
 - Editar **quantidades pesadas** diretamente
 - Usar **sistema de pesagem** com memória
+- Acessar **memória de cálculo** (botão 📊) para ver pesos e total
+
+### 5. Acompanhar Tempos
+- **Aba "Insumos"**: Gestão de materiais e controles
+- **Aba "Tempos de Produção"**: Histórico completo de execução
+- **Visualizar duração** de cada etapa
+- **Tempo total** de produção
 
 ## 📁 Estrutura de Arquivos
 

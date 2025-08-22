@@ -15,7 +15,10 @@ let operacoes = [
     qtdProduzir: 5040,
     qtdApontada: 5040,
     qtdPerda: 0,
-    qtdBaixada: 5040
+    qtdBaixada: 5040,
+    execucoes: [
+      { dhinicio: "2024-01-01 08:00", dhfinal: "2024-01-01 17:00", tipo: "normal", codusu: "usu001", motivo: "" }
+    ]
   },
   {
     id: 2,
@@ -29,7 +32,10 @@ let operacoes = [
     qtdProduzir: 12500,
     qtdApontada: 8000,
     qtdPerda: 200,
-    qtdBaixada: 7800
+    qtdBaixada: 7800,
+    execucoes: [
+      { dhinicio: "2024-01-02 08:00", dhfinal: "", tipo: "normal", codusu: "usu001", motivo: "" }
+    ]
   },
   {
     id: 3,
@@ -43,7 +49,8 @@ let operacoes = [
     qtdProduzir: 8750,
     qtdApontada: 0,
     qtdPerda: 0,
-    qtdBaixada: 0
+    qtdBaixada: 0,
+    execucoes: []
   },
   {
     id: 4,
@@ -57,7 +64,10 @@ let operacoes = [
     qtdProduzir: 6200,
     qtdApontada: 6200,
     qtdPerda: 0,
-    qtdBaixada: 6200
+    qtdBaixada: 6200,
+    execucoes: [
+      { dhinicio: "2024-01-04 08:00", dhfinal: "2024-01-04 16:00", tipo: "normal", codusu: "usu001", motivo: "" }
+    ]
   },
   {
     id: 5,
@@ -71,7 +81,8 @@ let operacoes = [
     qtdProduzir: 15000,
     qtdApontada: 0,
     qtdPerda: 0,
-    qtdBaixada: 0
+    qtdBaixada: 0,
+    execucoes: []
   },
   {
     id: 6,
@@ -85,7 +96,10 @@ let operacoes = [
     qtdProduzir: 4300,
     qtdApontada: 4300,
     qtdPerda: 0,
-    qtdBaixada: 4300
+    qtdBaixada: 4300,
+    execucoes: [
+      { dhinicio: "2024-01-06 08:00", dhfinal: "2024-01-06 14:00", tipo: "normal", codusu: "usu001", motivo: "" }
+    ]
   },
   {
     id: 7,
@@ -99,7 +113,10 @@ let operacoes = [
     qtdProduzir: 9980,
     qtdApontada: 5000,
     qtdPerda: 100,
-    qtdBaixada: 4900
+    qtdBaixada: 4900,
+    execucoes: [
+      { dhinicio: "2024-01-07 08:00", dhfinal: "", tipo: "normal", codusu: "usu001", motivo: "" }
+    ]
   },
   {
     id: 8,
@@ -113,7 +130,10 @@ let operacoes = [
     qtdProduzir: 7250,
     qtdApontada: 7250,
     qtdPerda: 0,
-    qtdBaixada: 7250
+    qtdBaixada: 7250,
+    execucoes: [
+      { dhinicio: "2024-01-08 08:00", dhfinal: "2024-01-08 15:00", tipo: "normal", codusu: "usu001", motivo: "" }
+    ]
   },
   {
     id: 9,
@@ -127,7 +147,8 @@ let operacoes = [
     qtdProduzir: 10600,
     qtdApontada: 0,
     qtdPerda: 0,
-    qtdBaixada: 0
+    qtdBaixada: 0,
+    execucoes: []
   },
   {
     id: 10,
@@ -141,7 +162,10 @@ let operacoes = [
     qtdProduzir: 5500,
     qtdApontada: 5500,
     qtdPerda: 0,
-    qtdBaixada: 5500
+    qtdBaixada: 5500,
+    execucoes: [
+      { dhinicio: "2024-01-10 08:00", dhfinal: "2024-01-10 13:00", tipo: "normal", codusu: "usu001", motivo: "" }
+    ]
   },
   {
     id: 11,
@@ -155,7 +179,10 @@ let operacoes = [
     qtdProduzir: 1000,
     qtdApontada: 600,
     qtdPerda: 50,
-    qtdBaixada: 550
+    qtdBaixada: 550,
+    execucoes: [
+      { dhinicio: "2024-01-11 08:00", dhfinal: "", tipo: "normal", codusu: "usu001", motivo: "" }
+    ]
   }
 ];
 
@@ -167,7 +194,8 @@ const insumosVitakelp = [
     controle: "",
     qtdApontada: 520.0000,
     qtdPesada: 0,
-    observacao: ""
+    observacao: "",
+    memoriaCalculo: []
   },
   {
     codigo: 12,
@@ -175,7 +203,8 @@ const insumosVitakelp = [
     controle: "",
     qtdApontada: 210.0000,
     qtdPesada: 0,
-    observacao: ""
+    observacao: "",
+    memoriaCalculo: []
   },
   {
     codigo: 13,
@@ -183,7 +212,8 @@ const insumosVitakelp = [
     controle: "",
     qtdApontada: 140.5000,
     qtdPesada: 0,
-    observacao: ""
+    observacao: "",
+    memoriaCalculo: []
   },
   {
     codigo: 14,
@@ -191,7 +221,8 @@ const insumosVitakelp = [
     controle: "",
     qtdApontada: 80.0000,
     qtdPesada: 0,
-    observacao: ""
+    observacao: "",
+    memoriaCalculo: []
   },
   {
     codigo: 15,
@@ -199,7 +230,8 @@ const insumosVitakelp = [
     controle: "",
     qtdApontada: 12.3000,
     qtdPesada: 0,
-    observacao: ""
+    observacao: "",
+    memoriaCalculo: []
   },
   {
     codigo: 16,
@@ -207,7 +239,8 @@ const insumosVitakelp = [
     controle: "",
     qtdApontada: 37.2000,
     qtdPesada: 0,
-    observacao: ""
+    observacao: "",
+    memoriaCalculo: []
   }
 ];
 
@@ -360,6 +393,15 @@ function renderizarDetalhesOP(op) {
           </div>
         </div>
       </div>
+      
+      <!-- Abas de navegação -->
+      <div class="op-abas">
+        <button class="aba-btn ativa" data-aba="insumos">Insumos</button>
+        <button class="aba-btn" data-aba="tempos">Tempos de Produção</button>
+      </div>
+      
+      <!-- Conteúdo da aba Insumos -->
+      <div class="aba-conteudo ativa" id="aba-insumos">
   `;
   
   // Se a OP foi iniciada, mostra os insumos
@@ -399,7 +441,41 @@ function renderizarDetalhesOP(op) {
     `;
   }
   
-  html += '</div>';
+  html += `
+      </div>
+      
+      <!-- Conteúdo da aba Tempos -->
+      <div class="aba-conteudo" id="aba-tempos">
+        <div class="op-tempos">
+          <h3>Tempos de Produção</h3>
+          <div class="tempos-tabela">
+            <table>
+              <thead>
+                <tr>
+                  <th>Início</th>
+                  <th>Fim</th>
+                  <th>Tipo</th>
+                  <th>Usuário</th>
+                  <th>Motivo</th>
+                  <th>Duração</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${renderizarTempos(op)}
+              </tbody>
+            </table>
+          </div>
+          <div class="tempos-resumo">
+            <div class="tempo-total">
+              <label>Tempo Total de Produção:</label>
+              <span>${calcularTempoTotal(op)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
   return html;
 }
 
@@ -415,9 +491,9 @@ function renderizarInsumos(op) {
       insumos = op.insumos;
     } else {
       insumos = [
-        { codigo: 'MP001', descricao: 'Matéria Prima A', qtdApontada: op.qtdProduzir * 0.5, qtdPesada: 0 },
-        { codigo: 'MP002', descricao: 'Matéria Prima B', qtdApontada: op.qtdProduzir * 0.3, qtdPesada: 0 },
-        { codigo: 'MP003', descricao: 'Matéria Prima C', qtdApontada: op.qtdProduzir * 0.2, qtdPesada: 0 }
+        { codigo: 'MP001', descricao: 'Matéria Prima A', qtdApontada: op.qtdProduzir * 0.5, qtdPesada: 0, memoriaCalculo: [] },
+        { codigo: 'MP002', descricao: 'Matéria Prima B', qtdApontada: op.qtdProduzir * 0.3, qtdPesada: 0, memoriaCalculo: [] },
+        { codigo: 'MP003', descricao: 'Matéria Prima C', qtdApontada: op.qtdProduzir * 0.2, qtdPesada: 0, memoriaCalculo: [] }
       ];
       // Salva os insumos na OP para uso futuro
       op.insumos = insumos;
@@ -430,13 +506,18 @@ function renderizarInsumos(op) {
       <td>${insumo.descricao}</td>
       <td>${insumo.qtdApontada.toFixed(4)}</td>
       <td>
-        <input type="number" 
-               class="qtd-pesada-input" 
-               value="${insumo.qtdPesada}" 
-               step="0.0001" 
-               min="0"
-               onchange="atualizarQtdPesada(${op.id}, '${insumo.codigo}', this.value)"
-               ${op.status === 'finalizada' ? 'disabled' : ''}>
+        <div class="qtd-pesada-container">
+          <input type="number" 
+                 class="qtd-pesada-input" 
+                 value="${insumo.qtdPesada}" 
+                 step="0.0001" 
+                 min="0"
+                 onchange="atualizarQtdPesada(${op.id}, '${insumo.codigo}', this.value)"
+                 ${op.status === 'finalizada' ? 'disabled' : ''}>
+          <button class="btn-memoria" onclick="mostrarMemoriaCalculo(${op.id}, '${insumo.codigo}')" title="Ver memória de cálculo">
+            📊
+          </button>
+        </div>
       </td>
       <td>
         ${op.status !== 'finalizada' ? `
@@ -470,11 +551,148 @@ function renderizarControles(op) {
   return '';
 }
 
-// Funções de controle das OP's
+// Função para renderizar tempos de produção
+function renderizarTempos(op) {
+  if (!op.execucoes || op.execucoes.length === 0) {
+    return '<tr><td colspan="6" class="sem-tempos">Nenhum tempo registrado</td></tr>';
+  }
+  
+  return op.execucoes.map(exec => {
+    const duracao = calcularDuracao(exec.dhinicio, exec.dhfinal);
+    const tipoClass = exec.tipo === 'parada' ? 'tipo-parada' : exec.tipo === 'finalizado' ? 'tipo-finalizado' : 'tipo-normal';
+    
+    return `
+      <tr class="${tipoClass}">
+        <td>${exec.dhinicio}</td>
+        <td>${exec.dhfinal || '-'}</td>
+        <td><span class="tipo-badge ${tipoClass}">${getTipoText(exec.tipo)}</span></td>
+        <td>${exec.codusu}</td>
+        <td>${exec.motivo || '-'}</td>
+        <td>${duracao}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Função para obter texto do tipo de execução
+function getTipoText(tipo) {
+  const tipoMap = {
+    'normal': 'Produção',
+    'parada': 'Parada',
+    'finalizado': 'Finalizado'
+  };
+  return tipoMap[tipo] || tipo;
+}
+
+// Função para calcular duração entre dois horários
+function calcularDuracao(inicio, fim) {
+  if (!inicio || !fim) return '-';
+  
+  try {
+    const inicioDate = new Date(inicio);
+    const fimDate = new Date(fim);
+    const diffMs = fimDate - inicioDate;
+    
+    if (diffMs <= 0) return '-';
+    
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffHours > 0) {
+      return `${diffHours}h ${diffMinutes}min`;
+    } else {
+      return `${diffMinutes}min`;
+    }
+  } catch (e) {
+    return '-';
+  }
+}
+
+// Função para calcular tempo total de produção
+function calcularTempoTotal(op) {
+  if (!op.execucoes || op.execucoes.length === 0) return '0h 0min';
+  
+  let totalMs = 0;
+  
+  op.execucoes.forEach(exec => {
+    if (exec.dhinicio && exec.dhfinal) {
+      try {
+        const inicio = new Date(exec.dhinicio);
+        const fim = new Date(exec.dhfinal);
+        const diffMs = fim - inicio;
+        if (diffMs > 0) {
+          totalMs += diffMs;
+        }
+      } catch (e) {
+        // Ignora erros de data
+      }
+    }
+  });
+  
+  if (totalMs <= 0) return '0h 0min';
+  
+  const totalHours = Math.floor(totalMs / (1000 * 60 * 60));
+  const totalMinutes = Math.floor((totalMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  return `${totalHours}h ${totalMinutes}min`;
+}
+
+// Função para obter data e hora atual formatada
+function dataHoraAtual() {
+  const d = new Date();
+  return d.toISOString().slice(0, 16).replace('T', ' ');
+}
+
+// Função para abrir modal de motivo
+function abrirModalMotivo(titulo, onConfirm) {
+  const overlay = document.getElementById('overlay');
+  const overlayBody = document.getElementById('overlayBody');
+  
+  overlayBody.innerHTML = `
+    <div class="modal-motivo">
+      <h3>${titulo}</h3>
+      <div class="motivo-input">
+        <label for="motivoInput">Motivo:</label>
+        <textarea id="motivoInput" rows="3" maxlength="120" placeholder="Digite o motivo da parada..."></textarea>
+      </div>
+      <div class="modal-btns">
+        <button class="btn-confirmar" onclick="confirmarMotivo()">Confirmar</button>
+        <button class="btn-cancelar" onclick="fecharOverlay()">Cancelar</button>
+      </div>
+    </div>
+  `;
+  
+  // Foca no input
+  setTimeout(() => {
+    const input = document.getElementById('motivoInput');
+    if (input) input.focus();
+  }, 100);
+  
+  // Função global para confirmar motivo
+  window.confirmarMotivo = function() {
+    const motivo = document.getElementById('motivoInput').value.trim();
+    if (!motivo) {
+      alert('Informe o motivo da parada.');
+      return;
+    }
+    onConfirm(motivo);
+  };
+}
+
+// Funções de controle de tempo das OP's
 function iniciarOP(opId) {
   const op = operacoes.find(op => op.id === opId);
   if (op && op.status === 'aguardando') {
     op.status = 'iniciada';
+    // Adiciona execução inicial
+    if (!op.execucoes) op.execucoes = [];
+    op.execucoes.push({
+      dhinicio: dataHoraAtual(),
+      dhfinal: '',
+      tipo: 'normal',
+      codusu: 'usu001',
+      motivo: ''
+    });
     salvarDados();
     renderizarOPs();
     fecharOverlay();
@@ -482,24 +700,47 @@ function iniciarOP(opId) {
 }
 
 function pararOP(opId) {
-  const motivo = prompt('Motivo da parada:');
-  if (motivo) {
-    const op = operacoes.find(op => op.id === opId);
-    if (op && op.status === 'iniciada') {
+  const op = operacoes.find(op => op.id === opId);
+  if (op && op.status === 'iniciada') {
+    abrirModalMotivo('Motivo da Parada', (motivo) => {
+      // Fecha execução anterior
+      const exec = op.execucoes.find(e => !e.dhfinal);
+      if (exec) exec.dhfinal = dataHoraAtual();
+      
+      // Nova linha tipo parada
+      op.execucoes.push({
+        dhinicio: dataHoraAtual(),
+        dhfinal: '',
+        tipo: 'parada',
+        codusu: 'usu001',
+        motivo: motivo
+      });
+      
       op.status = 'parada';
-      op.motivoParada = motivo;
       salvarDados();
       renderizarOPs();
       fecharOverlay();
-    }
+    });
   }
 }
 
 function continuarOP(opId) {
   const op = operacoes.find(op => op.id === opId);
   if (op && op.status === 'parada') {
+    // Fecha linha parada
+    const exec = op.execucoes.find(e => !e.dhfinal && e.tipo === 'parada');
+    if (exec) exec.dhfinal = dataHoraAtual();
+    
+    // Nova linha normal
+    op.execucoes.push({
+      dhinicio: dataHoraAtual(),
+      dhfinal: '',
+      tipo: 'normal',
+      codusu: 'usu001',
+      motivo: ''
+    });
+    
     op.status = 'iniciada';
-    delete op.motivoParada;
     salvarDados();
     renderizarOPs();
     fecharOverlay();
@@ -509,6 +750,13 @@ function continuarOP(opId) {
 function finalizarOP(opId) {
   const op = operacoes.find(op => op.id === opId);
   if (op && op.status === 'iniciada') {
+    // Fecha execução atual
+    const exec = op.execucoes.find(e => !e.dhfinal);
+    if (exec) {
+      exec.dhfinal = dataHoraAtual();
+      exec.tipo = 'finalizado';
+    }
+    
     op.status = 'finalizada';
     op.dataFinalizacao = new Date().toISOString().split('T')[0];
     salvarDados();
@@ -531,9 +779,9 @@ function atualizarQtdPesada(opId, codigoInsumo, valor) {
       // Para outras OP's, atualiza os insumos da própria OP
       if (!op.insumos) {
         op.insumos = [
-          { codigo: 'MP001', descricao: 'Matéria Prima A', qtdApontada: op.qtdProduzir * 0.5, qtdPesada: 0 },
-          { codigo: 'MP002', descricao: 'Matéria Prima B', qtdApontada: op.qtdProduzir * 0.3, qtdPesada: 0 },
-          { codigo: 'MP003', descricao: 'Matéria Prima C', qtdApontada: op.qtdProduzir * 0.2, qtdPesada: 0 }
+          { codigo: 'MP001', descricao: 'Matéria Prima A', qtdApontada: op.qtdProduzir * 0.5, qtdPesada: 0, memoriaCalculo: [] },
+          { codigo: 'MP002', descricao: 'Matéria Prima B', qtdApontada: op.qtdProduzir * 0.3, qtdPesada: 0, memoriaCalculo: [] },
+          { codigo: 'MP003', descricao: 'Matéria Prima C', qtdApontada: op.qtdProduzir * 0.2, qtdPesada: 0, memoriaCalculo: [] }
         ];
       }
       const insumo = op.insumos.find(i => i.codigo === codigoInsumo);
@@ -559,9 +807,9 @@ function abrirModalPesagem(opId, codigoInsumo) {
     // Para outras OP's, gera dados simulados se não existirem
     if (!op.insumos) {
       op.insumos = [
-        { codigo: 'MP001', descricao: 'Matéria Prima A', qtdApontada: op.qtdProduzir * 0.5, qtdPesada: 0 },
-        { codigo: 'MP002', descricao: 'Matéria Prima B', qtdApontada: op.qtdProduzir * 0.3, qtdPesada: 0 },
-        { codigo: 'MP003', descricao: 'Matéria Prima C', qtdApontada: op.qtdProduzir * 0.2, qtdPesada: 0 }
+        { codigo: 'MP001', descricao: 'Matéria Prima A', qtdApontada: op.qtdProduzir * 0.5, qtdPesada: 0, memoriaCalculo: [] },
+        { codigo: 'MP002', descricao: 'Matéria Prima B', qtdApontada: op.qtdProduzir * 0.3, qtdPesada: 0, memoriaCalculo: [] },
+        { codigo: 'MP003', descricao: 'Matéria Prima C', qtdApontada: op.qtdProduzir * 0.2, qtdPesada: 0, memoriaCalculo: [] }
       ];
     }
     insumo = op.insumos.find(i => i.codigo === codigoInsumo);
@@ -571,7 +819,20 @@ function abrirModalPesagem(opId, codigoInsumo) {
     const pesagem = prompt(`Pesagem para ${insumo.descricao}:\nDigite a quantidade pesada (positiva ou negativa):`);
     if (pesagem !== null) {
       const valor = parseFloat(pesagem) || 0;
+      
+      // Registra na memória de cálculo
+      if (!insumo.memoriaCalculo) insumo.memoriaCalculo = [];
+      insumo.memoriaCalculo.push({
+        timestamp: dataHoraAtual(),
+        valor: valor,
+        qtdAnterior: insumo.qtdPesada,
+        qtdNova: insumo.qtdPesada + valor,
+        usuario: 'usu001'
+      });
+      
+      // Atualiza quantidade pesada
       insumo.qtdPesada += valor;
+      
       salvarDados();
       renderizarOPs();
       if (document.getElementById('overlay').style.display === 'flex') {
@@ -635,6 +896,31 @@ document.addEventListener('DOMContentLoaded', function() {
       fecharOverlay();
     }
   });
+  
+  // Adiciona listener para abas (delegado de eventos)
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('aba-btn')) {
+      const aba = e.target.getAttribute('data-aba');
+      const overlayBody = document.getElementById('overlayBody');
+      
+      if (overlayBody) {
+        // Remove classe ativa de todas as abas
+        overlayBody.querySelectorAll('.aba-btn').forEach(btn => {
+          btn.classList.remove('ativa');
+        });
+        overlayBody.querySelectorAll('.aba-conteudo').forEach(conteudo => {
+          conteudo.classList.remove('ativa');
+        });
+        
+        // Adiciona classe ativa na aba clicada
+        e.target.classList.add('ativa');
+        const conteudoAba = overlayBody.querySelector(`#aba-${aba}`);
+        if (conteudoAba) {
+          conteudoAba.classList.add('ativa');
+        }
+      }
+    }
+  });
 });
 
 // Função para adicionar nova OP (para demonstração)
@@ -657,4 +943,77 @@ function adicionarNovaOP() {
   operacoes.push(novaOP);
   salvarDados();
   renderizarOPs();
+}
+
+// Função para mostrar memória de cálculo
+function mostrarMemoriaCalculo(opId, codigoInsumo) {
+  const op = operacoes.find(op => op.id === opId);
+  if (!op) return;
+  
+  let insumo = null;
+  
+  // Para a OP 11 (VITAKELP), usa os dados específicos
+  if (op.id === 11) {
+    insumo = insumosVitakelp.find(i => i.codigo.toString() === codigoInsumo);
+  } else {
+    // Para outras OP's, usa os insumos da própria OP
+    if (op.insumos) {
+      insumo = op.insumos.find(i => i.codigo === codigoInsumo);
+    }
+  }
+  
+  if (insumo) {
+    const overlay = document.getElementById('overlay');
+    const overlayBody = document.getElementById('overlayBody');
+    
+    overlayBody.innerHTML = `
+      <div class="memoria-calculo">
+        <h3>Memória de Cálculo - ${insumo.descricao}</h3>
+        
+        <div class="memoria-simples">
+          <div class="peso-total">
+            <span class="peso-label">Total Pesado:</span>
+            <span class="peso-valor">${insumo.qtdPesada.toFixed(4)}</span>
+          </div>
+          
+          <div class="pesos-lista">
+            <h4>Pesagens Realizadas:</h4>
+            ${renderizarPesosSimples(insumo)}
+          </div>
+        </div>
+        
+        <div class="memoria-acoes">
+          <button class="btn-voltar-memoria" onclick="abrirDetalhesOP(${opId})">
+            Voltar
+          </button>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// Função para renderizar pesos de forma simples
+function renderizarPesosSimples(insumo) {
+  if (!insumo.memoriaCalculo || insumo.memoriaCalculo.length === 0) {
+    return '<p class="sem-pesagens">Nenhuma pesagem registrada</p>';
+  }
+  
+  let html = '<div class="pesos-grid">';
+  
+  // Mostra as pesagens em ordem cronológica reversa (mais recente primeiro)
+  insumo.memoriaCalculo.slice().reverse().forEach((pesagem, index) => {
+    const valorClass = pesagem.valor >= 0 ? 'peso-positivo' : 'peso-negativo';
+    const sinal = pesagem.valor >= 0 ? '+' : '';
+    
+    html += `
+      <div class="peso-item">
+        <div class="peso-numero">${index + 1}</div>
+        <div class="peso-valor ${valorClass}">${sinal}${pesagem.valor.toFixed(4)}</div>
+        <div class="peso-hora">${pesagem.timestamp.split(' ')[1]}</div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  return html;
 }

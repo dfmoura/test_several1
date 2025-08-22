@@ -409,6 +409,12 @@ main {
 }
 
 /* Inputs de quantidade pesada */
+.qtd-pesada-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .qtd-pesada-input {
   width: 80px;
   padding: 6px 8px;
@@ -422,6 +428,161 @@ main {
   outline: none;
   border-color: var(--verde-medio);
   box-shadow: 0 0 0 2px rgba(0, 175, 160, 0.2);
+}
+
+/* Botão de memória */
+.btn-memoria {
+  background: var(--verde-claro);
+  color: var(--verde-escuro);
+  border: none;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-memoria:hover {
+  background: var(--verde-medio);
+  color: var(--branco);
+  transform: scale(1.1);
+}
+
+/* Memória de Cálculo */
+.memoria-calculo {
+  max-width: 100%;
+}
+
+.memoria-calculo h3 {
+  color: var(--verde-escuro);
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+  text-align: center;
+}
+
+.memoria-simples {
+  margin-bottom: 24px;
+}
+
+.peso-total {
+  background: var(--verde-claro);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 24px;
+  box-shadow: var(--sombra);
+}
+
+.peso-label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--verde-escuro);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.peso-valor {
+  font-size: 2rem;
+  color: var(--verde-escuro);
+  font-weight: 700;
+}
+
+.pesos-lista h4 {
+  color: var(--verde-escuro);
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.pesos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.peso-item {
+  background: var(--branco);
+  border: var(--borda);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: var(--sombra);
+  transition: all 0.3s ease;
+}
+
+.peso-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-hover);
+}
+
+.peso-numero {
+  background: var(--verde-medio);
+  color: var(--branco);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 auto 8px auto;
+}
+
+.peso-valor {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.peso-hora {
+  font-size: 0.75rem;
+  color: var(--cinza-medio);
+  font-weight: 500;
+}
+
+.peso-positivo {
+  color: var(--status-iniciada);
+}
+
+.peso-negativo {
+  color: var(--status-cancelada);
+}
+
+.sem-pesagens {
+  text-align: center;
+  color: var(--cinza-medio);
+  font-style: italic;
+  padding: 20px;
+}
+
+.memoria-acoes {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.btn-voltar-memoria {
+  background: var(--verde-medio);
+  color: var(--branco);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-voltar-memoria:hover {
+  background: var(--verde-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-hover);
 }
 
 /* Botão pesar */
@@ -478,6 +639,214 @@ main {
 .btn-controle:hover {
   transform: translateY(-2px);
   box-shadow: var(--sombra-hover);
+}
+
+/* Sistema de Abas */
+.op-abas {
+  display: flex;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  margin-bottom: 0;
+  box-shadow: var(--sombra);
+}
+
+.aba-btn {
+  flex: 1;
+  background: var(--verde-claro);
+  color: var(--verde-escuro);
+  border: none;
+  padding: 12px 0;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.aba-btn.ativa {
+  background: var(--verde-medio);
+  color: var(--branco);
+}
+
+.aba-conteudo {
+  display: none;
+  min-height: 200px;
+}
+
+.aba-conteudo.ativa {
+  display: block;
+}
+
+/* Tempos de Produção */
+.op-tempos {
+  margin-top: 16px;
+}
+
+.tempos-tabela {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: var(--borda);
+  margin-bottom: 16px;
+}
+
+.tempos-tabela table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.tempos-tabela th,
+.tempos-tabela td {
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--cinza-claro);
+}
+
+.tempos-tabela th {
+  background: var(--verde-claro);
+  color: var(--verde-escuro);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.tempos-tabela tr:nth-child(even) {
+  background: rgba(162, 199, 59, 0.05);
+}
+
+.tempos-tabela tr:hover {
+  background: rgba(162, 199, 59, 0.1);
+}
+
+.sem-tempos {
+  text-align: center;
+  color: var(--cinza-medio);
+  font-style: italic;
+}
+
+/* Tipos de execução */
+.tipo-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.tipo-normal {
+  background: var(--status-iniciada);
+  color: var(--branco);
+}
+
+.tipo-parada {
+  background: var(--status-aguardando);
+  color: var(--verde-escuro);
+}
+
+.tipo-finalizado {
+  background: var(--status-finalizada);
+  color: var(--branco);
+}
+
+/* Resumo de tempos */
+.tempos-resumo {
+  background: var(--cinza-claro);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.tempo-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.tempo-total label {
+  color: var(--verde-escuro);
+  font-size: 0.9rem;
+}
+
+.tempo-total span {
+  color: var(--cinza-escuro);
+  font-size: 1.1rem;
+}
+
+/* Modal de Motivo */
+.modal-motivo {
+  text-align: center;
+}
+
+.modal-motivo h3 {
+  color: var(--verde-escuro);
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.motivo-input {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.motivo-input label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--verde-escuro);
+  font-weight: 500;
+}
+
+.motivo-input textarea {
+  width: 100%;
+  padding: 12px;
+  border: var(--borda);
+  border-radius: 8px;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.motivo-input textarea:focus {
+  outline: none;
+  border-color: var(--verde-medio);
+  box-shadow: 0 0 0 2px rgba(0, 175, 160, 0.2);
+}
+
+.modal-btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.modal-btns button {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.btn-confirmar {
+  background: var(--verde-medio);
+  color: var(--branco);
+}
+
+.btn-confirmar:hover {
+  background: var(--verde-hover);
+  transform: translateY(-2px);
+}
+
+.btn-cancelar {
+  background: var(--cinza-medio);
+  color: var(--branco);
+}
+
+.btn-cancelar:hover {
+  background: var(--cinza-escuro);
+  transform: translateY(-2px);
 }
 
 /* Responsividade */
@@ -541,5 +910,100 @@ main {
   
   .controles-grid {
     gap: 8px;
+  }
+  
+  /* Responsividade para abas e tempos */
+  .op-abas {
+    flex-direction: column;
+  }
+  
+  .aba-btn {
+    padding: 10px 0;
+    font-size: 0.9rem;
+  }
+  
+  .tempos-tabela th,
+  .tempos-tabela td {
+    padding: 8px 4px;
+    font-size: 0.75rem;
+  }
+  
+  .tempos-tabela {
+    font-size: 0.75rem;
+  }
+  
+  .modal-motivo h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+  }
+  
+  .motivo-input textarea {
+    padding: 10px;
+    font-size: 0.9rem;
+    min-height: 60px;
+  }
+  
+  .modal-btns button {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    min-width: 80px;
+  }
+  
+  .tempo-total {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+  
+  .tempo-total label {
+    font-size: 0.8rem;
+  }
+  
+  .tempo-total span {
+    font-size: 1rem;
+  }
+  
+  /* Responsividade para memória de cálculo */
+  .pesos-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+  }
+  
+  .peso-item {
+    padding: 10px;
+  }
+  
+  .peso-total {
+    padding: 16px;
+  }
+  
+  .peso-valor {
+    font-size: 1.5rem;
+  }
+  
+  .memoria-calculo h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+  }
+  
+  .pesos-lista h4 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+  
+  .qtd-pesada-container {
+    gap: 4px;
+  }
+  
+  .qtd-pesada-input {
+    width: 60px;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+  }
+  
+  .btn-memoria {
+    width: 24px;
+    height: 24px;
+    font-size: 0.8rem;
   }
 }
