@@ -266,6 +266,7 @@ function getStatusText(status) {
   const statusMap = {
     'aguardando': 'Aguardando Aceite',
     'iniciada': 'Em Produção',
+    'parada': 'Parada',
     'finalizada': 'Finalizada',
     'cancelada': 'Cancelada'
   };
@@ -532,7 +533,10 @@ function renderizarInsumos(op) {
 
 // Função para renderizar controles
 function renderizarControles(op) {
+  console.log('Renderizando controles para OP:', op.id, 'Status:', op.status);
+  
   if (op.status === 'iniciada') {
+    console.log('OP iniciada - mostrando botões Parar e Finalizar');
     return `
       <button class="btn-controle btn-parar" onclick="pararOP(${op.id})">
         Parar Produção
@@ -542,12 +546,15 @@ function renderizarControles(op) {
       </button>
     `;
   } else if (op.status === 'parada') {
+    console.log('OP parada - mostrando botão Continuar');
     return `
       <button class="btn-controle btn-continuar" onclick="continuarOP(${op.id})">
         Continuar Produção
       </button>
     `;
   }
+  
+  console.log('Nenhum controle para status:', op.status);
   return '';
 }
 
@@ -645,8 +652,13 @@ function dataHoraAtual() {
 
 // Função para abrir modal de motivo
 function abrirModalMotivo(titulo, onConfirm) {
+  console.log('Abrindo modal de motivo:', titulo);
+  
   const overlay = document.getElementById('overlay');
   const overlayBody = document.getElementById('overlayBody');
+  
+  console.log('Overlay encontrado:', !!overlay);
+  console.log('OverlayBody encontrado:', !!overlayBody);
   
   overlayBody.innerHTML = `
     <div class="modal-motivo">
@@ -662,19 +674,33 @@ function abrirModalMotivo(titulo, onConfirm) {
     </div>
   `;
   
+  // Mostra o overlay
+  overlay.style.display = 'flex';
+  console.log('Overlay exibido com display flex');
+  
   // Foca no input
   setTimeout(() => {
     const input = document.getElementById('motivoInput');
-    if (input) input.focus();
+    if (input) {
+      input.focus();
+      console.log('Input focado');
+    } else {
+      console.log('Input não encontrado');
+    }
   }, 100);
   
   // Função global para confirmar motivo
   window.confirmarMotivo = function() {
+    console.log('Função confirmarMotivo chamada');
     const motivo = document.getElementById('motivoInput').value.trim();
+    console.log('Motivo digitado:', motivo);
+    
     if (!motivo) {
       alert('Informe o motivo da parada.');
       return;
     }
+    
+    console.log('Chamando callback onConfirm com motivo:', motivo);
     onConfirm(motivo);
   };
 }
@@ -700,12 +726,27 @@ function iniciarOP(opId) {
 }
 
 function pararOP(opId) {
+  console.log('Função pararOP chamada para OP:', opId);
+  
   const op = operacoes.find(op => op.id === opId);
+  if (!op) {
+    console.log('OP não encontrada:', opId);
+    return;
+  }
+  
+  console.log('OP encontrada:', op.id, 'Status atual:', op.status);
+  
   if (op && op.status === 'iniciada') {
+    console.log('Abrindo modal de motivo para parada');
     abrirModalMotivo('Motivo da Parada', (motivo) => {
+      console.log('Motivo confirmado:', motivo);
+      
       // Fecha execução anterior
       const exec = op.execucoes.find(e => !e.dhfinal);
-      if (exec) exec.dhfinal = dataHoraAtual();
+      if (exec) {
+        exec.dhfinal = dataHoraAtual();
+        console.log('Execução anterior fechada:', exec);
+      }
       
       // Nova linha tipo parada
       op.execucoes.push({
@@ -717,10 +758,14 @@ function pararOP(opId) {
       });
       
       op.status = 'parada';
+      console.log('Status alterado para parada');
+      
       salvarDados();
       renderizarOPs();
       fecharOverlay();
     });
+  } else {
+    console.log('OP não pode ser parada. Status atual:', op.status);
   }
 }
 

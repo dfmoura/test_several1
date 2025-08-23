@@ -182,6 +182,7 @@ main {
 
 .status-aguardando { background: var(--status-aguardando); color: var(--verde-escuro); }
 .status-iniciada { background: var(--status-iniciada); color: var(--branco); }
+.status-parada { background: var(--status-aguardando); color: var(--verde-escuro); }
 .status-finalizada { background: var(--status-finalizada); color: var(--branco); }
 .status-cancelada { background: var(--status-cancelada); color: var(--branco); }
 
