@@ -27,12 +27,34 @@
 
   <!-- Conteúdo principal -->
   <main>
+    <!-- Botões de teste para debugging -->
+    <div class="debug-buttons" style="margin: 10px; padding: 10px; background: #f0f0f0; border-radius: 8px;">
+      <button onclick="testarFuncoes()" style="margin-right: 10px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">🧪 Testar Funções</button>
+      <button onclick="limparDadosTeste()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ Limpar Dados</button>
+    </div>
+    
     <!-- Filtros de status -->
     <div class="filtros">
-      <button class="filtro-btn ativo" data-status="todos">Todas</button>
-      <button class="filtro-btn" data-status="aguardando">Aguardando</button>
-      <button class="filtro-btn" data-status="iniciada">Iniciada</button>
-      <button class="filtro-btn" data-status="finalizada">Finalizada</button>
+      <button class="filtro-btn ativo" data-status="todos">
+        <span class="filtro-icon">📋</span>
+        <span class="filtro-texto">Todas</span>
+      </button>
+      <button class="filtro-btn" data-status="aguardando">
+        <span class="filtro-icon">⏳</span>
+        <span class="filtro-texto">Agd.</span>
+      </button>
+      <button class="filtro-btn" data-status="iniciada">
+        <span class="filtro-icon">▶️</span>
+        <span class="filtro-texto">Ini.</span>
+      </button>
+      <button class="filtro-btn" data-status="parada">
+        <span class="filtro-icon">⏸️</span>
+        <span class="filtro-texto">Par.</span>
+      </button>
+      <button class="filtro-btn" data-status="finalizada">
+        <span class="filtro-icon">✅</span>
+        <span class="filtro-texto">Fin.</span>
+      </button>
     </div>
 
     <!-- Lista de OP's -->
