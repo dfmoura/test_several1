@@ -571,80 +571,639 @@
       transform: scale(0.95);
     }
 
-    /* Botão voltar */
-    .btn-voltar {
-      background: var(--verde-medio);
-      color: var(--branco);
-      border: none;
-      border-radius: 12px;
-      padding: 12px 24px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
+         /* Botão voltar */
+     .btn-voltar {
+       background: var(--verde-medio);
+       color: var(--branco);
+       border: none;
+       border-radius: 12px;
+       padding: 12px 24px;
+       font-size: 1rem;
+       font-weight: 600;
+       cursor: pointer;
+       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+     }
 
-    .btn-voltar:hover {
-      background: var(--verde-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
+     .btn-voltar:hover {
+       background: var(--verde-hover);
+       transform: translateY(-1px);
+       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+     }
 
-    .btn-voltar:active {
-      transform: translateY(0px);
-    }
+     .btn-voltar:active {
+       transform: translateY(0px);
+     }
+
+     /* Apontamentos - Layout de Cards */
+     .apontamentos-container {
+       display: flex;
+       flex-direction: column;
+       gap: 16px;
+     }
+
+     .apontamentos-header {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       padding: 0 4px;
+     }
+
+     .apontamentos-header h3 {
+       color: var(--verde-escuro);
+       font-size: 1.1rem;
+       font-weight: 600;
+       margin: 0;
+     }
+
+     .btn-add-apont {
+       background: var(--verde-medio);
+       color: var(--branco);
+       border: none;
+       border-radius: 20px;
+       padding: 8px 16px;
+       font-size: 0.9rem;
+       font-weight: 500;
+       cursor: pointer;
+       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+       display: flex;
+       align-items: center;
+       gap: 6px;
+       box-shadow: 0 2px 8px rgba(34,197,94,0.2);
+     }
+
+     .btn-add-apont:hover {
+       background: var(--verde-hover);
+       transform: translateY(-1px);
+       box-shadow: 0 4px 12px rgba(34,197,94,0.3);
+     }
+
+     .btn-add-apont:active {
+       transform: translateY(0px);
+     }
+
+     .apontamentos-lista {
+       display: flex;
+       flex-direction: column;
+       gap: 12px;
+     }
+
+     .apontamento-card {
+       background: var(--branco);
+       border-radius: 12px;
+       padding: 16px;
+       box-shadow: var(--sombra);
+       border: 1px solid var(--cinza-borda);
+       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+     }
+
+     .apontamento-card:hover {
+       transform: translateY(-2px);
+       box-shadow: 0 4px 16px rgba(20,83,45,0.12);
+     }
+
+     .apontamento-header {
+       display: flex;
+       justify-content: space-between;
+       align-items: flex-start;
+       margin-bottom: 12px;
+     }
+
+     .apontamento-info {
+       flex: 1;
+     }
+
+     .apontamento-nota {
+       font-size: 1rem;
+       font-weight: 600;
+       color: var(--verde-escuro);
+       margin-bottom: 4px;
+     }
+
+     .apontamento-meta {
+       font-size: 0.8rem;
+       color: var(--cinza-texto);
+       display: flex;
+       gap: 12px;
+       flex-wrap: wrap;
+     }
+
+     .apontamento-situacao {
+       padding: 4px 8px;
+       border-radius: 12px;
+       font-size: 0.75rem;
+       font-weight: 600;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+     }
+
+     .situacao-pendente {
+       background: var(--amarelo);
+       color: var(--verde-escuro);
+     }
+
+     .situacao-confirmado {
+       background: var(--verde-medio);
+       color: var(--branco);
+     }
+
+     .apontamento-detalhes {
+       display: grid;
+       grid-template-columns: repeat(2, 1fr);
+       gap: 12px;
+       margin-bottom: 12px;
+     }
+
+     .apontamento-item {
+       background: var(--cinza-fundo);
+       border-radius: 8px;
+       padding: 8px 12px;
+       text-align: center;
+     }
+
+     .apontamento-item-label {
+       font-size: 0.7rem;
+       color: var(--verde-escuro);
+       font-weight: 600;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+       margin-bottom: 2px;
+     }
+
+     .apontamento-item-valor {
+       font-size: 0.9rem;
+       color: var(--cinza-texto);
+       font-weight: 500;
+     }
+
+     .apontamento-acoes {
+       display: flex;
+       gap: 8px;
+       justify-content: flex-end;
+     }
+
+     .acao-btn-small {
+       width: 28px;
+       height: 28px;
+       border: none;
+       border-radius: 6px;
+       font-size: 0.8rem;
+       cursor: pointer;
+       display: inline-flex;
+       align-items: center;
+       justify-content: center;
+       transition: all 0.2s;
+       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+     }
+
+     .editar-btn-small {
+       background: var(--verde-medio);
+       color: var(--branco);
+     }
+
+     .editar-btn-small:hover {
+       background: var(--verde-hover);
+       transform: scale(1.05);
+     }
+
+     .excluir-btn-small {
+       background: var(--vermelho);
+       color: var(--branco);
+     }
+
+     .excluir-btn-small:hover {
+       background: #dc2626;
+       transform: scale(1.05);
+     }
+
+     .confirmar-btn-small {
+       background: var(--amarelo);
+       color: var(--verde-escuro);
+     }
+
+     .confirmar-btn-small:hover {
+       background: #eab308;
+       transform: scale(1.05);
+     }
+
+     .acao-btn-small:active {
+       transform: scale(0.95);
+     }
+
+     /* Seção de materiais/insumos */
+     .materiais-section {
+       margin-top: 12px;
+       border-top: 1px solid var(--cinza-borda);
+       padding-top: 12px;
+     }
+
+     .materiais-toggle {
+       background: none;
+       border: none;
+       color: var(--verde-hover);
+       font-size: 0.9rem;
+       font-weight: 500;
+       cursor: pointer;
+       display: flex;
+       align-items: center;
+       gap: 6px;
+       padding: 4px 0;
+       transition: color 0.2s;
+     }
+
+     .materiais-toggle:hover {
+       color: var(--verde-escuro);
+     }
+
+     .materiais-toggle svg {
+       transition: transform 0.3s ease;
+     }
+
+     .materiais-toggle.expandido svg {
+       transform: rotate(180deg);
+     }
+
+     .materiais-lista {
+       background: var(--cinza-fundo);
+       border-radius: 8px;
+       margin-top: 8px;
+       overflow: hidden;
+       max-height: 0;
+       transition: max-height 0.3s ease, opacity 0.3s ease;
+       opacity: 0;
+     }
+
+     .materiais-lista.expandido {
+       max-height: 300px;
+       opacity: 1;
+     }
+
+     .materiais-tabela {
+       width: 100%;
+       border-collapse: collapse;
+       font-size: 0.85rem;
+     }
+
+     .materiais-tabela th,
+     .materiais-tabela td {
+       padding: 8px 6px;
+       text-align: left;
+       border-bottom: 1px solid var(--cinza-tabela);
+     }
+
+     .materiais-tabela th {
+       background: var(--verde-claro);
+       color: var(--verde-escuro);
+       font-weight: 600;
+       font-size: 0.75rem;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+     }
+
+     .materiais-tabela tr:last-child td {
+       border-bottom: none;
+     }
+
+     .materiais-tabela tr:nth-child(even) {
+       background: rgba(187, 247, 208, 0.1);
+     }
+
+     .materiais-tabela tr:nth-child(odd) {
+       background: var(--cinza-fundo);
+     }
+
+     /* Estilos para edição de lote e pesagem */
+     .lote-display {
+       cursor: pointer;
+       padding: 2px 4px;
+       border-radius: 4px;
+       transition: background 0.2s;
+     }
+
+     .lote-display:hover {
+       background: var(--verde-claro);
+     }
+
+     .lote-input {
+       width: 100%;
+       padding: 4px 6px;
+       border: 1px solid var(--verde-medio);
+       border-radius: 4px;
+       font-size: 0.85rem;
+       background: var(--branco);
+     }
+
+     .btn-pesar {
+       background: var(--amarelo);
+       color: var(--verde-escuro);
+       border: none;
+       border-radius: 4px;
+       padding: 2px 6px;
+       font-size: 0.8rem;
+       cursor: pointer;
+       margin-left: 4px;
+       transition: all 0.2s;
+     }
+
+     .btn-pesar:hover {
+       background: #eab308;
+       transform: scale(1.05);
+     }
+
+     .qtd-pesada-display {
+       font-weight: 500;
+       color: var(--verde-escuro);
+     }
+
+     /* Overlay de pesagem */
+     .pesagem-overlay {
+       position: fixed;
+       top: 0;
+       left: 0;
+       right: 0;
+       bottom: 0;
+       background: rgba(20,83,45,0.85);
+       backdrop-filter: blur(8px);
+       z-index: 300;
+       display: none;
+       align-items: center;
+       justify-content: center;
+       padding: 20px;
+     }
+
+     .pesagem-modal {
+       background: var(--branco);
+       border-radius: 16px;
+       box-shadow: var(--sombra-overlay);
+       width: 100%;
+       max-width: 400px;
+       max-height: 90vh;
+       overflow-y: auto;
+       animation: overlayIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+     }
+
+     .pesagem-header {
+       background: var(--verde-escuro);
+       color: var(--branco);
+       padding: 16px 20px;
+       border-radius: 16px 16px 0 0;
+       display: flex;
+       align-items: center;
+       justify-content: space-between;
+     }
+
+     .pesagem-title {
+       font-size: 1.1rem;
+       font-weight: 600;
+     }
+
+     .pesagem-close {
+       background: none;
+       border: none;
+       color: var(--branco);
+       font-size: 1.5rem;
+       cursor: pointer;
+       width: 32px;
+       height: 32px;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       border-radius: 8px;
+       transition: background 0.2s;
+     }
+
+     .pesagem-close:hover {
+       background: rgba(255,255,255,0.1);
+     }
+
+     .pesagem-body {
+       padding: 20px;
+     }
+
+     .pesagem-info {
+       background: var(--cinza-fundo);
+       border-radius: 8px;
+       padding: 12px;
+       margin-bottom: 16px;
+       border: 1px solid var(--cinza-borda);
+     }
+
+     .pesagem-material {
+       font-weight: 600;
+       color: var(--verde-escuro);
+       margin-bottom: 4px;
+     }
+
+     .pesagem-lote {
+       font-size: 0.9rem;
+       color: var(--cinza-texto);
+     }
+
+     .pesagem-input-group {
+       margin-bottom: 16px;
+     }
+
+     .pesagem-label {
+       display: block;
+       font-weight: 500;
+       color: var(--verde-escuro);
+       margin-bottom: 6px;
+       font-size: 0.9rem;
+     }
+
+     .pesagem-input {
+       width: 100%;
+       padding: 10px 12px;
+       border: 1px solid var(--cinza-borda);
+       border-radius: 8px;
+       font-size: 1rem;
+       background: var(--branco);
+       transition: border-color 0.2s;
+     }
+
+     .pesagem-input:focus {
+       outline: none;
+       border-color: var(--verde-medio);
+       box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
+     }
+
+     .pesagem-historico {
+       background: var(--cinza-fundo);
+       border-radius: 8px;
+       padding: 12px;
+       margin-bottom: 16px;
+       max-height: 200px;
+       overflow-y: auto;
+     }
+
+     .pesagem-historico-title {
+       font-weight: 600;
+       color: var(--verde-escuro);
+       margin-bottom: 8px;
+       font-size: 0.9rem;
+     }
+
+     .pesagem-item {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       padding: 6px 0;
+       border-bottom: 1px solid var(--cinza-tabela);
+       font-size: 0.85rem;
+     }
+
+     .pesagem-item:last-child {
+       border-bottom: none;
+     }
+
+     .pesagem-valor {
+       font-weight: 500;
+     }
+
+     .pesagem-valor.positivo {
+       color: var(--verde-escuro);
+     }
+
+     .pesagem-valor.negativo {
+       color: var(--vermelho);
+     }
+
+     .pesagem-total {
+       background: var(--verde-claro);
+       border-radius: 8px;
+       padding: 12px;
+       text-align: center;
+       margin-bottom: 16px;
+     }
+
+     .pesagem-total-label {
+       font-size: 0.8rem;
+       color: var(--verde-escuro);
+       font-weight: 600;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+       margin-bottom: 4px;
+     }
+
+     .pesagem-total-valor {
+       font-size: 1.2rem;
+       font-weight: 600;
+       color: var(--verde-escuro);
+     }
+
+     .pesagem-buttons {
+       display: flex;
+       gap: 12px;
+     }
+
+     .pesagem-btn {
+       flex: 1;
+       padding: 10px 16px;
+       border: none;
+       border-radius: 8px;
+       font-size: 1rem;
+       font-weight: 600;
+       cursor: pointer;
+       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+     }
+
+     .pesagem-btn-adicionar {
+       background: var(--verde-medio);
+       color: var(--branco);
+     }
+
+     .pesagem-btn-adicionar:hover {
+       background: var(--verde-hover);
+       transform: translateY(-1px);
+     }
+
+     .pesagem-btn-cancelar {
+       background: var(--cinza-tabela);
+       color: var(--verde-escuro);
+     }
+
+     .pesagem-btn-cancelar:hover {
+       background: #d1d5db;
+       transform: translateY(-1px);
+     }
 
     /* Responsividade */
-    @media (max-width: 480px) {
-      header {
-        padding: 0 12px;
-        height: 56px;
-      }
+         @media (max-width: 480px) {
+       header {
+         padding: 0 12px;
+         height: 56px;
+       }
 
-      .header-title {
-        font-size: 1.1rem;
-      }
+       .header-title {
+         font-size: 1.1rem;
+       }
 
-      .filtro-btn {
-        padding: 6px 12px;
-        font-size: 0.8rem;
-      }
+       .filtro-btn {
+         padding: 6px 12px;
+         font-size: 0.8rem;
+       }
 
-      .refresh-btn {
-        width: 32px;
-        height: 32px;
-      }
+       .refresh-btn {
+         width: 32px;
+         height: 32px;
+       }
 
-      main {
-        margin-top: 56px;
-        padding: 12px;
-      }
+       main {
+         margin-top: 56px;
+         padding: 12px;
+       }
 
-      .tabela-op th, 
-      .tabela-op td {
-        padding: 10px 6px;
-        font-size: 0.85rem;
-      }
+       .tabela-op th, 
+       .tabela-op td {
+         padding: 10px 6px;
+         font-size: 0.85rem;
+       }
 
-      .resumo-detalhes {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-      }
+       .resumo-detalhes {
+         grid-template-columns: repeat(2, 1fr);
+         gap: 8px;
+       }
 
-      .resumo-card {
-        padding: 8px;
-      }
+       .resumo-card {
+         padding: 8px;
+       }
 
-      .controles {
-        grid-template-columns: 1fr;
-        gap: 8px;
-      }
+       .controles {
+         grid-template-columns: 1fr;
+         gap: 8px;
+       }
 
-      .overlay-body {
-        padding: 16px;
-      }
-    }
+       .overlay-body {
+         padding: 16px;
+       }
+
+       .apontamento-card {
+         padding: 12px;
+       }
+
+       .apontamento-detalhes {
+         gap: 8px;
+       }
+
+       .apontamento-item {
+         padding: 6px 8px;
+       }
+
+       .apontamento-meta {
+         gap: 8px;
+         font-size: 0.75rem;
+       }
+
+       .materiais-tabela th,
+       .materiais-tabela td {
+         padding: 6px 4px;
+         font-size: 0.8rem;
+       }
+
+       .materiais-tabela th {
+         font-size: 0.7rem;
+       }
+     }
 
     @media (max-width: 360px) {
       .header-actions {
@@ -721,18 +1280,31 @@
     Sistema de Controle de Produção &copy;
   </footer>
 
-  <!-- Overlay para detalhes -->
-  <div class="overlay" id="overlay">
-    <div class="overlay-content">
-      <div class="overlay-header">
-        <span class="overlay-title">Detalhe da Operação</span>
-        <button class="overlay-close" onclick="fecharOverlay()">&times;</button>
-      </div>
-      <div class="overlay-body" id="overlayBody">
-        <!-- Conteúdo dinâmico via JS -->
-      </div>
-    </div>
-  </div>
+     <!-- Overlay para detalhes -->
+   <div class="overlay" id="overlay">
+     <div class="overlay-content">
+       <div class="overlay-header">
+         <span class="overlay-title">Detalhe da Operação</span>
+         <button class="overlay-close" onclick="fecharOverlay()">&times;</button>
+       </div>
+       <div class="overlay-body" id="overlayBody">
+         <!-- Conteúdo dinâmico via JS -->
+       </div>
+     </div>
+   </div>
+
+   <!-- Overlay de pesagem -->
+   <div class="pesagem-overlay" id="pesagemOverlay">
+     <div class="pesagem-modal">
+       <div class="pesagem-header">
+         <span class="pesagem-title">Pesagem de Material</span>
+         <button class="pesagem-close" onclick="fecharPesagem()">&times;</button>
+       </div>
+       <div class="pesagem-body" id="pesagemBody">
+         <!-- Conteúdo dinâmico via JS -->
+       </div>
+     </div>
+   </div>
 
   <script>
     // Dados simulados de operações de produção
@@ -760,12 +1332,12 @@
       return d.toISOString().slice(0,16).replace('T',' ');
     }
 
-    // Fatores de consumo simulados para materiais
-    const materiaisBase = [
-      { codMaterial: 'M001', material: 'Matéria Prima A', fator: 0.5, estoque: 500, un: 'KG' },
-      { codMaterial: 'M002', material: 'Matéria Prima B', fator: 0.2, estoque: 300, un: 'KG' },
-      { codMaterial: 'M003', material: 'Matéria Prima C', fator: 0.1, estoque: 200, un: 'L' },
-    ];
+         // Fatores de consumo simulados para materiais
+     const materiaisBase = [
+       { codMaterial: 'M001', material: 'Matéria Prima A', fator: 0.5 },
+       { codMaterial: 'M002', material: 'Matéria Prima B', fator: 0.2 },
+       { codMaterial: 'M003', material: 'Matéria Prima C', fator: 0.1 },
+     ];
 
     // Função para renderizar a tabela de operações
     function renderTabela() {
@@ -899,29 +1471,28 @@
           <button class="aba-btn" data-aba="execucao">Execução</button>
         </div>
 
-        <!-- Conteúdo das abas -->
-        <div class="conteudo-aba ativa" id="aba-apontamentos">
-          <table class="tabela" id="tabelaApont">
-            <thead>
-              <tr>
-                <th>Editar</th>
-                <th>Confirmar</th>
-                <th>Nota</th>
-                <th>Usuário</th>
-                <th>Data/Hora</th>
-                <th>Situação</th>
-                <th>Qtd. Apontada</th>
-                <th>Qtd. Perda</th>
-                <th>Excluir</th>
-              </tr>
-            </thead>
-            <tbody id="tbodyApont">
-              <!-- Linhas via JS -->
-            </tbody>
-          </table>
-          <div class="sem-registros" id="semApont" style="display:none;">Nenhum apontamento.</div>
-          <button class="controle-btn btn-iniciar" id="btnAddApont" style="width:100%;margin-bottom:8px;">Adicionar Apontamento</button>
-        </div>
+                 <!-- Conteúdo das abas -->
+         <div class="conteudo-aba ativa" id="aba-apontamentos">
+           <div class="apontamentos-container">
+             <div class="apontamentos-header">
+               <h3>Apontamentos</h3>
+               <button class="btn-add-apont" id="btnAddApont" onclick="abrirModalApontamento()">
+                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                   <path d="M12 5v7M5 12h7"/>
+                 </svg>
+                 Adicionar
+               </button>
+             </div>
+             
+             <div class="apontamentos-lista" id="apontamentosLista">
+               <!-- Cards de apontamentos via JS -->
+             </div>
+             
+             <div class="sem-registros" id="semApont" style="display:none;">
+               Nenhum apontamento registrado.
+             </div>
+           </div>
+         </div>
 
         <div class="conteudo-aba" id="aba-execucao">
           <table class="tabela" id="tabelaExec">
@@ -947,20 +1518,17 @@
         </div>
       `;
 
-      // Configurar eventos das abas
-      setTimeout(() => {
-        document.querySelectorAll('.aba-btn').forEach(btn => {
-          btn.addEventListener('click', function() {
-            document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativa'));
-            this.classList.add('ativa');
-            document.querySelectorAll('.conteudo-aba').forEach(c => c.classList.remove('ativa'));
-            document.getElementById('aba-' + this.getAttribute('data-aba')).classList.add('ativa');
-          });
-        });
-
-        // Configurar botão adicionar apontamento
-        document.getElementById('btnAddApont').addEventListener('click', abrirModalApontamento);
-      }, 100);
+             // Configurar eventos das abas
+       setTimeout(() => {
+         document.querySelectorAll('.aba-btn').forEach(btn => {
+           btn.addEventListener('click', function() {
+             document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativa'));
+             this.classList.add('ativa');
+             document.querySelectorAll('.conteudo-aba').forEach(c => c.classList.remove('ativa'));
+             document.getElementById('aba-' + this.getAttribute('data-aba')).classList.add('ativa');
+           });
+         });
+       }, 100);
 
       // Renderizar dados
       renderControles();
@@ -1039,48 +1607,106 @@
       renderExecucoes();
     }
 
-    // Apontamentos
-    function renderApontamentos() {
-      const tbody = document.getElementById('tbodyApont');
-      const sem = document.getElementById('semApont');
-      if (!tbody) return;
-      
-      tbody.innerHTML = '';
-      if (apontamentos.length === 0) {
-        sem.style.display = 'block';
-        return;
-      } else {
-        sem.style.display = 'none';
-      }
-      
-      apontamentos.forEach((ap, idx) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>
-            ${ap.situacao === 'Pendente' ? `
-              <button class="acao-btn editar-btn" onclick='editarApont(${idx})' title="Editar">✏️</button>
-            ` : ''}
-          </td>
-          <td>
-            ${ap.situacao === 'Pendente' ? `
-              <button class="acao-btn confirmar-btn" onclick='confirmarApont(${idx})' title="Confirmar">✔️</button>
-            ` : ''}
-          </td>
-          <td>${ap.nunota}</td>
-          <td>${ap.codusu}</td>
-          <td>${ap.dhapontamento}</td>
-          <td>${ap.situacao}</td>
-          <td>${ap.qtdApontada}</td>
-          <td>${ap.qtdPerda}</td>
-          <td>
-            ${ap.situacao === 'Pendente' ? `
-              <button class="acao-btn excluir-btn" onclick='excluirApont(${idx})' title="Excluir">🗑️</button>
-            ` : ''}
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+         // Apontamentos
+     function renderApontamentos() {
+       const lista = document.getElementById('apontamentosLista');
+       const sem = document.getElementById('semApont');
+       if (!lista) return;
+       
+       lista.innerHTML = '';
+       if (apontamentos.length === 0) {
+         sem.style.display = 'block';
+         return;
+       } else {
+         sem.style.display = 'none';
+       }
+       
+       apontamentos.forEach((ap, idx) => {
+         const card = document.createElement('div');
+         card.className = 'apontamento-card';
+         
+         const situacaoClass = ap.situacao === 'Pendente' ? 'situacao-pendente' : 'situacao-confirmado';
+         
+         card.innerHTML = `
+           <div class="apontamento-header">
+             <div class="apontamento-info">
+               <div class="apontamento-nota">Nota ${ap.nunota}</div>
+               <div class="apontamento-meta">
+                 <span>${ap.codusu}</span>
+                 <span>${ap.dhapontamento}</span>
+               </div>
+             </div>
+             <div class="apontamento-situacao ${situacaoClass}">
+               ${ap.situacao}
+             </div>
+           </div>
+           
+           <div class="apontamento-detalhes">
+             <div class="apontamento-item">
+               <div class="apontamento-item-label">Qtd. Apontada</div>
+               <div class="apontamento-item-valor">${ap.qtdApontada}</div>
+             </div>
+             <div class="apontamento-item">
+               <div class="apontamento-item-label">Qtd. Perda</div>
+               <div class="apontamento-item-valor">${ap.qtdPerda}</div>
+             </div>
+           </div>
+           
+           ${ap.situacao === 'Pendente' ? `
+             <div class="apontamento-acoes">
+               <button class="acao-btn-small editar-btn-small" onclick='editarApont(${idx})' title="Editar">✏️</button>
+               <button class="acao-btn-small confirmar-btn-small" onclick='confirmarApont(${idx})' title="Confirmar">✔️</button>
+               <button class="acao-btn-small excluir-btn-small" onclick='excluirApont(${idx})' title="Excluir">🗑️</button>
+             </div>
+           ` : ''}
+           
+           <div class="materiais-section">
+             <button class="materiais-toggle" onclick="toggleMateriais(${idx})" data-ap-idx="${idx}">
+               <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                 <polyline points="6,9 12,15 6,21"></polyline>
+               </svg>
+               Insumos Utilizados (${ap.materiais ? ap.materiais.length : 0})
+             </button>
+             <div class="materiais-lista" id="materiais-${idx}">
+               <table class="materiais-tabela">
+                 <thead>
+                   <tr>
+                     <th>Código</th>
+                     <th>Material</th>
+                     <th>Lote</th>
+                     <th>Qtd. Apontada</th>
+                     <th>Qtd. Pesada</th>
+                     <th>Ações</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   ${ap.materiais ? ap.materiais.map((mat, matIdx) => `
+                     <tr>
+                       <td>${mat.codMaterial}</td>
+                       <td>${mat.material}</td>
+                       <td>
+                         <span class="lote-display" id="lote-display-${idx}-${matIdx}">${mat.lote}</span>
+                         <input type="text" class="lote-input" id="lote-input-${idx}-${matIdx}" value="${mat.lote}" style="display:none;" onblur="salvarLote(${idx}, ${matIdx})" onkeypress="if(event.key==='Enter')this.blur()">
+                       </td>
+                       <td>${mat.qtdApontada}</td>
+                       <td>
+                         <span class="qtd-pesada-display" id="qtd-pesada-display-${idx}-${matIdx}">${mat.qtdPesada || 0}</span>
+                         <button class="btn-pesar" onclick="abrirPesagem(${idx}, ${matIdx})" title="Pesar material">⚖️</button>
+                       </td>
+                       <td>
+                         <button class="acao-btn-small editar-btn-small" onclick="editarLote(${idx}, ${matIdx})" title="Editar lote">✏️</button>
+                       </td>
+                     </tr>
+                   `).join('') : ''}
+                 </tbody>
+               </table>
+             </div>
+           </div>
+         `;
+         
+         lista.appendChild(card);
+       });
+     }
 
     function abrirModalApontamento(apIdx) {
       const ap = apIdx !== undefined ? apontamentos[apIdx] : null;
@@ -1097,13 +1723,15 @@
       const qtdAp = parseInt(qtdApontada, 10);
       const qtdPer = parseInt(qtdPerda, 10);
       
-      if (apIdx === null || apIdx === undefined) {
-        // Novo apontamento
-        const materiais = materiaisBase.map(mat => ({
-          ...mat,
-          lote: operacaoSelecionada.nrolote,
-          qtdApontada: +(qtdAp * mat.fator).toFixed(2)
-        }));
+             if (apIdx === null || apIdx === undefined) {
+         // Novo apontamento
+         const materiais = materiaisBase.map(mat => ({
+           ...mat,
+           lote: operacaoSelecionada.nrolote,
+           qtdApontada: +(qtdAp * mat.fator).toFixed(2),
+           qtdPesada: 0,
+           pesagens: []
+         }));
         
         apontamentos.push({
           nunota: nunotaSeq++,
@@ -1115,13 +1743,16 @@
           materiais
         });
       } else {
-        // Editar
-        const ap = apontamentos[apIdx];
-        ap.qtdApontada = qtdAp;
-        ap.qtdPerda = qtdPer;
-        ap.materiais.forEach(mat => {
-          mat.qtdApontada = +(qtdAp * mat.fator).toFixed(2);
-        });
+                 // Editar
+         const ap = apontamentos[apIdx];
+         ap.qtdApontada = qtdAp;
+         ap.qtdPerda = qtdPer;
+         ap.materiais.forEach(mat => {
+           mat.qtdApontada = +(qtdAp * mat.fator).toFixed(2);
+           // Preservar qtdPesada e pesagens existentes
+           if (!mat.qtdPesada) mat.qtdPesada = 0;
+           if (!mat.pesagens) mat.pesagens = [];
+         });
       }
       
       renderApontamentos();
@@ -1138,10 +1769,147 @@
       }
     }
 
-    function confirmarApont(idx) {
-      apontamentos[idx].situacao = 'Confirmado';
-      renderApontamentos();
-    }
+         function confirmarApont(idx) {
+       apontamentos[idx].situacao = 'Confirmado';
+       renderApontamentos();
+     }
+
+     // Função para expandir/recolher materiais
+     function toggleMateriais(idx) {
+       const materiaisLista = document.getElementById(`materiais-${idx}`);
+       const toggleBtn = document.querySelector(`[data-ap-idx="${idx}"]`);
+       
+       if (materiaisLista && toggleBtn) {
+         const isExpanded = materiaisLista.classList.contains('expandido');
+         
+         if (isExpanded) {
+           materiaisLista.classList.remove('expandido');
+           toggleBtn.classList.remove('expandido');
+         } else {
+           materiaisLista.classList.add('expandido');
+           toggleBtn.classList.add('expandido');
+         }
+       }
+     }
+
+     // Função para editar lote
+     function editarLote(apIdx, matIdx) {
+       const display = document.getElementById(`lote-display-${apIdx}-${matIdx}`);
+       const input = document.getElementById(`lote-input-${apIdx}-${matIdx}`);
+       
+       if (display && input) {
+         display.style.display = 'none';
+         input.style.display = 'block';
+         input.focus();
+         input.select();
+       }
+     }
+
+     // Função para salvar lote
+     function salvarLote(apIdx, matIdx) {
+       const display = document.getElementById(`lote-display-${apIdx}-${matIdx}`);
+       const input = document.getElementById(`lote-input-${apIdx}-${matIdx}`);
+       
+       if (display && input) {
+         const novoLote = input.value.trim();
+         if (novoLote) {
+           apontamentos[apIdx].materiais[matIdx].lote = novoLote;
+           display.textContent = novoLote;
+         }
+         display.style.display = 'inline';
+         input.style.display = 'none';
+       }
+     }
+
+     // Função para abrir pesagem
+     function abrirPesagem(apIdx, matIdx) {
+       const material = apontamentos[apIdx].materiais[matIdx];
+       const pesagemBody = document.getElementById('pesagemBody');
+       
+       pesagemBody.innerHTML = `
+         <div class="pesagem-info">
+           <div class="pesagem-material">${material.material}</div>
+           <div class="pesagem-lote">Lote: ${material.lote}</div>
+         </div>
+         
+         <div class="pesagem-input-group">
+           <label class="pesagem-label">Valor da Pesagem (positivo ou negativo)</label>
+           <input type="number" class="pesagem-input" id="pesagemValor" step="0.01" placeholder="Ex: 10.5 ou -2.3">
+         </div>
+         
+         <div class="pesagem-historico">
+           <div class="pesagem-historico-title">Histórico de Pesagens</div>
+           <div id="pesagemHistorico">
+             ${material.pesagens && material.pesagens.length > 0 ? 
+               material.pesagens.map(p => `
+                 <div class="pesagem-item">
+                   <span>${p.dataHora}</span>
+                   <span class="pesagem-valor ${p.valor >= 0 ? 'positivo' : 'negativo'}">${p.valor >= 0 ? '+' : ''}${p.valor}</span>
+                 </div>
+               `).join('') : 
+               '<div style="text-align: center; color: var(--cinza-texto); font-style: italic;">Nenhuma pesagem registrada</div>'
+             }
+           </div>
+         </div>
+         
+         <div class="pesagem-total">
+           <div class="pesagem-total-label">Total Pesado</div>
+           <div class="pesagem-total-valor">${material.qtdPesada || 0}</div>
+         </div>
+         
+         <div class="pesagem-buttons">
+           <button class="pesagem-btn pesagem-btn-adicionar" onclick="adicionarPesagem(${apIdx}, ${matIdx})">Adicionar Pesagem</button>
+           <button class="pesagem-btn pesagem-btn-cancelar" onclick="fecharPesagem()">Cancelar</button>
+         </div>
+       `;
+       
+       document.getElementById('pesagemOverlay').style.display = 'flex';
+       
+       // Focar no input
+       setTimeout(() => {
+         document.getElementById('pesagemValor').focus();
+       }, 100);
+     }
+
+     // Função para adicionar pesagem
+     function adicionarPesagem(apIdx, matIdx) {
+       const valorInput = document.getElementById('pesagemValor');
+       const valor = parseFloat(valorInput.value);
+       
+       if (isNaN(valor)) {
+         alert('Por favor, informe um valor válido.');
+         return;
+       }
+       
+       const material = apontamentos[apIdx].materiais[matIdx];
+       
+       // Inicializar arrays se não existirem
+       if (!material.pesagens) material.pesagens = [];
+       if (!material.qtdPesada) material.qtdPesada = 0;
+       
+       // Adicionar nova pesagem
+       material.pesagens.push({
+         valor: valor,
+         dataHora: new Date().toLocaleString('pt-BR')
+       });
+       
+       // Calcular novo total
+       material.qtdPesada = material.pesagens.reduce((total, p) => total + p.valor, 0);
+       
+       // Atualizar display
+       const display = document.getElementById(`qtd-pesada-display-${apIdx}-${matIdx}`);
+       if (display) {
+         display.textContent = material.qtdPesada.toFixed(2);
+       }
+       
+       // Fechar overlay
+       fecharPesagem();
+     }
+
+     // Função para fechar pesagem
+     function fecharPesagem() {
+       document.getElementById('pesagemOverlay').style.display = 'none';
+     }
 
     // Execução
     function renderExecucoes() {
