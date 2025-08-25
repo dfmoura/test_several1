@@ -3,85 +3,1167 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Controle de Operações de Produção</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Sistema de Controle de Produção</title>
+  <style>
+    :root {
+      --verde-escuro: #14532d;
+      --verde-medio: #22c55e;
+      --verde-claro: #bbf7d0;
+      --verde-hover: #16a34a;
+      --cinza-fundo: #f6fef9;
+      --cinza-tabela: #e5e7eb;
+      --cinza-borda: #d1fae5;
+      --cinza-texto: #374151;
+      --branco: #fff;
+      --vermelho: #ef4444;
+      --amarelo: #facc15;
+      --sombra: 0 2px 8px rgba(20,83,45,0.08);
+      --sombra-overlay: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--cinza-fundo);
+      color: var(--cinza-texto);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header fixo */
+    header {
+      position: fixed;
+      top: 0; 
+      left: 0; 
+      right: 0;
+      background: var(--verde-escuro);
+      color: var(--branco);
+      display: flex;
+      align-items: center;
+      height: 60px;
+      box-shadow: var(--sombra);
+      z-index: 100;
+      padding: 0 16px;
+    }
+
+    .header-icon {
+      width: 32px; 
+      height: 32px;
+      margin-right: 12px;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+    }
+
+    .header-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      flex: 1;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filtro-btn {
+      background: rgba(255,255,255,0.1);
+      color: var(--branco);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(8px);
+      white-space: nowrap;
+    }
+
+    .filtro-btn:hover {
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.3);
+      transform: translateY(-1px);
+    }
+
+    .filtro-btn.ativo {
+      background: var(--verde-medio);
+      color: var(--branco);
+      border-color: var(--verde-medio);
+      box-shadow: 0 2px 8px rgba(34,197,94,0.3);
+    }
+
+    .refresh-btn {
+      background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--branco);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0.8;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .refresh-btn:hover {
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+      border-color: rgba(255,255,255,0.25);
+      opacity: 1;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .refresh-btn:active {
+      transform: translateY(0px) scale(0.95);
+    }
+
+    /* Main content */
+    main {
+      flex: 1 1 auto;
+      margin-top: 60px;
+      margin-bottom: 70px;
+      padding: 16px;
+      max-width: 600px;
+      width: 100%;
+      margin-left: auto; 
+      margin-right: auto;
+    }
+
+    /* Tabela de operações */
+    .tabela-op {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--branco);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--sombra);
+      margin-bottom: 16px;
+    }
+
+    .tabela-op th, 
+    .tabela-op td {
+      padding: 12px 8px;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    .tabela-op th {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-weight: 600;
+      border-bottom: 2px solid var(--cinza-borda);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .tabela-op tr {
+      border-bottom: 1px solid var(--cinza-tabela);
+      transition: background 0.15s;
+    }
+
+    .tabela-op tr[data-clicavel="true"]:hover {
+      background: var(--verde-claro);
+      cursor: pointer;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(34,197,94,0.1);
+    }
+
+    .tabela-op tr[data-clicavel="true"]:active {
+      transform: translateY(0px);
+    }
+
+    .tabela-op td {
+      color: var(--cinza-texto);
+    }
+
+    .tabela-op tr:last-child { 
+      border-bottom: none; 
+    }
+
+    .sem-registros {
+      text-align: center;
+      color: var(--verde-escuro);
+      padding: 40px 20px;
+      font-size: 1.1rem;
+      background: var(--branco);
+      border-radius: 12px;
+      box-shadow: var(--sombra);
+    }
+
+    /* Footer fixo */
+    footer {
+      position: fixed;
+      left: 0; 
+      right: 0; 
+      bottom: 0;
+      height: 70px;
+      background: var(--verde-escuro);
+      color: var(--branco);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 500;
+      box-shadow: 0 -2px 8px rgba(20,83,45,0.08);
+      z-index: 100;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+    }
+
+    /* Overlay para telas inferiores */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(20,83,45,0.85);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .overlay-content {
+      background: var(--branco);
+      border-radius: 16px;
+      box-shadow: var(--sombra-overlay);
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: overlayIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes overlayIn {
+      from { 
+        transform: scale(0.9); 
+        opacity: 0; 
+      } 
+      to { 
+        transform: scale(1); 
+        opacity: 1; 
+      } 
+    }
+
+    .overlay-header {
+      background: var(--verde-escuro);
+      color: var(--branco);
+      padding: 16px 20px;
+      border-radius: 16px 16px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .overlay-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .overlay-close {
+      background: none;
+      border: none;
+      color: var(--branco);
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .overlay-close:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .overlay-body {
+      padding: 20px;
+    }
+
+    /* Resumo da operação */
+    .resumo {
+      background: var(--cinza-fundo);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      border: 1px solid var(--cinza-borda);
+    }
+
+    .resumo-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .resumo-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--verde-medio);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--branco);
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    .resumo-titulo {
+      flex: 1;
+    }
+
+    .resumo-codigo {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--verde-escuro);
+      margin-bottom: 4px;
+    }
+
+    .resumo-descricao {
+      font-size: 0.9rem;
+      color: var(--cinza-texto);
+      line-height: 1.3;
+    }
+
+    .resumo-detalhes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+    }
+
+    .resumo-card {
+      background: var(--branco);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid var(--cinza-borda);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .resumo-card-label {
+      font-size: 0.75rem;
+      color: var(--verde-escuro);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .resumo-card-valor {
+      font-size: 1rem;
+      color: var(--cinza-texto);
+      font-weight: 500;
+    }
+
+    /* Controles do processo */
+    .controles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .controle-btn {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .btn-iniciar { 
+      background: var(--verde-medio); 
+      color: var(--branco); 
+    }
+
+    .btn-parar { 
+      background: var(--amarelo); 
+      color: var(--verde-escuro); 
+    }
+
+    .btn-continuar { 
+      background: var(--verde-hover); 
+      color: var(--branco); 
+    }
+
+    .btn-finalizar { 
+      background: var(--vermelho); 
+      color: var(--branco); 
+    }
+
+    .controle-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .controle-btn:active {
+      transform: translateY(0px);
+    }
+
+    .controle-btn:disabled { 
+      opacity: 0.6; 
+      cursor: not-allowed; 
+      transform: none;
+    }
+
+    /* Abas */
+    .abas {
+      display: flex;
+      border-radius: 12px 12px 0 0;
+      overflow: hidden;
+      margin-bottom: 0;
+      box-shadow: var(--sombra);
+    }
+
+    .aba-btn {
+      flex: 1;
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      border: none;
+      padding: 14px 0;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .aba-btn:hover {
+      background: var(--verde-medio);
+      color: var(--branco);
+    }
+
+    .aba-btn.ativa {
+      background: var(--verde-medio);
+      color: var(--branco);
+      box-shadow: 0 2px 8px rgba(34,197,94,0.3);
+    }
+
+    .conteudo-aba { 
+      display: none; 
+      min-height: 300px;
+    }
+
+    .conteudo-aba.ativa { 
+      display: block; 
+    }
+
+    /* Tabelas dentro do overlay */
+    .tabela {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--branco);
+      border-radius: 0 0 12px 12px;
+      overflow: hidden;
+      box-shadow: var(--sombra);
+      margin-bottom: 16px;
+    }
+
+    .tabela th, 
+    .tabela td {
+      padding: 10px 8px;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    .tabela th {
+      background: var(--verde-claro);
+      color: var(--verde-escuro);
+      font-weight: 600;
+      border-bottom: 2px solid var(--cinza-borda);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .tabela tr {
+      border-bottom: 1px solid var(--cinza-tabela);
+      transition: background 0.15s;
+    }
+
+    .tabela tr:nth-child(even) {
+      background: rgba(246, 254, 249, 0.8);
+    }
+
+    .tabela tr:nth-child(odd) {
+      background: var(--branco);
+    }
+
+    .tabela tr:last-child { 
+      border-bottom: none; 
+    }
+
+    .tabela td {
+      color: var(--cinza-texto);
+    }
+
+    /* Botões de ação */
+    .acao-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0 2px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .editar-btn {
+      background: var(--verde-medio);
+      color: var(--branco);
+    }
+
+    .editar-btn:hover {
+      background: var(--verde-hover);
+      transform: scale(1.05);
+    }
+
+    .excluir-btn {
+      background: var(--vermelho);
+      color: var(--branco);
+    }
+
+    .excluir-btn:hover {
+      background: #dc2626;
+      transform: scale(1.05);
+    }
+
+    .confirmar-btn {
+      background: var(--amarelo);
+      color: var(--verde-escuro);
+    }
+
+    .confirmar-btn:hover {
+      background: #eab308;
+      transform: scale(1.05);
+    }
+
+    .acao-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Botão voltar */
+    .btn-voltar {
+      background: var(--verde-medio);
+      color: var(--branco);
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .btn-voltar:hover {
+      background: var(--verde-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn-voltar:active {
+      transform: translateY(0px);
+    }
+
+    /* Responsividade */
+    @media (max-width: 480px) {
+      header {
+        padding: 0 12px;
+        height: 56px;
+      }
+
+      .header-title {
+        font-size: 1.1rem;
+      }
+
+      .filtro-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+      }
+
+      .refresh-btn {
+        width: 32px;
+        height: 32px;
+      }
+
+      main {
+        margin-top: 56px;
+        padding: 12px;
+      }
+
+      .tabela-op th, 
+      .tabela-op td {
+        padding: 10px 6px;
+        font-size: 0.85rem;
+      }
+
+      .resumo-detalhes {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .resumo-card {
+        padding: 8px;
+      }
+
+      .controles {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .overlay-body {
+        padding: 16px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .header-actions {
+        gap: 4px;
+      }
+
+      .filtro-btn {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+      }
+
+      .tabela-op th, 
+      .tabela-op td {
+        padding: 8px 4px;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <!-- Cabeçalho fixo -->
+  <!-- Header fixo -->
   <header>
-    <div class="header-content">
-      <div class="header-icon">
-        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M8 12h8M12 8v8"/>
-        </svg>
-      </div>
-      <h1 class="header-title">Controle de OP's</h1>
-      <button class="refresh-btn" onclick="atualizarDados()" title="Atualizar">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83-2.83"/>
+    <span class="header-icon" aria-label="Menu">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M8 12h8M12 8v8"/>
+      </svg>
+    </span>
+    <span class="header-title">Operações de Produção</span>
+    <div class="header-actions">
+      <button class="filtro-btn ativo" data-situacao="Pendentes">Pendentes</button>
+      <button class="filtro-btn" data-situacao="Finalizadas">Finalizadas</button>
+      <button class="filtro-btn" data-situacao="Canceladas">Canceladas</button>
+      <button class="refresh-btn" onclick="atualizarTabela()" title="Atualizar tabela" aria-label="Atualizar tabela">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v6"/>
+          <path d="M12 17v6"/>
+          <path d="M4.93 4.93l4.24 4.24"/>
+          <path d="M16.24 16.24l4.24 4.24"/>
+          <path d="M1 12h6"/>
+          <path d="M17 12h6"/>
+          <path d="M4.93 19.07l4.24-4.24"/>
+          <path d="M16.24 7.76l4.24-4.24"/>
         </svg>
       </button>
     </div>
   </header>
 
-  <!-- Conteúdo principal -->
+  <!-- Main content -->
   <main>
-    <!-- Botões de teste para debugging -->
-    <div class="debug-buttons" style="margin: 10px; padding: 10px; background: #f0f0f0; border-radius: 8px;">
-      <button onclick="testarFuncoes()" style="margin-right: 10px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">🧪 Testar Funções</button>
-      <button onclick="limparDadosTeste()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ Limpar Dados</button>
-    </div>
-    
-    <!-- Filtros de status -->
-    <div class="filtros">
-      <button class="filtro-btn ativo" data-status="todos">
-        <span class="filtro-icon">📋</span>
-        <span class="filtro-texto">Todas</span>
-      </button>
-      <button class="filtro-btn" data-status="aguardando">
-        <span class="filtro-icon">⏳</span>
-        <span class="filtro-texto">Agd.</span>
-      </button>
-      <button class="filtro-btn" data-status="iniciada">
-        <span class="filtro-icon">▶️</span>
-        <span class="filtro-texto">Ini.</span>
-      </button>
-      <button class="filtro-btn" data-status="parada">
-        <span class="filtro-icon">⏸️</span>
-        <span class="filtro-texto">Par.</span>
-      </button>
-      <button class="filtro-btn" data-status="finalizada">
-        <span class="filtro-icon">✅</span>
-        <span class="filtro-texto">Fin.</span>
-      </button>
-    </div>
-
-    <!-- Lista de OP's -->
-    <div class="op-list" id="opList">
-      <!-- OP's serão carregadas via JavaScript -->
-    </div>
-
-    <!-- Mensagem quando não há OP's -->
-    <div class="sem-ops" id="semOps" style="display: none;">
-      <p>Nenhuma operação encontrada</p>
+    <!-- Tabela de operações -->
+    <table class="tabela-op" id="tabelaOp">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Data</th>
+          <th>Produto</th>
+          <th>Qtd. Produzir</th>
+          <th>Lote</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyOp">
+        <!-- Linhas geradas via JS -->
+      </tbody>
+    </table>
+    <div class="sem-registros" id="semRegistros" style="display:none;">
+      Nenhuma operação encontrada.
     </div>
   </main>
 
-  <!-- Overlay para detalhes da OP -->
-  <div class="overlay" id="overlay" style="display: none;">
+  <!-- Footer fixo -->
+  <footer>
+    Sistema de Controle de Produção &copy;
+  </footer>
+
+  <!-- Overlay para detalhes -->
+  <div class="overlay" id="overlay">
     <div class="overlay-content">
       <div class="overlay-header">
-        <h2 id="overlayTitle">Detalhes da OP</h2>
-        <button class="close-btn" onclick="fecharOverlay()">×</button>
+        <span class="overlay-title">Detalhe da Operação</span>
+        <button class="overlay-close" onclick="fecharOverlay()">&times;</button>
       </div>
       <div class="overlay-body" id="overlayBody">
-        <!-- Conteúdo dinâmico -->
+        <!-- Conteúdo dinâmico via JS -->
       </div>
     </div>
   </div>
 
-  <!-- Script principal -->
-  <script src="app.js"></script>
+  <script>
+    // Dados simulados de operações de produção
+    const operacoes = [
+      { idiproc: 101, dtfab: '2024-06-01', codprodpa: 'P001', descprod: 'Produto A', qtdproduzir: 1000, nrolote: 'L001', situacao: 'Pendentes' },
+      { idiproc: 102, dtfab: '2024-06-02', codprodpa: 'P002', descprod: 'Produto B', qtdproduzir: 800, nrolote: 'L002', situacao: 'Finalizadas' },
+      { idiproc: 103, dtfab: '2024-06-03', codprodpa: 'P003', descprod: 'Produto C', qtdproduzir: 1200, nrolote: 'L003', situacao: 'Pendentes' },
+      { idiproc: 104, dtfab: '2024-06-04', codprodpa: 'P004', descprod: 'Produto D', qtdproduzir: 500, nrolote: 'L004', situacao: 'Canceladas' },
+      { idiproc: 105, dtfab: '2024-06-05', codprodpa: 'P005', descprod: 'Produto E', qtdproduzir: 1500, nrolote: 'L005', situacao: 'Pendentes' },
+    ];
+
+    // Estado global
+    let filtroAtual = 'Pendentes';
+    let operacaoSelecionada = null;
+    let apontamentos = [];
+    let execucoes = [];
+    let nunotaSeq = 1;
+    let estadoProc = 'naoiniciado';
+
+    // Utilitários
+    const usuarioAtual = 'usu001';
+    
+    function dataHoraAtual() {
+      const d = new Date();
+      return d.toISOString().slice(0,16).replace('T',' ');
+    }
+
+    // Fatores de consumo simulados para materiais
+    const materiaisBase = [
+      { codMaterial: 'M001', material: 'Matéria Prima A', fator: 0.5, estoque: 500, un: 'KG' },
+      { codMaterial: 'M002', material: 'Matéria Prima B', fator: 0.2, estoque: 300, un: 'KG' },
+      { codMaterial: 'M003', material: 'Matéria Prima C', fator: 0.1, estoque: 200, un: 'L' },
+    ];
+
+    // Função para renderizar a tabela de operações
+    function renderTabela() {
+      const tbody = document.getElementById('tbodyOp');
+      const semRegistros = document.getElementById('semRegistros');
+      tbody.innerHTML = '';
+      
+      // Filtra operações pela situação
+      const filtradas = operacoes.filter(op => op.situacao === filtroAtual);
+      
+      if (filtradas.length === 0) {
+        semRegistros.style.display = 'block';
+        return;
+      } else {
+        semRegistros.style.display = 'none';
+      }
+      
+      filtradas.forEach(op => {
+        // Apenas pendentes são clicáveis
+        const clicavel = op.situacao === 'Pendentes';
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-clicavel', clicavel);
+        
+        if (clicavel) {
+          tr.tabIndex = 0;
+          tr.setAttribute('role', 'button');
+          tr.setAttribute('aria-label', `Ver detalhes da operação ${op.idiproc}`);
+          tr.addEventListener('click', () => abrirDetalhes(op));
+          tr.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              abrirDetalhes(op);
+            }
+          });
+        }
+        
+        tr.innerHTML = `
+          <td>${op.idiproc}</td>
+          <td>${op.dtfab}</td>
+          <td>${op.codprodpa} - ${op.descprod}</td>
+          <td>${op.qtdproduzir}</td>
+          <td>${op.nrolote}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Função para alternar filtro
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.filtro-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
+          this.classList.add('ativo');
+          filtroAtual = this.getAttribute('data-situacao');
+          renderTabela();
+        });
+      });
+    });
+
+    // Função para atualizar a tabela
+    function atualizarTabela() {
+      const btn = document.querySelector('.refresh-btn');
+      const svg = btn.querySelector('svg');
+      
+      // Desabilita o botão durante a atualização
+      btn.disabled = true;
+      btn.style.opacity = '0.4';
+      btn.style.transform = 'scale(0.95)';
+      
+      // Adiciona animação de rotação
+      svg.style.transform = 'rotate(720deg)';
+      svg.style.transition = 'transform 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+      
+      // Simula atualização
+      setTimeout(() => {
+        renderTabela();
+        svg.style.transform = 'rotate(0deg)';
+        svg.style.transition = 'transform 0.3s ease-out';
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.style.transform = '';
+      }, 1200);
+    }
+
+    // Função para abrir detalhes no overlay
+    function abrirDetalhes(op) {
+      operacaoSelecionada = op;
+      apontamentos = [];
+      execucoes = [];
+      estadoProc = 'naoiniciado';
+      
+      const overlayBody = document.getElementById('overlayBody');
+      overlayBody.innerHTML = `
+        <!-- Resumo da operação -->
+        <div class="resumo">
+          <div class="resumo-header">
+            <div class="resumo-icon">${op.codprodpa.charAt(0)}</div>
+            <div class="resumo-titulo">
+              <div class="resumo-codigo">${op.codprodpa}</div>
+              <div class="resumo-descricao">${op.descprod}</div>
+            </div>
+          </div>
+          <div class="resumo-detalhes">
+            <div class="resumo-card">
+              <div class="resumo-card-label">ID</div>
+              <div class="resumo-card-valor">${op.idiproc}</div>
+            </div>
+            <div class="resumo-card">
+              <div class="resumo-card-label">Data</div>
+              <div class="resumo-card-valor">${op.dtfab}</div>
+            </div>
+            <div class="resumo-card">
+              <div class="resumo-card-label">Qtd. Produzir</div>
+              <div class="resumo-card-valor">${op.qtdproduzir}</div>
+            </div>
+            <div class="resumo-card">
+              <div class="resumo-card-label">Lote</div>
+              <div class="resumo-card-valor">${op.nrolote}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles do processo -->
+        <div class="controles" id="controlesProc">
+          <button class="controle-btn btn-iniciar" onclick="iniciarProc()">Iniciar</button>
+        </div>
+
+        <!-- Abas -->
+        <div class="abas">
+          <button class="aba-btn ativa" data-aba="apontamentos">Apontamentos</button>
+          <button class="aba-btn" data-aba="execucao">Execução</button>
+        </div>
+
+        <!-- Conteúdo das abas -->
+        <div class="conteudo-aba ativa" id="aba-apontamentos">
+          <table class="tabela" id="tabelaApont">
+            <thead>
+              <tr>
+                <th>Editar</th>
+                <th>Confirmar</th>
+                <th>Nota</th>
+                <th>Usuário</th>
+                <th>Data/Hora</th>
+                <th>Situação</th>
+                <th>Qtd. Apontada</th>
+                <th>Qtd. Perda</th>
+                <th>Excluir</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyApont">
+              <!-- Linhas via JS -->
+            </tbody>
+          </table>
+          <div class="sem-registros" id="semApont" style="display:none;">Nenhum apontamento.</div>
+          <button class="controle-btn btn-iniciar" id="btnAddApont" style="width:100%;margin-bottom:8px;">Adicionar Apontamento</button>
+        </div>
+
+        <div class="conteudo-aba" id="aba-execucao">
+          <table class="tabela" id="tabelaExec">
+            <thead>
+              <tr>
+                <th>Início</th>
+                <th>Fim</th>
+                <th>Tipo</th>
+                <th>Usuário</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyExec">
+              <!-- Linhas via JS -->
+            </tbody>
+          </table>
+          <div class="sem-registros" id="semExec" style="display:none;">Nenhuma execução registrada.</div>
+        </div>
+
+        <!-- Botão voltar -->
+        <div style="text-align: center; margin-top: 20px;">
+          <button class="btn-voltar" onclick="fecharOverlay()">Voltar</button>
+        </div>
+      `;
+
+      // Configurar eventos das abas
+      setTimeout(() => {
+        document.querySelectorAll('.aba-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativa'));
+            this.classList.add('ativa');
+            document.querySelectorAll('.conteudo-aba').forEach(c => c.classList.remove('ativa'));
+            document.getElementById('aba-' + this.getAttribute('data-aba')).classList.add('ativa');
+          });
+        });
+
+        // Configurar botão adicionar apontamento
+        document.getElementById('btnAddApont').addEventListener('click', abrirModalApontamento);
+      }, 100);
+
+      // Renderizar dados
+      renderControles();
+      renderApontamentos();
+      renderExecucoes();
+
+      // Mostrar overlay
+      document.getElementById('overlay').style.display = 'flex';
+    }
+
+    // Função para fechar overlay
+    function fecharOverlay() {
+      document.getElementById('overlay').style.display = 'none';
+      operacaoSelecionada = null;
+    }
+
+    // Controles do processo
+    function renderControles() {
+      const div = document.getElementById('controlesProc');
+      if (!div) return;
+      
+      div.innerHTML = '';
+      if (estadoProc === 'naoiniciado') {
+        div.innerHTML = `<button class='controle-btn btn-iniciar' onclick='iniciarProc()'>Iniciar</button>`;
+      } else if (estadoProc === 'emexecucao') {
+        div.innerHTML = `<button class='controle-btn btn-parar' onclick='pararProc()'>Parar</button><button class='controle-btn btn-finalizar' onclick='finalizarProc()'>Finalizar</button>`;
+      } else if (estadoProc === 'parado') {
+        div.innerHTML = `<button class='controle-btn btn-continuar' onclick='continuarProc()'>Continuar</button>`;
+      } else if (estadoProc === 'finalizado') {
+        div.innerHTML = `<button class='controle-btn btn-finalizar' disabled>Finalizado</button>`;
+      }
+    }
+
+    function iniciarProc() {
+      estadoProc = 'emexecucao';
+      execucoes.push({ dhinicio: dataHoraAtual(), dhfinal: '', tipo: 'normal', codusu: usuarioAtual, motivo: '' });
+      renderControles();
+      renderExecucoes();
+    }
+
+    function pararProc() {
+      const motivo = prompt('Motivo da parada:');
+      if (!motivo) return;
+      
+      // Fecha execução anterior
+      const exec = execucoes.find(e => !e.dhfinal);
+      if (exec) exec.dhfinal = dataHoraAtual();
+      
+      // Nova linha tipo parada
+      execucoes.push({ dhinicio: dataHoraAtual(), dhfinal: '', tipo: 'parada', codusu: usuarioAtual, motivo });
+      estadoProc = 'parado';
+      renderControles();
+      renderExecucoes();
+    }
+
+    function continuarProc() {
+      // Fecha linha parada
+      const exec = execucoes.find(e => !e.dhfinal && e.tipo === 'parada');
+      if (exec) exec.dhfinal = dataHoraAtual();
+      
+      // Nova linha normal
+      execucoes.push({ dhinicio: dataHoraAtual(), dhfinal: '', tipo: 'normal', codusu: usuarioAtual, motivo: '' });
+      estadoProc = 'emexecucao';
+      renderControles();
+      renderExecucoes();
+    }
+
+    function finalizarProc() {
+      if (estadoProc !== 'emexecucao') return;
+      
+      const exec = execucoes.find(e => !e.dhfinal);
+      if (exec) exec.dhfinal = dataHoraAtual();
+      exec.tipo = 'finalizado';
+      estadoProc = 'finalizado';
+      renderControles();
+      renderExecucoes();
+    }
+
+    // Apontamentos
+    function renderApontamentos() {
+      const tbody = document.getElementById('tbodyApont');
+      const sem = document.getElementById('semApont');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      if (apontamentos.length === 0) {
+        sem.style.display = 'block';
+        return;
+      } else {
+        sem.style.display = 'none';
+      }
+      
+      apontamentos.forEach((ap, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            ${ap.situacao === 'Pendente' ? `
+              <button class="acao-btn editar-btn" onclick='editarApont(${idx})' title="Editar">✏️</button>
+            ` : ''}
+          </td>
+          <td>
+            ${ap.situacao === 'Pendente' ? `
+              <button class="acao-btn confirmar-btn" onclick='confirmarApont(${idx})' title="Confirmar">✔️</button>
+            ` : ''}
+          </td>
+          <td>${ap.nunota}</td>
+          <td>${ap.codusu}</td>
+          <td>${ap.dhapontamento}</td>
+          <td>${ap.situacao}</td>
+          <td>${ap.qtdApontada}</td>
+          <td>${ap.qtdPerda}</td>
+          <td>
+            ${ap.situacao === 'Pendente' ? `
+              <button class="acao-btn excluir-btn" onclick='excluirApont(${idx})' title="Excluir">🗑️</button>
+            ` : ''}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function abrirModalApontamento(apIdx) {
+      const ap = apIdx !== undefined ? apontamentos[apIdx] : null;
+      let qtdRestante = operacaoSelecionada.qtdproduzir - apontamentos.reduce((soma, a) => soma + a.qtdApontada + a.qtdPerda, 0);
+      
+      if (ap && ap.situacao !== 'Pendente') return;
+      
+      const qtdApontada = prompt('Quantidade apontada:', ap ? ap.qtdApontada : qtdRestante);
+      if (!qtdApontada) return;
+      
+      const qtdPerda = prompt('Quantidade perda:', ap ? ap.qtdPerda : 0);
+      if (!qtdPerda) return;
+      
+      const qtdAp = parseInt(qtdApontada, 10);
+      const qtdPer = parseInt(qtdPerda, 10);
+      
+      if (apIdx === null || apIdx === undefined) {
+        // Novo apontamento
+        const materiais = materiaisBase.map(mat => ({
+          ...mat,
+          lote: operacaoSelecionada.nrolote,
+          qtdApontada: +(qtdAp * mat.fator).toFixed(2)
+        }));
+        
+        apontamentos.push({
+          nunota: nunotaSeq++,
+          codusu: usuarioAtual,
+          dhapontamento: dataHoraAtual(),
+          situacao: 'Pendente',
+          qtdApontada: qtdAp,
+          qtdPerda: qtdPer,
+          materiais
+        });
+      } else {
+        // Editar
+        const ap = apontamentos[apIdx];
+        ap.qtdApontada = qtdAp;
+        ap.qtdPerda = qtdPer;
+        ap.materiais.forEach(mat => {
+          mat.qtdApontada = +(qtdAp * mat.fator).toFixed(2);
+        });
+      }
+      
+      renderApontamentos();
+    }
+
+    function editarApont(idx) {
+      abrirModalApontamento(idx);
+    }
+
+    function excluirApont(idx) {
+      if (confirm('Excluir este apontamento?')) {
+        apontamentos.splice(idx, 1);
+        renderApontamentos();
+      }
+    }
+
+    function confirmarApont(idx) {
+      apontamentos[idx].situacao = 'Confirmado';
+      renderApontamentos();
+    }
+
+    // Execução
+    function renderExecucoes() {
+      const tbody = document.getElementById('tbodyExec');
+      const sem = document.getElementById('semExec');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      if (execucoes.length === 0) {
+        sem.style.display = 'block';
+        return;
+      } else {
+        sem.style.display = 'none';
+      }
+      
+      execucoes.forEach(exec => {
+        tbody.innerHTML += `<tr><td>${exec.dhinicio}</td><td>${exec.dhfinal || '-'}</td><td>${exec.tipo}</td><td>${exec.codusu}</td><td>${exec.motivo || '-'}</td></tr>`;
+      });
+    }
+
+    // Inicialização
+    renderTabela();
+  </script>
 </body>
 </html>

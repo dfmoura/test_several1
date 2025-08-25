@@ -152,6 +152,7 @@
         AND FIN.DHBAIXA IS NOT NULL AND FIN.CODEMP IN (:P_EMPRESA)
         AND dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
         AND (NAT.AD_TIPOCUSTO IN ('N'))
+        AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
     </snk:query> 
 
     <snk:query var="fat_tipo">  
@@ -171,6 +172,7 @@
         AND FIN.DHBAIXA IS NOT NULL AND FIN.CODEMP IN (:P_EMPRESA)
         AND dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
         AND (NAT.AD_TIPOCUSTO IN ('N'))
+        AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
         group by FIN.Codemp,EMP.NOMEFANTASIA
     </snk:query> 
 
@@ -192,7 +194,7 @@
         AND dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
         AND (fin.codemp = :A_CODEMP OR (:A_CODEMP IS NULL AND fin.CODEMP = 11)) and fin.CODEMP IN (:P_EMPRESA)  
         AND (NAT.AD_TIPOCUSTO IN ('N'))
-      
+        AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
     </snk:query>    
     
 
@@ -219,6 +221,7 @@
                 AND FIN.DHBAIXA IS NOT NULL
                 AND dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
                 AND (NAT.AD_TIPOCUSTO IN ('N'))
+                AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
                 group by FIN.Codemp,
                 FIN.CODNAT,
                 NAT.DESCRNAT),
@@ -277,6 +280,7 @@ with bas as (
         AND FIN.DHBAIXA IS NOT NULL
         AND dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
         AND (NAT.AD_TIPOCUSTO IN ('N'))
+        AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
         group by FIN.Codemp,
         CUS.DESCRCENCUS,
         FIN.CODCENCUS),
@@ -340,6 +344,7 @@ ORDER BY VLRINV DESC
     AND FIN.DHBAIXA between :P_PERIODO.INI and :P_PERIODO.FIN 
     AND (FIN.codemp = :A_CODEMP OR (:A_CODEMP IS NULL AND FIN.CODEMP = 11))
     AND (NAT.AD_TIPOCUSTO IN ('N'))
+    AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
     group by FIN.Codemp,
     FIN.CODNAT,
     CUS.DESCRCENCUS,
@@ -363,6 +368,7 @@ ORDER BY VLRINV DESC
         AND FIN.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
         AND (FIN.codemp = :A_CODEMP OR (:A_CODEMP IS NULL AND FIN.CODEMP = 11))
         AND (NAT.AD_TIPOCUSTO IN ('N'))
+        AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
         group by 
         FIN.Codemp,
         EMP.NOMEFANTASIA

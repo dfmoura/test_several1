@@ -146,6 +146,7 @@
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
           AND CODEMP IN (:P_EMPRESA)
+          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
     </snk:query> 
 
     <snk:query var="fat_tipo">  
@@ -164,6 +165,7 @@
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
           AND CODEMP IN (:P_EMPRESA)
+          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
         GROUP BY codemp,codgrupai,descrgrupo_nivel1
     ),
         bas1 as (
@@ -209,6 +211,7 @@
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
           AND CODEMP IN (:P_EMPRESA)
+          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
         GROUP BY codemp, codgrupai, empresa
         ),
         bas1 as (
@@ -255,6 +258,7 @@
               AND AD_COMPOE_FAT = 'S'
               AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
               AND CODEMP IN (:P_EMPRESA)
+              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
             GROUP BY codemp, codgrupai, empresa
             ),
             bas1 as (
@@ -305,6 +309,7 @@ WHERE tipmov IN ('V', 'D')
   AND AD_COMPOE_FAT = 'S'
   AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
   AND CODEMP IN (:P_EMPRESA)
+  AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
 GROUP BY codemp, codgrupai, codvend, vendedor
 ),
 bas1 as (
@@ -354,6 +359,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(vlrimp) DESC
 
           AND AD_COMPOE_FAT = 'S'
           AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
+          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
         GROUP BY codemp, codgrupai, descrgrupo_nivel1, codprod, descrprod
         ),
         bas1 as (
@@ -405,6 +411,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(vlrimp) DESC
               AND AD_COMPOE_FAT = 'S'
               AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
               AND CODEMP IN (:P_EMPRESA)
+              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
             GROUP BY codemp, codgrupai, descrgrupo_nivel1, codprod, descrprod
             ),
             bas1 as (
