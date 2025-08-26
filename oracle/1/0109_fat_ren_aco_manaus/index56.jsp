@@ -160,7 +160,7 @@
 
 <script>
     function addArrow(value) {
-        if (value >= 1.0000) {
+        if (value >= 0) {
             return '<span class="arrow-up">&uarr;</span>';
         } else {
             return '<span class="arrow-down">&darr;</span>';
@@ -349,15 +349,17 @@ AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
 BAS_MA AS (
 SELECT 
 1 AS COD,
-SUM(VLRNOTA) VLRFAT_MA,
+SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRFAT_MA,
 SUM(VLRDEV) VLRDEVOL_MA,
 SUM(VLRIPI+VLRICMS+VLRPIS+VLRCOFINS) VLRIMP_MA,
 SUM(VLRSUBST_PROP) AS VLRSUBST_MA,
 SUM(CUSSEMICM_TOT) VLRCMV_MA,
 SUM(TON) TON_MA,
-SUM(VLRDESC) VLRDESC_MA,
+SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC_MA,
 SUM(MARGEMNON) VLRMCN_MA,
-AVG(PERCMARGEM) VLRMCD_MA
+(SUM(MARGEMNON) /NULLIF(SUM(VLRNOTA) - SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN - VLRUNIT) * 
+QTDNEG ELSE 0 END), 0 )) * 100
+AS VLRMCD_MA
 FROM vw_rentabilidade_aco
 WHERE 
 DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
@@ -368,15 +370,17 @@ AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
 BAS AS (
 SELECT 
 1 AS COD,
-SUM(VLRNOTA) AS VLRFAT, 
+SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRFAT, 
 SUM(VLRDEV)  AS VLRDEVOL,
 SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS) AS VLRIMP,
 SUM(VLRSUBST_PROP) AS VLRSUBST,
 SUM(CUSSEMICM_TOT) AS VLRCMV,
 SUM(TON) AS TON,
-SUM(VLRDESC) AS VLRDESC, 
+SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC, 
 SUM(MARGEMNON) AS VLRMCN,
-AVG(PERCMARGEM) AS VLRMCD
+(SUM(MARGEMNON) /NULLIF(SUM(VLRNOTA) - SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN - VLRUNIT) * 
+QTDNEG ELSE 0 END), 0 )) * 100
+AS VLRMCD
 FROM vw_rentabilidade_aco
 WHERE
 DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN
@@ -445,7 +449,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
     <!-- Parte Superior - 6 Cards -->
     <div class="row custom-row">
         <div class="col-lg-2 col-md-4 mb-4" >
-            <div class="card shadow-sm" title="Esta informação contempla = (Total dos Produtos - Total de desconto dos produtos) - Desconto Rodapé Nota + Valor de Substituição - Desconto Redução de Base" onclick="abrir_fat()">
+            <div class="card shadow-sm" title="Esta informação contempla = (Total dos Produtos - Total de desconto dos produtos) - Desconto Rodapé Nota + Valor de Substituição - Desconto Redução de Base - Desconto Valor Unitário" onclick="abrir_fat()">
                 <div class="card-body text-center" >
                     <div class="icon">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4 14.083c0-2.145-2.232-2.742-3.943-3.546-1.039-.54-.908-1.829.581-1.916.826-.05 1.675.195 2.443.465l.362-1.647c-.907-.276-1.719-.402-2.443-.421v-1.018h-1v1.067c-1.945.267-2.984 1.487-2.984 2.85 0 2.438 2.847 2.81 3.778 3.243 1.27.568 1.035 1.75-.114 2.011-.997.226-2.269-.168-3.225-.54l-.455 1.644c.894.462 1.965.708 3 .727v.998h1v-1.053c1.657-.232 3.002-1.146 3-2.864z"/> alt="Ícone de Moeda" class="icon"></svg>
@@ -496,7 +500,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
             </div>
         </div>
         <div class="col-lg-2 col-md-4 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = Último Custo de Reposição * Quantidade Negociada" onclick="abrir_cmv()">
+            <div class="card shadow-sm" title="Esta informação contempla = Último Custo Sem Icms * Quantidade Negociada" onclick="abrir_cmv()">
                 <div class="card-body text-center">
                     <div class="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4 14.083c0-2.145-2.232-2.742-3.943-3.546-1.039-.54-.908-1.829.581-1.916.826-.05 1.675.195 2.443.465l.362-1.647c-.907-.276-1.719-.402-2.443-.421v-1.018h-1v1.067c-1.945.267-2.984 1.487-2.984 2.85 0 2.438 2.847 2.81 3.778 3.243 1.27.568 1.035 1.75-.114 2.011-.997.226-2.269-.168-3.225-.54l-.455 1.644c.894.462 1.965.708 3 .727v.998h1v-1.053c1.657-.232 3.002-1.146 3-2.864z"/> alt="Ícone de Moeda" class="icon"></svg>
@@ -519,9 +523,9 @@ INNER JOIN INV ON BAS.COD = INV.COD
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                             <path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4 14.083c0-2.145-2.232-2.742-3.943-3.546-1.039-.54-.908-1.829.581-1.916.826-.05 1.675.195 2.443.465l.362-1.647c-.907-.276-1.719-.402-2.443-.421v-1.018h-1v1.067c-1.945.267-2.984 1.487-2.984 2.85 0 2.438 2.847 2.81 3.778 3.243 1.27.568 1.035 1.75-.114 2.011-.997.226-2.269-.168-3.225-.54l-.455 1.644c.894.462 1.965.708 3 .727v.998h1v-1.053c1.657-.232 3.002-1.146 3-2.864z"></path></svg>
                     </div>
-                    <h1>${row.TON} <span id="arrow${row.VAR_HL}"></span></h1>
+                    <h1>${row.TON} <span id="arrow${row.VAR_TON}"></span></h1>
                     <script>
-                        document.getElementById("arrow${row.VAR_HL}").innerHTML = addArrow(${row.VAR_HL});
+                        document.getElementById("arrow${row.VAR_TON}").innerHTML = addArrow(${row.VAR_TON});
                     </script>
                     <p>TON</p>
                 </div>
@@ -532,7 +536,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
         </div>
         
         <div class="col-lg-2 col-md-4 mb-4">
-            <div class="card shadow-sm" title="Esta informação contempla = Total de desconto dos produtos - Desconto Rodapé da Nota" onclick="abrir_desc()">
+            <div class="card shadow-sm" title="Esta informação contempla = Total de desconto dos produtos + Desconto Rodapé da Nota + Desconto Valor Unitário" onclick="abrir_desc()">
                 <div class="card-body text-center">
                     <div class="icon">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4 14.083c0-2.145-2.232-2.742-3.943-3.546-1.039-.54-.908-1.829.581-1.916.826-.05 1.675.195 2.443.465l.362-1.647c-.907-.276-1.719-.402-2.443-.421v-1.018h-1v1.067c-1.945.267-2.984 1.487-2.984 2.85 0 2.438 2.847 2.81 3.778 3.243 1.27.568 1.035 1.75-.114 2.011-.997.226-2.269-.168-3.225-.54l-.455 1.644c.894.462 1.965.708 3 .727v.998h1v-1.053c1.657-.232 3.002-1.146 3-2.864z"/> alt="Ícone de Moeda" class="icon"></svg>

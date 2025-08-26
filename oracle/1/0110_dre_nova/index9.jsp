@@ -235,8 +235,6 @@
 
 
         <snk:query var="dre_atual">  
-            -- Query de Demonstração de Resultados (DRE) otimizada para SQL Server
-            -- Calcula Receita Bruta, Deduções, Receita Líquida, CMV, Lucro Bruto, Despesas Administrativas, Despesas Comerciais, Lucro Antes dos Juros, Despesas Financeiras, Lucro Líquido, Receita não Operacional, Derivativos, Resultado Final, Investimento, Depreciações e Resultado Final Considerando Depreciação
             WITH ReceitaBruta AS (
                 SELECT 
                     1 AS COD,
@@ -382,7 +380,6 @@
                     (SELECT SUM(Valor) FROM ResultadoFinal) + (SELECT SUM(Valor) FROM Investimento) + (SELECT SUM(Valor) FROM Depreciacoes) AS Valor
             )
             
-            -- Resultado final com ordenação por código
             SELECT COD, Conta, Valor FROM ReceitaBruta
             UNION ALL
             SELECT COD, Conta, Valor FROM Deducoes
@@ -421,8 +418,7 @@
 
 
         <snk:query var="dre_coparativo">
-            -- Query de Demonstração de Resultados (DRE) otimizada para SQL Server
-            -- Calcula Receita Bruta, Deduções, Receita Líquida, CMV, Lucro Bruto, Despesas Administrativas, Despesas Comerciais, Lucro Antes dos Juros, Despesas Financeiras, Lucro Líquido, Receita não Operacional, Derivativos, Resultado Final, Investimento, Depreciações e Resultado Final Considerando Depreciação
+
             WITH ReceitaBruta AS (
                 SELECT 
                     1 AS COD,
@@ -568,7 +564,6 @@
                     (SELECT SUM(Valor) FROM ResultadoFinal) + (SELECT SUM(Valor) FROM Investimento) + (SELECT SUM(Valor) FROM Depreciacoes) AS Valor
             )
             
-            -- Resultado final com ordenação por código
             SELECT COD, Conta, Valor FROM ReceitaBruta
             UNION ALL
             SELECT COD, Conta, Valor FROM Deducoes
@@ -632,7 +627,8 @@
         :P_PERIODO.INI AS DataInicio,
         :P_PERIODO.FIN AS DataFim,
         :P_PERIODO1.INI AS DataInicio_comparativo,
-        :P_PERIODO1.FIN AS DataFim_comparativo;
+        :P_PERIODO1.FIN AS DataFim_comparativo
+        
 
         
         </snk:query>

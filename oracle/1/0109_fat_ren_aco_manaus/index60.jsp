@@ -139,7 +139,7 @@
 
     <snk:query var="fat_total">  
         SELECT 
-        SUM(VLRNOTA) AS VLRFAT
+        SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRFAT
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
           AND AD_COMPOE_FAT = 'S'
@@ -154,7 +154,7 @@
                 codemp,
                 codgrupai,
                 descrgrupo_nivel1,
-                SUM(VLRNOTA) AS VLRFAT,
+                SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRFAT,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
                 SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
@@ -204,7 +204,7 @@ SELECT
     codemp,
     empresa,
     
-    SUM(VLRNOTA) AS VLRNOTA,
+    SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRNOTA,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
     SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
@@ -251,7 +251,7 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000))
                 codemp,
                 empresa,
                 
-                SUM(VLRNOTA) AS VLRNOTA,
+                SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRNOTA,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
                 SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
@@ -302,7 +302,7 @@ SELECT
     codgrupai,
     codvend,
     LEFT(vendedor, 8) AS vendedor,
-    SUM(VLRNOTA) AS VLRNOTA,
+    SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRNOTA,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
     SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
@@ -353,7 +353,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRNOTA) DESC
             descrgrupo_nivel1,
             codprod,
             descrprod,
-            SUM(VLRNOTA) AS VLRNOTA,
+            SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRNOTA,
             -- Soma total por codgrupai usando OVER (PARTITION BY)
             SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
         FROM vw_rentabilidade_aco 
@@ -404,7 +404,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRNOTA) DESC
                 descrgrupo_nivel1,
                 codprod,
                 descrprod,
-                SUM(VLRNOTA) AS VLRNOTA,
+                SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRNOTA,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
                 SUM(SUM(VLRNOTA)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
@@ -503,8 +503,8 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRNOTA) DESC
                                     <td>${row.CODEMP}</td>
                                     <td>${row.CODPROD}</td>
                                     <td>${row.descrprod}</td>
-                                    <td><fmt:formatNumber value="${row.TOTALLIQ}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
-                                    <c:set var="total" value="${total + row.TOTALLIQ}" />
+                                    <td><fmt:formatNumber value="${row.VLRNOTA}" type="currency" currencySymbol="" groupingUsed="true" minFractionDigits="2" maxFractionDigits="2"/></td>
+                                    <c:set var="total" value="${total + row.VLRNOTA}" />
                                 </tr>
                             </c:forEach>
                             <tr>

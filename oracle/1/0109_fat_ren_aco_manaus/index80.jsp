@@ -189,7 +189,7 @@
         
             )
         
-            Select codgrupai AD_TPPROD,descrgrupo_nivel1 TIPOPROD,SUM(vlrdev)vlrdev from bas2
+            Select codgrupai AD_TPPROD,descrgrupo_nivel1 TIPOPROD,SUM(vlrdev)VLRDEV from bas2
             GROUP BY codgrupai,descrgrupo_nivel1 ORDER BY SUM(vlrdev) DESC
     </snk:query> 
 
@@ -236,7 +236,7 @@
                     empresa
             )
             Select SUM(vlrdev) VLRCIP from bas2
-            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
+            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999)) 
       
     </snk:query>    
     
@@ -283,7 +283,7 @@
                     empresa
             )
             Select codgrupai,codemp,empresa,SUM(vlrdev)vlrdev from bas2
-            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
+            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999)) 
             GROUP BY codgrupai,codemp,empresa ORDER BY SUM(vlrdev) DESC
             
     </snk:query> 
@@ -335,7 +335,7 @@ SELECT
         vendedor
 )
 Select codgrupai,CODVEND,VENDEDOR,SUM(VLRDEV)VLRDEV from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
+WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999)) 
 GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRDEV) DESC
 </snk:query>    
     
@@ -393,7 +393,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRDEV) DESC
         )
     
         Select codemp,codgrupai AD_TPPROD,descrgrupo_nivel1 TIPOPROD,codprod,descrprod,SUM(vlrdev)vlrdev from bas2
-        where (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000))
+        where (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 9999))
         GROUP BY codemp,codgrupai,descrgrupo_nivel1,codprod,descrprod ORDER BY SUM(vlrdev) DESC
 </snk:query>
 
@@ -446,7 +446,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRDEV) DESC
                     descrprod
             )
             Select AD_TPPROD,descrgrupo_nivel1 from bas2
-            where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 80000)) and CODEMP IN (:P_EMPRESA)
+            where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 9999)) and CODEMP IN (:P_EMPRESA)
             group by AD_TPPROD,descrgrupo_nivel1
     </snk:query>
 
@@ -549,7 +549,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRDEV) DESC
         var fatTipoData = [];
         <c:forEach items="${fat_tipo.rows}" var="row">
             fatTipoLabels.push("${row.AD_TPPROD} - ${row.TIPOPROD}");
-            fatTipoData.push(${row.vlrdev});
+            fatTipoData.push(${row.VLRDEV});
         </c:forEach>
 
         const doughnutChart = new Chart(ctxDoughnut, {

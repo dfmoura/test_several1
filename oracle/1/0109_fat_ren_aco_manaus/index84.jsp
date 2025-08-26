@@ -139,7 +139,7 @@
 
     <snk:query var="fat_total">  
         SELECT 
-        SUM(VLRDESC) AS VLRDESC
+        SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
           
@@ -155,7 +155,7 @@
                 codemp,
                 codgrupai,
                 descrgrupo_nivel1,
-                SUM(VLRDESC) AS VLRDESC,
+                SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
                 SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
@@ -199,7 +199,7 @@ SELECT
     codemp,
     empresa,
     
-    SUM(VLRDESC) AS VLRDESC,
+    SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
     SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
@@ -246,7 +246,7 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000))
                 codemp,
                 empresa,
                 
-                SUM(VLRDESC) AS VLRDESC,
+                SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
                 SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
@@ -297,7 +297,7 @@ SELECT
     codgrupai,
     codvend,
     LEFT(vendedor, 8) AS vendedor,
-    SUM(VLRDESC) AS VLRDESC,
+    SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
     SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
@@ -349,7 +349,7 @@ WITH bas AS (
         descrgrupo_nivel1,
         codprod,
         descrprod,
-        SUM(VLRDESC) AS VLRDESC,
+        SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
         -- Soma total por codgrupai usando OVER (PARTITION BY)
         SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
     FROM vw_rentabilidade_aco 
@@ -402,7 +402,7 @@ WITH bas AS (
                 descrgrupo_nivel1,
                 codprod,
                 descrprod,
-                SUM(VLRDESC) AS VLRDESC,
+                SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
                 SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
