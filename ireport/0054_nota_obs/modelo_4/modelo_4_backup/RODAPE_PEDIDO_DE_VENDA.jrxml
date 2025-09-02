@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="RODAPE_PEDIDO_DE_VENDA" pageWidth="561" pageHeight="842" whenNoDataType="AllSectionsNoDetail" columnWidth="561" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.3310000000000006"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="PNUNOTA" class="java.math.BigDecimal" isForPrompting="false"/>
+	<queryString>
+		<![CDATA[SELECT
+  CCM.NUNOTA
+ ,CCM.CODVEND
+ ,VEN.APELIDO
+ ,CCM.PERCCOM
+FROM TGFCCM CCM
+INNER JOIN TGFVEN VEN ON (CCM.CODVEND = VEN.CODVEND)
+WHERE NUNOTA = $P{PNUNOTA}]]>
+	</queryString>
+	<field name="NUNOTA" class="java.math.BigDecimal"/>
+	<field name="CODVEND" class="java.math.BigDecimal"/>
+	<field name="APELIDO" class="java.lang.String"/>
+	<field name="PERCCOM" class="java.math.BigDecimal"/>
+	<variable name="CONTADOR" class="java.lang.Integer" resetType="None" incrementType="Report" calculation="Count"/>
+	<background>
+		<band height="1" splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="32" splitType="Stretch">
+			<rectangle radius="0">
+				<reportElement key="element-2" mode="Opaque" x="0" y="0" width="561" height="16" forecolor="#000000" backcolor="#999999"/>
+			</rectangle>
+			<textField isBlankWhenNull="false">
+				<reportElement key="element-1" x="0" y="0" width="561" height="16" forecolor="#000000"/>
+				<box leftPadding="2" rightPadding="2">
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="SansSerif" size="12" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["COMISSÃO"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-4" x="0" y="16" width="453" height="16"/>
+				<box>
+					<pen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Vendedor "]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-2" x="453" y="16" width="108" height="16"/>
+				<box>
+					<pen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12"/>
+				</textElement>
+				<text><![CDATA[%]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-1" positionType="Float" stretchType="RelativeToTallestObject" x="67" y="0" width="386" height="15" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="3">
+					<pen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+				</box>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{APELIDO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00" isBlankWhenNull="false">
+				<reportElement key="textField-2" positionType="Float" stretchType="RelativeToTallestObject" x="453" y="0" width="108" height="15" isPrintWhenDetailOverflows="true"/>
+				<box rightPadding="3">
+					<pen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERCCOM}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-3" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="67" height="15" isPrintWhenDetailOverflows="true"/>
+				<box rightPadding="3">
+					<pen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#333333"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODVEND}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>
