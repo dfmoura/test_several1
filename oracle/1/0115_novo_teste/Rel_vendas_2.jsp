@@ -19,7 +19,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8fafc;
             margin: 0;
-            padding: 20px;
+            padding: 60px 20px 20px 20px; /* Ajuste para compensar o header fixo */
         }
 
         .dashboard-container {
@@ -50,6 +50,41 @@
             max-width: 200px;
             object-fit: contain;
             filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
+        /* Header fixo para PDF */
+        .fixed-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: linear-gradient(135deg, #bd9f87, #ca6c00);
+            box-shadow: 0 2px 8px rgba(189, 159, 135, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0 20px;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .header-logo img {
+            height: 30px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .header-title {
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-left: 15px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         }
 
         .dashboard-title {
@@ -365,6 +400,13 @@
     <snk:load/>
 </head>
 <body>
+    <!-- Header fixo para PDF -->
+    <div class="fixed-header">
+        <div class="header-logo">
+            <img src="https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/logo_ermac.jpg" alt="Logo ERMAC" id="header-logo">
+        </div>
+        <h1 class="header-title">Dashboard de Pedidos</h1>
+    </div>
     <snk:query var="pedidos">
 SELECT 
 CAB.CODEMP||'- '||EMP.NOMEFANTASIA AS EMPRESA,
@@ -403,7 +445,7 @@ ORDER BY CAB.DTNEG,PAR.RAZAOSOCIAL,CAB.NUNOTA,ITE.CODPROD
     <div class="dashboard-container">
         <div class="header-section">
             <div class="logo-container">
-                <img src="https://portaosemtrilho.com.br/wp-content/uploads/2021/06/ermaq.jpeg" alt="Logo da Empresa" id="company-logo">
+                <img src="https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/logo_ermac.jpg" alt="Logo da Empresa" id="company-logo">
                 <h1 class="dashboard-title">
                     <i class="fas fa-chart-line"></i> Dashboard de Pedidos
                 </h1>
@@ -645,10 +687,54 @@ ORDER BY CAB.DTNEG,PAR.RAZAOSOCIAL,CAB.NUNOTA,ITE.CODPROD
                 const doc = new jspdf.jsPDF('l', 'mm', 'a4');
                 const pageWidth = doc.internal.pageSize.width;
                 
-                // Cabeçalho
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(14);
-                doc.text('Dashboard de Pedidos', pageWidth/2, 15, { align: 'center' });
+                // Cabeçalho com logo
+                try {
+                    // Tentar carregar e adicionar o logo
+                    const logoUrl = 'https://raw.githubusercontent.com/dfmoura/test_several1/refs/heads/main/logos_bancos/logo_ermac.jpg';
+                    
+                    // Criar uma imagem temporária para obter as dimensões
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    
+                    img.onload = function() {
+                        // Calcular dimensões mantendo proporção
+                        const maxWidth = 40;
+                        const maxHeight = 25;
+                        let logoWidth = img.width;
+                        let logoHeight = img.height;
+                        
+                        if (logoWidth > maxWidth) {
+                            logoHeight = (logoHeight * maxWidth) / logoWidth;
+                            logoWidth = maxWidth;
+                        }
+                        if (logoHeight > maxHeight) {
+                            logoWidth = (logoWidth * maxHeight) / logoHeight;
+                            logoHeight = maxHeight;
+                        }
+                        
+                        // Adicionar logo no canto superior esquerdo
+                        doc.addImage(img, 'JPEG', 15, 5, logoWidth, logoHeight);
+                        
+                        // Adicionar título ao lado do logo
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(14);
+                        doc.text('Dashboard de Pedidos', 15 + logoWidth + 10, 20);
+                    };
+                    
+                    img.onerror = function() {
+                        // Se o logo não carregar, usar apenas texto
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(14);
+                        doc.text('Dashboard de Pedidos', 15, 20);
+                    };
+                    
+                    img.src = logoUrl;
+                } catch (error) {
+                    // Fallback para texto apenas
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(14);
+                    doc.text('Dashboard de Pedidos', 15, 20);
+                }
                 
                 const table = document.getElementById('pedidosTable');
                 const headers = Array.from(table.querySelectorAll('thead th'))
@@ -685,7 +771,7 @@ ORDER BY CAB.DTNEG,PAR.RAZAOSOCIAL,CAB.NUNOTA,ITE.CODPROD
                 doc.autoTable({
                     head: [headers],
                     body: dados.map(d => d.rowData),
-                    startY: 25,
+                    startY: 35, // Ajustado para dar espaço ao header com logo
                     styles: {
                         font: 'helvetica',
                         fontSize: 7,

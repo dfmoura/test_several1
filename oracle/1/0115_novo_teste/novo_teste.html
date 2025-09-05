@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Fixed Header</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Reset básico */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12.6px;
+            background-color: #f0fdf4; /* bg-green-50 */
+            min-height: 100vh;
+        }
+
+        /* Estilos do Fixed Header */
+        .fixed-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 35px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .header-logo img {
+            width: 40px;
+            height: auto;
+            filter: brightness(0) invert(1);
+        }
+
+        .header-title {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0;
+            flex: 1;
+            text-align: center;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            justify-content: flex-end;
+            margin-right: 5%;
+        }
+
+        .header-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .header-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-btn i {
+            font-size: 12px;
+        }
+
+        /* Ajuste do body para compensar o header fixo */
+        body {
+            padding-top: 35px !important;
+        }
+
+        /* Conteúdo principal */
+        .main-content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .content-section h2 {
+            color: #059669;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .content-section p {
+            line-height: 1.6;
+            color: #374151;
+            margin-bottom: 10px;
+        }
+
+        /* Informações do usuário no header */
+        .user-info {
+            color: white;
+            font-size: 0.75rem;
+            margin-right: 16px;
+            padding: 4px 12px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .user-info i {
+            margin-right: 4px;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .fixed-header {
+                padding: 0 10px;
+            }
+
+            .header-title {
+                font-size: 1.2rem;
+            }
+
+            .header-actions {
+                margin-right: 2%;
+            }
+
+            .main-content {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Fixed Header -->
+    <div class="fixed-header">
+        <div class="header-logo">
+            <a href="https://neuon.com.br/" target="_blank" rel="noopener noreferrer">
+                <img src="https://neuon.com.br/wp-content/uploads/2025/07/Logotipo-16.svg" alt="Neuon Logo">
+            </a>
+        </div>
+        <h1 class="header-title">Simulação de Preço</h1>
+        <div class="header-actions">
+            <!-- Campo de usuário atual -->
+            <div class="user-info">
+                <i class="fas fa-user"></i>
+                <span>Usuário Teste</span>
+            </div>
+            <button class="header-btn" title="Carregar Simulação">
+                <i class="fas fa-folder-open"></i>
+            </button>
+            <button class="header-btn" title="Salvar Simulação">
+                <i class="fas fa-save"></i>
+            </button>
+            <button class="header-btn" title="Exportar para Excel">
+                <i class="fas fa-file-excel"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-content">
+        <div class="content-section">
+            <h2>Bem-vindo ao Sistema de Simulação</h2>
+            <p>Este é um exemplo de página com header fixo baseado na estrutura do arquivo prod36.jsp.</p>
+            <p>O header permanece fixo no topo da página durante o scroll, proporcionando acesso rápido às principais funcionalidades.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Funcionalidades do Header</h2>
+            <p><strong>Logo:</strong> Link para o site da Neuon</p>
+            <p><strong>Título:</strong> "Simulação de Preço" centralizado</p>
+            <p><strong>Informações do Usuário:</strong> Exibe o usuário logado</p>
+            <p><strong>Botões de Ação:</strong> Carregar, Salvar e Exportar simulações</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Características Técnicas</h2>
+            <p>• Header com posição fixa (position: fixed)</p>
+            <p>• Gradiente de fundo verde</p>
+            <p>• Sombra sutil para profundidade</p>
+            <p>• Botões com efeitos hover</p>
+            <p>• Design responsivo</p>
+            <p>• Ícones Font Awesome</p>
+        </div>
+
+        <!-- Conteúdo adicional para demonstrar o scroll -->
+        <div class="content-section">
+            <h2>Conteúdo para Scroll</h2>
+            <p>Este conteúdo adicional demonstra como o header permanece fixo durante o scroll da página.</p>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+            <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+            <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+            <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Mais Conteúdo</h2>
+            <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.</p>
+            <p>Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+            <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
+        </div>
+
+        <div class="content-section">
+            <h2>Final da Página</h2>
+            <p>Este é o final da página de demonstração. O header fixo permanece visível em todo momento.</p>
+            <p>O design é baseado na estrutura encontrada no arquivo prod36.jsp, adaptado para uso em HTML puro com CSS.</p>
+        </div>
+    </div>
+</body>
+</html>
