@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="razao_fornecedor_analitico_det" language="groovy" pageWidth="762" pageHeight="515" orientation="Landscape" columnWidth="762" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.100000000000001"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="DTREFERENCIA" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Referência]]></parameterDescription>
+	</parameter>
+	<parameter name="CODEMP" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+	</parameter>
+	<parameter name="CODCTACTB" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TCBPLA"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. CTA CTB]]></parameterDescription>
+	</parameter>
+	<parameter name="P_CODPARC" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TGFPAR"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Parceiro]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT	LAN.CODEMP,
+		LAN.CODCTACTB,
+		PLA.CTACTB,
+		PLA.DESCRCTA,
+        LAN.AD_CODPARC AS CODPARC,
+        LAN.REFERENCIA,
+        LAN.NUMLOTE,
+        LAN.NUMLANC,
+        LAN.TIPLANC,
+		ISNULL(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END, 0) + ISNULL(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END, 0) AS SALDOANT,
+		0 AS DEBITO,
+		0 AS CREDITO,
+        LAN.DTMOV,
+        LAN.CODHISTCTB,
+        LAN.COMPLHIST,
+        LAN.NUMDOC,
+        LAN.VENCIMENTO,
+        LAN.LIBERADO,
+        LAN.CODUSU,
+        LAN.CODPROJ,
+        LAN.SEQUENCIA,
+        IT.NUNICO
+
+
+FROM	TCBLAN LAN
+INNER JOIN TCBPLA PLA ON PLA.CODCTACTB = LAN.CODCTACTB
+LEFT JOIN TCBINT IT ON (
+    IT.CODEMP = LAN.CODEMP AND
+    IT.REFERENCIA = LAN.REFERENCIA AND
+    IT.NUMLANC = LAN.NUMLANC AND     -- Garantir que NUMLANC é usado para a junção
+    IT.TIPLANC = LAN.TIPLANC AND     -- Garantir que TIPLANC é usado para a junção
+    IT.NUMLOTE = LAN.NUMLOTE AND
+    IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
+)
+
+WHERE	LAN.REFERENCIA = $P{DTREFERENCIA}
+AND		LAN.CODEMP = $P{CODEMP}
+AND		LAN.CODCTACTB = $P{CODCTACTB}
+AND		LEFT(PLA.CTACTB, 1) >= '1'
+AND     LEFT(PLA.CTACTB, 1) < '2'
+
+
+UNION ALL
+
+SELECT
+LAN.CODEMP,
+LAN.CODCTACTB,
+PLA.CTACTB,
+PLA.DESCRCTA,
+LAN.AD_CODPARC AS CODPARC,
+LAN.REFERENCIA,
+LAN.NUMLOTE,
+LAN.NUMLANC,
+LAN.TIPLANC,
+0 AS SALDOANT,
+ISNULL(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END, 0) AS DEBITO,
+ISNULL(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END, 0) AS CREDITO,
+
+
+LAN.DTMOV,
+LAN.CODHISTCTB,
+LAN.COMPLHIST,
+LAN.NUMDOC,
+LAN.VENCIMENTO,
+LAN.LIBERADO,
+LAN.CODUSU,
+LAN.CODPROJ,
+LAN.SEQUENCIA,
+IT.NUNICO
+
+FROM	TCBLAN LAN
+INNER JOIN TCBPLA PLA ON PLA.CODCTACTB = LAN.CODCTACTB
+
+LEFT JOIN TCBINT IT ON (
+    IT.CODEMP = LAN.CODEMP AND IT.REFERENCIA = LAN.REFERENCIA AND IT.NUMLANC = LAN.NUMLANC AND IT.TIPLANC = LAN.TIPLANC AND IT.NUMLOTE = LAN.NUMLOTE AND IT.SEQUENCIA = LAN.SEQUENCIA
+)
+WHERE	LAN.REFERENCIA = $P{DTREFERENCIA}
+AND		LAN.CODEMP = $P{CODEMP}
+AND		LAN.CODCTACTB = $P{CODCTACTB}
+AND		LEFT(PLA.CTACTB, 1) >= '1'
+AND     LEFT(PLA.CTACTB, 1) < '2'
+
+UNION ALL
+
+/* Pega as Contas de Passivo */
+SELECT	LAN.CODEMP,
+		LAN.CODCTACTB,
+		PLA.CTACTB,
+		PLA.DESCRCTA,
+        LAN.AD_CODPARC AS CODPARC,
+        LAN.REFERENCIA,
+        LAN.NUMLOTE,
+        LAN.NUMLANC,
+        LAN.TIPLANC,
+		ISNULL(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END, 0) + ISNULL(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END, 0) AS SALDOANT,
+		0 AS DEBITO,
+		0 AS CREDITO,
+        LAN.DTMOV,
+        LAN.CODHISTCTB,
+        LAN.COMPLHIST,
+        LAN.NUMDOC,
+        LAN.VENCIMENTO,
+        LAN.LIBERADO,
+        LAN.CODUSU,
+        LAN.CODPROJ,
+        LAN.SEQUENCIA,
+        IT.NUNICO
+
+
+FROM	TCBLAN LAN
+INNER JOIN TCBPLA PLA ON PLA.CODCTACTB = LAN.CODCTACTB
+LEFT JOIN TCBINT IT ON (
+    IT.CODEMP = LAN.CODEMP AND
+    IT.REFERENCIA = LAN.REFERENCIA AND
+    IT.NUMLANC = LAN.NUMLANC AND     -- Garantir que NUMLANC é usado para a junção
+    IT.TIPLANC = LAN.TIPLANC AND     -- Garantir que TIPLANC é usado para a junção
+    IT.NUMLOTE = LAN.NUMLOTE AND
+    IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
+)
+WHERE	LAN.REFERENCIA = $P{DTREFERENCIA}
+AND		LAN.CODEMP = $P{CODEMP}
+AND		LAN.CODCTACTB = $P{CODCTACTB}
+AND		LEFT(PLA.CTACTB, 1) >= '2'
+AND     LEFT(PLA.CTACTB, 1) < '3'
+
+UNION ALL
+
+SELECT	LAN.CODEMP,
+		LAN.CODCTACTB,
+		PLA.CTACTB,
+		PLA.DESCRCTA,
+        LAN.AD_CODPARC AS CODPARC,
+        LAN.REFERENCIA,
+        LAN.NUMLOTE,
+        LAN.NUMLANC,
+        LAN.TIPLANC,
+		0 AS SALDOANT,
+		ISNULL(CASE WHEN LAN.TIPLANC = 'D' THEN LAN.VLRLANC END, 0) AS DEBITO,
+		ISNULL(CASE WHEN LAN.TIPLANC = 'R' THEN LAN.VLRLANC*-1 END, 0) AS CREDITO,
+        LAN.DTMOV,
+        LAN.CODHISTCTB,
+        LAN.COMPLHIST,
+        LAN.NUMDOC,
+        LAN.VENCIMENTO,
+        LAN.LIBERADO,
+        LAN.CODUSU,
+        LAN.CODPROJ,
+        LAN.SEQUENCIA,
+        IT.NUNICO
+
+
+FROM	TCBLAN LAN
+INNER JOIN TCBPLA PLA ON PLA.CODCTACTB = LAN.CODCTACTB
+LEFT JOIN TCBINT IT ON (
+    IT.CODEMP = LAN.CODEMP AND
+    IT.REFERENCIA = LAN.REFERENCIA AND
+    IT.NUMLANC = LAN.NUMLANC AND     -- Garantir que NUMLANC é usado para a junção
+    IT.TIPLANC = LAN.TIPLANC AND     -- Garantir que TIPLANC é usado para a junção
+    IT.NUMLOTE = LAN.NUMLOTE AND
+    IT.SEQUENCIA = LAN.SEQUENCIA     -- Garantir que SEQUENCIA é usado para a junção
+)
+LEFT JOIN TGFCAB CAB ON IT.NUNICO = CAB.NUNOTA
+LEFT JOIN TGFFIN FIN ON IT.NUNICO = FIN.NUFIN
+WHERE	LAN.REFERENCIA = $P{DTREFERENCIA}
+AND		LAN.CODEMP = $P{CODEMP}
+AND		LAN.CODCTACTB = $P{CODCTACTB}
+AND		LEFT(PLA.CTACTB, 1) >= '2'
+AND     LEFT(PLA.CTACTB, 1) < '3']]>
+	</queryString>
+	<field name="CODEMP" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Empresa]]></fieldDescription>
+	</field>
+	<field name="REFERENCIA" class="java.util.Date">
+		<fieldDescription><![CDATA[Referência]]></fieldDescription>
+	</field>
+	<field name="NUMLOTE" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Nro. Lote]]></fieldDescription>
+	</field>
+	<field name="NUMLANC" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Nro. Lanç.]]></fieldDescription>
+	</field>
+	<field name="CODPARC" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Parc.]]></fieldDescription>
+	</field>
+	<field name="NOMEPARC" class="java.lang.String">
+		<fieldDescription><![CDATA[Parceiro]]></fieldDescription>
+	</field>
+	<field name="CODCTACTB" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. CTACTB]]></fieldDescription>
+	</field>
+	<field name="CTACTB" class="java.lang.String">
+		<fieldDescription><![CDATA[Cta. Ctb.]]></fieldDescription>
+	</field>
+	<field name="DESCRCTA" class="java.lang.String">
+		<fieldDescription><![CDATA[Descr. Cta.]]></fieldDescription>
+	</field>
+	<field name="DEBITO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Debito]]></fieldDescription>
+	</field>
+	<field name="CREDITO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Crédito]]></fieldDescription>
+	</field>
+	<field name="DTMOV" class="java.util.Date">
+		<fieldDescription><![CDATA[Dt. Mov.]]></fieldDescription>
+	</field>
+	<field name="CODHISTCTB" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Hist. Ctb.]]></fieldDescription>
+	</field>
+	<field name="COMPLHIST" class="java.lang.String">
+		<fieldDescription><![CDATA[Compl. Hist.]]></fieldDescription>
+	</field>
+	<field name="NUMDOC" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Nro. Doc.]]></fieldDescription>
+	</field>
+	<field name="VENCIMENTO" class="java.util.Date">
+		<fieldDescription><![CDATA[Dt. Venc.]]></fieldDescription>
+	</field>
+	<field name="CODUSU" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Usu.]]></fieldDescription>
+	</field>
+	<field name="CODPROJ" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Proj.]]></fieldDescription>
+	</field>
+	<field name="SEQUENCIA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Seq.]]></fieldDescription>
+	</field>
+	<field name="NUNICO" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[N. Único]]></fieldDescription>
+	</field>
+	<variable name="V_DEBITO" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{DEBITO}]]></variableExpression>
+	</variable>
+	<variable name="V_CREDITO" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{CREDITO}]]></variableExpression>
+	</variable>
+	<variable name="V_DEBITO_1" class="java.math.BigDecimal" resetType="Group" resetGroup="PARCEIRO" calculation="Sum">
+		<variableExpression><![CDATA[$F{DEBITO}]]></variableExpression>
+	</variable>
+	<variable name="V_CREDITO_1" class="java.math.BigDecimal" resetType="Group" resetGroup="PARCEIRO" calculation="Sum">
+		<variableExpression><![CDATA[$F{CREDITO}]]></variableExpression>
+	</variable>
+	<group name="PARCEIRO">
+		<groupExpression><![CDATA[$F{CODPARC}]]></groupExpression>
+		<groupHeader>
+			<band height="16">
+				<textField isBlankWhenNull="true">
+					<reportElement mode="Transparent" x="1" y="1" width="762" height="15" backcolor="#E3E3E3"/>
+					<textElement verticalAlignment="Middle">
+						<font size="6" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[" Parceiro: "+$F{CODPARC}+" - "+$F{NOMEPARC}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="17">
+				<textField pattern="#,##0.00">
+					<reportElement x="197" y="0" width="62" height="15"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="6" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{V_CREDITO_1}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00">
+					<reportElement x="135" y="0" width="62" height="15"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="6" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{V_DEBITO_1}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="1" y="0" width="134" height="15"/>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font size="6" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Total por Parceiro:]]></text>
+				</staticText>
+				<line>
+					<reportElement x="0" y="16" width="761" height="1"/>
+					<graphicElement>
+						<pen lineWidth="0.5"/>
+					</graphicElement>
+				</line>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="17" splitType="Stretch">
+			<staticText>
+				<reportElement x="135" y="0" width="62" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Debito]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="197" y="0" width="62" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Crédito]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="259" y="0" width="44" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Dt. Mov.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="303" y="0" width="44" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. H.Ctb.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="508" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Nro. Doc.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="548" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Dt. Venc.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="588" y="0" width="39" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Usu.]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="16" width="761" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement x="347" y="0" width="161" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Compl. Hist.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="627" y="0" width="20" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Seq.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="647" y="0" width="35" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[N. Único]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="0" width="20" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Emp.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="0" width="39" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Refer.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="59" y="0" width="36" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Nro. Lote]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="95" y="0" width="40" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Nro. Lanç.]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="12" splitType="Stretch">
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="0" width="20" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODEMP}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="20" y="0" width="39" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[$F{REFERENCIA}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="59" y="0" width="36" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUMLOTE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="95" y="0" width="40" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUMLANC}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="135" y="0" width="62" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{DEBITO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="197" y="0" width="62" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CREDITO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="259" y="0" width="44" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[$F{DTMOV}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="303" y="0" width="44" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODHISTCTB}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="508" y="0" width="40" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUMDOC}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="548" y="0" width="40" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[$F{VENCIMENTO}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="588" y="0" width="39" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODUSU}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="347" y="0" width="161" height="12"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{COMPLHIST}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="627" y="0" width="20" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{SEQUENCIA}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="647" y="0" width="35" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUNICO}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

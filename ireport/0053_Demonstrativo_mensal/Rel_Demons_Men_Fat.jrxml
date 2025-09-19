@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Rel_Demons_Men_Fat" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.3310000000000755"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="110"/>
+	<property name="ireport.definition"/>
+	<style name="variacoes">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{TIPOMOVS}.equals('S')]]></conditionExpression>
+			<style forecolor="#FF0000" backcolor="#FF0000" fill="Solid" scaleImage="Clip" hAlign="Left" vAlign="Top" rotation="None" lineSpacing="Single">
+				<pen lineWidth="1.0"/>
+			</style>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{TIPOMOVS}.equals('E')]]></conditionExpression>
+			<style mode="Transparent" forecolor="#CCFFCC" fill="Solid"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="P_DATAINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt. Inicial]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_DATAFIN" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Dt. Final]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+TO_CHAR(DHMOV, 'MONTH', 'NLS_DATE_LANGUAGE=PORTUGUESE') MES,
+TO_CHAR(DHMOV, 'MM') M,
+TO_CHAR(DHMOV,'YYYY') ANO,
+
+ABS(SUM(CASE
+WHEN CODCFO IN ('5101', '5102','5117', '5922', '6101', '6102', '6107', '6108','6116', '6117', '6118', '6922') THEN VLRCTB*-1
+ELSE 0 END)) VLRCTB_BRUTO,
+
+ABS(SUM(CASE
+WHEN CODCFO IN ('5101', '5102','5117', '5922', '6101', '6102', '6107', '6108','6116', '6117', '6118', '6922') THEN VLRCTB*-1
+WHEN CODCFO IN ('1201', '1202', '2201','2202')THEN VLRCTB
+ELSE 0 END)) VLRCTB_LIQUIDO
+FROM (
+SELECT
+E.RAZAOSOCIAL,E.INSCESTAD,MASK(2,E.CGC) AS CGC,L.CODPARC,
+L.DHMOV,
+CASE WHEN L.CODMODDOC = 55 THEN 'NF-e'
+     WHEN L.CODMODDOC = 57 THEN 'CT-e'
+     WHEN L.CODMODDOC = 65 THEN 'NFC-e'
+		       ELSE 'NF' END AS ESPDOC,
+L.SERIENOTA, L.NUMNOTA, L.DTDOC, L.UFDESTINO, SUM(L.VLRCTB) AS VLRCTB, L.CODCFO, SUM(L.BASEICMS) AS BASEICMS, L.ALIQICMS, SUM(L.VLRICMS) AS VLRICMS, SUM(L.ISENTASICMS) AS ISENTASICMS, SUM(L.OUTRASICMS) AS OUTRASICMS, SUM(L.VLRIPI) AS IPI, SUM(ICMSRETENCAO) AS ST, L.NUNOTA
+FROM TGFLIV L
+INNER JOIN TSIEMP E ON (E.CODEMP = L.CODEMP)
+
+WHERE
+L.DHMOV BETWEEN $P{P_DATAINI} AND $P{P_DATAFIN}
+AND L.CODCFO IN ('5101', '5102','5117', '5922', '6101', '6102', '6107', '6108','6116', '6117', '6118', '6922','1201', '1202', '2201','2202')
+
+
+GROUP BY
+L.DHMOV, L.NUMNOTA, L.NUNOTA, L.ESPDOC, L.SERIENOTA, L.DTDOC, L.UFDESTINO, L.CODCFO, L.ALIQICMS, E.RAZAOSOCIAL,E.CGC, E.INSCESTAD,L.CODPARC,L.CODMODDOC
+
+
+)
+GROUP BY
+TO_CHAR(DHMOV, 'MONTH', 'NLS_DATE_LANGUAGE=PORTUGUESE'),
+TO_CHAR(DHMOV, 'MM'),
+TO_CHAR(DHMOV,'YYYY')
+ORDER BY 3,2]]>
+	</queryString>
+	<field name="ANO" class="java.lang.String">
+		<fieldDescription><![CDATA[ANO]]></fieldDescription>
+	</field>
+	<field name="MES" class="java.lang.String">
+		<fieldDescription><![CDATA[MÊS]]></fieldDescription>
+	</field>
+	<field name="VLRCTB_BRUTO" class="java.math.BigDecimal"/>
+	<field name="VLRCTB_LIQUIDO" class="java.math.BigDecimal"/>
+	<variable name="TOTFATBRU" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLRCTB_BRUTO}]]></variableExpression>
+	</variable>
+	<variable name="TOTFATLIQ" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLRCTB_LIQUIDO}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="112" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="276" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[SATIS INDUSTRIA COMERCIO LTDA - Matriz]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="20" width="235" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[CNPJ: 02.677.655/0001-24]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="78" width="555" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Demonstrativo Mensal do Faturamento]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="380" y="0" width="175" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new java.text.SimpleDateFormat("dd/MM/yyyy").format(new java.util.Date())]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="380" y="20" width="175" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Período: "
++ new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{P_DATAINI})
++ " a "
++ new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{P_DATAFIN})]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="111" width="555" height="1"/>
+			</line>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="26" splitType="Stretch">
+			<staticText>
+				<reportElement x="194" y="6" width="52" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ANO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="73" y="6" width="121" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[MÊS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="294" y="0" width="110" height="26"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[FATURADO (R$)
+BRUTO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="404" y="0" width="110" height="26"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[FATURADO (R$)
+LÍQUIDO]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement x="194" y="0" width="52" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ANO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="73" y="0" width="121" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{MES}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="294" y="0" width="110" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRCTB_BRUTO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="404" y="0" width="110" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRCTB_LIQUIDO}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<lastPageFooter>
+		<band/>
+	</lastPageFooter>
+	<summary>
+		<band height="298" splitType="Stretch">
+			<staticText>
+				<reportElement x="73" y="0" width="121" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="0" width="555" height="1"/>
+			</line>
+			<textField pattern="#,##0.00">
+				<reportElement x="294" y="1" width="110" height="19"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TOTFATBRU}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="404" y="1" width="110" height="19"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{TOTFATLIQ}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="280" width="442" height="18"/>
+				<textElement>
+					<font size="4"/>
+				</textElement>
+				<text><![CDATA[***Nota explicativa sobre a composição do faturamento
+CFOP’s considerados para a formação do faturamento bruto:('5101', '5102','5117', '5922', '6101', '6102', '6107', '6108','6116', '6117', '6118', '6922')
+CFOP’s considerados para a formação do faturamento líquido:('5101', '5102','5117', '5922', '6101', '6102', '6107', '6108','6116', '6117', '6118', '6922') menos ('1201', '1202', '2201', '2202')]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="124" width="235" height="43"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[JOSE DO NASCIMENTO RIBEIRO
+SOCIO
+CPF: 567.495.036-91]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="289" y="124" width="266" height="43"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ODBC - ASSESSORIA E SERVIÇOS CONTÁBEIS LTDA - EPP
+CRC: 1-MG-006632/O-0 - Escritório Contábil
+CNPJ: 03.956.266/0001-09]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="279" width="350" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="38" y="124" width="156" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="288" y="123" width="267" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+		</band>
+	</summary>
+</jasperReport>

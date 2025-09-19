@@ -1,0 +1,100 @@
+<gadget>
+  <prompt-parameters>
+    <parameter id="CODEMP" description="Empresa" metadata="multiList:Text" listType="sql" required="false" keep-last="false" keep-date="false" order="0">
+      <expression type="SQL"><![CDATA[SELECT CODEMP AS VALUE,  TO_CHAR(CODEMP)  || ' - ' || NOMEFANTASIA AS LABELFROM TSIEMPORDER BY CODEMP]]></expression>
+    </parameter>
+    <parameter id="DTREFERENCIA" description="Data Posição Financeira" metadata="date" required="true" keep-last="false" keep-date="false" order="1"/>
+    <parameter id="CODPARC" description="Parceiro" metadata="entity:Parceiro@CODPARC" required="false" keep-last="false" keep-date="false" order="2"/>
+    <parameter id="NOMEPARC" description="Visualizar Nome/Razão Social" metadata="singleList:Text" listType="text" required="true" keep-last="false" keep-date="false" order="3">
+      <item value="NOME" label=" Nome Parceiro"/>
+      <item value="RAZAO" label=" Razão Social"/>
+    </parameter>
+  </prompt-parameters>
+  <level id="lvl_axrwf04" description="Principal">
+    <args>
+      <arg id="VAR_CODPARC" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <container orientacao="V" tamanhoRelativo="35800">
+        <container orientacao="V" tamanhoRelativo="50">
+          <grid id="grd_axrwf05" useNewGrid="S">
+            <title><![CDATA[<pre><b>Posição de Adiantamentos de Clientes em :DTREFERENCIA</b></pre>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT 	D.CODPARC, 		D.NOMEPARC, 		Formatar_Cpf_Cnpj(D.CNPJCPF) AS CNPJCPF,		SUM(D.VLRDESDOB) AS VLRDESDOB		FROM		(SELECT FIN.CODPARC, 		CASE WHEN :NOMEPARC = 'NOME' THEN PAR.NOMEPARC ELSE PAR.RAZAOSOCIAL END AS NOMEPARC, 		PAR.CGC_CPF AS CNPJCPF,		SUM(FIN.VLRDESDOB) AS VLRDESDOBFROM    TGFFIN FIN, TGFTOP OPE, TGFPAR PARWHERE   FIN.CODTIPOPER = OPE.CODTIPOPERAND     FIN.DHTIPOPER = OPE.DHALTERAND		FIN.CODPARC=PAR.CODPARCAND     FIN.PROVISAO = 'N'AND	  	(FIN.DHBAIXA > :DTREFERENCIA OR FIN.DHBAIXA IS NULL)AND     FIN.DTNEG <= :DTREFERENCIAAND     FIN.CODEMP IN :CODEMPAND		(FIN.CODPARC = :CODPARC OR :CODPARC IS NULL)AND     FIN.RECDESP = -1--AND     FIN.CODTIPOPER IN (1300,1302)AND		FIN.CODNAT IN  (6020100, '6020200')GROUP BY 	FIN.CODPARC,			PAR.NOMEPARC,			PAR.RAZAOSOCIAL,			PAR.CGC_CPF			UNION ALLSELECT FIN.CODPARC, 		CASE WHEN :NOMEPARC = 'NOME' THEN PAR.NOMEPARC ELSE PAR.RAZAOSOCIAL END AS NOMEPARC, 		PAR.CGC_CPF AS CNPJCPF,		SUM(FIN.VLRDESDOB) AS VLRDESDOBFROM    TGFFIN FIN, TGFTOP OPE, TGFPAR PARWHERE   FIN.CODTIPOPER = OPE.CODTIPOPERAND     FIN.DHTIPOPER = OPE.DHALTERAND		FIN.CODPARC=PAR.CODPARCAND     FIN.PROVISAO = 'N'AND	  	(FIN.DHBAIXA > :DTREFERENCIA OR FIN.DHBAIXA IS NULL)AND     FIN.DTENTSAI <= :DTREFERENCIAAND     FIN.CODEMP IN :CODEMPAND		(FIN.CODPARC = :CODPARC OR :CODPARC IS NULL)AND     FIN.RECDESP = -1--AND     FIN.CODTIPOPER IN (1300,1302)AND		OPE.TIPMOV = 'D'GROUP BY 	FIN.CODPARC,			PAR.NOMEPARC,			PAR.RAZAOSOCIAL,			PAR.CGC_CPF) D			GROUP BY 	D.CODPARC, 			D.NOMEPARC,			CNPJCPFORDER BY 1]]></expression>
+            <metadata>
+              <field name="CODPARC" label="Cliente" type="I" visible="true" useFooter="false"/>
+              <field name="NOMEPARC" label="Nome Cliente" type="S" visible="true" useFooter="false"/>
+              <field name="CNPJCPF" label="CNPJ/CPF" type="S" visible="true" useFooter="false"/>
+              <field name="VLRDESDOB" label="Vlr. em Aberto" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+            </metadata>
+            <on-click navigate-to="lvl_6p5pw1">
+              <param id="A_CODPARC">$CODPARC</param>
+            </on-click>
+          </grid>
+        </container>
+        <container orientacao="V" tamanhoRelativo="50">
+          <grid id="grd_tyr8f0" useNewGrid="S">
+            <title><![CDATA[<pre><b>Posição de Adiantamentos de Fornecedores em :DTREFERENCIA</b></pre>]]></title>
+            <expression type="sql" data-source="MGEDS"><![CDATA[SELECT 	D.CODPARC, 		D.NOMEPARC, 		Formatar_Cpf_Cnpj(D.CNPJCPF) AS CNPJCPF,		SUM(D.VLRDESDOB) AS VLRDESDOB		FROM		(SELECT FIN.CODPARC, 		CASE WHEN :NOMEPARC = 'NOME' THEN PAR.NOMEPARC ELSE PAR.RAZAOSOCIAL END AS NOMEPARC, 		PAR.CGC_CPF AS CNPJCPF,		SUM(FIN.VLRDESDOB) AS VLRDESDOBFROM    TGFFIN FIN, TGFTOP OPE, TGFPAR PARWHERE   FIN.CODTIPOPER = OPE.CODTIPOPERAND     FIN.DHTIPOPER = OPE.DHALTERAND		FIN.CODPARC=PAR.CODPARCAND     FIN.PROVISAO = 'N'AND	  	(FIN.DHBAIXA > :DTREFERENCIA OR FIN.DHBAIXA IS NULL)AND     FIN.DTNEG <= :DTREFERENCIAAND     FIN.CODEMP IN :CODEMPAND		(FIN.CODPARC = :CODPARC OR :CODPARC IS NULL)AND     FIN.RECDESP = 1--AND     FIN.CODTIPOPER in (1300,1302)AND		FIN.CODNAT in (6010100, 6010200) --CLAYTON INCLUIDO NAT 61010200 EM 11/04/2024 GROUP BY 	FIN.CODPARC,			PAR.NOMEPARC,			PAR.RAZAOSOCIAL,			PAR.CGC_CPF			UNION ALLSELECT FIN.CODPARC, 		CASE WHEN :NOMEPARC = 'NOME' THEN PAR.NOMEPARC ELSE PAR.RAZAOSOCIAL END AS NOMEPARC, 		PAR.CGC_CPF AS CNPJCPF,		SUM(FIN.VLRDESDOB) AS VLRDESDOBFROM    TGFFIN FIN, TGFTOP OPE, TGFPAR PARWHERE   FIN.CODTIPOPER = OPE.CODTIPOPERAND     FIN.DHTIPOPER = OPE.DHALTERAND		FIN.CODPARC=PAR.CODPARCAND     FIN.PROVISAO = 'N'AND	  	(FIN.DHBAIXA > :DTREFERENCIA OR FIN.DHBAIXA IS NULL)AND     FIN.DTNEG <= :DTREFERENCIAAND     FIN.CODEMP IN :CODEMPAND		(FIN.CODPARC = :CODPARC OR :CODPARC IS NULL)AND     FIN.RECDESP = 1AND   FIN.CODNAT = 6020100GROUP BY 	FIN.CODPARC,			PAR.NOMEPARC,			PAR.RAZAOSOCIAL,			PAR.CGC_CPF) D			GROUP BY 	D.CODPARC, 			D.NOMEPARC,			CNPJCPFORDER BY 1]]></expression>
+            <metadata>
+              <field name="CODPARC" label="Fornecedor" type="I" visible="true" useFooter="false"/>
+              <field name="NOMEPARC" label="Nome Fornecedor" type="S" visible="true" useFooter="false"/>
+              <field name="CNPJCPF" label="CNPJCPF" type="S" visible="true" useFooter="false"/>
+              <field name="VLRDESDOB" label="Vr Pagamento" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+            </metadata>
+            <on-click navigate-to="lvl_6p5pw1"/>
+          </grid>
+        </container>
+      </container>
+      <container orientacao="V" tamanhoRelativo="0"/>
+    </container>
+  </level>
+  <level id="lvl_6p5pv5" description="Detalhamento Adiantamento Fornecedor">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_6p5pv6" useNewGrid="S">
+        <title><![CDATA[<pre><b>Detalhamento do Adiantamento Fornecedor Parceiro: :A_CODPARC em :DTREFERENCIA</b></pre>]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT 	FIN.NUFIN,		FIN.CODPARC, 		CASE WHEN :NOMEPARC = 'NOME' THEN PAR.NOMEPARC ELSE PAR.RAZAOSOCIAL END AS NOMEPARC, 		Formatar_Cpf_Cnpj(PAR.CGC_CPF) AS CNPJCPF,		FIN.DTNEG,		FIN.VLRDESDOB,		FIN.CODNAT,		NAT.DESCRNAT,		FIN.CODCENCUS,		CUS.DESCRCENCUS,		FIN.CODTIPOPER,		OPE.DESCROPER,		FIN.HISTORICOFROM    TGFFIN FIN, TGFTOP OPE, TGFPAR PAR, TGFNAT NAT, TSICUS CUSWHERE   FIN.CODTIPOPER = OPE.CODTIPOPERAND     FIN.DHTIPOPER = OPE.DHALTERAND		FIN.CODPARC=PAR.CODPARCAND  	FIN.CODNAT = NAT.CODNATAND		FIN.CODCENCUS = CUS.CODCENCUSAND     FIN.PROVISAO = 'N'AND	  	(FIN.DHBAIXA > :DTREFERENCIA OR FIN.DHBAIXA IS NULL)AND     FIN.DTNEG <= :DTREFERENCIAAND     FIN.CODEMP IN :CODEMPAND		FIN.CODPARC = :A_CODPARCAND     FIN.RECDESP = 1AND     FIN.CODTIPOPER = 1303AND		FIN.CODNAT = 7020000ORDER BY 1]]></expression>
+        <metadata>
+          <field name="NUFIN" label="Nr. Único" type="I" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="Parceiro" type="I" visible="true" useFooter="false"/>
+          <field name="NOMEPARC" label="Nome Parceiro" type="S" visible="true" useFooter="false"/>
+          <field name="CNPJCPF" label="CNPJ/CPF" type="S" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="Dt. Negociação" type="D" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Vlr. Desdobramento" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+          <field name="CODNAT" label="Natureza" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Desc. Natureza" type="S" visible="true" useFooter="false"/>
+          <field name="CODCENCUS" label="Centro de Resultado" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRCENCUS" label="Desc. Centro de Resultado" type="S" visible="true" useFooter="false"/>
+          <field name="CODTIPOPER" label="Operação" type="I" visible="true" useFooter="false"/>
+          <field name="DESCROPER" label="Desc. Operação" type="S" visible="true" useFooter="false"/>
+          <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+  <level id="lvl_6p5pw1" description="Detalhamento Adiantamento Cliente">
+    <args>
+      <arg id="A_CODPARC" type="integer"/>
+    </args>
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_6p5pw2" useNewGrid="S">
+        <title><![CDATA[<pre><b>Detalhamento do Adiantamento Cliente Parceiro: :A_CODPARC em :DTREFERENCIA</b></pre>]]></title>
+        <expression type="sql" data-source="MGEDS"><![CDATA[SELECT 	FIN.NUFIN,		FIN.CODPARC, 		CASE WHEN :NOMEPARC = 'NOME' THEN PAR.NOMEPARC ELSE PAR.RAZAOSOCIAL END AS NOMEPARC, 		Formatar_Cpf_Cnpj(PAR.CGC_CPF) AS CNPJCPF,		FIN.DTNEG,		FIN.VLRDESDOB,		FIN.CODNAT,		NAT.DESCRNAT,		FIN.CODCENCUS,		CUS.DESCRCENCUS,		FIN.CODTIPOPER,		OPE.DESCROPER,		FIN.HISTORICOFROM    TGFFIN FIN, TGFTOP OPE, TGFPAR PAR, TGFNAT NAT, TSICUS CUSWHERE   FIN.CODTIPOPER = OPE.CODTIPOPERAND     FIN.DHTIPOPER = OPE.DHALTERAND		FIN.CODPARC=PAR.CODPARCAND  	FIN.CODNAT = NAT.CODNATAND		FIN.CODCENCUS = CUS.CODCENCUSAND     FIN.PROVISAO = 'N'AND	  	(FIN.DHBAIXA > :DTREFERENCIA OR FIN.DHBAIXA IS NULL)AND     FIN.DTNEG <= :DTREFERENCIAAND     FIN.CODEMP IN :CODEMPAND		FIN.CODPARC = :A_CODPARCAND     FIN.RECDESP = -1AND     FIN.CODTIPOPER = 1303AND		FIN.CODNAT = 7010000ORDER BY 1]]></expression>
+        <metadata>
+          <field name="NUFIN" label="Nr. Único" type="I" visible="true" useFooter="false"/>
+          <field name="CODPARC" label="Parceiro" type="I" visible="true" useFooter="false"/>
+          <field name="NOMEPARC" label="Nome Cliente" type="S" visible="true" useFooter="false"/>
+          <field name="CNPJCPF" label="CNPJ/CPF" type="S" visible="true" useFooter="false"/>
+          <field name="DTNEG" label="Dt. Negociação" type="D" visible="true" useFooter="false"/>
+          <field name="VLRDESDOB" label="Vlr. Desdobramento" type="F" visible="true" useFooter="SUM" mask="#.##0,00;-n"/>
+          <field name="CODNAT" label="Natureza" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRNAT" label="Des. Natureza" type="S" visible="true" useFooter="false"/>
+          <field name="CODCENCUS" label="Centro de Resultado" type="I" visible="true" useFooter="false"/>
+          <field name="DESCRCENCUS" label="Desc. Centro de Resultado" type="S" visible="true" useFooter="false"/>
+          <field name="CODTIPOPER" label="Operação" type="I" visible="true" useFooter="false"/>
+          <field name="DESCROPER" label="Desc. Operação" type="S" visible="true" useFooter="false"/>
+          <field name="HISTORICO" label="Histórico" type="S" visible="true" useFooter="false"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>

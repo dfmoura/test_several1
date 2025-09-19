@@ -292,3 +292,26 @@ sem estragar o codigo e o que ja exite, pois esta correto.
 
 
 
+----------------------------------------------------
+
+
+esta tudo muito bom,
+
+mas sem estragar nada do codigo quero que adicione duas colula ao final da tabela:
+uma chamada volume: onde o usuario ira digitar um volume e outra de 'Preço Total' onde sera calculado
+o novo preço * volume.
+
+não pode estragar nada do codigo, pois esta tudo muito bom.
+tem muito cuidado e manter o padrão já existente de layout e estrutura de codigo.
+
+
+----------------------------------------------------
+
+esta tudo muito bom,
+
+mas sem estragar nada do codigo quero que utilize outra abordagem para salvar e carregar a simulação.
+do jeito atual esta salvando mas nao carrega a informação de forma correta.
+e fica tudo errado para analisar.
+
+não pode estragar nada do codigo, pois esta tudo muito bom.
+tem muito cuidado e manter o padrão já existente de layout e estrutura de codigo.

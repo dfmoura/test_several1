@@ -1,0 +1,102 @@
+ Desafio
+
+A capacidade de criar modelos que representem problemas do mundo real é uma habilidade fundamental para profissionais que atuam em projetos de sistemas computacionais. Muitos desses problemas podem ser representados por grafos, e soluções podem ser encontradas por meio de implementação do algoritmo adequado para um dado cenário.
+
+Suponha que você seja analista de sistemas de uma empresa e está na seguinte situação:
+
+
+A empresa mantém um portal de informações na internet e cuida para que todas as páginas estejam adequadamente conectadas. Logo, não podem existir links quebrados, ou seja, páginas não acessíveis.
+Para garantir a integridade do portal, você foi escalado para implementar uma busca em largura, que será utilizada para verificar a conectividade
+de todas as páginas do portal.
+Duas estruturas auxiliares já foram implementadas - uma para representar os vértices do grafo e outra para representar a lista de adjacências -, e você deverá apresentar uma implementação da busca em largura, tendo como base essas duas estruturas.
+Classe vértice
+import java.util.ArrayList; import java.util.Collections; import java.util.List;
+import java.util.Objects;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+public class ListaAdjacencia {
+private Integer numVertices;
+private List<List<Vertice>> adjacencias;
+private List<Vertice> vertices;
+public ListaAdjacencia (Integer numVertices, Integer[][]
+arestas) {
+this.numVertices
+=
+numVertices;
+this.vertices = new ArrayList<Vertice>();
+this.adjacencias = new
+ArrayList<List<Vertice>>();
+IntStream.range(0, numVertices).forEach (i -> {
+this.adjacencias.add(new
+this.vertices.add(new Vertice (i));
+ArrayList<Vertice>());
+});
+this.adjacencias.stream().forEach (a -> a = new
+ArrayList<Vertice>());
+Stream.of (arestas).forEach (a ->
+this.adjacencias.get(a[0]).add(this.vertices.get(a[1])));
+}
+public List<Vertice> obterAdjacentes (Vertice vertice) { var adjacentes =
+this.adjacencias.get(vertice.getNome () ) ;
+return Objects.nonNull (adjacentes) ? adjacentes :
+Collections.emptyList();
+}
+public Vertice obterVertice (Integer nomeVertice) { return this.vertices.get (nomeVertice);
+}
+public List<Vertice> obterVertices () {
+return this.vertices;
+}
+public void imprimir () {
+IntStream.range (0, numVertices).forEach (i -> { System.out.print (i + " -> ");
+this.adjacencias.get(i).forEach (v ->
+System.out.print(v.getNome() + " "));
+System.out.println();
+});
+}
+}
+Enun StatusVisita vértice
+public enum StatusVisitaVertice {
+}
+NOVO, VISITADO;
+Classe lista adjacente
+public class Vertice {
+{
+private Integer nome;
+private StatusVisitaVertice status;
+private Integer distancia;
+private Vertice pai;
+public Vertice (Integer nome) {
+}
+this.nome = nome;
+public Vertice (Integer nome, StatusVisitaVertice status)
+this.nome = nome;
+this.status = status;
+}
+public Integer getNome() {
+return nome;
+}
+public void setNome (Integer nome) {
+this.nome = nome;
+}
+public StatusVisitaVertice getStatus () {
+}
+return status;
+public void setStatus (StatusVisitaVertice status) {
+this.status = status;
+}
+public Integer getDistancia () {
+}
+return distancia;
+public void setDistancia (Integer distancia) {
+}
+this.distancia = distancia;
+public Vertice getPai () {
+}
+return pai;
+public void setPai (Vertice pai) {
+}
+}
+this.pai pai;
+
+
+Apresente uma implementação da busca em largura, tendo como base as duas estruturas, e justifique quaisquer estruturas de dados ou condições complementares que foram assumidas. Considere que o código disponível foi construído na linguagem Java, mas que não há objeção quanto ao uso de outras linguagens.

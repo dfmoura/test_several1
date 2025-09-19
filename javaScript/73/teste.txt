@@ -1,0 +1,10 @@
+um sistema de backlog 
+
+por credencial e login por cnpj
+
+o onde o usario colococa uma necessidade / demanda
+
+exemplos:
+1)corrigir edi de pagamentos totvs modulo a9 
+2) gerar relatorio financeiro de pagamentos em aberto no sankhya
+3) gerar tela
