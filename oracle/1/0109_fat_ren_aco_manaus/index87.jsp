@@ -57,7 +57,7 @@
             top: 10px; /* Espaçamento do topo */
             left: 50%;
             transform: translateX(-50%);
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
             color: #333;
             background-color: #fff; /* Cor de fundo para legibilidade */
@@ -139,40 +139,61 @@
 
     <snk:query var="fat_total">  
         select 
-        sum(
-        ISNULL(ROUND(VLRBAIXA, 2), 0) )
-         as VLRDO
+
+        
+        isnull(sum(
+            case 
+                when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+                      or fin.NUNOTA = :P_NUNOTA) 
+                then 
+                    case when NAT.AD_TIPOCUSTO <> 'N' 
+                         then isnull(round(VLRBAIXA, 2), 0) 
+                         else 0 
+                    end
+                else 0 
+            end
+        ),0) as VLRDO
+
         FROM TGFFIN FIN
         INNER JOIN  TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
         INNER JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
         INNER JOIN TSICUS CUS ON FIN.CODCENCUS = CUS.CODCENCUS
         WHERE 
         FIN.RECDESP = -1 
-        AND NAT.ATIVA = 'S'
+
         AND FIN.DHBAIXA IS NOT NULL AND FIN.CODEMP IN (:P_EMPRESA)
-        AND dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
+
         AND (NAT.AD_TIPOCUSTO IN ('D','I','F','V','E','R'))
-        AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+
     </snk:query> 
 
     <snk:query var="fat_tipo">  
         select 
         FIN.Codemp,
         EMP.NOMEFANTASIA,
-        sum(
-        ISNULL(ROUND(VLRBAIXA, 2), 0) )
-         as VLRDO
+        isnull(sum(
+            case 
+                when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+                      or fin.NUNOTA = :P_NUNOTA) 
+                then 
+                    case when NAT.AD_TIPOCUSTO <> 'N' 
+                         then isnull(round(VLRBAIXA, 2), 0) 
+                         else 0 
+                    end
+                else 0 
+            end
+        ),0) as VLRDO
         FROM TGFFIN FIN
         INNER JOIN  TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
         INNER JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
         INNER JOIN TSICUS CUS ON FIN.CODCENCUS = CUS.CODCENCUS
         WHERE 
         FIN.RECDESP = -1 
-        AND NAT.ATIVA = 'S'
+        
         AND FIN.DHBAIXA IS NOT NULL AND FIN.CODEMP IN (:P_EMPRESA)
-        AND dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
+        
         AND (NAT.AD_TIPOCUSTO IN ('D','I','F','V','E','R'))
-        AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+        
         group by FIN.Codemp,EMP.NOMEFANTASIA
     </snk:query> 
 
@@ -180,21 +201,30 @@
 
     <snk:query var="cip_total">  	
         select 
-        sum(
-        ISNULL(ROUND(VLRBAIXA, 2), 0) )
-         as VLRDO
+        isnull(sum(
+            case 
+                when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+                      or fin.NUNOTA = :P_NUNOTA) 
+                then 
+                    case when NAT.AD_TIPOCUSTO <> 'N' 
+                         then isnull(round(VLRBAIXA, 2), 0) 
+                         else 0 
+                    end
+                else 0 
+            end
+        ),0) as VLRDO
         FROM TGFFIN FIN
         INNER JOIN  TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
         INNER JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
         INNER JOIN TSICUS CUS ON FIN.CODCENCUS = CUS.CODCENCUS
         WHERE 
         FIN.RECDESP = -1 
-        AND NAT.ATIVA = 'S'
+        
         AND FIN.DHBAIXA IS NOT NULL
-        AND dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
-        AND (fin.codemp = :A_CODEMP OR (:A_CODEMP IS NULL AND fin.CODEMP = 11)) and fin.CODEMP IN (:P_EMPRESA)          
+        
+        AND (fin.codemp = :A_CODEMP) and fin.CODEMP IN (:P_EMPRESA)          
         AND (NAT.AD_TIPOCUSTO IN ('D','I','F','V','E','R'))
-        AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+        
     </snk:query>    
     
 
@@ -208,8 +238,35 @@
                     WHEN NAT.DESCRNAT = '<SEM NATUREZA>' THEN 'Sem valor definido'
                     ELSE NAT.DESCRNAT
                 END DESCRNAT,
-                sum(ISNULL(ROUND(VLRBAIXA, 2), 0) )as VLRDO,
-                SUM(SUM(VLRBAIXA)) OVER (PARTITION BY FIN.CODNAT) AS total_grupo
+                        isnull(sum(
+                        case 
+                            when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+                                or fin.NUNOTA = :P_NUNOTA) 
+                            then 
+                                case when NAT.AD_TIPOCUSTO <> 'N' 
+                                    then isnull(round(VLRBAIXA, 2), 0) 
+                                    else 0 
+                                end
+                            else 0 
+                        end
+                    ),0) as VLRDO,
+                SUM(
+                    
+                isnull(sum(
+                    case 
+                        when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+                              or fin.NUNOTA = :P_NUNOTA) 
+                        then 
+                            case when NAT.AD_TIPOCUSTO <> 'N' 
+                                 then isnull(round(VLRBAIXA, 2), 0) 
+                                 else 0 
+                            end
+                        else 0 
+                    end
+                ),0)
+                
+                
+                ) OVER (PARTITION BY FIN.CODNAT) AS total_grupo
 
                 FROM TGFFIN FIN
                 INNER JOIN  TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
@@ -217,11 +274,11 @@
                 INNER JOIN TSICUS CUS ON FIN.CODCENCUS = CUS.CODCENCUS
                 WHERE 
                 FIN.RECDESP = -1 
-                AND NAT.ATIVA = 'S'
+                
                 AND FIN.DHBAIXA IS NOT NULL
-                AND dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
+                
                 AND (NAT.AD_TIPOCUSTO IN ('D','I','F','V','E','R'))
-                AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+                
                 group by FIN.Codemp,
                 FIN.CODNAT,
                 NAT.DESCRNAT),
@@ -249,7 +306,7 @@
         )
 
         Select * from bas2
-        where (codemp = :A_CODEMP OR (:A_CODEMP IS NULL AND CODEMP = 11)) and CODEMP IN (:P_EMPRESA)
+        where (codemp = :A_CODEMP) and CODEMP IN (:P_EMPRESA)
 
     </snk:query> 
     
@@ -267,8 +324,33 @@ with bas as (
             WHEN CUS.DESCRCENCUS = '<SEM CENTRO DE RESULTADO>' THEN 'Sem valor definido'
             ELSE CUS.DESCRCENCUS
         END DESCRCENCUS,
-        sum(ISNULL(ROUND(VLRBAIXA, 2), 0) )as VLRDO,
-        SUM(SUM(VLRBAIXA)) OVER (PARTITION BY FIN.CODCENCUS) AS total_grupo
+        isnull(sum(
+            case 
+                when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+                      or fin.NUNOTA = :P_NUNOTA) 
+                then 
+                    case when NAT.AD_TIPOCUSTO <> 'N' 
+                         then isnull(round(VLRBAIXA, 2), 0) 
+                         else 0 
+                    end
+                else 0 
+            end
+        ),0) as VLRDO,
+        SUM(
+            isnull(sum(
+                case 
+                    when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+                          or fin.NUNOTA = :P_NUNOTA) 
+                    then 
+                        case when NAT.AD_TIPOCUSTO <> 'N' 
+                             then isnull(round(VLRBAIXA, 2), 0) 
+                             else 0 
+                        end
+                    else 0 
+                end
+            ),0)   
+        
+        ) OVER (PARTITION BY FIN.CODCENCUS) AS total_grupo
 
         FROM TGFFIN FIN
         INNER JOIN  TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
@@ -276,11 +358,11 @@ with bas as (
         INNER JOIN TSICUS CUS ON FIN.CODCENCUS = CUS.CODCENCUS
         WHERE 
         FIN.RECDESP = -1 
-        AND NAT.ATIVA = 'S'
+        
         AND FIN.DHBAIXA IS NOT NULL
-        AND dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
+        
         AND (NAT.AD_TIPOCUSTO IN ('D','I','F','V','E','R'))
-        AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+        
         group by FIN.Codemp,
         CUS.DESCRCENCUS,
         FIN.CODCENCUS),
@@ -331,7 +413,18 @@ ORDER BY VLRDO DESC
         WHEN CUS.DESCRCENCUS = '<SEM CENTRO DE RESULTADO>' THEN 'Sem valor definido'
         ELSE CUS.DESCRCENCUS
     END DESCRCENCUS,
-    sum(ISNULL(ROUND(VLRBAIXA, 2), 0) )as VLRDO
+    isnull(sum(
+        case 
+            when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+                  or fin.NUNOTA = :P_NUNOTA) 
+            then 
+                case when NAT.AD_TIPOCUSTO <> 'N' 
+                     then isnull(round(VLRBAIXA, 2), 0) 
+                     else 0 
+                end
+            else 0 
+        end
+    ),0) as VLRDO
     
     FROM TGFFIN FIN
     INNER JOIN  TSIEMP EMP ON FIN.CODEMP = EMP.CODEMP
@@ -339,12 +432,9 @@ ORDER BY VLRDO DESC
     INNER JOIN TSICUS CUS ON FIN.CODCENCUS = CUS.CODCENCUS
     WHERE 
     FIN.RECDESP = -1 
-    AND NAT.ATIVA = 'S'
     AND FIN.DHBAIXA IS NOT NULL
-    AND FIN.DHBAIXA between :P_PERIODO.INI and :P_PERIODO.FIN 
-    AND (FIN.codemp = :A_CODEMP OR (:A_CODEMP IS NULL AND FIN.CODEMP = 11))
+    AND (FIN.codemp = :A_CODEMP)
     AND (NAT.AD_TIPOCUSTO IN ('D','I','F','V','E','R'))
-    AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
     group by FIN.Codemp,
     FIN.CODNAT,
     CUS.DESCRCENCUS,
@@ -363,12 +453,12 @@ ORDER BY VLRDO DESC
         INNER JOIN TSICUS CUS ON FIN.CODCENCUS = CUS.CODCENCUS
         WHERE 
         FIN.RECDESP = -1 
-        AND NAT.ATIVA = 'S'
         AND FIN.DHBAIXA IS NOT NULL 
-        AND FIN.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
-        AND (FIN.codemp = :A_CODEMP OR (:A_CODEMP IS NULL AND FIN.CODEMP = 11))
+        AND (FIN.codemp = :A_CODEMP)
         AND (NAT.AD_TIPOCUSTO IN ('D','I','F','V','E','R'))
-        AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+        AND ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+            or fin.NUNOTA = :P_NUNOTA) 
+
         group by 
         FIN.Codemp,
         EMP.NOMEFANTASIA

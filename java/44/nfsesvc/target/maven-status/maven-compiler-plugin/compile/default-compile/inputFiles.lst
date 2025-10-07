@@ -1,0 +1,8 @@
+/home/diogo/Documents/Git/test_several1/java/44/nfsesvc/src/main/java/br/com/exemplo/nfsesvc/controller/NfseController.java
+/home/diogo/Documents/Git/test_several1/java/44/nfsesvc/src/main/java/br/com/exemplo/nfsesvc/dto/NfseRequests.java
+/home/diogo/Documents/Git/test_several1/java/44/nfsesvc/src/main/java/br/com/exemplo/nfsesvc/NfseServiceApplication.java
+/home/diogo/Documents/Git/test_several1/java/44/nfsesvc/src/main/java/br/com/exemplo/nfsesvc/dto/NfseResponses.java
+/home/diogo/Documents/Git/test_several1/java/44/nfsesvc/src/main/java/br/com/exemplo/nfsesvc/service/NfseServiceImpl.java
+/home/diogo/Documents/Git/test_several1/java/44/nfsesvc/src/main/java/br/com/exemplo/nfsesvc/config/SoapConfig.java
+/home/diogo/Documents/Git/test_several1/java/44/nfsesvc/src/main/java/br/com/exemplo/nfsesvc/service/NfseService.java
+/home/diogo/Documents/Git/test_several1/java/44/nfsesvc/src/main/java/br/com/exemplo/nfsesvc/client/NfseSoapClient.java

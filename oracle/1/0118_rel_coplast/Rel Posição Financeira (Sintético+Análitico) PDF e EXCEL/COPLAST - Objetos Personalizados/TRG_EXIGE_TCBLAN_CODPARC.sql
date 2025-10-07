@@ -1,0 +1,33 @@
+CREATE OR REPLACE TRIGGER TRG_EXIGE_TCBLAN_CODPARC
+BEFORE UPDATE ON TCBLAN
+FOR EACH ROW
+DECLARE
+    v_exigeparc VARCHAR2(1);
+BEGIN
+
+
+    -- Buscar se a conta contábil exige parceiro
+    SELECT PLA.AD_EXIGPARCLCONT
+    INTO v_exigeparc
+    FROM TCBPLA PLA
+    WHERE PLA.CODCTACTB = :NEW.CODCTACTB;
+
+    -- Verifica se é necessário parceiro e o campo está vazio ou igual a zero
+    IF v_exigeparc = 'S' AND 
+       (:NEW.AD_CODPARC IS NULL OR TRIM(:NEW.AD_CODPARC) IS NULL OR :NEW.AD_CODPARC = 0) THEN
+       /*
+        RAISE_APPLICATION_ERROR(-20101,
+            'A conta contábil exige que o parceiro seja informado. Informe o parceiro e tente novamente.');
+       */
+       
+        RAISE_APPLICATION_ERROR(-20101,
+            FC_FORMATAHTML_NEUON('Ação não permitida!',
+                           'A conta contábil exige que o parceiro seja informado, ',
+                           'Informe o parceiro e tente novamente.'));  
+
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        NULL; -- Não faz nada se a conta contábil não for encontrada
+END;
+/

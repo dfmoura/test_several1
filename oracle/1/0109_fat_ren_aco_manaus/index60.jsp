@@ -57,7 +57,7 @@
             top: 10px; /* Espaçamento do topo */
             left: 50%;
             transform: translateX(-50%);
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
             color: #333;
             background-color: #fff; /* Cor de fundo para legibilidade */

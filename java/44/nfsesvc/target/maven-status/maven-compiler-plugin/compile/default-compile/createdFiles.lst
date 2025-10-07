@@ -1,0 +1,13 @@
+br/com/exemplo/nfsesvc/config/SoapConfig.class
+br/com/exemplo/nfsesvc/dto/NfseRequests$GerarRequest.class
+br/com/exemplo/nfsesvc/NfseServiceApplication.class
+br/com/exemplo/nfsesvc/dto/NfseResponses$OperacaoResponse.class
+br/com/exemplo/nfsesvc/dto/NfseResponses.class
+br/com/exemplo/nfsesvc/controller/HomeController.class
+br/com/exemplo/nfsesvc/service/NfseServiceImpl$TemplateLoader.class
+br/com/exemplo/nfsesvc/client/NfseSoapClient.class
+br/com/exemplo/nfsesvc/dto/NfseRequests.class
+br/com/exemplo/nfsesvc/controller/NfseController.class
+br/com/exemplo/nfsesvc/service/NfseService.class
+br/com/exemplo/nfsesvc/dto/NfseResponses$ConsultaResponse.class
+br/com/exemplo/nfsesvc/service/NfseServiceImpl.class

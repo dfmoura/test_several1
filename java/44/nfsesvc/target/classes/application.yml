@@ -1,0 +1,22 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+nfsesvc:
+  soap:
+    endpoint: ${NFSE_ENDPOINT:https://exemplo.prefeitura.gov.br/ws/nfse}
+    timeoutMs: ${NFSE_TIMEOUT_MS:30000}
+    # Caminhos de keystore/ truststore montados por volume
+    keystore:
+      path: ${KEYSTORE_PATH:}
+      password: ${KEYSTORE_PASSWORD:}
+      type: ${KEYSTORE_TYPE:PKCS12}
+    truststore:
+      path: ${TRUSTSTORE_PATH:}
+      password: ${TRUSTSTORE_PASSWORD:}
+      type: ${TRUSTSTORE_TYPE:JKS}

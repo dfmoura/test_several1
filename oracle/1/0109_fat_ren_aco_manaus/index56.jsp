@@ -214,7 +214,7 @@
 
     function abrir_mar_perc(){
         var params = '';
-        var level = 'lvl_af0k6yr';
+        var level = 'lvl_af0k6yb';
         openLevel(level, params);
     }    
 
@@ -261,132 +261,220 @@ WITH
 DOS AS ( /*DESPESA OPERACIONA*/
 select 
 1 AS COD,
-sum(case when dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN then 
-case when NAT.AD_TIPOCUSTO <> 'N' then 
-ISNULL(ROUND(VLRBAIXA, 2), 0) 
-else 0 end 
-else 0 end) as VLRDO,
+isnull(sum(
+    case 
+        when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+              or fin.NUNOTA = :P_NUNOTA) 
+        then 
+            case when NAT.AD_TIPOCUSTO <> 'N' 
+                 then isnull(round(VLRBAIXA, 2), 0) 
+                 else 0 
+            end
+        else 0 
+    end
+),0) as VLRDO,
 
-sum(case when dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN then 
-case when NAT.AD_TIPOCUSTO <> 'N' then 
-ISNULL(ROUND(VLRBAIXA, 2), 0) 
-else 0 end 
-else 0 end) as VLRDO_MA,
+
+isnull(sum(
+    case 
+        when ((fin.dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN and :P_NUNOTA is null) 
+              or fin.NUNOTA = :P_NUNOTA) 
+        then 
+            case when NAT.AD_TIPOCUSTO <> 'N' 
+                 then isnull(round(VLRBAIXA, 2), 0) 
+                 else 0 
+            end
+        else 0 
+    end
+),0) as VLRDO_MA,
 
 
-case when sum(case when dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN 
-                   then case when NAT.AD_TIPOCUSTO<>'N' then isnull(round(VLRBAIXA,2),0) else 0 end 
-                   else 0 end)=0 
-     then null
-     else round(
-         (
-            sum(case when dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
-                     then case when NAT.AD_TIPOCUSTO<>'N' then isnull(round(VLRBAIXA,2),0) else 0 end 
-                     else 0 end)
-          - sum(case when dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN 
-                     then case when NAT.AD_TIPOCUSTO<>'N' then isnull(round(VLRBAIXA,2),0) else 0 end 
-                     else 0 end)
-         )*100.0/
-         sum(case when dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN 
-                  then case when NAT.AD_TIPOCUSTO<>'N' then isnull(round(VLRBAIXA,2),0) else 0 end 
-                  else 0 end)
-     ,2) 
-end as VAR_VLRDO
+
+
+isnull(
+    case 
+        when sum(
+                 case 
+                     when ((fin.dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN and :P_NUNOTA is null) 
+                           or fin.NUNOTA = :P_NUNOTA) 
+                     then case when NAT.AD_TIPOCUSTO<>'N' then isnull(round(VLRBAIXA,2),0) else 0 end
+                     else 0 
+                 end
+                ) = 0 
+        then null
+        else round(
+             (
+                sum(case 
+                        when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+                              or fin.NUNOTA = :P_NUNOTA) 
+                        then case when NAT.AD_TIPOCUSTO<>'N' then isnull(round(VLRBAIXA,2),0) else 0 end
+                        else 0 
+                    end)
+              - sum(case 
+                        when ((fin.dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN and :P_NUNOTA is null) 
+                              or fin.NUNOTA = :P_NUNOTA) 
+                        then case when NAT.AD_TIPOCUSTO<>'N' then isnull(round(VLRBAIXA,2),0) else 0 end
+                        else 0 
+                    end)
+             )*100.0/
+             sum(case 
+                     when ((fin.dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN and :P_NUNOTA is null) 
+                           or fin.NUNOTA = :P_NUNOTA) 
+                     then case when NAT.AD_TIPOCUSTO<>'N' then isnull(round(VLRBAIXA,2),0) else 0 end
+                     else 0 
+                 end)
+         ,2) 
+    end
+,0) as VAR_VLRDO
+
+
 
 
 FROM TGFFIN FIN
 INNER JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
 WHERE 
 FIN.RECDESP = -1 
-AND NAT.ATIVA = 'S'
 AND FIN.DHBAIXA IS NOT NULL AND FIN.CODEMP IN (:P_EMPRESA)
-AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+
 ),
 INV AS ( /*INVESTIMENTO*/
 select 
 1 AS COD,
-sum(case when dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN then 
-case when NAT.AD_TIPOCUSTO = 'N' then 
-ISNULL(ROUND(VLRBAIXA, 2), 0) 
-else 0 end 
-else 0 end) as VLRINV,
+isnull(sum(
+    case 
+        when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+              or fin.NUNOTA = :P_NUNOTA) 
+        then 
+            case when NAT.AD_TIPOCUSTO = 'N' 
+                 then isnull(round(VLRBAIXA, 2), 0) 
+                 else 0 
+            end
+        else 0 
+    end
+),0) as VLRINV,
 
-sum(case when dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN then 
-case when NAT.AD_TIPOCUSTO = 'N' then 
-ISNULL(ROUND(VLRBAIXA, 2), 0) 
-else 0 end 
-else 0 end) as VLRINV_MA,
 
-case when sum(case when dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN 
-                   then case when NAT.AD_TIPOCUSTO='N' then isnull(round(VLRBAIXA,2),0) else 0 end 
-                   else 0 end)=0 
-     then null
-     else round(
+isnull(sum(
+    case 
+        when ((fin.dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN and :P_NUNOTA is null) 
+              or fin.NUNOTA = :P_NUNOTA) 
+        then 
+            case when NAT.AD_TIPOCUSTO = 'N' 
+                 then isnull(round(VLRBAIXA, 2), 0) 
+                 else 0 
+            end
+        else 0 
+    end
+),0) as VLRINV_MA,
+
+isnull(
+case 
+    when sum(
+             case 
+                 when ((fin.dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN and :P_NUNOTA is null) 
+                       or fin.NUNOTA = :P_NUNOTA) 
+                 then case when NAT.AD_TIPOCUSTO='N' then isnull(round(VLRBAIXA,2),0) else 0 end 
+                 else 0 
+             end
+            ) = 0 
+    then null
+    else round(
          (
-            sum(case when dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN 
-                     then case when NAT.AD_TIPOCUSTO='N' then isnull(round(VLRBAIXA,2),0) else 0 end 
-                     else 0 end)
-          - sum(case when dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN 
-                     then case when NAT.AD_TIPOCUSTO='N' then isnull(round(VLRBAIXA,2),0) else 0 end 
-                     else 0 end)
+            sum(
+                case 
+                    when ((fin.dhbaixa between :P_PERIODO.INI and :P_PERIODO.FIN and :P_NUNOTA is null) 
+                          or fin.NUNOTA = :P_NUNOTA) 
+                    then case when NAT.AD_TIPOCUSTO='N' then isnull(round(VLRBAIXA,2),0) else 0 end 
+                    else 0 
+                end
+            )
+          - sum(
+                case 
+                    when ((fin.dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN and :P_NUNOTA is null) 
+                          or fin.NUNOTA = :P_NUNOTA) 
+                    then case when NAT.AD_TIPOCUSTO='N' then isnull(round(VLRBAIXA,2),0) else 0 end 
+                    else 0 
+                end
+            )
          )*100.0/
-         sum(case when dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN 
-                  then case when NAT.AD_TIPOCUSTO='N' then isnull(round(VLRBAIXA,2),0) else 0 end 
-                  else 0 end)
+         sum(
+             case 
+                 when ((fin.dhbaixa between :P_PERIODO1.INI and :P_PERIODO1.FIN and :P_NUNOTA is null) 
+                       or fin.NUNOTA = :P_NUNOTA) 
+                 then case when NAT.AD_TIPOCUSTO='N' then isnull(round(VLRBAIXA,2),0) else 0 end 
+                 else 0 
+             end
+         )
      ,2) 
-end as VAR_VLRINV
+end,0) as VAR_VLRINV
+
+
+
+
 FROM TGFFIN FIN
 INNER JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
 WHERE 
 FIN.RECDESP = -1 
-AND NAT.ATIVA = 'S'
 AND FIN.DHBAIXA IS NOT NULL AND FIN.CODEMP IN (:P_EMPRESA)
-AND (FIN.NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+
 ),
-
-
-
 BAS_MA AS (
 SELECT 
 1 AS COD,
-SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRFAT_MA,
-SUM(VLRDEV) VLRDEVOL_MA,
+SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END) AS VLRFAT_MA, 
+SUM(CASE WHEN TIPMOV = 'D' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END) AS VLRDEVOL_MA,
 SUM(VLRIPI+VLRICMS+VLRPIS+VLRCOFINS) VLRIMP_MA,
 SUM(VLRSUBST_PROP) AS VLRSUBST_MA,
-SUM(CUSSEMICM_TOT) VLRCMV_MA,
+SUM(CUSENTSEMICM_TOT) VLRCMV_MA,
 SUM(TON) TON_MA,
-SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC_MA,
-SUM(MARGEMNON) VLRMCN_MA,
-(SUM(MARGEMNON) /NULLIF(SUM(VLRNOTA) - SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN - VLRUNIT) * 
-QTDNEG ELSE 0 END), 0 )) * 100
+SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END) AS VLRDESC_MA,
+SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT)
+VLRMCN_MA,
+(
+(SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT))
+/
+NULLIF(SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END), 0)
+)*100
+
+
+
 AS VLRMCD_MA
 FROM vw_rentabilidade_aco
 WHERE 
-DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN
+((DTNEG BETWEEN :P_PERIODO1.INI AND :P_PERIODO1.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
 and tipmov in ('V', 'D') and AD_COMPOE_FAT = 'S'
 AND CODEMP IN (:P_EMPRESA)
-AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
 ),
 BAS AS (
 SELECT 
 1 AS COD,
-SUM(VLRNOTA)-SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRFAT, 
-SUM(VLRDEV)  AS VLRDEVOL,
+SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END) AS VLRFAT, 
+SUM(CASE WHEN TIPMOV = 'D' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END) AS VLRDEVOL,
 SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS) AS VLRIMP,
 SUM(VLRSUBST_PROP) AS VLRSUBST,
-SUM(CUSSEMICM_TOT) AS VLRCMV,
+SUM(CUSENTSEMICM_TOT) AS VLRCMV,
 SUM(TON) AS TON,
-SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC, 
-SUM(MARGEMNON) AS VLRMCN,
-(SUM(MARGEMNON) /NULLIF(SUM(VLRNOTA) - SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN - VLRUNIT) * 
-QTDNEG ELSE 0 END), 0 )) * 100
+SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END) AS VLRDESC, 
+
+SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT)
+AS VLRMCN,
+
+(
+(SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT))
+/
+NULLIF(SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END), 0)
+)*100
+
 AS VLRMCD
 FROM vw_rentabilidade_aco
 WHERE
-DTNEG BETWEEN :P_PERIODO.INI AND  :P_PERIODO.FIN
+((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
 and tipmov in ('V', 'D') and AD_COMPOE_FAT = 'S'
 AND CODEMP IN (:P_EMPRESA)
-AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
 )
 SELECT 
 FORMAT(ROUND(BAS.VLRFAT, 2), 'N2') AS VLRFAT,
@@ -449,7 +537,7 @@ INNER JOIN INV ON BAS.COD = INV.COD
     <!-- Parte Superior - 6 Cards -->
     <div class="row custom-row">
         <div class="col-lg-2 col-md-4 mb-4" >
-            <div class="card shadow-sm" title="Esta informação contempla = (Total dos Produtos - Total de desconto dos produtos) - Desconto Rodapé Nota + Valor de Substituição - Desconto Redução de Base - Desconto Valor Unitário" onclick="abrir_fat()">
+            <div class="card shadow-sm" title="Esta informação contempla = (Total dos Produtos - Total de desconto dos produtos) - Desconto Rodapé Nota + Valor de Substituição - Desconto Redução de Base" onclick="abrir_fat()">
                 <div class="card-body text-center" >
                     <div class="icon">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm4 14.083c0-2.145-2.232-2.742-3.943-3.546-1.039-.54-.908-1.829.581-1.916.826-.05 1.675.195 2.443.465l.362-1.647c-.907-.276-1.719-.402-2.443-.421v-1.018h-1v1.067c-1.945.267-2.984 1.487-2.984 2.85 0 2.438 2.847 2.81 3.778 3.243 1.27.568 1.035 1.75-.114 2.011-.997.226-2.269-.168-3.225-.54l-.455 1.644c.894.462 1.965.708 3 .727v.998h1v-1.053c1.657-.232 3.002-1.146 3-2.864z"/> alt="Ícone de Moeda" class="icon"></svg>

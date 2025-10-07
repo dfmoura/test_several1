@@ -309,16 +309,15 @@
     }
 
     /* Larguras específicas para as colunas da tabela de simulações */
-    #simulationTable th:nth-child(1), #simulationTable td:nth-child(1) { width: 7%; }  /* Código */
-    #simulationTable th:nth-child(2), #simulationTable td:nth-child(2) { width: 7%; }  /* Usuário */
-    #simulationTable th:nth-child(3), #simulationTable td:nth-child(3) { width: 10%; } /* Nome */
-    #simulationTable th:nth-child(4), #simulationTable td:nth-child(4) { width: 12%; } /* Data/Hora */
-    #simulationTable th:nth-child(5), #simulationTable td:nth-child(5) { width: 18%; } /* Descrição */
-    #simulationTable th:nth-child(6), #simulationTable td:nth-child(6) { width: 7%; }  /* Empresa */
-    #simulationTable th:nth-child(7), #simulationTable td:nth-child(7) { width: 12%; } /* Nome Fantasia */
-    #simulationTable th:nth-child(8), #simulationTable td:nth-child(8) { width: 7%; }  /* Período */
-    #simulationTable th:nth-child(9), #simulationTable td:nth-child(9) { width: 5%; }  /* Parceiro */
-    #simulationTable th:nth-child(10), #simulationTable td:nth-child(10) { width: 15%; } /* Ações */
+    #simulationTable th:nth-child(1), #simulationTable td:nth-child(1) { width: 8%; }  /* Código */
+    #simulationTable th:nth-child(2), #simulationTable td:nth-child(2) { width: 8%; }  /* Usuário */
+    #simulationTable th:nth-child(3), #simulationTable td:nth-child(3) { width: 12%; } /* Nome */
+    #simulationTable th:nth-child(4), #simulationTable td:nth-child(4) { width: 15%; } /* Data/Hora */
+    #simulationTable th:nth-child(5), #simulationTable td:nth-child(5) { width: 20%; } /* Descrição */
+    #simulationTable th:nth-child(6), #simulationTable td:nth-child(6) { width: 8%; }  /* Empresa */
+    #simulationTable th:nth-child(7), #simulationTable td:nth-child(7) { width: 15%; } /* Nome Fantasia */
+    #simulationTable th:nth-child(8), #simulationTable td:nth-child(8) { width: 8%; }  /* Período */
+    #simulationTable th:nth-child(9), #simulationTable td:nth-child(9) { width: 6%; }  /* Parceiro */
 
     #simulationTable thead th {
       background-color: #f3f4f6;
@@ -352,60 +351,6 @@
     #simulationTable tbody tr:hover {
       background-color: #f3f4f6;
       cursor: pointer;
-    }
-
-    /* Estilos para botões de ação na tabela */
-    .action-buttons {
-      display: flex;
-      gap: 5px;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .action-btn {
-      padding: 4px;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 10px;
-      font-weight: 500;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 20px;
-    }
-
-    .action-btn.load {
-      background-color: #3b82f6;
-      color: white;
-    }
-
-    .action-btn.load:hover {
-      background-color: #2563eb;
-    }
-
-    .action-btn.delete {
-      background-color: #ef4444;
-      color: white;
-    }
-
-    .action-btn.delete:hover {
-      background-color: #dc2626;
-    }
-
-    /* Reduzir tamanho da fonte no modal */
-    #loadSimulationModal .status-content {
-      font-size: 12px;
-    }
-
-    #loadSimulationModal .status-title {
-      font-size: 16px;
-    }
-
-    #loadSimulationModal .status-message {
-      font-size: 11px;
     }
 
     /* Container da tabela com scroll - atualizado para flexbox */
@@ -1191,9 +1136,7 @@
       <button id="exportToExcelBtn" class="header-btn" title="Exportar para Excel">
         <i class="fas fa-file-excel"></i>
       </button>
-      <button id="insertDataBtn" class="header-btn" title="Inserir no Banco">
-        <i class="fas fa-database"></i>
-      </button>
+
     </div>
   </div>
 
@@ -1526,7 +1469,6 @@
                 <th>Nome Fantasia</th>
                 <th>Período</th>
                 <th>Parceiro</th>
-                <th>Ações</th>
               </tr>
             </thead>
             <tbody id="simulationTableBody">
@@ -1537,9 +1479,9 @@
         
         <div style="background: #f3f4f6; padding: 10px; border-radius: 6px; font-size: 13px; color: #374151;">
           <strong>Instruções:</strong><br>
-          - Clique duas vezes em uma linha para carregar a simulação<br>
-          - Os filtros serão aplicados automaticamente<br>
-          - A consulta será executada com os parâmetros da simulação
+          • Clique duas vezes em uma linha para carregar a simulação<br>
+          • Os filtros serão aplicados automaticamente<br>
+          • A consulta será executada com os parâmetros da simulação
         </div>
       </div>
       <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
@@ -1602,9 +1544,7 @@
         <button id="closeViewSimulationDataBtn" class="status-button" style="background-color: #6b7280;">
           Fechar
         </button>
-        <button id="insertSimulationDataBtn" class="status-button" style="background-color: #10b981;">
-          <i class="fas fa-database"></i> Inserir no Banco
-        </button>
+
       </div>
     </div>
   </div>
@@ -3878,7 +3818,7 @@ function hideStatusOverlay() {
       tbody.innerHTML = '';
       if (!simulations || simulations.length === 0) {
         const row = document.createElement('tr');
-        row.innerHTML = '<td colspan="10" style="text-align: center; padding: 20px; color: #6b7280;">Nenhuma simulação encontrada</td>';
+        row.innerHTML = '<td colspan="9" style="text-align: center; padding: 20px; color: #6b7280;">Nenhuma simulação encontrada</td>';
         tbody.appendChild(row);
         return;
       }
@@ -3899,17 +3839,7 @@ function hideStatusOverlay() {
           <td title="${simulation.CODEMP}">${simulation.CODEMP}</td>
           <td title="${simulation.NOMEFANTASIA || '-'}">${simulation.NOMEFANTASIA || '-'}</td>
           <td title="${simulation.PERIODO || '-'}">${simulation.PERIODO || '-'}</td>
-          <td title="${simulation.CODPARC || '-'}">${simulation.CODPARC || '-'}</td>
-          <td>
-            <div class="action-buttons">
-              <button class="action-btn load" onclick="loadSimulation(${simulation.CODIGO})" title="Carregar Simulação">
-                <i class="fas fa-folder-open"></i>
-              </button>
-              <button class="action-btn delete" onclick="confirmDeleteSimulation(${simulation.CODIGO}, '${(simulation.DESCRICAO || 'Simulação').replace(/'/g, "\\'")}')" title="Deletar Simulação">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </td>`;
+          <td title="${simulation.CODPARC || '-'}">${simulation.CODPARC || '-'}</td>`;
         row.addEventListener('mouseenter', function() { this.style.backgroundColor = '#f3f4f6'; });
         row.addEventListener('mouseleave', function() { this.style.backgroundColor = ''; });
         row.addEventListener('click', function() { showSimulationData(simulation.CODIGO); });
@@ -3979,41 +3909,6 @@ function hideStatusOverlay() {
       } catch (error) {
         console.error('Erro ao carregar dados da simulação:', error);
         showStatusOverlay('Erro', 'Erro ao carregar dados da simulação. Verifique o console para detalhes.', 'error');
-      }
-    }
-
-    // Função para confirmar exclusão de simulação
-    // Confirmação antes de deletar simulação
-    function confirmDeleteSimulation(codigo, descricao) {
-      const mensagem = `Tem certeza que deseja deletar a simulação?\n\nCódigo: ${codigo}\nDescrição: ${descricao}\n\nEsta ação não pode ser desfeita e irá deletar todos os dados relacionados nas tabelas AD_SIMCAB e AD_SIMITE.`;
-      
-      if (confirm(mensagem)) {
-        deleteSimulation(codigo);
-      }
-    }
-
-    // Função para deletar simulação
-    // Exclusão de simulação das tabelas AD_SIMCAB e AD_SIMITE
-    async function deleteSimulation(codigo) {
-      try {
-        showStatusOverlay('Processando', 'Deletando simulação...', 'info');
-        
-        // Deletar registros da tabela AD_SIMITE primeiro (devido à chave estrangeira)
-        const deleteSimIte = `DELETE FROM AD_SIMITE WHERE CODIGO = ${codigo}`;
-        await JX.executar(deleteSimIte);
-        
-        // Deletar registro da tabela AD_SIMCAB
-        const deleteSimCab = `DELETE FROM AD_SIMCAB WHERE CODIGO = ${codigo}`;
-        await JX.executar(deleteSimCab);
-        
-        // Recarregar dados da tabela de simulações
-        await loadSimulationData();
-        
-        showStatusOverlay('Sucesso', `Simulação ${codigo} deletada com sucesso!`, 'success');
-        
-      } catch (error) {
-        console.error('Erro ao deletar simulação:', error);
-        showStatusOverlay('Erro', `Erro ao deletar simulação: ${error.message}`, 'error');
       }
     }
 

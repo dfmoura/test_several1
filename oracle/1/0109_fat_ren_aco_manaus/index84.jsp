@@ -139,14 +139,14 @@
 
     <snk:query var="fat_total">  
         SELECT 
-        SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC
+        SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END) AS VLRDESC
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
           
           AND AD_COMPOE_FAT = 'S'
-          AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+          AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
           AND CODEMP IN (:P_EMPRESA)
-          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+          
     </snk:query> 
 
     <snk:query var="fat_tipo">  
@@ -155,16 +155,16 @@
                 codemp,
                 codgrupai,
                 descrgrupo_nivel1,
-                SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
+                SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END) AS VLRDESC,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
               
               AND AD_COMPOE_FAT = 'S'
-              AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+              AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
               AND CODEMP IN (:P_EMPRESA)
-              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+              
             GROUP BY codemp,codgrupai,descrgrupo_nivel1
         ),
             bas1 as (
@@ -199,16 +199,16 @@ SELECT
     codemp,
     empresa,
     
-    SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
+    SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END) AS VLRDESC,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
-    SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
+    SUM(SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
   
   AND AD_COMPOE_FAT = 'S'
-  AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+  AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
   AND CODEMP IN (:P_EMPRESA)
-  AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+  
 GROUP BY codemp, codgrupai, empresa
 ),
 bas1 as (
@@ -234,7 +234,7 @@ SELECT
         empresa
 )
 Select SUM(VLRDESC)VLRCIP from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000)) 
+WHERE (codgrupai = :A_TPPROD) 
       
     </snk:query>    
     
@@ -246,14 +246,14 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000))
                 codemp,
                 empresa,
                 
-                SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
+                SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END) AS VLRDESC,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
               
               AND AD_COMPOE_FAT = 'S'
-              AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+              AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
               AND CODEMP IN (:P_EMPRESA)
               AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
             GROUP BY codemp, codgrupai, empresa
@@ -281,7 +281,7 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000))
                     empresa
             )
             Select codgrupai,codemp,empresa,SUM(VLRDESC)VLRDESC from bas2
-            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000)) 
+            WHERE (codgrupai = :A_TPPROD) 
             GROUP BY codgrupai,codemp,empresa ORDER BY SUM(VLRDESC) DESC
         
     </snk:query> 
@@ -297,16 +297,15 @@ SELECT
     codgrupai,
     codvend,
     LEFT(vendedor, 8) AS vendedor,
-    SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
+    SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END) AS VLRDESC,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
-    SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
+    SUM(SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
   
   AND AD_COMPOE_FAT = 'S'
-  AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+  AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
   AND CODEMP IN (:P_EMPRESA)
-  AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
 GROUP BY codemp, codgrupai, codvend, vendedor
 ),
 bas1 as (
@@ -333,7 +332,7 @@ SELECT
         vendedor
 )
 Select codgrupai,CODVEND,VENDEDOR,SUM(VLRDESC)VLRDESC from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000)) 
+WHERE (codgrupai = :A_TPPROD) 
 GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(VLRDESC) DESC
 </snk:query>    
     
@@ -349,15 +348,14 @@ WITH bas AS (
         descrgrupo_nivel1,
         codprod,
         descrprod,
-        SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
+        SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END) AS VLRDESC,
         -- Soma total por codgrupai usando OVER (PARTITION BY)
-        SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
+        SUM(SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END)) OVER (PARTITION BY codgrupai) AS total_grupo
     FROM vw_rentabilidade_aco 
     WHERE tipmov IN ('V', 'D')
       AND AD_COMPOE_FAT = 'S'
-      AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+      AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
       AND CODEMP IN (:P_EMPRESA)
-      AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
     GROUP BY codemp,codgrupai,descrgrupo_nivel1,codprod,descrprod
 ),
     bas1 as (
@@ -389,7 +387,7 @@ WITH bas AS (
             descrprod
     )
     Select codprod,codgrupai AD_TPPROD,descrgrupo_nivel1 TIPOPROD,codprod,descrprod,SUM(VLRDESC)VLRDESC from bas2
-    where (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 20000))
+    where (codgrupai = :A_TPPROD)
     GROUP BY codprod,codgrupai,descrgrupo_nivel1,codprod,descrprod ORDER BY SUM(VLRDESC) DESC
 
 </snk:query>
@@ -402,16 +400,15 @@ WITH bas AS (
                 descrgrupo_nivel1,
                 codprod,
                 descrprod,
-                SUM(VLRDESC)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (ULT_PRE_UN- VLRUNIT)*QTDNEG ELSE 0 END) AS VLRDESC,
+                SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END) AS VLRDESC,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(VLRDESC)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(VLRDESC1)+SUM(VLRDESCTOT_PROP)+SUM(CASE WHEN VLRUNIT < ULT_PRE_UN THEN (CAST(ULT_PRE_UN AS DECIMAL(18,2))- CAST(VLRUNIT AS DECIMAL(18,2)))*QTDNEG ELSE 0 END)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
               
               AND AD_COMPOE_FAT = 'S'
-              AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
+              AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
               AND CODEMP IN (:P_EMPRESA)
-              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
             GROUP BY codemp, codgrupai, descrgrupo_nivel1, codprod, descrprod
             ),
             bas1 as (
@@ -443,7 +440,7 @@ WITH bas AS (
                     descrprod
             )
             Select AD_TPPROD,descrgrupo_nivel1 from bas2
-            where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 20000))
+            where (ad_tpprod = :A_TPPROD)
             group by AD_TPPROD,descrgrupo_nivel1
     </snk:query>
 

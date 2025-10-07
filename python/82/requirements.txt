@@ -1,0 +1,8 @@
+# Arquivo de dependências para o projeto de mochila fracionada
+# Este projeto usa apenas a biblioteca padrão do Python
+# Não são necessárias dependências externas
+
+# Para futuras extensões, você pode adicionar:
+# numpy>=1.21.0
+# matplotlib>=3.5.0
+# pytest>=6.0.0

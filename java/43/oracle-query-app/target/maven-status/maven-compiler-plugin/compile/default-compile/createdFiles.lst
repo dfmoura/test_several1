@@ -1,0 +1,12 @@
+br/com/diogo/oraclequeryapp/web/RunController.class
+br/com/diogo/oraclequeryapp/web/QueriesController.class
+br/com/diogo/oraclequeryapp/service/OracleQueryService.class
+br/com/diogo/oraclequeryapp/repository/SavedQueryRepository.class
+br/com/diogo/oraclequeryapp/web/HomeController.class
+br/com/diogo/oraclequeryapp/web/ConnectionsController.class
+br/com/diogo/oraclequeryapp/model/DbConnection$OracleConnectionType.class
+br/com/diogo/oraclequeryapp/model/SavedQuery.class
+br/com/diogo/oraclequeryapp/model/DbConnection.class
+br/com/diogo/oraclequeryapp/repository/DbConnectionRepository.class
+br/com/diogo/oraclequeryapp/OracleQueryAppApplication.class
+br/com/diogo/oraclequeryapp/service/OracleQueryService$QueryResult.class

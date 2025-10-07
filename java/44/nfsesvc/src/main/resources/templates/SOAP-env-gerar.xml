@@ -1,0 +1,29 @@
+<!-- Template simplificado baseada na documentacao (placeholders ${...}) -->
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:nfse="http://www.abrasf.org.br/nfse.xsd">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <nfse:GerarNfseEnvio>
+      <Prestador>
+        <Cnpj>${cnpjPrestador}</Cnpj>
+        <InscricaoMunicipal>${inscricaoMunicipal}</InscricaoMunicipal>
+      </Prestador>
+      <Rps>
+        <IdentificacaoRps>
+          <Numero>${numeroRps}</Numero>
+        </IdentificacaoRps>
+        <Servico>
+          <Valores>
+            <ValorServicos>${valorServicos}</ValorServicos>
+          </Valores>
+          <Discriminacao>${descricaoServico}</Discriminacao>
+        </Servico>
+        <Tomador>
+          <IdentificacaoTomador>
+            <CpfCnpj><Cnpj>${tomadorCpfCnpj}</Cnpj></CpfCnpj>
+          </IdentificacaoTomador>
+        </Tomador>
+        <Competencia>${competencia}</Competencia>
+      </Rps>
+    </nfse:GerarNfseEnvio>
+  </soapenv:Body>
+</soapenv:Envelope>

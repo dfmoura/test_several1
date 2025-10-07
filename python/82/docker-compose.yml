@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  mochila-gulosa:
+    build: .
+    container_name: mochila-gulosa-app
+    image: mochila-gulosa:latest
+    restart: unless-stopped
+    
+    # Opcional: mapear volumes para desenvolvimento
+    # volumes:
+    #   - .:/app
+    
+    # Opcional: definir variáveis de ambiente
+    environment:
+      - PYTHONUNBUFFERED=1
+    
+    # Opcional: definir limites de recursos
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M

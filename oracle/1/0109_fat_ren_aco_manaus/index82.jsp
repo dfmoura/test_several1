@@ -57,7 +57,7 @@
             top: 10px; /* Espaçamento do topo */
             left: 50%;
             transform: translateX(-50%);
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
             color: #333;
             background-color: #fff; /* Cor de fundo para legibilidade */
@@ -139,14 +139,13 @@
 
     <snk:query var="fat_total">  
         SELECT 
-        SUM(CUSSEMICM_TOT) AS CUSSEMICM_TOT
+        SUM(CUSENTSEMICM_TOT) AS CUSSEMICM_TOT
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
           
           AND AD_COMPOE_FAT = 'S'
-          AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+          AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
           AND CODEMP IN (:P_EMPRESA)
-          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
     </snk:query> 
 
     <snk:query var="fat_tipo">  
@@ -155,16 +154,15 @@
                 codemp,
                 codgrupai,
                 descrgrupo_nivel1,
-                SUM(CUSSEMICM_TOT) AS CUSSEMICM_TOT,
+                SUM(CUSENTSEMICM_TOT) AS CUSSEMICM_TOT,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(CUSSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(CUSENTSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
               
               AND AD_COMPOE_FAT = 'S'
-              AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+              AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
               AND CODEMP IN (:P_EMPRESA)
-              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
             GROUP BY codemp,codgrupai,descrgrupo_nivel1
         ),
             bas1 as (
@@ -199,16 +197,15 @@ SELECT
     codemp,
     empresa,
     
-    SUM(CUSSEMICM_TOT) AS CUSSEMICM_TOT,
+    SUM(CUSENTSEMICM_TOT) AS CUSSEMICM_TOT,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
-    SUM(SUM(CUSSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
+    SUM(SUM(CUSENTSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
   
   AND AD_COMPOE_FAT = 'S'
-  AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+  AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
   AND CODEMP IN (:P_EMPRESA)
-  AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
 GROUP BY codemp, codgrupai, empresa
 ),
 bas1 as (
@@ -234,7 +231,7 @@ SELECT
         empresa
 )
 Select SUM(CUSSEMICM_TOT)VLRCIP from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
+WHERE (codgrupai = :A_TPPROD) 
       
     </snk:query>    
     
@@ -246,16 +243,15 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000))
                 codemp,
                 empresa,
                 
-                SUM(CUSSEMICM_TOT) AS CUSSEMICM_TOT,
+                SUM(CUSENTSEMICM_TOT) AS CUSSEMICM_TOT,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(CUSSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(CUSENTSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
               
               AND AD_COMPOE_FAT = 'S'
-              AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+              AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
               AND CODEMP IN (:P_EMPRESA)
-              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
             GROUP BY codemp, codgrupai, empresa
             ),
             bas1 as (
@@ -281,7 +277,7 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000))
                     empresa
             )
             Select codgrupai,codemp,empresa,SUM(CUSSEMICM_TOT)CUSSEMICM_TOT from bas2
-            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
+            WHERE (codgrupai = :A_TPPROD) 
             GROUP BY codgrupai,codemp,empresa ORDER BY SUM(CUSSEMICM_TOT) DESC
         
     </snk:query> 
@@ -297,16 +293,15 @@ SELECT
     codgrupai,
     codvend,
     LEFT(vendedor, 8) AS vendedor,
-    SUM(CUSSEMICM_TOT) AS CUSSEMICM_TOT,
+    SUM(CUSENTSEMICM_TOT) AS CUSSEMICM_TOT,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
-    SUM(SUM(CUSSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
+    SUM(SUM(CUSENTSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
   
   AND AD_COMPOE_FAT = 'S'
-  AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+  AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
   AND CODEMP IN (:P_EMPRESA)
-  AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
 GROUP BY codemp, codgrupai, codvend, vendedor
 ),
 bas1 as (
@@ -333,7 +328,7 @@ SELECT
         vendedor
 )
 Select codgrupai,CODVEND,VENDEDOR,SUM(CUSSEMICM_TOT)CUSSEMICM_TOT from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
+WHERE (codgrupai = :A_TPPROD) 
 GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(CUSSEMICM_TOT) DESC
 </snk:query>    
     
@@ -349,16 +344,15 @@ WITH bas AS (
         descrgrupo_nivel1,
         codprod,
         descrprod,
-        SUM(CUSSEMICM_TOT) AS CUSSEMICM_TOT,
+        SUM(CUSENTSEMICM_TOT) AS CUSSEMICM_TOT,
         -- Soma total por codgrupai usando OVER (PARTITION BY)
-        SUM(SUM(CUSSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
+        SUM(SUM(CUSENTSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
     FROM vw_rentabilidade_aco 
     WHERE tipmov IN ('V', 'D')
       
       AND AD_COMPOE_FAT = 'S'
-  AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+  AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
   AND CODEMP IN (:P_EMPRESA)
-  AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
     GROUP BY codemp,codgrupai,descrgrupo_nivel1,codprod,descrprod
 ),
     bas1 as (
@@ -389,7 +383,7 @@ WITH bas AS (
 
     )
     Select codemp,AD_TPPROD,descrgrupo_nivel1 TIPOPROD, codprod, descrprod,SUM(CUSSEMICM_TOT)CUSSEMICM_TOT from bas2
-    where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 80000))
+    where (ad_tpprod = :A_TPPROD)
     GROUP BY codemp,AD_TPPROD,descrgrupo_nivel1,codprod, descrprod ORDER BY SUM(CUSSEMICM_TOT) DESC
 
 </snk:query>
@@ -402,16 +396,15 @@ WITH bas AS (
                 descrgrupo_nivel1,
                 codprod,
                 descrprod,
-                SUM(CUSSEMICM_TOT) AS CUSSEMICM_TOT,
+                SUM(CUSENTSEMICM_TOT) AS CUSSEMICM_TOT,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(CUSSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(CUSENTSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
               
               AND AD_COMPOE_FAT = 'S'
-              AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
+              AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
               AND CODEMP IN (:P_EMPRESA)
-              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
             GROUP BY codemp, codgrupai, descrgrupo_nivel1, codprod, descrprod
             ),
             bas1 as (
@@ -443,7 +436,7 @@ WITH bas AS (
                     descrprod
             )
             Select AD_TPPROD,descrgrupo_nivel1 from bas2
-            where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 9999)) and CODEMP IN (:P_EMPRESA)
+            where (ad_tpprod = :A_TPPROD) and CODEMP IN (:P_EMPRESA)
             group by AD_TPPROD,descrgrupo_nivel1
     </snk:query>
 

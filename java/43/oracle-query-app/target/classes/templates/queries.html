@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <title>Queries</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Oracle Query App</a>
+    <div class="navbar-nav">
+      <a class="nav-link" href="/connections">Conexões</a>
+      <a class="nav-link active" href="/queries">Queries</a>
+      <a class="nav-link" href="/run">Executar</a>
+    </div>
+  </div>
+</nav>
+<main class="container py-4">
+  <h1 class="mb-3">Queries</h1>
+  <p>Salve aqui suas queries SQL para reutilizar depois.</p>
+
+  <div class="row g-4">
+    <div class="col-md-5">
+      <div class="card">
+        <div class="card-header">Nova query</div>
+        <div class="card-body">
+          <form method="post" th:object="${form}">
+            <div class="mb-3">
+              <label class="form-label">Nome</label>
+              <input class="form-control" th:field="*{name}" placeholder="Ex.: Listar usuários" />
+              <div class="text-danger" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Descrição (opcional)</label>
+              <input class="form-control" th:field="*{description}" placeholder="Descrição da query" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">SQL</label>
+              <textarea class="form-control" th:field="*{sql}" rows="8" placeholder="SELECT * FROM tabela WHERE condição"></textarea>
+              <div class="text-danger" th:if="${#fields.hasErrors('sql')}" th:errors="*{sql}"></div>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-7">
+      <div class="card">
+        <div class="card-header">Queries salvas</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Descrição</th>
+                  <th>SQL (preview)</th>
+                  <th>Criada em</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="q : ${queries}">
+                  <td th:text="${q.name}"></td>
+                  <td th:text="${q.description}"></td>
+                  <td>
+                    <code th:text="${#strings.abbreviate(q.sql, 50)}"></code>
+                  </td>
+                  <td th:text="${#temporals.format(q.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(queries)}">
+                  <td colspan="4" class="text-center text-muted">Nenhuma query salva</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+</main>
+</body>
+</html>
+
+

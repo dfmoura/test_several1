@@ -1,0 +1,23 @@
+
+com base nos arquivos criados nos diretorios:
+/home/diogo/Documents/Git/test_several1/java/39/TesteAgora1Grafo
+/home/diogo/Documents/Git/test_several1/java/37/MapaGrafo
+
+respondor o trabalho de faculdade abaixo, sem dar a entender que foi feito por AI, colocar bem didatica a explicação e colocar as fontes de pesquisa:
+
+
+
+Questão 1
+
+Explique como a teoria de grafos pode ser utilizada para otimizar rotas de entrega em uma cidade. Em sua resposta, aborde os seguintes pontos:
+
+    Definição básica de grafo e seus componentes (vértices e arestas).
+
+    Representação da cidade como um grafo, indicando o que seriam os vértices e as arestas.
+
+    Descrição de um algoritmo que poderia ser utilizado para encontrar a rota mais curta entre dois pontos (por exemplo, o algoritmo de Dijkstra).
+
+    Exemplos de desafios práticos que podem surgir na aplicação desse algoritmo em um cenário real de entrega.
+
+    Benefícios da utilização da teoria de grafos para empresas de logística.
+

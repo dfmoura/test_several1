@@ -1,0 +1,10 @@
+/home/diogo/Documents/Git/test_several1/java/42/oracle-query-app/src/main/java/br/com/diogo/oraclequeryapp/OracleQueryAppApplication.java
+/home/diogo/Documents/Git/test_several1/java/42/oracle-query-app/src/main/java/br/com/diogo/oraclequeryapp/model/DbConnection.java
+/home/diogo/Documents/Git/test_several1/java/42/oracle-query-app/src/main/java/br/com/diogo/oraclequeryapp/model/SavedQuery.java
+/home/diogo/Documents/Git/test_several1/java/42/oracle-query-app/src/main/java/br/com/diogo/oraclequeryapp/repository/DbConnectionRepository.java
+/home/diogo/Documents/Git/test_several1/java/42/oracle-query-app/src/main/java/br/com/diogo/oraclequeryapp/repository/SavedQueryRepository.java
+/home/diogo/Documents/Git/test_several1/java/42/oracle-query-app/src/main/java/br/com/diogo/oraclequeryapp/service/OracleQueryService.java
+/home/diogo/Documents/Git/test_several1/java/42/oracle-query-app/src/main/java/br/com/diogo/oraclequeryapp/web/ConnectionsController.java
+/home/diogo/Documents/Git/test_several1/java/42/oracle-query-app/src/main/java/br/com/diogo/oraclequeryapp/web/HomeController.java
+/home/diogo/Documents/Git/test_several1/java/42/oracle-query-app/src/main/java/br/com/diogo/oraclequeryapp/web/QueriesController.java
+/home/diogo/Documents/Git/test_several1/java/42/oracle-query-app/src/main/java/br/com/diogo/oraclequeryapp/web/RunController.java

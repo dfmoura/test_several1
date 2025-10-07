@@ -57,7 +57,7 @@
             top: 10px; /* Espaçamento do topo */
             left: 50%;
             transform: translateX(-50%);
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
             color: #333;
             background-color: #fff; /* Cor de fundo para legibilidade */
@@ -139,14 +139,16 @@
 
     <snk:query var="fat_total">  
         SELECT 
-        SUM(MARGEMNON) AS MARGEMNON
+        SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+        SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT)
+        AS MARGEMNON
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
           
           AND AD_COMPOE_FAT = 'S'
-          AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+          AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
           AND CODEMP IN (:P_EMPRESA)
-          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+          
     </snk:query> 
 
     <snk:query var="fat_tipo">  
@@ -156,16 +158,24 @@
             codemp,
             codgrupai,
             descrgrupo_nivel1,
-            SUM(MARGEMNON) AS MARGEMNON,
+
+            SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+            SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT)
+            AS MARGEMNON,
+            
+
             -- Soma total por codgrupai usando OVER (PARTITION BY)
-            SUM(SUM(MARGEMNON)) OVER (PARTITION BY codgrupai) AS total_grupo
+            SUM(
+                SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP) + (VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+                SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS) + SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT)
+            ) OVER (PARTITION BY codgrupai) AS total_grupo
         FROM vw_rentabilidade_aco 
         WHERE tipmov IN ('V', 'D')
           
           AND AD_COMPOE_FAT = 'S'
-          AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+          AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
           AND CODEMP IN (:P_EMPRESA)
-          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+          
         GROUP BY codemp,codgrupai,descrgrupo_nivel1
     ),
         bas1 as (
@@ -201,16 +211,18 @@ SELECT
     codemp,
     empresa,
     
-    SUM(MARGEMNON) AS MARGEMNON,
+    SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+    SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT) AS MARGEMNON,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
-    SUM(SUM(MARGEMNON)) OVER (PARTITION BY codgrupai) AS total_grupo
+    SUM(SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+    SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
   
   AND AD_COMPOE_FAT = 'S'
-  AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+  AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
   AND CODEMP IN (:P_EMPRESA)
-  AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+  
 GROUP BY codemp, codgrupai, empresa
 ),
 bas1 as (
@@ -236,7 +248,7 @@ SELECT
         empresa
 )
 Select SUM(MARGEMNON)VLRCIP from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
+WHERE (codgrupai = :A_TPPROD) 
       
     </snk:query>    
     
@@ -248,16 +260,17 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000))
                 codemp,
                 empresa,
                 
-                SUM(MARGEMNON) AS MARGEMNON,
+                SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+                SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT) AS MARGEMNON,
                 -- Soma total por codgrupai usando OVER (PARTITION BY)
-                SUM(SUM(MARGEMNON)) OVER (PARTITION BY codgrupai) AS total_grupo
+                SUM(SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+                SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
             FROM vw_rentabilidade_aco 
             WHERE tipmov IN ('V', 'D')
               
               AND AD_COMPOE_FAT = 'S'
-              AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+              AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
               AND CODEMP IN (:P_EMPRESA)
-              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
             GROUP BY codemp, codgrupai, empresa
             ),
             bas1 as (
@@ -283,7 +296,7 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000))
                     empresa
             )
             Select codgrupai,codemp,empresa,SUM(MARGEMNON)MARGEMNON from bas2
-            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
+            WHERE (codgrupai = :A_TPPROD) 
             GROUP BY codgrupai,codemp,empresa ORDER BY SUM(MARGEMNON)
         
     </snk:query> 
@@ -299,16 +312,17 @@ SELECT
     codgrupai,
     codvend,
     LEFT(vendedor, 8) AS vendedor,
-    SUM(MARGEMNON) AS MARGEMNON,
+    SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+    SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT) AS MARGEMNON,
     -- Soma total por codgrupai usando OVER (PARTITION BY)
-    SUM(SUM(MARGEMNON)) OVER (PARTITION BY codgrupai) AS total_grupo
+    SUM(SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+    SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
 FROM vw_rentabilidade_aco 
 WHERE tipmov IN ('V', 'D')
   
   AND AD_COMPOE_FAT = 'S'
-  AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+  AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
   AND CODEMP IN (:P_EMPRESA)
-  AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
 GROUP BY codemp, codgrupai, codvend, vendedor
 ),
 bas1 as (
@@ -335,7 +349,7 @@ SELECT
         vendedor
 )
 Select codgrupai,CODVEND,VENDEDOR,SUM(MARGEMNON)MARGEMNON from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000)) 
+WHERE (codgrupai = :A_TPPROD) 
 GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(MARGEMNON)
 </snk:query>    
     
@@ -351,16 +365,17 @@ WITH bas AS (
         descrgrupo_nivel1,
         codprod,
         descrprod,
-        SUM(MARGEMNON) AS MARGEMNON,
+        SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+        SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT) AS MARGEMNON,
         -- Soma total por codgrupai usando OVER (PARTITION BY)
-        SUM(SUM(MARGEMNON)) OVER (PARTITION BY codgrupai) AS total_grupo
+        SUM(SUM(CASE WHEN TIPMOV = 'V' THEN (VLRTOT)-(VLRDESC1)-(VLRDESCTOT_PROP)+(VLRSUBST_PROP)-(VLRREPRED) ELSE 0 END)-
+        SUM(VLRIPI + VLRICMS + VLRPIS + VLRCOFINS)+SUM(VLRSUBST_PROP) - SUM(CUSENTSEMICM_TOT)) OVER (PARTITION BY codgrupai) AS total_grupo
     FROM vw_rentabilidade_aco 
     WHERE tipmov IN ('V', 'D')
       
       AND AD_COMPOE_FAT = 'S'
-      AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+      AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
       AND CODEMP IN (:P_EMPRESA)
-      AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
     GROUP BY codemp,codgrupai,descrgrupo_nivel1,codprod,descrprod
 ),
     bas1 as (
@@ -392,7 +407,7 @@ WITH bas AS (
             descrprod
     )
     Select codemp,codgrupai AD_TPPROD,descrgrupo_nivel1 TIPOPROD,codprod,descrprod,SUM(MARGEMNON)MARGEMNON from bas2
-    where (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000))
+    where (codgrupai = :A_TPPROD)
     GROUP BY codemp,codgrupai,descrgrupo_nivel1,codprod,descrprod ORDER BY SUM(MARGEMNON) 
 
 </snk:query>
@@ -405,10 +420,9 @@ WITH bas AS (
     WHERE tipmov IN ('V', 'D')
       
       AND AD_COMPOE_FAT = 'S'
-          AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+          AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
           AND CODEMP IN (:P_EMPRESA)
-          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
-        and (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 80000))
+        and (codgrupai = :A_TPPROD)
     group by
     codgrupai,descrgrupo_nivel1
     

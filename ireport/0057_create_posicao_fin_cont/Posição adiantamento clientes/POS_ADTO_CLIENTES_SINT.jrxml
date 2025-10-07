@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="POS_ADTO_CLIENTES_SINT" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.3310000000000006"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="DTREFERENCIA" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Referência]]></parameterDescription>
+	</parameter>
+	<parameter name="CODEMP" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+	</parameter>
+	<parameter name="P_CODPARC" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TGFPAR"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Parceiro]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\users\\diogo\\My Documents\\Git\\test_several1\\ireport\\0057_create_posicao_fin_cont\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="ANALITICO" class="java.lang.Boolean">
+		<parameterDescription><![CDATA[Analítico]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+		D.CODEMP,
+		D.CODPARC,
+		D.NOMEPARC,
+        SANKHYA.fn_FormCPF_CNPJ(D.CNPJCPF)CGC_CPF,
+		SUM(D.VLRDESDOB) AS RECABE
+
+FROM
+
+(SELECT 		FIN.CODEMP,
+		FIN.CODPARC,
+		PAR.NOMEPARC,
+		PAR.CGC_CPF AS CNPJCPF,
+		SUM(FIN.VLRDESDOB) AS VLRDESDOB
+
+
+FROM    TGFFIN FIN, TGFTOP OPE, TGFPAR PAR
+
+WHERE   FIN.CODTIPOPER = OPE.CODTIPOPER
+AND     FIN.DHTIPOPER = OPE.DHALTER
+AND		FIN.CODPARC=PAR.CODPARC
+AND     FIN.PROVISAO = 'N'
+AND	(FIN.DHBAIXA > $P{DTREFERENCIA} OR FIN.DHBAIXA IS NULL)
+AND     FIN.DTNEG <= $P{DTREFERENCIA}
+AND     FIN.CODEMP = $P{CODEMP}
+AND		(FIN.CODPARC = $P{P_CODPARC} OR $P{P_CODPARC} IS NULL)
+AND     FIN.RECDESP = -1
+AND     FIN.CODTIPOPER IN (1305)
+
+
+GROUP BY 			FIN.CODEMP,
+			FIN.CODPARC,
+			PAR.NOMEPARC,
+			PAR.RAZAOSOCIAL,
+			PAR.CGC_CPF
+) D
+
+GROUP BY 			D.CODEMP,
+			D.CODPARC,
+			D.NOMEPARC,
+			CNPJCPF
+
+ORDER BY 1]]>
+	</queryString>
+	<field name="CODEMP" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Empresa]]></fieldDescription>
+	</field>
+	<field name="CODPARC" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Cód. Parc.]]></fieldDescription>
+	</field>
+	<field name="NOMEPARC" class="java.lang.String">
+		<fieldDescription><![CDATA[Parceiro]]></fieldDescription>
+	</field>
+	<field name="CGC_CPF" class="java.lang.String">
+		<fieldDescription><![CDATA[CNPJ/CPF]]></fieldDescription>
+	</field>
+	<field name="RECABE" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Rec. Aberto]]></fieldDescription>
+	</field>
+	<variable name="V_RECABE" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{RECABE}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="50" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="5" width="554" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Posição de Adiantamentos de Clientes]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="25" width="555" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Referência: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{DTREFERENCIA})]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="14" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="34" height="12"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Empresa]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="34" y="0" width="52" height="12"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód. Parc.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="86" y="0" width="132" height="12"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Parceiro]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="13" width="554" height="1"/>
+			</line>
+			<staticText>
+				<reportElement x="218" y="0" width="122" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CNPJ / CPF]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="340" y="0" width="78" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Valor]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="12" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="34" height="12"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODEMP}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="34" y="0" width="52" height="12"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{CODPARC}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="86" y="0" width="132" height="12"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEPARC}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="218" y="0" width="122" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CGC_CPF}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="340" y="0" width="78" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{RECABE}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="48">
+			<printWhenExpression><![CDATA[$P{ANALITICO} == true]]></printWhenExpression>
+			<subreport>
+				<reportElement key="POS_ADTO_CLIENTES_DET" positionType="Float" x="0" y="0" width="555" height="48">
+					<printWhenExpression><![CDATA[$P{ANALITICO} == true]]></printWhenExpression>
+				</reportElement>
+				<subreportParameter name="DTREFERENCIA">
+					<subreportParameterExpression><![CDATA[$P{DTREFERENCIA}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="CODEMP">
+					<subreportParameterExpression><![CDATA[$P{CODEMP}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="P_CODPARC">
+					<subreportParameterExpression><![CDATA[$F{CODPARC}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "POS_CART_RECEBIVEIS_DET.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="15" splitType="Stretch">
+			<line>
+				<reportElement x="0" y="2" width="554" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<textField>
+				<reportElement x="434" y="3" width="103" height="12"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="537" y="3" width="18" height="12"/>
+				<textElement verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="25" splitType="Stretch">
+			<textField pattern="#,##0.00">
+				<reportElement x="340" y="10" width="78" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{V_RECABE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="208" y="10" width="132" height="15"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="6"/>
+				</textElement>
+				<text><![CDATA[Totais:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="3" width="554" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+		</band>
+	</summary>
+</jasperReport>

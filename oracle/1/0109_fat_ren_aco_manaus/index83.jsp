@@ -57,7 +57,7 @@
             top: 10px; /* Espaçamento do topo */
             left: 50%;
             transform: translateX(-50%);
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
             color: #333;
             background-color: #fff; /* Cor de fundo para legibilidade */
@@ -144,9 +144,9 @@
         WHERE tipmov IN ('V', 'D')
           
           AND AD_COMPOE_FAT = 'S'
-          AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+          AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
           AND CODEMP IN (:P_EMPRESA)
-          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+          
     </snk:query> 
 
     <snk:query var="fat_tipo">  
@@ -162,9 +162,8 @@
             WHERE tipmov IN ('V', 'D')
               
               AND AD_COMPOE_FAT = 'S'
-              AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+              AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
               AND CODEMP IN (:P_EMPRESA)
-              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
             GROUP BY codemp,codgrupai,descrgrupo_nivel1
         ),
             bas1 as (
@@ -206,9 +205,9 @@ FROM vw_rentabilidade_aco
 WHERE tipmov IN ('V', 'D')
   
   AND AD_COMPOE_FAT = 'S'
-  AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+  AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
   AND CODEMP IN (:P_EMPRESA)
-  AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+  
 GROUP BY codemp, codgrupai, empresa
 ),
 bas1 as (
@@ -234,7 +233,7 @@ SELECT
         empresa
 )
 Select SUM(TON)VLRCIP from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000)) 
+WHERE (codgrupai = :A_TPPROD) 
       
     </snk:query>    
     
@@ -253,9 +252,9 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000))
             WHERE tipmov IN ('V', 'D')
               
               AND AD_COMPOE_FAT = 'S'
-              AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+              AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
               AND CODEMP IN (:P_EMPRESA)
-              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+              
             GROUP BY codemp, codgrupai, empresa
             ),
             bas1 as (
@@ -281,7 +280,7 @@ WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000))
                     empresa
             )
             Select codgrupai,codemp,empresa,SUM(TON)TON from bas2
-            WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000)) 
+            WHERE (codgrupai = :A_TPPROD) 
             GROUP BY codgrupai,codemp,empresa ORDER BY SUM(TON) DESC
         
     </snk:query> 
@@ -304,9 +303,9 @@ FROM vw_rentabilidade_aco
 WHERE tipmov IN ('V', 'D')
   
   AND AD_COMPOE_FAT = 'S'
-  AND DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN
+  AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
   AND CODEMP IN (:P_EMPRESA)
-  AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+  
 GROUP BY codemp, codgrupai, codvend, vendedor
 ),
 bas1 as (
@@ -333,7 +332,7 @@ SELECT
         vendedor
 )
 Select codgrupai,CODVEND,VENDEDOR,SUM(TON)TON from bas2
-WHERE (codgrupai = :A_TPPROD OR (:A_TPPROD IS NULL AND codgrupai = 30000)) 
+WHERE (codgrupai = :A_TPPROD) 
 GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TON) DESC
 </snk:query>    
     
@@ -355,9 +354,9 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TON) DESC
         WHERE tipmov IN ('V', 'D')
           
           AND AD_COMPOE_FAT = 'S'
-          AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
+          AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
           and CODEMP IN (:P_EMPRESA)
-          AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+          
         GROUP BY codemp, codgrupai, descrgrupo_nivel1, codprod, descrprod
         ),
         bas1 as (
@@ -389,7 +388,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TON) DESC
                 descrprod
         )
         Select * from bas2
-        where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 30000)) 
+        where (ad_tpprod = :A_TPPROD) 
 </snk:query>
 
     <snk:query var="fat_prod_titulo">
@@ -407,9 +406,9 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TON) DESC
             WHERE tipmov IN ('V', 'D')
               
               AND AD_COMPOE_FAT = 'S'
-              AND DTNEG BETWEEN  :P_PERIODO.INI AND :P_PERIODO.FIN
+              AND ((DTNEG BETWEEN :P_PERIODO.INI AND :P_PERIODO.FIN AND :P_NUNOTA IS NULL) OR NUNOTA = :P_NUNOTA)
               AND CODEMP IN (:P_EMPRESA)
-              AND (NUNOTA = :P_NUNOTA OR :P_NUNOTA IS NULL)
+              
             GROUP BY codemp, codgrupai, descrgrupo_nivel1, codprod, descrprod
             ),
             bas1 as (
@@ -441,7 +440,7 @@ GROUP BY codgrupai,CODVEND,VENDEDOR ORDER BY SUM(TON) DESC
                     descrprod
             )
             Select AD_TPPROD,descrgrupo_nivel1 from bas2
-            where (ad_tpprod = :A_TPPROD OR (:A_TPPROD IS NULL AND ad_tpprod = 30000))
+            where (ad_tpprod = :A_TPPROD)
             group by AD_TPPROD,descrgrupo_nivel1
     </snk:query>
 
