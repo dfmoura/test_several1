@@ -1,0 +1,175 @@
+Iniciar a Atividade
+
+A ação de iniciar uma atividade consiste em sinalizar ao sistema que a atividade em questão foi inicializada por um operador e/ou uma máquina. Para comandar tal ação existe um caminho lógico que deve ser percorrido:
+
+•Selecionar atividade: Este passo consiste em buscar uma lista de atividades pendentes para o Centro de Trabalho, onde seja possível selecionar uma destas atividades para iniciar o trabalho. Normalmente é utilizado algum critério de ordenação como a data início previsto (Dt./Hr. Início Prev.) e a data de criação (Dh. Entrada Atividade) da atividade para determinar qual será a primeira atividade selecionada.
+
+Vejamos abaixo o serviço OperaçãoProduçãoSP.getAtividades que deverá ser utilizado para comandar esta ação:
+
+Listar atividades/OPs pendentes dado um Centro de Trabalho
+
+Requisição:
+
+   <serviceRequest serviceName="OperacaoProducaoSP.getAtividades">
+
+              <requestBody>
+
+                         <params>
+
+                                   <CODWCP>Integer</CODWCP>
+
+                         </params>
+
+              </requestBody>
+
+   </serviceRequest>
+
+Parâmetros:
+
+              CODWCP -> Integer -> Código do centro de trabalho
+
+Resposta:
+
+      A resposta do serviço está encapsulada dentro
+
+      de request.getResponse().responseBody e o retorno é uma lista de atividades,
+
+      conforme visto no exemplo abaixo:
+
+           {
+
+                     "listaAtividades": [{
+
+                               "CODEXEC": 0,
+
+                               "CODWCP": 4,
+
+                               "DHACEITE": "2015-10-20 18:40:38.0",
+
+                               "DHFINAL": "",
+
+                               "DHFINPREV": "",
+
+                               "DHINCLUSAO": "2015-10-20 18:39:55.0",
+
+                               "DHINICIO": "2015-10-20 18:40:38.0",
+
+                               "DHINIPREV": "",
+
+                               "IDEFX": 2036,
+
+                               "IDEXECWFLOW": "778516",
+
+                               "IDIATV": 2948,
+
+                               "IDIPROC": 2256,
+
+                               "TEMPOGASTOMIN": 0
+
+                     }]
+
+           }
+
+•Buscar produto a processar: Uma vez selecionada uma atividade, faz sentido buscar as informações sobre o produto a ser processado; visto que estas informações serviram como parâmetros para a máquina consiga realizar os seus procedimentos operacionais.
+
+Nota: este passo é opcional e muito utilizado em ambientes onde as máquinas são totalmente autônomas.
+
+A seguir tem-se a demonstração do serviço OperaçãoProuducaoSP.getProdutosAcabados que deverá ser utilizado para comandar esta ação:
+
+Listar produtos acabados da OP de uma determinada Atividade
+
+Requisição:
+
+ <serviceRequest serviceName="OperacaoProducaoSP.getProdutosAcabados">
+
+           <requestBody>
+
+                     <params>
+
+                               <IDIATV>Integer</IDIATV>
+
+                     </params>
+
+           </requestBody>
+
+ </serviceRequest>
+
+Parâmetros:
+
+           IDIATV -> Integer -> Código da instância da atividade
+
+Resposta:
+
+     A resposta do serviço está encapsulada dentro de
+
+     request.getResponse().responseBody e o retorno é uma lista de produtos acabados,
+
+     conforme visto no exemplo abaixo:
+
+          {
+
+                    "listaProdutosAcabados": [{
+
+                              "CODPRODPA": 8333,
+
+                              "CONCLUIDO": "N",
+
+                              "CONTROLEPA": " ",
+
+                              "DTFAB": "",
+
+                              "DTVAL": "",
+
+                              "IDIPROC": 2246,
+
+                              "NROLOTE": "aqw123",
+
+                              "QTDPRODUZIR": 1,
+
+                              "REFERENCIA": "MINBOLGU80",
+
+                              "CODVOL": "UN"
+
+                    }]
+
+          }
+
+•Definir parâmetros de processamento: Neste passo realiza-se a preparação da máquina para que a mesma se torne apta para o processamento do produto e lote da atividade/OP selecionada. Este passo não impactará na aplicação, mas irá impactar na máquina utilizada no processamento. Sendo que, este passo é opcional.
+
+•Iniciar atividade: Com a máquina preparada, é possível de fato iniciar o trabalho. Então este passo é responsável por comunicar a aplicação de que a atividade foi de fato inicializada.
+
+Podemos verificar abaixo o serviço OperacaoProducaoSP.iniciarInstanciaAtividades que deverá ser utilizado para comandar esta ação:
+
+Iniciar a atividade
+
+Requisição:
+
+   <serviceRequest serviceName="OperacaoProducaoSP.iniciarInstanciaAtividades">
+
+             <requestBody>
+
+                       <instancias>
+
+                                 <instancia ACEITA_WC_INDISPONIVEL="true">
+
+                                           <IDIATV>Integer</IDIATV>
+
+                                 </instancia>
+
+                       </instancias>
+
+             </requestBody>
+
+   </serviceRequest>
+
+Parâmetros:
+
+           - ACEITA_WC_INDISPONIVEL -> Boolean -> ClientEvent não implementado, então
+
+            sempre enviar "true"
+
+           - IDIATV -> Integer -> Código da instância de atividade
+
+Observação: não é possível utilizar o client event br.com.sankhya.mgeProd.apontamento.liberaNroSerie devido à sua alta complexidade.
+
+[voltar ao topo] 

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="38c83fd2-0d1d-4d4b-a18f-c69a119999c7" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/ad6d2894a54e9aeaaffdb36784ef7f7a06209b8f.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/old/detalhe.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/old/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/old1/detalhe.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/old1/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/old1/prod.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/old2/app.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/old2/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/old2/styles.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/test.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0104_novo_cria_op/test2.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/base.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/fichaProduçãoOP.jrxml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/qrery1.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/query2.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/query_case_dinamico.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/query_estoque_intervalo_datas.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/query_estoque_simples.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/query_pivot_dinamico.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/query_pivot_estoque.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/query_pivot_xml.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../oracle/1/0120_POSICAO_ESTOQUE_MENSAL_POR_PRODUTO/query_pivot_xml_simples.sql" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 6
+}]]></component>
+  <component name="ProjectId" id="341RRPgw3VPimxGbjw4M3Bbylxc" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/diogo/Documents/Git/test_several1/java/46"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="38c83fd2-0d1d-4d4b-a18f-c69a119999c7" name="Changes" comment="" />
+      <created>1760379082644</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1760379082644</updated>
+    </task>
+    <servers />
+  </component>
+</project>

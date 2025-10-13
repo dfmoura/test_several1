@@ -2297,6 +2297,8 @@
     }
 
     function iniciarProc() {
+      if (!confirm('Deseja iniciar a produção?')) return;
+      
       estadoProc = 'emexecucao';
       execucoes.push({ dhinicio: new Date(), dhfinal: '', tipo: 'normal', codusu: usuarioAtual, motivo: '' });
       renderControles();
@@ -2321,6 +2323,8 @@
     }
 
     function continuarProc() {
+      if (!confirm('Deseja continuar a produção?')) return;
+      
       // Fecha linha parada
       const exec = execucoes.find(e => !e.dhfinal && e.tipo === 'parada');
       if (exec) exec.dhfinal = new Date();
@@ -2335,6 +2339,8 @@
 
     function finalizarProc() {
       if (estadoProc !== 'emexecucao') return;
+      
+      if (!confirm('Deseja finalizar a produção? Esta ação encerrará o processo.')) return;
       
       const exec = execucoes.find(e => !e.dhfinal);
       if (exec) exec.dhfinal = new Date();
@@ -2547,6 +2553,8 @@
     }
 
          function confirmarApont(idx) {
+       if (!confirm('Deseja confirmar este apontamento?')) return;
+       
        apontamentos[idx].situacao = 'Confirmado';
        renderApontamentos();
      }

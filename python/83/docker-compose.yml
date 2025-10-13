@@ -1,0 +1,18 @@
+services:
+  dividendos-b3:
+    build: .
+    image: dividendos-b3:latest
+    container_name: dividendos-b3-app
+    stdin_open: true
+    tty: true
+    volumes:
+      # Mapear apenas o diretório de resultados, não o /app inteiro
+      - .:/app/output
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      - TZ=America/Sao_Paulo
+      # Token da API BRAPI (pode ser sobrescrito via .env ou linha de comando)
+      - BRAPI_TOKEN=${BRAPI_TOKEN:-}
+
