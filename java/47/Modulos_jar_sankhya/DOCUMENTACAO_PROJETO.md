@@ -22,6 +22,9 @@ Modulos_jar_sankhya/
 └── DOCUMENTACAO_PROJETO.md          # Esta documentação
 ```
 
+### 📁 Código Principal
+- **[ObservacaoBem1BT.java](src/br/com/triggerint/ObservacaoBem1BT.java)** - Classe principal que implementa o botão de ação para atualizar observações
+
 ## Funcionalidade Principal
 
 ### Objetivo
