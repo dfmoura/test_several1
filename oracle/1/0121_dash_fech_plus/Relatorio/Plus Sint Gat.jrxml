@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="plus_gat" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="2.8531167061100584"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_CODVEND" class="java.lang.String">
+		<property name="NOMETABELA" value="TGFVEN"/>
+		<parameterDescription><![CDATA[Participante]]></parameterDescription>
+	</parameter>
+	<parameter name="P_CODFECH" class="java.lang.String">
+		<property name="NOMETABELA" value="AD_FECHAPLUS"/>
+		<parameterDescription><![CDATA[Fechamento Plus]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+SIN.CODFECH,
+FEC.INISAFRA,
+FEC.FINSAFRA,
+FEC.DESCR,
+SIN.CODVEND,
+(SELECT APELIDO FROM TGFVEN WHERE CODVEND = SIN.CODVEND) AS APELIDO,
+GAT.DESCRGAT,
+SIN.META,
+SIN.REAL,
+SIN.PERCREAL,
+SIN.FORMULA,
+SIN.BASECALC,
+SIN.DESCIMPOSTO,
+SIN.VLRICMS,
+
+CASE WHEN GAT.TIPCOMPOS IN (1) THEN 'Quando atingir 100% da meta, paga '|| TO_CHAR(GAT.VLRFIXO, 'FM999G999G990D00') ||'% do valor do Realizado.'
+     WHEN GAT.TIPCOMPOS IN (2) THEN 'Quando atingir 100% da meta, paga '|| TO_CHAR(GAT.VLRFIXO, 'FM999G999G990D00')||'% do valor da Rem. Fixa.'
+     WHEN GAT.TIPCOMPOS IN (3,4) THEN
+                        (
+SELECT
+  DBMS_LOB.SUBSTR(
+    LISTAGG(
+      'Paga ' ||
+      TO_CHAR(CASE
+                WHEN NVL(AP.PROPORCIAL,'N') = 'S' THEN SIN.PERCREAL
+                ELSE AP.RESULTADO
+              END,
+              'FM999990.00'
+      ) ||
+      '% sobre' ||
+      (SELECT CASE
+                WHEN TIPCOMPOS = 3 THEN ' o Realizado.'
+                WHEN TIPCOMPOS = 4 THEN ' a Rem. Fixa.'
+              END
+       FROM AD_GATILHOSPLUS
+       WHERE NUCHAVE = AP.NUCHAVE
+      ) ||
+      CHR(10),
+      ''
+    ) WITHIN GROUP (ORDER BY AP.MINIMA),
+    4000
+  )
+FROM AD_GATILHOAPUR AP
+WHERE AP.NUCHAVE = GAT.NUCHAVE
+  AND SIN.PERCREAL BETWEEN AP.MINIMA AND AP.MAXIMA
+                        )
+END
+ AS FORMULA
+,GAT.NUCHAVE
+,CASE WHEN BASECALC > 0 THEN 'Sim' ELSE 'Não' END AS REMUNERA,
+
+  CASE
+    WHEN GAT.TIPCOMPOS = 1 THEN (VLRFIXO/100)*SIN.REALFIN
+    WHEN GAT.TIPCOMPOS = 2 THEN REM.REMFIXA
+    WHEN GAT.TIPCOMPOS = 3 THEN (((SELECT CASE WHEN PROPORCIAL = 'S' THEN SIN.PERCREAL ELSE RESULTADO END AS RESULTADO FROM AD_GATILHOAPUR WHERE SIN.PERCREAL BETWEEN MINIMA AND MAXIMA AND NUCHAVE = GVEN.CODGAT)/100)*SIN.REALFIN)
+    WHEN GAT.TIPCOMPOS = 4 THEN REM.REMFIXA
+  ELSE 0
+  END AS BASEBEN_BRT,
+
+  CASE
+    WHEN GAT.TIPCOMPOS = 1 THEN (VLRFIXO/100)*(SIN.REALFIN - (CASE WHEN (SELECT DESCIMPOSTO FROM AD_GATILHOSPLUS WHERE NUCHAVE = GVEN.CODGAT)  = 'S' THEN SIN.VLRICMS ELSE 0 END))
+    WHEN GAT.TIPCOMPOS = 2 THEN (VLRFIXO/100)*REM.REMFIXA
+    WHEN GAT.TIPCOMPOS = 3 THEN (((SELECT CASE WHEN PROPORCIAL = 'S' THEN SIN.PERCREAL ELSE RESULTADO END AS RESULTADO FROM AD_GATILHOAPUR WHERE SIN.PERCREAL BETWEEN MINIMA AND MAXIMA AND NUCHAVE = GVEN.CODGAT)/100)*(SIN.REALFIN - (CASE WHEN (SELECT DESCIMPOSTO FROM AD_GATILHOSPLUS WHERE NUCHAVE = GVEN.CODGAT)  = 'S' THEN SIN.VLRICMS ELSE 0 END))  )
+    WHEN GAT.TIPCOMPOS = 4 THEN (((SELECT CASE WHEN PROPORCIAL = 'S' THEN SIN.PERCREAL ELSE RESULTADO END AS RESULTADO FROM AD_GATILHOAPUR WHERE SIN.PERCREAL BETWEEN MINIMA AND MAXIMA AND NUCHAVE = GVEN.CODGAT)/100)*REM.REMFIXA )
+  ELSE 0
+  END AS BASEBEN_LIQ,
+
+ CASE WHEN GAT.TIPCOMPOS IN (1,2) THEN GAT.VLRFIXO
+      WHEN GAT.TIPCOMPOS IN (3,4) THEN (SELECT CASE WHEN PROPORCIAL = 'S' THEN SIN.PERCREAL ELSE RESULTADO END AS RESULTADO FROM AD_GATILHOAPUR WHERE SIN.PERCREAL BETWEEN MINIMA AND MAXIMA AND NUCHAVE = GVEN.CODGAT)
+ END AS VLRFIX
+
+FROM AD_REALSINTET SIN
+LEFT JOIN AD_GATILHOVEND GVEN ON SIN.CODVEND = GVEN.CODVEND
+LEFT JOIN AD_FECHAPLUS FEC ON SIN.CODFECH = FEC.CODFECH
+LEFT JOIN AD_GATILHOSPLUS GAT ON GVEN.CODGAT = GAT.NUCHAVE
+LEFT JOIN AD_VENDREGIAO REM ON SIN.CODVEND = REM.CODVEND
+WHERE SIN.AGRUPADOR = 'GATILHO'
+   AND
+    SIN.CODVEND = $P{P_CODVEND}
+AND SIN.CODFECH = $P{P_CODFECH}]]>
+	</queryString>
+	<field name="CODVEND" class="java.math.BigDecimal"/>
+	<field name="INISAFRA" class="java.sql.Timestamp"/>
+	<field name="FINSAFRA" class="java.sql.Timestamp"/>
+	<field name="APELIDO" class="java.lang.String"/>
+	<field name="DESCRGAT" class="java.lang.String"/>
+	<field name="META" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Meta]]></fieldDescription>
+	</field>
+	<field name="REAL" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Real]]></fieldDescription>
+	</field>
+	<field name="PERCREAL" class="java.math.BigDecimal"/>
+	<field name="BASECALC" class="java.math.BigDecimal"/>
+	<field name="DESCIMPOSTO" class="java.lang.String"/>
+	<field name="FORMULA" class="java.lang.String"/>
+	<field name="NUCHAVE" class="java.math.BigDecimal"/>
+	<field name="REMUNERA" class="java.lang.String"/>
+	<field name="VLRFIX" class="java.math.BigDecimal"/>
+	<field name="BASEBEN_BRT" class="java.math.BigDecimal"/>
+	<field name="BASEBEN_LIQ" class="java.math.BigDecimal"/>
+	<group name="Sintetico Gatilho">
+		<groupExpression><![CDATA[$V{PAGE_NUMBER}]]></groupExpression>
+		<groupHeader>
+			<band/>
+		</groupHeader>
+		<groupFooter>
+			<band/>
+		</groupFooter>
+	</group>
+	<group name="Variavies">
+		<groupHeader>
+			<band/>
+		</groupHeader>
+		<groupFooter>
+			<band/>
+		</groupFooter>
+	</group>
+	<group name="GATILHO">
+		<groupExpression><![CDATA[$F{NUCHAVE}]]></groupExpression>
+		<groupHeader>
+			<band height="46">
+				<rectangle radius="0">
+					<reportElement mode="Opaque" x="1" y="0" width="168" height="46" forecolor="#004E4C" backcolor="#004E4C"/>
+					<graphicElement fill="Solid"/>
+				</rectangle>
+				<rectangle>
+					<reportElement x="169" y="0" width="202" height="46" forecolor="#CCCCCC" backcolor="#CCCCCC"/>
+					<graphicElement>
+						<pen lineWidth="1.25" lineStyle="Solid"/>
+					</graphicElement>
+				</rectangle>
+				<rectangle radius="0">
+					<reportElement mode="Opaque" x="371" y="0" width="184" height="46" forecolor="#CCFFCC" backcolor="#CCFFCC"/>
+					<graphicElement fill="Solid">
+						<pen lineStyle="Solid"/>
+					</graphicElement>
+				</rectangle>
+				<staticText>
+					<reportElement x="1" y="0" width="168" height="11" forecolor="#FFFFFF"/>
+					<textElement textAlignment="Center">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Objetivo]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="169" y="0" width="202" height="11" forecolor="#000000" backcolor="#000000"/>
+					<textElement textAlignment="Center">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Realizado]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="371" y="0" width="184" height="11" forecolor="#000000" backcolor="#000000"/>
+					<textElement textAlignment="Center">
+						<font size="8" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Beneficio]]></text>
+				</staticText>
+				<textField>
+					<reportElement mode="Transparent" x="0" y="21" width="169" height="24" forecolor="#FFFFFF" backcolor="#FFFFFF"/>
+					<textElement verticalAlignment="Top" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRGAT}]]></textFieldExpression>
+				</textField>
+				<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="167" y="22" width="54" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="6" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{META}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="168" y="11" width="53" height="12" forecolor="#000000" backcolor="#000000"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Meta]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="221" y="11" width="47" height="12" forecolor="#000000" backcolor="#000000"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Realizado]]></text>
+				</staticText>
+				<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="219" y="21" width="50" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="6" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{REAL}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="267" y="11" width="39" height="12" forecolor="#000000" backcolor="#000000"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Real %]]></text>
+				</staticText>
+				<textField pattern="#,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="267" y="22" width="39" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="6" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{PERCREAL}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="0" y="11" width="556" height="1" forecolor="#FFFFFF"/>
+					<graphicElement>
+						<pen lineWidth="0.5" lineStyle="Double"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="305" y="11" width="65" height="12" forecolor="#000000" backcolor="#000000"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Remunera?]]></text>
+				</staticText>
+				<textField pattern="" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="305" y="22" width="65" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="6" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{REMUNERA}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="371" y="11" width="55" height="11" forecolor="#000000" backcolor="#000000"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Base Bruta]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="425" y="11" width="53" height="11" forecolor="#000000" backcolor="#000000"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Base S/ICMS]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="499" y="11" width="55" height="11" forecolor="#000000" backcolor="#000000"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Base Plus]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="477" y="11" width="23" height="11" forecolor="#000000" backcolor="#000000"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="7" isBold="true"/>
+					</textElement>
+					<text><![CDATA[%]]></text>
+				</staticText>
+				<textField pattern="#,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="477" y="21" width="23" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="6" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRFIX}]]></textFieldExpression>
+				</textField>
+				<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="371" y="21" width="55" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="6" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{BASEBEN_BRT}]]></textFieldExpression>
+				</textField>
+				<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="425" y="21" width="53" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="6" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{BASEBEN_LIQ}]]></textFieldExpression>
+				</textField>
+				<textField pattern="¤ #,##0.00" isBlankWhenNull="false">
+					<reportElement mode="Transparent" x="499" y="21" width="55" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+						<font fontName="SansSerif" size="6" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{BASECALC}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="23" splitType="Immediate">
+			<textField>
+				<reportElement x="1" y="0" width="267" height="16"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRGAT}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="1" y="7" width="267" height="16" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Arial" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{FORMULA}]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch"/>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

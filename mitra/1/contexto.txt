@@ -1,0 +1,367 @@
+quero que elabore os prompts por estapas, 
+( pode ser N etapas), desde a criação das tabelas, até o crud 
+sera focado no para mitralab que utiliza  o gemini como ia
+para ser o mais acertivo possivel,
+
+
+Vou dividir em:
+1. Objetivo do Sistema
+2. Papéis (quem usa e pra quê)
+3. Cadastros básicos (as “tabelas mestre”)
+4. Fluxo principal do orçamento (etapas do ciclo)
+5. Telas / Funcionalidades
+6. Regras de negócio importantes
+7. MVP vs coisas futuras (pra gente não esquecer)
+
+Se algo soar óbvio, eu deixo mesmo assim, porque o óbvio é exatamente o que some na hora de implementar 😌
+
+⸻
+
+1.⁠ ⁠Objetivo do Sistema
+
+O sistema serve para conduzir o processo de planejamento orçamentário anual/mensal de forma descentralizada (bottom-up), coletando as projeções de cada centro de resultado (CR) e consolidando isso em um DRE projetado.
+
+Importante:
+• Isso não é controle orçamentário.
+• Não é análise de variação real vs orçado, não é justificativa de desvio.
+• É a fase anterior: definir qual vai ser o número que vai virar “o orçado oficial”.
+• O sistema precisa:
+1. Abrir um ciclo de planejamento (“Versão”).
+2. Notificar os donos de cada CR.
+3. Dar pra cada dono de CR uma tela pra preencher mês a mês os valores de cada conta contábil.
+4. Coletar submissões.
+5. Permitir aprovação/rejeição.
+6. Gerar consolidação final.
+
+Fim. Se ele faz isso, ele já salva sua sanidade mental e mata 50 planilhas.
+
+⸻
+
+2.⁠ ⁠Papéis de Usuário
+
+Vamos trabalhar com 2 perfis no MVP:
+
+2.1. Controladoria
+
+(aka você, o “dono do processo”)
+• Cria versões/ciclos.
+• Enxerga todos os CRs.
+• Enxerga todo mundo no consolidado.
+• Recebe submissões dos CRs.
+• Aprova ou rejeita.
+• Fecha a versão (quando todo mundo terminou).
+• Exporta DRE projetado.
+
+2.2. Gestor de CR
+
+(chefe/dono do centro de resultado / departamento)
+• Recebe notificação quando uma nova versão abre.
+• Vê o histórico dele (base ano anterior).
+• Preenche previsão mês a mês por conta contábil.
+• Salva rascunho.
+• Submete para aprovação.
+• Vê status da submissão (pendente, aprovado, rejeitado).
+
+Obs: No futuro pode ter um 3º papel “Diretoria / Board” só leitura consolidada. Mas não é MVP, só anota pra depois.
+
+⸻
+
+3.⁠ ⁠Cadastros Básicos (dados-mestre)
+
+Esses são os pilares da modelagem. Se o dev errar aqui, você sofre o resto da vida.
+
+3.1. CR (Centro de Resultado)
+• ID do CR
+• Nome do CR
+• Gestor responsável (e-mail)
+• Status por versão (veremos daqui a pouco)
+
+Esse é quem “preenche planilha”.
+
+3.2. Conta Contábil (conta de resultado)
+• Código da conta
+• Descrição da conta
+• Classificação (Receita / Despesa) — útil pro DRE depois
+• Ativa? (sim/não)
+
+Essas contas são as linhas que vão no orçamento.
+
+⚠ Importante: você falou “não vou pôr empresa nessa, tá?”. Então no MVP é orçamento único da companhia, sem quebra por empresa. Beleza.
+
+3.3. Histórico Contábil
+
+Isso é seu dado passado (ano anterior) que você usa como referência.
+Granularidade:
+• CR
+• Conta Contábil
+• Mês (jan … dez)
+• Valor realizado histórico
+
+Esse dado é só leitura e serve de base pro gestor comparar “quanto eu gastei no passado?” vs “quanto eu vou projetar agora?”.
+
+3.4. Forecast (Planejado)
+
+Esse é o dado que o sistema coleta.
+Granularidade:
+• Versão
+• CR
+• Conta Contábil
+• Mês (jan … dez / ou jan..dez+seguinte se for pegar ano fiscal quebrado)
+• Valor planejado
+
+Esse é o dado que o gestor digita.
+
+3.5. Versão (o ciclo orçamentário)
+
+A Versão é tipo “Orçamento 2026 – Cenário Base” ou “Orçamento 2026 – Cenário Conservador”.
+
+Campos da Versão:
+• Nome da versão
+• Ano/base do orçamento (ex.: 2026)
+• Status geral da versão:
+• Aberta (gestores podem editar)
+• Em aprovação (todo mundo submeteu, controladoria avaliando)
+• Fechada (virei DRE oficial)
+• Data de criação
+• Observação / Premissas gerais (campo texto livre)
+• Último mês de realizado considerado (explicação abaixo)
+
+Último mês de realizado considerado
+Esse parâmetro define: até que mês usamos histórico real e a partir de que mês o CR projeta. Exemplo:
+Se “Último mês realizado” = Agosto/2025
+→ Jan–Ago/2025 usa base real consolidada
+→ Set–Dez/2025 gestor precisa projetar
+
+Isso é ouro pra forecast contínuo/rolling. Mantém.
+
+⸻
+
+4.⁠ ⁠Fluxo Principal do Planejamento
+
+Agora vamos narrar o filme do orçamento, do ponto de vista do processo.
+
+4.1. A controladoria abre uma Versão
+• Preenche nome, ano, último mês realizado.
+• Salva.
+• Sistema cria registros dessa versão para TODOS os CRs automaticamente, com status inicial “Pendente Preenchimento”.
+• Sistema dispara e-mail pra cada gestor de CR:
+“Versão X aberta. Favor preencher seu orçamento.”
+
+4.2. Cada Gestor de CR entra e preenche
+
+Para o CR dele:
+• Vê uma grade tipo matriz:
+• Eixo Y: Contas contábeis (linhas)
+• Eixo X: Meses (colunas)
+• Célula = valor daquele mês daquela conta
+
+Junto da matriz:
+• Linha de histórico (ex.: “Ano passado nesse mês você gastou X”)
+• Total da conta no ano
+• Total do CR no ano (soma todas as contas)
+
+O gestor pode:
+• Salvar rascunho (ainda editável)
+• Submeter versão final
+
+4.3. Submissão do CR
+
+Quando o gestor clica “Submeter”:
+• O status do CR naquela versão muda pra “Enviado p/ Aprovação”.
+• Controladoria recebe e-mail:
+“CR Marketing submeteu o orçamento da Versão X.”
+
+Após submeter:
+• O gestor não pode mais editar (lock).
+• Ele só vê leitura.
+
+4.4. Aprovação / Rejeição pela Controladoria
+
+Controladoria abre a mesma grade daquele CR e revisa.
+• Se estiver ok: clica “Aprovar CR”.
+• Status do CR naquela versão → “Aprovado”.
+• Se não estiver ok: clica “Rejeitar CR” e manda comentário.
+• Status → “Rejeitado – Ajustes Solicitados”.
+• Sistema reabilita edição pro gestor desse CR.
+• Sistema manda e-mail pro gestor dizendo o motivo.
+
+Obs: Você aprova por CR, não por conta individual nem por mês. É nível “pacote do CR”.
+
+4.5. Consolidação
+
+Quando todos os CRs estiverem “Aprovado” dentro daquela versão:
+• A versão fica pronta pra “Consolidar”.
+• Controladoria acessa a tela Consolidado:
+• Visualiza um DRE projetado da companhia:
+• Receita total por mês
+• Despesa por grupo por mês
+• Resultado (lucro/prejuízo) por mês
+• Total acumulado no ano
+• Pode exportar isso (planilha/PDF/etc) → isso é o “orçamento oficial” daquela versão.
+
+⸻
+
+5.⁠ ⁠Telas / Funcionalidades (MVP)
+
+Agora vamos descrever tela por tela, porque isso é exatamente o que vai virar backlog de dev.
+
+5.1. Tela “Gestão de Versões” (Controladoria)
+
+Funções:
+• Listar todas as versões criadas
+• Nome
+• Ano/base
+• Status geral
+• % CRs aprovados (ex.: “37/50 aprovados”)
+• Botão “Criar Nova Versão”
+• Formulário:
+• Nome da versão
+• Ano/base
+• Último mês realizado considerado
+• Campo Observações / premissas
+• Ao salvar:
+• Criar instância dessa versão pra todos os CRs
+• Status CR = “Pendente Preenchimento”
+• Enviar e-mail automático pros gestores
+
+Também:
+• Ação “Fechar Versão”
+• Seta status geral como “Fechada”
+• Ninguém mais mexe em nada
+• Isso vira histórico oficial
+
+5.2. Tela “Meu Orçamento da Versão X” (Gestor de CR)
+
+(essa é a tela que o gestor realmente usa)
+
+Layout principal:
+• Header com:
+• Nome da Versão
+• Nome do CR
+• Status do CR nessa versão (Ex.: “Pendente Preenchimento”, “Enviado p/ Aprovação”, “Rejeitado”, “Aprovado”)
+• Aviso de edição bloqueada/liberada
+• Grade de planejamento:
+• Linhas = Contas contábeis
+• Ex.: 3.01.01 Despesa de Pessoal
+• 3.01.02 Marketing, etc.
+• Colunas = Meses
+• Jan / Fev / Mar / … / Dez
+• Em cada célula o gestor digita o valor planejado
+• Linha auxiliar com histórico:
+• Mostrar “realizado ano passado” ou “média dos últimos X meses” pra ajudar o gestor a não chutar no vazio
+• Rodapés automáticos:
+• Total por conta (soma 12 meses daquela conta)
+• Total mensal do CR (soma de todas as contas daquele mês)
+• Total anual do CR
+
+Botões:
+• “Salvar Rascunho”
+• Mantém status “Pendente Preenchimento”
+• “Submeter para Aprovação”
+• Travar edição
+• Mudar status para “Enviado p/ Aprovação”
+
+Se status = “Rejeitado”, exibir comentário da controladoria: “Rever despesas de viagem em julho e agosto, valor tá muito baixo”.
+
+Se status ≠ “Pendente Preenchimento” e ≠ “Rejeitado”, campos ficam readonly.
+
+5.3. Tela “Revisão do CR” (Controladoria)
+
+Controladoria escolhe um CR dentro de uma versão e vê exatamente a mesma grade, mais:
+• Card de status atual do CR
+• Botões:
+• “Aprovar CR”
+• “Rejeitar CR” + campo de justificativa obrigatória
+
+Quando aprova:
+• Status do CR = “Aprovado”
+Quando rejeita:
+• Status do CR = “Rejeitado – Ajustes Solicitados”
+• Dispara e-mail automático pro gestor daquele CR com a justificativa
+
+5.4. Tela “Consolidado da Versão” (Controladoria)
+
+Aqui é o doc que você manda pro board.
+
+Conteúdo:
+• Filtro: escolher Versão
+• KPIs:
+• Receita total planejada (ano)
+• Despesa total planejada (ano)
+• Resultado planejado (ano)
+• Tabela / DRE:
+• Linhas = grupos de contas (Receita, Custo, Despesa Operacional, etc. — a mesma hierarquia que você já usa internamente)
+• Colunas = Meses
+• Última coluna = Total Ano
+• Mostrar também status geral:
+• “Aprovados: 47 / 50 CRs”
+• “Pendentes: Compras, Jurídico, TI”
+
+Botão:
+• “Exportar”
+• Exportar DRE projetado da versão em XLSX/CSV (MVP pode ser CSV)
+
+5.5. Tela “Status dos CRs na Versão” (Controladoria)
+
+Um dashboardzinho simples tipo:
+• Lista de todos os CRs:
+• Nome do CR
+• Gestor responsável
+• Status (Pendente / Enviado / Rejeitado / Aprovado)
+• Data/hora da última submissão
+• Serve pra você perseguir quem não mandou ainda 😈
+
+⸻
+
+6.⁠ ⁠Regras de Negócio Importantes
+
+Coisas que, se não escrever agora, alguém vai decidir errado depois e vai virar sua culpa.
+1. Cada Versão “zera” o processo.
+• Exemplo: Se eu tenho Versão “Budget 2026 - Base” e depois crio “Budget 2026 - Stress Scenario”, todos os CRs precisam PRENCHER DE NOVO.
+• Ou seja: o status de um CR é sempre por Versão.
+2. Um Gestor de CR só enxerga o CR dele.
+• Zero fofoca financeira entre áreas 😇
+3. Depois que o Gestor de CR apertou “Submeter”, ele não edita mais.
+• Só volta a editar se a controladoria “Rejeitar”.
+4. A controladoria consegue sobrescrever valores manualmente (PERGUNTA IMPORTANTE DE PROCESSO).
+• Se sim → precisa logar alteração (“Controladoria alterou valor da conta X em março de 120.000 para 95.000 em 27/10/2025”).
+• Se não → controladoria só pode aprovar/rejeitar e pedir ajuste.
+• Se você quiser governança forte, no MVP vamos NO-TOUCH (sem sobrescrever), e audit trail fica pro próximo passo.
+
+Vou assumir NO-TOUCH por enquanto, que é mais limpo de aprovar internamente.
+5. O valor planejado é sempre numérico, positivo ou negativo dependendo da conta.
+• Receita provavelmente positiva.
+• Custo pode ser positivo (custo como saída). A gente não vai inventar sinal invertido agora. Mantém o que já é padrão no DRE da empresa.
+6. Não existe “lançar nova conta” no meio do processo pelo gestor.
+• As contas contábeis que aparecem pra ele vêm da controladoria.
+• Isso evita o carnaval de “ah, eu inventei uma conta marketing_influencer_tiktok_experimental”.
+
+⸻
+
+7.⁠ ⁠MVP vs Próximos Passos (já vamos deixar doc, pra não virar escopo creep secreto)
+
+MVP cobre:
+• Cadastro de CR
+• Cadastro de Contas Contábeis
+• Import do histórico contábil
+• Criação de Versão
+• Notificação por e-mail aos gestores
+• Tela de Preenchimento Mensal por CR
+• Fluxo de Submissão → Aprovação/Rejeição
+• Consolidação por Versão em formato DRE
+• Exportação dos números consolidados
+
+Próximos passos naturais (fase 2+):
+1. Premissas automáticas / drivers
+• Ex.: “Folha = headcount x salário médio x encargos”
+• Hoje no MVP o gestor digita valor direto. Depois podemos permitir fórmulas / drivers.
+2. Workflow de assinatura
+• Depois da controladoria aprovar todos os CRs, versão vai para Diretoria para “Assinar” / “Congelar”.
+3. Comparativo Cenário A x Cenário B
+• “Mostra pra mim a diferença entre Versão Base e Versão Cortes 10%.”
+• Isso vende MUITO politicamente.
+4. Dashboards visuais
+• Gráfico de barra por CR: quem mais gastou, quem mais cortou etc.
+• % de variação vs ano anterior.
+5. Integração com ERP / Contabilidade
+• Pra não ter que importar CSV manual todo ano.

@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Dados - ERP Sankhya</title>
+    
+    <!-- Fontes e ícones -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SheetJS para exportação Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- jsPDF para exportação PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        /* Variáveis CSS - Paleta Sankhya */
+        :root {
+            /* Cores principais */
+            --primary: #008a70;          /* Verde Escuro Satis */
+            --primary-dark: #00695e;     /* Floresta */
+            --primary-light: #00afa0;    /* Turquesa */
+            --secondary: #a2c73b;        /* Verde Claro Satis */
+            
+            /* Cores de apoio */
+            --success: #50af32;          /* Folha */
+            --info: #00b4cd;             /* Água */
+            --warning: #ffb914;          /* Laranja */
+            --danger: #e30613;           /* Vermelho */
+            
+            /* Tons de cinza */
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            
+            /* Layout */
+            --border-radius: 8px;
+            --border-radius-sm: 4px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            
+            /* Tipografia */
+            --font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+        }
+        
+        /* Reset e base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: var(--gray-700);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        /* Header Sankhya */
+        .sankhya-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .sankhya-logo {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header-info {
+            color: white;
+        }
+        
+        .header-title {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            margin: 0;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-subtitle {
+            font-size: var(--font-size-sm);
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 16px;
+            border-radius: var(--border-radius-sm);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .header-btn.primary {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+        }
+        
+        /* Container principal */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+        
+        /* Card da consulta */
+        .consult-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+        }
+        
+        /* Header do card */
+        .card-header {
+            background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+            padding: 24px 32px;
+            border-bottom: 2px solid var(--gray-100);
+        }
+        
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .title-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .title-text h1 {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            color: var(--gray-800);
+            margin: 0;
+        }
+        
+        .title-text p {
+            font-size: var(--font-size-sm);
+            color: var(--gray-500);
+            margin: 4px 0 0 0;
+        }
+        
+        /* Toolbar de consulta */
+        .consult-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        /* Campo de busca avançada */
+        .search-container {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 48px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--border-radius);
+            font-size: var(--font-size-sm);
+            background: white;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 138, 112, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            font-size: 16px;
+        }
+        
+        /* Botões de ação */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--border-radius);
+            background: white;
+            color: var(--gray-700);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .btn:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-300);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(0, 138, 112, 0.3);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #45a02a;
+            border-color: #45a02a;
+            box-shadow: 0 4px 12px rgba(80, 175, 50, 0.3);
+        }
+        
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: var(--font-size-xs);
+        }
+        
+        /* Informações da consulta */
+        .consult-info {
+            background: var(--gray-50);
+            padding: 16px 32px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .info-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: var(--font-size-sm);
+            color: var(--gray-600);
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+        
+        .info-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        /* Container da tabela */
+        .table-container {
+            overflow-x: auto;
+            position: relative;
+            background: white;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--font-size-sm);
+            background: white;
+        }
+        
+        .data-table thead {
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .data-table th {
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--gray-200);
+            white-space: nowrap;
+            position: relative;
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .data-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+            padding-right: 40px;
+        }
+        
+        .data-table th.sortable:hover {
+            background: var(--gray-100);
+            color: var(--primary);
+        }
+        
+        .sort-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .data-table th.sortable:hover .sort-icon {
+            color: var(--primary);
+        }
+        
+        .data-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-100);
+            vertical-align: middle;
+            color: var(--gray-700);
+        }
+        
+        .data-table tbody tr {
+            transition: all 0.15s;
+        }
+        
+        .data-table tbody tr:hover {
+            background: linear-gradient(135deg, rgba(0, 138, 112, 0.02) 0%, rgba(0, 138, 112, 0.05) 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Badges de status */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            border: 1px solid transparent;
+        }
+        
+        .badge-success {
+            background: rgba(80, 175, 50, 0.1);
+            color: var(--success);
+            border-color: rgba(80, 175, 50, 0.2);
+        }
+        
+        .badge-warning {
+            background: rgba(255, 185, 20, 0.1);
+            color: #cc9200;
+            border-color: rgba(255, 185, 20, 0.2);
+        }
+        
+        .badge-danger {
+            background: rgba(227, 6, 19, 0.1);
+            color: var(--danger);
+            border-color: rgba(227, 6, 19, 0.2);
+        }
+        
+        .badge-info {
+            background: rgba(0, 180, 205, 0.1);
+            color: var(--info);
+            border-color: rgba(0, 180, 205, 0.2);
+        }
+        
+        .badge-neutral {
+            background: var(--gray-100);
+            color: var(--gray-600);
+            border-color: var(--gray-200);
+        }
+        
+        /* Ações de visualização */
+        .view-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .view-btn {
+            width: 36px;
+            height: 36px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--border-radius-sm);
+            background: white;
+            color: var(--gray-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .view-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 138, 112, 0.2);
+        }
+        
+        /* Footer da tabela */
+        .table-footer {
+            background: linear-gradient(135deg, var(--gray-50) 0%, white 100%);
+            padding: 20px 32px;
+            border-top: 2px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .footer-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .page-info {
+            font-size: var(--font-size-sm);
+            color: var(--gray-600);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .page-size-select {
+            padding: 8px 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--border-radius-sm);
+            background: white;
+            font-size: var(--font-size-sm);
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .page-size-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .page-btn {
+            width: 36px;
+            height: 36px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--border-radius-sm);
+            background: white;
+            color: var(--gray-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .page-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 138, 112, 0.3);
+        }
+        
+        /* Modal de detalhes */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--gray-100);
+        }
+        
+        .modal-title {
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .modal-title i {
+            color: var(--primary);
+        }
+        
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--gray-100);
+            color: var(--gray-500);
+            cursor: pointer;
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+        
+        .modal-close:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+            transform: scale(1.1);
+        }
+        
+        .modal-body {
+            display: grid;
+            gap: 16px;
+        }
+        
+        .detail-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: var(--font-size-sm);
+        }
+        
+        .detail-value {
+            color: var(--gray-600);
+            font-size: var(--font-size-sm);
+        }
+        
+        /* Loading */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(2px);
+        }
+        
+        .loading-overlay.show {
+            display: flex;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--gray-200);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsividade */
+        @media (max-width: 1024px) {
+            .main-container {
+                padding: 24px 16px;
+            }
+            
+            .header-container {
+                padding: 0 16px;
+            }
+            
+            .card-header {
+                padding: 20px 24px;
+            }
+            
+            .consult-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .toolbar-left,
+            .toolbar-right {
+                justify-content: center;
+            }
+            
+            .search-container {
+                max-width: none;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: var(--font-size-lg);
+            }
+            
+            .header-actions {
+                gap: 8px;
+            }
+            
+            .header-btn {
+                padding: 8px 12px;
+                font-size: var(--font-size-xs);
+            }
+            
+            .consult-info {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            
+            .info-left,
+            .info-right {
+                justify-content: center;
+            }
+            
+            .table-footer {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 16px;
+            }
+            
+            .footer-left,
+            .footer-right {
+                justify-content: center;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 12px 16px;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .data-table th:nth-child(n+6),
+            .data-table td:nth-child(n+6) {
+                display: none;
+            }
+            
+            .modal-content {
+                padding: 24px;
+                margin: 16px;
+            }
+            
+            .detail-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+        
+        /* Utilitários */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-muted { color: var(--gray-500); }
+        .font-mono { 
+            font-family: 'Courier New', 'Monaco', monospace; 
+            font-size: var(--font-size-xs);
+        }
+        .font-semibold { font-weight: 600; }
+        .hidden { display: none !important; }
+        
+        /* Animações */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Sankhya -->
+    <header class="sankhya-header">
+        <div class="header-container">
+            <div class="header-left">
+                <div class="sankhya-logo">SK</div>
+                <div class="header-info">
+                    <h1 class="header-title">ERP Sankhya</h1>
+                    <p class="header-subtitle">Sistema de Gestão Empresarial</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="header-btn" onclick="showHelp()">
+                    <i class="fas fa-question-circle"></i>
+                    Ajuda
+                </button>
+                <button class="header-btn primary" onclick="showUserMenu()">
+                    <i class="fas fa-user"></i>
+                    Usuário
+                </button>
+                <button class="header-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Sair
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Container principal -->
+    <div class="main-container">
+        <div class="consult-card fade-in">
+            <!-- Header do card -->
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="title-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="title-text">
+                        <h1>Consulta de Relatórios</h1>
+                        <p>Visualização e análise de dados do sistema - Apenas consulta</p>
+                    </div>
+                </div>
+                
+                <!-- Toolbar de consulta -->
+                <div class="consult-toolbar">
+                    <div class="toolbar-left">
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="searchInput" class="search-input" 
+                                   placeholder="Buscar por código, descrição, categoria, local...">
+                        </div>
+                        <button class="btn" onclick="showFilters()">
+                            <i class="fas fa-filter"></i>
+                            Filtros
+                        </button>
+                        <button class="btn" onclick="refreshData()">
+                            <i class="fas fa-sync-alt"></i>
+                            Atualizar
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-success" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel"></i>
+                            Exportar Excel
+                        </button>
+                        <button class="btn btn-primary" onclick="exportToPDF()">
+                            <i class="fas fa-file-pdf"></i>
+                            Exportar PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações da consulta -->
+            <div class="consult-info">
+                <div class="info-left">
+                    <div class="info-item">
+                        <i class="fas fa-database"></i>
+                        <span>Total de registros:</span>
+                        <span class="info-value" id="totalRecords">0</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-eye"></i>
+                        <span>Registros visíveis:</span>
+                        <span class="info-value" id="visibleRecords">0</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Última atualização:</span>
+                        <span class="info-value" id="lastUpdate">-</span>
+                    </div>
+                </div>
+                <div class="info-right">
+                    <div class="info-item">
+                        <i class="fas fa-download"></i>
+                        <span>Exportações hoje:</span>
+                        <span class="info-value" id="exportsToday">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Container da tabela -->
+            <div class="table-container">
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                </div>
+                
+                <table class="data-table" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="codigo" onclick="sortTable('codigo')">
+                                Código <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="descricao" onclick="sortTable('descricao')">
+                                Descrição <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="categoria" onclick="sortTable('categoria')">
+                                Categoria <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="local" onclick="sortTable('local')">
+                                Local <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable text-right" data-sort="quantidade" onclick="sortTable('quantidade')">
+                                Quantidade <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable text-right" data-sort="preco" onclick="sortTable('preco')">
+                                Preço <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="status" onclick="sortTable('status')">
+                                Status <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="dataCadastro" onclick="sortTable('dataCadastro')">
+                                Data Cadastro <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="text-center" style="width: 60px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Dados serão inseridos via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer da tabela -->
+            <div class="table-footer">
+                <div class="footer-left">
+                    <div class="page-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="pageInfo">Mostrando 0-0 de 0 registros</span>
+                    </div>
+                    <select class="page-size-select" id="pageSize" onchange="changePageSize()">
+                        <option value="10">10 por página</option>
+                        <option value="25" selected>25 por página</option>
+                        <option value="50">50 por página</option>
+                        <option value="100">100 por página</option>
+                    </select>
+                </div>
+                <div class="footer-right">
+                    <div class="pagination" id="pagination">
+                        <!-- Botões de paginação serão inseridos via JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de detalhes -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="modalTitle">Detalhes do Registro</span>
+                </h2>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo do modal será inserido via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado da aplicação - apenas consulta
+        const consultState = {
+            data: [],
+            filteredData: [],
+            currentPage: 1,
+            pageSize: 25,
+            sortField: null,
+            sortDirection: 'asc',
+            searchTerm: '',
+            lastUpdate: new Date(),
+            exportsToday: 0
+        };
+
+        // Dados de exemplo para consulta (simulando dados do ERP Sankhya)
+        function generateConsultData() {
+            const categorias = [
+                'Eletrônicos', 'Informática', 'Móveis', 'Casa e Jardim', 
+                'Esportes', 'Livros', 'Roupas', 'Ferramentas', 'Automotivo'
+            ];
+            const locais = [
+                'Armazém Principal', 'Depósito B', 'Loja Centro', 
+                'Estoque Virtual', 'Almoxarifado', 'Loja Norte', 'Centro de Distribuição'
+            ];
+            const statuses = ['Ativo', 'Inativo', 'Pendente', 'Em Análise', 'Aprovado'];
+            const fornecedores = [
+                'Fornecedor Alpha', 'Beta Comércio', 'Gamma Ltda', 'Delta Corp',
+                'Epsilon Indústria', 'Zeta Distribuidora', 'Theta Logística'
+            ];
+            
+            const data = [];
+            for (let i = 1; i <= 250; i++) {
+                const categoria = categorias[i % categorias.length];
+                const local = locais[i % locais.length];
+                const status = statuses[i % statuses.length];
+                const fornecedor = fornecedores[i % fornecedores.length];
+                
+                data.push({
+                    id: i,
+                    codigo: `CONS${String(i).padStart(6, '0')}`,
+                    descricao: `${categoria} - Item ${i} - Modelo ${String.fromCharCode(65 + (i % 26))}${i}`,
+                    categoria: categoria,
+                    local: local,
+                    quantidade: Math.floor(Math.random() * 1000) + 1,
+                    preco: (Math.random() * 2000 + 50).toFixed(2),
+                    status: status,
+                    serie: Math.random() > 0.6 ? `SN${String(Math.floor(Math.random() * 10000000)).padStart(7, '0')}` : '',
+                    dataCadastro: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+                    fornecedor: fornecedor,
+                    observacoes: i % 15 === 0 ? 'Item com observações especiais para análise' : '',
+                    ultimaMovimentacao: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+                    responsavel: `Usuário ${String.fromCharCode(65 + (i % 26))}`,
+                    departamento: ['Vendas', 'Compras', 'Estoque', 'Financeiro'][i % 4]
+                });
+            }
+            return data;
+        }
+
+        // Inicialização
+        function init() {
+            showLoading();
+            setTimeout(() => {
+                consultState.data = generateConsultData();
+                applyFilters();
+                renderTable();
+                updateInfo();
+                setupEventListeners();
+                hideLoading();
+            }, 800);
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', debounce(handleSearch, 300));
+            
+            // Fechar modal ao clicar fora
+            document.getElementById('detailModal').addEventListener('click', (e) => {
+                if (e.target.id === 'detailModal') {
+                    closeModal();
+                }
+            });
+            
+            // Atualizar timestamp a cada minuto
+            setInterval(updateTimestamp, 60000);
+        }
+
+        // Debounce para busca
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Busca
+        function handleSearch(e) {
+            consultState.searchTerm = e.target.value.toLowerCase();
+            consultState.currentPage = 1;
+            applyFilters();
+            renderTable();
+        }
+
+        // Aplicar filtros
+        function applyFilters() {
+            let filtered = consultState.data;
+            
+            if (consultState.searchTerm) {
+                filtered = filtered.filter(item => 
+                    item.codigo.toLowerCase().includes(consultState.searchTerm) ||
+                    item.descricao.toLowerCase().includes(consultState.searchTerm) ||
+                    item.categoria.toLowerCase().includes(consultState.searchTerm) ||
+                    item.local.toLowerCase().includes(consultState.searchTerm) ||
+                    item.serie.toLowerCase().includes(consultState.searchTerm) ||
+                    item.fornecedor.toLowerCase().includes(consultState.searchTerm)
+                );
+            }
+            
+            consultState.filteredData = filtered;
+        }
+
+        // Ordenação
+        function sortTable(field) {
+            if (consultState.sortField === field) {
+                consultState.sortDirection = consultState.sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                consultState.sortField = field;
+                consultState.sortDirection = 'asc';
+            }
+            
+            consultState.filteredData.sort((a, b) => {
+                let aVal = a[field];
+                let bVal = b[field];
+                
+                // Converter para número se for quantidade ou preço
+                if (field === 'quantidade' || field === 'preco') {
+                    aVal = parseFloat(aVal);
+                    bVal = parseFloat(bVal);
+                }
+                
+                // Converter para data se for dataCadastro
+                if (field === 'dataCadastro') {
+                    aVal = new Date(aVal.split('/').reverse().join('-'));
+                    bVal = new Date(bVal.split('/').reverse().join('-'));
+                }
+                
+                if (aVal < bVal) return consultState.sortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return consultState.sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            updateSortIndicators();
+            renderTable();
+        }
+
+        // Atualizar indicadores de ordenação
+        function updateSortIndicators() {
+            document.querySelectorAll('.sort-icon').forEach(icon => {
+                icon.className = 'fas fa-sort sort-icon';
+            });
+            
+            if (consultState.sortField) {
+                const header = document.querySelector(`th[data-sort="${consultState.sortField}"] .sort-icon`);
+                if (header) {
+                    header.className = `fas fa-sort-${consultState.sortDirection === 'asc' ? 'up' : 'down'} sort-icon`;
+                }
+            }
+        }
+
+        // Renderizar tabela
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const startIndex = (consultState.currentPage - 1) * consultState.pageSize;
+            const endIndex = startIndex + consultState.pageSize;
+            const pageData = consultState.filteredData.slice(startIndex, endIndex);
+            
+            tbody.innerHTML = '';
+            
+            pageData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.className = 'slide-up';
+                row.style.animationDelay = `${index * 0.05}s`;
+                
+                row.innerHTML = `
+                    <td class="font-mono font-semibold">${item.codigo}</td>
+                    <td>${item.descricao}</td>
+                    <td>
+                        <span class="badge badge-neutral">${item.categoria}</span>
+                    </td>
+                    <td>${item.local}</td>
+                    <td class="text-right font-semibold">${item.quantidade.toLocaleString('pt-BR')}</td>
+                    <td class="text-right font-semibold">R$ ${parseFloat(item.preco).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    <td>${getStatusBadge(item.status)}</td>
+                    <td class="text-muted">${item.dataCadastro}</td>
+                    <td class="text-center">
+                        <button class="view-btn" onclick="viewDetails(${item.id})" title="Visualizar detalhes">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            updatePageInfo();
+            renderPagination();
+        }
+
+        // Badge de status
+        function getStatusBadge(status) {
+            const badges = {
+                'Ativo': 'badge-success',
+                'Inativo': 'badge-neutral',
+                'Pendente': 'badge-warning',
+                'Em Análise': 'badge-info',
+                'Aprovado': 'badge-success'
+            };
+            
+            const badgeClass = badges[status] || 'badge-neutral';
+            return `<span class="badge ${badgeClass}">${status}</span>`;
+        }
+
+        // Paginação
+        function changePageSize() {
+            consultState.pageSize = parseInt(document.getElementById('pageSize').value);
+            consultState.currentPage = 1;
+            renderTable();
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.ceil(consultState.filteredData.length / consultState.pageSize);
+            if (page >= 1 && page <= totalPages) {
+                consultState.currentPage = page;
+                renderTable();
+            }
+        }
+
+        function updatePageInfo() {
+            const startIndex = (consultState.currentPage - 1) * consultState.pageSize + 1;
+            const endIndex = Math.min(consultState.currentPage * consultState.pageSize, consultState.filteredData.length);
+            const total = consultState.filteredData.length;
+            
+            document.getElementById('pageInfo').textContent = 
+                `Mostrando ${startIndex}-${endIndex} de ${total} registros`;
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(consultState.filteredData.length / consultState.pageSize);
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let html = '';
+            
+            // Botão anterior
+            html += `<button class="page-btn" onclick="goToPage(${consultState.currentPage - 1})" 
+                     ${consultState.currentPage === 1 ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i>
+                     </button>`;
+            
+            // Páginas
+            const startPage = Math.max(1, consultState.currentPage - 2);
+            const endPage = Math.min(totalPages, consultState.currentPage + 2);
+            
+            if (startPage > 1) {
+                html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+                if (startPage > 2) {
+                    html += `<span class="text-muted">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="page-btn ${i === consultState.currentPage ? 'active' : ''}" 
+                         onclick="goToPage(${i})">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<span class="text-muted">...</span>`;
+                }
+                html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // Botão próximo
+            html += `<button class="page-btn" onclick="goToPage(${consultState.currentPage + 1})" 
+                     ${consultState.currentPage === totalPages ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-right"></i>
+                     </button>`;
+            
+            pagination.innerHTML = html;
+        }
+
+        // Modal de detalhes
+        function viewDetails(id) {
+            const item = consultState.data.find(item => item.id === id);
+            if (!item) return;
+            
+            document.getElementById('modalTitle').textContent = `${item.codigo} - ${item.descricao}`;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="detail-row">
+                    <div class="detail-label">Código:</div>
+                    <div class="detail-value font-mono">${item.codigo}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Descrição:</div>
+                    <div class="detail-value">${item.descricao}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Categoria:</div>
+                    <div class="detail-value">${item.categoria}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Local:</div>
+                    <div class="detail-value">${item.local}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Quantidade:</div>
+                    <div class="detail-value font-semibold">${item.quantidade.toLocaleString('pt-BR')}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Preço:</div>
+                    <div class="detail-value font-semibold">R$ ${parseFloat(item.preco).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Status:</div>
+                    <div class="detail-value">${getStatusBadge(item.status)}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Número de Série:</div>
+                    <div class="detail-value font-mono">${item.serie || 'Não informado'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Data de Cadastro:</div>
+                    <div class="detail-value">${item.dataCadastro}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Fornecedor:</div>
+                    <div class="detail-value">${item.fornecedor}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Última Movimentação:</div>
+                    <div class="detail-value">${item.ultimaMovimentacao}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Responsável:</div>
+                    <div class="detail-value">${item.responsavel}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Departamento:</div>
+                    <div class="detail-value">${item.departamento}</div>
+                </div>
+                ${item.observacoes ? `
+                <div class="detail-row">
+                    <div class="detail-label">Observações:</div>
+                    <div class="detail-value">${item.observacoes}</div>
+                </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+
+        // Exportação
+        function exportToExcel() {
+            showLoading();
+            
+            setTimeout(() => {
+                const ws = XLSX.utils.json_to_sheet(consultState.filteredData.map(item => ({
+                    'Código': item.codigo,
+                    'Descrição': item.descricao,
+                    'Categoria': item.categoria,
+                    'Local': item.local,
+                    'Quantidade': item.quantidade,
+                    'Preço': parseFloat(item.preco),
+                    'Status': item.status,
+                    'Número de Série': item.serie,
+                    'Data Cadastro': item.dataCadastro,
+                    'Fornecedor': item.fornecedor,
+                    'Última Movimentação': item.ultimaMovimentacao,
+                    'Responsável': item.responsavel,
+                    'Departamento': item.departamento,
+                    'Observações': item.observacoes
+                })));
+                
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Consulta de Dados');
+                
+                const fileName = `consulta_dados_${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                consultState.exportsToday++;
+                updateInfo();
+                hideLoading();
+                
+                // Feedback visual
+                showNotification('Excel exportado com sucesso!', 'success');
+            }, 1000);
+        }
+
+        function exportToPDF() {
+            showLoading();
+            
+            setTimeout(() => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('l', 'mm', 'a4'); // landscape orientation
+                
+                // Cabeçalho do PDF
+                doc.setFillColor(0, 138, 112); // Verde Sankhya
+                doc.rect(0, 0, doc.internal.pageSize.width, 25, 'F');
+                
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(16);
+                doc.setFont('helvetica', 'bold');
+                doc.text('ERP Sankhya - Relatório de Consulta', 20, 16);
+                
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 20, 32);
+                doc.text(`Total de registros: ${consultState.filteredData.length}`, 20, 37);
+                
+                // Preparar dados para a tabela
+                const tableData = consultState.filteredData.map(item => [
+                    item.codigo,
+                    item.descricao.length > 30 ? item.descricao.substring(0, 30) + '...' : item.descricao,
+                    item.categoria,
+                    item.local,
+                    item.quantidade.toString(),
+                    `R$ ${parseFloat(item.preco).toFixed(2)}`,
+                    item.status,
+                    item.dataCadastro
+                ]);
+                
+                // Cabeçalhos da tabela
+                const headers = [
+                    'Código',
+                    'Descrição', 
+                    'Categoria',
+                    'Local',
+                    'Quantidade',
+                    'Preço',
+                    'Status',
+                    'Data Cadastro'
+                ];
+                
+                // Configurações da tabela
+                const tableConfig = {
+                    startY: 45,
+                    head: [headers],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [0, 138, 112], // Verde Sankhya
+                        textColor: 255,
+                        fontStyle: 'bold',
+                        fontSize: 9
+                    },
+                    bodyStyles: {
+                        fontSize: 8,
+                        cellPadding: 3
+                    },
+                    alternateRowStyles: {
+                        fillColor: [248, 249, 250] // Cinza claro
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 25 }, // Código
+                        1: { cellWidth: 50 }, // Descrição
+                        2: { cellWidth: 25 }, // Categoria
+                        3: { cellWidth: 35 }, // Local
+                        4: { cellWidth: 20 }, // Quantidade
+                        5: { cellWidth: 25 }, // Preço
+                        6: { cellWidth: 25 }, // Status
+                        7: { cellWidth: 25 }  // Data
+                    },
+                    margin: { top: 45, left: 10, right: 10 },
+                    pageBreak: 'auto',
+                    tableWidth: 'wrap'
+                };
+                
+                doc.autoTable(tableConfig);
+                
+                // Rodapé
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(128, 128, 128);
+                    doc.text(
+                        `Página ${i} de ${pageCount}`,
+                        doc.internal.pageSize.width - 30,
+                        doc.internal.pageSize.height - 10
+                    );
+                }
+                
+                // Salvar arquivo
+                const fileName = `relatorio_consulta_${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(fileName);
+                
+                consultState.exportsToday++;
+                updateInfo();
+                hideLoading();
+                
+                showNotification('PDF exportado com sucesso!', 'success');
+            }, 1000);
+        }
+
+        // Atualizar informações
+        function updateInfo() {
+            document.getElementById('totalRecords').textContent = consultState.data.length.toLocaleString('pt-BR');
+            document.getElementById('visibleRecords').textContent = consultState.filteredData.length.toLocaleString('pt-BR');
+            document.getElementById('lastUpdate').textContent = consultState.lastUpdate.toLocaleTimeString('pt-BR');
+            document.getElementById('exportsToday').textContent = consultState.exportsToday;
+        }
+
+        function updateTimestamp() {
+            consultState.lastUpdate = new Date();
+            updateInfo();
+        }
+
+        // Ações do sistema
+        function refreshData() {
+            showLoading();
+            setTimeout(() => {
+                consultState.data = generateConsultData();
+                consultState.lastUpdate = new Date();
+                applyFilters();
+                renderTable();
+                updateInfo();
+                hideLoading();
+                showNotification('Dados atualizados com sucesso!', 'success');
+            }, 1000);
+        }
+
+        function showFilters() {
+            alert('Funcionalidade de filtros avançados seria implementada aqui.');
+        }
+
+        function showHelp() {
+            alert('Sistema de ajuda seria implementado aqui.');
+        }
+
+        function showUserMenu() {
+            alert('Menu do usuário seria implementado aqui.');
+        }
+
+        function logout() {
+            if (confirm('Tem certeza que deseja sair do sistema?')) {
+                alert('Logout realizado com sucesso!');
+            }
+        }
+
+        // Utilitários
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
+        function showNotification(message, type = 'info') {
+            // Implementação simples de notificação
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 24px;
+                background: ${type === 'success' ? 'var(--success)' : 'var(--info)'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: var(--border-radius);
+                box-shadow: var(--shadow-md);
+                z-index: 3000;
+                animation: slideInRight 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // CSS para animações de notificação
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Inicializar aplicação
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

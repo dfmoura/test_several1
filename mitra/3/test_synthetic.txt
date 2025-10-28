@@ -1,0 +1,42 @@
+OBJETIVO: Sistema de planejamento orçamentário descentralizado 
+(bottom-up) para coletar previsões de CRs e consolidar em DRE projetado.
+
+PAPÉIS:
+1. Controladoria: cria versões, aprova/rejeita, consolida, exporta
+2. Gestor de CR: preenche orçamento mês a mês, submete, acompanha status
+
+CADASTROS BÁSICOS:
+- CR: ID, nome, gestor (email), status por versão
+- Conta Contábil: código, descrição, classificação (Receita/Despesa), ativa
+- Histórico: CR x Conta x Mês (ano anterior - referência)
+- Forecast: Versão x CR x Conta x Mês (valores planejados)
+- Versão: nome, ano base, status (Aberta/Aprovação/Fechada), mês último realizado
+
+FLUXO PRINCIPAL:
+1. Controladoria abre Versão → sistema cria instâncias para todos CRs → envia email
+2. Gestores preenchem matriz (linhas=contas, colunas=meses) → salvam rascunho → submetem
+3. Após submeter, gestor não edita mais (só lê)
+4. Controladoria aprova/rejeita; se rejeitar, gestor pode reabrir edição
+5. Quando todos CRs aprovados → consolidação em DRE → controladoria fecha versão
+
+TELAS MVP:
+1. Gestão de Versões (Controladoria): lista versões, criar nova, fechar
+2. Meu Orçamento (Gestor): matriz conta x mês + histórico + totais + botões salvar/submeter
+3. Revisão CR (Controladoria): visualizar CR + aprovar/rejeitar com justificativa
+4. Consolidado (Controladoria): DRE projetado da versão + exportar
+5. Status CRs (Controladoria): dashboard com status de cada CR
+
+REGRAS:
+- Status sempre por versão (nova versão = refazer tudo)
+- Gestor só vê seu CR
+- Após submeter, lock de edição até aprovação/rejeição
+- Controladoria NO-TOUCH no MVP (só aprova/rejeita)
+- Contas pré-definidas (gestor não cria novas)
+
+PRÓXIMOS PASSOS (não MVP):
+- Drivers/premissas (fórmulas automáticas)
+- Workflow de assinatura (Diretoria)
+- Comparativo cenários
+- Dashboards visuais
+- Integração ERP
+

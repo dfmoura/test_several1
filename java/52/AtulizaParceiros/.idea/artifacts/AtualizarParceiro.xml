@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="AtualizarParceiro">
+    <output-path>$PROJECT_DIR$/out/artifacts/AtualizarParceiro</output-path>
+    <root id="archive" name="AtualizarParceiro.jar">
+      <element id="module-output" name="AtulizaParceiros" />
+    </root>
+  </artifact>
+</component>

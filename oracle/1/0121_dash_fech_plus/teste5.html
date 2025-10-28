@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela ERP Sankhya - Padrão Framework</title>
+    
+    <!-- Fontes e ícones -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SheetJS para exportação Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        /* Variáveis CSS - Paleta Sankhya */
+        :root {
+            /* Cores principais */
+            --primary: #008a70;          /* Verde Escuro Satis */
+            --primary-dark: #00695e;     /* Floresta */
+            --primary-light: #00afa0;    /* Turquesa */
+            --secondary: #a2c73b;        /* Verde Claro Satis */
+            
+            /* Cores de apoio */
+            --success: #50af32;          /* Folha */
+            --info: #00b4cd;             /* Água */
+            --warning: #ffb914;          /* Laranja */
+            --danger: #e30613;           /* Vermelho */
+            
+            /* Tons de cinza */
+            --gray-100: #f8f9fa;
+            --gray-200: #e6e9ee;
+            --gray-300: #d1d5db;
+            --gray-400: #9c9c9c;         /* Cinza Médio */
+            --gray-500: #6e6e6e;         /* Chumbo */
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            
+            /* Layout */
+            --border-radius: 8px;
+            --border-radius-sm: 4px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            
+            /* Tipografia */
+            --font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+        }
+        
+        /* Reset e base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background-color: var(--gray-100);
+            color: var(--gray-700);
+            line-height: 1.5;
+            padding-top: 60px;
+        }
+        
+        /* Header fixo Sankhya */
+        .sankhya-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            box-shadow: var(--shadow-md);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .sankhya-logo {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: var(--border-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        .header-title {
+            color: white;
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius-sm);
+            font-size: var(--font-size-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        /* Container principal */
+        .main-container {
+            max-width: 1400px;
+            margin: 24px auto;
+            padding: 0 24px;
+        }
+        
+        /* Card da tabela */
+        .table-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        
+        /* Header do card */
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            background: white;
+        }
+        
+        .card-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 8px;
+        }
+        
+        .card-subtitle {
+            font-size: var(--font-size-sm);
+            color: var(--gray-500);
+            margin-bottom: 20px;
+        }
+        
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        /* Campo de busca */
+        .search-box {
+            position: relative;
+            min-width: 300px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--border-radius-sm);
+            font-size: var(--font-size-sm);
+            background: white;
+            transition: all 0.2s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 138, 112, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+        
+        /* Botões */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--border-radius-sm);
+            background: white;
+            color: var(--gray-700);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-400);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #45a02a;
+            border-color: #45a02a;
+        }
+        
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: var(--font-size-xs);
+        }
+        
+        /* Tabela */
+        .table-container {
+            overflow-x: auto;
+            position: relative;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--font-size-sm);
+        }
+        
+        .data-table thead {
+            background: var(--gray-50);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .data-table th {
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--gray-200);
+            white-space: nowrap;
+            position: relative;
+        }
+        
+        .data-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+        
+        .data-table th.sortable:hover {
+            background: var(--gray-100);
+        }
+        
+        .sort-icon {
+            margin-left: 8px;
+            color: var(--gray-400);
+            font-size: 12px;
+        }
+        
+        .data-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid var(--gray-200);
+            vertical-align: middle;
+        }
+        
+        .data-table tbody tr {
+            transition: background-color 0.15s;
+        }
+        
+        .data-table tbody tr:hover {
+            background: #f8fdfb;
+        }
+        
+        .data-table tbody tr.selected {
+            background: rgba(0, 138, 112, 0.08);
+        }
+        
+        /* Checkbox */
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+        
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: var(--font-size-xs);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        
+        .badge-success {
+            background: rgba(80, 175, 50, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(80, 175, 50, 0.2);
+        }
+        
+        .badge-warning {
+            background: rgba(255, 185, 20, 0.1);
+            color: #cc9200;
+            border: 1px solid rgba(255, 185, 20, 0.2);
+        }
+        
+        .badge-danger {
+            background: rgba(227, 6, 19, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(227, 6, 19, 0.2);
+        }
+        
+        .badge-info {
+            background: rgba(0, 180, 205, 0.1);
+            color: var(--info);
+            border: 1px solid rgba(0, 180, 205, 0.2);
+        }
+        
+        /* Ações */
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--border-radius-sm);
+            background: white;
+            color: var(--gray-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .action-btn:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-400);
+            transform: translateY(-1px);
+        }
+        
+        .action-btn.edit:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .action-btn.delete:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+        
+        /* Footer da tabela */
+        .table-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            background: var(--gray-50);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .footer-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .page-info {
+            font-size: var(--font-size-sm);
+            color: var(--gray-600);
+        }
+        
+        .page-size-select {
+            padding: 6px 8px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--border-radius-sm);
+            background: white;
+            font-size: var(--font-size-sm);
+            color: var(--gray-700);
+        }
+        
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .page-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--border-radius-sm);
+            background: white;
+            color: var(--gray-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: var(--font-size-sm);
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            background: var(--gray-100);
+            border-color: var(--gray-400);
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        
+        .modal-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+        
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            border-radius: var(--border-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .modal-close:hover {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 0 16px;
+            }
+            
+            .sankhya-header {
+                padding: 0 16px;
+            }
+            
+            .header-title {
+                font-size: var(--font-size-base);
+            }
+            
+            .search-box {
+                min-width: 200px;
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .toolbar-left,
+            .toolbar-right {
+                justify-content: center;
+            }
+            
+            .table-footer {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            
+            .footer-left,
+            .footer-right {
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .data-table th:nth-child(n+6),
+            .data-table td:nth-child(n+6) {
+                display: none;
+            }
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+        }
+        
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--gray-200);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Animações */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Utilitários */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-muted { color: var(--gray-500); }
+        .font-mono { font-family: 'Courier New', monospace; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <!-- Header Sankhya -->
+    <header class="sankhya-header">
+        <div class="header-left">
+            <div class="sankhya-logo">SK</div>
+            <h1 class="header-title">Sistema ERP Sankhya</h1>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" onclick="showHelp()">
+                <i class="fas fa-question-circle"></i>
+                Ajuda
+            </button>
+            <button class="header-btn" onclick="showSettings()">
+                <i class="fas fa-cog"></i>
+                Configurações
+            </button>
+            <button class="header-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                Sair
+            </button>
+        </div>
+    </header>
+
+    <!-- Container principal -->
+    <div class="main-container">
+        <div class="table-card">
+            <!-- Header do card -->
+            <div class="card-header">
+                <h2 class="card-title">Gestão de Produtos</h2>
+                <p class="card-subtitle">Controle de estoque e informações dos produtos cadastrados no sistema</p>
+                
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <div class="search-box">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" id="searchInput" class="search-input" placeholder="Buscar por código, descrição, local ou série...">
+                        </div>
+                        <button class="btn" onclick="showFilters()">
+                            <i class="fas fa-filter"></i>
+                            Filtros
+                        </button>
+                        <button class="btn" onclick="refreshData()">
+                            <i class="fas fa-sync-alt"></i>
+                            Atualizar
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel"></i>
+                            Exportar Excel
+                        </button>
+                        <button class="btn btn-success" onclick="addNewProduct()">
+                            <i class="fas fa-plus"></i>
+                            Novo Produto
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Container da tabela -->
+            <div class="table-container">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                </div>
+                
+                <table class="data-table" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="selectAll" class="checkbox" onchange="toggleSelectAll()">
+                            </th>
+                            <th class="sortable" data-sort="codigo" onclick="sortTable('codigo')">
+                                Código <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="descricao" onclick="sortTable('descricao')">
+                                Descrição <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="categoria" onclick="sortTable('categoria')">
+                                Categoria <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="local" onclick="sortTable('local')">
+                                Local <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable text-right" data-sort="quantidade" onclick="sortTable('quantidade')">
+                                Quantidade <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="preco" onclick="sortTable('preco')">
+                                Preço <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="status" onclick="sortTable('status')">
+                                Status <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th style="width: 120px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Dados serão inseridos via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer da tabela -->
+            <div class="table-footer">
+                <div class="footer-left">
+                    <span class="page-info" id="pageInfo">Mostrando 0-0 de 0 registros</span>
+                    <select class="page-size-select" id="pageSize" onchange="changePageSize()">
+                        <option value="10">10 por página</option>
+                        <option value="25" selected>25 por página</option>
+                        <option value="50">50 por página</option>
+                        <option value="100">100 por página</option>
+                    </select>
+                </div>
+                <div class="footer-right">
+                    <div class="pagination" id="pagination">
+                        <!-- Botões de paginação serão inseridos via JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de detalhes -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Detalhes do Produto</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="modalBody">
+                <!-- Conteúdo do modal será inserido via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado da aplicação
+        const appState = {
+            data: [],
+            filteredData: [],
+            currentPage: 1,
+            pageSize: 25,
+            sortField: null,
+            sortDirection: 'asc',
+            searchTerm: '',
+            selectedItems: new Set()
+        };
+
+        // Dados de exemplo (simulando dados do ERP Sankhya)
+        function generateSampleData() {
+            const categorias = ['Eletrônicos', 'Informática', 'Móveis', 'Casa e Jardim', 'Esportes', 'Livros'];
+            const locais = ['Armazém Principal', 'Depósito B', 'Loja Centro', 'Estoque Virtual', 'Almoxarifado'];
+            const statuses = ['Disponível', 'Reservado', 'Baixo Estoque', 'Indisponível'];
+            
+            const data = [];
+            for (let i = 1; i <= 150; i++) {
+                data.push({
+                    id: i,
+                    codigo: `PRD${String(i).padStart(5, '0')}`,
+                    descricao: `Produto ${i} - ${categorias[i % categorias.length]} Premium`,
+                    categoria: categorias[i % categorias.length],
+                    local: locais[i % locais.length],
+                    quantidade: Math.floor(Math.random() * 500) + 1,
+                    preco: (Math.random() * 1000 + 10).toFixed(2),
+                    serie: Math.random() > 0.7 ? `SN${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}` : '',
+                    status: statuses[i % statuses.length],
+                    dataCadastro: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+                    fornecedor: `Fornecedor ${String.fromCharCode(65 + (i % 26))}`,
+                    observacoes: i % 10 === 0 ? 'Produto com observações especiais' : ''
+                });
+            }
+            return data;
+        }
+
+        // Inicialização
+        function init() {
+            appState.data = generateSampleData();
+            applyFilters();
+            renderTable();
+            setupEventListeners();
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', debounce(handleSearch, 300));
+            
+            // Fechar modal ao clicar fora
+            document.getElementById('detailModal').addEventListener('click', (e) => {
+                if (e.target.id === 'detailModal') {
+                    closeModal();
+                }
+            });
+        }
+
+        // Debounce para busca
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Busca
+        function handleSearch(e) {
+            appState.searchTerm = e.target.value.toLowerCase();
+            appState.currentPage = 1;
+            applyFilters();
+            renderTable();
+        }
+
+        // Aplicar filtros
+        function applyFilters() {
+            let filtered = appState.data;
+            
+            if (appState.searchTerm) {
+                filtered = filtered.filter(item => 
+                    item.codigo.toLowerCase().includes(appState.searchTerm) ||
+                    item.descricao.toLowerCase().includes(appState.searchTerm) ||
+                    item.categoria.toLowerCase().includes(appState.searchTerm) ||
+                    item.local.toLowerCase().includes(appState.searchTerm) ||
+                    item.serie.toLowerCase().includes(appState.searchTerm)
+                );
+            }
+            
+            appState.filteredData = filtered;
+        }
+
+        // Ordenação
+        function sortTable(field) {
+            if (appState.sortField === field) {
+                appState.sortDirection = appState.sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                appState.sortField = field;
+                appState.sortDirection = 'asc';
+            }
+            
+            appState.filteredData.sort((a, b) => {
+                let aVal = a[field];
+                let bVal = b[field];
+                
+                // Converter para número se for quantidade ou preço
+                if (field === 'quantidade' || field === 'preco') {
+                    aVal = parseFloat(aVal);
+                    bVal = parseFloat(bVal);
+                }
+                
+                if (aVal < bVal) return appState.sortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return appState.sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            updateSortIndicators();
+            renderTable();
+        }
+
+        // Atualizar indicadores de ordenação
+        function updateSortIndicators() {
+            document.querySelectorAll('.sort-icon').forEach(icon => {
+                icon.className = 'fas fa-sort sort-icon';
+            });
+            
+            if (appState.sortField) {
+                const header = document.querySelector(`th[data-sort="${appState.sortField}"] .sort-icon`);
+                if (header) {
+                    header.className = `fas fa-sort-${appState.sortDirection === 'asc' ? 'up' : 'down'} sort-icon`;
+                }
+            }
+        }
+
+        // Renderizar tabela
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const startIndex = (appState.currentPage - 1) * appState.pageSize;
+            const endIndex = startIndex + appState.pageSize;
+            const pageData = appState.filteredData.slice(startIndex, endIndex);
+            
+            tbody.innerHTML = '';
+            
+            pageData.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <input type="checkbox" class="checkbox" 
+                               onchange="toggleItemSelection(${item.id})"
+                               ${appState.selectedItems.has(item.id) ? 'checked' : ''}>
+                    </td>
+                    <td class="font-mono">${item.codigo}</td>
+                    <td>${item.descricao}</td>
+                    <td>${item.categoria}</td>
+                    <td>${item.local}</td>
+                    <td class="text-right">${item.quantidade.toLocaleString('pt-BR')}</td>
+                    <td class="text-right">R$ ${parseFloat(item.preco).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    <td>${getStatusBadge(item.status)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn" onclick="viewDetails(${item.id})" title="Visualizar">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="action-btn edit" onclick="editProduct(${item.id})" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn delete" onclick="deleteProduct(${item.id})" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            updatePageInfo();
+            renderPagination();
+        }
+
+        // Badge de status
+        function getStatusBadge(status) {
+            const badges = {
+                'Disponível': 'badge-success',
+                'Reservado': 'badge-warning',
+                'Baixo Estoque': 'badge-warning',
+                'Indisponível': 'badge-danger'
+            };
+            
+            const badgeClass = badges[status] || 'badge-info';
+            return `<span class="badge ${badgeClass}">${status}</span>`;
+        }
+
+        // Seleção de itens
+        function toggleItemSelection(id) {
+            if (appState.selectedItems.has(id)) {
+                appState.selectedItems.delete(id);
+            } else {
+                appState.selectedItems.add(id);
+            }
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('tbody .checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+                const id = parseInt(checkbox.getAttribute('onchange').match(/\d+/)[0]);
+                if (selectAll.checked) {
+                    appState.selectedItems.add(id);
+                } else {
+                    appState.selectedItems.delete(id);
+                }
+            });
+        }
+
+        // Paginação
+        function changePageSize() {
+            appState.pageSize = parseInt(document.getElementById('pageSize').value);
+            appState.currentPage = 1;
+            renderTable();
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.ceil(appState.filteredData.length / appState.pageSize);
+            if (page >= 1 && page <= totalPages) {
+                appState.currentPage = page;
+                renderTable();
+            }
+        }
+
+        function updatePageInfo() {
+            const startIndex = (appState.currentPage - 1) * appState.pageSize + 1;
+            const endIndex = Math.min(appState.currentPage * appState.pageSize, appState.filteredData.length);
+            const total = appState.filteredData.length;
+            
+            document.getElementById('pageInfo').textContent = 
+                `Mostrando ${startIndex}-${endIndex} de ${total} registros`;
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(appState.filteredData.length / appState.pageSize);
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let html = '';
+            
+            // Botão anterior
+            html += `<button class="page-btn" onclick="goToPage(${appState.currentPage - 1})" 
+                     ${appState.currentPage === 1 ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i>
+                     </button>`;
+            
+            // Páginas
+            const startPage = Math.max(1, appState.currentPage - 2);
+            const endPage = Math.min(totalPages, appState.currentPage + 2);
+            
+            if (startPage > 1) {
+                html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+                if (startPage > 2) {
+                    html += `<span class="text-muted">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="page-btn ${i === appState.currentPage ? 'active' : ''}" 
+                         onclick="goToPage(${i})">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<span class="text-muted">...</span>`;
+                }
+                html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // Botão próximo
+            html += `<button class="page-btn" onclick="goToPage(${appState.currentPage + 1})" 
+                     ${appState.currentPage === totalPages ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-right"></i>
+                     </button>`;
+            
+            pagination.innerHTML = html;
+        }
+
+        // Modal
+        function viewDetails(id) {
+            const item = appState.data.find(item => item.id === id);
+            if (!item) return;
+            
+            document.getElementById('modalTitle').textContent = `${item.codigo} - ${item.descricao}`;
+            document.getElementById('modalBody').innerHTML = `
+                <div style="display: grid; gap: 12px;">
+                    <div><strong>Código:</strong> ${item.codigo}</div>
+                    <div><strong>Descrição:</strong> ${item.descricao}</div>
+                    <div><strong>Categoria:</strong> ${item.categoria}</div>
+                    <div><strong>Local:</strong> ${item.local}</div>
+                    <div><strong>Quantidade:</strong> ${item.quantidade.toLocaleString('pt-BR')}</div>
+                    <div><strong>Preço:</strong> R$ ${parseFloat(item.preco).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                    <div><strong>Status:</strong> ${getStatusBadge(item.status)}</div>
+                    <div><strong>Número de Série:</strong> ${item.serie || 'Não informado'}</div>
+                    <div><strong>Data de Cadastro:</strong> ${item.dataCadastro}</div>
+                    <div><strong>Fornecedor:</strong> ${item.fornecedor}</div>
+                    ${item.observacoes ? `<div><strong>Observações:</strong> ${item.observacoes}</div>` : ''}
+                </div>
+            `;
+            
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+
+        // Ações
+        function addNewProduct() {
+            alert('Funcionalidade de adicionar novo produto seria implementada aqui.');
+        }
+
+        function editProduct(id) {
+            const item = appState.data.find(item => item.id === id);
+            alert(`Editar produto: ${item.codigo} - ${item.descricao}`);
+        }
+
+        function deleteProduct(id) {
+            const item = appState.data.find(item => item.id === id);
+            if (confirm(`Tem certeza que deseja excluir o produto ${item.codigo}?`)) {
+                appState.data = appState.data.filter(item => item.id !== id);
+                applyFilters();
+                renderTable();
+            }
+        }
+
+        function refreshData() {
+            showLoading();
+            setTimeout(() => {
+                appState.data = generateSampleData();
+                applyFilters();
+                renderTable();
+                hideLoading();
+            }, 1000);
+        }
+
+        function showFilters() {
+            alert('Funcionalidade de filtros avançados seria implementada aqui.');
+        }
+
+        function exportToExcel() {
+            const ws = XLSX.utils.json_to_sheet(appState.filteredData.map(item => ({
+                'Código': item.codigo,
+                'Descrição': item.descricao,
+                'Categoria': item.categoria,
+                'Local': item.local,
+                'Quantidade': item.quantidade,
+                'Preço': parseFloat(item.preco),
+                'Status': item.status,
+                'Número de Série': item.serie,
+                'Data Cadastro': item.dataCadastro,
+                'Fornecedor': item.fornecedor
+            })));
+            
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Produtos');
+            XLSX.writeFile(wb, `produtos_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Funções do header
+        function showHelp() {
+            alert('Sistema de ajuda seria implementado aqui.');
+        }
+
+        function showSettings() {
+            alert('Configurações do sistema seriam implementadas aqui.');
+        }
+
+        function logout() {
+            if (confirm('Tem certeza que deseja sair do sistema?')) {
+                alert('Logout realizado com sucesso!');
+            }
+        }
+
+        // Inicializar aplicação
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

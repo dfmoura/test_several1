@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tabela — estilo Sankhya (demo)</title>
+  <style>
+    :root{
+      --primary:#0b6fb2; /* azul Sankhya-like */
+      --primary-700:#095b95;
+      --muted:#6b7280;
+      --bg:#f6f7f9;
+      --card:#ffffff;
+      --border:#e6e9ee;
+      --danger:#d9534f;
+      --success:#28a745;
+      --radius:8px;
+      --font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    body{font-family:var(--font-family);margin:16px;background:var(--bg);color:#222}
+
+    /* Card / container */
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 1px 3px rgba(15,23,42,0.04);overflow:hidden}
+    .card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+    .title{display:flex;gap:12px;align-items:center}
+    .brand-dot{width:36px;height:36px;border-radius:6px;background:linear-gradient(180deg,var(--primary),var(--primary-700));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600}
+    .title h2{font-size:16px;margin:0}
+    .subtitle{color:var(--muted);font-size:13px}
+
+    /* Toolbar */
+    .toolbar{display:flex;gap:8px;align-items:center}
+    .btn{background:transparent;border:1px solid var(--border);padding:8px 10px;border-radius:6px;font-size:13px;cursor:pointer}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .btn.ghost{background:transparent}
+    .search{display:flex;align-items:center;border:1px solid var(--border);padding:6px 8px;border-radius:6px}
+    .search input{border:0;outline:0;font-size:13px;background:transparent}
+
+    /* Table container */
+    .table-wrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{position:sticky;top:0;background:#fff;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);z-index:2}
+    tbody tr{transition:background .12s}
+    tbody tr:hover{background:#f3f7fb}
+    td{padding:10px 12px;border-bottom:1px solid #f1f3f6;vertical-align:middle}
+    .zebra tbody tr:nth-child(odd){background:transparent}
+
+    /* Small badges and status */
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid rgba(0,0,0,0.06)}
+    .badge.success{color:var(--success);border-color:rgba(40,167,69,0.12)}
+    .badge.warn{color:#d98200;border-color:rgba(217,138,0,0.12)}
+
+    /* Row actions */
+    .actions{display:flex;gap:6px}
+    .icon-btn{width:34px;height:34px;border-radius:6px;border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:transparent}
+
+    /* Pagination */
+    .footer{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border);gap:12px}
+    .pager{display:flex;gap:6px;align-items:center}
+    .select{padding:6px;border-radius:6px;border:1px solid var(--border);font-size:13px}
+
+    /* Responsive */
+    @media (max-width:760px){
+      thead th:nth-child(n+6), tbody td:nth-child(n+6){display:none}
+    }
+
+    /* Simple modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(10,15,25,0.45);display:none;align-items:center;justify-content:center}
+    .modal{background:#fff;border-radius:10px;padding:18px;min-width:320px;max-width:720px}
+    .modal.show{display:flex}
+
+    /* small helpers */
+    .muted{color:var(--muted);font-size:13px}
+    .flex{display:flex;align-items:center}
+    .grow{flex:1}
+  </style>
+</head>
+<body>
+  <div class="card" style="max-width:1200px;margin:0 auto">
+    <div class="card-header">
+      <div class="title">
+        <div class="brand-dot">SK</div>
+        <div>
+          <h2>Tabela de Itens</h2>
+          <div class="subtitle">Exemplo no estilo visual das telas do ERP</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-right:6px"><path d="M21 21l-4.35-4.35" stroke="#8b9099" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="11" r="6" stroke="#8b9099" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input id="globalSearch" placeholder="Pesquisar (código, descrição, n. série)" />
+        </div>
+        <button class="btn" id="btn-filter">Filtros</button>
+        <button class="btn primary" id="btn-new">Novo</button>
+        <button class="btn" id="btn-export">Exportar CSV</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="zebra" id="mainTable">
+        <thead>
+          <tr>
+            <th style="width:40px"><input type="checkbox" id="selectAll"/></th>
+            <th data-key="codigo" class="sortable">Código <span class="muted">↕</span></th>
+            <th data-key="descricao" class="sortable">Descrição</th>
+            <th data-key="local" class="sortable">Local</th>
+            <th data-key="quantidade" class="sortable">Quantidade</th>
+            <th data-key="nserie">N. Série</th>
+            <th data-key="status">Status</th>
+            <th style="width:140px">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <!-- linhas geradas por JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <div class="flex" style="gap:12px">
+        <div class="muted">Linhas por página</div>
+        <select id="pageSize" class="select">
+          <option>10</option>
+          <option>25</option>
+          <option>50</option>
+        </select>
+        <div class="muted" id="infoRange" style="margin-left:12px">0–0 de 0</div>
+      </div>
+      <div class="pager">
+        <button class="btn" id="prev">‹ Anterior</button>
+        <div id="pageNums" class="muted">1</div>
+        <button class="btn" id="next">Próximo ›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- modal de detalhes -->
+  <div id="modal" class="modal-backdrop">
+    <div class="modal" role="dialog">
+      <h3 id="modalTitle">Detalhes</h3>
+      <div id="modalBody" style="margin-top:8px"></div>
+      <div style="margin-top:12px;text-align:right">
+        <button class="btn" id="closeModal">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Dados de exemplo (poderiam vir de uma API Sankhya)
+    const sample = [];
+    for(let i=1;i<=123;i++){
+      sample.push({
+        id:i,
+        codigo: 'IT' + String(i).padStart(4,'0'),
+        descricao: 'Produto ' + i + ' - descrição exemplo',
+        local: ['Armazém A','Depósito B','Loja 1'][i%3],
+        quantidade: Math.floor(Math.random()*200),
+        nserie: (Math.random()>0.6)?('SN-'+Math.random().toString(36).slice(2,9).toUpperCase()):'',
+        status: (i%7===0)?'Bloqueado':(i%4===0?'Reservado':'Disponível')
+      })
+    }
+
+    // Estado da tabela
+    let state = {data: sample, q:'', sortKey:null, sortDir:1, page:1, pageSize:10, selected:new Set()}
+
+    const tbody = document.getElementById('tbody')
+    const infoRange = document.getElementById('infoRange')
+    const pageNums = document.getElementById('pageNums')
+
+    function compare(a,b,key){
+      if(a[key]==null) return -1
+      if(b[key]==null) return 1
+      if(typeof a[key] === 'number') return a[key]-b[key]
+      return String(a[key]).localeCompare(String(b[key]), 'pt-BR', {numeric:true})
+    }
+
+    function render(){
+      // filtrar
+      const q = state.q.trim().toLowerCase()
+      let filtered = state.data.filter(r => {
+        if(!q) return true
+        return r.codigo.toLowerCase().includes(q) || r.descricao.toLowerCase().includes(q) || (r.nserie||'').toLowerCase().includes(q)
+      })
+
+      // ordenar
+      if(state.sortKey){
+        filtered.sort((a,b)=> state.sortDir * compare(a,b,state.sortKey))
+      }
+
+      // paginação
+      const total = filtered.length
+      const per = state.pageSize
+      const pages = Math.max(1, Math.ceil(total/per))
+      state.page = Math.min(Math.max(1,state.page), pages)
+      const start = (state.page-1)*per
+      const pageSlice = filtered.slice(start, start+per)
+
+      // preencher tabela
+      tbody.innerHTML = ''
+      for(const row of pageSlice){
+        const tr = document.createElement('tr')
+        tr.innerHTML = `
+          <td><input type="checkbox" data-id="${row.id}" ${state.selected.has(row.id)?'checked':''}></td>
+          <td>${row.codigo}</td>
+          <td>${row.descricao}</td>
+          <td>${row.local}</td>
+          <td style="text-align:right">${row.quantidade}</td>
+          <td>${row.nserie || '<span class="muted">—</span>'}</td>
+          <td>${row.status === 'Disponível'? '<span class="badge success">Disponível</span>' : '<span class="badge">'+row.status+'</span>'}</td>
+          <td>
+            <div class="actions">
+              <button class="icon-btn" data-action="view" data-id="${row.id}" title="Visualizar">👁️</button>
+              <button class="icon-btn" data-action="edit" data-id="${row.id}" title="Editar">✏️</button>
+              <button class="icon-btn" data-action="delete" data-id="${row.id}" title="Excluir">🗑️</button>
+            </div>
+          </td>
+        `
+        tbody.appendChild(tr)
+      }
+
+      // info e paginação
+      infoRange.textContent = `${start+1}–${Math.min(start+per, total)} de ${total}`
+      pageNums.textContent = `Página ${state.page} de ${pages}`
+
+      // ligar eventos de linha
+      tbody.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', e=>{
+        const id = Number(cb.dataset.id)
+        if(cb.checked) state.selected.add(id); else state.selected.delete(id)
+        updateSelectAll()
+      }))
+      tbody.querySelectorAll('button[data-action]').forEach(btn=> btn.addEventListener('click', onRowAction))
+    }
+
+    // eventos globais
+    document.getElementById('globalSearch').addEventListener('input', e=>{
+      state.q = e.target.value
+      state.page = 1
+      render()
+    })
+
+    document.querySelectorAll('th.sortable').forEach(th=> th.addEventListener('click', ()=>{
+      const key = th.dataset.key
+      if(state.sortKey === key) state.sortDir *= -1
+      else { state.sortKey = key; state.sortDir = 1 }
+      render()
+    }))
+
+    document.getElementById('pageSize').addEventListener('change', e=>{
+      state.pageSize = Number(e.target.value)
+      state.page = 1
+      render()
+    })
+    document.getElementById('prev').addEventListener('click', ()=>{ state.page--; render() })
+    document.getElementById('next').addEventListener('click', ()=>{ state.page++; render() })
+
+    document.getElementById('selectAll').addEventListener('change', e=>{
+      const check = e.target.checked
+      const visibleIds = Array.from(tbody.querySelectorAll('input[type=checkbox]')).map(i=>Number(i.dataset.id))
+      if(check) visibleIds.forEach(id=> state.selected.add(id))
+      else visibleIds.forEach(id=> state.selected.delete(id))
+      render()
+    })
+
+    function updateSelectAll(){
+      const visible = Array.from(tbody.querySelectorAll('input[type=checkbox]'))
+      if(visible.length===0) { document.getElementById('selectAll').checked=false; return }
+      const allChecked = visible.every(i=> i.checked)
+      document.getElementById('selectAll').checked = allChecked
+    }
+
+    // ações de linha
+    function onRowAction(e){
+      const btn = e.currentTarget
+      const id = Number(btn.dataset.id)
+      const action = btn.dataset.action
+      const row = state.data.find(r=> r.id===id)
+      if(action==='view') showModal(row)
+      if(action==='edit') alert('Abrir edição: ' + row.codigo)
+      if(action==='delete') if(confirm('Excluir ' + row.codigo + '?')) { state.data = state.data.filter(r=> r.id!==id); render() }
+    }
+
+    // modal
+    const modal = document.getElementById('modal')
+    function showModal(row){
+      document.getElementById('modalTitle').textContent = row.codigo + ' — ' + row.descricao
+      document.getElementById('modalBody').innerHTML = `
+        <p><strong>Local:</strong> ${row.local}</p>
+        <p><strong>Quantidade:</strong> ${row.quantidade}</p>
+        <p><strong>N. Série:</strong> ${row.nserie || '—'}</p>
+        <p><strong>Status:</strong> ${row.status}</p>
+      `
+      modal.style.display = 'flex'
+    }
+    document.getElementById('closeModal').addEventListener('click', ()=> modal.style.display='none')
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.style.display='none' })
+
+    // export CSV
+    document.getElementById('btn-export').addEventListener('click', ()=>{
+      const header = ['codigo','descricao','local','quantidade','nserie','status']
+      const rows = state.data.map(r=> header.map(h=> JSON.stringify(r[h] || '')).join(','))
+      const csv = [header.join(','), ...rows].join('\n')
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'})
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = 'export_itens.csv'; a.click(); URL.revokeObjectURL(url)
+    })
+
+    // novo (exemplo)
+    document.getElementById('btn-new').addEventListener('click', ()=>{
+      const id = state.data.length + 1
+      state.data.unshift({id:id, codigo:'IT'+String(id).padStart(4,'0'), descricao:'Produto novo '+id, local:'Armazém A', quantidade:0, nserie:'', status:'Disponível'})
+      render()
+    })
+
+    // inicial
+    render()
+  </script>
+</body>
+</html>

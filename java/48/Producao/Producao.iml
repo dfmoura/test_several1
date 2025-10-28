@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="mge-modelcore-4.34b78" level="project" />
+    <orderEntry type="library" name="mge-modelcore-4.28b37" level="project" />
+    <orderEntry type="library" name="mgecom-model-4.27b80" level="project" />
+    <orderEntry type="library" name="mgeprod-model-5.1.43" level="project" />
+    <orderEntry type="library" name="SankhyaW-extensions" level="project" />
+    <orderEntry type="library" name="sanutil" level="project" />
+  </component>
+</module>

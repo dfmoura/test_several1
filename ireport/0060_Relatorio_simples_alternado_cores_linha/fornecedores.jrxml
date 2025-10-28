@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="fornecedores" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<style name="style1"/>
+	<queryString>
+		<![CDATA[SELECT
+    codparc,
+    nomeparc,
+    razaosocial,
+    cgc_cpf,
+    tippessoa,
+    codend,
+    numend,
+    complemento,
+    MOD(ROWNUM, 2) AS flag_alterna
+FROM tgfpar]]>
+	</queryString>
+	<field name="codparc" class="java.math.BigDecimal"/>
+	<field name="nomeparc" class="java.lang.String"/>
+	<field name="razaosocial" class="java.lang.String"/>
+	<field name="cgc_cpf" class="java.lang.String"/>
+	<field name="tippessoa" class="java.lang.String"/>
+	<field name="codend" class="java.math.BigDecimal"/>
+	<field name="numend" class="java.lang.String"/>
+	<field name="complemento" class="java.lang.String"/>
+	<field name="flag_alterna" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="12" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="29" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[codparc]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="29" y="0" width="153" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[nomeparc]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="182" y="0" width="133" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[razaosocial]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="315" y="0" width="69" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[cgc_cpf]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="384" y="0" width="35" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[tippessoa]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="419" y="0" width="31" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[codend]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="450" y="0" width="33" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[numend]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="483" y="0" width="69" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[complemento]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="12" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="0" width="555" height="12" backcolor="#FFFFCC">
+					<printWhenExpression><![CDATA[$F{flag_alterna}.intValue() == 1
+]]></printWhenExpression>
+				</reportElement>
+				<graphicElement>
+					<pen lineColor="#D4D0C8"/>
+				</graphicElement>
+			</rectangle>
+			<textField>
+				<reportElement x="0" y="0" width="29" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{codparc}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="29" y="0" width="153" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{nomeparc}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="182" y="0" width="133" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{razaosocial}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="315" y="0" width="69" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{cgc_cpf}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="384" y="0" width="35" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{tippessoa}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="419" y="0" width="31" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{codend}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="450" y="0" width="33" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{numend}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="483" y="0" width="69" height="12"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{complemento}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

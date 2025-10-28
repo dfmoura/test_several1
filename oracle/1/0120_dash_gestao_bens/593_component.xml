@@ -1,0 +1,24 @@
+<gadget>
+  <level id="lvl_ay05b2m" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_ay05b2n" entityName="Imobilizado" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[select bem.codemp,bem.codbem,bem.descrbem,bem.descrabrev,bem.codprod,pro.descrprod,bem.ad_observacao,bem.dtcompra,bem.dtiniciodep,bem.numnota,bem.vlraquisicao,bem.vlrdep,bem.vlrsaldo from tcibem beminner join tgfpro pro on bem.codprod = pro.codprodwhere codbem <> '<TODOS>']]></expression>
+        <metadata>
+          <field name="CODEMP" label="Cód. Emp." type="I" visible="true" useFooter="false"/>
+          <field name="CODBEM" label="Cód. Bem" type="S" visible="true" useFooter="false"/>
+          <field name="DESCRBEM" label="Decr. Bem" type="S" visible="true" useFooter="false"/>
+          <field name="DESCRABREV" label="Descr. Abrv. Bem" type="S" visible="true" useFooter="false"/>
+          <field name="CODPROD" label="Cód. Prod." type="I" visible="true" useFooter="false"/>
+          <field name="DESCRPROD" label="Produto" type="S" visible="true" useFooter="false"/>
+          <field name="AD_OBSERVACAO" label="Observação" type="S" visible="true" useFooter="false"/>
+          <field name="DTCOMPRA" label="Dt. Compra" type="D" visible="true" useFooter="false"/>
+          <field name="DTINICIODEP" label="Dt. Ini. Depreciação" type="D" visible="true" useFooter="false"/>
+          <field name="NUMNOTA" label="Nro. Nota" type="I" visible="true" useFooter="false"/>
+          <field name="VLRAQUISICAO" label="Vlr. Aquisição" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRDEP" label="Vlr. Depreciação" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+          <field name="VLRSALDO" label="Vlr. Saldo" type="F" visible="true" useFooter="SUM" mask="#.##0,00"/>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>

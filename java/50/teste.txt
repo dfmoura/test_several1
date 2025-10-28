@@ -1,0 +1,83 @@
+https://developers.b3.com.br/api-details?apiId=d06a2a08-50b0-41e9-a412-3900bb2863ec&managerId=1&swaggerVersion=2.0&type=rest&usage=api&Itemid=171#overview
+
+    Você está aqui:
+    Início
+    APIs
+    API Detalhes
+
+    Visão Geral
+    Métodos
+
+Basepath:
+/api/provisioned-events/v2
+Tags
+AREADOINVESTIDORPUBLICA
+Tipo:
+REST
+Download:
+Swagger 2.0
+Adicionado:
+June 21, 2024 6:46 PM
+Visão Geral
+
+Trata-se do provisionamento de recebimento de pagamentos de proventos dos valores mobiliários admitidos à Negociação na B3, tais como Dividendos, Juros Sobre Capital Próprio, Rendimentos e outros eventos em dinheiro.
+
+``
+
+OPT-IN OPT-OUT
+
+A B3 com o foco no cliente, iniciou um projeto para melhorar a experiência dos investidores pessoa física em um portal no qual o usuário poderá acompanhar os seus investimentos de forma consolidada e poderá compartilhar suas informações com terceiros mediante consentimento livre, informado e expresso fornecido e gerido pela B3 na da plataforma
+
+O consentimento expresso é uma exigência legal (Lei do Sigilo Bancário – LC 105/2001). Ela permite que a B3 possa compartilhar tais informações e também servirá para atender as regras da Lei Geral de Proteção de Dados Pessoais (“LGPD”).
+
+Em paralelo a isto, possibilitar o compartilhamento das informações é um passo importante para fomentar o desenvolvimento econômico e tecnológico do mercado.
+
+Opt-in
+
+Para a B3 disponibilizar as informações do investidor, será necessário que o mesmo informe por meio da área logada do investidor, no site da B3, que está de acordo em disponibilizar os seus dados para a empresa em questão. Isso poderá ser feito de forma fluida em uma jornada integrada com os aplicativos e plataformas disponíveis no mercado, para isso as empresas interessadas em consumir esses dados terão que assinar um contrato com a B3 e terão que se adaptar para aceitar o consentimento dos clientes por meio da plataforma da B3.
+
+Opt-out
+
+Para que o consentimento mencionado seja livre e ainda sejam atendidas as exigências legais (LGPD e Lei do Sigilo Bancário) é imprescindível que a B3 forneça a possibilidade de o investidor retirar o consentimento dado a qualquer momento. Para tanto, será necessário que o mesmo informe por meio da área logada do investidor, no site da B3, que não autoriza mais o envio de seus dados para a empresa em questão, com isso suspenderemos o envio dos dados automaticamente.
+
+``
+
+
+Regras e Boas Práticas
+
+Para garantir a saúde da nossa plataforma e um acesso justo para todos aconselhamos seguir as orientações de boas práticas de consumo das APIs.
+
+As APIs terão como parâmetro de entrada o CPF do investidor e a data de referência do conteúdo, sendo assim, os clientes deverão implementar soluções que atendam os seguintes itens:
+
+    Consultar cada CPF uma vez por dia;
+    Buscar os dados somente do período que ainda não tenha sido consultado anteriormente;
+    Para as APIs de movimentação, fazer as chamadas somente dos produtos em que o investidor tiver posição.
+    Os dados serão atualizados de segunda a sexta a partir das 23 horas;
+    As APIs funcionarão 24 horas por dia e 7 dias por semana.
+    Faremos o controle de requisições por segundo e por instituição;
+
+As APIs terão as seguintes regras de paginação:
+
+    Serão 20 itens por página
+    Respostas superiores a 20 itens serão paginadas
+
+A API tem como característica os seguintes itens:
+
+    Os campos principais são obrigatórios;
+    Não há busca aproximada para textos;
+    O campo referenceDate deve ser informado no formato: AAAA-MM-DD;
+    Nenhum dos parâmetros de entrada é do tipo lista, dessa forma, não há como pesquisar mais de um documento por chamada;
+    Não é possível selecionar quais campos devem ser retornados;
+    Os dados disponíveis para consulta são a partir de 11/2019
+
+
+Host
+
+    Certificação: https://apib3i-cert.b3.com.br:2443
+    Produção: https://investidor.b3.com.br:2443
+
+
+Modelo de Autenticação
+
+Clique aqui para mais informações sobre o Modelo de Autenticação utilizado.
+

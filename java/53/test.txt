@@ -1,0 +1,3054 @@
+"use client";
+
+import * as React from "react";
+import {
+  ColumnDef,
+  SortingState,
+  VisibilityState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+
+import { parse, format } from "date-fns";
+
+import { DynamicIcon } from "@/components/ui/DynamicIcon";
+
+// Adicionadas as importações para o container e utilitários
+import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"; // Você já tinha esses, mas garantindo que estão aqui
+
+let silentReload: (() => void) | null = null;
+
+function updateMitra() {
+  silentReload?.();
+}
+
+const getIconComponent = (name?: string): string => {
+  if (!name) return "HelpCircle"; // fallback
+
+  const nameMap: Record<string, string> = {
+    "delete": "Trash2",
+    "trash": "Trash2",
+    "view": "Eye",
+    "copy": "Share",
+    "share": "Share",
+    "close": "X",
+    "cancel": "X",
+    "arrow-down": "ArrowDown",
+    "arrowup": "ArrowUp",
+    "arrow-up": "ArrowUp",
+    "warning": "AlertTriangle",
+    "error": "AlertCircle",
+    "file": "FileText",
+    "eye-off": "EyeOff",
+    "help": "HelpCircle",
+    "alert-circle": "AlertCircle", 
+    "image-off": "ImageOff",
+    "no-image": "ImageOff",
+  };
+
+  const normalized = name.trim().toLowerCase();
+
+  // 1. Se existir no mapa, retorna o alias
+  if (nameMap[normalized]) return nameMap[normalized];
+
+  // 2. Se já estiver em PascalCase, retorna direto
+  if (/^[A-Z][a-zA-Z0-9]+$/.test(name)) return name;
+
+  // 3. Converte qualquer coisa para PascalCase
+  const pascal = normalized
+    .split(/[-_\s]/)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join("");
+
+  return pascal || "HelpCircle"; // fallback final
+};
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+
+function waitIndefinitely<T>(promise: Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const attempt = async () => {
+      try {
+        const result = await promise;
+        resolve(result);
+      } catch (err: any) {
+        const message = String(err?.message || err || "").toLowerCase();
+        if (message.includes("timeout") || message.includes("aguardar resposta da interação")) {
+          console.warn("Timeout ignorado, aguardando indefinidamente a resposta do form...");
+          setTimeout(attempt, 1000); // tenta novamente após 1s
+        } else {
+          reject(err); // erro real
+        }
+      }
+    };
+    attempt();
+  });
+}
+
+// --- Funções nativas Mitra ---------------------------------
+declare function queryMitra(options: {
+  query: string;
+  jdbcId?: number;
+}): Promise<{ headers: { name: string; dataType: string }[]; data: any[][] }>;
+declare function setVariableMitra(variable: {
+  name: string;
+  content: any;
+}): Promise<void>;
+declare function dbactionMitra(scriptId: number): Promise<void>;
+declare function formMitra(options: { id: number; contentId?: any }): void;
+declare function modalMitra(options: {
+  id: number;
+  width?: number;
+  height?: number;
+}): void;
+function safeModalMitra(opts: { id: number; width?: number; height?: number; reload?: boolean; floating?: boolean }) {
+  // usa os valores de parseTamanhoModal como fallback global
+  const defaultWidth = parseTamanhoModal.width || 100;
+  const defaultHeight = parseTamanhoModal.height || 100;
+
+  const payload: any = {
+    id: opts.id,
+    width: (opts.width !== undefined ? opts.width : defaultWidth),
+    height: (opts.height !== undefined ? opts.height : defaultHeight),
+    reload: (opts.reload !== undefined ? opts.reload : false),
+   floating: (opts.floating !== undefined ? opts.floating : false),
+  };
+
+  if (typeof opts.reload === "boolean") payload.reload = opts.reload;
+  if (typeof opts.floating === "boolean") payload.floating = opts.floating;
+
+  modalMitra(payload);
+}
+  
+declare function actionMitra(options: {
+  id: number;
+}): Promise<void>;
+
+//  --- Tipos ---------------------------------------------------
+export interface DataRow {
+  ID: number;
+  TITULO: string;
+  DATA_LIMITE: string;
+  TIPOTAREFA: string;
+  ID_RESPONSAVEL: string | number | null;
+  ID_TESTER: string | number | null;
+  STATUS: string | null;
+  [key: string]: any;
+}
+
+export interface ActionConfigItem {
+  label: string;
+  isSeparator?: boolean;
+  condition?: (rowData: DataRow) => boolean;
+  interaction: string;
+  setRowIdVariable?: string;
+  mitraFormContentIdField?: keyof DataRow | string;
+  mitraModalWidth?: number;
+  mitraModalHeight?: number;
+}
+
+export interface AddButtonConfig {
+  label: string;
+  icon: string;
+  interactionColumn: string;
+  bgColor?: string;
+  textColor?: string;
+}
+
+export interface ColumnDefinition {
+  columnName: string;
+  headerName?: string;
+  dataField: string;
+  columnType:
+    | "data_text"
+    | "data_number"
+    | "data_boolean_checkbox"
+    | "action_button"
+    | "input_text"
+    | "input_number"
+    | "input_date"
+    | "input_dropdown"
+    | "action_buttons_group"
+    | "data_iconphoto";
+  position?: number;
+  headerAlignment?: "left" | "center" | "right";
+  cellAlignment?: "left" | "center" | "right";
+  dropdownOptions?: Array<{ label: string; value: string | number | boolean }>;
+  dropdownOptionsWithQuery?: string;
+  buttonText?: string;
+  onValueChangeDBActionID?: number;
+  onValueChangeMitraVariable?: string;
+  setRowIdForChangeDBAction?: string;
+   interactionColumn?: string;
+  setRowIdVariableForButton?: string;
+  mitraModalWidthForButton?: number;
+  mitraModalHeightForButton?: number;
+  enableSorting?: boolean;
+  enableHiding?: boolean;
+  cellClassName?: string;
+  width?: string;
+  buttonVariant?: "destructive" | "normal";
+  disabledControlColumn?: string;
+  inputDateFormat?: string;
+  imageField?: string;
+  iconField?: string;
+  imageShape?: 'circle' | 'rounded' | 'square';
+  iconColorField?: string;
+  iconBgColor1Field?: string;
+  iconBgColor2Field?: string;
+enableTotalizer?: string;
+  // ─── config p/ grupo de botões ───
+  buttonsGroupConfig?: {
+    setRowIdVariable: string; // variável comum a todo o grupo
+    buttons: {
+      icon: string; // nome do ícone (material-icons)
+      hoverText: string;
+      bgColor?: string;
+      iconColor?: string;
+      interactionColumn: string;
+      queryColumn?: string;
+    }[];
+  };
+}
+
+
+
+// --- Configurações globais ----------------------------------
+const TAREFA_SQL_QUERY = componentData.query;
+export const rowActionsConfig: ActionConfigItem[] = [];
+let baseColumnJSON: ColumnDefinition[] = [];
+let columnsParseError: string | null = null;
+const HEADER_BUTTONS_CONFIG: AddButtonConfig[] = (() => {
+  const raw = componentData.headerButtons;
+  if (!raw) return [];
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed)
+        ? parsed.filter((btn) => btn && typeof btn.interaction === "string")
+        : [];
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(raw)
+    ? raw.filter((btn) => btn && typeof btn.interaction === "string")
+    : [];
+})();
+
+// --- JDBC datasource (configurável; fallback = 1) ------------
+const JDBC_ID: number = (() => {
+  const raw = (componentData as any)?.jdbcId;
+  const n = Number(typeof raw === "string" ? raw.trim() : raw);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+})();
+
+// ADICIONADO: Variáveis do container personalizável
+const { title, subtitle, showBorder, tamanhoModal, closeModalOnReload, tableDesign  } = componentData;
+const MODAL_RELOAD_BEHAVIOR = closeModalOnReload === true || closeModalOnReload === "true";
+const IMAGE_FORMAT = componentData.imageFormat || "circle";
+const TABLE_DESIGN = (tableDesign || "classic").toLowerCase();
+const VARIABLE_SEARCH: string = (componentData.variableSearch || "").toString().trim();
+const LIVE_SEARCH = true;
+// --- Header com subgrupos (pivô por FK) ---
+// FK que vira grupos (ORC 1, ORC 2, ORC 3...)
+const X_AXIS_FK_COLUMN: string = (componentData.xAxisFkColumn || "").toString().trim();
+// rótulo do grupo (se vazio, usa a própria FK)
+const X_AXIS_LABEL_COLUMN: string = (componentData.xAxisLabelColumn || "").toString().trim();
+// coluna que define a “linha” (ex.: ORCAMENTISTA) — usada para pivotar
+const X_AXIS_ROW_KEY_COLUMN: string = (componentData.xAxisRowKeyColumn || "").toString().trim();
+// colunas fixas (ficam à esquerda, 1x só)
+const X_AXIS_FIXED_COLUMNS: string[] = (() => {
+  const raw = componentData.xAxisFixedColumns;
+  if (!raw) return [];
+  try { return Array.isArray(raw) ? raw : JSON.parse(String(raw)); } catch { return String(raw).split(","); }
+})();
+// pivô liga automaticamente se houver FK
+const XAXIS_HEADER_SUBGROUPS: boolean = !!X_AXIS_FK_COLUMN;
+// (opcional) se vier, usa; se não, vamos derivar automaticamente lá no render
+const X_AXIS_DETAIL_COLUMNS_RAW: string[] = (() => {
+  const raw = (componentData as any).xAxisDetailColumns;
+  if (!raw) return [];
+ try { return Array.isArray(raw) ? raw : JSON.parse(String(raw)); } catch { return String(raw).split(","); }
+})();
+
+
+const parseTamanhoModal = (() => {
+  const raw = componentData.tamanhoModal; //  pega diretamente do componentData
+  if (typeof raw === "string" && /^\d+:\d+$/.test(raw)) {
+    const [w, h] = raw.split(":").map(Number);
+    return { width: w, height: h };
+  }
+  return { width: 100, height: 100 }; //  fallback default
+})();
+
+
+let buttonsGroupConfig: ColumnDefinition["buttonsGroupConfig"] | null = null;
+try {
+  const rawBGC = componentData.buttonsGroupConfig;
+  if (rawBGC && String(rawBGC).trim() !== "") {
+    let parsed: any;
+    if (typeof rawBGC === "string") {
+      const s = rawBGC.trim();
+      try { parsed = JSON.parse(s); }
+      catch { parsed = eval(`(${s})`); }
+    } else {
+      parsed = rawBGC;
+    }
+    if (Array.isArray(parsed)) {
+      buttonsGroupConfig = {
+        setRowIdVariable: componentData.setRowIdVariableBotaoGrupo || "ID",
+        buttons: parsed,
+      };
+    }
+  }
+} catch {
+  console.warn("buttonsGroupConfig inválido (ignorado).");
+}
+
+let iconPhotoColumns: ColumnDefinition[] = [];
+if (componentData.iconPhotoColumnsConfig) {
+  try {
+    const parsedIconPhotoConfig =
+      typeof componentData.iconPhotoColumnsConfig === "string"
+        ? JSON.parse(componentData.iconPhotoColumnsConfig)
+        : componentData.iconPhotoColumnsConfig;
+
+    if (Array.isArray(parsedIconPhotoConfig)) {
+      iconPhotoColumns = parsedIconPhotoConfig.map(
+        (config: Partial<ColumnDefinition>) => {
+          // AQUI ESTÁ A CORREÇÃO:
+          // 1. Espalha a configuração do usuário primeiro.
+          // 2. Define/sobrescreve os valores padrão e obrigatórios depois.
+          return {
+            ...config,
+            columnType: "data_iconphoto",
+            dataField: config.columnName!,
+            headerName: config.headerName || config.columnName,
+            width: config.width || "60px", // Agora o padrão funciona se width for ""
+            cellAlignment: "center",
+            headerAlignment: "center",
+            enableSorting: false,
+            enableHiding: true,
+             imageShape: config.imageShape || 'circle',
+                __isIconColumn: true, //  marca que é coluna de ícone
+            // Garante que a posição seja um número para a ordenação
+position:
+        config.position !== undefined && config.position !== ""
+          ? Number(config.position)
+          : undefined,
+          };
+        }
+      );
+    }
+  } catch (e) {
+    console.error("Erro ao processar a variável iconPhotoColumnsConfig:", e);
+    columnsParseError = "A variável 'iconPhotoColumnsConfig' está inválida.";
+  }
+}
+
+
+try {
+  // 1. Processa as colunas JSON (sem parse em string vazia)
+  const rawColumns = componentData.columns;
+  const parsedColumns = Array.isArray(rawColumns)
+    ? rawColumns
+    : (typeof rawColumns === "string" && rawColumns.trim() !== ""
+        ? JSON.parse(rawColumns)
+        : []);
+
+  // (Validações essenciais — só se houver colunas)
+  if (!Array.isArray(parsedColumns)) {
+    throw new Error("A variável 'columns' não é um array válido.");
+  }
+  if (parsedColumns.length === 0) {
+    baseColumnJSON = [];
+  } else {
+    const hasInvalidColumnName = parsedColumns.some(
+      (col) => !col || col.columnName === null || col.columnName === undefined || String(col.columnName).trim() === ""
+    );
+    if (hasInvalidColumnName) {
+      throw new Error("Toda coluna na variável 'columns' precisa ter um 'columnName' válido.");
+    }
+    const hasMissingColumnType = parsedColumns.some((col) => !col || !col.columnType);
+    if (hasMissingColumnType) {
+      throw new Error("Toda coluna na variável 'columns' precisa ter um 'columnType'.");
+    }
+
+  // 2. Junta APENAS as colunas de conteúdo (gerais e de ícone)
+  // A coluna de ações será tratada depois da ordenação
+  const contentColumns = [
+    ...parsedColumns,
+    ...iconPhotoColumns,
+  ];
+
+  // 3. Adiciona um índice original para preservar a ordem de fallback
+  const indexedColumns = contentColumns.map((c: any, index: number) => ({
+    ...c,
+    __originalIndex: index,
+  }));
+
+  // 4. Normaliza a propriedade 'position' em todas as colunas de conteúdo
+  indexedColumns.forEach((col) => {
+    col.position =
+      col.position !== undefined && col.position !== ""
+        ? Number(col.position)
+        : undefined;
+  });
+
+ // 5. Aplica a lógica de posicionamento manual com preenchimento dinâmico
+const positionedColumns: (typeof indexedColumns[0] | null)[] = [];
+const nonPositionedColumns: typeof indexedColumns = [];
+
+// Separa colunas com e sem posição
+for (const col of indexedColumns) {
+  if (col.position !== undefined) {
+    positionedColumns[col.position - 1] = col; // Posição começa no 1
+  } else {
+    nonPositionedColumns.push(col);
+  }
+}
+
+// Preenche buracos com as não posicionadas (na ordem original)
+for (let idx = 0; idx < positionedColumns.length + nonPositionedColumns.length; idx++) {
+  if (!positionedColumns[idx]) {
+    const next = nonPositionedColumns.shift();
+    if (next) positionedColumns[idx] = next;
+  }
+}
+
+// Remove __originalIndex e nulos restantes
+positionedColumns.forEach((col) => col && delete (col as any).__originalIndex);
+
+// Define a ordem final
+baseColumnJSON = positionedColumns.filter(Boolean) as ColumnDefinition[];
+  }
+
+  // 6. FINALMENTE: Se a coluna de Ações existir, adiciona ela ao FINAL da lista
+  // Isso garante que ela será sempre a última, ignorando qualquer 'position'
+  if (buttonsGroupConfig) {
+    const actionsColumn: ColumnDefinition = {
+      columnName: "Ações",
+      dataField: "__actions__",
+      columnType: "action_buttons_group",
+      headerName: "Ações",
+      cellAlignment: "center",
+      headerAlignment: "center",
+      enableSorting: false,
+      enableHiding: false,
+      width: "120px",
+      buttonsGroupConfig: buttonsGroupConfig,
+      // A propriedade 'position' é intencionalmente ignorada aqui
+    };
+    baseColumnJSON.push(actionsColumn);
+  }
+} catch (err: any) {
+  console.error("Erro ao processar as configurações das colunas:", err);
+  columnsParseError =
+    err.message || "A variável 'columns' ou 'buttonsGroupConfig' está inválida.";
+}
+
+const DEFAULT_HEADER_CLASS = "text-center";
+const DEFAULT_CELL_CLASS = "text-left";
+
+// ── utilidades para formato numérico brasileiro ─────────────
+const formatNumberBR = (value: any) =>
+  typeof value === "number"
+    ? new Intl.NumberFormat("pt-BR").format(value)
+    : value;
+
+const parseNumberBR = (str: string) => {
+  if (!str) return NaN;
+  return parseFloat(str.replace(/\./g, "").replace(",", "."));
+};
+
+const toNumberStrict = (v: any) => {
+  if (v === null || v === undefined || v === "") return NaN;
+  return typeof v === "number" ? v : parseNumberBR(String(v));
+};
+
+// ==== AUTO: ID => 0 casas | demais => 2 casas ====
+const roundN = (n: number, places: number) => {
+  if (!isFinite(n)) return NaN;
+  const f = Math.pow(10, places);
+  return Math.round(n * f) / f;
+};
+
+const formatNumberBRN = (value: any, places: number) => {
+  const num = typeof value === "number" ? value : toNumberStrict(value);
+  if (!isFinite(num)) return ""; // CORREÇÃO: Retorna uma string vazia no lugar de NaN
+  if (places === 0) {
+    // ...
+    return new Intl.NumberFormat("pt-BR", {
+      maximumFractionDigits: 0,
+      useGrouping: false, // ID “seco”
+    }).format(Math.trunc(num));
+  }
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: places,
+    maximumFractionDigits: places,
+  }).format(roundN(num, places));
+};
+
+// Decide automaticamente: parece ID? 0 casas. Senão, 2 casas.
+const getDecimalPlacesForColumn = (colDef: ColumnDefinition) => {
+  const idRegex = /(^id$)|(^id_)|(_id$)/i;
+  const looksLikeId =
+    idRegex.test(colDef.columnName ?? "") || idRegex.test(colDef.dataField ?? "");
+  return looksLikeId ? 0 : 2;
+};
+
+
+// --- utilidade para converter datas em formatos específicos ---
+const parseToYYYYMMDD = (dateStr: any, customFormat?: string): string => {
+  // LOG 1: O que a função recebeu?
+  console.log(`[parseToYYYYMMDD] Recebido:`, { dateStr, customFormat });
+
+  if (!dateStr) return "";
+
+  const trimmedDateStr = String(dateStr).trim();
+
+  if (customFormat) {
+    try {
+      const parsedDate = parse(trimmedDateStr, customFormat, new Date());
+      if (!isNaN(parsedDate.getTime())) {
+        const result = format(parsedDate, "yyyy-MM-dd");
+        // LOG 2: Sucesso na conversão!
+        console.log(`[parseToYYYYMMDD] Sucesso! Convertido para:`, result);
+        return result;
+      } else {
+        // LOG 3: Falha no parse, data inválida
+        console.warn(
+          `[parseToYYYYMMDD] A data "${trimmedDateStr}" resultou em uma data inválida com o formato "${customFormat}".`
+        );
+        return "";
+      }
+    } catch (e) {
+      // LOG 4: Erro na biblioteca
+      console.error(`[parseToYYYYMMDD] Erro da biblioteca date-fns:`, e);
+      return "";
+    }
+  }
+
+  // Fallback (não deve ser usado no seu caso, mas mantemos por segurança)
+  try {
+    const standardDate = new Date(trimmedDateStr);
+    if (!isNaN(standardDate.getTime())) {
+      return standardDate.toISOString().split("T")[0];
+    }
+  } catch {}
+
+  console.log(`[parseToYYYYMMDD] Não foi possível converter a data.`);
+  return "";
+};
+// ——————————————————————————————————————————————
+
+function deriveHeaderClass(col: ColumnDefinition): string {
+  // Prioriza o alinhamento definido pelo usuário
+  if (col.headerAlignment) {
+    switch (col.headerAlignment) {
+      case "left":
+        return "text-left";
+      case "center":
+        return "text-center";
+      case "right":
+        return "text-right";
+    }
+  }
+
+  // considera “ID” apenas se for a palavra inteira ou prefixo/sufixo (_id, id_)
+  const idRegex = /(^id$)|(^id_)|(_id$)/i;
+  const isIdInName =
+    idRegex.test(col.columnName ?? "") || idRegex.test(col.dataField ?? "");
+
+  if (col.columnType === "data_number") {
+    return isIdInName ? "text-left" : "text-right";
+  }
+
+  switch (col.columnType) {
+    case "data_number":
+      return "text-right";
+    case "data_text":
+      return "text-left";
+    case "input_date":
+    case "data_boolean_checkbox":
+    case "action_button":
+    case "action_buttons_group":
+    case "input_text":
+    case "input_number":
+    case "input_dropdown":
+    case "data_iconphoto":
+      return "text-center";
+    default:
+      return "text-left";
+  }
+}
+const VAR_ROW_ID_FOR_CHANGE_DB = componentData.setRowIdForChangeDBAction;
+const VAR_ON_CHANGE_VALUE = componentData.onValueChangeMitraVariable;
+
+// --- Geração de colunas -------------------------------------
+function generateColumns(
+  definitions: ColumnDefinition[],
+  dynamicOptionsMap: {
+    [key: string]: Array<{ label: string; value: string | number | boolean }>;
+  },
+  reloadData: (silent?: boolean) => Promise<void>,
+  updateCellValue: (
+    rowId: number | string,
+    field: string,
+    newValue: any
+  ) => void,
+  density: "compacto" | "normal" , // Recebemos o novo parâmetro
+   resolveKey: (k?: string) => string,
+  getCI: (obj: Record<string, any>, k?: string) => any,
+  getRowId: (row: Record<string, any>) => string | number | undefined,
+  clearXAxisSort: () => void
+): ColumnDef<DataRow>[] {
+  const isCompact = density === "compacto";
+  const INPUT_HEIGHT_CLASS = isCompact ? "h-6" : "h-7";
+
+  return definitions.map((colDef) => {
+    const effectiveWidth =
+  colDef.width && String(colDef.width).trim() !== ""
+    ? colDef.width
+    : colDef.columnType === "data_iconphoto"
+      ? "50px"
+      : colDef.columnType === "action_buttons_group"
+        ? "160px"
+        : "130px";
+
+const columnDefInternal: Partial<ColumnDef<DataRow>> & {
+  accessorKey?: keyof DataRow | string;
+  width?: string;
+  headerClassName?: string;
+} = {
+id: colDef.columnName,
+ accessorKey: resolveKey(colDef.dataField),
+  width: effectiveWidth,
+header: ({ column: tableColumn }) => {
+// ícone da ordenação para o cabeçalho
+  const getSortIconName = (dir: false | "asc" | "desc") => {
+   if (dir === "asc") return "ArrowUp";
+    if (dir === "desc") return "ArrowDown";
+    return "ArrowUpDown";
+  };
+
+  const dir = tableColumn.getIsSorted();
+const sortIcon = getSortIconName(dir);
+  const isSorted = dir === "asc" || dir === "desc";
+
+  // índice da coluna na ordenação quando houver multi-sort (Shift+clique)
+  const sortIndex =
+    typeof tableColumn.getSortIndex === "function"
+      ? tableColumn.getSortIndex()
+      : undefined;
+
+    window.updateMitra = () => {
+      reloadData(true)
+     }
+
+const cycleSorting = (e?: React.SyntheticEvent) => {
+  e?.stopPropagation();
+   clearXAxisSort();
+  if (!dir) {
+    // 1º clique → asc
+    tableColumn.toggleSorting(false);
+  } else if (dir === "asc") {
+    // 2º clique → desc
+    tableColumn.toggleSorting(true);
+  } else {
+    // 3º clique → remove ordenação
+    if (typeof tableColumn.clearSorting === "function") {
+      tableColumn.clearSorting();
+    } else {
+      tableColumn.toggleSorting(true);
+    }
+  }
+};
+
+const canSort = tableColumn.getCanSort(); // <-- Variável de controle
+
+const headerContent = (
+  <div
+    className={cn("inline-flex items-center gap-1 min-w-0 select-none")}
+    role={canSort ? "button" : undefined}
+   tabIndex={canSort ? 0 : undefined}
+    onClick={canSort ? cycleSorting : undefined}
+    onKeyDown={
+      canSort
+        ? (ev) => {
+            if (ev.key === "Enter" || ev.key === " ") cycleSorting(ev);
+          }
+        : undefined
+    }
+    aria-label={canSort ? "Ordenar coluna" : undefined}
+    aria-sort={
+      canSort ? (!dir ? "none" : dir === "asc" ? "ascending" : "descending") : undefined
+    }
+    title={
+      canSort
+        ? !dir
+          ? "Clique para ordenar crescente"
+          : dir === "asc"
+          ? "Clique para ordenar decrescente"
+          : "Clique para remover ordenação"
+        : ""
+    }
+    style={{ cursor: canSort ? "pointer" : "default" }}
+  >
+    <span className={cn("truncate", isSorted && "underline")}>
+      {colDef.headerName || colDef.columnName}
+    </span>
+    {/* setinha só aparece quando estiver ordenado */}
+    {isSorted && (
+      <span className="relative inline-flex items-center">
+        <DynamicIcon name={sortIcon} className="h-4 w-4" />
+      </span>
+    )}
+  </div>
+);
+
+    // alinhamento default calculado
+  let headerAlignmentClass = deriveHeaderClass(colDef);
+  // se estamos em modo subcolunas e NÃO existe headerAlignment explícito na coluna,
+  // forçamos centralizar o header (somente header)
+  if (XAXIS_HEADER_SUBGROUPS && !colDef.headerAlignment) {
+    headerAlignmentClass = "text-center";
+  }
+
+  const justifyClass = headerAlignmentClass.includes("text-left")
+    ? "justify-start"
+    : headerAlignmentClass.includes("text-right")
+    ? "justify-end"
+    : "justify-center";
+
+return (
+  <div className={`flex items-center w-full h-full ${justifyClass}`}>
+    {headerContent}
+  </div>
+);
+
+},
+
+      cell: ({ row }) => {
+        const currentDataRow = row.original as DataRow;
+        const initialValue = getCI(currentDataRow, colDef.dataField);
+
+        const cellClassNameFromDef = (() => {
+          // Prioriza alinhamento definido pelo usuário
+          if (colDef.cellAlignment) {
+            switch (colDef.cellAlignment) {
+              case "left":
+                return "text-left";
+              case "center":
+                return "text-center";
+              case "right":
+                return "text-right";
+            }
+          }
+
+const idRegex = /(^id$)|(^id_)|(_id$)/i;
+          const isIdInName =
+            idRegex.test(colDef.columnName ?? "") ||
+            idRegex.test(colDef.dataField ?? "");
+
+          if (colDef.columnType === "data_number") {
+            return isIdInName ? "text-left" : "text-right";
+          }
+
+          switch (colDef.columnType) {
+            case "data_number":
+              return "text-right";
+            case "data_text":
+              return "text-left";
+            case "input_date":
+            case "data_boolean_checkbox":
+            case "action_button":
+            case "action_buttons_group":
+            case "input_text":
+            case "input_number":
+            case "input_dropdown":
+                  case "data_iconphoto":
+              return "text-center";
+            default:
+              return "text-left";
+          }
+        })();
+        let isDisabled = false;
+        if (colDef.disabledControlColumn) {
+          const controlValue = getCI(currentDataRow, colDef.disabledControlColumn);
+          if (controlValue === 0) {
+            isDisabled = true;
+          }
+        }
+
+        const handleCellGenericMitraAction = async (
+          interaction: string | undefined,
+          rowIdVariableToSet: string | undefined,
+          formContentIdDataField: keyof DataRow | string | undefined,
+          modalW: number | undefined,
+          modalH: number | undefined
+        ) => {
+        if (!interaction) return;
+        const [type, idStr] = interaction.split(":");
+         const id = Number(idStr);
+          
+          const rowIdVal = getRowId(currentDataRow);
+          if (VAR_ROW_ID_FOR_CHANGE_DB && rowIdVal !== undefined) {
+            await setVariableMitra({
+              name: VAR_ROW_ID_FOR_CHANGE_DB,
+              content: rowIdVal,
+            });
+          }
+
+          switch (type) {
+           case "dbaction":
+             await dbactionMitra({ id });
+              await reloadData(true);
+              updateComponentsMitra({ all: true});
+              break;
+
+            case "form":
+             await waitIndefinitely(formMitra({ id, contentId: rowIdVal }));
+              await reloadData(true);
+              updateComponentsMitra({ all: true});
+              break;
+
+            case "modal":
+safeModalMitra({
+  id,
+  width: modalW,
+  height: modalH,
+  floating: false,
+  reload: MODAL_RELOAD_BEHAVIOR
+});
+              break;
+
+            case "action":
+              await actionMitra({ id });
+              await reloadData(true);
+              updateComponentsMitra({ all: true});
+              break;
+          }
+        };
+
+        switch (colDef.columnType) {
+       case "data_iconphoto": {
+  const photoField = colDef.imageField?.trim() || null;
+ const photo = photoField ? getCI(currentDataRow, photoField) : null;
+
+  const iconField = colDef.iconField?.trim() || null;
+  const rawIcon = iconField ? getCI(currentDataRow, iconField) : null;
+  const icon = rawIcon ? getIconComponent(String(rawIcon)) : null;
+
+  const iconColor = getCI(currentDataRow, colDef.iconColorField || "corIcone") || undefined;
+
+   const bg1 = getCI(currentDataRow, colDef.iconBgColor1Field || "bg1") || "transparent";
+   const bg2 = getCI(currentDataRow, colDef.iconBgColor2Field || "bg2");
+
+  const shapeClass =
+    colDef.imageShape === "circle"
+      ? "rounded-full"
+      : colDef.imageShape === "rounded"
+      ? "rounded-lg"
+      : "rounded-none";
+
+  // NOVO: estado local para erro de imagem
+  const [imgError, setImgError] = React.useState(false);
+
+  // NOVO: componente de fallback (foto 2)
+ const BrokenImage = () => (
+  <div
+    className={`w-7 h-7 flex items-center justify-center ${shapeClass}`}
+    style={{ background: "#E5E7EB" }} // cinza claro
+    title="Imagem não disponível"
+    aria-label="Imagem não disponível"
+  >
+    <DynamicIcon 
+      name="ImageOff" 
+      className="w-4 h-4" 
+      style={{ color: "#64748b" }} // ← cor pedida
+    />
+  </div>
+);
+
+  return (
+    <div className="flex items-center justify-center w-full">
+      {/* 1) se tem URL e não quebrou, tenta carregar */}
+      {photo && !imgError ? (
+        <img
+          src={photo}
+          alt="avatar"
+          className={`w-7 h-7 object-cover border border-[#E7E8F0] ${shapeClass}`}
+          onError={() => setImgError(true)} // <-- troca para fallback “foto 2”
+          loading="lazy"
+        />
+      ) : /* 2) se houver ícone (sem foto ou foto quebrou), usa o ícone */
+      icon ? (
+        <div
+          className={`w-7 h-7 flex items-center justify-center ${shapeClass}`}
+          style={{
+            background: bg2 ? `linear-gradient(135deg, ${bg1}, ${bg2})` : bg1,
+          }}
+        >
+          <DynamicIcon
+            name={icon}
+            className="w-4 h-4"
+            /* se vier tailwind em iconColor (ex: 'text-slate-700'), use className;
+               se vier cor CSS (#hex/rgb), use style. Mantemos className básico: */
+            style={
+              iconColor && /^#|rgb|hsl/.test(String(iconColor))
+                ? { color: String(iconColor) }
+                : undefined
+            }
+          />
+        </div>
+      ) : (
+        /* 3) fallback padrão quando não há foto nem ícone */
+        <BrokenImage />
+      )}
+    </div>
+  );
+}
+
+case "data_text":
+case "data_number": {
+  const places = getDecimalPlacesForColumn(colDef);
+  return (
+    <div className={`${cellClassNameFromDef} truncate`}>
+      {colDef.columnType === "data_number"
+        ? formatNumberBRN(toNumberStrict(initialValue), places) // ID → 0 casas; outros → 2
+        : String(initialValue ?? "")}
+    </div>
+  );
+}
+
+
+
+        // ───────── GRUPO DE BOTÕES ─────────
+          case "action_buttons_group":
+            if (!colDef.buttonsGroupConfig) return null;
+
+            return (
+              <div
+                className={`${cellClassNameFromDef} flex gap-1 justify-center`}
+              >
+                {colDef.buttonsGroupConfig.buttons.map((btn, idx) => {
+                  if (btn.queryColumn && getCI(currentDataRow, btn.queryColumn) !== 1)
+                    return null;
+                  
+                  //  ALTERAÇÃO: Pega a interação da coluna da query
+                  if (!btn.interactionColumn) {
+                      console.error(`Botão '${btn.hoverText}' não tem 'interactionColumn' definida.`);
+                      return null;
+                  }
+                  const interaction = getCI(currentDataRow, btn.interactionColumn) as string | undefined;
+
+                  const IconComponent = getIconComponent(btn.icon);
+                  const hasCustomColor = !!btn.bgColor;
+
+                  return (
+                    <Button
+                      key={idx}
+                      title={btn.hoverText}
+                      disabled={!interaction} // Desabilita se não houver interação
+                      onClick={() => {
+                          if (interaction) {
+                              handleCellGenericMitraAction(
+                                  interaction,
+                                  colDef.buttonsGroupConfig?.setRowIdVariable,
+                                  undefined,
+                                  undefined,
+                                  undefined
+                              );
+                          }
+                      }}
+                      variant="ghost"
+                      className={`w-7 h-7 p-0 aspect-square rounded-md flex items-center justify-center transition ${
+                        hasCustomColor
+                          ? "text-white hover:opacity-90"
+                          : "bg-white text-slate-700 border border-slate-300 hover:!bg-slate-100"
+                      }`}
+                      style={{
+                        ...(hasCustomColor && { backgroundColor: btn.bgColor }),
+                        ...(btn.iconColor && { color: btn.iconColor }),
+                      }}
+                    >
+                      {IconComponent ? (
+                        <DynamicIcon name={IconComponent} className="w-5 h-5" />
+                      ) : (
+                        <span className="text-xs">?</span>
+                      )}
+                    </Button>
+                  );
+                })}
+              </div>
+            );
+
+          case "data_boolean_checkbox":
+            const isChecked = getCI(currentDataRow, colDef.dataField);
+            const checked = isChecked === true || isChecked === 1 || isChecked === "1" || isChecked === "true";
+            return (
+              <div className={`${cellClassNameFromDef}`}>
+                <Checkbox
+                  checked={checked}
+                  disabled={isDisabled}
+                  onCheckedChange={async (checkedState) => {
+                    const newValue = checkedState === true ? 1 : 0;
+
+                    const rowIdVal = getRowId(currentDataRow);
+                    if (VAR_ROW_ID_FOR_CHANGE_DB && rowIdVal !== undefined) {
+                      await setVariableMitra({
+                        name: VAR_ROW_ID_FOR_CHANGE_DB,
+                        content: rowIdVal,
+                      });
+                    }
+
+                    const variableName = colDef.onValueChangeMitraVariable || VAR_ON_CHANGE_VALUE;
+if (variableName) {
+  await setVariableMitra({
+    name: variableName,
+    content: newValue,
+  });
+}
+
+                    if (colDef.onValueChangeDBActionID !== undefined) {
+                      await dbactionMitra({
+                        id: colDef.onValueChangeDBActionID,
+                      });
+
+                      updateCellValue(rowIdVal as any, resolveKey(colDef.dataField), newValue);
+                      await reloadData(true);
+                      updateComponentsMitra({ all: true});
+                    }
+                  }}
+                />
+              </div>
+            );
+
+         case "action_button":
+            // ALTERAÇÃO 3: Pega a interação da coluna especificada para o action_button
+            if (!colDef.interactionColumn) {
+                console.error(`Coluna '${colDef.columnName}' não tem 'interactionColumn' definida.`);
+                return <div className="text-red-500 text-xs">Erro de Config.</div>;
+            }
+            const interaction = getCI(currentDataRow, colDef.interactionColumn) as string | undefined;
+
+            return (
+                <div className={cellClassNameFromDef}>
+                    <Button
+                        variant={colDef.buttonVariant === "destructive" ? "destructive" : "outline"}
+                        size="sm"
+                        // Desabilita o botão se a interação não for encontrada
+                        disabled={!interaction}
+                        onClick={() => {
+                            // ALTERAÇÃO 4: Passa a interação dinâmica para o handler
+                            if (interaction) {
+                                handleCellGenericMitraAction(
+                                    interaction,
+                                    colDef.setRowIdVariableForButton,
+                                    getRowId(currentDataRow) as any,
+                                    colDef.mitraModalWidthForButton || parseTamanhoModal.width,
+                                    colDef.mitraModalHeightForButton || parseTamanhoModal.height
+                                );
+                            }
+                        }}
+                    >
+                        {colDef.buttonText || "Ação"}
+                    </Button>
+                </div>
+            );
+
+         case "input_text":
+case "input_number": {
+  const places = getDecimalPlacesForColumn(colDef);
+
+  return (
+    <div className={`${cellClassNameFromDef}`}>
+      <Input
+        key={`${getRowId(row.original)}-${initialValue}`}
+        type="text"
+        defaultValue={
+          colDef.columnType === "input_number"
+            ? formatNumberBRN(toNumberStrict(initialValue), places) // casas dinâmicas
+            : String(initialValue ?? "")
+        }
+        disabled={isDisabled}
+        onBlur={async (e) => {
+          const raw = e.target.value;
+          let finalNewValue: any;
+
+          if (colDef.columnType === "input_number") {
+            const parsed = parseNumberBR(raw);
+            finalNewValue = isNaN(parsed) ? null : roundN(parsed, places); // mesmas casas
+          } else {
+            finalNewValue = raw;
+          }
+
+          if (String(initialValue ?? "") === String(finalNewValue)) return;
+
+          let needsReload = false;
+
+          const rowIdVal = getRowId(currentDataRow);
+          if (VAR_ROW_ID_FOR_CHANGE_DB && rowIdVal !== undefined) {
+            await setVariableMitra({ name: VAR_ROW_ID_FOR_CHANGE_DB, content: rowIdVal });
+          }
+
+          const variableNameForInput = colDef.onValueChangeMitraVariable || VAR_ON_CHANGE_VALUE;
+          if (variableNameForInput) {
+            await setVariableMitra({ name: variableNameForInput, content: finalNewValue });
+            needsReload = true;
+          }
+
+          if (colDef.onValueChangeDBActionID !== undefined) {
+            await dbactionMitra({ id: colDef.onValueChangeDBActionID });
+            needsReload = true;
+            updateComponentsMitra({ all: true });
+          }
+
+          if (needsReload) {
+            updateCellValue(rowIdVal as any, resolveKey(colDef.dataField), finalNewValue);
+            await reloadData(true);
+            updateComponentsMitra({ all: true });
+          }
+        }}
+        className={`text-sm truncate ${INPUT_HEIGHT_CLASS} w-full max-w-full`}
+        style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+      />
+    </div>
+  );
+}
+
+
+          case "input_date":
+            const formattedDate = parseToYYYYMMDD(initialValue, colDef.inputDateFormat);
+            const debounceRef = React.useRef<NodeJS.Timeout | null>(null); // ← Fora do JSX!
+
+            return (
+              <div className={`${cellClassNameFromDef} relative`}>
+                <Input
+                  key={`${getRowId(row.original)}-${formattedDate}`}
+                  type="date"
+                  defaultValue={formattedDate}
+                  disabled={isDisabled}
+                  onChange={(e) => {
+                    const finalNewValue = e.target.value;
+
+                    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+                    debounceRef.current = setTimeout(async () => {
+                      if (finalNewValue === formattedDate) return;
+ 
+                   let needsReload = false;
+ 
+                   const rowIdVal = getRowId(currentDataRow);
+                   if (VAR_ROW_ID_FOR_CHANGE_DB && rowIdVal !== undefined) {
+                     await setVariableMitra({
+                       name: VAR_ROW_ID_FOR_CHANGE_DB,
+                       content: rowIdVal,
+                     });
+                  }
+ 
+                 const variableNameForDate = colDef.onValueChangeMitraVariable || VAR_ON_CHANGE_VALUE;
+if (variableNameForDate) {
+  await setVariableMitra({
+    name: variableNameForDate,
+    content: finalNewValue,
+  });
+  needsReload = true;
+}
+ 
+                   if (colDef.onValueChangeDBActionID !== undefined) {
+                     await dbactionMitra({ id: colDef.onValueChangeDBActionID });
+                     needsReload = true;
+                     updateComponentsMitra({ all: true});
+                   }
+ 
+                   if (needsReload) {
+                     updateCellValue(
+                        rowIdVal as any,
+                       resolveKey(colDef.dataField),
+                       finalNewValue
+                     );
+                     await reloadData(true);
+                   }
+                    }, 800);
+                  }}
+                  className={`text-sm truncate ${INPUT_HEIGHT_CLASS} w-full max-w-full `}
+                  style={{
+                    maxWidth: "100%",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                />
+              </div>
+            );
+           case "input_dropdown":
+            const fieldKey = resolveKey(colDef.dataField);
+            // Tenta pelo nome resolvido e, como fallback, pelo nome cru — robusto contra LUTs estáveis
+            const effectiveOptions =
+              (dynamicOptionsMap[fieldKey] ??
+               dynamicOptionsMap[String(colDef.dataField)] ??
+               (colDef.dropdownOptions || []));
+
+            return (
+              <div className={`w-full flex justify-center`} >
+                <Select
+                  disabled={isDisabled}
+                  value={String(initialValue ?? "")}
+                 onValueChange={async (selectedValue) => {
+               if (String(initialValue ?? "") === selectedValue) return;
+ 
+               // Variável para controlar se uma recarga é necessária
+               let needsReload = false;
+ 
+               // Define a variável de ID da linha (se configurada)
+              const rowIdVal = getRowId(currentDataRow);
+               if (VAR_ROW_ID_FOR_CHANGE_DB && rowIdVal !== undefined) {
+                 await setVariableMitra({
+                   name: VAR_ROW_ID_FOR_CHANGE_DB,
+                   content: rowIdVal,
+                 });
+               }
+ 
+               // Define a variável de valor (se configurada)
+              const variableNameForSelect = colDef.onValueChangeMitraVariable || VAR_ON_CHANGE_VALUE;
+if (variableNameForSelect) {
+  await setVariableMitra({
+    name: variableNameForSelect,
+    content: selectedValue,
+  });
+  needsReload = true; // Marca para recarregar
+}
+              
+               // Executa a DBAction (se configurada)
+               if (colDef.onValueChangeDBActionID !== undefined) {
+                 await dbactionMitra({ id: colDef.onValueChangeDBActionID });
+                 needsReload = true; // Marca para recarregar
+                 updateComponentsMitra({ all: true});
+               }
+ 
+               // Se qualquer ação que necessite de refresh foi executada, recarrega a tabela
+               if (needsReload) {
+                 updateCellValue(
+                   rowIdVal as any,
+                   resolveKey(colDef.dataField),
+                   selectedValue
+                 );
+                 await reloadData(true);
+                 updateComponentsMitra({ all: true});
+               }
+             }}
+                >
+                  <SelectTrigger
+                    className={`w-full max-w-full truncate ${INPUT_HEIGHT_CLASS} px-2`}
+                    style={{
+                      maxWidth: "100%",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <SelectValue
+                      className="w-full truncate text-sm overflow-hidden text-ellipsis whitespace-nowrap"
+                      placeholder={
+                        colDef.dropdownOptionsWithQuery && effectiveOptions.length === 0
+                          ? "Carregando opções..."
+                          : colDef.headerName || colDef.columnName || "Selecione..."
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {effectiveOptions.map((opt) => (
+                      <SelectItem
+                        key={opt.value.toString()}
+                        value={opt.value.toString()}
+                        className="truncate"
+                      >
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            );
+
+          default:
+            return (
+              <div className={cellClassNameFromDef}>
+                {String(initialValue ?? "")}
+              </div>
+            );
+        }
+      },
+enableSorting:
+    colDef.enableSorting !== undefined
+      ? colDef.enableSorting
+      : (!!colDef.dataField && !colDef.columnType.startsWith("action_")),
+      enableHiding:
+        colDef.enableHiding !== undefined ? colDef.enableHiding : true,
+    };
+
+    columnDefInternal.headerClassName = deriveHeaderClass(colDef);
+columnDefInternal.cellClassName = (() => {
+  if (colDef.cellAlignment) return `text-${colDef.cellAlignment}`;
+  return deriveHeaderClass(colDef); // fallback: usa mesma regra do header
+})();
+
+        // >>> ADICIONE ISSO: ordenação numérica correta (pt-BR) <<<
+    if (colDef.columnType === "data_number" || colDef.columnType === "input_number") {
+      (columnDefInternal as any).sortingFn = (rowA: any, rowB: any, columnId: string) => {
+        const rawA = rowA.getValue(columnId);
+        const rawB = rowB.getValue(columnId);
+
+        const toNumber = (v: any) => {
+          if (v === null || v === undefined || v === "") return NaN;
+          return typeof v === "number" ? v : parseNumberBR(String(v));
+        };
+
+        const a = toNumber(rawA);
+        const b = toNumber(rawB);
+
+        // Regras: NaN vai para o fim; senão, compara numericamente
+        if (isNaN(a) && isNaN(b)) return 0;
+        if (isNaN(a)) return 1;
+        if (isNaN(b)) return -1;
+
+        return a === b ? 0 : a > b ? 1 : -1;
+      };
+   }
+ else if (
+      colDef.columnType === "input_date" ||
+      !!colDef.inputDateFormat ||
+      /data|date/i.test(String(colDef.columnName || colDef.dataField || ""))
+    ) {
+      // -------- ORDENADOR DE DATAS (dd/MM/yyyy, custom, ou ISO) --------
+      const parseToTs = (v: any): number => {
+        if (v === null || v === undefined || v === "") return NaN;
+        const s = String(v).trim();
+        // 1) se a coluna definiu um formato, tenta primeiro
+        if (colDef.inputDateFormat) {
+          const d = parse(s, colDef.inputDateFormat, new Date());
+          if (!isNaN(d.getTime())) return d.getTime();
+        }
+        // 2) tenta dd/MM/yyyy
+        try {
+          const d1 = parse(s, "dd/MM/yyyy", new Date());
+          if (!isNaN(d1.getTime())) return d1.getTime();
+        } catch {}
+        // 3) tenta dd/MM/yyyy HH:mm
+        try {
+          const d2 = parse(s, "dd/MM/yyyy HH:mm", new Date());
+          if (!isNaN(d2.getTime())) return d2.getTime();
+        } catch {}
+        // 4) tenta Date nativa/ISO
+        const d3 = new Date(s);
+        return isNaN(d3.getTime()) ? NaN : d3.getTime();
+      };
+      (columnDefInternal as any).sortingFn = (rowA: any, rowB: any, columnId: string) => {
+        const a = parseToTs(rowA.getValue(columnId));
+        const b = parseToTs(rowB.getValue(columnId));
+        if (isNaN(a) && isNaN(b)) return 0; // ambos vazios/indefinidos
+        if (isNaN(a)) return 1;             // vazios no fim
+        if (isNaN(b)) return -1;
+        return a === b ? 0 : a > b ? 1 : -1; // crescente por timestamp
+      };
+    }
+
+return columnDefInternal as ColumnDef<DataRow>;
+  });
+}
+
+
+// --- Componente principal -----------------------------------
+export function DataTableDemo() {
+  const paginacaoAtiva = componentData.paginacaoAtiva === true || componentData.paginacaoAtiva === "true";
+  const [tableData, setTableData] = React.useState<DataRow[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const TABLE_DENSITY = "normal";
+  const enableSearch = componentData.enableSearch === true || componentData.enableSearch === "true";
+
+  console.log("MODO DE DENSIDADE LIDO:", TABLE_DENSITY);
+
+
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const setSortingSingle = React.useCallback(
+    (updater: SortingState | ((old: SortingState) => SortingState)) => {
+      setSorting((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (!Array.isArray(next)) return [];
+        if (next.length <= 1) return next;
+        // Mantém apenas a última interação (coluna mais recente)
+        return [next[next.length - 1]];
+      });
+    },
+    []
+  );
+  const [globalFilter, setGlobalFilter] = React.useState(enableSearch ? "" : undefined);
+
+const [columnVisibility, setColumnVisibility] =
+  React.useState<VisibilityState>({});
+
+const [rowSelection, setRowSelection] = React.useState(/* as RowSelectionState */({}));
+
+// você usa queryBasedTotals no <tfoot>, então crie o estado:
+const [queryBasedTotals, setQueryBasedTotals] =
+  React.useState<Record<string, any>>({});
+
+
+ const [xAxisGroupSort, setXAxisGroupSort] = React.useState<{
+    groupKey: any;
+    dir: "asc" | "desc";
+    detailKey?: string;
+  } | null>(null);
+
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 7,
+  });
+
+
+  const [dynamicOptionsMap, setDynamicOptionsMap] = React.useState<{
+    [key: string]: Array<{ label: string; value: string | number | boolean }>;
+  }>({});
+
+      const [resolvedHeaderButtons, setResolvedHeaderButtons] = React.useState<any[]>([]);
+
+      // --- LUT para headers case-insensitive ---
+  const [headerLUT, setHeaderLUT] = React.useState<Record<string, string>>({});
+  // Mantém um ref estável para ser usado dentro de callbacks sem causar re-render/loop
+  const headerLUTRef = React.useRef(headerLUT);
+  React.useEffect(() => {
+    headerLUTRef.current = headerLUT;
+  }, [headerLUT]);
+
+const [firstHeaderName, setFirstHeaderName] = React.useState<string | null>(null);
+
+  const resolveKey = React.useCallback((k?: string) => {
+    if (!k || typeof k !== "string") return "";
+    return headerLUT[k.toLowerCase()] ?? k;
+  }, [headerLUT]);
+
+  // Resolve usando o ref (para usar em callbacks estáveis)
+  const resolveKeyRef = React.useCallback((k?: string) => {
+    if (!k || typeof k !== "string") return "";
+    const lut = headerLUTRef.current || {};
+    return lut[k.toLowerCase()] ?? k;
+  }, []);
+
+  const getCI = React.useCallback((obj: Record<string, any>, k?: string) => {
+    const actual = resolveKey(k);
+    return actual ? obj?.[actual] : undefined;
+  }, [resolveKey]);
+
+
+  // ========= CHAVE PRIMÁRIA (ID, id, Id, iD) =========
+  // Descobre o nome real da coluna "ID" (qualquer casing) e centraliza o acesso
+  const ROW_ID_FIELD = React.useMemo(() => {
+    // 1) Se existir uma coluna "ID" (qualquer casing), usa ela
+    if (Object.prototype.hasOwnProperty.call(headerLUT, "id")) {
+      return headerLUT["id"];
+    }
+    // 2) Caso não exista "ID", usa a PRIMEIRA coluna retornada pela query
+    if (firstHeaderName && firstHeaderName.trim() !== "") {
+      return firstHeaderName;
+    }
+    // 3) Fallback final (evita quebra antes do primeiro fetch)
+    return "ID";
+  }, [headerLUT, firstHeaderName]);
+  const getRowIdValue = React.useCallback(
+    (row: Record<string, any>) => row?.[ROW_ID_FIELD],
+    [ROW_ID_FIELD]
+  );
+
+  // --- UTIL: pega ColumnDefinition a partir de dataField resolvido
+  const getColDefByDataField = React.useCallback((dataField: string) => {
+    const key = resolveKey(dataField);
+    return baseColumnJSON.find(c => resolveKey(c.dataField) === key);
+  }, [baseColumnJSON, resolveKey]);
+
+// Deriva automaticamente as colunas-detalhe quando não forem fornecidas
+const computeDetailKeys = React.useCallback((
+  fkKeyResolved: string,
+  labelKeyResolved: string,
+  fixedKeysResolved: string[]
+) => {
+  // pega todas as colunas declaradas (baseColumnJSON) que têm dataField
+  const allDefs = baseColumnJSON.filter(d => !!d?.dataField);
+  const fixedSet = new Set(fixedKeysResolved.map(k => k.toLowerCase()));
+  const skipSet = new Set([fkKeyResolved, labelKeyResolved].filter(Boolean).map(k => k.toLowerCase()));
+
+  // ignora a coluna de ações (action_buttons_group)
+  const isActionCol = (d: ColumnDefinition) => d.columnType === "action_buttons_group";
+
+  const derived = allDefs
+    .filter(d => !isActionCol(d))
+    .map(d => resolveKey(d.dataField))
+    .filter(k => !!k)
+    .filter(k => !fixedSet.has(k.toLowerCase()))
+    .filter(k => !skipSet.has(k.toLowerCase()));
+
+  // se o usuário passou X_AXIS_DETAIL_COLUMNS_RAW, respeita essa ordem;
+  // senão, usa essa derivação.
+  if (X_AXIS_DETAIL_COLUMNS_RAW.length > 0) {
+    const wanted = X_AXIS_DETAIL_COLUMNS_RAW.map(resolveKey).filter(Boolean);
+    return wanted;
+  }
+  return derived;
+}, [baseColumnJSON, resolveKey]);
+
+
+  // --- Atualiza UMA célula localmente (evita piscar) ----------
+  const updateCellValue = React.useCallback(
+    (rowId: number | string, field: string, newValue: any) => {
+      setTableData((prev) =>
+        prev.map((r) =>
+          String(getRowIdValue(r)) === String(rowId) ? { ...r, [field]: newValue } : r
+        )
+      );
+    },
+    [getRowIdValue]
+  );
+
+ const transformMitraData = (res: {
+    headers: { name: string }[];
+    data: any[][];
+  }): DataRow[] => {
+    const booleanColumns = baseColumnJSON
+      .filter((col) => col.columnType === "data_boolean_checkbox")
+      .map((col) => col.dataField);
+
+    return res.data.map((row) =>
+      res.headers.reduce((obj, h, idx) => {
+        const value = row[idx];
+        const isBooleanField = booleanColumns.includes(h.name);
+
+        (obj as any)[h.name] = isBooleanField
+          ? value === true || value === 1 || value === "1" || value === "true"
+          : value;
+
+        return obj;
+      }, {} as any)
+    ) as DataRow[];
+  };
+
+const isSingleCellResult = (res: { headers?: { name: string }[]; data?: any[][] }) => {
+  const rows = Array.isArray(res?.data) ? res.data : [];
+  const cols = Array.isArray(res?.headers) ? res.headers : [];
+  const hasOneRow = rows.length === 1;
+  const hasOneCol = cols.length === 1 || (hasOneRow && Array.isArray(rows[0]) && rows[0].length === 1);
+  return hasOneRow && hasOneCol;
+};
+
+const pickSingleCell = (res: { data?: any[][] }) => {
+  if (!Array.isArray(res?.data) || res.data.length === 0) return null;
+  const firstRow = res.data[0] ?? [];
+  return Array.isArray(firstRow) && firstRow.length > 0 ? firstRow[0] : null;
+};
+
+  // Função para buscar os totais (VEM PRIMEIRO)
+ const fetchTotalizerData = React.useCallback(async () => {
+  const totalizerQueries = baseColumnJSON.filter(
+    (c) => typeof c.enableTotalizer === "string" && c.enableTotalizer.trim() !== ""
+  );
+  if (totalizerQueries.length === 0) {
+    setQueryBasedTotals({});
+    return;
+  }
+
+  const promises = totalizerQueries.map(async (colDef) => {
+    const key = resolveKeyRef(colDef.dataField);
+    try {
+      const result = await queryMitra({ query: colDef.enableTotalizer!, jdbcId: JDBC_ID });
+
+      // só aceita se o retorno for exatamente 1x1
+      if (!isSingleCellResult(result)) {
+        console.warn(
+          `[enableTotalizer] A query da coluna "${colDef.columnName}" precisa retornar 1 coluna × 1 linha. Ignorada.`,
+          { headers: result?.headers?.length, rows: result?.data?.length, row0len: result?.data?.[0]?.length }
+        );
+        return { key, value: null, status: "skipped" as const };
+      }
+
+      const totalValue = pickSingleCell(result);
+      return { key, value: totalValue, status: "fulfilled" as const };
+    } catch (error) {
+      console.error(`Erro na query de total da coluna "${colDef.columnName}":`, error);
+      return { key, value: null, status: "rejected" as const };
+    }
+  });
+
+  const results = await Promise.all(promises);
+
+  const newTotals = results.reduce((acc, r) => {
+    if (r.status === "fulfilled" && r.key) acc[r.key] = r.value;
+    return acc;
+  }, {} as Record<string, any>);
+
+  setQueryBasedTotals(newTotals);
+}, [baseColumnJSON, resolveKeyRef]);
+
+  // Sua fetchData, agora corrigida e no lugar certo (VEM DEPOIS)
+  const fetchData = React.useCallback(
+    async (
+      silent: boolean = false,
+      syncSearchVar: boolean = false,
+      searchValue?: string
+    ) => {
+      if (!silent) setLoading(true);
+      try {
+        if (syncSearchVar && VARIABLE_SEARCH) {
+          await setVariableMitra({
+            name: VARIABLE_SEARCH,
+            content: enableSearch ? (searchValue ?? "") : ""
+          });
+        }
+        const res = await queryMitra({ query: TAREFA_SQL_QUERY, jdbcId: JDBC_ID });
+    
+        const lut: Record<string, string> = {};
+        for (const h of res.headers || []) {
+          const nm = String(h?.name ?? "");
+          if (nm) lut[nm.toLowerCase()] = nm;
+        }
+        setHeaderLUT((prev) => {
+          const prevKeys = Object.keys(prev);
+          const newKeys = Object.keys(lut);
+          const sameLen = prevKeys.length === newKeys.length;
+          const same = sameLen && newKeys.every((k) => prev[k] === lut[k]);
+          return same ? prev : lut;
+        });
+    setFirstHeaderName(res.headers && res.headers[0]?.name ? String(res.headers[0].name) : null);
+        setTableData(transformMitraData(res));
+        await fetchTotalizerData(); // A chamada agora vai funcionar
+    
+      } catch (e: any) {
+        setError("A variável query está inválida");
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [enableSearch, VARIABLE_SEARCH, TAREFA_SQL_QUERY, fetchTotalizerData] // A dependência agora é válida
+  );
+
+  const fetchDropdownOptions = React.useCallback(async () => {
+    const map: {
+      [key: string]: Array<{ label: string; value: string | number | boolean }>;
+    } = {};
+    const dcols = baseColumnJSON.filter(
+      (c) => c.columnType === "input_dropdown" && c.dropdownOptionsWithQuery
+    );
+    await Promise.all(
+      dcols.map(async (col) => {
+        try {
+          const res = await queryMitra({
+            query: col.dropdownOptionsWithQuery!,
+            jdbcId: JDBC_ID,
+          });
+          map[resolveKeyRef(String(col.dataField))] = res.data.map((r) => ({
+            value: r[0],
+            label: r[1] !== undefined ? r[1] : r[0],
+          }));
+        } catch (err) {
+          console.error(`Erro options (${col.columnName})`, err);
+        }
+      })
+    );
+    setDynamicOptionsMap(map);
+  }, [JDBC_ID]);
+
+
+const fetchHeaderButtons = React.useCallback(async () => {
+    const headerButtonsTemplate = (() => {
+      try {
+        const raw = componentData.headerButtons;
+        return typeof raw === "string" ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+      } catch (e) {
+        console.error("Erro ao processar a variável 'headerButtons':", e);
+        return [];
+      }
+    })();
+
+    const query = componentData.headerButtonsQuery;
+
+    if (!query) {
+      // Se não houver query, usamos as interações estáticas (legado) para retrocompatibilidade
+      // Você pode remover este bloco se não precisar mais de retrocompatibilidade
+      const legacyButtons = headerButtonsTemplate.filter(btn => btn.interaction);
+      if (legacyButtons.length > 0) {
+        setResolvedHeaderButtons(legacyButtons);
+      }
+      return;
+    }
+    
+    if (!headerButtonsTemplate || headerButtonsTemplate.length === 0) {
+        setResolvedHeaderButtons([]);
+        return;
+    }
+
+    try {
+      const res = await queryMitra({ query, jdbcId: JDBC_ID });
+      if (res.data.length === 0) {
+        console.warn("A 'headerButtonsQuery' não retornou resultados.");
+        setResolvedHeaderButtons([]);
+        return;
+      }
+
+      // Esperamos que a query retorne UMA ÚNICA LINHA com as ações como colunas
+      const interactionData = res.headers.reduce((obj, header, idx) => {
+        obj[header.name] = res.data[0][idx];
+        return obj;
+      }, {} as Record<string, string>);
+
+      const finalButtons = headerButtonsTemplate.map(btnTemplate => {
+        const interaction = interactionData[btnTemplate.interactionColumn];
+        if (!interaction) {
+          console.warn(`A coluna de interação '${btnTemplate.interactionColumn}' não foi encontrada no resultado da 'headerButtonsQuery'.`);
+          return null; // ou um botão desabilitado
+        }
+        return {
+          ...btnTemplate,
+          interaction: interaction, // Adiciona a propriedade 'interaction' resolvida
+        };
+      }).filter(Boolean); // Remove nulos
+
+      setResolvedHeaderButtons(finalButtons);
+
+    } catch (e) {
+      console.error("Erro ao executar a 'headerButtonsQuery':", e);
+      setError("Erro ao carregar ações do cabeçalho.");
+      setResolvedHeaderButtons([]);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchData();
+    fetchDropdownOptions();
+    fetchHeaderButtons(); // Chamar a nova função
+    fetchTotalizerData();
+    
+    //  Inicializa a variável de busca (vazia) no primeiro load
+    if (VARIABLE_SEARCH && !globalFilter) {
+      setVariableMitra({ name: VARIABLE_SEARCH, content: "" });
+    }
+  }, [fetchData, fetchDropdownOptions, fetchHeaderButtons]);
+
+  const localSilentReload = React.useCallback(() => fetchData(true), [fetchData]);
+
+  React.useEffect(() => {
+    silentReload = localSilentReload;
+  }, [localSilentReload]);
+
+  const finalColumnJSON = baseColumnJSON;
+
+ const columns = React.useMemo(
+     () =>
+       generateColumns(
+         finalColumnJSON,
+         dynamicOptionsMap,
+         silentReload,
+         updateCellValue,
+         TABLE_DENSITY,
+         resolveKey,
+         getCI,
+         getRowIdValue,
+         () => setXAxisGroupSort(null)        // ← mantém limpar eixo X
+       ),
+    [
+      finalColumnJSON,
+      dynamicOptionsMap,
+      silentReload,
+      updateCellValue,
+      TABLE_DENSITY,
+      resolveKey,
+      getCI,
+      getRowIdValue,
+      xAxisGroupSort
+    ]
+  );
+
+  const tableOptions: any = {
+    data: tableData,
+    columns,
+    autoResetPageIndex: false,
+   onSortingChange: setSortingSingle,
+    onRowSelectionChange: setRowSelection,
+    onGlobalFilterChange: enableSearch ? setGlobalFilter : undefined,
+    state: {
+      sorting,
+      globalFilter,
+      columnVisibility,
+      rowSelection,
+      ...(enableSearch && { globalFilter }),
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+     enableSortingRemoval: true,
+    // Anti-multi-sort (inclusive via Shift+clique)
+    enableMultiSort: false,
+    maxMultiSortColCount: 1,
+    globalFilterFn: (row, _colId, filterValue) => {
+      if (!filterValue) return true;
+      const term = String(filterValue).toLowerCase();
+
+      return Object.entries(row.original).some(([field, value]) => {
+        if (String(value ?? "").toLowerCase().includes(term)) return true;
+        const opts = dynamicOptionsMap[field];
+        if (opts) {
+          const opt = opts.find((o) => String(o.value) === String(value));
+          if (opt && String(opt.label).toLowerCase().includes(term)) return true;
+        }
+        return false;
+      });
+    },
+    getRowId: (row) => String(getRowIdValue(row as any)),
+  };
+
+  // AGORA, SÓ ADICIONAMOS AS OPÇÕES DE PAGINAÇÃO SE ELA ESTIVER ATIVA
+  if (paginacaoAtiva) {
+    // PASSO 2: A variável só é lida e definida quando realmente necessária.
+    const linhasPorPagina = Number(componentData.linhasPorPagina) || 7;
+
+    // PASSO 3: Adicionamos as opções de paginação ao objeto principal.
+    tableOptions.onPaginationChange = setPagination;
+
+    // PASSO 4: Atualizamos o estado da tabela com as informações corretas de paginação.
+    tableOptions.state.pagination = {
+      ...pagination,
+      pageSize: linhasPorPagina
+    };
+
+    tableOptions.getPaginationRowModel = getPaginationRowModel();
+  }
+
+  // Finalmente, criamos a tabela com as opções corretas (com ou sem paginação)
+  const table = useReactTable(tableOptions);
+
+
+
+
+
+const typingSyncRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+const liveReloadRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+const lastSentSearchRef = React.useRef<string>("");
+
+const rafIdRef = React.useRef<number | null>(null);
+const runIdRef = React.useRef(0); // guarda o id da última execução válida
+
+const handleSearchChange = React.useCallback(
+  async (val: string) => {
+    // sempre mantém o estado local em sincronia para o filtro client-side
+    setGlobalFilter?.(val);
+
+    // (A) sincroniza a variável de busca no backend IMEDIATAMENTE (sem debounce)
+    if (VARIABLE_SEARCH) {
+   // dispara sem bloquear a digitação
+   queueMicrotask(() => {
+     setVariableMitra({ name: VARIABLE_SEARCH, content: val })
+       .catch((e) => console.warn("Falha ao setar variável de busca:", e));
+   });
+ }
+
+    // (B) quando o usuário limpa, volta ao início e recarrega já
+    if (val === "" && lastSentSearchRef.current !== "") {
+      if (liveReloadRef.current) clearTimeout(liveReloadRef.current);
+      lastSentSearchRef.current = "";
+      table?.setPageIndex?.(0);
+      await fetchData(true, true, ""); // silent + sincroniza var no backend (true)
+      return;
+    }
+
+   // (C) live search com raf (~16ms) + latest-only
+    if (LIVE_SEARCH) {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      const thisRun = ++runIdRef.current;
+      rafIdRef.current = requestAnimationFrame(async () => {
+        // evita request redundante
+        if (val !== lastSentSearchRef.current) {
+          await fetchData(true, true, val); // silent + sync var
+          // só confirma se essa ainda é a execução mais recente
+          if (thisRun === runIdRef.current) {
+            lastSentSearchRef.current = val;
+            table?.setPageIndex?.(0);
+          }
+        }
+      });
+    }
+  },
+  [setGlobalFilter, VARIABLE_SEARCH, LIVE_SEARCH, fetchData, table]
+);
+
+// limpeza dos timers ao desmontar
+React.useEffect(() => {
+  return () => {
+    if (typingSyncRef.current) clearTimeout(typingSyncRef.current);
+    if (liveReloadRef.current) clearTimeout(liveReloadRef.current);
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+  };
+}, []);
+
+
+const isInitialMount = React.useRef(true);
+const searchDebounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+const submitSearch = React.useCallback(
+  async (termOverride?: string) => {
+    const term = termOverride !== undefined ? termOverride : (globalFilter || "");
+    if (term === lastSentSearchRef.current) return; // evita refetch desnecessário
+    await fetchData(true, true, term);              // silent + sincroniza variável no backend
+    lastSentSearchRef.current = term;               // memoriza último termo enviado
+  },
+  [globalFilter, fetchData]
+);
+
+  React.useEffect(() => {
+    // Só executa o reset da página se não for a montagem inicial do componente.
+    // Isso previne que a página seja resetada no primeiro carregamento.
+    if (!isInitialMount.current) {
+      // Se a tabela e a paginação estiverem ativas, volta para a primeira página.
+      if (table && paginacaoAtiva) {
+        table.setPageIndex(0);
+      }
+    } else {
+      // Na primeira vez que o efeito roda (montagem), apenas marca que a montagem já ocorreu.
+      isInitialMount.current = false;
+    }
+  }, [globalFilter]); 
+
+
+const showSetupPlaceholder = !TAREFA_SQL_QUERY || baseColumnJSON.length === 0;
+if (showSetupPlaceholder) {
+  return (
+    <div className="p-6">
+      <Card className="border-solid">
+        <CardHeader>
+          <CardTitle>Componente não configurado</CardTitle>
+          <CardDescription>
+            Defina sua <code>query</code> (SQL válido) e suas <code>variáveis</code> de configuração para carregar a tabela.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    </div>
+  );
+}
+  if (error)
+    return <div className="p-4 text-center text-red-600"> Erro: {error} </div>;
+// logo acima do return
+const DESIGN_CLASS = TABLE_DESIGN === "data" ? "design-data" : "design-classic";
+
+  return (
+    // CONTÊINER PRINCIPAL - INÍCIO DA ALTERAÇÃO
+<div
+  className={
+    `form-wrapper flex flex-col w-full ${DESIGN_CLASS} ` +
+    (TABLE_DESIGN === "data"
+      ? "border border-gray-200 shadow-sm rounded-lg bg-white"
+      : (showBorder === "false" ? "" : "border shadow-none"))
+  }
+      style={{
+        maxWidth: `100%`,
+        margin: '0 auto',
+        borderRadius: showBorder === 'false' ? '0px' : '16px',
+        borderColor: showBorder === 'false' ? 'transparent' : '#D0D5DD',
+        backgroundColor: 'white',
+        overflow: 'hidden', // Importante para o border-radius no pai
+        height: '100%', // Para garantir que o scroll funcione
+        // minHeight: '200px', // Opcional, para garantir uma altura mínima se 100% não pegar
+      }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .form-wrapper, .form-wrapper * {
+          font-family: 'Inter', sans-serif;
+        }
+        .search-input::placeholder {
+          color: var(--cor-texto-secundario);
+          font-size: 14px;
+        }
+
+ /* ────────────────────────────── */
+ /* ESTILO "DATA" para a tabela    */
+ .data-table-header {
+   background-color: #fbfcff;
+   border-bottom: 1px solid #e5e7eb;
+   border-radius: 8px 8px 0 0;
+ }
+.data-row:hover {
+  background-color: #FAFAFA !important; /* cor do hover data */
+}
+.classic-row:hover {
+  background-color: #FAFAFA !important; /* cor do hover classic */
+}
+
+/* Garante que o header nunca tenha hover */
+.no-hover:hover {
+  background-color: inherit !important;
+  cursor: default !important;
+}
+ .data-table-head-cell {
+   font-weight: 600;
+   color: #1e40af;
+ }
+.data-table-container {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  overflow-x: auto; 
+  overflow-y: hidden;
+}
+.table-header-cell {
+  padding: 8px !important;
+}
+
+ .data-table-container table {
+   min-width: max-content;      /* tabela cresce conforme conteúdo */
+ }
+ .data-table-container thead,
+ .data-table-container tbody tr {
+   min-width: max-content;
+   width: max-content;
+ }
+
+/* Remove qualquer borda interna */
+.data-table-row,
+.data-table-cell {
+  border: none !important;
+}
+
+.data-table-head-cell {
+  height: 36px !important;
+  min-height: 28px !important;
+  line-height: 1.4 !important;
+  font-weight: 400 !important;
+  //color: #2563eb !important;
+  padding: 8px !important;
+  font-size: 12px; /* usa o tamanho de fonte padrão */
+  color: grey;     /* herda a cor padrão */
+  //padding: 8px;
+}
+
+/* Cole ou substitua estas regras no seu CSS */
+.data-table-header {
+  background-color: #fbfcff;
+  /* A linha abaixo substitui a 'border-bottom' */
+  box-shadow: inset 0 -1px 0 #e5e7eb; /* <- NOVA PROPRIEDADE */
+  border-radius: 8px 8px 0 0;
+}
+
+/* FIX: Borda inferior do header clássico */
+.classic-header::after { /* <- E AQUI */
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #e5e7eb;
+}
+
+/* ===========================
+   Cabeçalhos de Grupo (X Axis)
+   =========================== */
+.group-header-row {
+  background: #F3F4F6; /* cinza suave */
+}
+.subheader-top {
+  background: #F4F4F5;
+  box-shadow: inset 0 -1px 0 #e5e7eb; /* linha separadora */
+}
+/* Segunda linha do header, só no design de análise de dados */
+.design-data .subheader-bottom {
+  background: #FAFAFA;
+  /* mantém a linha divisória, se quiser */
+  box-shadow: inset 0 -1px 0 #e5e7eb;
+}
+.group-header-cell {
+  padding: 10px 12px !important;
+  font-weight: 600;
+  color: #1e40af;
+  border-top: 1px solid #E5E7EB;
+  border-bottom: 1px solid #E5E7EB;
+}
+.group-title {
+  font-size: 13px;
+  line-height: 1.2;
+}
+.group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #A3AED0;
+}
+
+/* ===========================
+   Subcolunas (grid por FK)
+   =========================== */
+.subcols-grid {
+  display: grid;
+  grid-auto-rows: min-content;
+  gap: 12px;                /* espaço entre colunas */
+  padding: 8px 8px 12px;    /* respiro interno */
+}
+.subcols-col {
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  background: #FFFFFF;
+  overflow: hidden;
+}
+.subcols-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: #1e40af;
+ background: #F9FAFB;
+  border-bottom: 1px solid #E5E7EB;
+}
+.subcols-body {
+  overflow-x: auto;
+}
+.subcols-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.subcols-cell {
+  padding: 8px;
+}
+
+/* ===========================
+   Linha de Totalizadores
+   =========================== */
+:root {
+/* Tokens do totalizador por design */
+.design-classic {
+  --totalizer-bg: #FFFFFF;      /* branco */
+  --totalizer-font-size: 13px;
+  --totalizer-font-weight: 600;
+  --totalizer-border-color: #E5E7EB;
+  --totalizer-label-color: #1e40af;
+  --totalizer-value-color: #2563eb;
+}
+
+.design-data {
+  --totalizer-bg: #F4F4F5;      /* cinza para análise de dados */
+  --totalizer-font-size: 13px;
+  --totalizer-font-weight: 600;
+  --totalizer-border-color: #E5E7EB;
+  --totalizer-label-color: #1e40af;
+  --totalizer-value-color: #2563eb;
+}
+
+.totalizer-row {
+  height: 38px;                     /* ajuste de altura da linha */
+}
+
+.totalizer-cell {
+  font-size: var(--totalizer-font-size);
+  font-weight: var(--totalizer-font-weight);
+  background: var(--totalizer-bg);  /* garante continuidade do fundo */
+  /* alinhamento vem de def.cellClassName; não force aqui */
+}
+
+/* Estilo do rótulo “Totais” (primeira célula visível) */
+.totalizer-row .totalizer-cell:first-child {
+  color: var(--totalizer-label-color);
+}
+
+/* Valores das colunas totalizadas (quando quiser reforçar a cor) */
+.totalizer-row .totalizer-cell.text-right,
+.totalizer-row .totalizer-cell.text-left,
+.totalizer-row .totalizer-cell.text-center {
+  color: var(--totalizer-value-color);
+}
+
+/* Variante por design (se quiser um pouco diferente no “classic”) */
+.classic-header ~ tbody ~ tfoot.totalizer .totalizer-cell {
+  background: var(--totalizer-bg, #FFFFFF);
+}
+
+.design-data   { --th-divider: #E5E7EB; }  /* análise de dados */
+.design-classic{ --th-divider: #E5E7EB; }  /* clássico (mesma cor, troque depois se quiser) */
+
+/* divisor vertical que preenche 100% da altura do <th> */
+.vdiv-row > th { position: relative; }
+
+.vdiv-row > th:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;              /* vai do topo... */
+  bottom: 0;           /* ...até o fundo */
+  width: 1px;
+  background: var(--th-divider, #E5E7EB);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* cor padrão (usa seu esquema de design) */
+.design-data   { --th-divider: #E5E7EB; }
+.design-classic{ --th-divider: #E5E7EB; }
+
+/* Altera a cor do texto apenas no primeiro header de grupos */
+.subheader-top th {
+  color: #64748b !important;
+    font-size: 12px !important;
+  font-weight: 600 !important;
+text-transform: uppercase;
+}
+.subheader-top th:hover {
+  background-color: inherit !important;
+  cursor: default !important;
+}
+
+/* zera hover de fundo em todos os cabeçalhos */
+.data-table-header tr:hover,
+.data-table-header th:hover,
+.classic-header tr:hover,
+.classic-header th:hover,
+.subheader-top:hover {
+  background-color: inherit !important;
+  cursor: default !important;
+}
+
+/* se alguma utilitária aplicar hover:bg-*, reforça nos filhos */
+.data-table-header tr:hover > th,
+.classic-header tr:hover > th {
+  background-color: inherit !important;
+}
+/* Linha de header secundário no modo análise de dados */
+.design-data thead tr:not(.subheader-top):first-of-type + tr {
+  background: #FAFAFA;
+}
+
+ /* ────────────────────────────── */
+
+        /* Hover das linhas tbody tr.table-row:hover { background-color: var(--cor-fundo-hover) !important; }*/
+        .pagination-button:disabled {
+            color: var(--cor-texto-botao-desabilitado);
+        }
+        /* Classe para o padding interno condicional */
+        .content-with-padding {
+            padding: 24px; /* Padding desejado de 24px em todos os lados */
+        }
+        /* Arredondamento inferior para o container de scroll */
+        .table-container-scroll {
+            border-bottom-left-radius: ${showBorder === 'false' ? '0px' : '16px'};
+            border-bottom-right-radius: ${showBorder === 'false' ? '0px' : '16px'};
+            overflow: hidden; /* Garante que o conteúdo interno não vaze */
+        }
+        /* Arredondamento inferior para o rodapé fixo */
+        .sticky-footer {
+          border-bottom-left-radius: ${showBorder === 'false' ? '0px' : '16px'};
+          border-bottom-right-radius: ${showBorder === 'false' ? '0px' : '16px'};
+        }
+        /* Removendo any default background from TableRow if it's interfering */
+        .table-row[data-state="selected"] {
+            /* If you have a selected state, make sure its background isn't overriding hover */
+        }
+      `}
+
+
+      
+      
+      </style>
+
+      {/* Container de conteúdo principal que terá o padding condicional e a rolagem */}
+      <div className={cn("flex-1 flex flex-col min-h-0", showBorder !== 'false' && "content-with-padding")}>
+        {(title || subtitle) && (
+          <div className="space-y-1 flex-shrink-0" style={{ marginBottom: '24px' }}>
+            <h2 className="text-lg font-semibold" style={{ color: '#2563eb' }}>{title}</h2> {/* Use CORES.textoPrincipal se estiver definido */}
+            <p className="text-sm" style={{ color: '#64748b' }}>{subtitle}</p> {/* Use CORES.textoSecundario se estiver definido */}
+          </div>
+        )}
+
+      {/* barra superior agora sticky, some quando não há busca */}
+{(enableSearch || resolvedHeaderButtons.length > 0) && (
+ <div
+    className={cn(
+      "flex items-center space-x-2 sticky top-0 z-30 bg-white",
+      enableSearch ? "justify-between" : "justify-start"
+    )}
+    style={{ paddingBottom: '16px', paddingTop: '0' }}
+  >
+    {/* SEARCH só aparece se habilitado */}
+    {enableSearch && (
+      <div className="flex-grow">
+        <div className="relative w-full max-w-md">
+          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <DynamicIcon
+              name="Search"
+              className="h-5 w-5"
+              style={{ color: '#5D6585' }}
+            />
+          </span>
+          <Input
+          ref={searchInputRef}
+            placeholder="Buscar..."
+            value={globalFilter || ""}
+          onInput={(e) => {
+     const v = (e.target as HTMLInputElement).value;
+     void handleSearchChange(v);
+   }}
+          onKeyDown={async (e) => {
+   if (e.key === "Enter") {
+     await submitSearch();
+   }
+ }}
+ onBlur={async () => {
+   await submitSearch();
+ }}
+            className="h-9 w-full pl-10 search-input"
+            style={{
+              borderColor: '#E7E8F0',
+              color: '#5D6585',
+            }}
+          />
+        </div>
+      </div>
+    )}
+
+    {/* BOTÕES */}
+    {resolvedHeaderButtons.length > 0 && ( // Usa o novo estado
+      <div className={cn("flex gap-2", enableSearch ? "ml-auto" : "ml-0")}>
+        {resolvedHeaderButtons.map((btn, idx) => ( // Mapeia sobre o novo estado
+          <Button
+            key={idx}
+            size="sm"
+            variant="ghost"
+            className={cn(
+              "transition",
+              !btn.bgColor && "bg-white text-slate-700 border border-slate-300 hover:!bg-slate-100"
+            )}
+            style={{
+              backgroundColor: btn.bgColor || undefined,
+              color: btn.textColor || undefined,
+              border: btn.bgColor ? "none" : undefined
+            }}
+            onClick={async () => {
+              if (!btn.interaction) return; // Verificação de segurança
+              const [type, idStr] = btn.interaction.split(":");
+              const id = Number(idStr);
+              try {
+                switch (type) {
+                  case "form":
+                    await waitIndefinitely(formMitra({ id }));
+                    silentReload?.();
+                    updateComponentsMitra({ all: true});
+                    break;
+                  case "modal":
+                    modalMitra({
+                      id,
+                      width: parseTamanhoModal.width,
+                      height: parseTamanhoModal.height,
+                      floating: false,
+                      reload: MODAL_RELOAD_BEHAVIOR,
+                    });
+                    updateComponentsMitra({ all: true});
+                    break;
+                  case "dbaction":
+                    await dbactionMitra({ id });
+                    silentReload?.();
+                    updateComponentsMitra({ all: true});
+                    break;
+                  case "action":
+                    await actionMitra({ id });
+                    silentReload?.();
+                    break;
+                }
+              } catch (err) {
+                console.error("Erro no botão do cabeçalho:", err);
+              }
+            }}
+          >
+            {btn.icon && (
+              <span className={btn.label ? "mr-2" : ""}>
+                <DynamicIcon name={getIconComponent(btn.icon)} className="inherit-color" />
+              </span>
+            )}
+            {btn.label}
+          </Button>
+        ))}
+      </div>
+    )}
+      </div>
+)}
+
+
+      {/* 1. Um único container para rolagem */}
+    {/* Contêiner que define a área e permite a rolagem */}
+<div className="flex-1 min-h-0">
+<div
+  className={cn(
+    "h-full overflow-auto stable-scrollbar relative",
+    TABLE_DESIGN !== "data" && "border-t border-gray-200",
+    TABLE_DESIGN === "data" && "border border-gray-200 rounded-xl"
+  )}
+>
+{loading && (
+  <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-[1px]">
+    <div className="flex flex-col items-center gap-2">
+      <DynamicIcon
+        name="Loader2"
+        className="h-8 w-8 animate-spin"
+        style={{ color: "#5d6585" }} // cinza médio (tailwind text-slate-400)
+      />
+      <p
+        className="text-sm font-normal"
+        style={{ color: "#5d6585" }} // cinza médio-escuro (tailwind text-slate-500)
+      >
+        Carregando dados...
+      </p>
+    </div>
+  </div>
+)}
+
+
+{!loading && (
+  <Table style={{ tableLayout: "fixed", width: "100%" }}>
+
+          {/* HEADER */}
+          {!XAXIS_HEADER_SUBGROUPS || !X_AXIS_FK_COLUMN || !X_AXIS_ROW_KEY_COLUMN ? (
+            /* ===== Cabeçalho padrão (TanStack) ===== */
+            <TableHeader
+              className={cn(
+                TABLE_DESIGN === "data" ? "sticky top-0 z-10 data-table-header" : "sticky top-0 z-10 bg-white classic-header"
+              )}
+            >
+              {table.getHeaderGroups().map((headerGroup) => (
+<TableRow
+  key={headerGroup.id}
+  className={cn(
+    TABLE_DESIGN === "data" ? "border-b data-table-header-row no-hover" : "no-hover",
+    XAXIS_HEADER_SUBGROUPS && "vdiv-row" // A classe só é aplicada se XAXIS_HEADER_SUBGROUPS for true
+  )}
+>
+
+
+                  {headerGroup.headers.map((header) => {
+                    const def = header.column.columnDef as any;
+                    return (
+<TableHead
+  key={header.id}
+  className={cn("data-table-head-cell p-[8px] font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 align-middle")}
+  style={{ 
+    width: def.width,
+    minWidth: def.width,
+    maxWidth: def.width 
+  }}
+>
+  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+</TableHead>
+
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+          ) : (
+            /* ===== Cabeçalho com subgrupos ===== */
+            <TableHeader className={cn(TABLE_DESIGN === "data" ? "sticky top-0 z-10 data-table-header" : "sticky top-0 z-10 bg-white classic-header")}>
+              {(() => {
+                const fkKey = resolveKey(X_AXIS_FK_COLUMN);
+                const labelKey = X_AXIS_LABEL_COLUMN ? resolveKey(X_AXIS_LABEL_COLUMN) : fkKey;
+              // Só considere colunas fixas que realmente existem e estão VISÍVEIS
+                const fixedKeys = X_AXIS_FIXED_COLUMNS.map(resolveKey).filter(Boolean);
+                const allLeaf = table.getAllLeafColumns();
+                const isVisible = (k: string) =>
+                  !!allLeaf.find(c => (c.columnDef as any).accessorKey === k && c.getIsVisible?.());
+                const fixedVisibleKeys = fixedKeys.filter(isVisible);
+                const detailKeys = computeDetailKeys(fkKey, labelKey, fixedKeys);
+            const hideSingleFixedLabel = fixedVisibleKeys.length === 1;
+
+                // grupos (valores distintos da FK entre as linhas visíveis)
+                const visibleRows = table.getRowModel().rows || [];
+                const groupMap = new Map<string, { key: any; label: any }>();
+                for (const r of visibleRows) {
+                  const gv = (r.original as any)[fkKey];
+                  const label = (r.original as any)[labelKey] ?? gv;
+                  const k = String(gv ?? "");
+                  if (!groupMap.has(k)) groupMap.set(k, { key: gv, label });
+                }
+                const groups = Array.from(groupMap.values());
+
+               // ADICIONE ESTE NOVO BLOCO DE CÓDIGO
+
+// Se houver apenas UMA coluna de detalhe, renderiza um cabeçalho simplificado de uma linha.
+if (detailKeys.length === 1) {
+   // util para mostrar ícone de ordenação
+  const getSortIconName = (dir: false | "asc" | "desc") => {
+    if (dir === "asc") return "ArrowUp";
+    if (dir === "desc") return "ArrowDown";
+    return "ArrowUpDown";
+  };
+  return (
+    <TableRow className="no-hover vdiv-row">
+      {/* 1. Renderiza os cabeçalhos das colunas fixas */}
+      {(fixedVisibleKeys.length > 0 ? fixedVisibleKeys : fixedKeys).map((k) => {
+        const def = getColDefByDataField(k);
+       const mustCenter = XAXIS_HEADER_SUBGROUPS && !def?.headerAlignment;
+        const label = def?.headerName || def?.columnName || k;
+        // NOVO: conectar o header fixo ao header real da coluna (ativa sort no eixo X)
+       // Helper: encontra o Header (não a Column) para conseguir o getContext()
+       const findHeaderForAccessor = (accessorKey: string) => {
+         for (const hg of table.getHeaderGroups()) {
+           const h = hg.headers.find(
+             (hdr) => (hdr.column.columnDef as any).accessorKey === accessorKey
+           );
+          if (h) return h;
+           }
+         return null;
+       };
+       const headerObj = findHeaderForAccessor(k);
+        return (
+          <TableHead
+            key={`fx-${k}`}
+            className={cn("data-table-head-cell", mustCenter && "text-center")}
+            style={{
+              width: def?.width,
+              minWidth: def?.width,
+              maxWidth: def?.width,
+              ...(mustCenter ? { textAlign: "center" } : {}),
+            }}
+          >
+                  {headerObj
+             ? flexRender(headerObj.column.columnDef.header, headerObj.getContext())
+              : <span>{label}</span>}
+          </TableHead>
+        );
+      })}
+      {fixedVisibleKeys.length === 0 && (
+        <TableHead className="data-table-head-cell"> </TableHead>
+      )}
+
+      {/* 2. Renderiza os nomes dos grupos como os próximos cabeçalhos */}
+      {groups.map((g, i) => {
+        const detailDef = getColDefByDataField(detailKeys[0]);
+        const mustCenter = XAXIS_HEADER_SUBGROUPS && !detailDef?.headerAlignment;
+const isActive = !!(xAxisGroupSort && String(xAxisGroupSort.groupKey) === String(g.key));
+    // Ciclo: asc -> desc -> (nenhum)
+    const nextState: "asc" | "desc" | null =
+      !isActive ? "asc" : (xAxisGroupSort!.dir === "asc" ? "desc" : null);
+         return (
+          <TableHead
+            key={`g-header-${i}`}
+            className={cn("data-table-head-cell", mustCenter && "text-center")}
+            style={{
+              width: detailDef?.width,
+              minWidth: detailDef?.width,
+              maxWidth: detailDef?.width,
+              ...(mustCenter ? { textAlign: "center" } : {}),
+            }}
+            role="button"
+            tabIndex={0}
+           title={`Ordenar por ${String(g.label ?? g.key ?? "")} (${
+   nextState === null ? "remover" : (nextState === "asc" ? "asc" : "desc")
+ })`}
+ onClick={() => {
+   if (nextState === null) {
+     setXAxisGroupSort(null);         // reset
+   } else {
+     setSorting([]);                  // limpa sort normal
+setXAxisGroupSort({ groupKey: g.key, dir: nextState });
+   }
+ }}
+onKeyDown={(ev) => {
+   if (ev.key === "Enter" || ev.key === " ") {
+     if (nextState === null) {
+       setXAxisGroupSort(null);
+     } else {
+       setSorting([]);
+       setXAxisGroupSort({ groupKey: g.key, dir: nextState });
+     }
+   }
+ }}
+          >
+            <span className="inline-flex items-center gap-1">
+              {String(g.label ?? g.key ?? "")}
+              {isActive && (
+                <DynamicIcon
+                 name={getSortIconName(xAxisGroupSort!.dir)}
+                  className="h-4 w-4"
+                />
+              )}
+            </span>
+          </TableHead>
+        );
+      })}
+    </TableRow>
+  );
+}
+
+// Caso contrário (múltiplas colunas de detalhe), mantém o cabeçalho original de duas linhas.
+ return (
+   <>
+     {/* helper local para escolher o ícone de ordenação */}
+     {(() => {
+       const getSortIconName = (dir: false | "asc" | "desc") => {
+         if (dir === "asc") return "ArrowUp";
+         if (dir === "desc") return "ArrowDown";
+         return "ArrowUpDown";
+       };
+       return null;
+     })()}
+<TableRow className={cn("no-hover subheader-top", XAXIS_HEADER_SUBGROUPS && "vdiv-row")}>
+      <TableHead
+        className="data-table-head-cell font-medium"
+        style={{ textAlign: "left" }}
+        colSpan={Math.max(fixedVisibleKeys.length, 1)}
+      >
+        {/* vazio: só reserva */}
+      </TableHead>
+{groups.map((g, i) => (
+        <TableHead
+          key={`g-${i}`}
+          className="data-table-head-cell font-semibold text-center"
+          colSpan={detailKeys.length}
+          style={{ textAlign: "center", cursor: "default" }}  /* sem click aqui */
+        >
+          <span className="inline-flex items-center gap-1">
+            {String(g.label ?? g.key ?? "")}
+          </span>
+        </TableHead>
+      ))}
+    </TableRow>
+<TableRow className={cn("no-hover subheader-bottom", XAXIS_HEADER_SUBGROUPS && "vdiv-row")}>
+      {(fixedVisibleKeys.length > 0 ? fixedVisibleKeys : fixedKeys).map((k) => {
+        const def = getColDefByDataField(k);
+       const mustCenter = XAXIS_HEADER_SUBGROUPS && !def?.headerAlignment;
+        const label = def?.headerName || def?.columnName || k;
+        // NOVO: usa a própria coluna do TanStack para habilitar sorting no modo eixo X
+        const findHeaderForAccessor = (accessorKey: string) => {
+          for (const hg of table.getHeaderGroups()) {
+            const h = hg.headers.find(
+              (hdr) => (hdr.column.columnDef as any).accessorKey === accessorKey
+            );
+            if (h) return h;
+          }
+          return null;
+        };
+        const headerObj = findHeaderForAccessor(k);
+        return (
+          <TableHead
+            key={`fx-${k}`}
+            className={cn("data-table-head-cell", mustCenter && "text-center")}
+            style={{
+              width: def?.width,
+              minWidth: def?.width,
+             maxWidth: def?.width,
+              ...(mustCenter ? { textAlign: "center" } : {}),
+            }}
+          >
+              {headerObj
+             ? flexRender(headerObj.column.columnDef.header, headerObj.getContext())
+              : <span>{label}</span>}
+          </TableHead>
+        );
+      })}
+      {fixedVisibleKeys.length === 0 && (
+        <TableHead className="data-table-head-cell"> </TableHead>
+      )}
+      {groups.map((g, gi) =>
+         detailKeys.map((dk) => {
+          const def = getColDefByDataField(dk);
+          const mustCenter = XAXIS_HEADER_SUBGROUPS && !def?.headerAlignment;
+          // estado ativo quando grupo + subcoluna forem os escolhidos
+          // estado ativo quando grupo + subcoluna forem os escolhidos
+           const chosenDetailKey = def ? resolveKey(def.dataField) : dk;
+           const isActive =
+             !!(xAxisGroupSort &&
+                String(xAxisGroupSort.groupKey) === String(g.key) &&
+               xAxisGroupSort.detailKey === chosenDetailKey);
+           const nextState: "asc" | "desc" | null =
+             !isActive ? "asc" : (xAxisGroupSort!.dir === "asc" ? "desc" : null);
+          return (
+            <TableHead
+              key={`g-${gi}-d-${dk}`}
+              className={cn("data-table-head-cell", mustCenter && "text-center")}
+              style={{
+                width: def?.width,
+                minWidth: def?.width,
+                maxWidth: def?.width,
+                ...(mustCenter ? { textAlign: "center" } : {}),
+              }}
+role="button"
+               tabIndex={0}
+               aria-label={`Ordenar ${String(g.label ?? g.key ?? "")} • ${def?.headerName || def?.columnName || dk}`}
+               title={`Ordenar ${String(g.label ?? g.key ?? "")} • ${def?.headerName || def?.columnName || dk} (${nextState === null ? "remover" : nextState === "asc" ? "asc" : "desc"})`}
+               onClick={() => {
+                 // limpar sort normal da tabela
+                 setSorting([]);
+                 if (nextState === null) {
+                   setXAxisGroupSort(null);
+                 } else {
+                   setXAxisGroupSort({ groupKey: g.key, dir: nextState, detailKey: chosenDetailKey });
+                 }
+               }}
+               onKeyDown={(ev) => {
+                 if (ev.key === "Enter" || ev.key === " ") {
+                   setSorting([]);
+                   if (nextState === null) {
+                     setXAxisGroupSort(null);
+                   } else {
+                     setXAxisGroupSort({ groupKey: g.key, dir: nextState, detailKey: chosenDetailKey });
+                   }
+                 }
+               }}
+             >
+               <span className="inline-flex items-center gap-1">
+                 {def?.headerName || def?.columnName || dk}
+                 {isActive && (
+                   <DynamicIcon
+                     name={(xAxisGroupSort!.dir === "asc" ? "ArrowUp" : "ArrowDown")}
+                     className="h-4 w-4"
+                   />
+                 )}
+               </span>
+            </TableHead>
+          );
+        })
+      )}
+    </TableRow>
+  </>
+);
+              })()}
+            </TableHeader>
+          )}
+            <TableBody className={loading ? "h-96" : ""}>
+             {(() => {
+
+                const visibleRows = table.getRowModel().rows || [];
+                if (visibleRows.length === 0) {
+                  return (
+                    <TableRow>
+                     <TableCell colSpan={columns.length} className="h-24 text-center">Nenhum resultado encontrado.</TableCell>
+                    </TableRow>
+                  );
+              }
+
+               if (!XAXIS_HEADER_SUBGROUPS || !X_AXIS_FK_COLUMN || !X_AXIS_ROW_KEY_COLUMN) {
+                  // ===== Render padrão (sem pivô) =====
+                  return visibleRows.map((row) => (
+                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"} className={TABLE_DESIGN === "data" ? "data-row" : "classic-row"} style={{ minWidth: "max-content" }}>
+                     {row.getVisibleCells().map((cell) => {
+                        const colDef = cell.column.columnDef as any;
+                        return (
+<TableCell
+  key={cell.id}
+  className="p-2 align-middle"
+  style={{ 
+    width: colDef.width,
+    minWidth: colDef.width,
+    maxWidth: colDef.width 
+  }}
+>
+  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+</TableCell>
+
+                        );
+                      })}
+                    </TableRow>
+                  ));
+                }
+
+                // ===== Render pivotado (subgrupos no header) =====
+                const fkKey = resolveKey(X_AXIS_FK_COLUMN);
+                const rowKey = resolveKey(X_AXIS_ROW_KEY_COLUMN);
+                const fixedKeys = X_AXIS_FIXED_COLUMNS.map(resolveKey).filter(Boolean);
+                const detailKeys = computeDetailKeys(fkKey, resolveKey(X_AXIS_LABEL_COLUMN) || fkKey, fixedKeys);
+
+                // grupos (ordem = primeira aparição)
+                const groupOrder: any[] = [];
+                const seen = new Set<string>();
+                for (const r of visibleRows) {
+                  const gv = (r.original as any)[fkKey];
+                  const k = String(gv ?? "");
+                  if (!seen.has(k)) { seen.add(k); groupOrder.push(gv); }
+               }
+
+                // pivot: rowKey => { fixedRowRef, byGroup: Map<fkVal, row> }
+                const pivot = new Map<string, { fixedRow: any | null; byGroup: Map<any, any> }>();
+                for (const r of visibleRows) {
+                  const rk = (r.original as any)[rowKey];
+                  const fk = (r.original as any)[fkKey];
+                  const key = String(rk ?? "");
+                  if (!pivot.has(key)) pivot.set(key, { fixedRow: r.original, byGroup: new Map() });
+                  const slot = pivot.get(key)!;
+                  if (!slot.fixedRow) slot.fixedRow = r.original;
+                  slot.byGroup.set(fk, r.original);
+               }
+                const pivotRows = Array.from(pivot.entries()); // [rowKeyStr, { fixedRow, byGroup }]
+          let rowsToRender = pivotRows;
+ if (xAxisGroupSort) {
+   // Usa a subcoluna escolhida no header secundário; fallback = primeira
+   const chosenKey = xAxisGroupSort.detailKey || detailKeys[0];
+   const def = getColDefByDataField(chosenKey);
+   const colId = def ? resolveKey(def.dataField) : chosenKey;
+const isNumeric =
+      def?.columnType === "data_number" || def?.columnType === "input_number";
+    const isDate =
+      def?.columnType === "input_date" ||
+      !!def?.inputDateFormat ||
+      /data|date/i.test(String(def?.columnName || def?.dataField || ""));
+
+    const parseDateTs = (s: any): number => {
+      if (s === null || s === undefined || s === "") return NaN;
+      const str = String(s).trim();
+      if (def?.inputDateFormat) {
+        const d = parse(str, def.inputDateFormat, new Date());
+        if (!isNaN(d.getTime())) return d.getTime();
+      }
+      try {
+       const d1 = parse(str, "dd/MM/yyyy", new Date());
+        if (!isNaN(d1.getTime())) return d1.getTime();
+      } catch {}
+      try {
+        const d2 = parse(str, "dd/MM/yyyy HH:mm", new Date());
+        if (!isNaN(d2.getTime())) return d2.getTime();
+      } catch {}
+     const d3 = new Date(str);
+      return isNaN(d3.getTime()) ? NaN : d3.getTime();
+    };
+                  const toComparable = (v: any) => {
+                    if (v == null) return null;
+                    if (isNumeric) {
+                      const n = typeof v === "number" ? v : parseNumberBR(String(v));
+                      return isNaN(n) ? null : n;
+                    }
+                    if (isDate) {
+        const ts = parseDateTs(v);
+        return isNaN(ts) ? null : ts; // compara por timestamp
+      }
+                    // string compare padronizado
+                    return String(v);
+                  };
+                  rowsToRender = [...pivotRows].sort((a, b) => {
+                    const aRow = a[1].byGroup.get(xAxisGroupSort.groupKey) || {};
+                    const bRow = b[1].byGroup.get(xAxisGroupSort.groupKey) || {};
+                    const av = toComparable((aRow as any)[colId]);
+                    const bv = toComparable((bRow as any)[colId]);
+                    // Nulls sempre no fim
+                    if (av === null && bv === null) return 0;
+                    if (av === null) return 1;
+                    if (bv === null) return -1;
+                  let cmp = 0;
+              if (isNumeric || isDate) {
+                      cmp = (av as number) === (bv as number) ? 0 : (av as number) > (bv as number) ? 1 : -1;
+                    } else {
+                      cmp = String(av).localeCompare(String(bv), "pt-BR");
+                    }
+                    return xAxisGroupSort.dir === "asc" ? cmp : -cmp;
+                  });
+                }
+
+                return rowsToRender.map(([rkStr, pack]) => {
+                  return (
+                    <TableRow key={`rk-${rkStr}`} className={TABLE_DESIGN === "data" ? "data-row" : "classic-row"} style={{ minWidth: "max-content" }}>
+                      {/* FIXAS */}
+                      {fixedKeys.length > 0
+                        ? fixedKeys.map((k) => {
+                            const def = getColDefByDataField(k);
+                            const colId = def ? resolveKey(def.dataField) : k;
+                            const value = (pack.fixedRow as any)?.[colId];
+                            // reutiliza render de célula original, se existir
+                            const col = table.getAllLeafColumns().find(c => (c.columnDef as any).accessorKey === colId);
+                            if (col) {
+                              const fakeCtx: any = { row: { original: pack.fixedRow }, getValue: () => value, column: col };
+                              return (
+                                <TableCell key={`fx-${rkStr}-${k}`} className="p-2 align-middle" style={{ width: def?.width, minWidth: def?.width, maxWidth: def?.width }}>
+                                  {flexRender(col.columnDef.cell, fakeCtx)}
+                                </TableCell>
+                              );
+                            }
+                            return <TableCell key={`fx-${rkStr}-${k}`} className="p-2 align-middle">{String(value ?? "")}</TableCell>;
+                          })
+                        : <TableCell className="p-2 align-middle"> </TableCell>
+                      }
+
+                      {/* DETALHES por grupo */}
+                      {groupOrder.map((gVal, gi) =>
+                        detailKeys.map((dk) => {
+                          const def = getColDefByDataField(dk);
+                          const colId = def ? resolveKey(def.dataField) : dk;
+                          const rowForGroup = pack.byGroup.get(gVal) || {};
+                          const value = (rowForGroup as any)?.[colId];
+                         const col = table.getAllLeafColumns().find(c => (c.columnDef as any).accessorKey === colId);
+                          if (col) {
+                            const fakeCtx: any = { row: { original: rowForGroup }, getValue: () => value, column: col };
+                            return (
+                              <TableCell key={`g-${gi}-${rkStr}-${dk}`} className="p-2 align-middle" style={{ width: def?.width, minWidth: def?.width, maxWidth: def?.width }}>
+                                {flexRender(col.columnDef.cell, fakeCtx)}
+                              </TableCell>
+                            );
+                          }
+                          return (
+                            <TableCell key={`g-${gi}-${rkStr}-${dk}`} className="p-2 align-middle">
+                              {String(value ?? "")}
+                            </TableCell>
+                          );
+                        })
+                     )}
+                    </TableRow>
+                  );
+                });
+              })()}
+
+</TableBody>
+
+    {!paginacaoAtiva && (!XAXIS_HEADER_SUBGROUPS || !X_AXIS_FK_COLUMN) && Object.keys(queryBasedTotals).length > 0 && (
+    <tfoot
+      className={cn(
+        "sticky bottom-0 z-20 totalizer",
+        TABLE_DESIGN === "data" ? "bg-[#F8F9FA] border-t border-[#E5E7EB]" : "bg-white border-t"
+      )}
+      style={{ boxShadow: "inset 0 1px 0 #E5E7EB" }}
+    >
+      <tr className="totalizer-row">
+        {(() => {
+          const visibleColumns = table.getVisibleLeafColumns();
+
+          let firstTotalIndex = visibleColumns.findIndex(col => {
+            const def = col.columnDef as any;
+            const key = typeof def?.accessorKey === "string" ? def.accessorKey : "";
+            if (!key) return false;
+            
+            return queryBasedTotals[key] !== undefined;
+          });
+
+          if (firstTotalIndex === -1) {
+            firstTotalIndex = visibleColumns.length;
+          }
+
+          return visibleColumns.map((col, idx) => {
+            if (idx === 0) {
+              return (
+                <td
+                  key="totalizer-label"
+                  colSpan={firstTotalIndex === 0 ? 1 : firstTotalIndex}
+                  className="p-2 text-sm font-medium totalizer-cell text-left text-slate-700"
+                  style={{
+                    background: TABLE_DESIGN === "data" ? "var(--totalizer-bg, #F8F9FA)" : "var(--totalizer-bg, white)",
+                    position: "sticky",
+                    bottom: 0,
+                  }}
+                >
+                  Totais
+                </td>
+              );
+            }
+
+            if (idx < firstTotalIndex) {
+              return null;
+            }
+
+            const def = col.columnDef as any;
+            const key = typeof def?.accessorKey === "string" ? def.accessorKey : "";
+            const colDefJson = finalColumnJSON.find(c => resolveKey(c.dataField) === key);
+            const hasQueryTotal = key && queryBasedTotals[key] !== undefined;
+
+            return (
+<td
+  key={col.id}
+  className={cn("p-2 text-sm font-medium totalizer-cell", def?.cellClassName || "text-left")}
+  style={{
+    minWidth: def.width,
+    background: TABLE_DESIGN === "data" ? "var(--totalizer-bg, #F8F9FA)" : "var(--totalizer-bg, white)",
+    position: "sticky",
+    bottom: 0,
+  }}
+>
+  {(() => {
+    if (hasQueryTotal) {
+      const totalVal = queryBasedTotals[key];
+      const places = colDefJson ? getDecimalPlacesForColumn(colDefJson) : 2;
+// DEPOIS (mostra um traço se inválido/ausente)
+return (totalVal ?? null) !== null ? formatNumberBRN(totalVal, places) : "—";
+
+    }
+    return "";
+  })()}
+</td>
+
+            );
+          });
+        })()}
+      </tr>
+    </tfoot>
+)}
+</Table>
+  )}
+    </div>
+</div>
+
+      </div>
+      {paginacaoAtiva && (
+        <div 
+          className={`flex items-center justify-end space-x-2 px-4 py-4 sticky bottom-0 z-20 sticky-footer ${
+            TABLE_DESIGN === "data" ? "bg-[#F8F9FA] border-t border-[#E5E7EB]" : "bg-white border-t"
+          }`}
+        >
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Próxima
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

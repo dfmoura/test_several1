@@ -1,0 +1,13 @@
+h1 {
+    font-size: 64px;
+  }
+  h2 {
+    color: blue;
+  }
+
+  #titulo {
+    background-color: bisque;
+  }
+  .titulo-secundario {
+    font-size: 41px;
+  }

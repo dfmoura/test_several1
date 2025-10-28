@@ -1,0 +1,107 @@
+package br.com.triggerint;
+
+import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
+import br.com.sankhya.extensions.actionbutton.ContextoAcao;
+import br.com.sankhya.extensions.actionbutton.QueryExecutor;
+import br.com.sankhya.extensions.actionbutton.Registro;
+import com.sankhya.util.StringUtils;
+
+/**
+ * Botão de ação para atualizar o campo AD_OBSERVACAO na tabela TCIBEM
+ * Utiliza os parâmetros P_OBSERVACAO e o registro selecionado (CODBEM, CODPROD)
+ */
+public class ObservacaoBem1BT implements AcaoRotinaJava {
+
+    @Override
+    public void doAction(ContextoAcao contexto) throws Exception {
+        System.out.println("br.com.triggerint.ObservacaoBem1BT - INICIO");
+
+        // Validar se há registro selecionado (apenas um)
+        Registro[] linhas = contexto.getLinhas();
+        if (linhas.length == 0) {
+            contexto.mostraErro("Nenhum registro foi selecionado na tabela TCIBEM.");
+            return;
+        }
+
+        if (linhas.length > 1) {
+            contexto.mostraErro("Apenas um registro deve ser selecionado. Registros selecionados: " + linhas.length);
+            return;
+        }
+
+        // Extrair chaves primárias do registro selecionado
+        Registro registroSelecionado = linhas[0];
+        String codBem = (String) registroSelecionado.getCampo("CODBEM");
+        Object codProdObj = registroSelecionado.getCampo("CODPROD");
+
+        // Validar chaves primárias obrigatórias
+        if (StringUtils.isEmpty(codBem)) {
+            contexto.mostraErro("Campo CODBEM não encontrado ou vazio no registro selecionado.");
+            return;
+        }
+
+        if (codProdObj == null) {
+            contexto.mostraErro("Campo CODPROD não encontrado ou vazio no registro selecionado.");
+            return;
+        }
+
+        // Obter parâmetro de observação
+        String observacao = (String) contexto.getParam("P_OBSERVACAO");
+        if (StringUtils.isEmpty(observacao)) {
+            contexto.mostraErro("O parâmetro 'P_OBSERVACAO' é obrigatório e não pode estar vazio.");
+            return;
+        }
+
+        // Executar atualização usando QueryExecutor otimizado
+        QueryExecutor query = contexto.getQuery();
+        try {
+            // Configurar parâmetros para a query de atualização
+            query.setParam("CODBEM", codBem);
+            query.setParam("CODPROD", codProdObj);
+            query.setParam("OBSERVACAO", observacao.trim());
+
+            // Verificar se o registro existe antes da atualização
+            query.setParam("CODBEM_CHECK", codBem);
+            query.setParam("CODPROD_CHECK", codProdObj);
+            query.nativeSelect("SELECT COUNT(*) AS TOTAL FROM TCIBEM WHERE CODBEM = {CODBEM_CHECK} AND CODPROD = {CODPROD_CHECK}");
+
+            int totalRegistros = 0;
+            if (query.next()) {
+                totalRegistros = query.getInt("TOTAL");
+            }
+
+            if (totalRegistros == 0) {
+                contexto.mostraErro("Registro não encontrado. Verifique se o CODBEM e CODPROD estão corretos.");
+                return;
+            }
+
+            if (totalRegistros > 1) {
+                contexto.mostraErro("Erro inesperado: múltiplos registros encontrados (" + totalRegistros + ").");
+                return;
+            }
+
+            // Executar update com chaves primárias completas
+            query.update("UPDATE TCIBEM SET AD_OBSERVACAO = {OBSERVACAO} WHERE CODBEM = {CODBEM} AND CODPROD = {CODPROD}");
+
+            // Sucesso - preparar mensagem informativa
+            StringBuilder mensagemSucesso = new StringBuilder();
+            mensagemSucesso.append("Observação atualizada com sucesso!\n\n");
+            mensagemSucesso.append("Registro atualizado:\n");
+            mensagemSucesso.append("• CODBEM: ").append(codBem).append("\n");
+            mensagemSucesso.append("• CODPROD: ").append(codProdObj.toString()).append("\n");
+            mensagemSucesso.append("• Nova observação: ").append(observacao.trim());
+
+            contexto.setMensagemRetorno(mensagemSucesso.toString());
+            System.out.println("Observação atualizada - CODBEM: " + codBem + ", CODPROD: " + codProdObj);
+
+        } catch (Exception e) {
+            contexto.mostraErro("Erro ao atualizar observação: " + e.getMessage());
+            System.out.println("Erro na atualização: " + e.getMessage());
+            throw e;
+        } finally {
+            // Garantir fechamento do QueryExecutor
+            query.close();
+        }
+
+        System.out.println("br.com.triggerint.ObservacaoBem1BT - FIM");
+    }
+}

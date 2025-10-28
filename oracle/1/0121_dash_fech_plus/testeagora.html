@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cards Horizontais — Demo</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1320;
+      --muted:#9aa4b2;
+      --accent:#6ee7b7;
+      --glass: rgba(255,255,255,0.03);
+      --gap:1.25rem;
+      --card-w:320px;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      background:linear-gradient(180deg,#041022 0%, #071326 50%, #071826 100%);
+      color:#e6eef6;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:48px 32px;
+    }
+
+    .app{
+      width:100%;
+      max-width:1200px;
+    }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      margin-bottom:20px;
+    }
+    header h1{
+      font-size:20px;
+      margin:0;
+      letter-spacing:0.2px;
+    }
+    header p{margin:0;color:var(--muted);font-size:13px}
+
+    .controls{
+      display:flex;gap:8px;align-items:center;
+    }
+    .btn{
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,0.04);
+      color:var(--accent);
+      padding:8px 12px;border-radius:10px;
+      font-weight:600;cursor:pointer;backdrop-filter: blur(6px);
+    }
+
+    /* viewport */
+    .viewport{
+      position:relative;
+      padding:18px;
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow: 0 6px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    /* horizontal scroller */
+    .scroller{
+      display:flex;
+      gap:var(--gap);
+      overflow-x:auto;
+      padding:12px 6px;
+      scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;
+      scrollbar-color: rgba(255,255,255,0.15) transparent;
+      align-items:flex-start;
+    }
+    .scroller:focus{outline:none}
+
+    /* nice scrollbar for webkit */
+    .scroller::-webkit-scrollbar{height:10px}
+    .scroller::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:999px}
+
+    .card{
+      flex:0 0 auto;
+      scroll-snap-align:center;
+      width:var(--card-w);
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:14px;
+      padding:14px;
+      box-shadow: 0 8px 20px rgba(2,6,23,0.6);
+      border:1px solid rgba(255,255,255,0.03);
+      transition:transform 300ms cubic-bezier(.2,.9,.25,1), box-shadow 300ms;
+      position:relative;
+    }
+    .card:hover{transform:translateY(-8px);box-shadow:0 18px 50px rgba(2,6,23,0.8)}
+
+    .thumb{
+      height:160px;border-radius:10px;overflow:hidden;margin-bottom:12px;background:#091424;position:relative;
+    }
+    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+
+    .meta{display:flex;align-items:center;gap:10px}
+    .avatar{width:44px;height:44px;border-radius:10px;overflow:hidden;flex-shrink:0}
+    .avatar img{width:100%;height:100%;object-fit:cover}
+
+    .title{font-weight:700;margin:0;font-size:15px}
+    .subtitle{color:var(--muted);font-size:13px;margin:2px 0 6px}
+
+    .tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .tag{background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:999px;font-size:12px;color:var(--muted);border:1px solid rgba(255,255,255,0.02)}
+
+    .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+    .price{font-weight:700}
+
+    /* center hint */
+    .hint{position:absolute;left:50%;transform:translateX(-50%);bottom:-24px;background:linear-gradient(90deg,var(--accent),#60a5fa);color:#042024;padding:6px 12px;border-radius:999px;font-weight:700;font-size:13px;box-shadow:0 6px 18px rgba(10,30,20,0.25)}
+
+    /* arrow buttons */
+    .nav-btn{
+      position:absolute;top:50%;transform:translateY(-50%);background:transparent;border:0;padding:6px;cursor:pointer;border-radius:8px;backdrop-filter: blur(6px);
+    }
+    .nav-btn.left{left:8px}
+    .nav-btn.right{right:8px}
+    .nav-btn:focus{outline:2px solid rgba(110,231,183,0.15)}
+    .nav-btn svg{width:36px;height:36px}
+
+    /* responsive */
+    @media (max-width:900px){:root{--card-w:280px}}
+    @media (max-width:640px){
+      body{padding:24px}
+      header{flex-direction:column;align-items:flex-start;gap:8px}
+      .hint{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Tela de Cards — horizontal scroll</h1>
+        <p>Estrutura moderna, responsiva e gerada dinamicamente via JavaScript.</p>
+      </div>
+      <div class="controls">
+        <button class="btn" id="btn-prev" title="Voltar">◀</button>
+        <button class="btn" id="btn-next" title="Avançar">▶</button>
+      </div>
+    </header>
+
+    <section class="viewport" aria-label="Lista de cards">
+      <div class="scroller" id="scroller" tabindex="0" role="list">
+        <!-- cards serão injetados aqui -->
+      </div>
+
+      <button class="nav-btn left" id="nav-left" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="nav-btn right" id="nav-right" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+      <div class="hint">Arraste ou use as setas →</div>
+    </section>
+  </div>
+
+  <script>
+    // --- Dados de exemplo ---
+    const data = [
+      {id:1, title:'Design System Kit', subtitle:'Componentes prontos para protótipos', author:'Studio Nova', avatar:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=1', image:'https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=2', price:'R$ 129', tags:['UI Kit','Figma','Design']},
+      {id:2, title:'Guia de Acessibilidade', subtitle:'Melhore a experiência dos seus usuários', author:'A11y Team', avatar:'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=3', image:'https://images.unsplash.com/photo-1508385082359-f5d5b7a8f3cf?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=4', price:'Grátis', tags:['Acessibilidade','Web','Checklist']},
+      {id:3, title:'Kit de Ilustrações', subtitle:'Ilustrações vetoriais para apps', author:'ArtHouse', avatar:'https://images.unsplash.com/photo-1545996124-6f2b8f2088c8?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=5', image:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=6', price:'R$ 49', tags:['SVG','Ilustrações']},
+      {id:4, title:'Pacote de Icons 4K', subtitle:'Mais de 200 ícones escaláveis', author:'IconLab', avatar:'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=7', image:'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=8', price:'R$ 39', tags:['Ícones','SVG','UI']},
+      {id:5, title:'Template Landing', subtitle:'Landing page conversiva', author:'GrowthLab', avatar:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=9', image:'https://images.unsplash.com/photo-1492724441997-5dc865305da7?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=10', price:'R$ 89', tags:['Landing','Marketing','HTML']}
+    ];
+
+    const scroller = document.getElementById('scroller');
+
+    function createCard(item){
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.setAttribute('role','listitem');
+      card.setAttribute('aria-label', item.title);
+
+      card.innerHTML = `
+        <div class="thumb">
+          <img loading="lazy" src="${item.image}" alt="Imagem do ${item.title}">
+        </div>
+
+        <div class="meta">
+          <div style="flex:1">
+            <p class="title">${item.title}</p>
+            <p class="subtitle">${item.subtitle}</p>
+            <div class="tags">
+              ${item.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div class="avatar"><img src="${item.avatar}" alt="Avatar ${item.author}"/></div>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px">${item.author}</div>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <div class="price">${item.price}</div>
+          <button class="btn" onclick="onBuy(${item.id})" aria-label="Comprar ${item.title}">Comprar</button>
+        </div>
+      `;
+
+      return card;
+    }
+
+    function render(items){
+      scroller.innerHTML = '';
+      items.forEach(i => scroller.appendChild(createCard(i)));
+    }
+
+    render(data);
+
+    // --- navegação por botões ---
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const navLeft = document.getElementById('nav-left');
+    const navRight = document.getElementById('nav-right');
+
+    function scrollByCard(direction = 1){
+      // move aprox. um card + gap
+      const cardWidth = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) || 320;
+      const gap = 20; // aproximado
+      scroller.scrollBy({left: (cardWidth + gap) * direction, behavior:'smooth'});
+    }
+
+    btnPrev.addEventListener('click', () => scrollByCard(-1));
+    btnNext.addEventListener('click', () => scrollByCard(1));
+    navLeft.addEventListener('click', () => scrollByCard(-1));
+    navRight.addEventListener('click', () => scrollByCard(1));
+
+    // drag to scroll
+    let isDown=false; let startX; let scrollLeft;
+    scroller.addEventListener('mousedown', (e) => {isDown=true;scroller.classList.add('dragging');startX = e.pageX - scroller.offsetLeft;scrollLeft = scroller.scrollLeft;});
+    window.addEventListener('mouseup', ()=>{isDown=false;scroller.classList.remove('dragging');});
+    scroller.addEventListener('mousemove',(e)=>{if(!isDown) return; e.preventDefault(); const x = e.pageX - scroller.offsetLeft; const walk = (x - startX) * 1; scroller.scrollLeft = scrollLeft - walk;});
+
+    // touch: small velocity-based snap (native snap does most of the job)
+    let touchStartX=0, touchStartScroll=0;
+    scroller.addEventListener('touchstart', e=>{touchStartX = e.touches[0].clientX; touchStartScroll = scroller.scrollLeft;});
+    scroller.addEventListener('touchmove', e=>{const dx = e.touches[0].clientX - touchStartX; scroller.scrollLeft = touchStartScroll - dx});
+
+    // keyboard: esquerda/direita
+    scroller.addEventListener('keydown', (e)=>{
+      if(e.key === 'ArrowRight') { e.preventDefault(); scrollByCard(1); }
+      if(e.key === 'ArrowLeft') { e.preventDefault(); scrollByCard(-1); }
+    });
+
+    // exemplo de ação ao comprar
+    function onBuy(id){
+      const it = data.find(x=>x.id===id);
+      if(!it) return;
+      // ação de exemplo — abre um modal simples
+      alert('Comprar: ' + it.title + ' — ' + it.price);
+    }
+
+    // Exemplo: adicionar dinamicamente novos cards (simula fetch)
+    // setTimeout(() => { data.push({id:6,title:'Novo Produto',subtitle:'Adicionado dinamicamente',author:'Beta',avatar:'https://images.unsplash.com/photo-1545996124-6f2b8f2088c8?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3&s=11',image:'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=12',price:'R$ 19',tags:['Novo']}); render(data); }, 2000);
+
+  </script>
+</body>
+</html>

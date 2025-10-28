@@ -1,0 +1,50 @@
+no aquivo index3.jsp na estrutura atual existente
+
+debaixo do header de forma profissional e clean, 
+respeitando a paleta.txt
+
+e utilizar como exemplo o arquivo prod32_1.jsp que utiliza a biblioteca SankhyaJX com o metodo JX.consultar
+toda a estrutura do hmtl e js para popular toda estrutra
+
+
+e utilizando as melhorer bibliotecas de card's e grafico (chart.js esta muito simples)
+
+
+criar a seguinte estrutura com o melhor padrao e dimensionamento
+parte superior
+parte inferior
+
+parte superior:
+criar 4 card's na horizontal
+1° Faturamento e Valor $  =  basear na query_real_meta.sql campo VLR_REAL com a soma total
+2° Meta e Valor $ =  basear na query_real_meta.sql campo VLR_PREV  com a soma total
+3° % Atingido Meta e Valor =  calculo para atingir meta VLR_REAL/VLR_PREV*100
+4° Comissão Plus e Valor = basear na query_benf.sql campo VLRBENEFICIO com a soma total
+
+parte inferior dividir em lado direito e lado esquerdo:
+
+lado equerdo:
+grafico linha horizontal
+de real x meta mes a mes
+campos:
+real = VLR_REAL
+meta = VLR_PREV
+mes a mes = MES_ANO
+basear na query_real_meta.sql
+
+lado direito:
+grafico colunas
+de real x meta por vendedor top 10
+campos: 
+vendedor = CODVEND & APELIDO
+meta = VLR_PREV
+real = VLR_REAL
+basear na query_vededor_metaXreal_top10.sql
+
+
+fazer um codigo bem inteligente e escalavel
+
+muito cuidado com algum possivel erro de looping infinito nos graficos
+
+
+organize as querys do jeito que quizer para atingir o escopo
