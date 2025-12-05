@@ -4,52 +4,88 @@ mysql
 
 depois de criacao das tabelas seguir com as regras
 
-
 popular os cadastros de cr e contas feitos aleatorios e criar tela de crud completa
 popular o cadastro dos aprovadores feitos aleatorio e criar tela de crud completa
 
-1)criar uma tela  de crud completa para a versao
-2)lançar uma versao do orçamento com um status = andamento
+1)criar uma tela  de crud completa para a versao do orçamento
+ter um campo calculado status resultado do select abaixo
+SELECT 
+    CASE 
+        WHEN SUM(CASE WHEN ultimos.status_aprovacao = 'aprovado' THEN 1 ELSE 0 END) = COUNT(*)
+        THEN 'aprovado'
+        ELSE 'aguardando'
+    END AS status
+FROM (
+    SELECT 
+        f1.id_versao_orcamento,
+        f1.id_aprovador,
+        f1.status_aprovacao
+    FROM fluxo_aprovacao_orcamento f1
+    INNER JOIN (
+        SELECT 
+            id_versao_orcamento,
+            id_aprovador,
+            MAX(data_aprovacao) AS ultima_data
+        FROM fluxo_aprovacao_orcamento
+        GROUP BY id_versao_orcamento, id_aprovador
+    ) f2 ON f2.id_versao_orcamento = f1.id_versao_orcamento
+        AND f2.id_aprovador = f1.id_aprovador
+        AND f2.ultima_data = f1.data_aprovacao
+) AS ultimos
+JOIN (SELECT DISTINCT id_versao_orcamento FROM fluxo_aprovacao_orcamento) v
+  ON v.id_versao_orcamento = ultimos.id_versao_orcamento
+  where v.id_versao_orcamento = :VAR_VERSAO_ORCAMENTO_ID
+GROUP BY v.id_versao_orcamento
 
-3)
-** apos lançar a versao 
 
 
-ter uma
-ação de preparação para lançamento_orçamento de 
-preencher populando as tabela prechenchendo todas contas para cada cr de 1 a 12 no mes e valores aleatorios
-fazer a tela que vai possibilidar fazer o preencimento (lembrando das primeira colunas de versao,cr,conta e demais colunas de 1 a 12 com valores embaixo), (nesta tela possibilidar fazer um download em csv, e um upload colocar bem discreto os botões)
+
+** gerar o lançamento de uma versão de orçamento, manual
+
+
+2)
+
+criar uma ação
+que apos adicionar a nova versão de orçamento
+preencher populando a tabela com todos os cr's e respectivas contas de 1 a 12 mes com valores zerados
+ja criar a tela de lançamento_orçamento que vai possibilidar fazer o preencimento  manual (lembrando das primeira colunas de versao,cr,conta e 
+demais colunas de 1 a 12 com valores embaixo e totais inferior e direita), 
+colocar o scroll na horizontal da tabela para aumentar os campos de cr e contas
+
+
+sem atrapalhar e estragar nada no codigo criar uma ação na tela Lançamentos para 
+popular com valores aleatorios a tabela de jan a dez para a versao, cr e contas
+
+
+
+2.1)
+(nesta tela possibilidar fazer um download em csv, e um upload colocar bem discreto os botões)
 ****
-colocar o scroll na horizontal da tabela para aumentar os campos de cr e contas e acrescentar a versao
 ****
 
-
-
-
-o usuario responsavel faz o lançamento dos valores do orçamento para cada cr e respectiva conta na versao
 
 
 4)
+
+com muito cuidado sem estragar o codigo 
 se o usuario entender que esta ok ele poderá colocar na tabela versao_orcamento pronto = sim
-a partir do momento que ele deixa pronto = sim a versao
-o sistema gera uma lançamento inicial para cada aprovador cadastrado na tabela fluxo_aprovacao_orcamento
-começando com o status_aprovação = pendente, depois o usuario aprovador so podera aprovar ou reprovar
-se aprovado nao tera mais interação
+a partir do momento que ele deixa pronto = sim para a versao
+o sistema gera uma ação de um lançamento inicial em fluxo_aprovacao_orcamento , carregando a id_versao_orcamento, 
+id_aprovador (pode ser um ou mais de acordo com a tabela aprovador) e coloca o status pendente, 
+
+5)
+criar uma tela com as aprovações pendentes, somente o usuario aprovador podera ver o registo,
+na tela o usuario aprovador so podera aprovar ou reprovar
+
+se aprovado atualiza o campo status_arprovação como 'aprovado' nao tera mais interação
+
+se reprovado atualiza o campo status_arprovação como 'reprovado' e envia um email para os usuarios 
+do workspace mencionado que a versão xxxx do orçamento foi reprovada e precisa ser corridida
 
 
-
-
-
-ficara esta pendencia para ser resolvida, quando resolver ele atualizara o status para corrigido
-no mesmo instante o sistema gera um novo lançamento para o fluxo_aprovacao_orcamento
-de acordo com estes dados de
-id_fluxo_aprovacao (fk)
-id_versao_orcamento (fk)
-id_aprovador (fk)
-e
-começando com o status_aprovação = pendente
-repentindo o fluxo até quando for necessario
-por fim quando todos os aprovadores para aquela versao dos respectivos fluxos de aprovação estiverem 
-todos com status_aprovacao = aprovado
-
-
+6)
+na tela de Versões de Orçamento
+quando estiver com o status Aprovado para a versao do orçamento em questão, inativar os botões
+Enviar para aprovação;
+Editar
+Deletar

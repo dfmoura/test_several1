@@ -3,7 +3,10 @@ package com.trigger.atualizaparceiros;
 import br.com.sankhya.extensions.actionbutton.AcaoRotinaJava;
 import br.com.sankhya.extensions.actionbutton.ContextoAcao;
 import br.com.sankhya.extensions.actionbutton.QueryExecutor;
+import br.com.sankhya.extensions.actionbutton.Registro;
 import com.sankhya.util.StringUtils;
+
+import java.math.BigDecimal;
 
 /**
  * Botão de ação para atualizar a tabela AD_LATLONGPARC com base nos parceiros da view VGF_VENDAS_SATIS
@@ -16,6 +19,38 @@ public class AtualizaParcBT1 implements AcaoRotinaJava {
     public void doAction(ContextoAcao contexto) throws Exception {
         System.out.println("com.trigger.atualizaparceiros.AtualizaParcBT1 - INICIO");
 
+        // Capturar nufin da tela atual (baseado no ImportarBT.java)
+        BigDecimal nufin = null;
+        Registro[] linhas = contexto.getLinhas();
+        
+        if (linhas != null && linhas.length > 0) {
+            // Obter o primeiro registro selecionado
+            Registro registroSelecionado = linhas[0];
+            Object nufinObj = registroSelecionado.getCampo("NUFIN");
+            
+            if (nufinObj != null) {
+                if (nufinObj instanceof BigDecimal) {
+                    nufin = (BigDecimal) nufinObj;
+                } else if (nufinObj instanceof Number) {
+                    nufin = BigDecimal.valueOf(((Number) nufinObj).doubleValue());
+                }
+            }
+        }
+        
+        // Se não encontrou nas linhas, tentar obter como parâmetro
+        if (nufin == null) {
+            Object nufinParam = contexto.getParam("NUFIN");
+            if (nufinParam != null) {
+                if (nufinParam instanceof BigDecimal) {
+                    nufin = (BigDecimal) nufinParam;
+                } else if (nufinParam instanceof Number) {
+                    nufin = BigDecimal.valueOf(((Number) nufinParam).doubleValue());
+                }
+            }
+        }
+        
+        System.out.println("NUFIN capturado da tela: " + (nufin != null ? nufin.toString() : "não encontrado"));
+
         QueryExecutor query = contexto.getQuery();
         int totalInseridos = 0;
         int totalAtualizados = 0;
@@ -23,7 +58,10 @@ public class AtualizaParcBT1 implements AcaoRotinaJava {
 
         try {
             // Buscar todos os parceiros distintos da view VGF_VENDAS_SATIS com dados de localização
-            query.nativeSelect("SELECT DISTINCT " +
+            query.nativeSelect(
+
+
+                    "SELECT DISTINCT " +
                     "VGF.CODPARC, " +
                     "cid.nomecid as CIDADE, " +
                     "ufs.DESCRICAO as ESTADO, " +
@@ -35,7 +73,9 @@ public class AtualizaParcBT1 implements AcaoRotinaJava {
                     "INNER JOIN tsicid cid ON par.codcid = cid.codcid " +
                     "INNER JOIN tsiufs ufs ON cid.UF = ufs.CODUF " +
                     "WHERE VGF.CODPARC IS NOT NULL " +
-                    "ORDER BY VGF.CODPARC");
+                    "ORDER BY VGF.CODPARC"
+
+            );
             
             while (query.next()) {
                 totalVerificados++;
@@ -159,6 +199,12 @@ public class AtualizaParcBT1 implements AcaoRotinaJava {
             // Preparar mensagem de retorno
             StringBuilder mensagemRetorno = new StringBuilder();
             mensagemRetorno.append("Atualização de parceiros concluída com sucesso!\n\n");
+            
+            // Mostrar nufin capturado da tela atual
+            if (nufin != null) {
+                mensagemRetorno.append("NUFIN da tela atual: ").append(nufin.toString()).append("\n\n");
+            }
+            
             mensagemRetorno.append("Resumo da operação:\n");
             mensagemRetorno.append("• Total de parceiros verificados: ").append(totalVerificados).append("\n");
             mensagemRetorno.append("• Novos parceiros inseridos: ").append(totalInseridos).append("\n");

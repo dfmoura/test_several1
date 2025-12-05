@@ -13,5 +13,6 @@
     <orderEntry type="library" name="mgeprod-model-5.1.43" level="project" />
     <orderEntry type="library" name="SankhyaW-extensions" level="project" />
     <orderEntry type="library" name="sanutil" level="project" />
+    <orderEntry type="library" name="jape-4.34b78" level="project" />
   </component>
 </module>

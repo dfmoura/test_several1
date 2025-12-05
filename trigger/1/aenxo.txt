@@ -1,0 +1,31 @@
+Fluxo de Conferência, Geração de QR Code e Baixa Financeira via PIX
+1. Conferência e Confirmação no Sankhya
+O conferente realiza a conferência do pedido e confirma a operação no ERP Sankhya.
+No momento da confirmação, o sistema integra-se automaticamente com o banco, gerando um QR Code
+PIX.
+2. Geração e Envio do QR Code
+O QR Code é enviado ao sistema Mercur por meio de uma API integrada, com validade até as 23h59 do
+mesmo dia.
+Caso o código expire, o faturista pode gerar um novo diretamente no portal, usando o botão de ação
+disponível no pedido.
+3. Envio ao Cliente
+Após o recebimento do QR Code via API, o vendedor responsável encaminha-o ao cliente.
+(Observação: o próprio Sankhya também pode enviar o QR Code automaticamente ao cliente.)
+4. Pagamento e Confirmação Bancária
+O cliente realiza o pagamento via PIX, utilizando o QR Code gerado exclusivamente para aquele pedido.
+Assim que o banco confirma a liquidação, a API bancária informa o Sankhya, registrando o pedido como
+pago.
+5. Movimentação Financeira e Contábil
+Com a confirmação do pagamento, o módulo financeiro do Sankhya cria automaticamente uma
+movimentação de adiantamento de cliente.
+Partida contábil:
+Débito: Banco / Conta PIX Recebimentos
+Crédito: Adiantamento de Clientes
+Essa operação representa o recebimento antecipado do valor, antes do faturamento.
+6. Faturamento e Compensação do Adiantamento
+Quando o pedido é faturado, o ERP reconhece a receita e realiza a baixa do adiantamento, vinculando o
+valor ao faturamento definitivo.
+Partida contábil:
+Débito: Adiantamento de Clientes
+Crédito: Receita de Vendas (ou Clientes, conforme parametrização)
+Atenciosamente,

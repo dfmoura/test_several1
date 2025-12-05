@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela Expansível - Informações Sintéticas e Analíticas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .expand-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .expand-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .expand-btn:active {
+            transform: scale(0.95);
+        }
+
+        .detail-row {
+            display: none;
+        }
+
+        .detail-row.expanded {
+            display: table-row;
+        }
+
+        .detail-cell {
+            padding: 0;
+            background: #f8f9fa;
+        }
+
+        .detail-content {
+            padding: 25px;
+            background: white;
+            margin: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .detail-section {
+            margin-bottom: 20px;
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-section h3 {
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .detail-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 5px;
+        }
+
+        .detail-item label {
+            display: block;
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-item span {
+            display: block;
+            font-size: 14px;
+            color: #212529;
+            font-weight: 500;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Tabela de Informações</h1>
+            <p>Clique no botão '+' para expandir e ver detalhes analíticos</p>
+        </div>
+        
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"></th>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Categoria</th>
+                        <th>Status</th>
+                        <th>Valor</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <button class="expand-btn" onclick="toggleDetail(this)">+</button>
+                        </td>
+                        <td>001</td>
+                        <td>Produto Alpha</td>
+                        <td>Eletrônicos</td>
+                        <td><span class="badge badge-success">Ativo</span></td>
+                        <td>R$ 1.250,00</td>
+                        <td>15/01/2025</td>
+                    </tr>
+                    <tr class="detail-row">
+                        <td colspan="7" class="detail-cell">
+                            <div class="detail-content">
+                                <div class="detail-section">
+                                    <h3>📋 Informações Detalhadas</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>ID Completo</label>
+                                            <span>PRD-001-ALPHA-2025</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Descrição</label>
+                                            <span>Produto Alpha - Modelo Premium com garantia estendida</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Fornecedor</label>
+                                            <span>TechCorp Solutions</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Estoque</label>
+                                            <span>45 unidades</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="detail-section">
+                                    <h3>💰 Análise Financeira</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>Custo Unitário</label>
+                                            <span>R$ 850,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Margem de Lucro</label>
+                                            <span>32%</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Valor Total Estoque</label>
+                                            <span>R$ 38.250,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Vendas do Mês</label>
+                                            <span>12 unidades</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <button class="expand-btn" onclick="toggleDetail(this)">+</button>
+                        </td>
+                        <td>002</td>
+                        <td>Serviço Beta</td>
+                        <td>Consultoria</td>
+                        <td><span class="badge badge-warning">Pendente</span></td>
+                        <td>R$ 3.500,00</td>
+                        <td>20/01/2025</td>
+                    </tr>
+                    <tr class="detail-row">
+                        <td colspan="7" class="detail-cell">
+                            <div class="detail-content">
+                                <div class="detail-section">
+                                    <h3>📋 Informações Detalhadas</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>ID Completo</label>
+                                            <span>SRV-002-BETA-2025</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Descrição</label>
+                                            <span>Serviço Beta - Consultoria estratégica em transformação digital</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Cliente</label>
+                                            <span>Empresa XYZ Ltda</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Prazo</label>
+                                            <span>60 dias</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="detail-section">
+                                    <h3>💰 Análise Financeira</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>Valor Base</label>
+                                            <span>R$ 3.500,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Desconto Aplicado</label>
+                                            <span>10%</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Valor Final</label>
+                                            <span>R$ 3.150,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Status Pagamento</label>
+                                            <span>Aguardando aprovação</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <button class="expand-btn" onclick="toggleDetail(this)">+</button>
+                        </td>
+                        <td>003</td>
+                        <td>Projeto Gamma</td>
+                        <td>Desenvolvimento</td>
+                        <td><span class="badge badge-info">Em Andamento</span></td>
+                        <td>R$ 8.900,00</td>
+                        <td>10/01/2025</td>
+                    </tr>
+                    <tr class="detail-row">
+                        <td colspan="7" class="detail-cell">
+                            <div class="detail-content">
+                                <div class="detail-section">
+                                    <h3>📋 Informações Detalhadas</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>ID Completo</label>
+                                            <span>PRJ-003-GAMMA-2025</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Descrição</label>
+                                            <span>Projeto Gamma - Sistema de gestão empresarial completo</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Equipe</label>
+                                            <span>5 desenvolvedores</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Progresso</label>
+                                            <span>65% concluído</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="detail-section">
+                                    <h3>💰 Análise Financeira</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>Orçamento Total</label>
+                                            <span>R$ 8.900,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Valor Gasto</label>
+                                            <span>R$ 5.785,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Saldo Disponível</label>
+                                            <span>R$ 3.115,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Previsão Término</label>
+                                            <span>28/02/2025</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <button class="expand-btn" onclick="toggleDetail(this)">+</button>
+                        </td>
+                        <td>004</td>
+                        <td>Item Delta</td>
+                        <td>Vendas</td>
+                        <td><span class="badge badge-danger">Cancelado</span></td>
+                        <td>R$ 450,00</td>
+                        <td>05/01/2025</td>
+                    </tr>
+                    <tr class="detail-row">
+                        <td colspan="7" class="detail-cell">
+                            <div class="detail-content">
+                                <div class="detail-section">
+                                    <h3>📋 Informações Detalhadas</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>ID Completo</label>
+                                            <span>ITM-004-DELTA-2025</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Descrição</label>
+                                            <span>Item Delta - Cancelado por solicitação do cliente</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Motivo Cancelamento</label>
+                                            <span>Mudança de requisitos</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Data Cancelamento</label>
+                                            <span>08/01/2025</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="detail-section">
+                                    <h3>💰 Análise Financeira</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>Valor Original</label>
+                                            <span>R$ 450,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Reembolso</label>
+                                            <span>100% processado</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Taxa Cancelamento</label>
+                                            <span>R$ 0,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Status Reembolso</label>
+                                            <span>Concluído</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <button class="expand-btn" onclick="toggleDetail(this)">+</button>
+                        </td>
+                        <td>005</td>
+                        <td>Produto Epsilon</td>
+                        <td>Eletrônicos</td>
+                        <td><span class="badge badge-success">Ativo</span></td>
+                        <td>R$ 2.100,00</td>
+                        <td>22/01/2025</td>
+                    </tr>
+                    <tr class="detail-row">
+                        <td colspan="7" class="detail-cell">
+                            <div class="detail-content">
+                                <div class="detail-section">
+                                    <h3>📋 Informações Detalhadas</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>ID Completo</label>
+                                            <span>PRD-005-EPSILON-2025</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Descrição</label>
+                                            <span>Produto Epsilon - Versão Pro com recursos avançados</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Fornecedor</label>
+                                            <span>GlobalTech Industries</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Estoque</label>
+                                            <span>28 unidades</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="detail-section">
+                                    <h3>💰 Análise Financeira</h3>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>Custo Unitário</label>
+                                            <span>R$ 1.400,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Margem de Lucro</label>
+                                            <span>33%</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Valor Total Estoque</label>
+                                            <span>R$ 39.200,00</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Vendas do Mês</label>
+                                            <span>8 unidades</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function toggleDetail(button) {
+            // Encontra a linha atual (tr) que contém o botão
+            const currentRow = button.closest('tr');
+            // Encontra a próxima linha (que é a linha de detalhes)
+            const detailRow = currentRow.nextElementSibling;
+            
+            // Verifica se a linha de detalhes existe e tem a classe 'detail-row'
+            if (detailRow && detailRow.classList.contains('detail-row')) {
+                // Alterna a classe 'expanded' para mostrar/ocultar
+                const isExpanded = detailRow.classList.toggle('expanded');
+                
+                // Atualiza o texto do botão
+                button.textContent = isExpanded ? '−' : '+';
+            }
+        }
+    </script>
+</body>
+</html>

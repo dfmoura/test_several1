@@ -1,0 +1,142 @@
+#!/bin/zsh
+      
+URL_OAUTH="https://cdpj.partners.bancointer.com.br/oauth/v2/token"
+
+D1="client_id=<clientId de sua aplicação>"
+D2="client_secret=<clientSecret de sua aplicação>"
+D3="scope=boleto-cobranca.write"
+D4="grant_type=client_credentials"
+DADOS=$D1\&$D2\&$D3\&$D4
+
+OAUTH_TOKEN_RESPONSE=$(curl \
+  -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --cert <nome arquivo certificado>.crt \
+  --key <nome arquivo chave privada>.key \
+  -d $DADOS \
+  $URL_OAUTH)
+
+if [[ -z OAUTH_TOKEN_RESPONSE ]]
+then
+  echo Sem resposta do servico de OAuth, provavelmente estourou limite de chamadas por minuto...
+  exit 1
+fi
+
+#Isola o access_token do json recebido
+LINHA_TOKEN=$(echo $OAUTH_TOKEN_RESPONSE | grep -o '"[^"]*"\s*:\s*"*[^,"]*"*' | \
+grep -E '^"(access_token)"' | \
+tr '\n' ',' | \
+sed 's/,$//')
+
+#Atribui à variável TOKEN o token recebido
+TOKEN=$(echo $LINHA_TOKEN | cut -c18-53)
+
+#
+# ------------------------------------
+# Cancelando a cobrança...
+# ------------------------------------
+#
+
+URL_CANCELAR_COBRANCA="https://cdpj.partners.bancointer.com.br/cobranca/v3/cobrancas/{codigoSolicitacao}/cancelar"
+ 
+CORPO='{ 
+  "motivoCancelamento":"ACERTOS"
+}'
+
+COBRANCA_CANCELADA=$(curl
+  --silent \
+  -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "x-conta-corrente: <conta corrente selecionada>" \
+  --cert <nome arquivo certificado>.crt \
+  --key <nome arquivo chave privada>.key \
+  -d $CORPO \
+  $URL_CANCELAR_COBRANCA)
+  
+exit 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+Cancelar cobrança
+
+Cancelar cobrança com o codigoSolicitacao informado.
+
+    Escopo requerido: boleto-cobranca.write
+    rate limit:
+        120 chamadas por minuto
+        10 chamadas por minuto
+
+Obs: O token tem validade de 60 minutos e deverá ser reutilizado nas requisições.
+https://cdpj.partners.bancointer.com.br/cobranca/v3/cobrancas/{codigoSolicitacao}/cancelar
+Ícone
+https://cdpj-sandbox.partners.uatinter.co/cobranca/v3/cobrancas/{codigoSolicitacao}/cancelar
+Ícone
+path Parameters
+codigoSolicitacao
+required
+	
+string <uuid>
+
+Código único da cobrança
+header Parameters
+x-conta-corrente	
+string[1-9][0-9]*
+
+Conta corrente que será utilizada na operação, caso faça parte da lista de contas correntes da aplicação. Enviar apenas números(incluindo o dígito), e não enviar zeros a esquerda.
+Request Body schema: application/json
+
+Corpo do objeto para cancelar a cobrança
+motivoCancelamento
+required
+	
+string <= 50 characters
+
+Motivo pelo qual a cobrança está sendo cancelada
+Responses
+
+Request samples
+
+    Payload
+
+Content type
+application/json
+{
+
+    "motivoCancelamento": "Devedor pagou por outra forma"
+
+}
+Response samples
+
+    400403404500
+
+Content type
+application/json
+{
+
+    "title": "Dados inválidos.",
+    "detail": "Verifique se os dados informados estão de acordo com a documentação disponibilizada e tente novamente.",
+    "timestamp": "2023-09-26T18:06:11.692931-03:00",
+    "violacoes": 
+
+[
+
+        {}
+    ]
+
+}
+
+
+*/

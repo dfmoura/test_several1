@@ -1,0 +1,81 @@
+
+
+
+
+tabela
+fluxo_aprovacao_orcamento
+campos:
+id_versao_orcamento
+id_aprovador
+status_aprovacao
+
+
+SELECT 
+    CASE 
+        WHEN COUNT(*) = SUM(CASE WHEN status_aprovacao = 'Aprovado' THEN 1 ELSE 0 END)
+        THEN 'aprovado'
+        ELSE 'aguardando'
+    END AS status
+FROM fluxo_aprovacao_orcamento
+WHERE id_versao_orcamento = :VAR_VERSAO_ORCAMENTO_ID
+
+
+
+
+
+id_fluxo_aprovacao
+25
+26
+33
+34
+
+id_versao_orcamento
+10
+11
+15
+15
+
+id_aprovador
+1
+1
+1
+1
+
+
+status_aprovacao
+aprovado
+aprovado
+reprovado
+aprovado
+
+observacao
+
+
+aprovado_por
+
+
+data_envio
+2025-10-28T19:03:36
+2025-10-28T19:14:29
+2025-10-28T20:16:58
+2025-10-28T20:17:33
+
+data_aprovacao
+2025-10-28T19:03:42
+2025-10-28T19:14:34
+2025-10-28T20:17:12
+2025-10-28T20:17:38
+
+
+criado_em
+2025-10-28T19:03:36
+2025-10-28T19:14:29
+2025-10-28T20:16:58
+2025-10-28T20:17:33
+
+
+atualizado_em
+2025-10-28T19:03:42
+2025-10-28T19:14:34
+2025-10-28T20:17:12
+2025-10-28T20:17:38

@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Comparação de Compras por Período</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+      :root {
+        --background: 0 0% 100%;
+        --foreground: 222.2 84% 4.9%;
+        --primary: 222.2 47.4% 11.2%;
+        --primary-foreground: 210 40% 98%;
+        --secondary: 210 40% 96.1%;
+        --secondary-foreground: 222.2 84% 4.9%;
+        --muted: 210 40% 96.1%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+        --accent: 210 40% 96.1%;
+        --accent-foreground: 222.2 84% 4.9%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 214.3 31.8% 91.4%;
+        --input: 214.3 31.8% 91.4%;
+        --ring: 222.2 84% 4.9%;
+        --radius: 0.5rem;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
+      }
+      .bar {
+        transition: opacity 0.2s;
+        cursor: pointer;
+      }
+      .bar:hover {
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body class="w-full h-full">
+    <div class="w-full h-full p-4 sm:p-6 lg:p-8 bg-slate-50">
+      <div class="max-w-7xl mx-auto w-full h-full flex flex-col">
+        <div class="mb-6">
+          <h1 class="text-3xl font-bold text-slate-800 mb-2">
+            Comparação de Compras por Período
+          </h1>
+          <p class="text-slate-600">
+            Análise comparativa de compras com diferentes intervalos temporais
+          </p>
+        </div>
+
+        <div
+          class="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6"
+        >
+          <div class="flex flex-wrap items-center gap-4">
+            <label class="text-sm font-medium text-slate-700">Período:</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                class="period-btn px-4 py-2 text-sm font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors active"
+                data-period="all"
+              >
+                Todos
+              </button>
+              <button
+                class="period-btn px-4 py-2 text-sm font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+                data-period="1month"
+              >
+                Último Mês
+              </button>
+              <button
+                class="period-btn px-4 py-2 text-sm font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+                data-period="3months"
+              >
+                Últimos 3 Meses
+              </button>
+              <button
+                class="period-btn px-4 py-2 text-sm font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+                data-period="6months"
+              >
+                Últimos 6 Meses
+              </button>
+              <button
+                class="period-btn px-4 py-2 text-sm font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+                data-period="1year"
+              >
+                Último Ano
+              </button>
+              <button
+                class="period-btn px-4 py-2 text-sm font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+                data-period="2years"
+              >
+                Últimos 2 Anos
+              </button>
+              <button
+                class="period-btn px-4 py-2 text-sm font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+                data-period="5years"
+              >
+                Últimos 5 Anos
+              </button>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 ml-auto">
+              <input
+                type="date"
+                class="px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                id="startDate"
+              />
+              <span class="text-sm text-slate-600">até</span>
+              <input
+                type="date"
+                class="px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                id="endDate"
+              />
+              <button
+                class="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+                id="applyCustomPeriod"
+              >
+                Aplicar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+          id="statsGrid"
+        >
+          <div
+            class="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow"
+          >
+            <div class="flex justify-between items-center mb-4">
+              <span
+                class="text-xs font-medium text-slate-500 uppercase tracking-wide"
+                >Custo Total</span
+              >
+              <div
+                class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-xl"
+              >
+                💰
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-slate-800 mb-1" id="custoTotal">
+              R$ 0,00
+            </div>
+            <div class="text-sm text-slate-500" id="custoPeriodo">
+              Período selecionado
+            </div>
+            <div class="text-sm mt-2" id="custoChange"></div>
+          </div>
+
+          <div
+            class="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow"
+          >
+            <div class="flex justify-between items-center mb-4">
+              <span
+                class="text-xs font-medium text-slate-500 uppercase tracking-wide"
+                >Volume Total</span
+              >
+              <div
+                class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-xl"
+              >
+                📦
+              </div>
+            </div>
+            <div
+              class="text-3xl font-bold text-slate-800 mb-1"
+              id="volumeTotal"
+            >
+              0
+            </div>
+            <div class="text-sm text-slate-500">Quantidade adquirida</div>
+            <div class="text-sm mt-2" id="volumeChange"></div>
+          </div>
+
+          <div
+            class="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow"
+          >
+            <div class="flex justify-between items-center mb-4">
+              <span
+                class="text-xs font-medium text-slate-500 uppercase tracking-wide"
+                >Principal Fornecedor</span
+              >
+              <div
+                class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-xl"
+              >
+                🏢
+              </div>
+            </div>
+            <div
+              class="text-xl font-bold text-slate-800 mb-1"
+              id="principalFornecedor"
+            >
+              -
+            </div>
+            <div class="text-sm text-slate-500" id="volumeFornecedor">
+              Volume: 0
+            </div>
+          </div>
+
+          <div
+            class="bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow"
+          >
+            <div class="flex justify-between items-center mb-4">
+              <span
+                class="text-xs font-medium text-slate-500 uppercase tracking-wide"
+                >Produtos Diferentes</span
+              >
+              <div
+                class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-xl"
+              >
+                📋
+              </div>
+            </div>
+            <div
+              class="text-3xl font-bold text-slate-800 mb-1"
+              id="totalProdutos"
+            >
+              0
+            </div>
+            <div class="text-sm text-slate-500">Tipos de produtos</div>
+          </div>
+        </div>
+
+        <div
+          class="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6"
+        >
+          <div
+            class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6"
+          >
+            <div class="text-xl font-semibold text-slate-800">
+              Comparativo Mensal
+            </div>
+            <div class="flex gap-2">
+              <select
+                class="px-3 py-2 text-sm border border-slate-300 rounded-md bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                id="chartInterval"
+              >
+                <option value="monthly">Mensal</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="yearly">Anual</option>
+              </select>
+            </div>
+          </div>
+          <div class="relative" style="height: 350px">
+            <div
+              class="flex items-end justify-around h-72 gap-1 px-4"
+              id="comparativeChart"
+            ></div>
+            <div class="flex justify-center gap-8 mt-4 flex-wrap">
+              <div class="flex items-center gap-2 text-sm">
+                <div class="w-5 h-5 rounded bg-blue-500"></div>
+                <span>2023</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <div class="w-5 h-5 rounded bg-emerald-500"></div>
+                <span>2024</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <div class="w-5 h-5 rounded bg-red-500"></div>
+                <span>2025</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div
+            class="bg-white rounded-lg shadow-sm border border-slate-200 p-6"
+          >
+            <div
+              class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4"
+            >
+              <div class="text-xl font-semibold text-slate-800">
+                Top Fornecedores
+              </div>
+              <select
+                class="px-3 py-2 text-sm border border-slate-300 rounded-md bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                id="yearFilterFornecedor"
+              >
+                <option value="all">Todos os anos</option>
+                <option value="2023">2023</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+              </select>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th
+                      class="px-4 py-3 text-left font-semibold text-slate-700 uppercase text-xs"
+                    >
+                      Fornecedor
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left font-semibold text-slate-700 uppercase text-xs"
+                    >
+                      Volume
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left font-semibold text-slate-700 uppercase text-xs"
+                    >
+                      Valor Total
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left font-semibold text-slate-700 uppercase text-xs"
+                    >
+                      %
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="fornecedoresBody"
+                  class="divide-y divide-slate-200"
+                ></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div
+            class="bg-white rounded-lg shadow-sm border border-slate-200 p-6"
+          >
+            <div
+              class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4"
+            >
+              <div class="text-xl font-semibold text-slate-800">
+                Detalhamento por Produto
+              </div>
+              <select
+                class="px-3 py-2 text-sm border border-slate-300 rounded-md bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                id="yearFilterProduto"
+              >
+                <option value="all">Todos os anos</option>
+                <option value="2023">2023</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+              </select>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th
+                      class="px-4 py-3 text-left font-semibold text-slate-700 uppercase text-xs"
+                    >
+                      Produto
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left font-semibold text-slate-700 uppercase text-xs"
+                    >
+                      Volume
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left font-semibold text-slate-700 uppercase text-xs"
+                    >
+                      Valor Total
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left font-semibold text-slate-700 uppercase text-xs"
+                    >
+                      %
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="produtosBody"
+                  class="divide-y divide-slate-200"
+                ></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const formatCurrency = (value) => {
+        return new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(value);
+      };
+
+      const formatNumber = (value) => {
+        return new Intl.NumberFormat("pt-BR", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(value);
+      };
+
+      const meses = [
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
+      ];
+
+      let allData = [];
+      let filteredData = [];
+      let currentPeriod = "all";
+
+      const mapDatabaseData = (dbData) => {
+        if (!Array.isArray(dbData)) {
+          console.error("Dados inválidos: esperado array", dbData);
+          return [];
+        }
+
+        return dbData
+          .map((item) => {
+            const dtneg = item.DTNEG || item.dtneg || "";
+            let dataObj = null;
+            let ano = null;
+            let mes = null;
+            let dia = null;
+            let data = "";
+
+            if (dtneg) {
+              const dateStr = dtneg.replace(" ", "T");
+              dataObj = new Date(dateStr);
+              if (!isNaN(dataObj.getTime())) {
+                ano = dataObj.getFullYear();
+                mes = dataObj.getMonth() + 1;
+                dia = dataObj.getDate();
+                data = `${String(dia).padStart(2, "0")}/${String(mes).padStart(
+                  2,
+                  "0"
+                )}/${ano}`;
+              }
+            }
+
+            const qtd = parseFloat(item.QTDNEG || item.qtdneg || 0) || 0;
+            const total = parseFloat(item.VLRTOT || item.vlrtot || 0) || 0;
+            const valorUnit =
+              parseFloat(item.VLRUNIT || item.vlrunit || 0) || 0;
+
+            return {
+              ano: ano,
+              mes: mes,
+              mesNome: mes ? meses[mes - 1] : "",
+              dia: dia,
+              dataObj: dataObj,
+              fornecedor: item.PARCEIRO || item.parceiro || "N/A",
+              produto: item.DESCRPROD || item.descrprod || "N/A",
+              empresa: item.EMPRESA || item.empresa || "N/A",
+              qtd: qtd,
+              valorUnit: valorUnit,
+              total: total,
+              data: data,
+              regiao: "N/A",
+              estado: "N/A",
+              cidade: "N/A",
+            };
+          })
+          .filter((item) => item.dataObj && !isNaN(item.dataObj.getTime()));
+      };
+
+      const filterByPeriod = (period) => {
+        if (!allData || allData.length === 0) return [];
+
+        const now = new Date();
+        let startDate = new Date(2020, 0, 1);
+        let endDate = new Date(2025, 11, 31);
+
+        switch (period) {
+          case "1month":
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+            break;
+          case "3months":
+            startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+            break;
+          case "6months":
+            startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+            break;
+          case "1year":
+            startDate = new Date(now.getFullYear() - 1, 0, 1);
+            endDate = new Date(now.getFullYear() - 1, 11, 31);
+            break;
+          case "2years":
+            startDate = new Date(now.getFullYear() - 2, 0, 1);
+            endDate = new Date(now.getFullYear() - 1, 11, 31);
+            break;
+          case "5years":
+            startDate = new Date(now.getFullYear() - 5, 0, 1);
+            endDate = new Date(now.getFullYear() - 1, 11, 31);
+            break;
+          case "custom":
+            const startInput = document.getElementById("startDate").value;
+            const endInput = document.getElementById("endDate").value;
+            if (startInput && endInput) {
+              startDate = new Date(startInput);
+              endDate = new Date(endInput);
+              endDate.setHours(23, 59, 59, 999);
+            }
+            break;
+        }
+
+        return allData.filter((item) => {
+          if (!item.dataObj) return false;
+          return item.dataObj >= startDate && item.dataObj <= endDate;
+        });
+      };
+
+      const calculateComparison = (currentData, period) => {
+        if (period === "all" || !allData || allData.length === 0) return null;
+
+        const now = new Date();
+        let previousStart, previousEnd;
+
+        switch (period) {
+          case "1month":
+            previousStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+            previousEnd = new Date(now.getFullYear(), now.getMonth() - 1, 0);
+            break;
+          case "3months":
+            previousStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+            previousEnd = new Date(now.getFullYear(), now.getMonth() - 3, 0);
+            break;
+          case "6months":
+            previousStart = new Date(now.getFullYear(), now.getMonth() - 12, 1);
+            previousEnd = new Date(now.getFullYear(), now.getMonth() - 6, 0);
+            break;
+          case "1year":
+            previousStart = new Date(now.getFullYear() - 2, 0, 1);
+            previousEnd = new Date(now.getFullYear() - 2, 11, 31);
+            break;
+          default:
+            return null;
+        }
+
+        const previousData = allData.filter((item) => {
+          if (!item.dataObj) return false;
+          return item.dataObj >= previousStart && item.dataObj <= previousEnd;
+        });
+
+        const currentTotal = currentData.reduce(
+          (sum, item) => sum + (item.total || 0),
+          0
+        );
+        const previousTotal = previousData.reduce(
+          (sum, item) => sum + (item.total || 0),
+          0
+        );
+        const currentVolume = currentData.reduce(
+          (sum, item) => sum + (item.qtd || 0),
+          0
+        );
+        const previousVolume = previousData.reduce(
+          (sum, item) => sum + (item.qtd || 0),
+          0
+        );
+
+        return {
+          custo: {
+            current: currentTotal,
+            previous: previousTotal,
+            change:
+              previousTotal > 0
+                ? ((currentTotal - previousTotal) / previousTotal) * 100
+                : 0,
+          },
+          volume: {
+            current: currentVolume,
+            previous: previousVolume,
+            change:
+              previousVolume > 0
+                ? ((currentVolume - previousVolume) / previousVolume) * 100
+                : 0,
+          },
+        };
+      };
+
+      const calculateStats = () => {
+        if (!filteredData || filteredData.length === 0) {
+          document.getElementById("custoTotal").textContent = formatCurrency(0);
+          document.getElementById("volumeTotal").textContent = "0";
+          document.getElementById("principalFornecedor").textContent = "-";
+          document.getElementById("volumeFornecedor").textContent = "Volume: 0";
+          document.getElementById("totalProdutos").textContent = "0";
+          return;
+        }
+
+        const custoTotal = filteredData.reduce(
+          (sum, item) => sum + (item.total || 0),
+          0
+        );
+        const volumeTotal = filteredData.reduce(
+          (sum, item) => sum + (item.qtd || 0),
+          0
+        );
+        const produtosUnicos = new Set(
+          filteredData.map((item) => item.produto || "N/A")
+        ).size;
+
+        const fornecedoresMap = {};
+        filteredData.forEach((item) => {
+          const fornecedor = item.fornecedor || "N/A";
+          if (!fornecedoresMap[fornecedor]) {
+            fornecedoresMap[fornecedor] = { volume: 0, valor: 0 };
+          }
+          fornecedoresMap[fornecedor].volume += item.qtd || 0;
+          fornecedoresMap[fornecedor].valor += item.total || 0;
+        });
+
+        const principalFornecedor = Object.entries(fornecedoresMap).sort(
+          (a, b) => b[1].volume - a[1].volume
+        )[0];
+
+        document.getElementById("custoTotal").textContent =
+          formatCurrency(custoTotal);
+        document.getElementById("volumeTotal").textContent =
+          formatNumber(volumeTotal);
+        document.getElementById("principalFornecedor").textContent =
+          principalFornecedor
+            ? principalFornecedor[0].length > 30
+              ? principalFornecedor[0].substring(0, 30) + "..."
+              : principalFornecedor[0]
+            : "-";
+        document.getElementById("volumeFornecedor").textContent =
+          principalFornecedor
+            ? `Volume: ${formatNumber(principalFornecedor[1].volume)}`
+            : "Volume: 0";
+        document.getElementById("totalProdutos").textContent = produtosUnicos;
+
+        const comparison = calculateComparison(filteredData, currentPeriod);
+        if (comparison) {
+          const custoChange = document.getElementById("custoChange");
+          const volumeChange = document.getElementById("volumeChange");
+
+          if (comparison.custo.change !== 0) {
+            custoChange.className =
+              comparison.custo.change > 0
+                ? "text-sm mt-2 text-emerald-600"
+                : "text-sm mt-2 text-red-600";
+            custoChange.innerHTML = `
+              <span>${comparison.custo.change > 0 ? "↑" : "↓"}</span>
+              <span>${Math.abs(comparison.custo.change).toFixed(
+                1
+              )}% vs período anterior</span>
+            `;
+          } else {
+            custoChange.innerHTML = "";
+          }
+
+          if (comparison.volume.change !== 0) {
+            volumeChange.className =
+              comparison.volume.change > 0
+                ? "text-sm mt-2 text-emerald-600"
+                : "text-sm mt-2 text-red-600";
+            volumeChange.innerHTML = `
+              <span>${comparison.volume.change > 0 ? "↑" : "↓"}</span>
+              <span>${Math.abs(comparison.volume.change).toFixed(
+                1
+              )}% vs período anterior</span>
+            `;
+          } else {
+            volumeChange.innerHTML = "";
+          }
+        } else {
+          document.getElementById("custoChange").innerHTML = "";
+          document.getElementById("volumeChange").innerHTML = "";
+        }
+
+        const periodNames = {
+          all: "Todos os períodos",
+          "1month": "Último mês",
+          "3months": "Últimos 3 meses",
+          "6months": "Últimos 6 meses",
+          "1year": "Último ano",
+          "2years": "Últimos 2 anos",
+          "5years": "Últimos 5 anos",
+          custom: "Período customizado",
+        };
+        document.getElementById("custoPeriodo").textContent =
+          periodNames[currentPeriod] || "Período selecionado";
+      };
+
+      const createComparativeChart = (interval = "monthly") => {
+        try {
+          const dataToUse = allData.length > 0 ? allData : [];
+          const anos = [2023, 2024, 2025];
+          let labels = [];
+          let dataStructure = {};
+
+          if (interval === "monthly") {
+            labels = meses;
+            meses.forEach((mes) => {
+              dataStructure[mes] = { 2023: 0, 2024: 0, 2025: 0 };
+            });
+
+            dataToUse.forEach((item) => {
+              if (
+                item.ano &&
+                anos.includes(item.ano) &&
+                item.mesNome &&
+                dataStructure[item.mesNome]
+              ) {
+                dataStructure[item.mesNome][item.ano] += item.total || 0;
+              }
+            });
+          } else if (interval === "quarterly") {
+            labels = ["Q1", "Q2", "Q3", "Q4"];
+            labels.forEach((q) => {
+              dataStructure[q] = { 2023: 0, 2024: 0, 2025: 0 };
+            });
+
+            dataToUse.forEach((item) => {
+              if (item.ano && anos.includes(item.ano) && item.mes) {
+                const quarter = Math.floor((item.mes - 1) / 3);
+                const qLabel = labels[quarter];
+                if (dataStructure[qLabel]) {
+                  dataStructure[qLabel][item.ano] += item.total || 0;
+                }
+              }
+            });
+          } else if (interval === "yearly") {
+            labels = ["2023", "2024", "2025"];
+            labels.forEach((anoLabel) => {
+              const anoNum = parseInt(anoLabel);
+              dataStructure[anoLabel] = { 2023: 0, 2024: 0, 2025: 0 };
+
+              dataToUse.forEach((item) => {
+                if (item.ano === anoNum) {
+                  dataStructure[anoLabel][anoNum] += item.total || 0;
+                }
+              });
+            });
+          }
+
+          const allValues = [];
+          Object.values(dataStructure).forEach((item) => {
+            anos.forEach((ano) => {
+              if (item[ano] > 0) {
+                allValues.push(item[ano]);
+              }
+            });
+          });
+
+          const maxVenda = allValues.length > 0 ? Math.max(...allValues) : 1;
+
+          const chartContainer = document.getElementById("comparativeChart");
+          if (!chartContainer) {
+            console.error("Container do gráfico não encontrado");
+            return;
+          }
+
+          chartContainer.innerHTML = "";
+
+          if (labels.length === 0) {
+            chartContainer.innerHTML =
+              '<div class="text-center py-8 text-slate-500">Nenhum dado disponível para o período selecionado</div>';
+            return;
+          }
+
+          const hasData = Object.values(dataStructure).some((item) =>
+            anos.some((ano) => item[ano] > 0)
+          );
+
+          if (!hasData && maxVenda === 1) {
+            chartContainer.innerHTML =
+              '<div class="text-center py-8 text-slate-500">Nenhum dado disponível para os anos 2023-2025</div>';
+            return;
+          }
+
+          labels.forEach((label) => {
+            const monthGroup = document.createElement("div");
+            monthGroup.className =
+              "flex flex-col items-center gap-1 flex-1 min-w-[60px] h-full";
+
+            const barGroup = document.createElement("div");
+            barGroup.className =
+              "flex gap-0.5 w-full h-full items-end justify-center";
+
+            anos.forEach((ano) => {
+              const valor = dataStructure[label]
+                ? dataStructure[label][ano] || 0
+                : 0;
+              const alturaPercent = maxVenda > 0 ? (valor / maxVenda) * 100 : 0;
+              const altura = Math.max(alturaPercent, valor > 0 ? 2 : 0);
+
+              const bar = document.createElement("div");
+              bar.className = `bar flex-1 min-w-[15px] min-h-[4px] rounded-t`;
+              if (ano === 2023) bar.className += " bg-blue-500";
+              else if (ano === 2024) bar.className += " bg-emerald-500";
+              else if (ano === 2025) bar.className += " bg-red-500";
+              bar.style.height = `${altura}%`;
+              bar.style.display = valor > 0 || altura > 0 ? "block" : "none";
+              bar.title = `${ano}: ${formatCurrency(valor)}`;
+
+              barGroup.appendChild(bar);
+            });
+
+            const labelEl = document.createElement("div");
+            labelEl.className = "text-xs text-slate-500 mt-1 text-center";
+            labelEl.textContent = label;
+
+            monthGroup.appendChild(barGroup);
+            monthGroup.appendChild(labelEl);
+            chartContainer.appendChild(monthGroup);
+          });
+        } catch (error) {
+          console.error("Erro ao criar gráfico:", error);
+          const chartContainer = document.getElementById("comparativeChart");
+          if (chartContainer) {
+            chartContainer.innerHTML =
+              '<div class="text-center py-8 text-red-600">Erro ao carregar gráfico</div>';
+          }
+        }
+      };
+
+      const renderFornecedores = (anoFiltro = "all") => {
+        const dataFiltrada =
+          anoFiltro === "all"
+            ? filteredData
+            : filteredData.filter((item) => item.ano === parseInt(anoFiltro));
+
+        const fornecedoresMap = {};
+        dataFiltrada.forEach((item) => {
+          const fornecedor = item.fornecedor || "N/A";
+          if (!fornecedoresMap[fornecedor]) {
+            fornecedoresMap[fornecedor] = { volume: 0, valor: 0 };
+          }
+          fornecedoresMap[fornecedor].volume += item.qtd || 0;
+          fornecedoresMap[fornecedor].valor += item.total || 0;
+        });
+
+        const totalValor = Object.values(fornecedoresMap).reduce(
+          (sum, f) => sum + f.valor,
+          0
+        );
+
+        const topFornecedores = Object.entries(fornecedoresMap)
+          .sort((a, b) => b[1].volume - a[1].volume)
+          .slice(0, 10);
+
+        const tbody = document.getElementById("fornecedoresBody");
+        tbody.innerHTML = "";
+
+        if (topFornecedores.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">Nenhum fornecedor encontrado</td></tr>';
+          return;
+        }
+
+        topFornecedores.forEach(([fornecedor, dados]) => {
+          const row = document.createElement("tr");
+          const percentual =
+            totalValor > 0 ? (dados.valor / totalValor) * 100 : 0;
+          row.innerHTML = `
+            <td class="px-4 py-3 text-slate-700">${
+              fornecedor.length > 40
+                ? fornecedor.substring(0, 40) + "..."
+                : fornecedor
+            }</td>
+            <td class="px-4 py-3 text-slate-600">${formatNumber(
+              dados.volume
+            )}</td>
+            <td class="px-4 py-3 text-slate-700 font-semibold">${formatCurrency(
+              dados.valor
+            )}</td>
+            <td class="px-4 py-3 text-slate-600">${percentual.toFixed(1)}%</td>
+          `;
+          tbody.appendChild(row);
+        });
+      };
+
+      const renderProdutos = (anoFiltro = "all") => {
+        const dataFiltrada =
+          anoFiltro === "all"
+            ? filteredData
+            : filteredData.filter((item) => item.ano === parseInt(anoFiltro));
+
+        const produtosMap = {};
+        dataFiltrada.forEach((item) => {
+          const produto = item.produto || "N/A";
+          if (!produtosMap[produto]) {
+            produtosMap[produto] = { volume: 0, valor: 0 };
+          }
+          produtosMap[produto].volume += item.qtd || 0;
+          produtosMap[produto].valor += item.total || 0;
+        });
+
+        const totalValor = Object.values(produtosMap).reduce(
+          (sum, p) => sum + p.valor,
+          0
+        );
+
+        const topProdutos = Object.entries(produtosMap)
+          .sort((a, b) => b[1].valor - a[1].valor)
+          .slice(0, 10);
+
+        const tbody = document.getElementById("produtosBody");
+        tbody.innerHTML = "";
+
+        if (topProdutos.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">Nenhum produto encontrado</td></tr>';
+          return;
+        }
+
+        topProdutos.forEach(([produto, dados]) => {
+          const row = document.createElement("tr");
+          const percentual =
+            totalValor > 0 ? (dados.valor / totalValor) * 100 : 0;
+          row.innerHTML = `
+            <td class="px-4 py-3 text-slate-700">${produto}</td>
+            <td class="px-4 py-3 text-slate-600">${formatNumber(
+              dados.volume
+            )}</td>
+            <td class="px-4 py-3 text-slate-700 font-semibold">${formatCurrency(
+              dados.valor
+            )}</td>
+            <td class="px-4 py-3 text-slate-600">${percentual.toFixed(1)}%</td>
+          `;
+          tbody.appendChild(row);
+        });
+      };
+
+      const updateDashboard = () => {
+        calculateStats();
+        const intervalSelect = document.getElementById("chartInterval");
+        const interval = intervalSelect ? intervalSelect.value : "monthly";
+        createComparativeChart(interval);
+        renderFornecedores();
+        renderProdutos();
+      };
+
+      const initializeComponent = () => {
+        try {
+          const comprasDataStr = componentData.comprasData || "[]";
+          const dbData = JSON.parse(comprasDataStr);
+          allData = mapDatabaseData(dbData);
+          allData.sort((a, b) => {
+            if (!a.dataObj || !b.dataObj) return 0;
+            return b.dataObj - a.dataObj;
+          });
+          filteredData = filterByPeriod(currentPeriod);
+          updateDashboard();
+
+          document.querySelectorAll(".period-btn").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              if (e.target.id === "applyCustomPeriod") {
+                currentPeriod = "custom";
+                filteredData = filterByPeriod("custom");
+              } else {
+                currentPeriod = e.target.dataset.period;
+                filteredData = filterByPeriod(currentPeriod);
+              }
+
+              document.querySelectorAll(".period-btn").forEach((b) => {
+                b.classList.remove("active", "bg-blue-600", "text-white");
+                b.classList.add("bg-white", "text-slate-700");
+              });
+              if (e.target.id !== "applyCustomPeriod") {
+                e.target.classList.add("active", "bg-blue-600", "text-white");
+                e.target.classList.remove("bg-white", "text-slate-700");
+              }
+
+              updateDashboard();
+            });
+          });
+
+          document
+            .getElementById("chartInterval")
+            .addEventListener("change", (e) => {
+              createComparativeChart(e.target.value);
+            });
+
+          document
+            .getElementById("yearFilterFornecedor")
+            .addEventListener("change", (e) => {
+              renderFornecedores(e.target.value);
+            });
+
+          document
+            .getElementById("yearFilterProduto")
+            .addEventListener("change", (e) => {
+              renderProdutos(e.target.value);
+            });
+        } catch (error) {
+          console.error("Erro ao inicializar componente:", error);
+          document.body.innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro ao carregar dados: ${error.message}</div>`;
+        }
+      };
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const waitForMitraAndInit = () => {
+          const maxWaitTime = 5000;
+          const intervalTime = 100;
+          const startTime = Date.now();
+
+          const checkInterval = setInterval(() => {
+            if (window.componentData && window.componentData.comprasData) {
+              clearInterval(checkInterval);
+              initializeComponent();
+            } else if (Date.now() - startTime > maxWaitTime) {
+              clearInterval(checkInterval);
+              console.error(
+                "Erro: As configurações do componente (componentData) não foram carregadas a tempo."
+              );
+              document.body.innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente não foram carregadas da plataforma.</div>`;
+            }
+          }, intervalTime);
+        };
+
+        waitForMitraAndInit();
+      });
+
+      function updateMitra() {
+        console.log(
+          "Sinal de update para Dashboard de Compras recebido. Disparando evento."
+        );
+        document.body.dispatchEvent(
+          new CustomEvent("mitra-update-dashboard-compras")
+        );
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        document.body.addEventListener("mitra-update-dashboard-compras", () => {
+          if (window.componentData && window.componentData.comprasData) {
+            const comprasDataStr = componentData.comprasData || "[]";
+            const dbData = JSON.parse(comprasDataStr);
+            allData = mapDatabaseData(dbData);
+            allData.sort((a, b) => {
+              if (!a.dataObj || !b.dataObj) return 0;
+              return b.dataObj - a.dataObj;
+            });
+            filteredData = filterByPeriod(currentPeriod);
+            updateDashboard();
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

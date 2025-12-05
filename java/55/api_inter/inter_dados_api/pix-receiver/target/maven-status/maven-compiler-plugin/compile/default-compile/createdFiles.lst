@@ -1,0 +1,7 @@
+br/com/interpix/cli/ConsoleMenu.class
+br/com/interpix/pix/PixService$PaginacaoPixResponse.class
+br/com/interpix/App.class
+br/com/interpix/cli/InputReader.class
+br/com/interpix/config/InterSdkFactory.class
+br/com/interpix/pix/PixService.class
+br/com/interpix/config/ApplicationProperties.class

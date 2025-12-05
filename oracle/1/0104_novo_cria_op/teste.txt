@@ -1,0 +1,19 @@
+criar um botão de ação em java script no java: em um novo arquivo
+
+
+
+
+
+modelo de js:
+https://developer.sankhya.com.br/docs/scripts
+
+
+
+
+padrao da requisição
+
+url:
+https://satis2.nuvemdatacom.com.br:8110/mgeprod/service.sbr?serviceName=OperacaoProducaoSP.iniciarInstanciaAtividades&application=OperacaoProducao&outputType=json
+
+body:
+{"serviceName":"OperacaoProducaoSP.iniciarInstanciaAtividades","requestBody":{"instancias":{"instancia":[{"IDIATV":{"$":2408}}]},"clientEventList":{"clientEvent":[{"$":"br.com.sankhya.mgeprod.apontamentos.divergentes"},{"$":"br.com.sankhya.mgeProd.wc.indisponivel"},{"$":"br.com.sankhya.mgeprod.redimensionar.op.pa.perda"},{"$":"br.com.sankhya.mgeprod.redimensionar.op.pa.avisos"},{"$":"br.com.sankhya.mgeprod.trocaturno.avisos"},{"$":"br.com.sankhya.mgeprod.finalizar.liberacao.desvio.pa"},{"$":"br.com.sankhya.actionbutton.clientconfirm"}]}}}

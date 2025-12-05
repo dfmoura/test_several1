@@ -1,0 +1,84 @@
+Sankhya Generator
+Suggest Edits
+
+O Sankhya Generator é um plug-in gerador de código que foi criado com o objetivo de facilitar e padronizar a criação de telas em HTML5, as principais funcionalidades implementadas até o momento são:
+
+    Criação de uma nova tela com dynaform em HTML5, podendo selecionar os interceptors e as operações de CRUD que poderão ser realizadas nessa tela.
+    Adicionar interceptors em telas já criadas (apenas telas criadas pelo Sankhya Generator).
+    Adicionar abas estáticas no dyanform (apenas telas criadas pelo Sankhya Generator).
+    Adicionar popup’s no dynaform (apenas telas criadas pelo Sankhya Generator).
+
+Instalação do Sankhya Generator
+
+Pré requisitos:
+
+    Node Js version 14.19.1
+    Yeoman
+
+Instale o generator-sankhya utilizando npm com os comandos abaixo:
+
+npm install -g yo
+npm install -g generator-sankhya
+
+Em seguida, gere seu novo projeto: yo sankhya
+
+Após esse procedimento é possível começar a utilizar o Sankhya Generator.
+Criando Uma Nova Tela
+
+O usuário deve abrir o prompt de comando na pasta html5 do projeto:
+
+Exemplo: * MGE-ModelCore/build/html5
+
+Após esse processo deve digitar o comando yo sankhya, um assistente para criação da tela deverá ser inicializado, após isso deve ser informado os dados e pressionar a tecla enter para prosseguir com as etapas seguintes.
+
+Ao final de todas as etapas o resultado no prompt deverá ser algo semelhante a figura abaixo:
+917
+
+    ❗️
+
+    Informação Importante
+
+    Nesse passo caso seja informado o nome de uma aplicação já existente na pasta atual, o usuário será questionado se deseja sobrescrever os arquivos que estão diferentes, se confirmada a operação as alterações realizadas nos arquivos anteriores serão todas perdidas.
+
+Dando continuidade ao processo será criado uma pasta com o nome da aplicação informada com a seguinte estrutura:
+1366
+Editando uma tela criada pelo Sankhya Generator:
+
+Só é possível editar uma tela com o Sankhya Generator se essa foi gerada pelo próprio plugin, para isso basta abrir o prompt na pasta raiz da tela, utilizando o exemplo da tela criada no passo anterior a pasta em questão é MGE-ModelCore/build/html5/HelloGenerator, ao digitar o comando yo sankhya já se identifica que ali existe uma tela e são listadas as opções de edição, conforme imagem abaixo:
+477
+
+Neste exemplo utilizaremos a adição de uma nova aba. Após responder toas as perguntas realizadas pelo plug-in será criada uma pasta com a nova aba conforme imagem a seguir:
+1360
+
+Observe que no customTabsLoader do controller principal da tela foi adicionado a nova aba para ser carregada no dynaform e o import do controller da aba também já foi adicionado no .body da tela.
+1160
+Fontes Sankhya Generator
+
+Confira no link abaixo o fonte de uma tela exemplo e da tela Showcase de componentes
+Fontes Exemplos de tela Sankhya Generator: https://github.com/sankhya-developer/sankhya-exemplos-funcionais/tree/main
+Como Tirar dúvidas
+
+Para tirar dúvidas e compartilhar informações, use a sala HTML5 da comunidade Sankhya Developer.
+
+Sankhya Generator Desenvolvido por: Leonardo Gomes Jorge Arbues
+
+
+Para utilizar, execute docker build -t sankhya-generator:latest /home/diogo/Documents/Git/test_several1/javaScript/78 e depois rode docker run -it --rm -v "$(pwd)":/usr/src/app sankhya-generator:latest, o que abrirá um shell já configurado; dentro dele, basta chamar yo sankhya para iniciar o gerador e criar ou editar telas HTML5.
+
+
+
+Documentação oficial: https://developer.sankhya.com.br/docs/generator-sankhya
+
+Tela de Teste
+
+Foi adicionada a tela de exemplo `TelaTeste`, composta pelos arquivos:
+
+    TelaTeste/TelaTeste.controller.js
+    TelaTeste/body/TelaTeste.body
+    TelaTeste/TelaTeste.json
+
+Para registrar a tela no Sankhya Om, publique o conteúdo no diretório `html5` do ambiente e inclua a referência ao arquivo `TelaTeste.json` conforme descrito na documentação oficial (http://webrush.dev.sankhya.com.br/master/docs-sankhya-js/#!/) e nos exemplos do repositório https://github.com/sankhya-developer/sankhya-exemplos-funcionais/tree/main/HTML5/Sankhya%20Generator. Em seguida, efetue o build pelo `yo sankhya` ou realize o deploy manual conforme a necessidade.
+
+
+
+Para validar as alterações, recomendo executar novamente docker build -t sankhya-generator:latest /home/diogo/Documents/Git/test_several1/javaScript/78 e, após a imagem estar pronta, rodar docker run -it --rm -v "$(pwd)":/usr/src/app sankhya-generator:latest; dentro do container, basta usar yo sankhya para iniciar o assistente de criação/edição de telas HTML5.

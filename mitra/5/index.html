@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Análise de Transações</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        font-family: "Roboto", sans-serif;
+        background-color: #f5f7fa;
+        color: #5d6585;
+      }
+
+      .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+      }
+
+      .dashboard-header {
+        margin-bottom: 2rem;
+      }
+
+      .dashboard-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+      }
+
+      .dashboard-header p {
+        font-size: 1rem;
+        color: #7f8c8d;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .stat-card {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .stat-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .stat-card-title {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #7f8c8d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .stat-card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+
+      .stat-card-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-card-change {
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .stat-card-change.positive {
+        color: #27ae60;
+      }
+
+      .stat-card-change.negative {
+        color: #e74c3c;
+      }
+
+      .chart-container {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+      }
+
+      .chart-title {
+        font-size: 1.25rem;
+        font-weight: 500;
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+      }
+
+      .chart-wrapper {
+        position: relative;
+        height: 300px;
+      }
+
+      .table-container {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        overflow-x: auto;
+      }
+
+      .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .table-title {
+        font-size: 1.25rem;
+        font-weight: 500;
+        color: #2c3e50;
+      }
+
+      .table-controls {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .search-input {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-family: "Roboto", sans-serif;
+        color: #5d6585;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      .search-input:focus {
+        border-color: #3498db;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      thead {
+        background-color: #f8f9fa;
+      }
+
+      th {
+        padding: 1rem;
+        text-align: left;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #2c3e50;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #e0e0e0;
+      }
+
+      td {
+        padding: 1rem;
+        font-size: 0.875rem;
+        color: #5d6585;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      tbody tr:hover {
+        background-color: #f8f9fa;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      .badge-success {
+        background-color: #d4edda;
+        color: #155724;
+      }
+
+      .badge-warning {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+
+      .badge-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+      }
+
+      .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+      }
+
+      .pagination button {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e0e0e0;
+        background-color: #ffffff;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-family: "Roboto", sans-serif;
+        color: #5d6585;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .pagination button:hover:not(:disabled) {
+        background-color: #f8f9fa;
+        border-color: #3498db;
+      }
+
+      .pagination button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .pagination .page-info {
+        font-size: 0.875rem;
+        color: #7f8c8d;
+      }
+
+      @media (max-width: 768px) {
+        .dashboard-container {
+          padding: 1rem;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .table-controls {
+          flex-direction: column;
+          width: 100%;
+        }
+
+        .search-input {
+          width: 100%;
+        }
+
+        table {
+          font-size: 0.75rem;
+        }
+
+        th,
+        td {
+          padding: 0.5rem;
+        }
+      }
+
+      .bar-chart {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-around;
+        height: 250px;
+        gap: 0.5rem;
+      }
+
+      .bar {
+        flex: 1;
+        background: linear-gradient(to top, #3498db, #5dade2);
+        border-radius: 4px 4px 0 0;
+        min-width: 20px;
+        position: relative;
+        transition: opacity 0.2s;
+      }
+
+      .bar:hover {
+        opacity: 0.8;
+      }
+
+      .bar-label {
+        position: absolute;
+        bottom: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.75rem;
+        color: #7f8c8d;
+        white-space: nowrap;
+      }
+
+      .bar-value {
+        position: absolute;
+        top: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #2c3e50;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <div class="dashboard-header">
+        <h1>Dashboard de Transações</h1>
+        <p>Visão geral das operações e análises financeiras</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-title">Total de Vendas</span>
+            <div class="stat-card-icon" style="background-color: #e8f5e9">
+              💰
+            </div>
+          </div>
+          <div class="stat-card-value" id="totalVendas">R$ 0,00</div>
+          <div class="stat-card-change positive">
+            <span>↑</span>
+            <span>+12.5% vs mês anterior</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-title">Transações</span>
+            <div class="stat-card-icon" style="background-color: #e3f2fd">
+              📊
+            </div>
+          </div>
+          <div class="stat-card-value" id="totalTransacoes">0</div>
+          <div class="stat-card-change positive">
+            <span>↑</span>
+            <span>+8.3% vs mês anterior</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-title">Parceiros Ativos</span>
+            <div class="stat-card-icon" style="background-color: #fff3e0">
+              👥
+            </div>
+          </div>
+          <div class="stat-card-value" id="totalParceiros">0</div>
+          <div class="stat-card-change positive">
+            <span>↑</span>
+            <span>+5.2% vs mês anterior</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-card-title">Ticket Médio</span>
+            <div class="stat-card-icon" style="background-color: #f3e5f5">
+              📈
+            </div>
+          </div>
+          <div class="stat-card-value" id="ticketMedio">R$ 0,00</div>
+          <div class="stat-card-change negative">
+            <span>↓</span>
+            <span>-2.1% vs mês anterior</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">Vendas por Mês</div>
+        <div class="chart-wrapper">
+          <div class="bar-chart" id="barChart"></div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <div class="table-header">
+          <div class="table-title">Transações Recentes</div>
+          <div class="table-controls">
+            <input
+              type="text"
+              class="search-input"
+              id="searchInput"
+              placeholder="Buscar..."
+            />
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Parceiro</th>
+              <th>Nota</th>
+              <th>Data</th>
+              <th>Produto</th>
+              <th>Quantidade</th>
+              <th>Valor Unitário</th>
+              <th>Total</th>
+              <th>Empresa</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="pagination">
+          <button id="prevBtn">Anterior</button>
+          <span class="page-info" id="pageInfo">Página 1 de 1</span>
+          <button id="nextBtn">Próxima</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Dados fictícios baseados nos campos do CSV
+      const generateFakeData = () => {
+        const parceiros = [
+          "TRANSPANORAMA TRANSPORTES S.A.",
+          "POSTOS ALPA LTDA",
+          "GRAOS DE OURO TRANSPORTES LTDA",
+          "HELGA FRANCA DE PAIVA",
+          "COOPDIESEL-COOPERATIVA DE PESSOAS TRANSPORTES",
+          "ORTOVEL VEICULOS E PECAS LTDA",
+          "EBENEZER COMERCIO DE CEREAIS LTDA",
+          "EURIPEDES BENTO DOS REIS",
+        ];
+
+        const produtos = [
+          "SERVICO DE TRANSPORTE",
+          "COMBUSTIVEL",
+          "TRIGO EM GRAOS A GRANEL",
+          "PRODUTO CONSUMO TRIBUTADO INTEG.",
+          "FARINHA DE TRIGO",
+          "FERTILIZANTE",
+          "SEMENTE DE SOJA",
+        ];
+
+        const empresas = [
+          "OURO INDUSTRIA E COMERCIO DE ALIM LTDA",
+          "AGRO OURO COMERCIO LTDA",
+          "TRANSPORTES OURO S.A.",
+        ];
+
+        const data = [];
+        const meses = [
+          "Jan",
+          "Fev",
+          "Mar",
+          "Abr",
+          "Mai",
+          "Jun",
+          "Jul",
+          "Ago",
+          "Set",
+          "Out",
+          "Nov",
+          "Dez",
+        ];
+
+        // Gerar dados para os últimos 12 meses
+        for (let i = 0; i < 12; i++) {
+          const mes = meses[i];
+          const diasNoMes = new Date(2024, i + 1, 0).getDate();
+
+          for (let j = 0; j < 15; j++) {
+            const dia = Math.floor(Math.random() * diasNoMes) + 1;
+            const parceiro =
+              parceiros[Math.floor(Math.random() * parceiros.length)];
+            const produto =
+              produtos[Math.floor(Math.random() * produtos.length)];
+            const empresa =
+              empresas[Math.floor(Math.random() * empresas.length)];
+
+            const qtd = Math.random() * 1000 + 1;
+            const valorUnit = Math.random() * 100 + 1;
+            const total = qtd * valorUnit;
+
+            data.push({
+              parceiro: parceiro,
+              codparc: Math.floor(Math.random() * 300) + 1,
+              numnota: Math.floor(Math.random() * 100000) + 10000,
+              nunota: Math.floor(Math.random() * 1000) + 1,
+              dtneg: `${String(dia).padStart(2, "0")}/${String(i + 1).padStart(
+                2,
+                "0"
+              )}/2024`,
+              vlrtot: total,
+              vlrunit: valorUnit,
+              qtdneg: qtd,
+              total: total,
+              descrprod: produto,
+              empresa: empresa,
+            });
+          }
+        }
+
+        return data.sort((a, b) => {
+          const dateA = new Date(a.dtneg.split("/").reverse().join("-"));
+          const dateB = new Date(b.dtneg.split("/").reverse().join("-"));
+          return dateB - dateA;
+        });
+      };
+
+      const formatCurrency = (value) => {
+        return new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(value);
+      };
+
+      const formatNumber = (value) => {
+        return new Intl.NumberFormat("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(value);
+      };
+
+      let allData = generateFakeData();
+      let filteredData = [...allData];
+      let currentPage = 1;
+      const itemsPerPage = 10;
+
+      // Calcular estatísticas
+      const calculateStats = () => {
+        const totalVendas = allData.reduce((sum, item) => sum + item.total, 0);
+        const totalTransacoes = allData.length;
+        const parceirosUnicos = new Set(allData.map((item) => item.codparc))
+          .size;
+        const ticketMedio = totalVendas / totalTransacoes;
+
+        document.getElementById("totalVendas").textContent =
+          formatCurrency(totalVendas);
+        document.getElementById("totalTransacoes").textContent =
+          totalTransacoes.toLocaleString("pt-BR");
+        document.getElementById("totalParceiros").textContent = parceirosUnicos;
+        document.getElementById("ticketMedio").textContent =
+          formatCurrency(ticketMedio);
+      };
+
+      // Criar gráfico de barras
+      const createBarChart = () => {
+        const meses = [
+          "Jan",
+          "Fev",
+          "Mar",
+          "Abr",
+          "Mai",
+          "Jun",
+          "Jul",
+          "Ago",
+          "Set",
+          "Out",
+          "Nov",
+          "Dez",
+        ];
+        const vendasPorMes = {};
+
+        meses.forEach((mes) => (vendasPorMes[mes] = 0));
+
+        allData.forEach((item) => {
+          const mes = meses[parseInt(item.dtneg.split("/")[1]) - 1];
+          if (mes) {
+            vendasPorMes[mes] += item.total;
+          }
+        });
+
+        const maxVenda = Math.max(...Object.values(vendasPorMes));
+        const chartContainer = document.getElementById("barChart");
+        chartContainer.innerHTML = "";
+
+        meses.forEach((mes) => {
+          const valor = vendasPorMes[mes];
+          const altura = (valor / maxVenda) * 100;
+
+          const bar = document.createElement("div");
+          bar.className = "bar";
+          bar.style.height = `${altura}%`;
+
+          const barValue = document.createElement("div");
+          barValue.className = "bar-value";
+          barValue.textContent = formatCurrency(valor);
+
+          const barLabel = document.createElement("div");
+          barLabel.className = "bar-label";
+          barLabel.textContent = mes;
+
+          bar.appendChild(barValue);
+          bar.appendChild(barLabel);
+          chartContainer.appendChild(bar);
+        });
+      };
+
+      // Renderizar tabela
+      const renderTable = () => {
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageData = filteredData.slice(start, end);
+
+        const tbody = document.getElementById("tableBody");
+        tbody.innerHTML = "";
+
+        pageData.forEach((item) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+                    <td>${item.parceiro}</td>
+                    <td>${item.numnota}</td>
+                    <td>${item.dtneg}</td>
+                    <td>${item.descrprod}</td>
+                    <td>${formatNumber(item.qtdneg)}</td>
+                    <td>${formatCurrency(item.vlrunit)}</td>
+                    <td><strong>${formatCurrency(item.total)}</strong></td>
+                    <td>${item.empresa}</td>
+                `;
+          tbody.appendChild(row);
+        });
+
+        const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+        document.getElementById(
+          "pageInfo"
+        ).textContent = `Página ${currentPage} de ${totalPages}`;
+
+        document.getElementById("prevBtn").disabled = currentPage === 1;
+        document.getElementById("nextBtn").disabled =
+          currentPage === totalPages || totalPages === 0;
+      };
+
+      // Busca
+      document.getElementById("searchInput").addEventListener("input", (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        filteredData = allData.filter(
+          (item) =>
+            item.parceiro.toLowerCase().includes(searchTerm) ||
+            item.descrprod.toLowerCase().includes(searchTerm) ||
+            item.empresa.toLowerCase().includes(searchTerm) ||
+            item.numnota.toString().includes(searchTerm)
+        );
+        currentPage = 1;
+        renderTable();
+      });
+
+      // Paginação
+      document.getElementById("prevBtn").addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTable();
+        }
+      });
+
+      document.getElementById("nextBtn").addEventListener("click", () => {
+        const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderTable();
+        }
+      });
+
+      // Inicializar dashboard
+      calculateStats();
+      createBarChart();
+      renderTable();
+    </script>
+  </body>
+</html>

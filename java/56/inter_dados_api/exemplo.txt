@@ -1,0 +1,36 @@
+#!/bin/zsh
+  
+URL_OAUTH="https://cdpj.partners.bancointer.com.br/oauth/v2/token"
+
+D1="client_id=<clientId de sua aplicação>"
+D2="client_secret=<clientSecret de sua aplicação>"
+D3="scope=boleto-cobranca.read"
+D4="grant_type=client_credentials"
+DADOS=$D1\&$D2\&$D3\&$D4
+
+OAUTH_TOKEN_RESPONSE=$(curl \
+  -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d $DADOS \
+  --cert <nome arquivo certificado>.crt \
+  --key <nome arquivo chave privada>.key \
+  $URL_OAUTH)
+
+if [[ -z OAUTH_TOKEN_RESPONSE ]]
+then
+  echo Sem resposta do servico de OAuth, provavelmente estourou limite de chamadas por minuto...
+  exit 1
+fi
+
+#Isola o access_token do json recebido
+LINHA_TOKEN=$(echo $OAUTH_TOKEN_RESPONSE | grep -o '"[^"]*"\s*:\s*"*[^,"]*"*' | \
+grep -E '^"(access_token)"' | \
+tr '\n' ',' | \
+sed 's/,$//')
+
+#Atribui à variável TOKEN o token recebido
+TOKEN=$(echo $LINHA_TOKEN | cut -c18-53)
+
+echo $TOKEN
+
+exit 0

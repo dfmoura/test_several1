@@ -1,0 +1,9 @@
+{
+  "id": "TelaTeste",
+  "name": "Tela de Teste",
+  "description": "Exemplo simples de tela criada seguindo a documentação do Sankhya Generator.",
+  "version": "1.0.0",
+  "controller": "TelaTeste.controller",
+  "template": "TelaTeste/body/TelaTeste.body"
+}
+

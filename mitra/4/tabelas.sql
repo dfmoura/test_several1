@@ -1,4 +1,4 @@
-criar o sistema SisOrcam
+criar o sistema orcamento
 
 começar somente criando as tabelas:
 
@@ -8,7 +8,6 @@ id_versao_orcamento (pk)
 nome_versao
 ano_base
 pronto (sim,não)
-status (andamento, aprovado)
 criado_em
 atualizado_em
 
@@ -44,18 +43,14 @@ id_fluxo_aprovacao (pk)
 id_versao_orcamento (fk) — referência à versão do orçamento
 id_aprovador (fk)
 status_aprovacao (pendente, aprovado, reprovado)
-observacao (comentário opcional do aprovador)
-aprovado_por (email ou id do usuário aprovador)
-data_envio (quando foi enviado para aprovação)
-data_aprovacao (quando foi aprovado ou reprovado)
 criado_em
 atualizado_em
 
-tabela: aprovador (quero colocar o usurio que deixei como membro do mitra varandasdorio1@gmail.com)
+tabela: aprovador 
 campo
 id_aprovador (pk)
+id_user (fk) (quero que utilize o usuario do workspace mitra varandasdorio1@gmail.com)
 nome
-email
 criado_em
 atualizado_em
 

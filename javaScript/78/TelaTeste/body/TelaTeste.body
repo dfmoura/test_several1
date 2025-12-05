@@ -1,0 +1,31 @@
+<sk-root>
+  <!-- Estrutura principal da tela utilizando componentes padrões do Sankhya Generator -->
+  <sk-panel title="Tela de Teste - Sankhya Generator">
+    <sk-row>
+      <sk-column size="12">
+        <sk-text
+          label="Nome"
+          placeholder="Digite seu nome"
+          sk-model="viewModel.nome"
+          max-length="60"
+        ></sk-text>
+      </sk-column>
+    </sk-row>
+    <sk-row>
+      <sk-column size="4">
+        <sk-button
+          label="Saudar"
+          icon="far fa-smile"
+          style-class="success"
+          sk-on="click:onSaudar"
+        ></sk-button>
+      </sk-column>
+    </sk-row>
+    <sk-row>
+      <sk-column size="12">
+        <sk-alert sk-bind="text:viewModel.mensagem" type="info"></sk-alert>
+      </sk-column>
+    </sk-row>
+  </sk-panel>
+</sk-root>
+

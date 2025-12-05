@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Indicador DTI - Gerir Entregas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .process-card { border-left: 4px solid #007bff; transition: transform 0.2s; cursor: pointer; background: linear-gradient(135deg, #f8f9ff, white); }
+        .process-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .section-header { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 15px; margin-bottom: 20px; border-radius: 8px 0 8px 0; }
+        .kpi-card { background: linear-gradient(135deg, #e3f2fd, #bbdefb); border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .kpi-card h5 { color: #1976d2; }
+        .indicator-value { font-size: 1.5em; font-weight: bold; }
+        .positive { color: #28a745; }
+        .warning { color: #ffc107; }
+        .negative { color: #dc3545; }
+        .obs-note { font-size: 0.85em; color: #6c757d; font-style: italic; }
+        .progress { height: 20px; margin-top: 5px; }
+        .chart-container { position: relative; height: 400px; width: 100%; margin-top: 20px; }
+        .nav-pills .nav-link.active { background: linear-gradient(135deg, #007bff, #0056b3); }
+        .nav-pills .nav-link { color: #007bff; }
+        .card-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+        .kpi-card:hover .card-overlay { opacity: 1; }
+        .card-overlay i { font-size: 2em; color: #007bff; }
+        .sidebar { background: white; border-right: 1px solid #dee2e6; height: 100vh; position: fixed; left: 0; top: 0; z-index: 1000; padding: 20px; }
+        .sidebar h5 { margin-bottom: 15px; color: #007bff; }
+        .sidebar .form-label { font-weight: bold; color: #6c757d; }
+        .sidebar select[multiple] { height: 150px; }
+        .main-content { margin-left: 300px; padding: 20px; }
+        @media (max-width: 768px) { .sidebar { display: none; } .main-content { margin-left: 0; } }
+        .kpi-selected { border-color: #007bff !important; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); }
+        .detail-chart { margin-bottom: 20px; }
+        .detail-chart h6 { color: #007bff; }
+        #detail-view { min-height: calc(100vh - 200px); padding: 20px 0; }
+      .kpi-cards-row { margin-bottom: 20px; }
+        .kpi-charts-row { margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <!-- Painel Lateral (Sidebar) -->
+    <div class="sidebar">
+        <div class="card">
+            <div class="card-body">
+                <h5><i class="bi bi-funnel me-2"></i>Filtros</h5>
+                
+                <!-- Parâmetro de Data - Período -->
+                <div class="mb-3">
+                    <label for="dataIni" class="form-label">Data Inicial</label>
+                    <input type="date" class="form-control" id="dataIni" value="2025-10-01">
+                </div>
+                <div class="mb-3">
+                    <label for="dataFin" class="form-label">Data Final</label>
+                    <input type="date" class="form-control" id="dataFin" value="2025-10-21">
+                </div>
+                
+                <!-- Multilist para Empresa (CDs) -->
+                <div class="mb-3">
+                    <label for="empresas" class="form-label">Empresas (CDs)</label>
+                    <select multiple class="form-control" id="empresas">
+                        <option value="CD1" selected>CD1 - Centro Distribuição 1</option>
+                        <option value="CD2" selected>CD2 - Centro Distribuição 2</option>
+                        <option value="CD3">CD3 - Centro Distribuição 3</option>
+                        <option value="CD4">CD4 - Centro Distribuição 4</option>
+                        <option value="CD5">CD5 - Centro Distribuição 5</option>
+                    </select>
+                    <small class="text-muted">Selecione múltiplas opções (Ctrl+clique)</small>
+                </div>
+                
+                <button class="btn btn-primary w-100" onclick="applyFilters()">Aplicar Filtros</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-content">
+        <div class="container-fluid py-4">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="text-center mb-2">Painel Indicador </h1>
+                    <p class="text-center text-muted">Gerenciamento de Processos - Outubro 2025</p>
+                </div>
+            </div>
+
+            <!-- Navegação por Processos -->
+            <ul class="nav nav-pills nav-fill mb-4" id="processNav">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#gerir-entregas" data-bs-toggle="pill">Gerir Entregas</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#industria" data-bs-toggle="pill">Indústria</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#manutencao" data-bs-toggle="pill">Manutenção</a>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- Conteúdo para Gerir Entregas -->
+                <div class="tab-pane fade show active" id="gerir-entregas">
+                    <div class="section-header">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h3><i class="bi bi-truck me-2"></i>Gerir Entregas</h3>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <small>Meta Geral: 95% Eficiência | Para cada CD separado</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cards de Indicadores -->
+                    <div class="row mb-4 kpi-cards-row" id="kpi-cards">
+                        <div class="col-lg-3 col-md-6">
+                            <div class="card kpi-card card-clickable" data-kpi="qualidade">
+                                <div class="card-overlay">
+                                    <i class="bi bi-graph-up"></i>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="bi bi-check-circle text-success me-2"></i>Qualidade na entrega</h5>
+                                    <p class="indicator-name mb-2">Feedbacks "conforme"/Notas emitidas</p>
+                                    <div class="indicator-value positive">98.5%</div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" style="width: 98.5%"></div>
+                                    </div>
+                                    <p class="obs-note">Para cada CD separado</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="card kpi-card card-clickable" data-kpi="custoEntrega">
+                                <div class="card-overlay">
+                                    <i class="bi bi-graph-up"></i>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="bi bi-currency-dollar text-warning me-2"></i>Custo entrega</h5>
+                                    <p class="indicator-name mb-2">Custo frete/Valores de notas da OC</p>
+                                    <div class="indicator-value warning">R$ 12.450</div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-warning" style="width: 75%"></div>
+                                    </div>
+                                    <p class="obs-note">Para cada CD separado</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="card kpi-card card-clickable" data-kpi="tempoEntrega">
+                                <div class="card-overlay">
+                                    <i class="bi bi-graph-up"></i>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="bi bi-clock text-info me-2"></i>Tempo de entrega</h5>
+                                    <p class="indicator-name mb-2">Diferença entre data prevista e efetiva</p>
+                                    <div class="indicator-value positive">1.2 dias</div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-info" style="width: 88%"></div>
+                                    </div>
+                                    <p class="obs-note">Para cada CD separado</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="card kpi-card card-clickable" data-kpi="custoCD">
+                                <div class="card-overlay">
+                                    <i class="bi bi-graph-up"></i>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="bi bi-building text-primary me-2"></i>Custo do CD</h5>
+                                    <p class="indicator-name mb-2">Centro de custo/faturamento</p>
+                                    <div class="indicator-value negative">R$ 8.200</div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-danger" style="width: 65%"></div>
+                                    </div>
+                                    <p class="obs-note">Para cada CD separado</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Área para Gráficos Detalhados -->
+                    <div class="row mb-4 kpi-charts-row"></div>
+
+                </div>
+
+                <!-- Conteúdo para Indústria -->
+                <div class="tab-pane fade" id="industria">
+                    <div class="section-header" style="background: linear-gradient(135deg, #ff9800, #f57c00);">
+                        <h3><i class="bi bi-factory me-2"></i>Indústria</h3>
+                    </div>
+                    <div class="row mb-4 kpi-cards-row">
+                        <div class="col-lg-3">
+                            <div class="card kpi-card process-card card-clickable" data-kpi="formulacao">
+                                <div class="card-body">
+                                    <h5><i class="bi bi-flask text-success me-2"></i>Qualidade de Formulação</h5>
+                                    <div class="indicator-value positive">99.2%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="card kpi-card process-card card-clickable" data-kpi="envase">
+                                <div class="card-body">
+                                    <h5><i class="bi bi-droplet text-primary me-2"></i>Qualidade no Envase</h5>
+                                    <div class="indicator-value positive">96.8%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="card kpi-card process-card card-clickable" data-kpi="volumeRealizado">
+                                <div class="card-body">
+                                    <h5><i class="bi bi-graph-up text-warning me-2"></i>Volume Realizado</h5>
+                                    <div class="indicator-value warning">91.500 L</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="card kpi-card process-card card-clickable" data-kpi="ocupacaoProducao">
+                                <div class="card-body">
+                                    <h5><i class="bi bi-people-fill text-info me-2"></i>Ocupação Produção</h5>
+                                    <div class="indicator-value positive">873 h</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Área para Gráficos Detalhados -->
+                    <div class="row mb-4 kpi-charts-row"></div>
+                </div>
+
+                <!-- Conteúdo para Manutenção -->
+                <div class="tab-pane fade" id="manutencao">
+                    <div class="section-header" style="background: linear-gradient(135deg, #9e9e9e, #757575);">
+                        <h3><i class="bi bi-tools me-2"></i>Manutenção</h3>
+                    </div>
+                    <div class="row mb-4 kpi-cards-row">
+                        <div class="col-lg-6">
+                            <div class="card kpi-card process-card card-clickable" data-kpi="manutencaoPreventiva">
+                                <div class="card-body">
+                                    <h5><i class="bi bi-wrench text-secondary me-2"></i>Manutenções Preventivas</h5>
+                                    <div class="indicator-value positive">82.1%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card kpi-card process-card card-clickable" data-kpi="planejadoRealizado">
+                                <div class="card-body">
+                                    <h5><i class="bi bi-calendar-event text-dark me-2"></i>Planejado Realizado</h5>
+                                    <div class="indicator-value warning">78.9%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Área para Gráficos Detalhados -->
+                    <div class="row mb-4 kpi-charts-row"></div>
+                </div>
+            </div>
+
+            <!-- Área para Detalhamento Fullscreen (compartilhada) -->
+            <div id="detail-view" class="row mb-4 d-none"></div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Dados de exemplo para os gráficos de linha
+        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        let selectedPeriod = { start: '2025-10-01', end: '2025-10-21' };
+        let selectedEmpresas = ['CD1', 'CD2'];
+        let filteredLabels = ['Out'];
+        let filteredIndices = [9];
+        const colors = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1'];
+
+        const qualidadeData = {
+            CD1: [95, 96, 97, 98, 98.5, 98.7, 98.8, 98.9, 99.0, 98.5, 98.5, 98.5],
+            CD2: [94, 95, 96, 97, 98.0, 98.2, 98.3, 98.4, 98.6, 98.0, 98.0, 98.0],
+            CD3: [96, 97, 98, 98.5, 99.0, 99.1, 99.2, 99.0, 98.8, 98.7, 98.7, 98.7],
+            CD4: [93, 94, 95, 96, 97.0, 97.2, 97.3, 97.4, 97.6, 97.0, 97.0, 97.0],
+            CD5: [97, 98, 99, 99.5, 99.8, 99.9, 99.8, 99.7, 99.5, 99.2, 99.2, 99.2]
+        };
+
+        const custoEntregaData = {
+            CD1: [10000, 10500, 11000, 11200, 11500, 11800, 12000, 12200, 12300, 12450, 12450, 12450],
+            CD2: [11000, 11200, 11500, 11700, 12000, 12200, 12400, 12600, 12700, 12800, 12800, 12800],
+            CD3: [9000, 9500, 10000, 10200, 10500, 10800, 11000, 11200, 11300, 11400, 11400, 11400],
+            CD4: [12000, 12200, 12500, 12700, 13000, 13200, 13400, 13600, 13700, 13800, 13800, 13800],
+            CD5: [8000, 8500, 9000, 9200, 9500, 9800, 10000, 10200, 10300, 10400, 10400, 10400]
+        };
+
+        const tempoEntregaData = {
+            CD1: [2.5, 2.2, 2.0, 1.8, 1.6, 1.4, 1.3, 1.2, 1.1, 1.0, 1.0, 1.0],
+            CD2: [3.0, 2.8, 2.5, 2.3, 2.1, 1.9, 1.8, 1.7, 1.6, 1.5, 1.5, 1.5],
+            CD3: [2.0, 1.9, 1.7, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0, 0.9, 0.9, 0.9],
+            CD4: [2.8, 2.5, 2.3, 2.1, 1.9, 1.7, 1.6, 1.5, 1.4, 1.3, 1.3, 1.3],
+            CD5: [1.8, 1.6, 1.4, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.6, 0.6]
+        };
+
+        const custoCDData = {
+            CD1: [7000, 7100, 7200, 7300, 7400, 7500, 7600, 7700, 7800, 7900, 7900, 7900],
+            CD2: [7500, 7600, 7700, 7800, 7900, 8000, 8100, 8200, 8300, 8400, 8400, 8400],
+            CD3: [8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8800, 8900, 8900, 8900],
+            CD4: [6500, 6600, 6700, 6800, 6900, 7000, 7100, 7200, 7300, 7400, 7400, 7400],
+            CD5: [8500, 8600, 8700, 8800, 8900, 9000, 9100, 9200, 9300, 9400, 9400, 9400]
+        };
+
+        const formulacaoData = {
+            CD1: [99.0, 99.1, 99.2, 99.3, 99.4, 99.5, 99.6, 99.7, 99.8, 99.2, 99.2, 99.2],
+            CD2: [98.5, 98.6, 98.7, 98.8, 98.9, 99.0, 99.1, 99.2, 99.3, 99.0, 99.0, 99.0],
+            CD3: [99.5, 99.6, 99.7, 99.8, 99.9, 99.9, 99.9, 99.8, 99.7, 99.5, 99.5, 99.5],
+            CD4: [98.0, 98.1, 98.2, 98.3, 98.4, 98.5, 98.6, 98.7, 98.8, 98.5, 98.5, 98.5],
+            CD5: [99.2, 99.3, 99.4, 99.5, 99.6, 99.7, 99.8, 99.9, 99.9, 99.2, 99.2, 99.2]
+        };
+
+        const envaseData = {
+            CD1: [96.5, 96.6, 96.7, 96.8, 96.9, 97.0, 97.1, 97.2, 97.3, 96.8, 96.8, 96.8],
+            CD2: [95.5, 95.6, 95.7, 95.8, 95.9, 96.0, 96.1, 96.2, 96.3, 96.0, 96.0, 96.0],
+            CD3: [97.0, 97.1, 97.2, 97.3, 97.4, 97.5, 97.6, 97.7, 97.8, 97.5, 97.5, 97.5],
+            CD4: [94.5, 94.6, 94.7, 94.8, 94.9, 95.0, 95.1, 95.2, 95.3, 95.0, 95.0, 95.0],
+            CD5: [96.8, 96.9, 97.0, 97.1, 97.2, 97.3, 97.4, 97.5, 97.6, 96.8, 96.8, 96.8]
+        };
+
+        const volumeRealizadoData = {
+            CD1: [88000, 89000, 90000, 91000, 91500, 91700, 91800, 91900, 92000, 91500, 91500, 91500],
+            CD2: [89000, 90000, 91000, 92000, 92500, 92700, 92800, 92900, 93000, 92500, 92500, 92500],
+            CD3: [90000, 91000, 92000, 93000, 93500, 93700, 93800, 93900, 94000, 93500, 93500, 93500],
+            CD4: [87000, 88000, 89000, 90000, 90500, 90700, 90800, 90900, 91000, 90500, 90500, 90500],
+            CD5: [92000, 93000, 94000, 95000, 95500, 95700, 95800, 95900, 96000, 95500, 95500, 95500]
+        };
+
+        const ocupacaoProducaoData = {
+            CD1: [850, 860, 870, 873, 875, 876, 877, 878, 879, 873, 873, 873],
+            CD2: [860, 870, 880, 883, 885, 886, 887, 888, 889, 883, 883, 883],
+            CD3: [840, 850, 860, 863, 865, 866, 867, 868, 869, 863, 863, 863],
+            CD4: [880, 890, 900, 903, 905, 906, 907, 908, 909, 903, 903, 903],
+            CD5: [830, 840, 850, 853, 855, 856, 857, 858, 859, 853, 853, 853]
+        };
+
+        const manutencaoPreventivaData = {
+            CD1: [78, 79, 80, 81, 81.5, 81.7, 81.8, 81.9, 82.0, 82.1, 82.1, 82.1],
+            CD2: [79, 80, 81, 82, 82.5, 82.7, 82.8, 82.9, 83.0, 82.5, 82.5, 82.5],
+            CD3: [80, 81, 82, 83, 83.5, 83.7, 83.8, 83.9, 84.0, 83.5, 83.5, 83.5],
+            CD4: [77, 78, 79, 80, 80.5, 80.7, 80.8, 80.9, 81.0, 80.5, 80.5, 80.5],
+            CD5: [81, 82, 83, 84, 84.5, 84.7, 84.8, 84.9, 85.0, 84.5, 84.5, 84.5]
+        };
+
+        const planejadoRealizadoData = {
+            CD1: [75, 76, 77, 78, 78.5, 78.7, 78.8, 78.9, 79.0, 78.9, 78.9, 78.9],
+            CD2: [76, 77, 78, 79, 79.5, 79.7, 79.8, 79.9, 80.0, 79.5, 79.5, 79.5],
+            CD3: [77, 78, 79, 80, 80.5, 80.7, 80.8, 80.9, 81.0, 80.5, 80.5, 80.5],
+            CD4: [74, 75, 76, 77, 77.5, 77.7, 77.8, 77.9, 78.0, 77.5, 77.5, 77.5],
+            CD5: [78, 79, 80, 81, 81.5, 81.7, 81.8, 81.9, 82.0, 81.5, 81.5, 81.5]
+        };
+
+        const dataMap = {
+            qualidade: qualidadeData,
+            custoEntrega: custoEntregaData,
+            tempoEntrega: tempoEntregaData,
+            custoCD: custoCDData,
+            formulacao: formulacaoData,
+            envase: envaseData,
+            volumeRealizado: volumeRealizadoData,
+            ocupacaoProducao: ocupacaoProducaoData,
+            manutencaoPreventiva: manutencaoPreventivaData,
+            planejadoRealizado: planejadoRealizadoData
+        };
+
+        const kpiTitles = {
+            qualidade: 'Qualidade na Entrega',
+            custoEntrega: 'Custo Entrega',
+            tempoEntrega: 'Tempo de Entrega',
+            custoCD: 'Custo do CD',
+            formulacao: 'Qualidade de Formulação',
+            envase: 'Qualidade no Envase',
+            volumeRealizado: 'Volume Realizado',
+            ocupacaoProducao: 'Ocupação Produção',
+            manutencaoPreventiva: 'Manutenções Preventivas',
+            planejadoRealizado: 'Planejado Realizado'
+        };
+
+        const tabToKpis = {
+            'gerir-entregas': ['qualidade', 'custoEntrega', 'tempoEntrega', 'custoCD'],
+            'industria': ['formulacao', 'envase', 'volumeRealizado', 'ocupacaoProducao'],
+            'manutencao': ['manutencaoPreventiva', 'planejadoRealizado']
+        };
+
+        const breakdownConfigs = {
+            qualidade: [
+                { name: 'Feedbacks Conforme', unit: '%' },
+                { name: 'Feedbacks Não Conforme', unit: '%' }
+            ],
+            custoEntrega: [
+                { name: 'Custo Frete', unit: 'R$' },
+                { name: 'Valores OC', unit: 'R$' }
+            ],
+            tempoEntrega: [
+                { name: 'Dias Efetivos', unit: 'dias' },
+                { name: 'Dias Previstos', unit: 'dias' }
+            ],
+            custoCD: [
+                { name: 'Centro de Custo', unit: 'R$' },
+                { name: 'Faturamento', unit: 'R$' }
+            ],
+            formulacao: [
+                { name: 'Testes Aprovados', unit: '%' },
+                { name: 'Testes Reprovados', unit: '%' }
+            ],
+            envase: [
+                { name: 'Unidades Conformes', unit: '%' },
+                { name: 'Unidades Não Conformes', unit: '%' }
+            ],
+            volumeRealizado: [
+                { name: 'Volume Realizado', unit: 'L' },
+                { name: 'Volume Planejado', unit: 'L' }
+            ],
+            ocupacaoProducao: [
+                { name: 'Ocupação Real', unit: 'h' },
+                { name: 'Capacidade Total', unit: 'h' }
+            ],
+            manutencaoPreventiva: [
+                { name: 'Preventivas Realizadas', unit: '%' },
+                { name: 'Preventivas Planejadas', unit: '%' }
+            ],
+            planejadoRealizado: [
+                { name: 'Planejado', unit: '%' },
+                { name: 'Realizado', unit: '%' }
+            ]
+        };
+
+        let selectedKPIs = new Set(); // Conjunto de KPIs selecionados
+
+        // Dados de exemplo para a tabela de detalhamento
+        const sampleDetailData = [
+            { nroUnico: 'INV001', dtaNegociacao: '2025-10-01', parceiro: 'Parceiro A', empresa: 'Empresa X', vlrNota: '1500.00' },
+            { nroUnico: 'INV002', dtaNegociacao: '2025-10-02', parceiro: 'Parceiro B', empresa: 'Empresa Y', vlrNota: '2300.50' },
+            { nroUnico: 'INV003', dtaNegociacao: '2025-10-03', parceiro: 'Parceiro C', empresa: 'Empresa Z', vlrNota: '1800.75' },
+            { nroUnico: 'INV004', dtaNegociacao: '2025-10-05', parceiro: 'Parceiro A', empresa: 'Empresa X', vlrNota: '1200.00' },
+            { nroUnico: 'INV005', dtaNegociacao: '2025-10-07', parceiro: 'Parceiro D', empresa: 'Empresa W', vlrNota: '2900.25' },
+            { nroUnico: 'INV006', dtaNegociacao: '2025-10-10', parceiro: 'Parceiro B', empresa: 'Empresa Y', vlrNota: '1600.00' },
+            { nroUnico: 'INV007', dtaNegociacao: '2025-10-12', parceiro: 'Parceiro E', empresa: 'Empresa V', vlrNota: '2100.80' },
+            { nroUnico: 'INV008', dtaNegociacao: '2025-10-15', parceiro: 'Parceiro C', empresa: 'Empresa Z', vlrNota: '1750.30' }
+        ];
+
+        // Função para mostrar detalhamento fullscreen
+        function showDetails(kpi, cd, month, value) {
+            const title = `${kpiTitles[kpi]} - ${cd} - ${month} (Valor Total: ${value})`;
+            let tableHTML = `
+                <div class="col-12">
+                    <h2>${title}</h2>
+                    <table class="table table-striped" id="detail-table">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Nro Unico</th>
+                                <th>Dta. Negociação</th>
+                                <th>Parceiro</th>
+                                <th>Empresa</th>
+                                <th>Vlr. Nota</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+            sampleDetailData.forEach(row => {
+                tableHTML += `
+                    <tr>
+                        <td>${row.nroUnico}</td>
+                        <td>${row.dtaNegociacao}</td>
+                        <td>${row.parceiro}</td>
+                        <td>${row.empresa}</td>
+                        <td>R$ ${row.vlrNota}</td>
+                    </tr>`;
+            });
+
+            tableHTML += `
+                        </tbody>
+                    </table>
+                    <div class="mb-3">
+                        <button class="btn btn-success me-2" onclick="exportToExcel()">Exportar Excel</button>
+                        <button class="btn btn-primary me-2" onclick="exportToPDF()">Exportar PDF</button>
+                        <button class="btn btn-secondary" onclick="closeDetail()">Fechar</button>
+                    </div>
+                </div>`;
+
+            document.getElementById('detail-view').innerHTML = tableHTML;
+
+            // Esconder elementos do painel
+            document.getElementById('processNav').classList.add('d-none');
+            document.querySelectorAll('.kpi-cards-row').forEach(row => row.classList.add('d-none'));
+            document.querySelectorAll('.kpi-charts-row').forEach(row => row.classList.add('d-none'));
+            document.getElementById('detail-view').classList.remove('d-none');
+
+            // Definir variáveis globais para export
+            window.currentKPI = kpi;
+            window.currentCD = cd;
+            window.currentMonth = month;
+            window.currentTitle = title;
+        }
+
+        // Função para fechar detalhamento
+        window.closeDetail = function() {
+            document.getElementById('detail-view').classList.add('d-none');
+            document.getElementById('processNav').classList.remove('d-none');
+            document.querySelectorAll('.kpi-cards-row').forEach(row => row.classList.remove('d-none'));
+            document.querySelectorAll('.kpi-charts-row').forEach(row => row.classList.remove('d-none'));
+        };
+
+        // Função para exportar Excel
+        window.exportToExcel = function() {
+            const wb = XLSX.utils.table_to_book(document.getElementById('detail-table'), {sheet: "Sheet1"});
+            XLSX.writeFile(wb, `${window.currentKPI}_${window.currentCD}_${window.currentMonth}.xlsx`);
+        };
+
+        // Função para exportar PDF
+        window.exportToPDF = function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text(window.currentTitle, 14, 15);
+            doc.autoTable({
+                html: '#detail-table',
+                startY: 20,
+                theme: 'striped',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [41, 128, 185] }
+            });
+            doc.save(`${window.currentKPI}_${window.currentCD}_${window.currentMonth}.pdf`);
+        };
+
+        // Função para aplicar filtros e mostrar todos os gráficos por padrão
+        function applyFilters() {
+            const dataIni = document.getElementById('dataIni').value;
+            const dataFin = document.getElementById('dataFin').value;
+            const empresasSelect = document.getElementById('empresas');
+            const empresas = Array.from(empresasSelect.selectedOptions).map(opt => opt.value);
+
+            if (empresas.length === 0) {
+                alert('Selecione pelo menos uma empresa.');
+                return;
+            }
+
+            selectedPeriod = { start: dataIni, end: dataFin };
+            selectedEmpresas = empresas;
+
+            // Calcular meses no período
+            const start = new Date(dataIni);
+            const end = new Date(dataFin);
+            const monthIndices = [];
+            let current = new Date(start.getFullYear(), start.getMonth(), 1);
+            while (current <= end) {
+                monthIndices.push(current.getMonth());
+                current.setMonth(current.getMonth() + 1);
+                if (current.getFullYear() > end.getFullYear()) break;
+            }
+            filteredIndices = [...new Set(monthIndices)].sort((a, b) => a - b);
+            filteredLabels = filteredIndices.map(m => months[m]);
+
+            console.log('Filtros aplicados:', { dataIni, dataFin, empresas, filteredLabels });
+
+            // Resetar seleções e mostrar todos para a aba ativa
+            selectedKPIs.clear();
+            const activeTabPane = document.querySelector('.tab-pane.show.active');
+            if (activeTabPane) {
+                activeTabPane.querySelectorAll('.kpi-card').forEach(card => card.classList.remove('kpi-selected'));
+                const container = activeTabPane.querySelector('.kpi-charts-row');
+                if (container) {
+                    showAllCharts(container);
+                }
+            }
+        }
+
+        // Função para mostrar todos os gráficos
+        function showAllCharts(container) {
+            container.innerHTML = '';
+            const tabPane = container.closest('.tab-pane');
+            const tabId = tabPane.id;
+            const kpis = tabToKpis[tabId] || [];
+            kpis.forEach(kpi => {
+                appendChart(container, kpi);
+            });
+        }
+
+        // Função para obter dados para um KPI específico
+        function getDataFor(kpi) {
+            const dataByCD = dataMap[kpi];
+            const datasets = selectedEmpresas.map((cd, idx) => ({
+                label: cd,
+                data: (dataByCD[cd] || []).filter((_, i) => filteredIndices.includes(i)),
+                borderColor: colors[idx % colors.length],
+                backgroundColor: colors[idx % colors.length] + '33',
+                tension: 0.4,
+                fill: false
+            }));
+            return {
+                labels: filteredLabels,
+                datasets
+            };
+        }
+
+        // Função para criar canvas único para cada gráfico
+        let chartCounter = 0;
+        function createCanvasId(kpi) {
+            return `lineChart_${kpi}_${++chartCounter}`;
+        }
+
+        // Função para adicionar um gráfico ao container
+        function appendChart(container, kpi) {
+            const data = getDataFor(kpi);
+            if (data.datasets.length === 0 || data.labels.length === 0) return;
+
+            const numSelected = selectedKPIs.size || (tabToKpis[container.closest('.tab-pane').id] || []).length;
+            const colClass = numSelected === 1 ? 'col-12' : numSelected === 2 ? 'col-md-6' : numSelected === 3 ? 'col-md-4' : 'col-md-3';
+
+            const col = document.createElement('div');
+            col.className = colClass;
+            col.innerHTML = `
+                <div class="detail-chart">
+                    <h6>${kpiTitles[kpi]}</h6>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="${createCanvasId(kpi)}"></canvas>
+                    </div>
+                </div>
+            `;
+            container.appendChild(col);
+
+            const canvasId = col.querySelector('canvas').id;
+            if (!window.charts) window.charts = {};
+            window.charts[canvasId] = createLineChart(canvasId, data, kpi);
+        }
+
+        // Função para recriar os gráficos baseados nos selecionados
+        function renderSelectedCharts(container) {
+            container.innerHTML = '';
+
+            // Destruir gráficos antigos
+            Object.keys(window.charts || {}).forEach(id => {
+                if (id.startsWith('lineChart_')) {
+                    window.charts[id].destroy();
+                    delete window.charts[id];
+                }
+            });
+
+            if (selectedKPIs.size === 0) {
+                showAllCharts(container);
+                return;
+            }
+
+            selectedKPIs.forEach(kpi => {
+                appendChart(container, kpi);
+            });
+        }
+
+        // Função para criar gráfico de linha
+        function createLineChart(canvasId, chartData, kpi) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const beginAtZero = kpi !== 'qualidade' && kpi !== 'formulacao' && kpi !== 'envase' && kpi !== 'manutencaoPreventiva' && kpi !== 'planejadoRealizado';
+            const suggestedMax = (kpi === 'qualidade' || kpi === 'formulacao' || kpi === 'envase' || kpi === 'manutencaoPreventiva' || kpi === 'planejadoRealizado') ? 100 : undefined;
+            return new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero,
+                            ...(suggestedMax && { max: suggestedMax })
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    onClick: function(event, elements) {
+                        if (elements.length > 0) {
+                            const element = elements[0];
+                            const datasetIndex = element.datasetIndex;
+                            const index = element.index;
+                            const cd = chartData.datasets[datasetIndex].label;
+                            const month = chartData.labels[index];
+                            const value = chartData.datasets[datasetIndex].data[index];
+                            showDetails(kpi, cd, month, value);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Inicializar seleções
+        document.addEventListener('DOMContentLoaded', function() {
+            // Aplicar filtros iniciais
+            applyFilters();
+
+            // Listeners para os cards de KPIs
+            document.querySelectorAll('.tab-content .kpi-card[data-kpi]').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const kpi = this.dataset.kpi;
+                    const tabPane = this.closest('.tab-pane');
+                    const container = tabPane.querySelector('.kpi-charts-row');
+                    if (selectedKPIs.has(kpi)) {
+                        selectedKPIs.delete(kpi);
+                        this.classList.remove('kpi-selected');
+                    } else {
+                        selectedKPIs.add(kpi);
+                        this.classList.add('kpi-selected');
+                    }
+                    renderSelectedCharts(container);
+                });
+            });
+
+            // Listeners para mudança de aba
+            document.querySelectorAll('#processNav .nav-link').forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function (e) {
+                    const tabId = e.target.getAttribute('href').substring(1);
+                    const tabPane = document.getElementById(tabId);
+                    const container = tabPane.querySelector('.kpi-charts-row');
+                    if (container) {
+                        selectedKPIs.clear();
+                        tabPane.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('kpi-selected'));
+                        showAllCharts(container);
+                    }
+                });
+            });
+        });
+
+        // Ativação de tabs
+        var triggerTabList = [].slice.call(document.querySelectorAll('#processNav a'));
+        triggerTabList.forEach(function (triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl);
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault();
+                tabTrigger.show();
+            });
+        });
+    </script>
+</body>
+</html>
+

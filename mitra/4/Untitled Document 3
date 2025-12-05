@@ -1,0 +1,56 @@
+popular os cadastros de cr e contas feitos aleatorios e criar tela de crud completa
+popular o cadastro dos aprovadores feitos aleatorio e criar tela de crud completa
+
+1)criar uma tela  de crud completa para a versao
+2)lançar uma versao do orçamento com um status = andamento
+
+3)
+** apos lançar a versao 
+
+
+ter uma
+ação de preparação para lançamento_orçamento de 
+preencher populando as tabela prechenchendo todas contas para cada cr de 1 a 12 no mes e valores aleatorios
+fazer a tela que vai possibilidar fazer o preencimento (lembrando das primeira colunas de versao,cr,conta e demais colunas de 1 a 12 com valores embaixo), (nesta tela possibilidar fazer um download em csv, e um upload colocar bem discreto os botões)
+****
+colocar o scroll na horizontal da tabela para aumentar os campos de cr e contas e acrescentar a versao
+****
+
+
+
+
+o usuario responsavel faz o lançamento dos valores do orçamento para cada cr e respectiva conta na versao
+
+
+4)
+se o usuario entender que esta ok ele poderá colocar na tabela versao_orcamento pronto = sim
+a partir do momento que ele deixa pronto = sim a versao
+o sistema gera uma lançamento inicial para cada aprovador cadastrado na tabela fluxo_aprovacao_orcamento
+começando com o status_aprovação = pendente, depois o usuario aprovador so podera aprovar ou reprovar
+se aprovado nao tera mais interação
+
+
+
+se reprovados o sistema gerara uma lançamento na tabela log_reprovacoes,
+para os respectivos campos
+id_log_reprovacoes (pk)
+id_fluxo_aprovacao (fk)
+id_versao_orcamento (fk)
+id_aprovador (fk)
+obs_reprovacao
+com o status = aguardando
+
+ficara esta pendencia para ser resolvida, quando resolver ele atualizara o status para corrigido
+no mesmo instante o sistema gera um novo lançamento para o fluxo_aprovacao_orcamento
+de acordo com estes dados de
+id_fluxo_aprovacao (fk)
+id_versao_orcamento (fk)
+id_aprovador (fk)
+e
+começando com o status_aprovação = pendente
+repentindo o fluxo até quando for necessario
+por fim quando todos os aprovadores para aquela versao dos respectivos fluxos de aprovação estiverem 
+todos com status_aprovacao = aprovado
+
+
+

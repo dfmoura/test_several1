@@ -1,0 +1,337 @@
+
+🔗 Integre sua aplicação com o Link de Pagamento da Rede
+
+O objetivo deste manual é orientar desenvolvedores na integração de suas aplicações com o Link de Pagamento da Rede, apresentando as funcionalidades disponíveis, os métodos de uso e exemplos práticos de requisições e respostas.
+
+Sobre
+
+O Link de Pagamento Rede é a maneira mais rápida e fácil de vender online: venda para todo o Brasil sem precisar de maquininha ou site, crie quantos links quiser pagando apenas a taxa negociada, conte com um sistema de prevenção à fraude integrado e gratuito para mitigar os riscos das suas vendas e concilie todas as suas vendas pelo relatório no Portal.
+Público-alvo
+
+Clientes da Rede que desejam realizar vendas online por meio da API do Link de Pagamento. Para utilizar essa funcionalidade, é necessário que o cliente já esteja credenciado e tenha aceitado os termos e condições no primeiro acesso ao portal da Rede, especificamente na página do Link de Pagamento.
+Benefícios
+
+✅ Criar links de pagamento com mais praticidade;
+
+✅ Consultar o status do link e as informações da venda;
+
+✅ Cancelar links que não foram pagos;
+Automatize suas cobranças com geração de links via API
+
+Gerar links por API é uma forma prática e automatizada de criar links diretamente pelo sistema da sua empresa, sem acessar manualmente o portal. Através dessa integração, o próprio sistema envia as informações da venda e recebe o link pronto para ser compartilhado com o cliente. Isso agiliza o processo, reduz erros e permite escalar as operações com mais eficiência.
+Glossário
+
+Para tornar este documento mais acessível, reunimos os principais termos utilizados no ambiente digital, especialmente relacionados a link de pagamento, e-commerce, adquirência e cartões.
+Termo 	Descrição
+Autorização 	Processo que sensibiliza o limite de crédito do portador do cartão junto ao banco emissor, geralmente utilizado para análise de prevenção, análise de limite de crédito e validação dos dados do cartão utilizado. A autorização não gera cobrança na fatura do comprador.
+Captura 	Processo que confirma uma transação autorizada. Após a captura, o valor é debitado dos créditos do portador do cartão, gerando a cobrança na fatura do mesmo.
+Sistema Antifraude 	Processo que avalia os dados da transação, como dados do cartão e do portador, e decide se a transação será aprovada ou negada. A página de checkout do Link de Pagamento conta com essa ferramenta integrada de forma gratuita.
+Cancelamento 	Processo que devolve ao comprador o valor autorizado ou capturado no cartão.
+PV (número de filiação) 	Código identificador gerado pela Rede para os estabelecimentos filiados. O PV (ponto de venda) é único para cada estabelecimento.
+Emissor 	Instituição financeira que emite o cartão de crédito ou débito.
+Portador 	Proprietário do cartão, comprador do produto.
+Estabelecimento 	Entidade responsável pelo e-commerce (loja ou serviço virtual).
+TID 	Identificador único de uma transação composto por 20 caracteres gerados pela Rede. Esse identificador não se repete.
+Primeiros Passos
+Ambiente Simulador
+
+O acesso deve ser feito através do Developer Rede e caso não possua uma conta neste ambiente de testes, você pode fazer o cadastro em Criar Conta.
+
+Com a conta criada, siga o guia abaixo para cadastro e configuração do projeto.
+
+    ⚠️ Atenção: Para iniciar a integração com a API do Link de Pagamento, é necessário acessar o portal da Rede, habilitar o produto e aceitar os termos de uso. Somente após essa etapa será possível avançar para a integração técnica.
+
+Guia de integração
+
+Para facilitar o processo de integração com as APIs da Rede, preparamos um guia completo com instruções sobre os seguintes temas:
+
+✅ Criação de projeto no Portal do Desenvolvedor
+✅ Importação da collection no Insomnia
+✅ Testes iniciais com o simulador
+
+    📄 Guia prático:
+    Acesse o conteúdo completo com orientações detalhadas.
+
+    ⚠️ Atenção:
+    Após a importação, preencha os campos marcados como value com suas credenciais reais.
+
+Pré-requisitos técnicos
+Conhecimentos desejáveis
+
+    Linguagens de programação;
+    Requisições HTTP/HTTPS;
+    Manipulação de JSON.
+
+Segurança / Homologação
+
+    Comunicação via HTTPS (TLS 1.2)
+    Parceiros fora das normas de segurança podem ter o acesso suspenso
+
+Autenticação e autorização (OAuth 2.0)
+
+Usamos o protocolo OAuth 2.0 para autenticação e autorização.
+
+    ⚠️ Importante:
+    A partir de 05/01/2026 (05 de janeiro de 2026), todas as integrações devem usar OAuth 2.0.
+    Caso não atualize, suas transações poderão falhar.
+
+Passo a passo (Insomnia)
+
+Com suas credenciais (client_id e client_secret), configure uma requisição POST para o endpoint de token:
+Requisição OAuth2 - Client Credentials
+Campo 	Valor
+Método 	POST
+Url 	https://api.userede.com.br/redelabs/oauth2/token
+Content-Type 	application/x-www-form-urlencoded
+Authorization 	Basic <base64(client_id:client_secret)>
+Body da requisição
+
+grant_type=client_credentials
+
+A resposta conterá um access_token com validade de 24 minutos.
+Exemplo de resposta
+
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 1440
+}
+
+Como gerar o token usando a Collection do Insomnia
+
+    Abra a requisição “Gerar Token”.
+    Aba Auth → Basic Auth → preencha:
+        Username: client_id
+        Password: client_secret
+    Aba Body: confirme grant_type=client_credentials.
+    Clique em Send.
+
+Uso do token nas requisições
+
+Adicione o header:
+
+Authorization: Bearer SEU_TOKEN_AQUI
+
+    💡 Dica:
+    Sempre utilize o endpoint correspondente ao ambiente desejado (Simulador para testes ou Produção para uso real).
+    O token gerado tem validade de 24 minutos — gere um novo quando necessário.
+
+    🔒 Importante:
+    Nunca compartilhe suas credenciais client_id, client_secret ou o access_token.
+    Mantenha essas informações em local seguro.
+
+Ambientes e URLs
+(Endpoints Base)
+Ambiente 	Base URL
+Simulador 	https://payments-apisandbox.useredecloud.com.br/payment-link
+Produção 	https://payments-api.useredecloud.com.br/payment-link
+Códigos de retorno HTTP
+
+Sucesso
+Código 	Descrição
+200 	Processamento realizado com sucesso.
+
+Erros do cliente / negócio
+Retorno 	Descrição
+400 	Requisição mal formatada (dados incorretos/incompletos)
+401 	Autenticação requerida.
+403 	Acesso não permitido.
+404 	Recurso não encontrado.
+422 	Erro de negócio — verifique campos e mensagem de retorno.
+
+Erros do servidor
+Retorno 	Descrição
+500 	Erro de servidor.
+Formato e headers das requisições
+
+    Encoding: UTF-8
+    Formato: JSON
+
+Headers obrigatórios:
+Header 	Valor
+Content-Type 	application/json
+Authorization 	Bearer SEU_TOKEN_AQUI
+Company-number 	PV do estabelecimento (numérico, até 10 dígitos)
+
+Se o header de autorização estiver ausente ou inválido:
+
+{
+  "message": "Unauthorized"
+}
+
+Campos de data
+
+    Date → MM/DD/YYYY (ex.: 09/16/2025)
+    DateTime → MM/DD/YYYY hh:mm:ss (ex.: 09/16/2025 14:30:00)
+
+API de Link de Pagamento
+
+ 1.0 
+
+OAS3
+
+https://developer.userede.com.br/dev-portal-swaggers/payment-link-api/swagger.json
+
+A API de Link de Pagamento permite que os estabelecimentos criem e gerenciem links de pagamento na rede. Utilizando as APIs disponíveis, o estabelecimento pode criar um link de pagamento e também consultar os detalhes do link criado. Alguns campos da API têm uma descrição ou tabela de apoio para facilitar o entendimento ao chamar e responder a API.
+Servers
+Gestão do Link
+POST
+​/payment-link​/v1​/create
+Criar Link de Pagamento
+GET
+​/payment-link​/v1​/details​/{paymentLinkId}
+Detalhes do Link de Pagamento
+PATCH
+​/payment-link​/v1​/cancel​/{paymentLinkId}
+Cancelar Link de Pagamento
+Schemas
+PaymentLinkDetailResponse
+Biiling
+Merchant
+Order
+Refund
+TransactionInfo
+TransactionPixInfo
+PaymentLinkRequest
+PaymentLinkResponse
+PaymentLinkCancelResponse
+ResponseError
+ResponseUnprocessableEntity
+ResponseUnautorized
+Operações — Simulador
+Criar link de pagamento
+Item 	Valor
+Endpoint 	POST /v1/create
+URL 	https://payments-apisandbox.useredecloud.com.br/payment-link/v1/create
+
+Body (exemplo):
+
+{
+  "amount": 100,
+  "expirationDate": "09/23/2025",
+  "installments": 2,
+  "paymentOptions": ["credit"],
+  "description": "DocumentacaoApi"
+}
+
+Regras dos campos obrigatórios
+Campo 	Regra
+amount 	> 0 e < 20.000 (limite do simulador). Aceita inteiro ou decimal. Não pode ser vazio.
+expirationDate 	Formato MM/DD/YYYY, >= data atual e <= +15 dias. Entre aspas.
+installments 	Inteiro entre 1 e 12.
+paymentOptions 	No simulador: credit e/ou pix. (Em produção, depende das habilitações do estabelecimento.)
+description 	String até 50 caracteres. Não pode ser vazia.
+
+Resposta (exemplo):
+
+{
+  "paymentLinkId": "33j36w0",
+  "message": "Inserted Successfully",
+  "url": "https://sandbox.userede.com.br/pagamentos/pt/33j36w0"
+}
+
+📌 paymentLinkId: identifica o link para consultas/cancelamentos.
+📌 url: endereço que pode ser enviado ao cliente final.
+Consultar detalhes do link
+Item 	Valor
+Endpoint 	GET /v1/details/{paymentLinkId}
+URL (exemplo Simulador) 	https://payments-apisandbox.useredecloud.com.br/payment-link/v1/details/33j36w0
+Headers obrigatórios 	Company-number, Authorization
+Resposta (exemplo)
+
+{
+  "Order": {
+    "fraudCheck": "example",
+    "description": "example",
+    "status": "CREATED",
+    "emailSubject": "example",
+    "amount": 1000,
+    "expirationDate": "example",
+    "paymentLinkId": "33j36w0",
+    "createDate": "example",
+    "url": "https://sandbox.userede.com.br/pagamentos/pt/33j36w0",
+    "paymentOptions": ["credit"]
+  },
+  "Billing": {
+    "firstName": "User",
+    "sex": "",
+    "phone": "00000000000"
+  },
+  "Transaction": null,
+  "Merchant": {
+    "cnpj": "example",
+    "companyName": "example",
+    "fantasyName": "example"
+  },
+  "Refunds": null,
+  "Reversible": false
+}
+
+Boas práticas de polling
+
+    Inicie as consultas 5 minutos após a criação do link.
+    Frequência: a cada 1 minuto até status definitivo.
+    Prazo máximo: o link expira em 15 dias.
+
+    ⚠️ Ainda não há webhook para notificação automática no simulador. O polling é necessário (previsão de disponibilização futura).
+
+Cancelar link
+Item 	Valor
+Endpoint 	PATCH /v1/cancel/{paymentLinkId}
+URL (exemplo Simulador) 	https://payments-apisandbox.useredecloud.com.br/payment-link/v1/cancel/33j36w0
+Headers obrigatórios 	Company-number, Authorization
+
+Resposta (exemplo)
+
+{
+  "paymentLinkId": "mw3cpls",
+  "message": "Canceled Successfully"
+}
+
+Cenários de teste — Simulador
+
+Cancelamento
+Cenário 	Ação
+Cancelamento com sucesso 	Cancele o link mw3cpls com um PV válido.
+Cancelamento de link inexistente 	Tente cancelar o link ooysgb1 com um PV válido.
+Cancelamento com PV incorreto 	Tente cancelar o link ooysgb1 usando o PV 7717937.
+
+Consulta
+Cenário 	Ação
+Status CREATED 	Consulte o link 33j36w0 com um PV válido.
+Status CANCELED 	Consulte o link mw3cpls com um PV válido.
+Status REJECTED 	Consulte o link dccef8g com um PV válido.
+Status REVERSED (estornado) 	Consulte o link hut23ay com um PV válido.
+Status PAID 	Consulte o link cqf5kab com um PV válido.
+Link inexistente 	Consulte um paymentLinkId inválido.
+PV incorreto 	Tente consultar o link ejkhha2 usando o PV 7717937.
+Token inválido 	Tente consultar o link ejkhha2 usando o header Authorization: Bearer InvalidToken.
+Produção
+
+Após validar no simulador, prossiga para Produção.
+Item 	Valor
+Base URL (Produção) 	https://payments-api.useredecloud.com.br/payment-link
+Solicitar credenciais de Produção
+
+Envie um e-mail para suporteapi@userede.com.br com as informações:
+
+    Nome da Empresa/Organização parceira
+    CNPJ
+    E-mail corporativo
+    Telefone
+    Segmento
+    Nome do cliente
+    E-mail do cliente (receberá a chave)
+
+    ⚠️ Importante: para cada credencial é necessário fornecer um e-mail diferente.
+
+    ⚠️ Atenção:
+    Transações com valores inferiores a R$0,99 podem ser bloqueadas e retornar o erro N99.
+    Para evitar esse comportamento, recomenda-se utilizar valores a partir de R$1,00 nos testes.
+    Mesmo com R$1,00 a transação pode ser negada pelo sistema de antifraude (AF), portanto, prefira valores realistas para simulações.
+
+Observações finais
+
+    Use valores exatamente iguais aos informados para cenários do simulador.
+    Mantenha suas credenciais em local seguro.
+    Em caso de perda/esquecimento da chave de integração, gere nova chave no https://www.userede.com.br/.

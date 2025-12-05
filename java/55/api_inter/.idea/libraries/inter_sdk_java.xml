@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="inter-sdk-java">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/inter_dados_api/inter-sdk-java.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

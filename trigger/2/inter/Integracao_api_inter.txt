@@ -1,0 +1,25 @@
+Integração via API
+Acompanhe o status da sua solicitação. Para dúvidas acesse a Documentação.
+Sobre a integração
+Status
+Ativo
+Nome da integraçãoRecebimento Pix
+DescriçãoRecebimento Pix
+Criado em13/11/2025
+Expira em13/12/2025
+Permissões API Pix
+Emitir e editar cobranças imediatas; Consultar cobranças imediatas; Emitir e editar cobranças com vencimento; Consultar cobranças com vencimento; Permissão para alteração de lotes de cobranças com vencimento; Permissão para consulta de lotes de cobranças com vencimento; Solicitar devolução do Pix; Consultar Pix recebidos e devoluções; Criar e editar webhooks; Consultar webhooks; Criar e editar payloads; Consultar payloads
+Permissões API Pix Automático
+Consultar recorrências; Criar e editar recorrências; Consultar solicitações de recorrência; Criar e editar solicitações de recorrência; Consultar cobranças recorrentes; Emitir, editar e retentar cobranças recorrentes; Consultar payloads de recorrência; Criar e editar payloads de recorrência; Consultar webhooks de recorrências; Criar e editar webhooks de recorrências; Consultar webhooks de cobranças recorrentes; Criar e editar webhooks de cobranças recorrentes
+Permissões API Banking
+Realizar pagamentos Pix; Permissão para consulta de lotes de cobranças com vencimento; Realizar pagamentos e cancelar agendamentos (boletos, convênios ou tributos); Realizar pagamentos de DARF; Consultar pagamentos com códigos de barras e DARF; Realizar pagamentos em lotes; Consultar lotes de pagamentos; Consultar extrato e saldo; Criar e editar webhooks; Consultar webhooks; Pagamento de pix; Consulta de pix
+Permissões API Cobrança (Boleto com Pix)
+Consultar cobranças e exportar para PDF(Boleto ou Boleto com Pix); Emitir e cancelar cobrança(Boleto ou Boleto com Pix)
+Permissões API Forum
+Permissão para criar/alterar publicações; Permissão para consultar publicações; Permissão para excluir publicações
+Credenciais de acesso
+ClientID
+0ef7e432-ab23-406e-96ed-99d5128e105c
+ClientSecret
+017d6ae0-c91f-407b-b05f-ca71567501e6
+
