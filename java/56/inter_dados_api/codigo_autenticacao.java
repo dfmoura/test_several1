@@ -104,9 +104,9 @@ public class ObterTokenOauth {
 
         byte[] keyTemp = Files.readAllBytes(Path.of(nomeArquivoChave));
         byte[] key = new String(keyTemp, Charset.defaultCharset())
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replaceAll(System.lineSeparator(), "")
-                .replace("-----END PRIVATE KEY-----", "").getBytes();
+-----BEGIN PRIVATE KEY-----
+REDACTED
+-----END PRIVATE KEY-----
 
         // cert+key data. assuming X509 pem format
 
@@ -121,7 +121,7 @@ public class ObterTokenOauth {
 
         // place cert+key into KeyStore
         KeyStore clientKeyStore = KeyStore.getInstance("jks");
-        final char[] pwdChars = "fdrgsadrtersdarf".toCharArray();
+        final char[] pwdChars = "REDACTED".toCharArray();
         clientKeyStore.load(null, null);
         clientKeyStore.setKeyEntry("test", keyEncoded, pwdChars, chain.toArray(new Certificate[0]));
 

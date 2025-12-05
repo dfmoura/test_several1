@@ -32,7 +32,7 @@ URL="https://cdpj-sandbox.partners.uatinter.co/oauth/v2/token"
 
 # Credenciais
 CLIENT_ID="330fb082-f5da-4aef-9d21-c020de8e23e0"
-CLIENT_SECRET="d6257e31-47a7-4ad0-934d-b4b7f93bc4f8"
+CLIENT_SECRET="REDACTED"
 SCOPE="boleto-cobranca.read"
 
 # Verificar se os arquivos existem

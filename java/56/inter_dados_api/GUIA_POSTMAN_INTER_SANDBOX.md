@@ -106,7 +106,7 @@ Antes de tentar no Postman, teste se o certificado funciona usando o terminal:
 ```bash
 curl -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "client_id=330fb082-f5da-4aef-9d21-c020de8e23e0&client_secret=d6257e31-47a7-4ad0-934d-b4b7f93bc4f8&scope=boleto-cobranca.read&grant_type=client_credentials" \
+  -d "client_id=330fb082-f5da-4aef-9d21-c020de8e23e0&client_secret=REDACTED&scope=boleto-cobranca.read&grant_type=client_credentials" \
   --cert caminho/para/seu/certificado.crt \
   --key caminho/para/sua/chave.key \
   https://cdpj-sandbox.partners.uatinter.co/oauth/v2/token
@@ -323,7 +323,7 @@ Se você tem os certificados, teste primeiro com cURL para confirmar que funcion
 # Substitua os caminhos pelos seus arquivos reais
 curl -v -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "client_id=330fb082-f5da-4aef-9d21-c020de8e23e0&client_secret=d6257e31-47a7-4ad0-934d-b4b7f93bc4f8&scope=boleto-cobranca.read&grant_type=client_credentials" \
+  -d "client_id=330fb082-f5da-4aef-9d21-c020de8e23e0&client_secret=REDACTED&scope=boleto-cobranca.read&grant_type=client_credentials" \
   --cert inter_dados_api/Inter_API-Chave_e_Certificado/certificado.crt \
   --key inter_dados_api/Inter_API-Chave_e_Certificado/chave.key \
   https://cdpj-sandbox.partners.uatinter.co/oauth/v2/token

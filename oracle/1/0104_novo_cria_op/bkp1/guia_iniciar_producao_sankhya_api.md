@@ -21,7 +21,7 @@ grant_type=password&
 username=SEU_USUARIO&
 password=SUA_SENHA&
 client_id=SEU_CLIENT_ID&
-client_secret=SEU_CLIENT_SECRET
+client_secret=REDACTED_CLIENT_SECRET
 ```
 
 ### 1.3 Resposta de Autenticação

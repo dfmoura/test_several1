@@ -6,7 +6,7 @@
 
 URL_OAUTH="https://cdpj.partners.bancointer.com.br/oauth/v2/token"
 
-DADOS="client_id=4397b5b7-c6cc-4cd9-912d-bb754d5052ee&client_secret=79a407d2-f5ff-4db4-b42f-785c2a228e2d&scope=cobranca.write&grant_type=client_credentials"
+DADOS="client_id=4397b5b7-c6cc-4cd9-912d-bb754d5052ee&client_secret=REDACTED&scope=cobranca.write&grant_type=client_credentials"
 
 OAUTH_TOKEN_RESPONSE=$(curl -s \
   -X POST \

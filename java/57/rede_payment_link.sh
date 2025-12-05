@@ -9,7 +9,7 @@
 
 # Credenciais da API
 CLIENT_ID="90399908"
-CLIENT_SECRET="f774e8447758453e839f4c73adfcf5e4"
+CLIENT_SECRET="REDACTED"
 
 # Ambiente (sandbox ou production)
 # IMPORTANTE: As credenciais fornecidas podem ser apenas para sandbox

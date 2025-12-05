@@ -7,7 +7,7 @@
 URL_OAUTH="https://cdpj.partners.bancointer.com.br/oauth/v2/token"
 
 D1="client_id=4397b5b7-c6cc-4cd9-912d-bb754d5052ee"
-D2="client_secret=79a407d2-f5ff-4db4-b42f-785c2a228e2d"
+D2="client_secret=REDACTED"
 D3="scope=boleto-cobranca.write"
 D4="grant_type=client_credentials"
 DADOS="$D1&$D2&$D3&$D4"
