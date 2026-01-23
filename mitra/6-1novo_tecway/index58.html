@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste Handsontable</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.4.0/dist/handsontable.full.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/handsontable@14.4.0/dist/handsontable.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <style>
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 222.2 84% 4.9%;
+      --primary: 222.2 47.4% 11.2%;
+      --primary-foreground: 210 40% 98%;
+      --secondary: 210 40% 96.1%;
+      --secondary-foreground: 222.2 84% 4.9%;
+      --muted: 210 40% 96.1%;
+      --muted-foreground: 215.4 16.3% 46.9%;
+      --destructive: 0 84.2% 60.2%;
+      --border: 214.3 31.8% 91.4%;
+      --ring: 222.2 84% 4.9%;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Container principal */
+    #main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 24px;
+    }
+
+    /* Container da tabela */
+    #hot-container {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      position: relative;
+    }
+
+    .handsontable,
+    .handsontable .htCore td, 
+    .handsontable .htCore th {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 13px;
+    }
+
+    .handsontable td,
+    .handsontable th {
+      border-color: #e5ecf1 !important;
+      vertical-align: middle !important;
+    }
+
+    /* Container do campo de busca */
+    .search-container {
+      position: relative;
+      flex-grow: 1;
+      max-width: 448px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #5D6585;
+      pointer-events: none;
+    }
+
+    .search {
+      font-family: 'Inter', sans-serif; 
+      height: 36px;
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #E7E8F0;
+      padding-left: 40px;
+      padding-right: 12px;
+      font-size: 14px;
+      color: #5D6585;
+      background-color: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search::placeholder {
+      color: #5D6585;
+    }
+
+    .search:focus {
+      border-color: #818cf8;
+      box-shadow: 0 0 0 2px rgba(99,102,241,.2);
+    }
+
+    .btn {
+      font-family: 'Inter', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: #ffffff;
+      color: #334155;
+      border: 1px solid #e4e4e7;
+      transition: background-color 0.2s;
+    }
+
+    .btn:hover {
+      background-color: #F4F4F5;
+    }
+
+    .btn-icon {
+      width: 18px;
+      height: 18px;
+      margin-right: 8px;
+    }
+
+    /* Cor do header */
+    .handsontable thead th,
+    .handsontable .ht_clone_top thead th,
+    .handsontable .ht_clone_top_left_corner thead th,
+    .handsontable .ht_clone_left thead th {
+      background: #F7F7F8 !important;
+      color: #344054 !important;
+    }
+
+    .handsontable .ht_clone_inline_start thead th,
+    .handsontable .ht_clone_inline_start tbody th {
+      background: #F7F7F8 !important;
+      color: #344054 !important;
+      font-weight: 400 !important;
+    }
+
+    .handsontable tbody td {
+      background: #ffffff !important;
+      color: #28282c !important;
+      font-weight: 400;
+    }
+
+    /* Alinhamento Vertical */
+    .handsontable .ht_clone_inline_start th {
+      position: relative !important;
+    }
+
+    .handsontable th .ht_nestingButton {
+      position: absolute !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      left: auto !important;
+      right: 2px !important;
+      width: 13px;
+      height: 13px;
+      line-height: 12px;
+      text-align: center;
+      background-color: #fafafa;
+      border: 1px solid #d0d5dd;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .handsontable .ht_nestingButton::after {
+      color: #344054;
+      font-weight: 400;
+      font-size: 18px;
+    }
+
+    .handsontable th .ht_nestingButton:hover {
+      background-color: #f4f4f5;
+      border-color: #b9c3d1;
+    }
+
+    .handsontable thead th .relative {
+      height: 32px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Loading overlay */
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    #loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(1px);
+    }
+
+    .loading-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .loading-icon {
+      animation: spin 1s linear infinite;
+      color: #5d6585;
+    }
+
+    .loading-text {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 400;
+      color: #5d6585;
+    }
+
+    .mitra-alert-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      margin-left: 6px;
+    }
+
+    .handsontable tr.mitra-clickable-row:hover td {
+      background-color: #f0f4ff !important;
+      cursor: pointer !important;
+    }
+
+    .handsontable tr.mitra-clickable-row:hover td:first-child {
+      border-left: 3px solid #6366f1 !important;
+      padding-left: 5px !important;
+    }
+
+    .htSearchResult {
+      background-color: rgba(34, 255, 94, 0.18) !important;
+      color: #0f172a !important;
+    }
+
+    .handsontable td.ht-bold,
+    .handsontable th.ht-bold {
+      font-weight: 700 !important;
+    }
+  </style>
+</head>
+
+<body class="p-4 sm:p-6 lg:p-8">
+  <div id="main-container" class="w-full h-full flex flex-col">
+    
+    <!-- Bloco de título/subtítulo -->
+    <div id="header-block" class="space-y-1 hidden mb-4">
+      <h2 id="main-title" class="text-lg font-semibold text-[#101828]"></h2>
+      <p id="main-subtitle" class="text-sm text-[#5D6585]"></p>
+    </div>
+
+    <!-- Toolbar (busca + botão) -->
+    <div class="toolbar">
+      <div class="search-container">
+        <span class="search-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </span>
+        <input id="hot-search" class="search" type="search" placeholder="Buscar..." aria-label="Buscar" />
+      </div>
+      
+      <button id="btn-exportar" class="btn" title="Exportar XLSX">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <path d="M12 18v-6"/>
+          <path d="m15 15-3 3-3-3"/>
+        </svg>
+        <span>Exportar XLSX</span>
+      </button>
+    </div>
+
+    <!-- Container da tabela -->
+    <div id="hot-container">
+      <div id="loading-overlay" style="display: none;">
+        <div class="loading-content">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="loading-icon">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+          <p class="loading-text">Carregando dados...</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const container = document.getElementById('hot-container');
+    let hot = null;
+
+    // ================= HEADER (title/subtitle) =================
+    const renderHeader = () => {
+      if (typeof componentData === 'undefined') return;
+
+      const rawTitle = componentData.title;
+      const rawSubtitle = componentData.subtitle;
+
+      const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
+      const subtitle = typeof rawSubtitle === 'string' ? rawSubtitle.trim() : '';
+
+      const titleEl = document.getElementById('main-title');
+      const subtitleEl = document.getElementById('main-subtitle');
+      const headerBlock = document.getElementById('header-block');
+
+      if (!headerBlock || !titleEl || !subtitleEl) return;
+
+      if (!title && !subtitle) {
+        headerBlock.classList.add('hidden');
+        return;
+      }
+
+      if (title) {
+        titleEl.textContent = title;
+        titleEl.style.display = 'block';
+      } else {
+        titleEl.style.display = 'none';
+      }
+
+      if (subtitle) {
+        subtitleEl.textContent = subtitle;
+        subtitleEl.style.display = 'block';
+      } else {
+        subtitleEl.style.display = 'none';
+      }
+
+      headerBlock.classList.remove('hidden');
+
+      const onlyTitle = Boolean(title) && !subtitle;
+      headerBlock.classList.toggle('flex', onlyTitle);
+      headerBlock.classList.toggle('items-center', onlyTitle);
+      headerBlock.classList.toggle('min-h-[36px]', onlyTitle);
+    };
+
+    // ================= BORDA (card) =================
+    const setupBorder = () => {
+      const mainContainer = document.getElementById('main-container');
+      if (!mainContainer) return;
+
+      const showBorder = String(componentData?.showBorder ?? '').toLowerCase() === 'true';
+
+      const cardClasses = ['bg-white', 'rounded-xl', 'p-6', 'border', 'border-[#D0D5DD]'];
+
+      mainContainer.classList.remove(...cardClasses);
+
+      if (showBorder) {
+        mainContainer.classList.add(...cardClasses);
+      }
+    };
+
+    try {
+      renderHeader();
+      setupBorder();
+    } catch (_) {}
+
+    // Helpers globais para abrir/fechar grupos (NestedRows)
+    const collapseAllSafely = () => {
+      if (!hot) return;
+      try {
+        const nr = hot.getPlugin('nestedRows');
+        if (nr?.collapsingUI?.collapseAll) {
+          nr.collapsingUI.collapseAll();
+          try { hot.render(); } catch (_) {}
+          return;
+        }
+        if (nr?.collapsingUI?.collapseChildren) {
+          const total = hot.countSourceRows?.() ?? hot.countRows?.() ?? 0;
+          for (let r = 0; r < total; r++) {
+            const row = hot.getSourceDataAtRow?.(r);
+            if (row && row.__group) {
+              try { nr.collapsingUI.collapseChildren(r); } catch (_) {}
+            }
+          }
+          try { hot.render(); } catch (_) {}
+        }
+      } catch (_) {}
+    };
+
+    const expandAllSafely = () => {
+      if (!hot) return;
+      try {
+        const nr = hot.getPlugin('nestedRows');
+        if (nr?.collapsingUI?.expandAll) {
+          nr.collapsingUI.expandAll();
+          try { hot.render(); } catch (_) {}
+          return;
+        }
+        if (nr?.collapsingUI?.expandChildren) {
+          const total = hot.countSourceRows?.() ?? hot.countRows?.() ?? 0;
+          for (let r = 0; r < total; r++) {
+            const row = hot.getSourceDataAtRow?.(r);
+            if (row && row.__group) {
+              try { nr.collapsingUI.expandChildren(r); } catch (_) {}
+            }
+          }
+          try { hot.render(); } catch (_) {}
+        }
+      } catch (_) {}
+    };
+
+    // Espera o elemento estar montado
+    async function waitForMount(el, { maxTries = 60, delay = 100 } = {}) {
+      for (let i = 0; i < maxTries; i++) {
+        if (el && el.isConnected) {
+          const doc = el.ownerDocument;
+          const win = (doc && (doc.defaultView || window)) || window;
+          if (win && typeof win.getComputedStyle === 'function') {
+            const rects = el.getClientRects?.();
+            if (rects && rects.length) return true;
+          }
+        }
+        await new Promise(r => setTimeout(r, delay));
+      }
+      return false;
+    }
+
+    /* ===================== JDBC IDs (DATA x FORMAT) ===================== */
+    const parseJdbc = (raw) => {
+      const n = Number(typeof raw === 'string' ? raw.trim() : raw);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+    const JDBC_ID_DEFAULT = parseJdbc(window.componentData?.jdbcId) ?? 1;
+    const JDBC_ID_DATA    = parseJdbc(window.componentData?.jdbcIdData)   ?? JDBC_ID_DEFAULT;
+    const JDBC_ID_FORMAT  = parseJdbc(window.componentData?.jdbcIdFormat) ?? JDBC_ID_DEFAULT;
+
+    const asQueryOpts = (q) => {
+      if (q && typeof q === 'object') return q;
+      return { query: String(q || '') };
+    };
+
+    /* ---------------------- Utils ---------------------- */
+    const escapeRegex = (s) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const uniq = (arr) => Array.from(new Set(arr));
+    const sum = (arr) => arr.reduce((a,b)=>a+(+b||0),0);
+    function arrayToObject(headers, data){
+      const names = headers.map(h => h.name);
+      return data.map(row => { const o={}; names.forEach((n,i)=>o[n]=row[i]); return o; });
+    }
+    const asArray = (v) => Array.isArray(v) ? v : (typeof v === 'string' ? JSON.parse(v) : []);
+
+    // ===================== Config de Clique de Linha (Mitra) =====================
+    const rowClickConfig = {
+      varIDClick:
+        (window.componentData && (componentData.varIDClick || componentData.varIDGlobal)) ||
+        ':VAR_GENERIC_ID',
+      rowClickAction:
+        (window.componentData &&
+          (componentData.acaoCliqueLinha || componentData.acaoCliqueRow || componentData.acaoCliqueCard)) ||
+        '',
+      alertType: window.componentData?.alertOnClickType,
+      alertMessage: window.componentData?.alertOnClickMessage,
+      alertMessageError: window.componentData?.alertOnClickMessageError,
+    };
+
+    // ===================== Função para executar ação Mitra =====================
+    async function executeMitraAction(action, recordId, varIDName) {
+      if (!action || !recordId) return;
+
+      try {
+        if (typeof setVariableMitra === 'function' && varIDName) {
+          await setVariableMitra({ name: varIDName, content: recordId });
+        }
+
+        const [rawTipo, rawId] = String(action).split(':');
+        const tipo = String(rawTipo || '').trim().toLowerCase();
+        const id = parseInt(String(rawId || '').trim(), 10);
+
+        if (!id || isNaN(id)) {
+          console.warn('[rowClick] Ação inválida, ID ausente ou inválido em:', action);
+          return;
+        }
+
+        if (tipo === 'dbaction' && typeof dbactionMitra === 'function') {
+          await dbactionMitra(id);
+          if (typeof updateComponentsMitra === 'function') {
+            await updateComponentsMitra({ all: true });
+          }
+        } else if (tipo === 'action' && typeof actionMitra === 'function') {
+          await actionMitra(id);
+          if (typeof updateComponentsMitra === 'function') {
+            await updateComponentsMitra({ all: true });
+          }
+        } else if (tipo === 'form' && typeof formMitra === 'function') {
+          const isNumericId = Number.isFinite(Number(recordId));
+          const formOptions = { id };
+          if (isNumericId) {
+            formOptions.contentId = Number(recordId);
+          }
+          try {
+            await formMitra(formOptions);
+          } catch (e) {
+            console.error('[rowClick] Erro ao abrir formulário:', e);
+          }
+        } else if (tipo === 'modal' && typeof modalMitra === 'function') {
+          modalMitra({ id, width: 100, height: 100 });
+        } else {
+          console.warn('[rowClick] Tipo de ação não reconhecido:', tipo);
+        }
+      } catch (err) {
+        console.error(`Erro ao executar a ação '${action}' para o ID '${recordId}':`, err);
+      }
+    }
+
+    // ===== Alert Visual (por coluna/valor) =====
+    const resolveAlertVisual = (colSpecOrConfig, rawValue) => {
+      if (!colSpecOrConfig) return null;
+      const cfg = colSpecOrConfig.alertConfig || colSpecOrConfig;
+      if (!cfg || !cfg.type || !Array.isArray(cfg.rules)) return null;
+
+      const valStr = String(rawValue ?? '').trim();
+      const valNum = Number(valStr);
+      const isNum = !isNaN(valNum) && isFinite(valNum);
+
+      const toNum = (v) => {
+        if (v === null || v === undefined || v === '') return null;
+        const n = Number(String(v).trim());
+        return Number.isFinite(n) ? n : null;
+      };
+
+      let hit = null;
+
+      for (const r of cfg.rules) {
+        if (!r) continue;
+
+        const hasRangeKey =
+          r.lt !== undefined || r.lte !== undefined ||
+          r.gt !== undefined || r.gte !== undefined;
+
+        if (hasRangeKey && isNum) {
+          const lt  = toNum(r.lt);
+          const lte = toNum(r.lte);
+          const gt  = toNum(r.gt);
+          const gte = toNum(r.gte);
+
+          let ok = true;
+          if (lt  !== null && !(valNum <  lt)) ok = false;
+          if (lte !== null && !(valNum <= lte)) ok = false;
+          if (gt  !== null && !(valNum >  gt)) ok = false;
+          if (gte !== null && !(valNum >= gte)) ok = false;
+
+          if (ok) {
+            hit = r;
+            break;
+          }
+          continue;
+        }
+
+        if (r.match !== undefined && r.match !== null) {
+          const rStr = String(r.match).trim();
+          if (rStr === valStr) {
+            hit = r;
+            break;
+          }
+          const rNum = Number(rStr);
+          if (!isNaN(rNum) && isFinite(rNum) && isNum && rNum === valNum) {
+            hit = r;
+            break;
+          }
+        }
+      }
+
+      if (hit) return { type: cfg.type, color: hit.color };
+      if (cfg.elseColor) return { type: cfg.type, color: cfg.elseColor };
+      return null;
+    };
+
+    // ---------------------- Normalizadores ----------------------
+    const toBoolTF = (v) => {
+      if (v === true || v === false) return v ? 'TRUE' : 'FALSE';
+      const s = String(v ?? '').trim().toLowerCase();
+      if (['1','true','t','y','yes','sim'].includes(s))  return 'TRUE';
+      if (['0','false','f','n','no','nao','não'].includes(s)) return 'FALSE';
+      return 'FALSE';
+    };
+
+    const normAlign = (v, def='RIGHT') => {
+      const s = String(v ?? def).trim().toUpperCase();
+      if (s === 'LEFT' || s === 'CENTER' || s === 'RIGHT') return s;
+      if (s === 'CENTRO' || s === 'CENTRE') return 'CENTER';
+      if (s === 'ESQUERDA') return 'LEFT';
+      if (s === 'DIREITA')  return 'RIGHT';
+      return def;
+    };
+
+    // ---------------------- Aliases ----------------------
+    const alias = {
+      id: ['ID','Id','id','Codigo','Código','Code','Key','Chave','RowID','LineID'],
+      pai: ['Pai','Parent','ParentId','ID_Pai','ParentID','Parent_Id','CodigoPai','CodPai','PaiID'],
+      descr: ['Descrição','Descricao','Titulo','Título','Nome','DescricaoLinha','Linha','Categoria','Description','Desc','Label','Title','Account','Conta','NomeConta'],
+      formula: ['Fórmula','Formula','Expressao','Expressão','Calculo','Cálculo','Calc','Expression'],
+      negrito: ['Negrito','EmNegrito','Bold','BOLD','isBold','TextoNegrito'],
+      alinh: ['Alinhamento','Alignment','Align','TextAlign','TextoAlinhamento','Alinh.','Centro','Centrare','Justify','Justificado'],
+      corFundo: ['Cor de Fundo','CorFundo','bgColor','BackgroundColor','BackColor','Background','Bg','BG','fillColor','Fill','FillColor','BackgroundColour','BackColour','FillColour'],
+      corTexto: ['Cor de Texto','CorTexto','textColor','FontColor','Color','Colour','TextColour','FontColour'],
+      ordem: ['Ordem','Order','Sequencia','Sequência','Seq','SortOrder','Sequence','Pos','Position','Index','OrdemExibição'],
+      esconder: ['Esconder','Ocultar','Oculto','Hide','Hidden','isHidden'],
+      valueVer: ['ValueVersion','VersaoValor','Versão','Version','v','VV','Ver'],
+      expandido: ['Expandido','Expanded','Expand','IsExpanded','Aberto','Open','isOpen']
+    };
+
+    const getVal = (row, keys, def='') => {
+      for (const k of keys) if (row[k] != null && row[k] !== '') return row[k];
+      return def;
+    };
+
+    /* ------------------ Engine principal ------------------ */
+    function buildGrid(
+      rawRows,
+      rulesRows,
+      columnConfigInput,
+      formatDescriptionField = 'Descrição',
+      xAxisField = '',
+      idField = 'ID',
+      descriptionField = 'DESCR',
+      fixedValueColumnsInput = []
+    ) {
+      const columnConfig = Array.isArray(columnConfigInput) ? columnConfigInput : JSON.parse(columnConfigInput || '[]');
+      const fixedValueColumns = asArray(fixedValueColumnsInput);
+
+      const colSpec = new Map();
+      columnConfig.forEach(cfg => {
+        const name = String(cfg.TableColumn);
+        if (!colSpec.has(name)) colSpec.set(name, { 
+          type: 'value', 
+          versions: new Map(), 
+          numerator: null, 
+          denominator: null, 
+          denomAV: null,
+          hidden: cfg.hidden === true || String(cfg.hidden).toLowerCase() === 'true',
+          width: Number.isFinite(Number(cfg.width)) ? Number(cfg.width) : 140,
+          prefix: String(cfg.prefix || ''),
+          suffix: String(cfg.suffix || ''),
+          decimals: Number.isFinite(Number(cfg.decimals)) ? Number(cfg.decimals) : 2,
+          alertConfig: cfg.alertConfig || null
+        });
+        const e = colSpec.get(name);
+        const t = String(cfg.Type || '').trim().toUpperCase();
+        if (t === '%') {
+          e.type = '%';
+          e.numerator   = String(cfg.Numerador   || '').trim();
+          e.denominator = String(cfg.Denominador || '').trim();
+        } else if (t === 'AV') {
+          e.type = 'AV'; e.numerator = cfg.Numerador; e.denomAV = cfg.DenominadorAV;
+        } else {
+          if (cfg.ValueVersion != null && cfg.QueryColumn) {
+            e.versions.set(String(cfg.ValueVersion), String(cfg.QueryColumn));
+          }
+        }
+      });
+
+      colSpec.forEach((spec, name) => {
+        if (spec.type === '%') {
+          if (!colSpec.has(spec.numerator) || !colSpec.has(spec.denominator)) {
+            console.warn(
+              '[columnConfig] Coluna %s do tipo %% referencia Numerador/Denominador inexistentes: %s / %s',
+              name, spec.numerator, spec.denominator
+            );
+          }
+        }
+      });
+      
+      const baseNames = Array.from(colSpec.keys());
+
+      const parseNumber = (v) => {
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        if (typeof v === 'string') {
+          const s = v.replace(/\s/g,'').replace(/\./g,'').replace(',', '.');
+          const n = Number(s);
+          if (Number.isFinite(n)) return n;
+        }
+        const n = Number(v);
+        return Number.isFinite(n) ? n : 0;
+      };
+
+      const data = rawRows.map(r => ({
+        cod: String(r[idField] ?? r.ID),
+        descr: String(r[descriptionField] ?? r.DESCR),
+        x: xAxisField ? String(r[xAxisField]) : '',
+        ...Object.fromEntries(
+          uniq(columnConfig.map(x => x.QueryColumn).concat(columnConfig.map(x => x.DenominadorAV)).filter(Boolean))
+          .map(k => [k, parseNumber(r[k])])
+        ),
+      }));
+
+      const xValues = (function () {
+        if (!xAxisField) return [];
+        const arr = [];
+        for (const r of data) {
+          if (!arr.includes(r.x)) arr.push(r.x);
+        }
+        return arr;
+      })();
+      const hasX = xAxisField && xValues.length > 0;
+
+      const fixedBase = hasX
+        ? baseNames.filter(b => fixedValueColumns.includes(b))
+        : baseNames.slice();
+      const multipliedBase = hasX
+        ? baseNames.filter(b => !fixedBase.includes(b))
+        : [];
+
+      const avDenomTotalsByX = new Map();
+      const avDenomTotalAll = new Map();
+      columnConfig.forEach(cfg => {
+        if ((cfg.Type||'').toUpperCase()==='AV' && cfg.DenominadorAV) {
+          const col = String(cfg.DenominadorAV);
+          if (!avDenomTotalsByX.has(col)) avDenomTotalsByX.set(col, new Map());
+        }
+      });
+      avDenomTotalsByX.forEach((map, denomCol) => {
+        let all = 0;
+        if (hasX) {
+          xValues.forEach(xv => {
+            const t = sum(data.filter(d => d.x===xv).map(d => Number(d[denomCol])||0));
+            map.set(xv, t || 0);
+            all += t || 0;
+          });
+        } else {
+          all = sum(data.map(d => Number(d[denomCol])||0));
+        }
+        avDenomTotalAll.set(denomCol, all || 0);
+      });
+
+      const fmt = [...rulesRows]
+        .sort((a, b) => (+getVal(a, alias.ordem, 0)) - (+getVal(b, alias.ordem, 0)))
+        .map(r => ({
+          ID: String(getVal(r, alias.id, '')),
+          Descricao: String(getVal(r, [formatDescriptionField, ...alias.descr], '')),
+          Formula: String(getVal(r, alias.formula, '')),
+          Negrito: toBoolTF(getVal(r, alias.negrito, 'FALSE')),
+          Alinhamento: normAlign(getVal(r, alias.alinh, 'RIGHT')),
+          CorFundo: String(getVal(r, alias.corFundo, '')),
+          CorTexto: String(getVal(r, alias.corTexto, '')),
+          Pai: getVal(r, alias.pai, null) ? String(getVal(r, alias.pai)) : null,
+          Ordem: +getVal(r, alias.ordem, 0) || 0,
+          Esconder: toBoolTF(getVal(r, alias.esconder, 'FALSE')),
+          ValueVersion: String(getVal(r, alias.valueVer, '1')),
+          Expandido: toBoolTF(getVal(r, alias.expandido, 'FALSE'))
+        }));
+
+      const nodeMap = new Map(fmt.map(r => [r.ID, {
+        rule: r,
+        values: {},
+        children: [],
+        shouldExpand: r.Expandido === 'TRUE'
+      }]));
+      const roots = [];
+      nodeMap.forEach((n)=>{
+        const p = n.rule.Pai;
+        if (p && nodeMap.has(p)) nodeMap.get(p).children.push(n);
+        else roots.push(n);
+      });
+
+      const queryForBase = (baseName, valueVersion) => {
+        const spec = colSpec.get(baseName);
+        if (!spec || spec.type!=='value') return null;
+        return spec.versions.get(String(valueVersion)) || null;
+      };
+      const sumPrefixX = (prefix, xVal, baseName, valueVersion) => {
+        const q = queryForBase(baseName, valueVersion); if (!q) return 0;
+        return sum(data.filter(d => (!hasX || d.x===xVal) && d.cod.startsWith(prefix)).map(d => d[q]));
+      };
+      const sumCodeX = (code, xVal, baseName, valueVersion) => {
+        const q = queryForBase(baseName, valueVersion); if (!q) return 0;
+        return sum(data.filter(d => (!hasX || d.x===xVal) && d.cod===code).map(d => d[q]));
+      };
+      const sumPrefixAll = (prefix, baseName, valueVersion) => {
+        const q = queryForBase(baseName, valueVersion); if (!q) return 0;
+        return sum(data.filter(d => d.cod.startsWith(prefix)).map(d => d[q]));
+      };
+      const sumCodeAll = (code, baseName, valueVersion) => {
+        const q = queryForBase(baseName, valueVersion); if (!q) return 0;
+        return sum(data.filter(d => d.cod===code).map(d => d[q]));
+      };
+
+      const memo = new Map();
+      function computeNodeBaseValues(n){
+        const id = n.rule.ID;
+        if (memo.has(id)) return memo.get(id);
+        const out = {};
+        const F = n.rule.Formula.trim();
+        const V = n.rule.ValueVersion;
+
+        fixedBase.forEach(base => { out[base] = 0; });
+        multipliedBase.forEach(base => xValues.forEach(xv => { out[`${base}::${xv}`] = 0; }));
+
+        if (F.endsWith('*')) {
+          const prefix = F.slice(0, -1);
+          fixedBase.forEach(base => {
+            if (colSpec.get(base).type === 'value') {
+              out[base] = sumPrefixAll(prefix, base, V);
+            }
+          });
+          multipliedBase.forEach(base => {
+            if (colSpec.get(base).type !== 'value') return;
+            xValues.forEach(xv => {
+              out[`${base}::${xv}`] = sumPrefixX(prefix, xv, base, V);
+            });
+          });
+          memo.set(id, out);
+          return out;
+        }
+        if (F.endsWith('%')) {
+          const prefix = F.slice(0,-1);
+          fixedBase.forEach(base => { if (colSpec.get(base).type==='value') out[base] = sumPrefixAll(prefix, base, V); });
+          multipliedBase.forEach(base => {
+            if (colSpec.get(base).type==='value') xValues.forEach(xv => { out[`${base}::${xv}`] = sumPrefixX(prefix, xv, base, V); });
+          });
+          memo.set(id, out); return out;
+        }
+
+        if (/^\[.+\]/.test(F)) {
+          fixedBase.forEach(base => {
+            if (colSpec.get(base).type!=='value') return;
+            let expr = F;
+            const refs = F.match(/\[([^\]]+)\]/g) || [];
+            refs.forEach(tag => {
+              const refId = tag.slice(1,-1);
+              const refVals = computeNodeBaseValues(nodeMap.get(refId)) || {};
+              const v = Number(refVals[base] ?? 0);
+              expr = expr.replace(new RegExp('\\['+escapeRegex(refId)+'\\]','g'), `(${Number.isFinite(v)?v:0})`);
+            });
+            try { out[base] = new Function(`return ${expr.replace(/[^0-9eE.+\-*/() ]/g,'')}`)(); } catch { out[base] = 0; }
+          });
+          multipliedBase.forEach(base => {
+            if (colSpec.get(base).type!=='value') return;
+            xValues.forEach(xv => {
+              let expr = F;
+              const refs = F.match(/\[([^\]]+)\]/g) || [];
+              refs.forEach(tag => {
+                const refId = tag.slice(1,-1);
+                const refVals = computeNodeBaseValues(nodeMap.get(refId)) || {};
+                const v = Number(refVals[`${base}::${xv}`] ?? 0);
+                expr = expr.replace(new RegExp('\\['+escapeRegex(refId)+'\\]','g'), `(${Number.isFinite(v)?v:0})`);
+              });
+              try { out[`${base}::${xv}`] = new Function(`return ${expr.replace(/[^0-9eE.+\-*/() ]/g,'')}`)(); } catch { out[`${base}::${xv}`] = 0; }
+            });
+          });
+          memo.set(id, out); return out;
+        }
+
+        memo.set(id, out);
+        return out;
+      }
+
+      nodeMap.forEach(n => computeNodeBaseValues(n));
+
+      let __rowSeq__ = 1;
+
+      function buildDisplay(nodes){
+        const out = [];
+
+        nodes.forEach(n => {
+          const r = n.rule;
+          if (r.Esconder === 'TRUE') return;
+
+          const baseVals = { ...memo.get(r.ID) };
+
+          if (r.Formula.trim().endsWith('*')) {
+            const prefix = r.Formula.trim().slice(0, -1);
+            const children = [];
+            let idx = 0;
+            const codes = uniq(data.filter(d => d.cod.startsWith(prefix)).map(d => d.cod)).sort();
+
+            codes.forEach(code => {
+              const one = data.find(d => d.cod === code);
+              const row = {
+                'Descrição': '    ' + `${code} - ${one?.descr || ''}`.replace(/\s+-\s*$/,''),
+                __detail: true,
+                __detailIndex: idx++,
+                __rowNo: __rowSeq__++,
+                __recordId: code,
+                __format: {
+                  Negrito: r.Negrito,
+                  Alinhamento: r.Alinhamento,
+                  'Cor de Fundo': r.CorFundo,
+                  'Cor de Texto': r.CorTexto
+                }
+              };
+
+              fixedBase.forEach(base => {
+                if (colSpec.get(base).type === 'value') row[base] = sumCodeAll(code, base, r.ValueVersion);
+              });
+              multipliedBase.forEach(base => {
+                if (colSpec.get(base).type === 'value') xValues.forEach(xv => {
+                  row[`${base}::${xv}`] = sumCodeX(code, xv, base, r.ValueVersion);
+                });
+              });
+
+              baseNames.forEach(base => {
+                const spec = colSpec.get(base);
+                if (!spec) return;
+                if (spec.type === '%') {
+                  if (fixedBase.includes(base)) {
+                    const num = Number(row[spec.numerator] ?? sum(xValues.map(xv => Number(row[`${spec.numerator}::${xv}`] || 0))));
+                    const den = Number(row[spec.denominator] ?? sum(xValues.map(xv => Number(row[`${spec.denominator}::${xv}`] || 0))));
+                    row[base] = den ? (num / den) : 0;
+                  } else {
+                    xValues.forEach(xv => {
+                      const num = Number(row[`${spec.numerator}::${xv}`] ?? 0);
+                      const den = Number(row[`${spec.denominator}::${xv}`] ?? 0);
+                      row[`${base}::${xv}`] = den ? (num / den) : 0;
+                    });
+                  }
+                } else if (spec.type === 'AV') {
+                  const denomCol = spec.denomAV;
+                  if (fixedBase.includes(base)) {
+                    const num = Number(row[spec.numerator] ?? sum(xValues.map(xv => Number(row[`${spec.numerator}::${xv}`] || 0))));
+                    const total = avDenomTotalAll.get(denomCol) || 0;
+                    row[base] = total ? (num / total) : 0;
+                  } else {
+                    xValues.forEach(xv => {
+                      const num = Number(row[`${spec.numerator}::${xv}`] ?? 0);
+                      const total = (avDenomTotalsByX.get(denomCol)?.get(xv)) || 0;
+                      row[`${base}::${xv}`] = total ? (num / total) : 0;
+                    });
+                  }
+                }
+              });
+              children.push(row);
+            });
+
+            const ruleChildren = buildDisplay(n.children);
+            if (children.length) out.push(...children);
+            if (ruleChildren.length) out.push(...ruleChildren);
+            return;
+          }
+
+          const display = {
+            'Descrição': r.Descricao,
+            __format: {
+              Negrito: r.Negrito,
+              Alinhamento: r.Alinhamento,
+              'Cor de Fundo': r.CorFundo,
+              'Cor de Texto': r.CorTexto
+            },
+            __rowNo: __rowSeq__++,
+            __recordId: r.ID,
+            __shouldExpand: r.Expandido === 'TRUE'
+          };
+
+          baseNames.forEach(base => {
+            const spec = colSpec.get(base);
+            if (spec.type === '%') {
+              if (fixedBase.includes(base)) {
+                const num = Number(baseVals[spec.numerator] ?? sum(xValues.map(xv => Number(baseVals[`${spec.numerator}::${xv}`]||0))));
+                const den = Number(baseVals[spec.denominator] ?? sum(xValues.map(xv => Number(baseVals[`${spec.denominator}::${xv}`]||0))));
+                baseVals[base] = den ? (num/den) : 0;
+              } else {
+                xValues.forEach(xv => {
+                  const num = Number(baseVals[`${spec.numerator}::${xv}`] ?? 0);
+                  const den = Number(baseVals[`${spec.denominator}::${xv}`] ?? 0);
+                  baseVals[`${base}::${xv}`] = den ? (num/den) : 0;
+                });
+              }
+            } else if (spec.type === 'AV') {
+              const denomCol = spec.denomAV;
+              if (fixedBase.includes(base)) {
+                const num = Number(baseVals[spec.numerator] ?? sum(xValues.map(xv => Number(baseVals[`${spec.numerator}::${xv}`]||0))));
+                const total = avDenomTotalAll.get(denomCol) || 0;
+                baseVals[base] = total ? (num/total) : 0;
+              } else {
+                xValues.forEach(xv => {
+                  const num = Number(baseVals[`${spec.numerator}::${xv}`] ?? 0);
+                  const total = (avDenomTotalsByX.get(denomCol)?.get(xv)) || 0;
+                  baseVals[`${base}::${xv}`] = total ? (num/total) : 0;
+                });
+              }
+            }
+          });
+
+          fixedBase.forEach(base => { display[base] = baseVals[base] || 0; });
+          multipliedBase.forEach(base => xValues.forEach(xv => {
+            display[`${base}::${xv}`] = baseVals[`${base}::${xv}`] || 0;
+          }));
+
+          const ruleChildren = buildDisplay(n.children);
+          if (ruleChildren.length){
+            display.__children = ruleChildren;
+            display.__group = true;
+          }
+
+          out.push(display);
+        });
+
+        return out;
+      }
+
+      const tableData = buildDisplay(roots);
+
+      const columns = [{ data: 'Descrição', readOnly:true, type:'text' }];
+      const nestedTop = [ null ];
+      const nestedBottom = [ 'Descrição' ];
+      const colWidths = [ 260 ];
+
+      fixedBase.forEach(base => {
+        const spec = colSpec.get(base);
+        const t = spec?.type || 'value';
+        const isPercentish = (t === '%' || t === 'AV');
+
+        if (spec?.hidden === true) return;
+
+        const colWidth = spec?.width || (isPercentish ? 120 : 140);
+
+        columns.push({
+          data: base,
+          readOnly: true,
+          type: 'numeric',
+          __isPercent: isPercentish,
+          __colSpec: spec
+        });
+        nestedTop.push(null);
+        nestedBottom.push(base);
+        colWidths.push(colWidth);
+      });
+
+      const visibleMultiplied = multipliedBase.filter(
+        (b) => colSpec.get(b)?.hidden !== true
+      );
+
+      if (hasX && visibleMultiplied.length) {
+        if (visibleMultiplied.length === 1) {
+          const base = visibleMultiplied[0];
+          const spec = colSpec.get(base);
+          const t = spec?.type || 'value';
+          const isPercentish = (t === '%' || t === 'AV');
+          const colWidth = spec?.width || (isPercentish ? 120 : 140);
+
+          xValues.forEach(xv => {
+            columns.push({
+              data: `${base}::${xv}`,
+              readOnly: true,
+              type: 'numeric',
+              __isPercent: isPercentish,
+              __colSpec: spec
+            });
+            nestedBottom.push(xv);
+            colWidths.push(colWidth);
+          });
+        } else {
+          xValues.forEach(xv => {
+            if (visibleMultiplied.length > 0) {
+              nestedTop.push({ label: xv, colspan: visibleMultiplied.length });
+            }
+
+            multipliedBase.forEach(base => {
+              const spec = colSpec.get(base);
+              if (spec?.hidden === true) return;
+
+              const t = spec?.type || 'value';
+              const isPercentish = (t === '%' || t === 'AV');
+              const colWidth = spec?.width || (isPercentish ? 120 : 140);
+
+              columns.push({
+                data: `${base}::${xv}`,
+                readOnly: true,
+                type: 'numeric',
+                __isPercent: isPercentish,
+                __colSpec: spec
+              });
+              nestedBottom.push(base);
+              colWidths.push(colWidth);
+            });
+          });
+        }
+      }
+
+      const nestedHeaders =
+        hasX && visibleMultiplied.length > 1 ? [nestedTop, nestedBottom] : undefined;
+
+      const colHeaders = nestedBottom;
+
+      const visibleFixedBase = baseNames.filter(
+        (b) =>
+          fixedValueColumns.includes(b) &&
+          colSpec.get(b)?.hidden !== true
+      );
+
+      const frozenCols = 1 + visibleFixedBase.length;
+
+      return { tableData, columns, nestedHeaders, colHeaders, colWidths, frozenCols };
+    }
+
+    /* ------------------ Render HOT ------------------ */
+    async function renderHot({ tableData, columns, nestedHeaders, colHeaders, colWidths, frozenCols }) {
+      const ready = await waitForMount(container);
+      if (!ready) return;
+      if (hot) { try { hot.destroy(); } catch(_){} }
+      try {
+        hot = new Handsontable(container, {
+          data: tableData,
+          columns,
+          nestedHeaders,
+          colHeaders,
+          rowHeaders: (row) => {
+            try {
+              const phys = (hot && typeof hot.toPhysicalRow === 'function') ? hot.toPhysicalRow(row) : row;
+              const src  = (hot && typeof hot.getSourceDataAtRow === 'function') ? hot.getSourceDataAtRow(phys) : null;
+              const n    = (src && src.__rowNo != null) ? src.__rowNo : (phys + 1);
+              return String(n);
+            } catch (_) {
+              return String(row + 1);
+            }
+          },
+          nestedRows: true,
+          fixedColumnsStart: frozenCols,
+          width: '100%',
+          height: 'auto',
+          rowHeights: 32,
+          colHeaderHeight: 32,
+          stretchH: 'all',
+          autoColumnSize: false,
+          colWidths,
+          licenseKey: 'non-commercial-and-evaluation',
+          search: true,
+          afterOnCellMouseDown: async function(event, coords, TD) {
+            try {
+              if (!rowClickConfig.rowClickAction) return;
+              if (coords.row == null || coords.row < 0) return;
+
+              const instance = this;
+              const phys = typeof instance.toPhysicalRow === 'function'
+                ? instance.toPhysicalRow(coords.row)
+                : coords.row;
+
+              const src = typeof instance.getSourceDataAtRow === 'function'
+                ? instance.getSourceDataAtRow(phys)
+                : null;
+
+              if (!src) return;
+
+              const recordId = src.__recordId || src.cod || src.ID || src.id;
+              if (!recordId) return;
+
+              await executeMitraAction(
+                rowClickConfig.rowClickAction,
+                recordId,
+                rowClickConfig.varIDClick
+              );
+            } catch (err) {
+              console.error('Erro no handler de clique da linha:', err);
+              throw err;
+            }
+          },
+          cells: (row, col) => {
+            const props = {};
+            props.renderer = function(instance, td, r, c, prop, value) {
+              Handsontable.renderers.TextRenderer.apply(this, arguments);
+
+              const oldDot = td.querySelector('.mitra-alert-dot');
+              if (oldDot) oldDot.remove();
+
+              const colMetaAll = instance.getSettings().columns?.[c] || {};
+              const colSpecForAlert = colMetaAll.__colSpec || null;
+              const alert = colSpecForAlert
+                ? resolveAlertVisual(colSpecForAlert, value)
+                : null;
+
+              const isSearchHit = td.classList.contains('htSearchResult');
+              let fmt = {};
+              let src = null;
+              let isClickableRow = false;
+
+              try {
+                const phys = typeof instance.toPhysicalRow === 'function' ? instance.toPhysicalRow(r) : r;
+                src  = typeof instance.getSourceDataAtRow === 'function'
+                  ? instance.getSourceDataAtRow(phys)
+                  : null;
+
+                if (src && src.__format) fmt = src.__format;
+                if (!fmt || Object.keys(fmt).length === 0) {
+                  const metaFmt = instance.getCellMeta(phys, 0)?.__rowfmt;
+                  if (metaFmt) fmt = metaFmt;
+                }
+
+                if (src && src.__recordId && rowClickConfig.rowClickAction) {
+                  isClickableRow = true;
+                }
+              } catch (_) {}
+
+              if (isClickableRow) {
+                const tr = td.parentElement;
+                if (tr && !tr.classList.contains('mitra-clickable-row')) {
+                  tr.classList.add('mitra-clickable-row');
+                }
+              }
+
+              const negrito = String((fmt && fmt.Negrito) || 'FALSE').toUpperCase() === 'TRUE';
+              const alinCfg = String((fmt && fmt.Alinhamento) || 'RIGHT').toUpperCase();
+              const bgColorCfg = (fmt && (fmt.CorFundo || fmt['Cor de Fundo'])) || '';
+              const fgColorCfg = fmt['Cor de Texto'] || '';
+
+              const colMeta = instance.getSettings().columns?.[c] || {};
+              const isPercent = colMeta.__isPercent === true;
+              const isCalcCol = colMeta.__isCalc === true;
+
+              td.classList.toggle('ht-bold', negrito);
+              if (negrito) {
+                td.style.setProperty('font-weight', '700', 'important');
+              } else {
+                td.style.removeProperty('font-weight');
+              }
+
+              td.style.removeProperty('background-color');
+              td.style.removeProperty('color');
+
+              if (isSearchHit) {
+                td.style.setProperty('background-color', 'rgba(34, 255, 94, 0.18)', 'important');
+                td.style.setProperty('color', '#0f172a', 'important');
+              } else if (bgColorCfg) {
+                td.style.setProperty('background-color', bgColorCfg, 'important');
+              } else if (alert && alert.type === 'bg' && prop !== 'Descrição') {
+                td.style.setProperty('background-color', alert.color, 'important');
+              } else if (prop !== 'Descrição' && isCalcCol) {
+                td.style.setProperty('background-color', '#e3e8ef', 'important');
+              } else {
+                if (r % 2 === 1) {
+                  td.style.setProperty('background-color', '#fafafa', 'important');
+                } else {
+                  td.style.setProperty('background-color', '#ffffff', 'important');
+                }
+              }
+
+              if (fgColorCfg && !isSearchHit) {
+                td.style.setProperty('color', fgColorCfg, 'important');
+              } else if (alert && alert.type === 'text' && !isSearchHit && prop !== 'Descrição') {
+                td.style.setProperty('color', alert.color, 'important');
+              } else if (prop !== 'Descrição') {
+                td.style.setProperty('color', '#28282c', 'important');
+              }
+
+              if (prop !== 'Descrição') {
+                if (alinCfg === 'LEFT') td.style.textAlign = 'left';
+                else if (alinCfg === 'CENTER') td.style.textAlign = 'center';
+                else td.style.textAlign = 'right';
+
+                const num = Number(value);
+                if (Number.isFinite(num)) {
+                  const colSpec_current = instance.getSettings().columns?.[c]?.__colSpec;
+                  const prefix = colSpec_current?.prefix || '';
+                  const suffix = colSpec_current?.suffix || '';
+                  const decimals = colSpec_current?.decimals ?? 2;
+
+                  if (isPercent) {
+                    td.textContent = num.toLocaleString('pt-BR', { 
+                      style: 'percent', 
+                      minimumFractionDigits: decimals, 
+                      maximumFractionDigits: decimals 
+                    });
+                  } else {
+                    const formatted = num.toLocaleString('pt-BR', { 
+                      minimumFractionDigits: decimals, 
+                      maximumFractionDigits: decimals 
+                    });
+                    td.textContent = `${prefix}${formatted}${suffix}`;
+                  }
+                }
+              } else {
+                td.style.textAlign = 'left';
+              }
+
+              if (alert && alert.type === 'dot' && prop !== 'Descrição') {
+                const dot = document.createElement('span');
+                dot.className = 'mitra-alert-dot';
+                dot.style.backgroundColor = alert.color || '#9ca3af';
+                td.appendChild(dot);
+              }
+            };
+            return props;
+          }
+        });
+
+        try {
+          const srcAll = hot.getSourceData?.() || [];
+          for (let i = 0; i < srcAll.length; i++) {
+            const row = srcAll[i];
+            if (row && row.__format) {
+              hot.setCellMeta(i, 0, '__rowfmt', row.__format);
+            }
+          }
+        } catch (_) {}
+
+        try {
+          const nr = hot.getPlugin('nestedRows');
+          if (nr && nr.collapsingUI) {
+            const sourceData = hot.getSourceData?.() || [];
+            sourceData.forEach((row, index) => {
+              if (row && row.__group) {
+                const shouldExpand = row.__shouldExpand === true;
+                if (shouldExpand) {
+                  try {
+                    nr.collapsingUI.expandChildren?.(index);
+                  } catch (_) {}
+                } else {
+                  try {
+                    nr.collapsingUI.collapseChildren?.(index);
+                  } catch (_) {}
+                }
+              }
+            });
+          }
+        } catch (_) {}
+
+        try {
+          hot.render();
+        } catch (_) {}
+      } catch (_) {
+        return;
+      }
+    }
+
+    /* ------------------ Busca ------------------ */
+    const debounce = (fn, wait = 180) => {
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), wait);
+      };
+    };
+
+    const runSearch = (q) => {
+      if (!hot) return;
+
+      const term = (q || '').toString();
+      const trimmed = term.trim();
+      const search = hot.getPlugin('search');
+
+      if (trimmed) {
+        expandAllSafely();
+      } else {
+        collapseAllSafely();
+      }
+
+      search.setQuery?.(term);
+      const results = search.query(term);
+
+      let firstRow = null;
+      if (Array.isArray(results) && results.length) {
+        firstRow = results[0].row;
+      }
+
+      const doRender = () => {
+        try {
+          hot.render();
+          if (firstRow != null && Number.isInteger(firstRow)) {
+            hot.scrollViewportTo(firstRow, 0);
+          }
+        } catch (_) {}
+      };
+
+      if (window.requestIdleCallback) {
+        requestIdleCallback(doRender, { timeout: 200 });
+      } else {
+        requestAnimationFrame(doRender);
+      }
+    };
+
+    const scheduleSearch = debounce(runSearch, 180);
+    const searchEl = document.getElementById('hot-search');
+    if (searchEl) searchEl.addEventListener('input', (e) => {
+      scheduleSearch(e.target.value);
+    });
+
+    /* ------------------ Export XLSX ------------------ */
+    document.getElementById('btn-exportar').addEventListener('click', () => {
+      try {
+        if (!hot) throw new Error('Tabela não inicializada');
+        const settings = hot.getSettings();
+        const nested = settings.nestedHeaders;
+        const colsMeta = settings.columns || [];
+
+        const props = colsMeta.map(c => c.data);
+        const bottomHeaders = hot.getColHeader ? hot.getColHeader() : null;
+
+        const aoa = [];
+        let merges = [];
+        const totalCols = hot.countCols();
+
+        if (Array.isArray(nested) && nested.length === 2 && Array.isArray(bottomHeaders)) {
+          const top = nested[0];
+          const topRow = new Array(totalCols).fill('');
+          let c = 0;
+          for (let i = 0; i < top.length; i++) {
+            const cell = top[i];
+            const colspan = cell && cell.colspan ? cell.colspan : 1;
+            const rowspan = cell && cell.rowspan ? cell.rowspan : 1;
+            if (cell === null) { c += 1; continue; }
+            topRow[c] = cell.label || '';
+            if (colspan > 1 || rowspan > 1) merges.push({ s: { r: 0, c }, e: { r: rowspan - 1, c: c + colspan - 1 } });
+            c += colspan;
+          }
+          aoa.push(topRow);
+          aoa.push(bottomHeaders);
+        } else {
+          aoa.push(bottomHeaders ?? props.map(p => String(p)));
+        }
+
+        const countRows = hot.countRows();
+        const countCols = hot.countCols();
+        const sourceData = hot.getSourceData?.() || [];
+        
+        for (let r = 0; r < countRows; r++){
+          const phys = typeof hot.toPhysicalRow === 'function' ? hot.toPhysicalRow(r) : r;
+          const src = sourceData[phys] || (hot.getSourceDataAtRow ? hot.getSourceDataAtRow(phys) : null);
+
+          const row = [];
+          for (let c = 0; c < countCols; c++){
+            const prop = props[c];
+            let val = null;
+            
+            if (src && prop && src.hasOwnProperty(prop)) {
+              val = src[prop];
+            } else if (hot.getDataAtCell) {
+              val = hot.getDataAtCell(r, c);
+            }
+            
+            if (prop && String(prop).startsWith('__')) {
+              val = null;
+            }
+            
+            if (val === null || val === undefined) {
+              val = '';
+            } else if (typeof val === 'string') {
+              val = val.trim();
+            } else if (typeof val === 'number') {
+              const colMeta = hot.getSettings().columns?.[c];
+              const colSpec_export = colMeta?.__colSpec;
+              const prefix = colSpec_export?.prefix || '';
+              const suffix = colSpec_export?.suffix || '';
+              const decimals = colSpec_export?.decimals ?? 2;
+              
+              const formatted = val.toLocaleString('pt-BR', { 
+                minimumFractionDigits: decimals, 
+                maximumFractionDigits: decimals 
+              });
+              val = `${prefix}${formatted}${suffix}`;
+            }
+            
+            row.push(val);
+          }
+          aoa.push(row);
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        if (merges.length) ws['!merges'] = merges;
+
+        const headerRows = (Array.isArray(nested) && nested.length === 2) ? 2 : 1;
+        const widths = [];
+        for (let c = 0; c < countCols; c++) {
+          let maxLen = 0;
+          for (let hr = 0; hr < headerRows; hr++) {
+            const cell = (aoa[hr] && aoa[hr][c]) ? String(aoa[hr][c]) : '';
+            maxLen = Math.max(maxLen, cell.length);
+          }
+          widths.push({ wch: Math.max(12, maxLen + 2) });
+        }
+        ws['!cols'] = widths;
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
+        const fileName = (window.componentData && (componentData.exportFileName || componentData.fileName)) || 'relatorio.xlsx';
+        XLSX.writeFile(wb, fileName);
+      } catch (err) {
+        console.error('[Export XLSX] Falhou:', err);
+        alert('Falha ao exportar XLSX. Veja o console para detalhes.');
+      }
+    });
+
+    /* ------------------ Bootstrap ------------------ */
+    async function bootstrap() {
+      const loadingOverlay = document.getElementById('loading-overlay');
+      
+      if (loadingOverlay) loadingOverlay.style.display = 'flex';
+
+      try {
+        if (!(window.queryMitra && window.componentData && componentData.queryData && componentData.queryFormat && componentData.columnConfig)) {
+          throw new Error('Variáveis necessárias ausentes: queryMitra, componentData.queryData, queryFormat, columnConfig.');
+        }
+        const [dataRes, fmtRes] = await Promise.all([
+          queryMitra({ ...asQueryOpts(componentData.queryData),    jdbcId: JDBC_ID_DATA }),
+          queryMitra({ ...asQueryOpts(componentData.queryFormat), jdbcId: JDBC_ID_FORMAT }),
+        ]);
+        const rawRows = arrayToObject(dataRes.headers, dataRes.data);
+        const rules   = arrayToObject(fmtRes.headers,  fmtRes.data);
+
+        const xAxisField =
+          (typeof componentData.xAxisField === 'string' ? componentData.xAxisField.trim() : componentData.xAxisField) || '';
+        const idField =
+          (typeof componentData.idField === 'string' ? componentData.idField.trim() : componentData.idField) || 'ID';
+        const fixedValueColumns = componentData.fixedValueColumns || [];
+        const descriptionField =
+          (typeof componentData.descriptionField === 'string' ? componentData.descriptionField.trim() : componentData.descriptionField) || 'DESCR';
+
+        const built = buildGrid(
+          rawRows,
+          rules,
+          componentData.columnConfig,
+          componentData.formatDescriptionField || 'Descrição',
+          xAxisField,
+          idField,
+          descriptionField,
+          fixedValueColumns
+        );
+
+        await renderHot(built);
+      } catch (e) {
+        console.error('Falha no bootstrap:', e);
+      } finally {
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+
+        try {
+          renderHeader();
+          setupBorder();
+        } catch (_) {}
+      }
+    }
+    bootstrap();
+  </script>
+</body>
+</html>

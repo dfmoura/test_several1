@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório DRE</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+    <div id="dre-container" class="h-full w-full flex flex-col">
+        <div class="flex-grow overflow-auto">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="border-b-2 border-foreground">
+                        <th class="py-2 px-4 text-left text-base font-bold">Descrição</th>
+                        <th id="header-current-year" class="py-2 px-4 text-right text-sm font-semibold w-32">...</th>
+                        <th id="header-previous-year" class="py-2 px-4 text-right text-sm font-semibold w-32">...</th>
+                    </tr>
+                </thead>
+                <tbody id="dre-tbody">
+                    <tr>
+                        <td colspan="3" class="text-center py-10 text-muted-foreground">Carregando dados...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_DRE = 'mitra-update-dre-report';
+
+        function updateMitra() {
+            console.log("Sinal de update para [DRE Report] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_DRE));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const tbody = document.getElementById('dre-tbody');
+            const headerCurrentYearEl = document.getElementById('header-current-year');
+            const headerPreviousYearEl = document.getElementById('header-previous-year');
+
+            function formatCurrency(value) {
+                const num = Number(value) || 0;
+                if (Math.abs(num) < 0.5) return '0';
+                const roundedNum = Math.round(num);
+                const formatted = new Intl.NumberFormat('de-DE').format(Math.abs(roundedNum));
+                return num < 0 ? `(${formatted})` : formatted;
+            }
+
+            function getIndentationClass(hierarquia) {
+                if (!hierarquia || typeof hierarquia !== 'string') return '';
+                const level = (hierarquia.match(/\./g) || []).length;
+                if (level === 0) return '';
+                const paddingValues = { 1: 'pl-4', 2: 'pl-8', 3: 'pl-12', 4: 'pl-16' };
+                return paddingValues[level] || `pl-${level * 4}`;
+            }
+
+            function createRow(item, isBold = false, isTopBorder = false, isDoubleBorder = false, isSubtotal = false, hierarquia = '') {
+                const row = document.createElement('tr');
+                const boldClass = isBold ? 'font-bold' : '';
+                const textColorClass = isSubtotal ? '' : 'text-muted-foreground';
+                const bgClass = isSubtotal ? 'bg-secondary' : '';
+                
+                let borderClass = '';
+                if(isDoubleBorder) {
+                    borderClass = 'border-y-2 border-double border-foreground';
+                } else if (isTopBorder) {
+                    borderClass = 'border-t border-border';
+                } else {
+                    borderClass = 'border-b border-border';
+                }
+
+                const indentClass = getIndentationClass(hierarquia);
+
+                row.innerHTML = `
+                    <td class="py-2 px-4 text-sm ${boldClass} ${bgClass} ${borderClass} ${indentClass}">${item.descricao || ''}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums ${boldClass} ${bgClass} ${borderClass}">${item.valor_atual !== undefined ? formatCurrency(item.valor_atual) : ''}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums ${boldClass} ${bgClass} ${borderClass}">${item.valor_anterior !== undefined ? formatCurrency(item.valor_anterior) : ''}</td>
+                `;
+                return row;
+            }
+            
+            function createSpacerRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="3" class="py-1"></td>`;
+                return row;
+            }
+
+            function calculateSum(data, prefix) {
+                return data
+                    .filter(item => item.hierarquia && item.hierarquia.startsWith(prefix))
+                    .reduce((acc, item) => ({
+                        atual: acc.atual + (item.valor_atual || 0),
+                        anterior: acc.anterior + (item.valor_anterior || 0)
+                    }), { atual: 0, anterior: 0 });
+            }
+
+            function calculateFormula(data, formula) {
+                // Fórmula pode ser: '1.' (soma), '1.-2.' (subtração), '1.-2.-3.' (subtração múltipla), etc.
+                // Processa da esquerda para a direita
+                const regex = /([+\-]?)([0-9.]+)/g;
+                const matches = [...formula.matchAll(regex)];
+                
+                let result = { atual: 0, anterior: 0 };
+                let isFirst = true;
+                
+                matches.forEach(match => {
+                    const operator = match[1] || '+';
+                    const prefix = match[2];
+                    
+                    const sum = calculateSum(data, prefix);
+                    
+                    if (isFirst || operator === '+') {
+                        result.atual += sum.atual;
+                        result.anterior += sum.anterior;
+                    } else if (operator === '-') {
+                        result.atual -= sum.atual;
+                        result.anterior -= sum.anterior;
+                    }
+                    
+                    isFirst = false;
+                });
+                
+                return result;
+            }
+
+            async function loadAndRenderDRE() {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-muted-foreground">Carregando dados...</td></tr>';
+
+                try {
+                    if (!window.componentData || !componentData.query || !componentData.varMes) {
+                        throw new Error("Variáveis de configuração (query, varMes) não encontradas.");
+                    }
+                    
+                    const varMesName = componentData.varMes;
+                    const mesResult = await queryMitra({ query: `SELECT ${varMesName} FROM DUAL` });
+                    if (!mesResult || !mesResult.data || !mesResult.data[0] || !mesResult.data[0][0]) {
+                         throw new Error(`Não foi possível obter o valor da variável: ${varMesName}`);
+                    }
+                    const mesValue = mesResult.data[0][0];
+                    const [_, currentYear] = mesValue.split('/');
+                    const previousYear = parseInt(currentYear, 10) - 1;
+
+                    headerCurrentYearEl.textContent = currentYear;
+                    headerPreviousYearEl.textContent = previousYear;
+
+                    const result = await queryMitra({ query: componentData.query });
+                    
+                    const headers = result.headers.map(h => h.name.toUpperCase());
+                    const colMap = {
+                        hierarquia: headers.indexOf('HIERARQUIA'),
+                        descricao: headers.indexOf('DESCRICAO'),
+                        valor_atual: headers.indexOf('VALOR_ANO_ATUAL'),
+                        valor_anterior: headers.indexOf('VALOR_ANO_ANTERIOR')
+                    };
+
+                    if (colMap.hierarquia === -1 || colMap.descricao === -1 || colMap.valor_atual === -1 || colMap.valor_anterior === -1) {
+                        console.error('Mapeamento de colunas falhou. Headers recebidos:', headers);
+                        throw new Error("A query não retornou as colunas esperadas: HIERARQUIA, DESCRICAO, VALOR_ANO_ATUAL, VALOR_ANO_ANTERIOR.");
+                    }
+
+                    const data = result.data.map(row => ({
+                        hierarquia: row[colMap.hierarquia],
+                        descricao: row[colMap.descricao],
+                        valor_atual: parseFloat(row[colMap.valor_atual]) || 0,
+                        valor_anterior: parseFloat(row[colMap.valor_anterior]) || 0
+                    }));
+
+                    tbody.innerHTML = '';
+                    const fragment = document.createDocumentFragment();
+
+                    // (+) RECEITA BRUTA - total de '1.'
+                    const receitaBruta = calculateSum(data, '1.');
+                    fragment.appendChild(createRow({ 
+                        descricao: '(+) RECEITA BRUTA', 
+                        valor_atual: receitaBruta.atual, 
+                        valor_anterior: receitaBruta.anterior 
+                    }, true, false, false, true));
+
+                    // Detalhar a descrição e valores anterior e atual de 1.
+                    data.filter(i => i.hierarquia && i.hierarquia.startsWith('1.') && i.hierarquia !== '1.')
+                        .sort((a, b) => a.hierarquia.localeCompare(b.hierarquia))
+                        .forEach(item => fragment.appendChild(createRow(item, false, false, false, false, item.hierarquia)));
+
+                    // Detalhar a descrição e valores anterior e atual de 2.
+                    data.filter(i => i.hierarquia && i.hierarquia.startsWith('2.') && i.hierarquia !== '2.')
+                        .sort((a, b) => a.hierarquia.localeCompare(b.hierarquia))
+                        .forEach(item => fragment.appendChild(createRow(item, false, false, false, false, item.hierarquia)));
+
+                    // (=) RECEITA OPERACIONAL LÍQUIDA - total de '1.'+'2.'
+                    // (os valores de '2.' já vêm negativos na base de dados, então somamos)
+                    const receitaOperacionalLiquida = calculateFormula(data, '1.+2.');
+                    fragment.appendChild(createRow({ 
+                        descricao: '(=) RECEITA OPERACIONAL LÍQUIDA', 
+                        valor_atual: receitaOperacionalLiquida.atual, 
+                        valor_anterior: receitaOperacionalLiquida.anterior 
+                    }, true, true, false, true));
+
+                    // (-) CUSTO DO SERVIÇO PRESTADO (CSP) - total de '3.'
+                    const custoServico = calculateSum(data, '3.');
+                    fragment.appendChild(createRow({ 
+                        descricao: '(-) CUSTO DO SERVIÇO PRESTADO (CSP)', 
+                        valor_atual: custoServico.atual, 
+                        valor_anterior: custoServico.anterior 
+                    }, true, false, false, true));
+
+                    // Detalhar a descrição e valores anterior e atual de 3.
+                    data.filter(i => i.hierarquia && i.hierarquia.startsWith('3.') && i.hierarquia !== '3.')
+                        .sort((a, b) => a.hierarquia.localeCompare(b.hierarquia))
+                        .forEach(item => fragment.appendChild(createRow(item, false, false, false, false, item.hierarquia)));
+
+                    // (=) RESULTADO OPERACIONAL BRUTO - RECEITA OPERACIONAL LÍQUIDA + CUSTO DO SERVIÇO PRESTADO
+                    const resultadoOperacionalBruto = {
+                        atual: receitaOperacionalLiquida.atual + custoServico.atual,
+                        anterior: receitaOperacionalLiquida.anterior + custoServico.anterior
+                    };
+                    fragment.appendChild(createRow({ 
+                        descricao: '(=) RESULTADO OPERACIONAL BRUTO', 
+                        valor_atual: resultadoOperacionalBruto.atual, 
+                        valor_anterior: resultadoOperacionalBruto.anterior 
+                    }, true, true, false, true));
+
+                    // DESPESAS E RECEITAS OPERACIONAIS - total de '4.'
+                    const despesasReceitasOperacionais = calculateSum(data, '4.');
+                    fragment.appendChild(createRow({ 
+                        descricao: 'DESPESAS E RECEITAS OPERACIONAIS', 
+                        valor_atual: despesasReceitasOperacionais.atual, 
+                        valor_anterior: despesasReceitasOperacionais.anterior 
+                    }, true, false, false, true));
+
+                    // DESPESAS ADMINISTRATIVAS - total de '4.1'
+                    const despesasAdministrativas = calculateSum(data, '4.1');
+                    fragment.appendChild(createRow({ 
+                        descricao: 'DESPESAS ADMINISTRATIVAS', 
+                        valor_atual: despesasAdministrativas.atual, 
+                        valor_anterior: despesasAdministrativas.anterior 
+                    }, true, false, false, true));
+
+                    // Detalhar a descrição e valores anterior e atual de 4.1
+                    data.filter(i => i.hierarquia && i.hierarquia.startsWith('4.1') && i.hierarquia !== '4.1')
+                        .sort((a, b) => a.hierarquia.localeCompare(b.hierarquia))
+                        .forEach(item => fragment.appendChild(createRow(item, false, false, false, false, item.hierarquia)));
+
+                    // DESPESAS COMERCIAIS - total de '4.2'
+                    const despesasComerciais42 = calculateSum(data, '4.2');
+                    fragment.appendChild(createRow({ 
+                        descricao: 'DESPESAS COMERCIAIS', 
+                        valor_atual: despesasComerciais42.atual, 
+                        valor_anterior: despesasComerciais42.anterior 
+                    }, true, false, false, true));
+
+                    // Detalhar a descrição e valores anterior e atual de 4.2
+                    data.filter(i => i.hierarquia && i.hierarquia.startsWith('4.2') && i.hierarquia !== '4.2')
+                        .sort((a, b) => a.hierarquia.localeCompare(b.hierarquia))
+                        .forEach(item => fragment.appendChild(createRow(item, false, false, false, false, item.hierarquia)));
+
+                    // DESPESAS COMERCIAIS - total de '4.3'
+                    const despesasComerciais43 = calculateSum(data, '4.3');
+                    fragment.appendChild(createRow({ 
+                        descricao: 'DESPESAS COMERCIAIS', 
+                        valor_atual: despesasComerciais43.atual, 
+                        valor_anterior: despesasComerciais43.anterior 
+                    }, true, false, false, true));
+
+                    // Detalhar a descrição e valores anterior e atual de 4.3
+                    data.filter(i => i.hierarquia && i.hierarquia.startsWith('4.3') && i.hierarquia !== '4.3')
+                        .sort((a, b) => a.hierarquia.localeCompare(b.hierarquia))
+                        .forEach(item => fragment.appendChild(createRow(item, false, false, false, false, item.hierarquia)));
+
+                    // DESPESAS COMERCIAIS - total de '4.4'
+                    const despesasComerciais44 = calculateSum(data, '4.4');
+                    fragment.appendChild(createRow({ 
+                        descricao: 'DESPESAS COMERCIAIS', 
+                        valor_atual: despesasComerciais44.atual, 
+                        valor_anterior: despesasComerciais44.anterior 
+                    }, true, false, false, true));
+
+                    // Detalhar a descrição e valores anterior e atual de 4.4
+                    data.filter(i => i.hierarquia && i.hierarquia.startsWith('4.4') && i.hierarquia !== '4.4')
+                        .sort((a, b) => a.hierarquia.localeCompare(b.hierarquia))
+                        .forEach(item => fragment.appendChild(createRow(item, false, false, false, false, item.hierarquia)));
+
+                    // DESPESAS COMERCIAIS - total de '4.5'
+                    const despesasComerciais45 = calculateSum(data, '4.5');
+                    fragment.appendChild(createRow({ 
+                        descricao: 'DESPESAS COMERCIAIS', 
+                        valor_atual: despesasComerciais45.atual, 
+                        valor_anterior: despesasComerciais45.anterior 
+                    }, true, false, false, true));
+
+                    // Detalhar a descrição e valores anterior e atual de 4.5
+                    data.filter(i => i.hierarquia && i.hierarquia.startsWith('4.5') && i.hierarquia !== '4.5')
+                        .sort((a, b) => a.hierarquia.localeCompare(b.hierarquia))
+                        .forEach(item => fragment.appendChild(createRow(item, false, false, false, false, item.hierarquia)));
+
+                    // (=) RESULTADO OPERACIONAL LÍQUIDO - RESULTADO OPERACIONAL BRUTO + DESPESAS E RECEITAS OPERACIONAIS
+                    // (as despesas já vêm como valores negativos na base de dados)
+                    const resultadoOperacionalLiquido = {
+                        atual: resultadoOperacionalBruto.atual + despesasReceitasOperacionais.atual,
+                        anterior: resultadoOperacionalBruto.anterior + despesasReceitasOperacionais.anterior
+                    };
+                    fragment.appendChild(createRow({ 
+                        descricao: '(=) RESULTADO OPERACIONAL LÍQUIDO', 
+                        valor_atual: resultadoOperacionalLiquido.atual, 
+                        valor_anterior: resultadoOperacionalLiquido.anterior 
+                    }, true, true, false, true));
+
+                    // OUTRAS RECEITAS NÃO OPERACIONAIS - total de '5.'
+                    const outrasReceitas = calculateSum(data, '5.');
+                    fragment.appendChild(createRow({ 
+                        descricao: 'OUTRAS RECEITAS NÃO OPERACIONAIS', 
+                        valor_atual: outrasReceitas.atual, 
+                        valor_anterior: outrasReceitas.anterior 
+                    }, true, false, false, true));
+
+                    // Detalhar a descrição e valores anterior e atual de 5.
+                    data.filter(i => i.hierarquia && i.hierarquia.startsWith('5.') && i.hierarquia !== '5.')
+                        .sort((a, b) => a.hierarquia.localeCompare(b.hierarquia))
+                        .forEach(item => fragment.appendChild(createRow(item, false, false, false, false, item.hierarquia)));
+
+                    // (=) RESULTADO ANTES DOS IMPOSTOS APURADOS - RESULTADO OPERACIONAL LÍQUIDO + OUTRAS RECEITAS NÃO OPERACIONAIS
+                    // (as receitas já vêm como valores positivos na base de dados, então somamos)
+                    const resultadoAntesImpostos = {
+                        atual: resultadoOperacionalLiquido.atual + outrasReceitas.atual,
+                        anterior: resultadoOperacionalLiquido.anterior + outrasReceitas.anterior
+                    };
+                    fragment.appendChild(createRow({ 
+                        descricao: '(=) RESULTADO ANTES DOS IMPOSTOS APURADOS', 
+                        valor_atual: resultadoAntesImpostos.atual, 
+                        valor_anterior: resultadoAntesImpostos.anterior 
+                    }, true, false, true, true));
+
+                    // Cálculos de impostos diferidos
+                    // Base diferida do IRPJ e CSLL - hierarquia '6.1'
+                    const baseDiferida = calculateSum(data, '6.1');
+                    
+                    // Reversões - hierarquia '7.1'
+                    const reversoes = calculateSum(data, '7.1');
+                    
+                    // Base de cálculo: (6.1 * -1) - 7.1
+                    const baseCalculoAtual = (baseDiferida.atual * -1) - reversoes.atual;
+                    const baseCalculoAnterior = (baseDiferida.anterior * -1) - reversoes.anterior;
+                    
+                    // IRPJ diferido - 15% = SE((('6.1'*-1)-'7.1')>0;(('6.1'*-1)-'7.1')*15%;0)
+                    const irpj15Atual = baseCalculoAtual > 0 ? baseCalculoAtual * 0.15 : 0;
+                    const irpj15Anterior = baseCalculoAnterior > 0 ? baseCalculoAnterior * 0.15 : 0;
+                    
+                    // IRPJ diferido - 10% = SE((('6.1'*-1)-'7.1')>240000;((('6.1'*-1)-'7.1')-240000)*10%;0)
+                    const irpj10Atual = baseCalculoAtual > 240000 ? (baseCalculoAtual - 240000) * 0.10 : 0;
+                    const irpj10Anterior = baseCalculoAnterior > 240000 ? (baseCalculoAnterior - 240000) * 0.10 : 0;
+                    
+                    // CSLL diferido = SE(('6.1'*-1)-'7.1'>0;(('6.1'*-1)-'7.1')*9%;0)
+                    const csllAtual = baseCalculoAtual > 0 ? baseCalculoAtual * 0.09 : 0;
+                    const csllAnterior = baseCalculoAnterior > 0 ? baseCalculoAnterior * 0.09 : 0;
+                    
+                    // Adicionar as linhas de impostos diferidos
+                    fragment.appendChild(createRow({ 
+                        descricao: 'IRPJ diferido - 15%', 
+                        valor_atual: irpj15Atual, 
+                        valor_anterior: irpj15Anterior 
+                    }, false, false, false, false));
+                    
+                    fragment.appendChild(createRow({ 
+                        descricao: 'IRPJ diferido - 10%', 
+                        valor_atual: irpj10Atual, 
+                        valor_anterior: irpj10Anterior 
+                    }, false, false, false, false));
+                    
+                    fragment.appendChild(createRow({ 
+                        descricao: 'CSLL diferido', 
+                        valor_atual: csllAtual, 
+                        valor_anterior: csllAnterior 
+                    }, false, false, false, false));
+
+                    tbody.appendChild(fragment);
+
+                } catch (error) {
+                    console.error("Erro ao carregar DRE:", error);
+                    tbody.innerHTML = `<tr><td colspan="3" class="text-center py-10 text-destructive-foreground">Falha ao carregar os dados. ${error.message}</td></tr>`;
+                }
+            }
+
+            document.body.addEventListener(MITRA_UPDATE_EVENT_DRE, loadAndRenderDRE);
+            
+            const initializeComponent = () => {
+                loadAndRenderDRE();
+            };
+
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                    if (window.componentData && window.componentData.query && window.componentData.varMes) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        document.getElementById('dre-container').innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente não foram carregadas da plataforma.</div>`;
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>

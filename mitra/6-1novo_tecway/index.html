@@ -1,0 +1,834 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório Financeiro - TECWAY</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Inter', sans-serif;
+            -webkit-print-color-adjust: exact;
+            color-adjust: exact;
+        }
+        .page-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            padding: 2rem;
+        }
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            box-sizing: border-box;
+            background-color: white;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 20mm;
+            color: #1f2937;
+        }
+        .page-footer {
+            margin-top: auto;
+            width: 100%;
+            text-align: right;
+            font-size: 12px;
+        }
+        @media print {
+            body {
+                background-color: #ffffff;
+                padding: 0;
+                margin: 0;
+            }
+            .page-container {
+                padding: 0;
+                margin: 0;
+                gap: 0;
+            }
+            .page {
+                margin: 0;
+                box-shadow: none;
+                border: none;
+                height: 297mm;
+                page-break-after: always;
+            }
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 2px 4px;
+        }
+        hr {
+            border-top: 1px solid #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Página 1: Capa -->
+        <div class="page justify-between items-center text-center">
+            <div></div>
+            <div>
+                <div class="mb-24">
+                    <h1 class="text-5xl font-bold tracking-widest">
+                        <span class="text-[#E30613]">TEC</span><span class="text-gray-700">WAY</span>
+                    </h1>
+                    <p class="mt-1 text-sm tracking-[0.3em] text-gray-500">serviços e locação</p>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <p class="font-semibold tracking-wider">TECWAY SERVIÇOS E LOCAÇÃO DE EQUIPAMENTOS LTDA</p>
+                    <p class="font-semibold tracking-wider">DEMONSTRAÇÕES FINANCEIRAS</p>
+                    <p class="tracking-wider">31 DE DEZEMBRO DE 2024</p>
+                </div>
+            </div>
+            <div class="text-sm">
+                <p>Manaus/AM.</p>
+            </div>
+        </div>
+        <!-- Página 2: Termo de Abertura -->
+        <div class="page text-xs">
+            <header class="w-full text-left">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Termo de Abertura do Balanço Patrimonial 31 de dezembro de 2024</p>
+                <hr class="mt-2">
+            </header>
+            <main class="flex-grow pt-16 space-y-10">
+                <p class="text-center max-w-lg mx-auto leading-relaxed">
+                    Contém este 0018 folhas numeradas seguida e eletronicamente de 0001 a 0018 e servirão para o registro do "BALANÇO PATRIMONIAL" de número 0025 da empresa abaixo identificada, no período de 01/01/2024 a 31/12/2024.
+                </p>
+                <div class="space-y-2">
+                    <p><span class="font-bold">Empresa:</span> TECWAY SERVIÇOS E LOCAÇÃO DE EQUIPAMENTOS LTDA</p>
+                    <p><span class="font-bold">CNPJ N°:</span> 13.392.705/0001-43</p>
+                    <p><span class="font-bold">NIRE N°:</span> 13200556445</p>
+                    <p><span class="font-bold">Endereço:</span> Rua Helena Cardoso, nº 420, Bairro: Santa Etelvina, CEP: 69.059-290 Manaus – Amazonas</p>
+                </div>
+                <p class="pt-8 text-center">Manaus (Am), 31 de dezembro de 2024</p>
+            </main>
+            <footer class="mt-auto pt-16">
+                <div class="grid grid-cols-2 gap-x-16 text-center">
+                    <div class="border-t border-gray-600 pt-2">
+                        <p class="font-bold">JEISE HELLEN PIRES FERREIRA</p>
+                        <p>CPF 003.483.222-08</p>
+                        <p>Contadora CRC/AM: 017791/O</p>
+                    </div>
+                    <div class="border-t border-gray-600 pt-2">
+                        <p class="font-bold">FÁBIO GUERRA GARCIA</p>
+                        <p>CPF 813.742.591-87</p>
+                        <p>Sócio Administrador</p>
+                    </div>
+                </div>
+                <div class="page-footer">2</div>
+            </footer>
+        </div>
+        <!-- Página 3: Balanço Patrimonial -->
+        <div class="page text-[10px]">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Balanços patrimoniais dos exercícios findos em 31 de Dezembro de 2024.</p>
+                <p class="text-sm">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <div class="grid grid-cols-2 gap-8">
+                <div>
+                    <table>
+                        <thead><tr><th class="font-bold pb-1 text-left">Ativo</th><th class="font-bold pb-1 text-center">Notas</th><th class="font-bold pb-1 text-right">2024</th><th class="font-bold pb-1 text-right">2023</th></tr></thead>
+                        <tbody>
+                            <tr><td colspan="4" class="font-bold pt-2">Ativo circulante</td></tr>
+                            <tr><td>Caixa e equivalentes de caixa</td><td class="text-center">4</td><td class="text-right">4.374</td><td class="text-right">7.305</td></tr>
+                            <tr><td>Contas a receber</td><td class="text-center">5</td><td class="text-right">24.611</td><td class="text-right">26.925</td></tr>
+                            <tr><td>Estoques</td><td class="text-center">6</td><td class="text-right">27.816</td><td class="text-right">40.997</td></tr>
+                            <tr><td>Impostos a recuperar</td><td class="text-center">7</td><td class="text-right">2.121</td><td class="text-right">4.976</td></tr>
+                            <tr><td>Mútuo a receber</td><td class="text-center">8</td><td class="text-right">30.629</td><td class="text-right">16.652</td></tr>
+                            <tr class="border-b border-gray-400"><td>Adiantamentos</td><td class="text-center">9</td><td class="text-right">6.256</td><td class="text-right">595</td></tr>
+                            <tr class="font-bold"><td class="pt-1"></td><td></td><td class="text-right pt-1">95.807</td><td class="text-right pt-1">97.450</td></tr>
+                            <tr><td colspan="4" class="font-bold pt-4">Ativo não circulante</td></tr>
+                            <tr><td>Investimentos temporários</td><td></td><td class="text-right">95</td><td class="text-right">95</td></tr>
+                            <tr><td>Investimentos</td><td class="text-center">10</td><td class="text-right">8.497</td><td class="text-right">8.190</td></tr>
+                            <tr><td>Propriedades para investimentos</td><td class="text-center">11</td><td class="text-right">5.889</td><td class="text-right">5.889</td></tr>
+                            <tr><td>Imobilizado</td><td class="text-center">12</td><td class="text-right">1.585</td><td class="text-right">2.863</td></tr>
+                            <tr class="border-b border-gray-400"><td>Intangível</td><td></td><td class="text-right">257</td><td class="text-right">119</td></tr>
+                            <tr class="font-bold"><td class="pt-1"></td><td></td><td class="text-right pt-1">16.322</td><td class="text-right pt-1">17.156</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <table>
+                        <thead><tr><th class="font-bold pb-1 text-left">Passivo</th><th class="font-bold pb-1 text-center">Notas</th><th class="font-bold pb-1 text-right">2024</th><th class="font-bold pb-1 text-right">2023</th></tr></thead>
+                        <tbody>
+                            <tr><td colspan="4" class="font-bold pt-2">Passivo circulante</td></tr>
+                            <tr><td>Fornecedores</td><td class="text-center">13</td><td class="text-right">1.959</td><td class="text-right">3.789</td></tr>
+                            <tr><td>Adiantamento de clientes</td><td></td><td class="text-right">322</td><td class="text-right">0</td></tr>
+                            <tr><td>Empréstimos e financiamentos (PC)</td><td class="text-center">14</td><td class="text-right">36.623</td><td class="text-right">42.305</td></tr>
+                            <tr><td>Consórcios a pagar</td><td class="text-center">15</td><td class="text-right">6.965</td><td class="text-right">3.825</td></tr>
+                            <tr><td>Obrigações tributárias (PC)</td><td class="text-center">7</td><td class="text-right">588</td><td class="text-right">1.066</td></tr>
+                            <tr><td>Obrigações trabalhistas</td><td></td><td class="text-right">874</td><td class="text-right">653</td></tr>
+                            <tr><td>Outras obrigações a pagar (PC)</td><td></td><td class="text-right">0</td><td class="text-right">44</td></tr>
+                            <tr class="border-b border-gray-400"><td>Mútuos a pagar (PC)</td><td class="text-center">16</td><td class="text-right">1.116</td><td class="text-right">179</td></tr>
+                            <tr class="font-bold"><td class="pt-1"></td><td></td><td class="text-right pt-1">48.448</td><td class="text-right pt-1">51.861</td></tr>
+                            <tr><td colspan="4" class="font-bold pt-4">Passivo não circulante</td></tr>
+                            <tr><td>Empréstimos e financiamentos (PNC)</td><td class="text-center">14</td><td class="text-right">24.467</td><td class="text-right">27.347</td></tr>
+                            <tr><td>Obrigações tributárias (PNC)</td><td class="text-center">7</td><td class="text-right">134</td><td class="text-right">158</td></tr>
+                            <tr><td>Mútuos a pagar (PNC)</td><td class="text-center">16</td><td class="text-right">7.355</td><td class="text-right">7.483</td></tr>
+                            <tr class="border-b border-gray-400"><td>Impostos diferidos</td><td class="text-center">7</td><td class="text-right">7.093</td><td class="text-right">7.126</td></tr>
+                            <tr class="font-bold"><td class="pt-1"></td><td></td><td class="text-right pt-1">39.049</td><td class="text-right pt-1">42.114</td></tr>
+                            <tr><td colspan="4" class="font-bold pt-4">Patrimônio líquido</td></tr>
+                            <tr><td>Capital social</td><td class="text-center">17</td><td class="text-right">5.000</td><td class="text-right">5.000</td></tr>
+                            <tr class="border-b border-gray-400"><td>Lucros acumulados</td><td></td><td class="text-right">19.632</td><td class="text-right">15.631</td></tr>
+                            <tr class="font-bold"><td class="pt-1"></td><td></td><td class="text-right pt-1">24.632</td><td class="text-right pt-1">20.631</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-8 mt-4">
+                <table><tr class="font-bold border-t-2 border-b-2 border-gray-700"><td class="py-1">Total do ativo</td><td class="text-right py-1">112.129</td><td class="text-right py-1">114.606</td></tr></table>
+                <table><tr class="font-bold border-t-2 border-b-2 border-gray-700"><td class="py-1">Total do passivo e patrimônio líquido</td><td class="text-right py-1">112.129</td><td class="text-right py-1">114.606</td></tr></table>
+            </div>
+            <footer class="mt-auto pt-16 text-xs">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras</p>
+                <div class="page-footer">3</div>
+            </footer>
+        </div>
+        <!-- Página 4: Demonstração de Resultados -->
+        <div class="page text-[10px]">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Demonstrações dos resultados dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-sm">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <table>
+                <thead><tr><th class="font-bold pb-1 text-left">Receitas</th><th class="font-bold pb-1 text-center">Notas</th><th class="font-bold pb-1 text-right">2024</th><th class="font-bold pb-1 text-right">2023</th></tr></thead>
+                <tbody>
+                    <tr><td>Receita operacional líquida</td><td class="text-center">18</td><td class="text-right">104.003</td><td class="text-right">115.099</td></tr>
+                    <tr class="border-b border-gray-400"><td>Custos operacionais</td><td class="text-center">19</td><td class="text-right">(48.976)</td><td class="text-right">(66.818)</td></tr>
+                    <tr class="font-bold"><td class="pt-1">Lucro bruto</td><td></td><td class="text-right pt-1">55.027</td><td class="text-right pt-1">48.281</td></tr>
+                    <tr><td colspan="4" class="font-bold pt-4">Despesas operacionais</td></tr>
+                    <tr><td>Despesas com pessoal</td><td class="text-center">20</td><td class="text-right">(2.781)</td><td class="text-right">(2.189)</td></tr>
+                    <tr><td>Despesas gerais e administrativas</td><td class="text-center">21</td><td class="text-right">(38.773)</td><td class="text-right">(6.662)</td></tr>
+                    <tr><td>Despesas tributárias</td><td></td><td class="text-right">(423)</td><td class="text-right">(294)</td></tr>
+                    <tr><td>Resultado de equivalência patrimonial</td><td></td><td class="text-right">(0)</td><td class="text-right">1.164</td></tr>
+                    <tr class="border-b border-gray-400"><td>Outras receitas não operacionais</td><td class="text-center">22</td><td class="text-right">12.118</td><td class="text-right">1.578</td></tr>
+                    <tr class="font-bold"><td class="pt-1"></td><td></td><td class="text-right pt-1">(29.859)</td><td class="text-right pt-1">(6.403)</td></tr>
+                    <tr class="font-bold border-t border-gray-400"><td class="pt-2">Lucro antes do resultado financeiro</td><td></td><td class="text-right pt-2">25.168</td><td class="text-right pt-2">41.878</td></tr>
+                    <tr><td>Receitas financeiras</td><td></td><td class="text-right">340</td><td class="text-right">406</td></tr>
+                    <tr class="border-b border-gray-400"><td>Despesas financeiras</td><td></td><td class="text-right">(15.348)</td><td class="text-right">(20.624)</td></tr>
+                    <tr class="font-bold"><td class="pt-1">Resultado financeiro</td><td class="text-center">23</td><td class="text-right pt-1">(15.007)</td><td class="text-right pt-1">(20.218)</td></tr>
+                    <tr class="font-bold border-t border-gray-400"><td class="pt-2">Lucro antes dos impostos</td><td></td><td class="text-right pt-2">10.161</td><td class="text-right pt-2">21.660</td></tr>
+                    <tr><td>Imposto de renda e contribuição social - correntes</td><td class="text-center">24</td><td class="text-right">(269)</td><td class="text-right">(846)</td></tr>
+                    <tr class="border-b border-gray-400"><td>Imposto de renda e contribuição social - diferidos</td><td class="text-center">24</td><td class="text-right">(3.392)</td><td class="text-right">(7.126)</td></tr>
+                    <tr class="font-bold border-t-2 border-b-2 border-gray-700"><td class="py-1">Lucro do exercício</td><td></td><td class="text-right py-1">6.500</td><td class="text-right py-1">13.688</td></tr>
+                </tbody>
+            </table>
+            <footer class="mt-auto pt-16 text-xs">
+                <p>As notas explicativas são partes integrantes das demonstrações financeiras.</p>
+                <div class="page-footer">4</div>
+            </footer>
+        </div>
+        <!-- Página 5: Demonstrações de Fluxo de Caixa -->
+        <div class="page text-[10px]">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Demonstrações de fluxo de caixa dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-sm">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <table>
+                <thead><tr><th class="font-bold pb-1 text-left"></th><th class="font-bold pb-1 text-right">2024</th><th class="font-bold pb-1 text-right">2023</th></tr></thead>
+                <tbody>
+                    <tr class="font-bold"><td class="pt-2">Fluxo de caixa das atividades operacionais</td><td></td><td></td></tr>
+                    <tr><td class="pl-4">Lucro do exercício</td><td class="text-right">6.500</td><td class="text-right">13.688</td></tr>
+                    <tr><td class="pt-2 pl-4">Ajuste para reconciliar o prejuízo do exercício com os recursos provenientes das atividades operacionais</td><td></td><td></td></tr>
+                    <tr><td class="pl-8">Alienação de imobilizado</td><td class="text-right">(11.181)</td><td class="text-right">(8.874)</td></tr>
+                    <tr><td class="pl-8">Baixa de ativo imobilizado</td><td class="text-right"></td><td class="text-right">5.723</td></tr>
+                    <tr><td class="pl-8">Provisão para perdas estimadas com clientes</td><td class="text-right">674</td><td class="text-right">1.927</td></tr>
+                    <tr><td class="pl-8">Perdas com clientes</td><td class="text-right">18.192</td><td class="text-right">2.613</td></tr>
+                    <tr><td class="pl-8">Depreciação</td><td class="text-right">31.623</td><td class="text-right">47.914</td></tr>
+                    <tr><td class="pl-8">Amortização</td><td class="text-right">48</td><td class="text-right">30</td></tr>
+                    <tr><td class="pl-8">Encargos sobre empréstimos</td><td class="text-right">11.007</td><td class="text-right">14.042</td></tr>
+                    <tr><td class="pl-8">Imposto de renda e contribuição social - correntes</td><td class="text-right">269</td><td class="text-right">846</td></tr>
+                    <tr><td class="pl-8">Imposto de renda e contribuição social - diferidos</td><td class="text-right">3.392</td><td class="text-right">7.126</td></tr>
+                    <tr class="border-b border-gray-400"><td class="pl-8">Outros</td><td class="text-right">(32)</td><td class="text-right"></td></tr>
+                    <tr class="font-bold"><td class="pt-1"></td><td class="text-right pt-1">60.492</td><td class="text-right pt-1">85.035</td></tr>
+                    <tr><td class="pt-2 pl-4">Variação nos ativos e passivos operacionais</td><td></td><td></td></tr>
+                    <tr><td class="pl-8">Contas a receber</td><td class="text-right">(16.552)</td><td class="text-right">(19.392)</td></tr>
+                    <tr><td class="pl-8">Estoques</td><td class="text-right">13.181</td><td class="text-right">14.434</td></tr>
+                    <tr><td class="pl-8">Impostos a recuperar</td><td class="text-right">2.855</td><td class="text-right">(705)</td></tr>
+                    <tr><td class="pl-8">Adiantamentos</td><td class="text-right">(5.661)</td><td class="text-right">4.365</td></tr>
+                    <tr><td class="pl-8">Fornecedores</td><td class="text-right">(1.830)</td><td class="text-right">(6.299)</td></tr>
+                    <tr><td class="pl-8">Consórcios a pagar</td><td class="text-right">3.140</td><td class="text-right">3.646</td></tr>
+                    <tr><td class="pl-8">Obrigações tributárias</td><td class="text-right">(4.158)</td><td class="text-right">(10.514)</td></tr>
+                    <tr><td class="pl-8">Obrigações trabalhistas</td><td class="text-right">216</td><td class="text-right">219</td></tr>
+                    <tr class="border-b border-gray-400"><td class="pl-8">Outras obrigações</td><td class="text-right"></td><td class="text-right">(3.436)</td></tr>
+                    <tr class="font-bold"><td class="pt-1">Caixa líquido consumido nas atividades operacionais</td><td class="text-right pt-1">51.961</td><td class="text-right pt-1">67.353</td></tr>
+                    <tr class="font-bold"><td class="pt-4">Fluxo de caixa das atividades de investimentos</td><td></td><td></td></tr>
+                    <tr><td class="pl-4">Investimentos temporários</td><td class="text-right"></td><td class="text-right">16</td></tr>
+                    <tr><td class="pl-4">Aquisição para investimento</td><td class="text-right">(307)</td><td class="text-right">560</td></tr>
+                    <tr><td class="pl-4">Aquisição de imobilizado</td><td class="text-right">(19.164)</td><td class="text-right">(17.465)</td></tr>
+                    <tr class="border-b border-gray-400"><td class="pl-4">Aquisição de intangível</td><td class="text-right">(185)</td><td class="text-right">(149)</td></tr>
+                    <tr class="font-bold"><td class="pt-1">Caixa líquido gerado (consumido) nas atividades de investimentos</td><td class="text-right pt-1">(19.656)</td><td class="text-right pt-1">(17.038)</td></tr>
+                    <tr class="font-bold"><td class="pt-4">Fluxo de caixa das atividades de financiamentos</td><td></td><td></td></tr>
+                    <tr><td class="pl-4">Emprestimos e Financiamentos</td><td class="text-right">(19.569)</td><td class="text-right">(40.207)</td></tr>
+                    <tr><td class="pl-4">Empréstimos - Partes relacionadas</td><td class="text-right">(13.977)</td><td class="text-right">(5.442)</td></tr>
+                    <tr><td class="pl-4">Empréstimos - Mútuos</td><td class="text-right">810</td><td class="text-right">7.662</td></tr>
+                    <tr class="border-b border-gray-400"><td class="pl-4">Lucros distribuídos</td><td class="text-right">(2.500)</td><td class="text-right">(9.826)</td></tr>
+                    <tr class="font-bold"><td class="pt-1">Caixa gerado nas atividades de financiamentos</td><td class="text-right pt-1">(35.236)</td><td class="text-right pt-1">(47.813)</td></tr>
+                    <tr class="font-bold"><td class="pt-4">Aumento de caixa e equivalentes de caixa</td><td class="text-right">(2.931)</td><td class="text-right">2.502</td></tr>
+                    <tr><td class="pt-4">Saldo de caixa e equivalentes de caixa no final do período</td><td class="text-right">7.305</td><td class="text-right">4.803</td></tr>
+                    <tr><td>Aumento de caixa e equivalentes de caixa</td><td class="text-right">4.374</td><td class="text-right">7.305</td></tr>
+                    <tr class="font-bold border-t-2 border-b-2 border-gray-700"><td class="py-1">Aumento de caixa e equivalentes de caixa</td><td class="text-right py-1">(2.931)</td><td class="text-right py-1">2.502</td></tr>
+                </tbody>
+            </table>
+            <footer class="mt-auto pt-16 text-xs">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="page-footer">5</div>
+            </footer>
+        </div>
+        <!-- Página 6: Indicadores Financeiros -->
+        <div class="page text-xs">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Indicadores financeiros em 31 de dezembro de 2024</p>
+                <p class="text-sm">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <table class="text-center">
+                <thead><tr><th class="text-left font-bold">Indicador</th><th class="font-bold">2024</th><th class="font-bold">2023</th></tr></thead>
+                <tbody class="divide-y-2 divide-gray-300">
+                    <tr class="pt-4"><td class="text-left font-bold py-3">Liquidez Corrente</td><td></td><td></td></tr>
+                    <tr>
+                        <td class="text-left pl-4">AC / PC</td>
+                        <td>
+                            <div class="flex items-center justify-center">
+                                <div class="text-right border-b border-gray-500 w-20">95.807</div>
+                                <div class="w-20 font-bold text-lg ml-4">1,98</div>
+                            </div>
+                            <div class="text-center w-20">48.448</div>
+                        </td>
+                        <td>
+                            <div class="flex items-center justify-center">
+                                <div class="text-right border-b border-gray-500 w-20">97.450</div>
+                                <div class="w-20 font-bold text-lg ml-4">1,88</div>
+                            </div>
+                            <div class="text-center w-20">51.861</div>
+                        </td>
+                    </tr>
+                    <tr class="pt-4"><td class="text-left font-bold py-3">Liquidez Seca</td><td></td><td></td></tr>
+                    <tr>
+                        <td class="text-left pl-4">(AC - ESTOQUE) / PC</td>
+                        <td>
+                            <div class="flex items-center justify-center">
+                                <div class="text-right border-b border-gray-500 w-20">67.991</div>
+                                <div class="w-20 font-bold text-lg ml-4">1,40</div>
+                            </div>
+                            <div class="text-center w-20">48.448</div>
+                        </td>
+                        <td>
+                            <div class="flex items-center justify-center">
+                                <div class="text-right border-b border-gray-500 w-20">56.453</div>
+                                <div class="w-20 font-bold text-lg ml-4">1,09</div>
+                            </div>
+                            <div class="text-center w-20">51.861</div>
+                        </td>
+                    </tr>
+                    <tr class="pt-4"><td class="text-left font-bold py-3">Liquidez Geral</td><td></td><td></td></tr>
+                    <tr>
+                        <td class="text-left pl-4">(AC + RLP) / (PC + PNC)</td>
+                        <td>
+                            <div class="flex items-center justify-center">
+                                <div class="text-right border-b border-gray-500 w-20">95.902</div>
+                                <div class="w-20 font-bold text-lg ml-4">1,10</div>
+                            </div>
+                            <div class="text-center w-20">87.497</div>
+                        </td>
+                        <td>
+                            <div class="flex items-center justify-center">
+                                <div class="text-right border-b border-gray-500 w-20">97.450</div>
+                                <div class="w-20 font-bold text-lg ml-4">1,04</div>
+                            </div>
+                            <div class="text-center w-20">93.975</div>
+                        </td>
+                    </tr>
+                    <tr class="pt-4"><td class="text-left font-bold py-3">Solvência Geral</td><td></td><td></td></tr>
+                    <tr>
+                        <td class="text-left pl-4">ATIVO TOTAL / (PC + PNC)</td>
+                        <td>
+                            <div class="flex items-center justify-center">
+                                <div class="text-right border-b border-gray-500 w-20">112.129</div>
+                                <div class="w-20 font-bold text-lg ml-4">1,28</div>
+                            </div>
+                            <div class="text-center w-20">87.497</div>
+                        </td>
+                        <td>
+                            <div class="flex items-center justify-center">
+                                <div class="text-right border-b border-gray-500 w-20">114.606</div>
+                                <div class="w-20 font-bold text-lg ml-4">1,22</div>
+                            </div>
+                            <div class="text-center w-20">93.975</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="page-footer">6</div>
+        </div>
+        <!-- Página 7: Resultados Abrangentes -->
+        <div class="page text-xs">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Demonstrações dos resultados abrangentes dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-sm">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <table>
+                <thead><tr><th class="text-left font-bold"></th><th class="text-right font-bold">2024</th><th class="text-right font-bold">2023</th></tr></thead>
+                <tbody>
+                    <tr class="border-b border-gray-400">
+                        <td class="py-1">Lucro líquido do exercício</td>
+                        <td class="text-right">6.500</td>
+                        <td class="text-right">13.688</td>
+                    </tr>
+                    <tr class="border-b border-gray-400">
+                        <td class="py-1">Outros resultados abrangentes</td>
+                        <td class="text-right">-</td>
+                        <td class="text-right">-</td>
+                    </tr>
+                    <tr class="font-bold border-t-2 border-b-2 border-gray-700">
+                        <td class="py-1">Resultado abrangente do exercício</td>
+                        <td class="text-right">6.500</td>
+                        <td class="text-right">13.688</td>
+                    </tr>
+                </tbody>
+            </table>
+            <footer class="mt-auto pt-16 text-xs">
+                <p>As notas explicativas são partes integrantes das demonstrações financeiras.</p>
+                <div class="page-footer">7</div>
+            </footer>
+        </div>
+        <!-- Página 8: Patrimônio Líquido -->
+        <div class="page text-[10px]">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Demonstrações do patrimônio líquido em 31 de dezembro de 2024</p>
+                <p class="text-sm">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <table>
+                <thead>
+                    <tr class="font-bold">
+                        <th class="text-left"></th>
+                        <th class="text-right">Capital Social</th>
+                        <th class="text-right">Ajuste da Avaliação</th>
+                        <th class="text-right">Lucros ou Prejuízos Acumulados</th>
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-400">
+                    <tr>
+                        <td class="py-1">Saldos em 31 de dezembro de 2022</td>
+                        <td class="text-right">5.000</td>
+                        <td class="text-right">34.349</td>
+                        <td class="text-right">11.769</td>
+                        <td class="text-right">51.118</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 pl-4">Lucro distribuídos</td>
+                        <td class="text-right"></td>
+                        <td class="text-right"></td>
+                        <td class="text-right">(9.826)</td>
+                        <td class="text-right">(9.826)</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 pl-4">Lucro do exercício</td>
+                        <td class="text-right"></td>
+                        <td class="text-right"></td>
+                        <td class="text-right">13.688</td>
+                        <td class="text-right">13.688</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 pl-4">Ajuste de Avaliação</td>
+                        <td class="text-right"></td>
+                        <td class="text-right">(34.349)</td>
+                        <td class="text-right"></td>
+                        <td class="text-right">(34.349)</td>
+                    </tr>
+                    <tr class="font-bold border-t-2 border-b-2 border-gray-700">
+                        <td class="py-1">Saldos em 31 de dezembro de 2023</td>
+                        <td class="text-right">5.000</td>
+                        <td class="text-right"></td>
+                        <td class="text-right">15.631</td>
+                        <td class="text-right">20.631</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 pl-4">Lucro distribuídos</td>
+                        <td class="text-right"></td>
+                        <td class="text-right"></td>
+                        <td class="text-right">(2.500)</td>
+                        <td class="text-right">(2.500)</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 pl-4">Lucro do exercício</td>
+                        <td class="text-right"></td>
+                        <td class="text-right"></td>
+                        <td class="text-right">6.500</td>
+                        <td class="text-right">6.500</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 pl-4">Ajuste de Avaliação</td>
+                        <td class="text-right"></td>
+                        <td class="text-right"></td>
+                        <td class="text-right"></td>
+                        <td class="text-right"></td>
+                    </tr>
+                    <tr class="font-bold border-t-2 border-b-2 border-gray-700">
+                        <td class="py-1">Saldo em 31 de dezembro de 2024</td>
+                        <td class="text-right">5.000</td>
+                        <td class="text-right"></td>
+                        <td class="text-right">19.631</td>
+                        <td class="text-right">24.632</td>
+                    </tr>
+                </tbody>
+            </table>
+            <footer class="mt-auto pt-16 text-xs">
+                <p>As notas explicativas são partes integrantes das demonstrações financeiras.</p>
+                <div class="page-footer">8</div>
+            </footer>
+        </div>
+        <!-- Página 9: Notas Explicativas -->
+        <div class="page text-xs leading-relaxed">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                <p class="text-sm">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                <hr class="mt-2">
+            </header>
+            <div class="space-y-3">
+                <h3 class="font-bold">1- Contexto operacional</h3>
+                <p>A Tecway Serviços e Locação de Equipamentos Ltda. foi registrada na Junta Comercial do Estado do Amazonas em 21 de março de 2011, e iniciou as operações em 2014. Possui a sua matriz na cidade de Manaus/AM e 05 filiais, sendo Boa Vista/RR, São Luís/MA, Porto Velho/RO e Rio de Janeiro/RJ e Manaus/AM.</p>
+                <p>Possui terreno próprio de aproximadamente 38 mil metros quadrados, onde acomoda a sua matriz. Atualmente, a possui 91 colaboradores alocados nas áreas administrativa e operacional.</p>
+                <p>Atua no segmento de locação de veículos, com e sem condutor, com uma frota que atende clientes da área governamental, nas esferas: municipal, estadual e federal, nos Estados do Amazonas, Roraima e Rondônia. Seus veículos são locados com a finalidade de viaturas de polícia, onde toda a preparação do veículo ocorre dentro da empresa, por meio de processos e colaboradores treinados, e veículos de passeio para atender a necessidade administrativa dos clientes.</p>
+                <p>A manutenção preventiva e corretiva dos veículos da frota é realizada com equipe própria, por meio de ordem de serviço, que atua com mecânica, elétrica, refrigeração, funilaria, pintura, alinhamento, balanceamento, tecnologia embarcada e montagem de equipamentos.</p>
+                <h3 class="font-bold pt-2">2 - Apresentação e elaboração das demonstrações financeiras</h3>
+                <h4 class="font-bold">2.1 - Declaração de conformidade com as práticas contábeis</h4>
+                <p>As demonstrações financeiras foram elaboradas e estão sendo apresentadas de acordo com as práticas contábeis adotadas no Brasil, as quais abrangem a legislação societária e as normas emitidas pelo Conselho Federal de Contabilidade (CFC).</p>
+                <p>As demonstrações financeiras foram autorizadas e aprovadas para emissão pela administração da Empresa em 30 de junho de 2024.</p>
+                <h4 class="font-bold">2.2 - Base de mensuração</h4>
+                <p>As demonstrações financeiras foram preparadas com base no custo histórico, com exceção dos instrumentos financeiros não-derivativos designados pelo valor justo por meio do resultado os quais são mensurados pelo valor justo.</p>
+                <h4 class="font-bold">2.3 - Moeda funcional e moeda de apresentação</h4>
+                <p>A moeda funcional da Empresa é a moeda do principal ambiente econômico no qual a entidade opera; as principais fontes geradoras de caixa e despesas são originadas em R$ (reais), desta forma considera-se como moeda funcional a moeda local (reais).</p>
+                <h4 class="font-bold">2.4 - Uso de estimativas e julgamentos</h4>
+                <p>As demonstrações financeiras foram preparadas de acordo com as práticas contábeis adotadas no Brasil, que exigem que a Administração faça julgamentos, estimativas e premissas que afetam a aplicação de políticas contábeis e os valores reportados de ativos, passivos, receitas e despesas.</p>
+                <p>As estimativas contábeis envolvidas na preparação das demonstrações financeiras foram baseadas em fatores objetivos e subjetivos, com base no julgamento da Administração para determinação do valor adequado a ser registrado nas demonstrações financeiras. A liquidação das transações envolvendo essas estimativas poderá resultar em valores significativamente divergentes dos registrados nas demonstrações financeiras, devido ao tratamento probabilístico inerente ao processo de estimativa. A Empresa revisa suas estimativas e premissas periodicamente, num período não superior a um ano. Revisões com relação às estimativas contábeis são reconhecidas no exercício em que as estimativas são revisadas.</p>
+                <h3 class="font-bold pt-2">3 - Resumo das principais práticas contábeis</h3>
+                <p>As principais políticas contábeis adotadas pela Empresa na elaboração das demonstrações financeiras são, entre outras, as seguintes:</p>
+                <h4 class="font-bold">3.1 - Apuração do resultado</h4>
+                <p>O resultado é apurado pelo princípio da competência dos exercícios. As receitas e os custos são reconhecidos no resultado quando os riscos e benefícios inerentes aos serviços são transferidos para o contratante.</p>
+                <h4 class="font-bold">3.2 - Caixa e equivalente de caixa</h4>
+                <p>Caixa e equivalentes de caixa abrangem saldos de caixa e investimentos financeiros com vencimento de três meses ou menos a partir da data da contratação, os quais são sujeitos a um risco insignificante de alteração no valor, e são utilizados na gestão das obrigações de curto prazo.</p>
+            </div>
+            <div class="page-footer">9</div>
+        </div>
+        <!-- Página 10 -->
+        <div class="page text-xs leading-relaxed">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                <p class="text-sm">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                <hr class="mt-2">
+            </header>
+             <div class="space-y-3">
+                <h3 class="font-bold">3.3 - Instrumentos financeiros</h3>
+                <h4 class="font-bold">Classificação e mensuração de Ativos e Passivos financeiros</h4>
+                <p>Conforme o IFRS 9 / NBC TG 48, no reconhecimento inicial, um ativo financeiro é classificado em: a custo amortizado; valor justo por meio dos outros resultados abrangentes ("VJORA")- instrumento de dívida; VJORA - instrumento patrimonial; e valor justo por meio de resultado ("VJR"). A classificação dos ativos financeiros é substancialmente estabelecida conforme o modelo de negócios no qual um ativo financeiro é gerenciado e em suas características de fluxos de caixa contratuais. As políticas contábeis significativas estão descritas a seguir:</p>
+                <p>Ativos financeiros a custo amortizado - Estes ativos são mensurados de forma subsequente ao custo amortizado utilizando o método dos juros efetivos. O custo amortizado é reduzido por perdas por redução ao valor recuperável. A receita de juros, ganhos e perdas cambiais e perdas são reconhecidos no resultado. Qualquer ganho ou perda no desreconhecimento é reconhecido no resultado.</p>
+                <p>Um ativo financeiro é mensurado ao custo amortizado se atender ambas as condições a seguir e não for designado como mensurado a VJR:</p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>é mantido dentro de um modelo de negócio cujo objetivo seja manter ativos financeiros para receber fluxos de caixa contratuais; e</li>
+                    <li>seus termos contratuais geram, em datas específicas, fluxos de caixa que são relativos ao pagamento de principal e juros sobre o valor principal em aberto.</li>
+                </ul>
+                <p>Um instrumento de dívida é mensurado a VJORA se atender ambas as condições a seguir e não for designado como mensurado a VJR:</p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>é mantido dentro de um modelo de negócio cujo objetivo é atingido tanto pelo recebimento de fluxos de caixa contratuais quanto pela venda de ativos financeiros; e</li>
+                    <li>seus termos contratuais geram em datas específicas, fluxos de caixa que são apenas pagamentos de principal e juros sobre o valor principal em aberto.</li>
+                </ul>
+                <p>Os ativos financeiros da Empresa são substancialmente representados por caixa e equivalentes de caixa (Nota explicativa nº 4), contas a receber (Nota explicativa nº 5) e outros créditos, os quais estão classificados como mensurados subsequentemente ao custo amortizado.</p>
+                <h3 class="font-bold">3.4 Avaliação do valor recuperável de ativos ("Impairment")</h3>
+                <p>A Empresa avalia na data de cada balanço se há evidência objetiva de que um ativo financeiro ou grupo de ativos financeiros está deteriorado. Um ativo ou grupo de ativos financeiros está deteriorado e as perdas por impairment são incorridas somente se há evidência objetiva de impairment como resultado de um ou mais eventos ocorridos após o reconhecimento inicial dos ativos (um "evento de perda") e aquele evento (ou eventos) de perda tem um impacto nos fluxos de caixa futuros estimados do ativo financeiro ou grupo de ativos financeiros que pode ser estimado de maneira confiável.</p>
+                <h3 class="font-bold">3.5 Contas a receber de clientes</h3>
+                <p>As contas a receber de clientes são reconhecidas ao preço da transação, deduzidas de perdas estimadas com créditos de liquidação duvidosa, quando necessário. Perdas de crédito esperadas são estimativas ponderadas pela probabilidade de perdas de crédito baseados nas perdas históricas e projeções de premissas relacionadas. As perdas de crédito são mensuradas a valor presente com base em todas as insuficiências de caixa (ou seja, a diferença entre os fluxos de caixa devidos à empresa de acordo com o contrato e os fluxos de caixa que a empresa espera receber).</p>
+                <h3 class="font-bold">3.6 - Estoques</h3>
+                <p>São contabilizados pelo custo ou valor líquido de realização, o que for menor. São avaliados com base no custo histórico de aquisição, acrescidos de gastos relativos a transportes, armazenagem e impostos não recuperáveis. Os valores dos estoques contabilizados não excedem os valores de mercado de realização.</p>
+                <h3 class="font-bold">3.7 - Imobilizado</h3>
+                <h4 class="font-bold">Reconhecimento e mensuração</h4>
+                <p>Itens do imobilizado são mensurados pelo custo histórico de aquisição ou construção, deduzido de depreciação acumulada e, quando aplicável, perdas de redução ao valor recuperável acumuladas. O custo inclui gastos que são diretamente atribuíveis à aquisição de um ativo.</p>
+                <h4 class="font-bold">Depreciação</h4>
+                <p>Itens do ativo imobilizado são depreciados pelo método linear no resultado do exercício baseado na vida útil econômica estimada de cada componente. A depreciação se inicia a partir da data em que são instalados e estão disponíveis para uso, ou em caso de ativos construídos internamente, do dia em que a construção é finalizada e o ativo está disponível para utilização.</p>
+                <h3 class="font-bold">3.8 Fornecedores</h3>
+                <p>Registrados pelo valor nominal dos títulos representativos dessas obrigações, acrescido das variações cambiais, quando aplicáveis, incorridas até a data do encerramento do exercício.</p>
+            </div>
+            <div class="page-footer">10</div>
+        </div>
+        <!-- Página 11 -->
+        <div class="page text-xs leading-relaxed">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                <p class="text-sm">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                <hr class="mt-2">
+            </header>
+            <div class="space-y-3">
+                <h3 class="font-bold">3.9 - Provisão para contingências</h3>
+                <p>As provisões são reconhecidas quando a Empresa tem uma obrigação presente (legal ou não formalizada) como resultado de eventos passados, e é provável que uma saída de recursos que incorporam benefícios econômicos seja necessária para liquidar a obrigação e uma estimativa confiável do valor da obrigação possa ser feita.</p>
+                <h3 class="font-bold">3.10 - Outros ativos e passivos circulantes e não circulantes</h3>
+                <p>Os ativos e passivos circulantes e não circulantes são demonstrados pelos valores de realização e de liquidação, respectivamente, acrescidos, quando aplicável, dos correspondentes encargos, variações monetárias e/ou cambiais incorridas até a data do balanço patrimonial.</p>
+                <p>Os passivos classificados como não circulantes são registrados ao valor presente, transação a transação, com base em taxas de juros que refletem o prazo, a moeda e o risco de cada operação. A atualização do ajuste a valor presente é apropriada ao resultado ao longo do prazo do contrato pelo método do custo amortizado e pela taxa de juros efetiva.</p>
+                <h3 class="font-bold">3.11 - Reconhecimento de receita</h3>
+                <p>As receitas são reconhecidas de acordo com o CPC 47/IFRS 15, quando (ou à medida que) a obrigação de desempenho é satisfeita, isto é, quando o controle dos serviços é transferido ao cliente. A mensuração é efetuada pelo valor justo da contraprestação recebida ou a receber, líquida de descontos, abatimentos, devoluções e impostos incidentes sobre vendas.</p>
+                <p>Para contratos de prestação de serviços, a receita é reconhecida ao longo do tempo, conforme a transferência contínua de benefícios ao cliente e de acordo com os termos contratuais, refletindo a natureza e o estágio de cumprimento das obrigações de desempenho.</p>
+                <h3 class="font-bold">3.12 - Novos pronunciamentos contábeis e alterações</h3>
+                <p>Em 2024, foram emitidas alterações relevantes nos pronunciamentos, em linha com a convergência dos pronunciamentos do CPC/IASB. Entre elas:</p>
+                <h4 class="font-bold">Alteração ao IAS 1 / CPC 26 (R1) — Divulgação de políticas contábeis</h4>
+                <p>Esclarece o que constitui informação de política contábil material e requer que as entidades foquem a divulgação em políticas que sejam relevantes para o entendimento das demonstrações financeiras. Também reforça o critério para classificação de passivos como circulantes e não circulantes, exigindo que a entidade tenha o direito de adiar a liquidação por, no mínimo, doze meses após a data do balanço, quando aplicável aos exercícios iniciados em 1º de janeiro de 2024.</p>
+                <h4 class="font-bold">Alteração ao IAS 7 / CPC 03 (R2) — Demonstração dos Fluxos de Caixa: Arranjos de financiamento com fornecedores</h4>
+                <p>Introduz requisitos de divulgação para permitir que usuários das demonstrações financeiras compreendam os efeitos dos acordos de financiamento com fornecedores nas obrigações, fluxos de caixa e exposição ao risco de liquidez da entidade, incluindo prazos, condições e valores envolvidos.</p>
+                <h4 class="font-bold">Alteração ao IFRS 16 / CPC 06 (R2) — Arrendamentos</h4>
+                <p>Especifica os requisitos aplicáveis à mensuração da responsabilidade de locação em transações de venda e arrendamento de volta, a fim de garantir que o vendedor-arrendatário reconheça somente a parcela de ganho ou perda relacionada ao direito de uso mantido.</p>
+                <p>A Administração está avaliando os impactos práticos que tais alterações podem produzir sobre as demonstrações financeiras, à medida que os normativos são regulamentados pelos órgãos competentes.</p>
+            </div>
+            <div class="page-footer">11</div>
+        </div>
+        <!-- Página 12 -->
+        <div class="page text-xs leading-relaxed">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                <p class="text-sm">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                <hr class="mt-2">
+            </header>
+            <main class="space-y-4">
+                <h3 class="font-bold">4 - Caixa e equivalentes de caixa</h3>
+                <table>
+                    <thead><tr><th class="text-left">Descrição</th><th class="text-right">2024</th><th class="text-right">2023</th></tr></thead>
+                    <tbody>
+                        <tr><td>Bancos conta movimento</td><td class="text-right">4.374</td><td class="text-right">7.305</td></tr>
+                        <tr class="border-b border-gray-400"><td>Aplicações financeiras</td><td class="text-right">0</td><td class="text-right">0</td></tr>
+                        <tr class="font-bold"><td class="pt-1">Total</td><td class="text-right pt-1">4.374</td><td class="text-right pt-1">7.305</td></tr>
+                    </tbody>
+                </table>
+                <p class="pt-4">As aplicações financeiras (equivalentes de caixa) são mantidas com a finalidade de atender a compromissos de caixa de curto prazo (até 90 dias) e não para investimento ou outros fins, sendo que a Empresa considera equivalente de caixa uma aplicação financeira de conversibilidade imediata em um montante conhecido de caixa e estando sujeita a um insignificante risco de mudança de valor, sendo que estão representadas por aplicações financeiras em fundos remunerados pela taxa dos depósitos interbancários - CDI e são resgatáveis imediatamente.</p>
+            </main>
+            <div class="page-footer">12</div>
+        </div>
+        <!-- Página 13 -->
+        <div class="page text-xs leading-relaxed">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                <p class="text-sm">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                <hr class="mt-2">
+            </header>
+            <main class="space-y-4">
+                <h3 class="font-bold">5 - Contas a receber</h3>
+                <table>
+                    <thead><tr><th class="text-left">Descrição</th><th class="text-right">2024</th><th class="text-right">2023</th></tr></thead>
+                    <tbody>
+                        <tr><td>Clientes a receber</td><td class="text-right">25.285</td><td class="text-right">28.852</td></tr>
+                        <tr class="border-b border-gray-400"><td>(-) Perdas estimadas com créditos de liquidação duvidosa</td><td class="text-right">(674)</td><td class="text-right">(1.927)</td></tr>
+                        <tr class="font-bold"><td class="pt-1">Total</td><td class="text-right pt-1">24.611</td><td class="text-right pt-1">26.925</td></tr>
+                    </tbody>
+                </table>
+            </main>
+            <div class="page-footer">13</div>
+        </div>
+        <!-- Página 14 -->
+        <div class="page text-xs leading-relaxed">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                <p class="text-sm">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                <hr class="mt-2">
+            </header>
+            <main class="space-y-6">
+                <h3 class="font-bold">6 - Estoques</h3>
+                <table>
+                    <thead><tr><th class="text-left">Descrição</th><th class="text-right">2024</th><th class="text-right">2023</th></tr></thead>
+                    <tbody>
+                        <tr><td>Peças</td><td class="text-right">27.816</td><td class="text-right">40.997</td></tr>
+                        <tr><td>Pneus</td><td class="text-right">0</td><td class="text-right">0</td></tr>
+                        <tr class="border-b border-gray-400"><td>Veículos</td><td class="text-right">0</td><td class="text-right">0</td></tr>
+                        <tr class="font-bold"><td class="pt-1">Total</td><td class="text-right pt-1">27.816</td><td class="text-right pt-1">40.997</td></tr>
+                    </tbody>
+                </table>
+                <h3 class="font-bold">7 - Impostos</h3>
+                <table>
+                    <thead><tr><th class="text-left">Descrição</th><th class="text-right">2024</th><th class="text-right">2023</th></tr></thead>
+                    <tbody>
+                        <tr><td colspan="3" class="font-bold pt-2">Impostos a recuperar</td></tr>
+                        <tr><td>PIS a recuperar</td><td class="text-right">1.000</td><td class="text-right">1.000</td></tr>
+                        <tr><td>COFINS a recuperar</td><td class="text-right">1.000</td><td class="text-right">1.000</td></tr>
+                        <tr><td>CSLL a recuperar</td><td class="text-right">100</td><td class="text-right">1.000</td></tr>
+                        <tr><td>IRRF a recuperar</td><td class="text-right">21</td><td class="text-right">1.000</td></tr>
+                        <tr class="border-b border-gray-400"><td>Outros</td><td class="text-right">0</td><td class="text-right">976</td></tr>
+                        <tr class="font-bold"><td class="pt-1">Total</td><td class="text-right pt-1">2.121</td><td class="text-right pt-1">4.976</td></tr>
+                        <tr><td colspan="3" class="font-bold pt-4">Obrigações tributárias</td></tr>
+                        <tr><td>PIS a recolher</td><td class="text-right">100</td><td class="text-right">100</td></tr>
+                        <tr><td>COFINS a recolher</td><td class="text-right">100</td><td class="text-right">100</td></tr>
+                        <tr><td>IRPJ a recolher</td><td class="text-right">100</td><td class="text-right">100</td></tr>
+                        <tr><td>CSLL a recolher</td><td class="text-right">100</td><td class="text-right">100</td></tr>
+                        <tr><td>ISS a recolher</td><td class="text-right">100</td><td class="text-right">100</td></tr>
+                        <tr><td>INSS a recolher</td><td class="text-right">50</td><td class="text-right">100</td></tr>
+                        <tr><td>FGTS a recolher</td><td class="text-right">20</td><td class="text-right">100</td></tr>
+                        <tr><td>IRRF a recolher</td><td class="text-right">10</td><td class="text-right">100</td></tr>
+                        <tr class="border-b border-gray-400"><td>Outros</td><td class="text-right">8</td><td class="text-right">266</td></tr>
+                        <tr class="font-bold"><td class="pt-1">Total</td><td class="text-right pt-1">588</td><td class="text-right pt-1">1.066</td></tr>
+                        <tr><td colspan="3" class="font-bold pt-4">Impostos diferidos</td></tr>
+                        <tr class="border-b border-gray-400"><td></td><td class="text-right">7.093</td><td class="text-right">7.126</td></tr>
+                    </tbody>
+                </table>
+            </main>
+            <div class="page-footer">14</div>
+        </div>
+        <!-- Página 15 -->
+        <div class="page text-xs leading-relaxed">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                <p class="text-sm">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                <hr class="mt-2">
+            </header>
+            <main class="space-y-6">
+                <h3 class="font-bold">8 - Mútuo a receber</h3>
+                <table>
+                    <thead><tr><th class="text-left">Descrição</th><th class="text-right">2024</th><th class="text-right">2023</th></tr></thead>
+                    <tbody>
+                        <tr><td>Partes relacionadas</td><td class="text-right">30.629</td><td class="text-right">16.652</td></tr>
+                        <tr class="border-b border-gray-400"><td>Outros</td><td class="text-right">0</td><td class="text-right">0</td></tr>
+                        <tr class="font-bold"><td class="pt-1">Total</td><td class="text-right pt-1">30.629</td><td class="text-right pt-1">16.652</td></tr>
+                    </tbody>
+                </table>
+                <h3 class="font-bold">9 - Adiantamentos</h3>
+                <table>
+                    <thead><tr><th class="text-left">Descrição</th><th class="text-right">2024</th><th class="text-right">2023</th></tr></thead>
+                    <tbody>
+                        <tr><td>Adiantamento de férias</td><td class="text-right">1.000</td><td class="text-right">100</td></tr>
+                        <tr><td>Adiantamento de 13º salário</td><td class="text-right">1.000</td><td class="text-right">100</td></tr>
+                        <tr><td>Adiantamento de fornecedores</td><td class="text-right">1.000</td><td class="text-right">100</td></tr>
+                        <tr><td>Adiantamento de viagens</td><td class="text-right">1.000</td><td class="text-right">100</td></tr>
+                        <tr class="border-b border-gray-400"><td>Outros adiantamentos</td><td class="text-right">2.256</td><td class="text-right">195</td></tr>
+                        <tr class="font-bold"><td class="pt-1">Total</td><td class="text-right pt-1">6.256</td><td class="text-right pt-1">595</td></tr>
+                    </tbody>
+                </table>
+            </main>
+            <div class="page-footer">15</div>
+        </div>
+        <!-- Página 16 -->
+        <div class="page text-xs leading-relaxed">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                <p class="text-sm">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                <hr class="mt-2">
+            </header>
+            <main class="space-y-6">
+                <h3 class="font-bold">10 - Investimentos</h3>
+                <table>
+                    <thead><tr><th class="text-left">Descrição</th><th class="text-right">2024</th><th class="text-right">2023</th></tr></thead>
+                    <tbody>
+                        <tr><td>Consórcio TB Tecway (a)</td><td class="text-right">8.497</td><td class="text-right">8.190</td></tr>
+                        <tr class="border-b border-gray-400"><td>Consórcio T&T</td><td class="text-right">0</td><td class="text-right">0</td></tr>
+                        <tr class="font-bold"><td class="pt-1">Total</td><td class="text-right pt-1">8.497</td><td class="text-right pt-1">8.190</td></tr>
+                    </tbody>
+                </table>
+                <p>(a) O Consócio TB Tecway, com sede e foro na cidade de Porto Velho – RO, foi constituído em 7 de fevereiro de 2020 e tem por finalidade a prestação de serviço de locação de veículos do tipo “pickup” e furgão, para atender a SESDEC e os órgão de segurança pública, quais sejam: (i) Polícia Militar, (ii) Polícia Civil, (iii) Corpo de Bombeiros e (iv) Politec, na Capital e Interior do Estado de Rondônia. Conforme aditivo datado em 21 de setembro de 2023, ficou prorrogada a vigência do Contrato nº 173/PGE-2020, por mais 30 (trinta) meses a contar da assinatura.</p>
+                <h3 class="font-bold">11 - Propriedades para investimentos</h3>
+                <table>
+                    <thead><tr><th class="text-left">Descrição</th><th class="text-right">2024</th><th class="text-right">2023</th></tr></thead>
+                    <tbody>
+                        <tr class="border-b border-gray-400"><td>Terrenos</td><td class="text-right">5.889</td><td class="text-right">5.889</td></tr>
+                        <tr class="font-bold"><td class="pt-1">Total</td><td class="text-right pt-1">5.889</td><td class="text-right pt-1">5.889</td></tr>
+                    </tbody>
+                </table>
+            </main>
+            <div class="page-footer">16</div>
+        </div>
+        <!-- Página 17 -->
+        <div class="page text-xs leading-relaxed">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                <p class="text-sm">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                <hr class="mt-2">
+            </header>
+            <main class="flex-grow space-y-4">
+                <h3 class="font-bold">17 - Patrimônio Líquido</h3>
+                <p>O capital social totalmente subscrito e integralizado em moeda corrente nacional é de R$5.000.000 divididos em 5.000.000 cotas no valor nominal de R$1, assim distribuídos entre os sócios:</p>
+                <h3 class="font-bold pt-4">Objetivos Gerais, Políticas e Processos:</h3>
+                <p>A Administração tem responsabilidade geral pela determinação dos objetivos e políticas de gerenciamento de riscos da Empresa e mantém a responsabilidade final por eles. Ela delegou a autoridade para projetar e operar processos que assegurem a efetiva implementação dos objetivos e políticas para a função de finanças da Empresa.</p>
+                <p>O objetivo geral da Administração é estabelecer políticas que busquem reduzir o risco, na medida do possível, sem afetar indevidamente a competitividade e flexibilidade da Empresa. Mais detalhes sobre estas políticas são apresentados a seguir.</p>
+                <h3 class="font-bold">Risco de crédito</h3>
+                <p>O risco de crédito é o risco de perda financeira para a Empresa se um cliente ou contraparte de um instrumento financeiro não cumprir suas obrigações contratuais. Os instrumentos financeiros potencialmente sujeitos ao risco de crédito para a Empresa consistem principalmente em caixa e equivalentes de caixa. Caixa e equivalentes de caixa são mantidos com instituições financeiras de crédito respeitável e podem ser resgatados mediante demanda.</p>
+                <p>O valor contábil dos ativos financeiros representa a exposição de crédito máxima. Todo o caixa e equivalentes de caixa são mantidos em bancos brasileiros de primeira linha.</p>
+                <h3 class="font-bold">Risco de liquidez</h3>
+                <p>Risco de liquidez é o risco de que a Empresa não possa cumprir suas obrigações financeiras à medida que elas venham a ser devidas. A política da Empresa é assegurar que ela sempre terá dinheiro suficiente para permitir que ele cumpra suas obrigações quando se tornarem exigíveis, em condições normais e estressadas, sem incorrer em perdas inaceitáveis ou arriscando danos à reputação da Empresa.</p>
+                <h3 class="font-bold">27 Cobertura de seguros</h3>
+                <p>A Empresa adota a política de contratar cobertura de seguros para os bens sujeitos a riscos por montantes considerados suficientes para cobrir eventuais sinistros, considerando a natureza de sua atividade. As premissas de riscos adotadas, dada a sua natureza, não fazem parte do escopo de uma auditoria de demonstrações financeiras, consequentemente não foram examinadas pelos nossos auditores independentes.</p>
+            </main>
+            <footer class="mt-auto pt-16">
+                <div class="grid grid-cols-2 gap-x-16 text-center">
+                    <div class="border-t border-gray-600 pt-2">
+                        <p class="font-bold">JEISE HELLEN PIRES FERREIRA</p>
+                        <p>CPF 003.483.222-08</p>
+                        <p>Contadora CRC/AM: 017791/O</p>
+                    </div>
+                    <div class="border-t border-gray-600 pt-2">
+                        <p class="font-bold">FÁBIO GUERRA GARCIA</p>
+                        <p>CPF 813.742.591-87</p>
+                        <p>Sócio Administrador</p>
+                    </div>
+                </div>
+                <div class="page-footer">17</div>
+            </footer>
+        </div>
+        <!-- Página 18: Termo de Encerramento -->
+        <div class="page text-xs">
+            <header class="w-full text-left">
+                <p class="font-bold text-sm">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p class="text-sm">Termo de Encerramento do Balanço Patrimonial 31 de dezembro de 2024</p>
+                <hr class="mt-2">
+            </header>
+            <main class="flex-grow pt-16 space-y-10">
+                <p class="text-center max-w-lg mx-auto leading-relaxed">
+                    Contém este 0018 folhas numeradas seguida e eletronicamente de 0001 a 0018 e servirão para o registro do "BALANÇO PATRIMONIAL" de número 0025 da empresa abaixo identificada, no período de 01/01/2024 a 31/12/2024.
+                </p>
+                <div class="space-y-2">
+                    <p><span class="font-bold">Empresa:</span> TECWAY SERVIÇOS E LOCAÇÃO DE EQUIPAMENTOS LTDA</p>
+                    <p><span class="font-bold">CNPJ N°:</span> 13.392.705/0001-43</p>
+                    <p><span class="font-bold">NIRE N°:</span> 13200556445</p>
+                    <p><span class="font-bold">Endereço:</span> Rua Helena Cardoso, nº 420, Bairro: Santa Etelvina, CEP: 69.059-290 Manaus – Amazonas</p>
+                </div>
+                <p class="pt-8 text-center">Manaus (Am), 31 de dezembro de 2024.</p>
+            </main>
+            <footer class="mt-auto pt-16">
+                <div class="grid grid-cols-2 gap-x-16 text-center">
+                    <div class="border-t border-gray-600 pt-2">
+                        <p class="font-bold">JEISE HELLEN PIRES FERREIRA</p>
+                        <p>CPF 003.483.222-08</p>
+                        <p>Contadora CRC/AM: 017791/O</p>
+                    </div>
+                    <div class="border-t border-gray-600 pt-2">
+                        <p class="font-bold">FÁBIO GUERRA GARCIA</p>
+                        <p>CPF 813.742.591-87</p>
+                        <p>Sócio Administrador</p>
+                    </div>
+                </div>
+                <div class="page-footer">18</div>
+            </footer>
+        </div>
+    </div>
+</body>
+</html>

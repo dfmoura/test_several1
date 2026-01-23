@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Texto</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+
+        body {
+            background-color: hsl(var(--secondary));
+            color: hsl(var(--foreground));
+            padding: 1.5rem;
+        }
+
+        /* Normaliza a exibição do HTML da descrição */
+        #text-display-container {
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        #text-display-container p {
+            margin: 0 0 0.75rem 0;
+        }
+
+        #text-display-container ul,
+        #text-display-container ol {
+            margin: 0 0 0.75rem 1.25rem;
+        }
+
+        #text-display-container li + li {
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body class="w-full h-full">
+
+    <div id="text-display-container" class="w-full h-full bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-lg shadow-sm text-base leading-relaxed overflow-y-auto break-words">
+        <!-- Conteúdo será injetado aqui pelo JavaScript -->
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-textviewer';
+
+        function updateMitra() {
+            console.log("Sinal de update para [Visualizador de Texto] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('text-display-container');
+
+            /**
+             * Extrai o texto puro de um HTML.
+             * @param {string} html Conteúdo HTML.
+             * @returns {string} Texto sem tags.
+             */
+            function extractPlainText(html) {
+                if (!html || typeof html !== 'string') return '';
+                try {
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    return doc.body.textContent || '';
+                } catch (e) {
+                    console.error("Erro ao processar HTML:", e);
+                    return html;
+                }
+            }
+
+            /**
+             * Normaliza o HTML para reduzir quebras em excesso sem perder a formatação existente.
+             * Mantém as tags originais, mas remove espaçamentos e quebras repetidas.
+             * @param {string} html Conteúdo HTML bruto.
+             * @returns {string} HTML pronto para renderização.
+             */
+            function normalizeHtmlContent(html) {
+                if (!html || typeof html !== 'string') return '';
+                try {
+                    const parsed = new DOMParser().parseFromString(html, 'text/html');
+                    const body = parsed.body;
+
+                    let normalized = body.innerHTML
+                        .replace(/\r\n/g, '\n')              // normaliza quebras de linha
+                        .replace(/[ \t]+\n/g, '\n')         // remove espaços antes de \n
+                        .replace(/(\n\s*){3,}/g, '\n\n')    // evita mais de uma linha em branco
+                        .replace(/(<br\s*\/?>\s*){3,}/gi, '<br><br>') // comprime <br> seguidos
+                        .trim();
+
+                    return normalized;
+                } catch (e) {
+                    console.error("Erro ao processar HTML:", e);
+                    return html;
+                }
+            }
+
+            /**
+             * Renderiza diferentes estados da UI (loading, error, empty, content).
+             * @param {'loading' | 'error' | 'empty' | 'content'} state O estado a ser renderizado.
+             * @param {string} [content=''] O conteúdo de texto para o estado 'content'.
+             */
+            function renderState(state, content = '') {
+                if (!container) return;
+
+                switch (state) {
+                    case 'loading':
+                        container.innerHTML = `
+                            <div class="flex items-center justify-center h-full text-muted-foreground p-8">
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-[hsl(var(--foreground))]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Carregando...</span>
+                            </div>`;
+                        break;
+                    case 'error':
+                        container.innerHTML = `
+                            <div class="flex flex-col items-center justify-center h-full text-center text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-8">
+                                <h3 class="font-semibold mb-2">Erro ao carregar o conteúdo</h3>
+                                <p class="text-sm">Não foi possível buscar as informações. Verifique a configuração da query ou a conexão com o banco de dados.</p>
+                            </div>`;
+                        break;
+                    case 'empty':
+                        container.innerHTML = `
+                            <div class="flex items-center justify-center h-full text-muted-foreground p-8">
+                                <span>Nenhuma nota explicativa para exibir neste período.</span>
+                            </div>`;
+                        break;
+                    case 'content':
+                        container.innerHTML = content;
+                        container.classList.add('p-8');
+                        break;
+                }
+
+                if (state !== 'content') {
+                    container.classList.remove('p-8');
+                }
+            }
+
+            /**
+             * Busca os dados da query, processa e renderiza o texto na tela.
+             */
+            async function fetchAndRenderText() {
+                if (!componentData || !componentData.query) {
+                    console.error("Erro de configuração: A variável 'componentData.query' não foi definida.");
+                    renderState('error');
+                    return;
+                }
+
+                renderState('loading');
+
+                try {
+                    const result = await queryMitra({ query: componentData.query });
+
+                    if (result && result.data && result.data.length > 0 && result.data[0] && result.data[0].length > 0) {
+                        const htmlContent = result.data[0][0];
+                        const normalizedHtml = normalizeHtmlContent(htmlContent);
+                        const plainText = extractPlainText(normalizedHtml);
+
+                        if (plainText.trim() === '') {
+                            renderState('empty');
+                        } else {
+                            renderState('content', normalizedHtml);
+                        }
+                    } else {
+                        renderState('empty');
+                    }
+                } catch (error) {
+                    console.error("Falha ao executar a query Mitra:", error);
+                    renderState('error');
+                }
+            }
+
+            /**
+             * Configura os listeners e inicia a primeira carga de dados.
+             */
+            function initializeComponent() {
+                document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, fetchAndRenderText);
+                fetchAndRenderText();
+            }
+
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+
+                const checkInterval = setInterval(() => {
+                    if (window.componentData && window.componentData.query) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        document.body.innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente não foram carregadas da plataforma.</div>`;
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>
+
