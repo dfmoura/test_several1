@@ -1,0 +1,19 @@
+para o arquivo industria13.jsp
+assim como foi feito nos outros, 
+
+para a guia 'Indústria' no card 'Volume Realizado'  , no grafico e tabela em nivel infeiror
+seguir o padrao existente para popular os dados deste componentes
+com as querys do arquivo query_base7.sql (esta query eh de exemplo as datas esta fixas)
+lembrando que: 
+
+card ira apresentar media de PERC_REALIZADO para o respectivo intervalo,
+no grafico a evolução desta media PERC_REALIZADO para o respectivo intervalo
+ e na tabela o detalhamento com todos dados da query para o respectivo intervalo.
+
+respeitar o filtro DE INTERVALO DE DATAS
+verificar outros ja realizados
+
+
+ser mais especialista e revisar com cuidado pois 
+analisar com cuidado
+

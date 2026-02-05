@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela Simples</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+    <div class="container mx-auto">
+        <h1 class="text-2xl font-bold mb-4">Tabela Simples</h1>
+        <table class="w-full border-collapse border border-gray-300">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="border border-gray-300 py-2 px-4 text-left font-bold">Descrição</th>
+                    <th class="border border-gray-300 py-2 px-4 text-right font-bold">Valor Atual</th>
+                    <th class="border border-gray-300 py-2 px-4 text-right font-bold">Valor Anterior</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="border border-gray-300 py-2 px-4">Exemplo 1</td>
+                    <td class="border border-gray-300 py-2 px-4 text-right">1.000,00</td>
+                    <td class="border border-gray-300 py-2 px-4 text-right">950,00</td>
+                </tr>
+                <tr class="bg-gray-50">
+                    <td class="border border-gray-300 py-2 px-4">Exemplo 2</td>
+                    <td class="border border-gray-300 py-2 px-4 text-right">2.500,00</td>
+                    <td class="border border-gray-300 py-2 px-4 text-right">2.300,00</td>
+                </tr>
+                <tr>
+                    <td class="border border-gray-300 py-2 px-4">Exemplo 3</td>
+                    <td class="border border-gray-300 py-2 px-4 text-right">500,00</td>
+                    <td class="border border-gray-300 py-2 px-4 text-right">600,00</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

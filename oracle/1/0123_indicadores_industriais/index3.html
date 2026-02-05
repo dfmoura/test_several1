@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Matriz de LED 8x8</title>
+
+    <style>
+        body {
+            background-color: #111;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            gap: 20px;
+        }
+
+        .container-matrizes {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .controles {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .controles input {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #00ff00;
+            background-color: #222;
+            color: #00ff00;
+            border-radius: 5px;
+            min-width: 200px;
+        }
+
+        .controles button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #00ff00;
+            color: #111;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .controles button:hover {
+            background-color: #00cc00;
+        }
+
+        .matriz {
+            display: grid;
+            grid-template-columns: repeat(8, 40px);
+            grid-template-rows: repeat(8, 40px);
+            gap: 6px;
+            background-color: #222;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .led {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #333;
+            box-shadow: inset 0 0 8px #000;
+            cursor: pointer;
+            transition: background-color 0.1s, box-shadow 0.1s;
+        }
+
+        .led.ligado {
+            background-color: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controles">
+        <input type="text" id="textoInput" placeholder="Digite o texto aqui..." value="HELLO">
+        <button id="btnIniciar">Iniciar</button>
+        <button id="btnParar">Parar</button>
+    </div>
+
+    <div class="container-matrizes">
+        <div class="matriz" id="matriz1"></div>
+        <div class="matriz" id="matriz2"></div>
+        <div class="matriz" id="matriz3"></div>
+        <div class="matriz" id="matriz4"></div>
+    </div>
+
+    <script>
+        const matriz1 = document.getElementById("matriz1");
+        const matriz2 = document.getElementById("matriz2");
+        const matriz3 = document.getElementById("matriz3");
+        const matriz4 = document.getElementById("matriz4");
+        const textoInput = document.getElementById("textoInput");
+        const btnIniciar = document.getElementById("btnIniciar");
+        const btnParar = document.getElementById("btnParar");
+        let animacaoId = null;
+        let posicaoScroll = 0;
+
+        // cria os 64 LEDs (8x8) para cada matriz
+        const leds1 = [];
+        const leds2 = [];
+        const leds3 = [];
+        const leds4 = [];
+        const todasMatrizes = [matriz1, matriz2, matriz3, matriz4];
+        const todosLeds = [leds1, leds2, leds3, leds4];
+
+        for (let m = 0; m < 4; m++) {
+            for (let i = 0; i < 64; i++) {
+                const led = document.createElement("div");
+                led.classList.add("led");
+
+                // alterna ligado/desligado ao clicar
+                led.addEventListener("click", () => {
+                    led.classList.toggle("ligado");
+                });
+
+                todasMatrizes[m].appendChild(led);
+                todosLeds[m].push(led);
+            }
+        }
+
+        // Padrões de caracteres 8x8 (simplificado)
+        const caracteres = {
+            'A': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,1,1,1,1,1,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0]
+            ],
+            'B': [
+                [1,1,1,1,1,0,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,1,1,1,1,0,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,1,1,1,1,0,0,0]
+            ],
+            'C': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            'D': [
+                [1,1,1,1,0,0,0,0],
+                [1,0,0,0,1,0,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,1,0,0,0],
+                [1,1,1,1,0,0,0,0]
+            ],
+            'E': [
+                [1,1,1,1,1,1,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,1,1,1,1,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,1,1,1,1,1,0,0]
+            ],
+            'F': [
+                [1,1,1,1,1,1,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,1,1,1,1,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0]
+            ],
+            'G': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,1,1,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            'H': [
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,1,1,1,1,1,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0]
+            ],
+            'I': [
+                [1,1,1,1,1,0,0,0],
+                [0,0,1,0,0,0,0,0],
+                [0,0,1,0,0,0,0,0],
+                [0,0,1,0,0,0,0,0],
+                [0,0,1,0,0,0,0,0],
+                [0,0,1,0,0,0,0,0],
+                [0,0,1,0,0,0,0,0],
+                [1,1,1,1,1,0,0,0]
+            ],
+            'J': [
+                [0,0,0,1,1,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            'K': [
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,1,0,0,0],
+                [1,0,0,1,0,0,0,0],
+                [1,1,1,0,0,0,0,0],
+                [1,0,0,1,0,0,0,0],
+                [1,0,0,0,1,0,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,0,1,0]
+            ],
+            'L': [
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,1,1,1,1,1,0,0]
+            ],
+            'M': [
+                [1,0,0,0,0,0,1,0],
+                [1,1,0,0,0,1,1,0],
+                [1,0,1,0,1,0,1,0],
+                [1,0,0,1,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0]
+            ],
+            'N': [
+                [1,0,0,0,0,0,1,0],
+                [1,1,0,0,0,0,1,0],
+                [1,0,1,0,0,0,1,0],
+                [1,0,0,1,0,0,1,0],
+                [1,0,0,0,1,0,1,0],
+                [1,0,0,0,0,1,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0]
+            ],
+            'O': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            'P': [
+                [1,1,1,1,1,0,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,1,1,1,1,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0]
+            ],
+            'Q': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,1,0,0,1,0],
+                [1,0,0,0,1,0,1,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,1,0]
+            ],
+            'R': [
+                [1,1,1,1,1,0,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,1,1,1,1,0,0,0],
+                [1,0,0,1,0,0,0,0],
+                [1,0,0,0,1,0,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,0,1,0]
+            ],
+            'S': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [1,0,0,0,0,0,0,0],
+                [0,1,1,1,1,0,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,0,0,1,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            'T': [
+                [1,1,1,1,1,1,1,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0]
+            ],
+            'U': [
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            'V': [
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [0,1,0,0,0,1,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,0,1,0,0,0],
+                [0,0,1,0,1,0,0,0],
+                [0,0,0,1,0,0,0,0]
+            ],
+            'W': [
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,1,0,0,1,0],
+                [1,0,1,0,1,0,1,0],
+                [1,1,0,0,0,1,1,0],
+                [1,0,0,0,0,0,1,0]
+            ],
+            'X': [
+                [1,0,0,0,0,0,1,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,0,1,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,1,0,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [1,0,0,0,0,0,1,0]
+            ],
+            'Y': [
+                [1,0,0,0,0,0,1,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,0,1,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0]
+            ],
+            'Z': [
+                [1,1,1,1,1,1,1,0],
+                [0,0,0,0,0,0,1,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,1,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,1,0,0,0,0,0],
+                [0,1,0,0,0,0,0,0],
+                [1,1,1,1,1,1,1,0]
+            ],
+            ' ': [
+                [0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0]
+            ],
+            '0': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,1,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            '1': [
+                [0,0,0,1,0,0,0,0],
+                [0,0,1,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            '2': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,1,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,1,0,0,0,0,0],
+                [0,1,0,0,0,0,0,0],
+                [1,1,1,1,1,1,0,0]
+            ],
+            '3': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            '4': [
+                [0,0,0,0,1,0,0,0],
+                [0,0,0,1,1,0,0,0],
+                [0,0,1,0,1,0,0,0],
+                [0,1,0,0,1,0,0,0],
+                [1,1,1,1,1,1,0,0],
+                [0,0,0,0,1,0,0,0],
+                [0,0,0,0,1,0,0,0],
+                [0,0,0,0,1,0,0,0]
+            ],
+            '5': [
+                [1,1,1,1,1,1,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,1,1,1,1,0,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            '6': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,1,1,1,1,0,0,0],
+                [1,0,0,0,0,1,0,0],
+                [1,0,0,0,0,1,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            '7': [
+                [1,1,1,1,1,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,1,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,1,0,0,0,0,0],
+                [0,1,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0]
+            ],
+            '8': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,0,0,0]
+            ],
+            '9': [
+                [0,0,1,1,1,0,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,1,0,0,0,1,0,0],
+                [0,0,1,1,1,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,1,0,0,0],
+                [0,0,1,1,0,0,0,0]
+            ]
+        };
+
+        // Função para obter padrão de um caractere
+        function obterPadrao(caractere) {
+            const upperChar = caractere.toUpperCase();
+            return caracteres[upperChar] || caracteres[' '];
+        }
+
+        // Função para criar buffer de texto completo (matriz horizontal)
+        function criarBufferTexto(texto) {
+            const buffer = [];
+            const larguraTotal = texto.length * 9 + 16; // 8 colunas por char + 1 espaço + padding
+            
+            // Inicializa buffer com zeros (8 linhas x larguraTotal colunas)
+            for (let linha = 0; linha < 8; linha++) {
+                buffer.push(Array(larguraTotal).fill(0));
+            }
+            
+            let colunaAtual = 8; // Começa após padding inicial
+            
+            // Adiciona cada caractere
+            for (let char of texto) {
+                const padrao = obterPadrao(char);
+                for (let linha = 0; linha < 8; linha++) {
+                    for (let col = 0; col < 8; col++) {
+                        if (colunaAtual + col < larguraTotal) {
+                            buffer[linha][colunaAtual + col] = padrao[linha][col];
+                        }
+                    }
+                }
+                colunaAtual += 9; // 8 colunas do caractere + 1 espaço
+            }
+            
+            return buffer;
+        }
+
+        // Função para atualizar uma matriz específica com wrap-around
+        function atualizarMatriz(buffer, posicao, leds, larguraBuffer) {
+            for (let linha = 0; linha < 8; linha++) {
+                for (let coluna = 0; coluna < 8; coluna++) {
+                    const indice = linha * 8 + coluna;
+                    const bufferColuna = (posicao + coluna) % larguraBuffer;
+                    
+                    if (buffer[linha] && buffer[linha][bufferColuna] === 1) {
+                        leds[indice].classList.add('ligado');
+                    } else {
+                        leds[indice].classList.remove('ligado');
+                    }
+                }
+            }
+        }
+
+        // Função para atualizar todas as 4 matrizes
+        function atualizarTodasMatrizes(buffer, posicao, larguraBuffer) {
+            for (let m = 0; m < 4; m++) {
+                atualizarMatriz(buffer, posicao + (m * 8), todosLeds[m], larguraBuffer);
+            }
+        }
+
+        // Função de animação
+        function animar() {
+            const texto = textoInput.value || 'HELLO';
+            const buffer = criarBufferTexto(texto);
+            const larguraBuffer = buffer[0].length;
+            
+            posicaoScroll = 0;
+            
+            function frame() {
+                // Atualiza as 4 matrizes com deslocamento de 8 colunas entre elas
+                // Usa módulo para criar loop contínuo - quando a primeira está finalizando,
+                // a última já mostra o início novamente
+                atualizarTodasMatrizes(buffer, posicaoScroll, larguraBuffer);
+                posicaoScroll++;
+                
+                // Loop infinito - quando chega ao fim, volta ao início automaticamente via módulo
+                // A posição nunca reseta, apenas usa módulo na função atualizarMatriz
+                animacaoId = setTimeout(frame, 100);
+            }
+            
+            frame();
+        }
+
+        // Event listeners
+        btnIniciar.addEventListener('click', () => {
+            if (animacaoId) {
+                clearTimeout(animacaoId);
+            }
+            animar();
+        });
+
+        btnParar.addEventListener('click', () => {
+            if (animacaoId) {
+                clearTimeout(animacaoId);
+                animacaoId = null;
+            }
+            // Limpa todas as matrizes
+            todosLeds.forEach(matrizLeds => {
+                matrizLeds.forEach(led => led.classList.remove('ligado'));
+            });
+        });
+    </script>
+
+</body>
+</html>

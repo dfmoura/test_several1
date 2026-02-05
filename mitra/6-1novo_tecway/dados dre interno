@@ -1,0 +1,93 @@
+re
+
+Imposto de renda e contribuição social - diferidos
+Base diferida do IRPJ e CSLL
+2.1.01.08.000006
+2.1.01.08.000007
+
+
+Imposto de renda e contribuição social - correntes
+Reversões
+2.2.01.08.000001
+2.2.01.08.000002
+
+
+
+
+com muito cuidado sem estragar nada pois tudo funciona perfeitamente
+
+ao final da tela
+
+acrescenter mais estas linha
+
+na tela atual logo abaixo de '(=) RESULTADO ANTES DOS IMPOSTOS APURADOS'
+gerar mais esta linha com um total na sequencia:
+colocar estes:
+
+
+'IRPJ - 15%'
+'IRPJ - 10%'
+'CSLL - 9%'
+'TOTAL Corrente'
+IRPJ diferido - 15%
+'IRPJ diferido - 10%'
+'CSLL diferido - 9%'
+'TOTAL Diferido'
+TOTAL Geral de impostos
+
+
+
+
+
+a hierarquia:
+'6.1' = Base diferida do IRPJ e CSLL
+'7.1' = Reversões
+
+fazer a soma de cada (de acordo com os filtros)
+e efeturar os calculos abaixo, atual e anterior
+
+com seus respectivos calculos para o valor atual e anterior
+
+
+
+Este tem que pegar o total no codigo:
+Q3651 = (=) RESULTADO ANTES DOS IMPOSTOS APURADOS
+
+Ja  possui a hierarquia cadastrada 8.1,8.2,8.3,8.4 :
+q3497 = 5.1.01.09.000008 = BRINDES = 8.1
+q3577 = 5.1.02.01.000010 = PROVISÃO PARA PECLD = 8.2
+q3578 = 5.1.02.01.000011 = (-) REVERSÃO PECLD = 8.3
+q3616 = 5.2 = OUTRAS DESPESAS NÃO OPERACIONAIS = 8.4
+
+
+
+IRPJ  - 15% = SE((Q3651+Q3577-Q3578-Q3616+Q3497)>0;(Q3651+Q3577-Q3578-Q3616+Q3497)*15%;0)-Q3659
+IRPJ - 10% =SE((Q3651+Q3577-Q3578-Q3616+Q3497)>0;((Q3651+Q3577-Q3578-Q3616+Q3497)-240000)*10%;0)-Q3660
+CSLL - 9% =SE((Q3651+Q3577-Q3578-Q3616+Q3497)>0;(Q3651+Q3577-Q3578-Q3616+Q3497)*9%;0)-Q3661
+
+
+para ajudar no calculo:
+Q3659 = 'IRPJ diferido - 15%'
+Q3660 = 'IRPJ diferido - 10%'
+Q3661 = 'CSLL diferido - 9%'
+
+
+'IRPJ diferido - 15%' =SE((('6.1'*-1)-'7.1')>0;(('6.1'*-1)-'7.1')*15%;0)
+'IRPJ diferido - 10%' =SE((('6.1'*-1)-'7.1')>240000;((('6.1'*-1)-'7.1')-240000)*10%;0)
+'CSLL diferido - 9%' =SE(('6.1'*-1)-'7.1'>0;(('6.1'*-1)-'7.1')*9%;0)
+
+
+
+
+
+
+
+
+
+por fim na ultima linha sera o 
+'(=) RESULTADO LÍQUIDO DO EXERCÍCIO'
+que é o calculo de 
+'(=) RESULTADO ANTES DOS IMPOSTOS APURADOS'
+menos
+'TOTAL Geral de impostos'
+	

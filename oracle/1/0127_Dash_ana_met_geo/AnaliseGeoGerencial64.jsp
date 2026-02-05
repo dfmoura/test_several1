@@ -19,6 +19,8 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
     />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js"></script>
+    <!-- SheetJS para exportação Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <!-- Leaflet para OpenStreetMap -->
     <link
       rel="stylesheet"
@@ -798,6 +800,23 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
         border-color: #008a70;
         color: #fff;
       }
+      .btn-overlay.btn-success {
+        background: #28a745;
+        border-color: #28a745;
+        color: #fff;
+      }
+      .btn-overlay.btn-success:hover {
+        background: #218838;
+        border-color: #1e7e34;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+      }
+      .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      }
       .btn-overlay.btn-primary:hover {
         background: #00695e;
         border-color: #00695e;
@@ -1303,6 +1322,15 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
                 <i class="fas fa-sync-alt"></i> Atualizar
               </button>
             </div>
+            <div class="toolbar-right">
+              <button
+                class="btn-overlay btn-success"
+                onclick="exportAnalysisToExcel('vend')"
+                title="Exportar dados para Excel"
+              >
+                <i class="fas fa-file-excel"></i> Excel
+              </button>
+            </div>
           </div>
 
           <div
@@ -1331,6 +1359,15 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
                 <i class="fas fa-sync-alt"></i> Atualizar
               </button>
             </div>
+            <div class="toolbar-right">
+              <button
+                class="btn-overlay btn-success"
+                onclick="exportAnalysisToExcel('parc')"
+                title="Exportar dados para Excel"
+              >
+                <i class="fas fa-file-excel"></i> Excel
+              </button>
+            </div>
           </div>
 
           <div
@@ -1357,6 +1394,15 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
               </button>
               <button class="btn-overlay" onclick="reloadAnalysis('marca')">
                 <i class="fas fa-sync-alt"></i> Atualizar
+              </button>
+            </div>
+            <div class="toolbar-right">
+              <button
+                class="btn-overlay btn-success"
+                onclick="exportAnalysisToExcel('marca')"
+                title="Exportar dados para Excel"
+              >
+                <i class="fas fa-file-excel"></i> Excel
               </button>
             </div>
           </div>
@@ -1611,6 +1657,20 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
                       Parceiro
                     </th>
                     <th
+                      class="sortable-header"
+                      data-sort-key="codvend"
+                      onclick="handleAnalysisSort('parc','codvend')"
+                    >
+                      Código Vendedor
+                    </th>
+                    <th
+                      class="sortable-header"
+                      data-sort-key="apelido"
+                      onclick="handleAnalysisSort('parc','apelido')"
+                    >
+                      Vendedor
+                    </th>
+                    <th
                       class="text-center sortable-header"
                       data-sort-key="qtd_real"
                       onclick="handleAnalysisSort('parc','qtd_real')"
@@ -1797,6 +1857,15 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
                 <i class="fas fa-sync-alt"></i> Atualizar
               </button>
             </div>
+            <div class="toolbar-right">
+              <button
+                class="btn-overlay btn-success"
+                onclick="exportVendedorParceirosToExcel()"
+                title="Exportar dados para Excel"
+              >
+                <i class="fas fa-file-excel"></i> Excel
+              </button>
+            </div>
           </div>
 
           <div class="overlay-section" style="display: block">
@@ -1851,6 +1920,15 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
               </div>
               <button class="btn-overlay" onclick="reloadParceiroMarcas()">
                 <i class="fas fa-sync-alt"></i> Atualizar
+              </button>
+            </div>
+            <div class="toolbar-right">
+              <button
+                class="btn-overlay btn-success"
+                onclick="exportParceiroMarcasToExcel()"
+                title="Exportar dados para Excel"
+              >
+                <i class="fas fa-file-excel"></i> Excel
               </button>
             </div>
           </div>
@@ -1908,6 +1986,15 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
                 <i class="fas fa-sync-alt"></i> Atualizar
               </button>
             </div>
+            <div class="toolbar-right">
+              <button
+                class="btn-overlay btn-success"
+                onclick="exportParceiroMarcasFromParcToExcel()"
+                title="Exportar dados para Excel"
+              >
+                <i class="fas fa-file-excel"></i> Excel
+              </button>
+            </div>
           </div>
 
           <div class="overlay-section" style="display: block">
@@ -1961,6 +2048,15 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
               </div>
               <button class="btn-overlay" onclick="reloadMarcaVendedores()">
                 <i class="fas fa-sync-alt"></i> Atualizar
+              </button>
+            </div>
+            <div class="toolbar-right">
+              <button
+                class="btn-overlay btn-success"
+                onclick="exportMarcaVendedoresToExcel()"
+                title="Exportar dados para Excel"
+              >
+                <i class="fas fa-file-excel"></i> Excel
               </button>
             </div>
           </div>
@@ -2017,6 +2113,15 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
               </div>
               <button class="btn-overlay" onclick="reloadMarcaVendedorParceiros()">
                 <i class="fas fa-sync-alt"></i> Atualizar
+              </button>
+            </div>
+            <div class="toolbar-right">
+              <button
+                class="btn-overlay btn-success"
+                onclick="exportMarcaVendedorParceirosToExcel()"
+                title="Exportar dados para Excel"
+              >
+                <i class="fas fa-file-excel"></i> Excel
               </button>
             </div>
           </div>
@@ -4388,6 +4493,187 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
         }).format(value / 100);
       }
 
+      // ===== Funções de Exportação para Excel =====
+      // Função genérica para exportar tabela HTML para Excel usando SheetJS
+      function exportTableToExcel(tableId, fileName, options = {}) {
+        try {
+          const table = document.getElementById(tableId);
+          if (!table) {
+            alert("Tabela não encontrada para exportação");
+            return;
+          }
+
+          // Verifica se há dados na tabela
+          const tbody = table.querySelector("tbody");
+          if (!tbody || tbody.children.length === 0) {
+            alert("Não há dados para exportar");
+            return;
+          }
+
+          // Converte tabela para workbook usando SheetJS
+          const wb = XLSX.utils.table_to_book(table, {
+            sheet: "Dados",
+            raw: false,
+          });
+
+          // Gera nome do arquivo com timestamp
+          const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+          const finalFileName = `${fileName}_${timestamp}.xlsx`;
+
+          // Exporta arquivo
+          XLSX.writeFile(wb, finalFileName);
+          
+          // Feedback visual (opcional)
+          if (options.showSuccess !== false) {
+            showSuccess(`Arquivo ${finalFileName} exportado com sucesso!`);
+          }
+        } catch (error) {
+          console.error("Erro ao exportar para Excel:", error);
+          alert("Erro ao exportar dados para Excel. Verifique o console para mais detalhes.");
+        }
+      }
+
+      // Função para exportar dados de análise (com suporte a múltiplas abas)
+      function exportAnalysisToExcel(tab) {
+        const tableId = tab === "vend" ? "analysisVendBody" : 
+                        tab === "parc" ? "analysisParcBody" : 
+                        "analysisMarcaBody";
+        const tbody = document.getElementById(tableId);
+        if (!tbody) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        
+        const table = tbody.closest("table");
+        if (!table) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        
+        // Cria tabela temporária com dados completos
+        const tempTable = table.cloneNode(true);
+        tempTable.style.display = "none";
+        tempTable.id = `tempTable_${Date.now()}`;
+        document.body.appendChild(tempTable);
+        
+        try {
+          exportTableToExcel(tempTable.id, `analise_${tab}`, { showSuccess: true });
+        } finally {
+          document.body.removeChild(tempTable);
+        }
+      }
+
+      // Funções específicas de exportação para cada overlay
+      function exportVendedorParceirosToExcel() {
+        const tbody = document.getElementById("vendedorParceirosBody");
+        if (!tbody) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        const table = tbody.closest("table");
+        if (!table) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        const tempTable = table.cloneNode(true);
+        tempTable.style.display = "none";
+        tempTable.id = `tempTable_${Date.now()}`;
+        document.body.appendChild(tempTable);
+        try {
+          exportTableToExcel(tempTable.id, "parceiros_vendedor", { showSuccess: true });
+        } finally {
+          document.body.removeChild(tempTable);
+        }
+      }
+
+      function exportParceiroMarcasToExcel() {
+        const tbody = document.getElementById("parceiroMarcasBody");
+        if (!tbody) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        const table = tbody.closest("table");
+        if (!table) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        const tempTable = table.cloneNode(true);
+        tempTable.style.display = "none";
+        tempTable.id = `tempTable_${Date.now()}`;
+        document.body.appendChild(tempTable);
+        try {
+          exportTableToExcel(tempTable.id, "marcas_parceiro", { showSuccess: true });
+        } finally {
+          document.body.removeChild(tempTable);
+        }
+      }
+
+      function exportParceiroMarcasFromParcToExcel() {
+        const tbody = document.getElementById("parceiroMarcasFromParcBody");
+        if (!tbody) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        const table = tbody.closest("table");
+        if (!table) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        const tempTable = table.cloneNode(true);
+        tempTable.style.display = "none";
+        tempTable.id = `tempTable_${Date.now()}`;
+        document.body.appendChild(tempTable);
+        try {
+          exportTableToExcel(tempTable.id, "marcas_parceiro_guia", { showSuccess: true });
+        } finally {
+          document.body.removeChild(tempTable);
+        }
+      }
+
+      function exportMarcaVendedoresToExcel() {
+        const tbody = document.getElementById("marcaVendedoresBody");
+        if (!tbody) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        const table = tbody.closest("table");
+        if (!table) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        const tempTable = table.cloneNode(true);
+        tempTable.style.display = "none";
+        tempTable.id = `tempTable_${Date.now()}`;
+        document.body.appendChild(tempTable);
+        try {
+          exportTableToExcel(tempTable.id, "vendedores_marca", { showSuccess: true });
+        } finally {
+          document.body.removeChild(tempTable);
+        }
+      }
+
+      function exportMarcaVendedorParceirosToExcel() {
+        const tbody = document.getElementById("marcaVendedorParceirosBody");
+        if (!tbody) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        const table = tbody.closest("table");
+        if (!table) {
+          alert("Tabela não encontrada");
+          return;
+        }
+        const tempTable = table.cloneNode(true);
+        tempTable.style.display = "none";
+        tempTable.id = `tempTable_${Date.now()}`;
+        document.body.appendChild(tempTable);
+        try {
+          exportTableToExcel(tempTable.id, "parceiros_vendedor_marca", { showSuccess: true });
+        } finally {
+          document.body.removeChild(tempTable);
+        }
+      }
+
       // Componentes visuais para tornar a interpretação mais intuitiva
       function buildPercentChip(value, formattedValue) {
         const safeDisplay =
@@ -4738,6 +5024,8 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
         return `
             SELECT
               CODPARC,PARCEIRO,
+              CODVEND,
+              APELIDO,
               SUM(QTDREAL) AS QTD_REAL,
               SUM(QTDPREV) AS QTD_PREV,
               SUM(VLRREAL) AS VLR_REAL,
@@ -4747,6 +5035,8 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
                 MET.DTREF,
                 NVL(VGF.CODPARC, NVL(MET.CODPARC, 0)) CODPARC,
                 NVL(VGF.PARCEIRO, 'SEM PARCEIRO') PARCEIRO,
+                VGF.CODVEND,
+                VGF.APELIDO,
                 SUM(NVL(VGF.QTD, 0)) AS QTDREAL,
                 MAX(NVL(MET.QTDPREV, 0)) AS QTDPREV,
                 SUM(NVL(VGF.VLR, 0)) AS VLRREAL,
@@ -4791,9 +5081,11 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
                 MET.CODPARC,
                 MET.MARCA,
                 NVL(VGF.CODPARC, NVL(MET.CODPARC, 0)),
-                NVL(VGF.PARCEIRO, 'SEM PARCEIRO')
+                NVL(VGF.PARCEIRO, 'SEM PARCEIRO'),
+                VGF.CODVEND,
+                VGF.APELIDO
             )
-            GROUP BY CODPARC,PARCEIRO
+            GROUP BY CODPARC,PARCEIRO,CODVEND,APELIDO
             ORDER BY 2,1`;
       }
       function buildMarcaSQL(dtInicio, dtFim) {
@@ -5133,6 +5425,8 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
             return `<tr style="cursor: pointer;" ondblclick="openParceiroMarcasFromParcOverlay(${r.CODPARC || 0}, '${(r.PARCEIRO || '').replace(/'/g, "\\'")}')">
             <td>${r.CODPARC ?? ""}</td>
             <td>${r.PARCEIRO ?? ""}</td>
+            <td>${r.CODVEND ?? ""}</td>
+            <td>${r.APELIDO ?? ""}</td>
             <td class="text-center metric-value">${qtdRealFmt}</td>
             <td class="text-center metric-value">${qtdPrevFmt}</td>
             <td class="text-center metric-cell">${pctQtdChip}</td>
@@ -5506,6 +5800,12 @@ uri="http://java.sun.com/jsp/jstl/fmt" %>
                 .toLowerCase()
                 .includes(term) ||
               String(r.PARCEIRO || "")
+                .toLowerCase()
+                .includes(term) ||
+              String(r.CODVEND || "")
+                .toLowerCase()
+                .includes(term) ||
+              String(r.APELIDO || "")
                 .toLowerCase()
                 .includes(term);
             const matchCod = codSet.size === 0 || codSet.has(String(r.CODPARC));

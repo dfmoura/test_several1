@@ -1,0 +1,35 @@
+
+
+gerar um tela
+
+aprasentando descriação, ano anterior dinamico , ano atual dinamico
+
+(+) RECEITA BRUTA , total de '1.' ano anterior, total de '1.' ano atual
+detalhar a descrição e valores anterior e atual de 1.
+detalhar a descrição e valores anterior e atual de 2.
+(=) RECEITA OPERACIONAL LÍQUIDA , total de '1.'-'2.' ano anterior, total de '1.'-'2.' ano atual
+(-) CUSTO DO SERVIÇO PRESTADO (CSP), total de '3.' ano anterior, total de '3.' ano atual
+detalhar a descrição e valores anterior e atual de 3.
+(=) RESULTADO OPERACIONAL BRUTO , total de '1.'+'2.'+'3.' ano anterior, total de '1.'+'2.'+'3.' ano atual
+DESPESAS E RECEITAS OPERACIONAIS, total de '4.' ano anterior, total de '4.' ano atual
+DESPESAS ADMINISTRATIVAS, total de '4.1' ano anterior, total de '4.1' ano atual
+detalhar a descrição e valores anterior e atual de 4.1
+DESPESAS COMERCIAIS, total de '4.2' ano anterior, total de '4.2' ano atual
+detalhar a descrição e valores anterior e atual de 4.2
+DESPESAS COMERCIAIS, total de '4.3' ano anterior, total de '4.3' ano atual
+detalhar a descrição e valores anterior e atual de 4.3
+DESPESAS COMERCIAIS, total de '4.4' ano anterior, total de '4.4' ano atual
+detalhar a descrição e valores anterior e atual de 4.4
+DESPESAS COMERCIAIS, total de '4.5' ano anterior, total de '4.5' ano atual
+detalhar a descrição e valores anterior e atual de 4.5
+(=) RESULTADO OPERACIONAL LÍQUIDO, total de '1.'+'2.'+'3.'+'4.' ano anterior, total de '1.'+'2.'+'3.'+'4.' ano atual
+OUTRAS RECEITAS NÃO OPERACIONAIS, total de '5.' ano anterior, total de '5.' ano atual
+detalhar a descrição e valores anterior e atual de 5.
+(=) RESULTADO ANTES DOS IMPOSTOS APURADOS, total de '1.'+'2.'+'3.'+'4.'+'5.' ano anterior, total de '1.'+'2.'+'3.'+'4.'+'5.' ano atual
+
+
+
+
+
+
+

@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanço Patrimonial e DRE</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        body {
+            background-color: #e5e7eb;
+            color: hsl(var(--foreground));
+        }
+
+        .page-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .page {
+            background-color: hsl(var(--background));
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            color: hsl(var(--foreground));
+        }
+
+        .notas-page {
+            display: flex;
+            flex-direction: column;
+            height: 297mm;
+            max-height: 297mm;
+            font-size: 7px; /* ajustado para 7px conforme solicitado */
+        }
+
+        .notas-content p {
+            text-align: justify;
+            font-size: inherit;
+            font-family: inherit;
+        }
+
+        .notas-header p,
+        .notas-footer span {
+            font-size: inherit;
+            font-family: inherit;
+        }
+
+        @media print {
+            body {
+                background-color: white !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .page-container {
+                padding: 0;
+                gap: 0;
+                margin: 0;
+                display: block; /* ESSENCIAL */
+            }
+            .page {
+                box-shadow: none;
+                margin: 0;
+                padding: 10mm;
+                page-break-after: always;
+                width: 100%;
+                min-height: 0;
+                height: auto;
+                border: none;
+                page-break-inside: avoid; /* Adicionado */
+            }
+            .page:last-child {
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print sticky top-0 z-50 bg-white/80 backdrop-blur-sm p-4 text-right border-b shadow-sm">
+        <button onclick="window.print()" class="bg-primary text-primary-foreground rounded-md px-6 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            Imprimir Relatório
+        </button>
+    </div>
+
+    <div class="page-container">
+        <!-- Página 1: Capa -->
+        <div class="page flex flex-col justify-between items-center text-center">
+            <div></div> <!-- Espaçador para empurrar o conteúdo para o centro -->
+            <div>
+                <div class="mb-24">
+                    <h1 class="text-5xl font-bold tracking-widest">
+                        <span class="text-[#E30613]">TEC</span><span class="text-gray-700">WAY</span>
+                    </h1>
+                    <p class="mt-1 text-sm tracking-[0.3em] text-gray-500">serviços e locação</p>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <p class="font-semibold tracking-wider">TECWAY SERVIÇOS E LOCAÇÃO DE EQUIPAMENTOS LTDA</p>
+                    <p class="font-semibold tracking-wider">DEMONSTRAÇÕES FINANCEIRAS</p>
+                    <p class="tracking-wider" data-dynamic-text="full-date-upper">31 DE DEZEMBRO DE 2024</p>
+                </div>
+            </div>
+            <div class="text-sm">
+                <p>Manaus/AM.</p>
+            </div>
+        </div>
+
+        <!-- Página 2: Termo de Abertura -->
+        <div class="page text-xs flex flex-col">
+            <header class="w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="termo-title">Termo de Abertura do Balanço Patrimonial 31 de dezembro de 2024</p>
+                <hr class="mt-2 border-gray-700">
+            </header>
+            <main class="flex-grow pt-16 space-y-10">
+                <p class="text-center max-w-xl mx-auto leading-relaxed" data-dynamic-text="termo-period">
+                    Contém este 0018 folhas numeradas seguida e eletronicamente de 0001 a 0018 e servirão para o registro do "BALANÇO PATRIMONIAL" de número 0025 da empresa abaixo identificada, no período de 01/01/2024 a 31/12/2024.
+                </p>
+                <div class="space-y-2">
+                    <p><span class="font-bold">Empresa:</span> TECWAY SERVIÇOS E LOCAÇÃO DE EQUIPAMENTOS LTDA</p>
+                    <p><span class="font-bold">CNPJ N°:</span> 13.392.705/0001-43</p>
+                    <p><span class="font-bold">NIRE N°:</span> 13200556445</p>
+                    <p><span class="font-bold">Endereço:</span> Rua Helena Cardoso, nº 420, Bairro: Santa Etelvina, CEP: 69.059-290 Manaus – Amazonas</p>
+                </div>
+                <p class="pt-8 text-center" data-dynamic-text="termo-footer-date">Manaus (Am), 31 de dezembro de 2024</p>
+            </main>
+            <footer class="mt-auto pt-16">
+                <div class="grid grid-cols-2 gap-x-16 text-center">
+                    <div class="border-t border-gray-700 pt-2">
+                        <p class="font-bold">JEISE HELLEN PIRES FERREIRA</p>
+                        <p>CPF 003.483.222-08</p>
+                        <p>Contadora CRC/AM: 017791/O</p>
+                    </div>
+                    <div class="border-t border-gray-700 pt-2">
+                        <p class="font-bold">FÁBIO GUERRA GARCIA</p>
+                        <p>CPF 813.742.591-87</p>
+                        <p>Sócio Administrador</p>
+                    </div>
+                </div>
+                <div class="text-right mt-4">2</div>
+            </footer>
+        </div>
+
+        <!-- Página 3: Balanço Patrimonial (Dinâmico) -->
+        <div class="page text-[10px] flex flex-col">
+            <div id="report-container" class="flex-grow">
+                <!-- Report Header -->
+                <header class="w-full text-left mb-4">
+                    <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                    <p data-dynamic-text="bp-subtitle">Balanços patrimoniais dos exercícios findos em 31 de Dezembro de 2024.</p>
+                    <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                </header>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12">
+                    <!-- Coluna do Ativo -->
+                    <div class="flex flex-col">
+                        <div class="flex-grow">
+                            <table class="w-full text-[10px]">
+                                <thead>
+                                    <tr class="border-b-2 border-gray-700">
+                                        <th class="px-4 py-3 text-left font-semibold text-secondary-foreground w-[55%]">Ativo</th>
+                                        <th class="px-1 py-3 text-center font-semibold text-secondary-foreground w-12">Notas</th>
+                                        <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-16" data-dynamic-text="current-year">2024</th>
+                                        <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-16" data-dynamic-text="previous-year">2023</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ativo-tbody">
+                                    <tr>
+                                        <td colspan="4" class="text-center p-12 text-muted-foreground">
+                                            Carregando dados do relatório...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Coluna do Passivo e PL -->
+                    <div class="flex flex-col">
+                        <div class="flex-grow">
+                            <table class="w-full text-[10px]">
+                                <thead>
+                                    <tr class="border-b-2 border-gray-700">
+                                        <th class="px-4 py-3 text-left font-semibold text-secondary-foreground w-[55%]">Passivo</th>
+                                        <th class="px-1 py-3 text-center font-semibold text-secondary-foreground w-12">Notas</th>
+                                        <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-16" data-dynamic-text="current-year">2024</th>
+                                        <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-16" data-dynamic-text="previous-year">2023</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="passivo-tbody">
+                                     <tr>
+                                        <td colspan="4" class="text-center p-12 text-muted-foreground">
+                                            Carregando dados do relatório...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Totals Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 mt-4 text-[10px]">
+                    <div>
+                        <table class="w-full">
+                            <tbody id="total-ativo-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <table class="w-full">
+                            <tbody id="total-passivo-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">3</div>
+            </footer>
+        </div>
+        
+        <!-- Página 4: DRE -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="dre-title">Demonstrações dos resultados dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+            </header>
+            <main id="dre-container" class="flex-grow pt-4">
+                <div class="text-center p-12 text-muted-foreground">Carregando dados da DRE...</div>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">4</div>
+            </footer>
+        </div>
+
+        <!-- Página 5: DFC (Demonstração de Fluxo de Caixa) -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="dfc-title">Demonstrações de fluxo de caixa dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+            </header>
+            <main id="dfc-container" class="flex-grow pt-4">
+                <div class="text-center p-12 text-muted-foreground">Carregando dados da DFC...</div>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">5</div>
+            </footer>
+        </div>
+
+        <!-- Página 6: Indicadores Financeiros -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="indicadores-title">Indicadores financeiros em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <main class="flex-grow pt-4">
+                <table class="text-center">
+                    <thead>
+                        <tr>
+                            <th class="text-left font-bold">Indicador</th>
+                            <th class="font-bold" data-dynamic-text="current-year">2024</th>
+                            <th class="font-bold" data-dynamic-text="previous-year">2023</th>
+                        </tr>
+                    </thead>
+                    <tbody id="indicadores-tbody" class="divide-y-2 divide-gray-300">
+                        <tr>
+                            <td colspan="3" class="p-6 text-center text-muted-foreground">
+                                Carregando indicadores...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">6</div>
+            </footer>
+        </div>
+
+        <!-- Página 7: Resultados Abrangentes -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="resultados-abrangentes-title">Demonstrações dos resultados abrangentes dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <main id="resultados-abrangentes-container" class="flex-grow pt-4">
+                <div class="text-center p-12 text-muted-foreground">Carregando resultados abrangentes...</div>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">7</div>
+            </footer>
+        </div>
+
+        <!-- Página 8: Patrimônio Líquido -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="pl-title">Demonstrações do patrimônio líquido em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <main class="flex-grow">
+                <table class="w-full">
+                    <thead>
+                        <tr class="font-bold">
+                            <th class="text-left"></th>
+                            <th class="text-right">Capital Social</th>
+                            <th class="text-right">Ajuste da Avaliação</th>
+                            <th class="text-right">Lucros ou Prejuízos Acumulados</th>
+                            <th class="text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pl-tbody">
+                        <tr>
+                            <td colspan="5" class="text-center p-8 text-muted-foreground">Carregando dados do patrimônio líquido...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">8</div>
+            </footer>
+        </div>
+        
+        <!-- Página 9: Notas Explicativas (Dinâmica) -->
+        <div id="notas-dynamic-container">
+            <div class="page text-xs leading-relaxed notas-page">
+                <header class="notas-header w-full text-left mb-4" data-notas-header>
+                    <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                    <p>Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                    <p class="text-[7px] text-muted-foreground">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                    <hr class="mt-2">
+                </header>
+                <div class="notas-content flex-1 flex items-center justify-center text-center p-12 text-muted-foreground">Carregando notas explicativas...</div>
+                <footer class="notas-footer mt-auto pt-16">
+                    <div class="flex items-center justify-between text-[10px]">
+                        <span class="text-muted-foreground">Notas explicativas</span>
+                        <span class="font-semibold" data-notas-footer>9</span>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-bp-report';
+        const FIRST_NOTAS_PAGE_NUMBER = 9;
+
+        function updateMitra() {
+            console.log("Sinal de update para [Relatório Financeiro] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const ativoTbody = document.getElementById('ativo-tbody');
+            const passivoTbody = document.getElementById('passivo-tbody');
+            const totalAtivoTbody = document.getElementById('total-ativo-tbody');
+            const totalPassivoTbody = document.getElementById('total-passivo-tbody');
+            const dreContainer = document.getElementById('dre-container');
+            const dfcContainer = document.getElementById('dfc-container');
+            const indicadoresTbody = document.getElementById('indicadores-tbody');
+            const resultadosAbrangentesContainer = document.getElementById('resultados-abrangentes-container');
+            const plTbody = document.getElementById('pl-tbody');
+            const notasDynamicContainer = document.getElementById('notas-dynamic-container');
+
+            async function getMitraVariableValue(variableName) {
+                if (!variableName || !variableName.startsWith(':VAR_')) {
+                    console.error("Nome de variável inválido. Deve começar com ':VAR_'. Usando data atual como fallback.", variableName);
+                    const now = new Date();
+                    return `${now.getMonth() + 1}/${now.getFullYear()}`;
+                }
+                try {
+                    const result = await queryMitra({ query: `SELECT ${variableName}` });
+                    if (result && result.data && result.data.length > 0 && result.data[0].length > 0) {
+                        return result.data[0][0];
+                    }
+                    console.warn(`A variável ${variableName} retornou vazia. Usando data atual como fallback.`);
+                    const now = new Date();
+                    return `${now.getMonth() + 1}/${now.getFullYear()}`;
+                } catch (error) {
+                    console.error(`Falha ao obter o valor da variável ${variableName}. Usando data atual como fallback.`, error);
+                    const now = new Date();
+                    return `${now.getMonth() + 1}/${now.getFullYear()}`;
+                }
+            }
+            
+            function updateReportMetadata(currentYear) {
+                if (!currentYear || isNaN(parseInt(currentYear))) {
+                    console.error("updateReportMetadata: Ano inválido ou não fornecido.", currentYear);
+                    return;
+                }
+                const previousYear = parseInt(currentYear, 10) - 1;
+
+                document.querySelectorAll('[data-dynamic-text="current-year"]').forEach(el => {
+                    el.textContent = currentYear;
+                });
+                document.querySelectorAll('[data-dynamic-text="previous-year"]').forEach(el => {
+                    el.textContent = previousYear;
+                });
+
+                const textUpdates = {
+                    'full-date-upper': `31 DE DEZEMBRO DE ${currentYear}`,
+                    'termo-title': `Termo de Abertura do Balanço Patrimonial 31 de dezembro de ${currentYear}`,
+                    'termo-footer-date': `Manaus (Am), 31 de dezembro de ${currentYear}`,
+                    'bp-subtitle': `Balanços patrimoniais dos exercícios findos em 31 de Dezembro de ${currentYear}.`,
+                    'dre-title': `Demonstrações dos resultados dos exercícios findos em 31 de dezembro de ${currentYear}`,
+                    'dfc-title': `Demonstrações de fluxo de caixa dos exercícios findos em 31 de dezembro de ${currentYear}`,
+                    'indicadores-title': `Indicadores financeiros em 31 de dezembro de ${currentYear}`,
+                    'resultados-abrangentes-title': `Demonstrações dos resultados abrangentes dos exercícios findos em 31 de dezembro de ${currentYear}`,
+                    'pl-title': `Demonstrações do patrimônio líquido em 31 de dezembro de ${currentYear}`
+                };
+
+                for (const key in textUpdates) {
+                    const el = document.querySelector(`[data-dynamic-text="${key}"]`);
+                    if (el) el.textContent = textUpdates[key];
+                }
+
+                const termoPeriodEl = document.querySelector('[data-dynamic-text="termo-period"]');
+                if (termoPeriodEl) {
+                    termoPeriodEl.textContent = termoPeriodEl.textContent.replace(/no período de 01\/01\/\d{4} a 31\/12\/\d{4}/, `no período de 01/01/${currentYear} a 31/12/${currentYear}`);
+                }
+            }
+
+            function formatCurrencyBP(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                if (number === 0) return '0,00';
+                const formattedAbs = Math.abs(number).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return number < 0 ? `(${formattedAbs})` : formattedAbs;
+            }
+            
+            function formatDREValue(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                if (number === 0) return '(0)';
+                const formattedAbs = Math.abs(number).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                return number < 0 ? `(${formattedAbs})` : formattedAbs;
+            }
+
+            function formatDFCValue(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                if (number === 0) return '0';
+                const formattedAbs = Math.abs(number).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                return number < 0 ? `(${formattedAbs})` : formattedAbs;
+            }
+
+            function formatRatio(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                return number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function escapeHtml(text) {
+                return (text || '').toString()
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function formatDescricaoHtml(text) {
+                const safeText = (text === null || text === undefined) ? '' : String(text);
+                const paragraphs = safeText.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+                const chunks = paragraphs.length > 0 ? paragraphs : (safeText.trim() ? [safeText.trim()] : []);
+                if (chunks.length === 0) return '<p>-</p>';
+                return chunks.map(chunk => `<p>${escapeHtml(chunk).replace(/\n/g, '<br>')}</p>`).join('');
+            }
+
+            function normalizeText(text) {
+                return (text || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            }
+
+            function formatIndicatorCell(numeratorParts, denominatorParts, result) {
+                 const formatCurrencyIndicator = (value) => {
+                    const number = parseFloat(value);
+                    if (isNaN(number)) return '-';
+                    if (number === 0) return '0';
+                    return number.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                }
+
+                if (!numeratorParts || !denominatorParts || numeratorParts.length === 0 || denominatorParts.length === 0) {
+                    return '<div class="text-center">-</div>';
+                }
+                
+                let numeratorValue = 0;
+                numeratorParts.forEach(part => {
+                    const val = parseFloat(part.value) || 0;
+                    if (part.operator === '-') {
+                        numeratorValue -= val;
+                    } else {
+                        numeratorValue += val;
+                    }
+                });
+                
+                let denominatorValue = 0;
+                denominatorParts.forEach(part => {
+                    const val = parseFloat(part.value) || 0;
+                    if (part.operator === '-') {
+                        denominatorValue -= val;
+                    } else {
+                        denominatorValue += val;
+                    }
+                });
+                
+                const numeratorText = formatCurrencyIndicator(numeratorValue);
+                const denominatorText = formatCurrencyIndicator(denominatorValue);
+                const ratioText = formatRatio(result);
+                
+                if (ratioText === '-' || numeratorText === '-' || denominatorText === '-') {
+                    return '<div class="text-center">-</div>';
+                }
+                
+                return `
+                    <div class="flex items-center justify-center">
+                        <div class="text-right border-b border-gray-500 w-20">${numeratorText}</div>
+                        <div class="w-20 font-bold text-lg ml-4">${ratioText}</div>
+                    </div>
+                    <div class="text-center w-20">${denominatorText}</div>
+                `;
+            }
+
+            function extractDfcRowValue(dfcResult, searchTerm) {
+                if (!dfcResult || !dfcResult.data || dfcResult.data.length === 0) return null;
+                const headerMap = dfcResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+                const dfcIndex = headerMap['DFC'];
+                const valorAtualIndex = headerMap['VALOR_ATUAL'];
+                const valorAnteriorIndex = headerMap['VALOR_ANTERIOR'];
+                if (dfcIndex === undefined || valorAtualIndex === undefined || valorAnteriorIndex === undefined) return null;
+                const search = normalizeText(searchTerm);
+                const matchedRow = dfcResult.data.find(row => normalizeText(row[dfcIndex]).includes(search));
+                if (!matchedRow) return null;
+                return {
+                    valorAtual: parseFloat(matchedRow[valorAtualIndex]) || 0,
+                    valorAnterior: parseFloat(matchedRow[valorAnteriorIndex]) || 0
+                };
+            }
+
+            function computeDREValues(dreResult) {
+                if (!dreResult || !dreResult.data || dreResult.data.length === 0) return null;
+                const rawData = dreResult.data[0];
+                const headerMap = dreResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+                const getValue = (colName) => parseFloat(rawData[headerMap[colName.toUpperCase()]]) || 0;
+
+                const r = {
+                    atual_1: getValue('ATUAL_1'), anterior_1: getValue('ANTERIOR_1'),
+                    atual_2: getValue('ATUAL_2'), anterior_2: getValue('ANTERIOR_2'),
+                    atual_3: getValue('ATUAL_3'), anterior_3: getValue('ANTERIOR_3'),
+                    atual_4: getValue('ATUAL_4'), anterior_4: getValue('ANTERIOR_4'),
+                    atual_5: getValue('ATUAL_5'), anterior_5: getValue('ANTERIOR_5'),
+                    atual_6: getValue('ATUAL_6'), anterior_6: getValue('ANTERIOR_6'),
+                    atual_7: getValue('ATUAL_7'), anterior_7: getValue('ANTERIOR_7'),
+                    atual_8: getValue('ATUAL_8'), anterior_8: getValue('ANTERIOR_8'),
+                    atual_9: getValue('ATUAL_9'), anterior_9: getValue('ANTERIOR_9'),
+                    atual_10: getValue('ATUAL_10'), anterior_10: getValue('ANTERIOR_10'),
+                    atual_11: getValue('ATUAL_11'), anterior_11: getValue('ANTERIOR_11'),
+                };
+
+                const calc = {
+                    lucroBrutoAtual: r.atual_1 + r.atual_2,
+                    lucroBrutoAnt: r.anterior_1 + r.anterior_2,
+                    totalDespesasOpAtual: r.atual_3 + r.atual_4 + r.atual_5 + r.atual_10 + r.atual_11,
+                    totalDespesasOpAnt: r.anterior_3 + r.anterior_4 + r.anterior_5 + r.anterior_10 + r.anterior_11,
+                };
+                calc.lucroAntesFinAtual = calc.lucroBrutoAtual + calc.totalDespesasOpAtual;
+                calc.lucroAntesFinAnt = calc.lucroBrutoAnt + calc.totalDespesasOpAnt;
+                calc.resultadoFinAtual = r.atual_6 + r.atual_7;
+                calc.resultadoFinAnt = r.anterior_6 + r.anterior_7;
+                calc.lucroAntesImpAtual = calc.lucroAntesFinAtual + calc.resultadoFinAtual;
+                calc.lucroAntesImpAnt = calc.lucroAntesFinAnt + calc.resultadoFinAnt;
+                calc.lucroExercicioAtual = calc.lucroAntesImpAtual + r.atual_8 + r.atual_9;
+                calc.lucroExercicioAnt = calc.lucroAntesImpAnt + r.anterior_8 + r.anterior_9;
+
+                return { r, calc };
+            }
+
+            function renderDRE(dreResult) {
+                if (!dreResult || !dreResult.data || dreResult.data.length === 0) {
+                    dreContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Nenhum dado para DRE encontrado.</div>`;
+                    return;
+                }
+
+                const headerMap = dreResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+                
+                const hierarquiaIndex = headerMap['HIERARQUIA'];
+                const descIndex = headerMap['DESCRICAO'];
+                const notaIndex = headerMap['NOTA'];
+                const atualIndex = headerMap['VALOR_ANO_ATUAL'];
+                const anteriorIndex = headerMap['VALOR_ANO_ANTERIOR'];
+
+                if (descIndex === undefined || atualIndex === undefined || anteriorIndex === undefined) {
+                     dreContainer.innerHTML = `<div class="text-center p-12 text-destructive">Erro: Estrutura de dados da DRE inválida. Colunas DESCRICAO, VALOR_ANO_ATUAL, VALOR_ANO_ANTERIOR são obrigatórias.</div>`;
+                     console.error("DRE data structure is invalid. Missing required columns.", headerMap);
+                     return;
+                }
+
+                const data = dreResult.data.map(row => ({
+                    hierarquia: hierarquiaIndex !== undefined ? (row[hierarquiaIndex] || '').toString() : '',
+                    descricao: row[descIndex] || '',
+                    nota: notaIndex !== undefined ? (row[notaIndex] || '') : '',
+                    valor_atual: parseFloat(row[atualIndex]) || 0,
+                    valor_anterior: parseFloat(row[anteriorIndex]) || 0
+                }));
+
+                const calculateSum = (prefix) => data
+                    .filter(item => item.hierarquia && item.hierarquia.startsWith(prefix))
+                    .reduce((acc, item) => ({
+                        atual: acc.atual + item.valor_atual,
+                        anterior: acc.anterior + item.valor_anterior
+                    }), { atual: 0, anterior: 0 });
+
+                const receitas = calculateSum('1.');
+                const despesasOp = calculateSum('2.');
+                const resultadoFin = calculateSum('3.');
+                const impostos = calculateSum('4.');
+                
+                const lucroBruto = receitas;
+                const lucroAntesFin = { atual: lucroBruto.atual + despesasOp.atual, anterior: lucroBruto.anterior + despesasOp.anterior };
+                const lucroAntesImp = { atual: lucroAntesFin.atual + resultadoFin.atual, anterior: lucroAntesFin.anterior + resultadoFin.anterior };
+                const lucroExercicio = { atual: lucroAntesImp.atual + impostos.atual, anterior: lucroAntesImp.anterior + impostos.anterior };
+
+                let tableHtml = `
+                    <table class="w-full text-[10px] mt-4">
+                        <thead>
+                            <tr class="border-b-2 border-gray-700">
+                                <th class="px-4 py-3 text-left font-semibold text-secondary-foreground w-[55%]">Descrição</th>
+                                <th class="px-1 py-3 text-center font-semibold text-secondary-foreground w-[15%]">Notas</th>
+                                <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-[15%]" data-dynamic-text="current-year">2024</th>
+                                <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-[15%]" data-dynamic-text="previous-year">2023</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                // 1. Receitas
+                tableHtml += `<tr class="font-bold"><td class="px-4 py-2">Receitas</td><td class="px-1 py-2 text-center"></td><td class="px-1 py-2 text-right"></td><td class="px-1 py-2 text-right"></td></tr>`;
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('1.')).forEach(item => {
+                    const indentLevel = item.hierarquia ? Math.max(0, item.hierarquia.split('.').length - 1) : 0;
+                    const paddingLeftClass = `pl-${4 + (indentLevel * 4)}`;
+                    tableHtml += `
+                        <tr class="border-b border-border">
+                            <td class="px-4 py-1.5 text-left ${paddingLeftClass}">${item.descricao || ''}</td>
+                            <td class="px-1 py-1.5 text-center font-mono">${item.nota || ''}</td>
+                            <td class="px-1 py-1.5 text-right font-mono">${formatDREValue(item.valor_atual)}</td>
+                            <td class="px-1 py-1.5 text-right font-mono">${formatDREValue(item.valor_anterior)}</td>
+                        </tr>`;
+                });
+                tableHtml += `<tr class="font-bold border-t border-gray-400"><td class="px-4 py-2">Lucro bruto</td><td class="px-1 py-2 text-center"></td><td class="px-1 py-2 text-right font-mono">${formatDREValue(lucroBruto.atual)}</td><td class="px-1 py-2 text-right font-mono">${formatDREValue(lucroBruto.anterior)}</td></tr>`;
+                tableHtml += `<tr><td colspan="4" class="py-1"></td></tr>`;
+
+                // 2. Despesas Operacionais
+                tableHtml += `<tr class="font-bold"><td class="px-4 py-2">Despesas operacionais</td><td class="px-1 py-2 text-center"></td><td class="px-1 py-2 text-right"></td><td class="px-1 py-2 text-right"></td></tr>`;
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('2.')).forEach(item => {
+                    const indentLevel = item.hierarquia ? Math.max(0, item.hierarquia.split('.').length - 1) : 0;
+                    const paddingLeftClass = `pl-${4 + (indentLevel * 4)}`;
+                    tableHtml += `
+                        <tr class="border-b border-border">
+                            <td class="px-4 py-1.5 text-left ${paddingLeftClass}">${item.descricao || ''}</td>
+                            <td class="px-1 py-1.5 text-center font-mono">${item.nota || ''}</td>
+                            <td class="px-1 py-1.5 text-right font-mono">${formatDREValue(item.valor_atual)}</td>
+                            <td class="px-1 py-1.5 text-right font-mono">${formatDREValue(item.valor_anterior)}</td>
+                        </tr>`;
+                });
+                tableHtml += `<tr class="font-bold border-t border-gray-400"><td class="px-4 py-2"></td><td class="px-1 py-2 text-center"></td><td class="px-1 py-2 text-right font-mono">${formatDREValue(despesasOp.atual)}</td><td class="px-1 py-2 text-right font-mono">${formatDREValue(despesasOp.anterior)}</td></tr>`;
+                tableHtml += `<tr class="font-bold"><td class="px-4 py-2">Lucro antes do resultado financeiro</td><td class="px-1 py-2 text-center"></td><td class="px-1 py-2 text-right font-mono">${formatDREValue(lucroAntesFin.atual)}</td><td class="px-1 py-2 text-right font-mono">${formatDREValue(lucroAntesFin.anterior)}</td></tr>`;
+                tableHtml += `<tr><td colspan="4" class="py-1"></td></tr>`;
+
+                // 3. Resultado Financeiro
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('3.')).forEach(item => {
+                    const indentLevel = item.hierarquia ? Math.max(0, item.hierarquia.split('.').length - 1) : 0;
+                    const paddingLeftClass = `pl-${4 + (indentLevel * 4)}`;
+                    tableHtml += `
+                        <tr class="border-b border-border">
+                            <td class="px-4 py-1.5 text-left ${paddingLeftClass}">${item.descricao || ''}</td>
+                            <td class="px-1 py-1.5 text-center font-mono">${item.nota || ''}</td>
+                            <td class="px-1 py-1.5 text-right font-mono">${formatDREValue(item.valor_atual)}</td>
+                            <td class="px-1 py-1.5 text-right font-mono">${formatDREValue(item.valor_anterior)}</td>
+                        </tr>`;
+                });
+                tableHtml += `<tr class="font-bold border-t border-gray-400"><td class="px-4 py-2">Resultado financeiro</td><td class="px-1 py-2 text-center"></td><td class="px-1 py-2 text-right font-mono">${formatDREValue(resultadoFin.atual)}</td><td class="px-1 py-2 text-right font-mono">${formatDREValue(resultadoFin.anterior)}</td></tr>`;
+                tableHtml += `<tr><td colspan="4" class="py-1"></td></tr>`;
+                
+                // 4. Impostos e Lucro do Exercício
+                tableHtml += `<tr class="font-bold"><td class="px-4 py-2">Lucro antes dos impostos</td><td class="px-1 py-2 text-center"></td><td class="px-1 py-2 text-right font-mono">${formatDREValue(lucroAntesImp.atual)}</td><td class="px-1 py-2 text-right font-mono">${formatDREValue(lucroAntesImp.anterior)}</td></tr>`;
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('4.')).forEach(item => {
+                    const indentLevel = item.hierarquia ? Math.max(0, item.hierarquia.split('.').length - 1) : 0;
+                    const paddingLeftClass = `pl-${4 + (indentLevel * 4)}`;
+                    tableHtml += `
+                        <tr class="border-b border-border">
+                            <td class="px-4 py-1.5 text-left ${paddingLeftClass}">${item.descricao || ''}</td>
+                            <td class="px-1 py-1.5 text-center font-mono">${item.nota || ''}</td>
+                            <td class="px-1 py-1.5 text-right font-mono">${formatDREValue(item.valor_atual)}</td>
+                            <td class="px-1 py-1.5 text-right font-mono">${formatDREValue(item.valor_anterior)}</td>
+                        </tr>`;
+                });
+                tableHtml += `<tr><td colspan="4" class="py-1"></td></tr>`;
+                tableHtml += `<tr class="font-bold border-t-2 border-b-2 border-gray-700"><td class="px-4 py-2">Lucro do exercício</td><td class="px-1 py-2 text-center"></td><td class="px-1 py-2 text-right font-mono">${formatDREValue(lucroExercicio.atual)}</td><td class="px-1 py-2 text-right font-mono">${formatDREValue(lucroExercicio.anterior)}</td></tr>`;
+
+                tableHtml += `</tbody></table>`;
+                dreContainer.innerHTML = tableHtml;
+            }
+            
+            async function renderHierarchicalBP(bpResult) {
+                const loadingHtml = `<tr><td colspan="4" class="text-center p-12 text-muted-foreground">Processando...</td></tr>`;
+                ativoTbody.innerHTML = loadingHtml;
+                passivoTbody.innerHTML = loadingHtml;
+                totalAtivoTbody.innerHTML = '';
+                totalPassivoTbody.innerHTML = '';
+
+                try {
+                    if (!bpResult || !bpResult.data || bpResult.data.length === 0) {
+                        ativoTbody.innerHTML = `<tr><td colspan="4" class="text-center p-12 text-muted-foreground">Nenhum dado encontrado para o balanço.</td></tr>`;
+                        passivoTbody.innerHTML = `<tr><td colspan="4" class="text-center p-12 text-muted-foreground">Nenhum dado encontrado para o balanço.</td></tr>`;
+                        return;
+                    }
+
+                    const headerMap = bpResult.headers.reduce((acc, header, index) => {
+                        acc[header.name.toUpperCase()] = index;
+                        return acc;
+                    }, {});
+
+                    const requiredCols = ['HIERARQUIA', 'DESCRICAO', 'NOTA', 'VALOR_ATUAL', 'VALOR_ANTERIOR'];
+                    for (const col of requiredCols) {
+                        if (headerMap[col] === undefined) throw new Error(`Coluna obrigatória '${col}' não encontrada na query.`);
+                    }
+                    
+                    const data = bpResult.data.map(row => ({
+                        hierarquia: row[headerMap['HIERARQUIA']],
+                        descricao: row[headerMap['DESCRICAO']],
+                        nota: row[headerMap['NOTA']],
+                        valorAtual: parseFloat(row[headerMap['VALOR_ATUAL']]) || 0,
+                        valorAnterior: parseFloat(row[headerMap['VALOR_ANTERIOR']]) || 0,
+                    }));
+
+                    const groups = {
+                        '1.1': { title: 'Ativo circulante', items: [] },
+                        '1.2': { title: 'Ativo não circulante', items: [] },
+                        '2.1': { title: 'Passivo circulante', items: [] },
+                        '2.2': { title: 'Passivo não circulante', items: [] },
+                        '3.1': { title: 'Patrimônio líquido', items: [] },
+                    };
+
+                    data.forEach(item => {
+                        for (const prefix in groups) {
+                            if (item.hierarquia && item.hierarquia.startsWith(prefix)) {
+                                groups[prefix].items.push(item); return;
+                            }
+                        }
+                    });
+
+                    function renderGroup(group) {
+                        let html = `<tr class="font-bold"><td colspan="4" class="px-4 py-3">${group.title}</td></tr>`;
+                        let subtotalAtual = 0;
+                        let subtotalAnterior = 0;
+
+                        group.items.forEach(item => {
+                            subtotalAtual += item.valorAtual;
+                            subtotalAnterior += item.valorAnterior;
+                            html += `
+                                <tr class="border-b border-border">
+                                    <td class="px-4 py-1.5">${item.descricao || ''}</td>
+                                    <td class="px-1 py-1.5 text-center font-mono">${item.nota || ''}</td>
+                                    <td class="px-1 py-1.5 text-right font-mono">${formatCurrencyBP(item.valorAtual)}</td>
+                                    <td class="px-1 py-1.5 text-right font-mono">${formatCurrencyBP(item.valorAnterior)}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        html += `
+                            <tr class="font-bold border-t border-gray-400">
+                                <td class="px-4 py-2">Total ${group.title.toLowerCase()}</td>
+                                <td class="px-1 py-2 text-center"></td>
+                                <td class="px-1 py-2 text-right font-mono">${formatCurrencyBP(subtotalAtual)}</td>
+                                <td class="px-1 py-2 text-right font-mono">${formatCurrencyBP(subtotalAnterior)}</td>
+                            </tr>
+                        `;
+                        return { html, subtotalAtual, subtotalAnterior };
+                    }
+                    
+                    const ac = renderGroup(groups['1.1']);
+                    const anc = renderGroup(groups['1.2']);
+                    ativoTbody.innerHTML = ac.html + anc.html;
+                    const totalAtivoAtual = ac.subtotalAtual + anc.subtotalAtual;
+                    const totalAtivoAnterior = ac.subtotalAnterior + anc.subtotalAnterior;
+                    
+                    const pc = renderGroup(groups['2.1']);
+                    const pnc = renderGroup(groups['2.2']);
+                    const pl = renderGroup(groups['3.1']);
+                    passivoTbody.innerHTML = pc.html + pnc.html + pl.html;
+                    const totalPassivoPlAtual = pc.subtotalAtual + pnc.subtotalAtual + pl.subtotalAtual;
+                    const totalPassivoPlAnterior = pc.subtotalAnterior + pnc.subtotalAnterior + pl.subtotalAnterior;
+                    
+                    const grandTotalHtml = (description, vAtual, vAnterior) => `
+                        <tr class="font-bold border-t border-b-2 border-gray-700 text-[10px]">
+                            <td class="px-4 py-1 w-[55%]">${description}</td>
+                            <td class="px-1 py-1 text-center font-mono w-12"></td>
+                            <td class="px-1 py-1 text-right font-mono w-16">${formatCurrencyBP(vAtual)}</td>
+                            <td class="px-1 py-1 text-right font-mono w-16">${formatCurrencyBP(vAnterior)}</td>
+                        </tr>
+                    `;
+                    
+                    totalAtivoTbody.innerHTML = grandTotalHtml('Total do ativo', totalAtivoAtual, totalAtivoAnterior);
+                    totalPassivoTbody.innerHTML = grandTotalHtml('Total do passivo e patrimônio líquido', totalPassivoPlAtual, totalPassivoPlAnterior);
+
+                } catch (error) {
+                    console.error("Falha ao renderizar Balanço Patrimonial:", error);
+                    const errorHtml = `<tr><td colspan="4" class="text-center p-12 text-destructive bg-destructive/10">Ocorreu um erro ao carregar o balanço.</td></tr>`;
+                    ativoTbody.innerHTML = errorHtml;
+                    passivoTbody.innerHTML = errorHtml;
+                }
+            }
+
+            function renderResultadosAbrangentes(dreResult) {
+                if (!resultadosAbrangentesContainer) return;
+                const dreData = computeDREValues(dreResult);
+                if (!dreData) {
+                    resultadosAbrangentesContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Nenhum dado para resultados abrangentes encontrado.</div>`;
+                    return;
+                }
+                const { calc } = dreData;
+                const outrosText = '-';
+                const resultadoAbrangenteAtual = calc.lucroExercicioAtual;
+                const resultadoAbrangenteAnterior = calc.lucroExercicioAnt;
+
+                resultadosAbrangentesContainer.innerHTML = `
+                    <table class="w-full text-[10px]">
+                        <thead class="border-b border-gray-700">
+                            <tr>
+                                <th class="text-left font-semibold pb-2 w-[70%]"></th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="current-year">2024</th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="previous-year">2023</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-gray-400">
+                                <td class="py-1">Lucro líquido do exercício</td>
+                                <td class="text-right font-mono">${formatDREValue(calc.lucroExercicioAtual)}</td>
+                                <td class="text-right font-mono">${formatDREValue(calc.lucroExercicioAnt)}</td>
+                            </tr>
+                            <tr class="border-b border-gray-400">
+                                <td class="py-1">Outros resultados abrangentes</td>
+                                <td class="text-right">${outrosText}</td>
+                                <td class="text-right">${outrosText}</td>
+                            </tr>
+                            <tr class="font-bold border-t-2 border-b-2 border-gray-700">
+                                <td class="py-1">Resultado abrangente do exercício</td>
+                                <td class="text-right font-mono">${formatDREValue(resultadoAbrangenteAtual)}</td>
+                                <td class="text-right font-mono">${formatDREValue(resultadoAbrangenteAnterior)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            function renderPatrimonioLiquido(passivoData, dreResult, dfcResult, currentYear) {
+                if (!plTbody) return;
+                if (!passivoData || passivoData.length === 0) {
+                    plTbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-muted-foreground">Nenhum dado de patrimônio líquido encontrado.</td></tr>`;
+                    return;
+                }
+                const dreData = computeDREValues(dreResult);
+                const dfcLucrosDistribuidos = extractDfcRowValue(dfcResult, 'lucros distribuidos');
+                const getItem = (id) => passivoData.find(item => item.id === id);
+                const capitalItem = getItem(501) || {};
+                const lucrosItem = getItem(502) || {};
+                const totalItem = getItem(599) || {};
+                const capitalAtual = capitalItem.valorAtual;
+                const capitalAnterior = capitalItem.valorAnterior;
+                const lucrosAtual = lucrosItem.valorAtual;
+                const lucrosAnterior = lucrosItem.valorAnterior;
+                const totalAtual = totalItem.valorAtual;
+                const totalAnterior = totalItem.valorAnterior;
+                if ([capitalAtual, capitalAnterior, lucrosAtual, lucrosAnterior, totalAtual, totalAnterior].every(v => v === undefined)) {
+                    plTbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-muted-foreground">Dados de patrimônio líquido indisponíveis.</td></tr>`;
+                    return;
+                }
+                const ajusteAtual = (totalAtual ?? 0) - (capitalAtual ?? 0) - (lucrosAtual ?? 0);
+                const ajusteAnterior = (totalAnterior ?? 0) - (capitalAnterior ?? 0) - (lucrosAnterior ?? 0);
+                const ajusteDelta = ajusteAtual - ajusteAnterior;
+                const lucroExercicioAtual = dreData?.calc?.lucroExercicioAtual;
+                const previousYear = isNaN(parseInt(currentYear, 10)) ? 'Ano anterior' : (parseInt(currentYear, 10) - 1);
+                const formatPLTotal = (value) => {
+                    if (value === null || value === undefined || isNaN(value)) return '-';
+                    return value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                };
+                const formatPLChange = (value) => {
+                    if (value === null || value === undefined || isNaN(value)) return '-';
+                    return formatDREValue(value);
+                };
+                const rows = [
+                    {
+                        label: `Saldos em 31 de dezembro de ${previousYear}`, capital: capitalAnterior, ajuste: ajusteAnterior, lucros: lucrosAnterior, total: totalAnterior, type: 'balance'
+                    },
+                    {
+                        label: 'Lucros distribuídos', capital: null, ajuste: null, lucros: dfcLucrosDistribuidos ? dfcLucrosDistribuidos.valorAtual : null, total: dfcLucrosDistribuidos ? dfcLucrosDistribuidos.valorAtual : null, indent: true
+                    },
+                    {
+                        label: 'Lucro do exercício', capital: null, ajuste: null, lucros: lucroExercicioAtual, total: lucroExercicioAtual, indent: true
+                    },
+                    {
+                        label: 'Ajuste de Avaliação', capital: null, ajuste: ajusteDelta, lucros: null, total: ajusteDelta, indent: true
+                    },
+                    {
+                        label: `Saldos em 31 de dezembro de ${currentYear}`, capital: capitalAtual, ajuste: ajusteAtual, lucros: lucrosAtual, total: totalAtual, type: 'balance'
+                    }
+                ];
+                plTbody.innerHTML = rows.map(row => {
+                    const isBalance = row.type === 'balance';
+                    const borderClasses = isBalance ? 'border-t-2 border-b-2 border-gray-700 font-bold' : '';
+                    const indentClass = row.indent ? 'pl-4' : '';
+                    const formatter = isBalance ? formatPLTotal : formatPLChange;
+                    return `
+                        <tr class="${borderClasses}">
+                            <td class="py-1 ${indentClass}">${row.label}</td>
+                            <td class="text-right font-mono">${formatter(row.capital)}</td>
+                            <td class="text-right font-mono">${formatter(row.ajuste)}</td>
+                            <td class="text-right font-mono">${formatter(row.lucros)}</td>
+                            <td class="text-right font-mono">${formatter(row.total)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            function renderDFC(dfcResult) {
+                if (!dfcResult || !dfcResult.data || dfcResult.data.length === 0) {
+                    dfcContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Nenhum dado para DFC encontrado.</div>`;
+                    return;
+                }
+                const headerMap = dfcResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index; return acc;
+                }, {});
+                const ordemIndex = headerMap['ORDEM'];
+                const dfcIndex = headerMap['DFC'];
+                const valorAtualIndex = headerMap['VALOR_ATUAL'];
+                const valorAnteriorIndex = headerMap['VALOR_ANTERIOR'];
+                if (ordemIndex === undefined || dfcIndex === undefined || valorAtualIndex === undefined || valorAnteriorIndex === undefined) {
+                    dfcContainer.innerHTML = `<div class="text-center p-12 text-destructive">Erro: Estrutura de dados da DFC inválida.</div>`;
+                    return;
+                }
+                const baseRows = dfcResult.data.map(row => {
+                    const rawDesc = row[dfcIndex];
+                    const descricao = typeof rawDesc === 'string' ? rawDesc : String(rawDesc || '');
+                    return {
+                        ordem: parseInt(row[ordemIndex]) || 0,
+                        descricao,
+                        valorAtual: parseFloat(row[valorAtualIndex]) || 0,
+                        valorAnterior: parseFloat(row[valorAnteriorIndex]) || 0
+                    };
+                }).sort((a, b) => a.ordem - b.ordem);
+
+                const subtotalRules = [
+                    { after: 11, label: 'Subtotal', rangeStart: 1, rangeEnd: 11, mode: 'sum', isSubtotal: true },
+                    { after: 20, label: 'Caixa líquido consumido nas atividades operacionais', rangeStart: 1, rangeEnd: 20, mode: 'sum', isTotal: true },
+                    { after: 24, label: 'Caixa líquido gerado (consumido) nas atividades de investimentos', rangeStart: 1, rangeEnd: 24, mode: 'sum', isTotal: true },
+                    { after: 28, label: 'Caixa gerado nas atividades de financiamentos', rangeStart: 1, rangeEnd: 28, mode: 'sum', isTotal: true },
+                    { after: 30, label: 'Aumento de caixa e equivalentes de caixa', rangeStart: 29, rangeEnd: 30, mode: 'diff', isTotal: true, isGrand: true }
+                ];
+
+                const calcSubtotal = (rule) => baseRows.reduce((acc, row) => {
+                    if (row.ordem >= rule.rangeStart && row.ordem <= rule.rangeEnd) {
+                        if (rule.mode === 'diff') {
+                            if (row.ordem === rule.rangeStart) {
+                                acc.valorAtual -= row.valorAtual; acc.valorAnterior -= row.valorAnterior;
+                            } else if (row.ordem === rule.rangeEnd) {
+                                acc.valorAtual += row.valorAtual; acc.valorAnterior += row.valorAnterior;
+                            }
+                        } else {
+                            acc.valorAtual += row.valorAtual; acc.valorAnterior += row.valorAnterior;
+                        }
+                    }
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+
+                const processedRows = [];
+                baseRows.forEach(row => {
+                    const indentClass = (/^\s+/.test(row.descricao)) ? 'pl-4' : '';
+                    if (row.ordem === 12) processedRows.push({ type: 'merged-note', descricao: 'Variação nos ativos e passivos operacionais' });
+                    if (row.ordem === 21) processedRows.push({ type: 'merged-note', descricao: 'Fluxo de caixa das atividades de investimentos' });
+                    if (row.ordem === 25) processedRows.push({ type: 'merged-note', descricao: 'Fluxo de caixa das atividades de financiamentos' });
+                    processedRows.push({ type: 'item', descricao: row.descricao, valorAtual: row.valorAtual, valorAnterior: row.valorAnterior, indent: indentClass });
+                    if (row.ordem === 1) processedRows.push({ type: 'merged-note', descricao: 'Ajuste para reconciliar o prejuízo do exercício com os recursos provenientes das atividades operacionais' });
+                    const rule = subtotalRules.find(r => r.after === row.ordem);
+                    if (rule) {
+                        const subtotal = calcSubtotal(rule);
+                        processedRows.push({ type: rule.isSubtotal ? 'subtotal' : 'total', descricao: rule.label, valorAtual: subtotal.valorAtual, valorAnterior: subtotal.valorAnterior, isGrand: rule.isGrand });
+                    }
+                });
+
+                let tableHtml = `
+                    <table class="w-full text-[10px] mt-4">
+                        <thead class="border-b border-gray-700">
+                            <tr>
+                                <th class="text-left font-semibold pb-2 w-[70%]"></th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="current-year">2024</th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="previous-year">2023</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                processedRows.forEach(row => {
+                    if (row.type === 'merged-note') {
+                        tableHtml += `<tr><td colspan="3" class="text-left py-1 text-[10px]">${row.descricao}</td></tr>`; return;
+                    }
+                    const isTotalRow = row.type !== 'item';
+                    const fontWeight = isTotalRow ? 'font-bold' : 'font-normal';
+                    const borderTop = isTotalRow ? 'border-t border-gray-400' : '';
+                    const borderBottom = row.isGrand ? 'border-b-2 border-gray-700' : '';
+                    const paddingClass = isTotalRow ? 'py-2' : 'py-1';
+                    const indentClass = row.indent || '';
+                    const descDisplay = row.descricao || '';
+                    tableHtml += `
+                        <tr class="${fontWeight} ${paddingClass} ${borderTop} ${borderBottom}">
+                            <td class="text-left ${indentClass}">${descDisplay}</td>
+                            <td class="text-right font-mono">${formatDFCValue(row.valorAtual)}</td>
+                            <td class="text-right font-mono">${formatDFCValue(row.valorAnterior)}</td>
+                        </tr>`;
+                });
+                tableHtml += `</tbody></table>`;
+                dfcContainer.innerHTML = tableHtml;
+            }
+
+            function buildNotasHeader(yearText) {
+                const yearDisplay = yearText || new Date().getFullYear();
+                return `
+                    <header class="notas-header w-full text-left mb-4" data-notas-header>
+                        <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                        <p>Notas explicativas às demonstrações financeiras em 31 de dezembro de ${yearDisplay}</p>
+                        <p class="text-[7px] text-muted-foreground">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                        <hr class="mt-2">
+                    </header>
+                `;
+            }
+
+            function buildNotasFooter(pageNumber) {
+                return `
+                    <footer class="notas-footer mt-auto pt-16">
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="text-muted-foreground">Notas explicativas</span>
+                            <span class="font-semibold" data-notas-footer>${pageNumber}</span>
+                        </div>
+                    </footer>
+                `;
+            }
+
+            function buildNotasStatusPage(message, pageNumber, currentYear, isError = false) {
+                const yearText = currentYear || new Date().getFullYear();
+                const statusClass = isError ? 'text-destructive bg-destructive/10' : 'text-muted-foreground';
+                return `
+                    <div class="page text-xs leading-relaxed notas-page flex flex-col">
+                        ${buildNotasHeader(yearText)}
+                        <div class="notas-content flex-1 flex items-center justify-center text-center p-12 ${statusClass}">${escapeHtml(message || '')}</div>
+                        ${buildNotasFooter(pageNumber)}
+                    </div>
+                `;
+            }
+
+            function createNotasPageElement(pageNumber, yearText) {
+                const pageEl = document.createElement('div');
+                pageEl.className = 'page text-xs leading-relaxed notas-page';
+                pageEl.innerHTML = `
+                    ${buildNotasHeader(yearText)}
+                    <div class="notas-content space-y-3 flex-1" data-notas-content></div>
+                    ${buildNotasFooter(pageNumber)}
+                `;
+                return pageEl;
+            }
+
+            function measureNotasContentHeight(yearText) {
+                const measurePage = createNotasPageElement(FIRST_NOTAS_PAGE_NUMBER, yearText);
+                measurePage.style.visibility = 'hidden';
+                measurePage.style.position = 'absolute';
+                measurePage.style.pointerEvents = 'none';
+                measurePage.style.left = '-9999px';
+                measurePage.style.top = '0';
+                document.body.appendChild(measurePage);
+                const contentEl = measurePage.querySelector('[data-notas-content]');
+                const maxHeight = contentEl ? contentEl.clientHeight : 0;
+                measurePage.remove();
+                return maxHeight || 1000;
+            }
+
+            function buildNotaSection(nota) {
+                const section = document.createElement('section');
+                section.className = 'space-y-2 pb-3 last:pb-0';
+                const titleText = nota.titulo && String(nota.titulo).trim().length > 0 ? nota.titulo : 'Nota explicativa';
+                section.innerHTML = `<h3 class="font-bold">${escapeHtml(titleText)}</h3>${formatDescricaoHtml(nota.descricao)}`;
+                return section;
+            }
+
+            function renderNotasExplicativas(notasResult, currentYear) {
+                if (!notasDynamicContainer) return;
+                if (!notasResult || !Array.isArray(notasResult.data) || !Array.isArray(notasResult.headers)) {
+                    notasDynamicContainer.innerHTML = buildNotasStatusPage('Nenhuma nota explicativa encontrada para o mês selecionado.', FIRST_NOTAS_PAGE_NUMBER, currentYear);
+                    return;
+                }
+                const headerMap = notasResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index; return acc;
+                }, {});
+                const ordemIndex = headerMap['ORDEM'];
+                const tituloIndex = headerMap['TITULO'];
+                const descricaoIndex = headerMap['DESCRICAO'];
+                if (descricaoIndex === undefined) {
+                    notasDynamicContainer.innerHTML = buildNotasStatusPage('Estrutura de dados de notas inválida (coluna DESCRICAO ausente).', FIRST_NOTAS_PAGE_NUMBER, currentYear, true);
+                    return;
+                }
+                const notasData = notasResult.data.map(row => ({
+                    ordem: ordemIndex !== undefined ? parseInt(row[ordemIndex]) || 0 : 0,
+                    titulo: tituloIndex !== undefined ? (row[tituloIndex] || '') : '',
+                    descricao: row[descricaoIndex] ?? ''
+                })).sort((a, b) => a.ordem - b.ordem);
+                if (notasData.length === 0) {
+                    notasDynamicContainer.innerHTML = buildNotasStatusPage('Nenhuma nota explicativa encontrada para o mês selecionado.', FIRST_NOTAS_PAGE_NUMBER, currentYear);
+                    return;
+                }
+                const yearText = currentYear || new Date().getFullYear();
+                const maxContentHeight = measureNotasContentHeight(yearText);
+                notasDynamicContainer.innerHTML = '';
+                let currentPageNumber = FIRST_NOTAS_PAGE_NUMBER;
+                let currentPage = createNotasPageElement(currentPageNumber, yearText);
+                let currentContent = currentPage.querySelector('[data-notas-content]');
+                notasDynamicContainer.appendChild(currentPage);
+                notasData.forEach(nota => {
+                    const section = buildNotaSection(nota);
+                    currentContent.appendChild(section);
+                    if (currentContent.scrollHeight > maxContentHeight) {
+                        currentContent.removeChild(section);
+                        currentPageNumber += 1;
+                        currentPage = createNotasPageElement(currentPageNumber, yearText);
+                        currentContent = currentPage.querySelector('[data-notas-content]');
+                        currentContent.appendChild(section);
+                        notasDynamicContainer.appendChild(currentPage);
+                    }
+                });
+            }
+
+            function renderIndicadores(indicadoresResult) {
+                if (!indicadoresTbody) return;
+                if (!indicadoresResult || !indicadoresResult.data || indicadoresResult.data.length === 0) {
+                    indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-muted-foreground">Nenhum indicador encontrado.</td></tr>`;
+                    return;
+                }
+                const headerMap = indicadoresResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+                const getValue = (row, key) => {
+                    const idx = headerMap[key];
+                    if (idx === undefined) return undefined;
+                    const val = parseFloat(row[idx]);
+                    return isNaN(val) ? undefined : val;
+                };
+                const indicadorData = indicadoresResult.data.reduce((acc, row) => {
+                    const ordem = getValue(row, 'ORDEM');
+                    if (ordem === undefined || ordem === null) return acc;
+                    acc[ordem] = {
+                        descricao: row[headerMap['DESCRICAO']] || '',
+                        valorAtual: getValue(row, 'VALOR_ATUAL'), valorAnterior: getValue(row, 'VALOR_ANTERIOR'),
+                        v1Atual: getValue(row, 'V1_ATUAL'), v1Anterior: getValue(row, 'V1_ANTERIOR'),
+                        v13Atual: getValue(row, 'V13_ATUAL'), v13Anterior: getValue(row, 'V13_ANTERIOR'),
+                        v17Atual: getValue(row, 'V17_ATUAL'), v17Anterior: getValue(row, 'V17_ANTERIOR'),
+                        v27Atual: getValue(row, 'V27_ATUAL'), v27Anterior: getValue(row, 'V27_ANTERIOR'),
+                        v28Atual: getValue(row, 'V28_ATUAL'), v28Anterior: getValue(row, 'V28_ANTERIOR'),
+                        v42Atual: getValue(row, 'V42_ATUAL'), v42Anterior: getValue(row, 'V42_ANTERIOR')
+                    };
+                    return acc;
+                }, {});
+
+                const indicadoresConfig = [
+                    { ordem: 1001, titulo: 'Liquidez Corrente', formula: 'AC / PC' },
+                    { ordem: 1002, titulo: 'Liquidez Seca', formula: '(AC - ESTOQUE) / PC' },
+                    { ordem: 1003, titulo: 'Liquidez Geral', formula: '(AC + RLP) / (PC + PNC)' },
+                    { ordem: 1004, titulo: 'Solvência Geral', formula: 'ATIVO TOTAL / (PC + PNC)' }
+                ];
+
+                const rowsHtml = indicadoresConfig.map(cfg => {
+                    const data = indicadorData[cfg.ordem];
+                    if (!data) {
+                        return `<tr><td colspan="3" class="p-6 text-center text-muted-foreground">Dados de ${cfg.titulo} indisponíveis.</td></tr>`;
+                    }
+                    let numPartsAtual, denPartsAtual, numPartsAnterior, denPartsAnterior;
+                    if (cfg.ordem === 1001) {
+                        numPartsAtual = [{ value: data.v1Atual }]; denPartsAtual = [{ value: data.v28Atual }];
+                        numPartsAnterior = [{ value: data.v1Anterior }]; denPartsAnterior = [{ value: data.v28Anterior }];
+                    } else if (cfg.ordem === 1002) {
+                        numPartsAtual = [{ value: data.v1Atual }, { value: data.v13Atual, operator: '-' }]; denPartsAtual = [{ value: data.v28Atual }];
+                        numPartsAnterior = [{ value: data.v1Anterior }, { value: data.v13Anterior, operator: '-' }]; denPartsAnterior = [{ value: data.v28Anterior }];
+                    } else if (cfg.ordem === 1003) {
+                        numPartsAtual = [{ value: data.v1Atual }, { value: data.v17Atual, operator: '+' }]; denPartsAtual = [{ value: data.v28Atual }, { value: data.v42Atual, operator: '+' }];
+                        numPartsAnterior = [{ value: data.v1Anterior }, { value: data.v17Anterior, operator: '+' }]; denPartsAnterior = [{ value: data.v28Anterior }, { value: data.v42Anterior, operator: '+' }];
+                    } else if (cfg.ordem === 1004) {
+                        numPartsAtual = [{ value: data.v27Atual }]; denPartsAtual = [{ value: data.v28Atual }, { value: data.v42Atual, operator: '+' }];
+                        numPartsAnterior = [{ value: data.v27Anterior }]; denPartsAnterior = [{ value: data.v28Anterior }, { value: data.v42Anterior, operator: '+' }];
+                    }
+                    return `
+                        <tr class="pt-4"><td class="text-left font-bold py-3">${cfg.titulo}</td><td></td><td></td></tr>
+                        <tr><td class="text-left pl-4">${cfg.formula}</td><td>${formatIndicatorCell(numPartsAtual, denPartsAtual, data.valorAtual)}</td><td>${formatIndicatorCell(numPartsAnterior, denPartsAnterior, data.valorAnterior)}</td></tr>
+                    `;
+                }).join('');
+                indicadoresTbody.innerHTML = rowsHtml;
+            }
+
+            async function fetchAndRenderReports() {
+                const loadingHtml = `<tr><td colspan="4" class="text-center p-12 text-muted-foreground">Buscando dados...</td></tr>`;
+                ativoTbody.innerHTML = loadingHtml;
+                passivoTbody.innerHTML = loadingHtml;
+                totalAtivoTbody.innerHTML = '';
+                totalPassivoTbody.innerHTML = '';
+                dreContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Buscando dados da DRE...</div>`;
+                dfcContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Buscando dados da DFC...</div>`;
+                indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-muted-foreground">Buscando indicadores...</td></tr>`;
+                if (resultadosAbrangentesContainer) resultadosAbrangentesContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Buscando resultados...</div>`;
+                if (plTbody) plTbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-muted-foreground">Buscando dados do PL...</td></tr>`;
+                if (notasDynamicContainer) notasDynamicContainer.innerHTML = buildNotasStatusPage('Buscando notas...', FIRST_NOTAS_PAGE_NUMBER, null);
+
+                try {
+                    const dfcQuery = (componentData && (componentData.queryDFC || componentData.varDFC)) || null;
+                    if (!dfcQuery) throw new Error('Configuração da query DFC ausente (queryDFC ou varDFC).');
+                    const indicadoresQuery = componentData && componentData.queryINDICADOR;
+                    if (!indicadoresQuery) throw new Error('Configuração da query INDICADOR ausente (queryINDICADOR).');
+                    const notasQuery = componentData && componentData.queryNOTA1;
+                    if (!notasQuery) throw new Error('Configuração da query NOTAS_EXPLICATIVAS ausente (queryNOTA1).');
+                    if (!componentData.queryDados) throw new Error('Configuração da query do Balanço ausente (queryDados).');
+                    if (!componentData.queryDREa) throw new Error('Configuração da query da DRE ausente (queryDREa).');
+                    
+                    const [dateString, bpResult, dreResult, dreAResult, dfcResult, indicadoresResult, notasResult] = await Promise.all([
+                        getMitraVariableValue(componentData.varMes),
+                        queryMitra({ query: componentData.queryDados }),
+                        queryMitra({ query: componentData.queryDRE }),
+                        queryMitra({ query: componentData.queryDREa }),
+                        queryMitra({ query: dfcQuery }),
+                        queryMitra({ query: indicadoresQuery }),
+                        queryMitra({ query: notasQuery })
+                    ]);
+
+                    await renderHierarchicalBP(bpResult);
+                    
+                    renderDRE(dreAResult);
+                    renderDFC(dfcResult);
+                    renderIndicadores(indicadoresResult);
+                    renderResultadosAbrangentes(dreResult);
+                    
+                    let currentYear = new Date().getFullYear().toString();
+                    if (dateString && dateString.includes('/')) {
+                        const parts = dateString.split('/');
+                        if (parts.length === 2 && parts[1] && parts[1].length === 4) {
+                           currentYear = parts[1];
+                        }
+                    }
+                    
+                    renderPatrimonioLiquido([], dreResult, dfcResult, currentYear);
+                    
+                    renderNotasExplicativas(notasResult, currentYear);
+                    updateReportMetadata(currentYear);
+
+                } catch (error) {
+                    console.error("Falha ao buscar ou processar dados do relatório:", error);
+                    const errorHtml = `<div class="text-center p-12 text-destructive bg-destructive/10">Ocorreu um erro ao carregar o relatório.</div>`;
+                    ativoTbody.innerHTML = `<tr><td colspan="4">${errorHtml}</td></tr>`;
+                    passivoTbody.innerHTML = `<tr><td colspan="4">${errorHtml}</td></tr>`;
+                    dreContainer.innerHTML = errorHtml;
+                    dfcContainer.innerHTML = errorHtml;
+                    indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-destructive bg-destructive/10">Erro ao carregar indicadores.</td></tr>`;
+                    if (resultadosAbrangentesContainer) resultadosAbrangentesContainer.innerHTML = errorHtml;
+                    if (plTbody) plTbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-destructive bg-destructive/10">Erro ao carregar PL.</td></tr>`;
+                    if (notasDynamicContainer) notasDynamicContainer.innerHTML = buildNotasStatusPage('Erro ao carregar notas.', FIRST_NOTAS_PAGE_NUMBER, null, true);
+                }
+            }
+
+            const initializeComponent = () => {
+                document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, fetchAndRenderReports);
+                fetchAndRenderReports();
+            };
+
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                    const hasDFCQuery = window.componentData && (window.componentData.queryDFC || window.componentData.varDFC);
+                    const hasIndicadorQuery = window.componentData && window.componentData.queryINDICADOR;
+                    const hasNotasQuery = window.componentData && window.componentData.queryNOTA1;
+                    
+                    if (window.componentData && window.componentData.queryDados && window.componentData.queryDRE && window.componentData.queryDREa && window.componentData.varMes && hasDFCQuery && hasIndicadorQuery && hasNotasQuery) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        const errorMsg = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente não foram carregadas da plataforma.</div>`;
+                        if (document.getElementById('report-container')) document.getElementById('report-container').innerHTML = errorMsg;
+                        if (dfcContainer) dfcContainer.innerHTML = errorMsg;
+                        if (indicadoresTbody) indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-destructive bg-destructive/10">Erro: componentData não carregou.</td></tr>`;
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>

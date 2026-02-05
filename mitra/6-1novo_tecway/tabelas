@@ -1,0 +1,50 @@
+CRIAR ESTA TABELAS
+
+Tabela: INICIAL_NOTAS
+Campos:
+ID (PK - com autonumeracao)
+MES_REFERENCIA (PK)
+DESCRICAO
+
+Tabela: DET_INICIAL_NOTAS
+Campos:
+ID (PK - com autonumeracao)
+ID_INICIAL_NOTA (FK DE ID - INICIAL_NOTAS)
+ID_MES_REFERENCIA (FK DE MES_REFERENCIA - INICIAL_NOTAS)
+TITULO
+DESCRICAO
+ORDEM
+
+CRIAR ESTA TABELA
+Tabela: CONTAS_DET_INICIAL_NOTAS
+Campos:
+ID (PK - com autonumeracao)
+ID_DET_INICIAL_NOTAS (FK DE ID - DET_INICIAL_NOTAS)
+ID_CONTA_CONTABIL
+
+
+
+criar uma tela de crud 'Contas Detalhadas por Nota' (da tabela CONTAS_DET_INICIAL_NOTAS)
+
+para a tela 'Gerenciamento de Detalhes de Notas' criar um botao de ação nos respectivos registros 
+para acessar a tela de 'Contas Detalhadas por Nota'
+que possibibilitar fazer o vinculo do ID_CONTA_CONTABIL
+de acordo com a ID_DET_INICIAL_NOTAS (FK DE ID - DET_INICIAL_NOTAS)
+
+
+
+
+
+
+para a tela 'Gerenciamento de Detalhes de Notas' criar um botão de ação para acessar uma tela 
+
+de modo que cada registro de 'Gerenciamento de Detalhes de Notas' ao ser acessado para vincular
+abrira a tela 'Contas Detalhadas por Nota' para possibilitar fazer o vinculo de contas respectivo
+
+
+
+de acordo com o respectivo registro da tela
+
+agora crie uma tela para DET_INICIAL_NOTAS com o crud completo 
+
+e na tela 'INICIAL_NOTAS' criar um botao para acessar esta nova tela DET_INICIAL_NOTAS filtrando fk da pk de INICIAL_NOTAS

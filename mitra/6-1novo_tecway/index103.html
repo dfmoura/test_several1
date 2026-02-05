@@ -1,0 +1,357 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório DRE</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+    <div id="dre-container" class="h-full w-full flex flex-col">
+        <div class="flex-grow overflow-auto">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="border-b-2 border-foreground">
+                        <th class="py-2 px-4 text-left text-base font-bold">Descrição</th>
+                        <th class="py-2 px-4 text-left text-base font-bold">Nota</th>
+                        <th id="header-current-year" class="py-2 px-4 text-right text-sm font-semibold w-32">...</th>
+                        <th id="header-previous-year" class="py-2 px-4 text-right text-sm font-semibold w-32">...</th>
+                    </tr>
+                </thead>
+                <tbody id="dre-tbody">
+                    <tr>
+                        <td colspan="4" class="text-center py-10 text-muted-foreground">Carregando dados...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_DRE = 'mitra-update-dre-report';
+
+        function updateMitra() {
+            console.log("Sinal de update para [DRE Report] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_DRE));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const tbody = document.getElementById('dre-tbody');
+            const headerCurrentYearEl = document.getElementById('header-current-year');
+            const headerPreviousYearEl = document.getElementById('header-previous-year');
+
+            function formatCurrency(value) {
+                const num = Number(value) || 0;
+                if (Math.abs(num) < 0.5) return '0'; // Display 0 instead of (0)
+                const roundedNum = Math.round(num);
+                const formatted = new Intl.NumberFormat('de-DE').format(Math.abs(roundedNum));
+                return num < 0 ? `(${formatted})` : formatted;
+            }
+
+            function createRow(item, isBold = false, isTopBorder = false, isDoubleBorder = false, isSubtotal = false) {
+                const row = document.createElement('tr');
+                const boldClass = isBold ? 'font-bold' : '';
+                const textColorClass = isSubtotal ? '' : 'text-muted-foreground';
+                const bgClass = isSubtotal ? 'bg-secondary' : '';
+                
+                let borderClass = '';
+                if(isDoubleBorder) {
+                    borderClass = 'border-y-2 border-double border-foreground';
+                } else if (isTopBorder) {
+                    borderClass = 'border-t border-border';
+                } else {
+                    borderClass = 'border-b border-border';
+                }
+
+                row.innerHTML = `
+                    <td class="py-2 px-4 text-sm ${boldClass} ${bgClass} ${borderClass}">${item.descricao || ''}</td>
+                    <td class="py-2 px-4 text-sm ${boldClass} ${bgClass} ${borderClass}">${item.nota || ''}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums ${boldClass} ${bgClass} ${borderClass}">${item.valor_atual !== undefined ? formatCurrency(item.valor_atual) : ''}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums ${boldClass} ${bgClass} ${borderClass}">${item.valor_anterior !== undefined ? formatCurrency(item.valor_anterior) : ''}</td>
+                `;
+                return row;
+            }
+            
+            function createSpacerRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="4" class="py-1"></td>`;
+                return row;
+            }
+
+
+            async function loadAndRenderDRE() {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-10 text-muted-foreground">Carregando dados...</td></tr>';
+
+                try {
+                    if (!window.componentData || !componentData.queryDRE1 || !componentData.varMes) {
+                        throw new Error("Variáveis de configuração (query, varMes) não encontradas.");
+                    }
+                    
+                    const varMesName = componentData.varMes;
+                    const mesResult = await queryMitra({ queryDRE1: `SELECT ${varMesName} FROM DUAL` });
+                    if (!mesResult || !mesResult.data || !mesResult.data[0] || !mesResult.data[0][0]) {
+                         throw new Error(`Não foi possível obter o valor da variável: ${varMesName}`);
+                    }
+                    const mesValue = mesResult.data[0][0];
+                    const [_, currentYear] = mesValue.split('/');
+                    const previousYear = parseInt(currentYear, 10) - 1;
+
+                    headerCurrentYearEl.textContent = currentYear;
+                    headerPreviousYearEl.textContent = previousYear;
+
+                    const result = await queryMitra({ queryDRE1: componentData.queryDRE1 });
+                    
+                    const headers = result.headers.map(h => h.name.toUpperCase());
+                    const colMap = {
+                        hierarquia: headers.indexOf('HIERARQUIA'),
+                        descricao: headers.indexOf('DESCRICAO'),
+                        nota: headers.indexOf('NOTA'),
+                        valor_atual: headers.indexOf('VALOR_ANO_ATUAL'),
+                        valor_anterior: headers.indexOf('VALOR_ANO_ANTERIOR')
+                    };
+
+                    // Verificar apenas as colunas essenciais (sem NOTA, pois não será exibida)
+                    if (colMap.hierarquia === -1 || colMap.descricao === -1 || colMap.valor_atual === -1 || colMap.valor_anterior === -1) {
+                        console.error('Mapeamento de colunas falhou. Headers recebidos:', headers);
+                        throw new Error("A query não retornou as colunas esperadas: HIERARQUIA, DESCRICAO, VALOR_ANO_ATUAL, VALOR_ANO_ANTERIOR.");
+                    }
+
+                    const data = result.data.map(row => ({
+                        hierarquia: row[colMap.hierarquia],
+                        descricao: row[colMap.descricao],
+                        nota: colMap.nota !== -1 ? row[colMap.nota] : '',
+                        valor_atual: parseFloat(row[colMap.valor_atual]) || 0,
+                        valor_anterior: parseFloat(row[colMap.valor_anterior]) || 0
+                    }));
+
+                    const calculateSum = (prefix) => data
+                        .filter(item => item.hierarquia && item.hierarquia.startsWith(prefix))
+                        .reduce((acc, item) => ({
+                            atual: acc.atual + item.valor_atual,
+                            anterior: acc.anterior + item.valor_anterior
+                        }), { atual: 0, anterior: 0 });
+
+                    const receitas = calculateSum('1.');
+                    const despesasOp = calculateSum('2.');
+                    const resultadoFin = calculateSum('3.');
+                    const impostos = calculateSum('4.');
+                    
+                    const lucroBruto = receitas;
+                    const lucroAntesFin = { atual: lucroBruto.atual + despesasOp.atual, anterior: lucroBruto.anterior + despesasOp.anterior };
+                    const lucroAntesImp = { atual: lucroAntesFin.atual + resultadoFin.atual, anterior: lucroAntesFin.anterior + resultadoFin.anterior };
+                    const lucroExercicio = { atual: lucroAntesImp.atual + impostos.atual, anterior: lucroAntesImp.anterior + impostos.anterior };
+
+                    tbody.innerHTML = '';
+                    const fragment = document.createDocumentFragment();
+
+                    // 1. Receitas
+                    fragment.appendChild(createRow({ descricao: 'Receitas' }, true));
+                    data.filter(i => i.hierarquia.startsWith('1.')).forEach(item => fragment.appendChild(createRow(item)));
+                    fragment.appendChild(createRow({ descricao: 'Lucro bruto', valor_atual: lucroBruto.atual, valor_anterior: lucroBruto.anterior }, true, true, false, true));
+                    fragment.appendChild(createSpacerRow());
+
+                    // 2. Despesas Operacionais
+                    fragment.appendChild(createRow({ descricao: 'Despesas operacionais' }, true));
+                    data.filter(i => i.hierarquia.startsWith('2.')).forEach(item => fragment.appendChild(createRow(item)));
+                    fragment.appendChild(createRow({ descricao: '', valor_atual: despesasOp.atual, valor_anterior: despesasOp.anterior }, false, true, false, true));
+                    fragment.appendChild(createRow({ descricao: 'Lucro antes do resultado financeiro', valor_atual: lucroAntesFin.atual, valor_anterior: lucroAntesFin.anterior }, true));
+                    fragment.appendChild(createSpacerRow());
+
+                    // 3. Resultado Financeiro
+                    data.filter(i => i.hierarquia.startsWith('3.')).forEach(item => fragment.appendChild(createRow(item)));
+                    fragment.appendChild(createRow({ descricao: 'Resultado financeiro', valor_atual: resultadoFin.atual, valor_anterior: resultadoFin.anterior }, true, true, false, true));
+                    fragment.appendChild(createSpacerRow());
+                    
+                    // 4. Impostos e Lucro do Exercício
+                    fragment.appendChild(createRow({ descricao: 'Lucro antes dos impostos', valor_atual: lucroAntesImp.atual, valor_anterior: lucroAntesImp.anterior }, true));
+                    
+                    // ============================================
+                    // CÁLCULOS DE IMPOSTOS DIFERIDOS (calculados primeiro para uso nos cálculos correntes)
+                    // ============================================
+                    // Hierarquias:
+                    // '4.1' = Reversões
+                    // '4.2' = Base diferida do IRPJ e CSLL
+                    // ============================================
+                    const reversoes = calculateSum('4.1');     // Reversões
+                    const baseDiferida = calculateSum('4.2');  // Base diferida do IRPJ e CSLL
+                    
+                    // Base de cálculo: (4.2 * -1) - 4.1
+                    const baseCalculoDiferidoAtual = (baseDiferida.atual * -1) - reversoes.atual;
+                    const baseCalculoDiferidoAnterior = (baseDiferida.anterior * -1) - reversoes.anterior;
+                    
+                    // Q3659 = IRPJ diferido - 15% = SE((('4.2'*-1)-'4.1')>0;(('4.2'*-1)-'4.1')*15%;0)
+                    const Q3659Atual = baseCalculoDiferidoAtual > 0 ? baseCalculoDiferidoAtual * 0.15 : 0;
+                    const Q3659Anterior = baseCalculoDiferidoAnterior > 0 ? baseCalculoDiferidoAnterior * 0.15 : 0;
+                    
+                    // Q3660 = IRPJ diferido - 10% = SE((('4.2'*-1)-'4.1')>240;((('4.2'*-1)-'4.1')-240)*10%;0)
+                    const Q3660Atual = baseCalculoDiferidoAtual > 240 ? (baseCalculoDiferidoAtual - 240) * 0.10 : 0;
+                    const Q3660Anterior = baseCalculoDiferidoAnterior > 240 ? (baseCalculoDiferidoAnterior - 240) * 0.10 : 0;
+                    
+                    // Q3661 = CSLL diferido - 9% = SE(('4.2'*-1)-'4.1'>0;(('4.2'*-1)-'4.1')*9%;0)
+                    const Q3661Atual = baseCalculoDiferidoAtual > 0 ? baseCalculoDiferidoAtual * 0.09 : 0;
+                    const Q3661Anterior = baseCalculoDiferidoAnterior > 0 ? baseCalculoDiferidoAnterior * 0.09 : 0;
+                    
+                    // Imposto de renda e contribuição social - diferidos = Q3659 + Q3660 + Q3661
+                    const impostosDiferidos = {
+                        atual: Q3659Atual + Q3660Atual + Q3661Atual,
+                        anterior: Q3659Anterior + Q3660Anterior + Q3661Anterior
+                    };
+                    
+                    // ============================================
+                    // CÁLCULOS DE IMPOSTOS CORRENTES
+                    // ============================================
+                    // Q3651 = Lucro antes dos impostos (já calculado como lucroAntesImp)
+                    // Hierarquias cadastradas:
+                    // 5.1 = BRINDES (Q3497)
+                    // 5.2 = PROVISÃO PARA PECLD (Q3577)
+                    // 5.3 = (-) REVERSÃO PECLD (Q3578)
+                    // 5.4 = OUTRAS DESPESAS NÃO OPERACIONAIS (Q3616)
+                    // ============================================
+                    const brindes = calculateSum('5.1');           // Q3497 = BRINDES
+                    const provisaoPecld = calculateSum('5.2');    // Q3577 = PROVISÃO PARA PECLD
+                    const reversaoPecld = calculateSum('5.3');    // Q3578 = (-) REVERSÃO PECLD
+                    const outrasDespesasNaoOp = calculateSum('5.4'); // Q3616 = OUTRAS DESPESAS NÃO OPERACIONAIS
+                    
+                    // Base de cálculo corrente: Q3651 + Q3577 - Q3578 - Q3616 + Q3497
+                    const baseCalculoCorrenteAtual = lucroAntesImp.atual + provisaoPecld.atual - reversaoPecld.atual - outrasDespesasNaoOp.atual + brindes.atual;
+                    const baseCalculoCorrenteAnterior = lucroAntesImp.anterior + provisaoPecld.anterior - reversaoPecld.anterior - outrasDespesasNaoOp.anterior + brindes.anterior;
+                    
+                    // Imposto de renda e contribuição social - correntes = 
+                    // (SE((Q3651+Q3577-Q3578-Q3616+Q3497)>0;(Q3651+Q3577-Q3578-Q3616+Q3497)*15%;0)-Q3659)
+                    // + (SE((Q3651+Q3577-Q3578-Q3616+Q3497)>0;((Q3651+Q3577-Q3578-Q3616+Q3497)-240)*10%;0)-Q3660)
+                    // + (SE((Q3651+Q3577-Q3578-Q3616+Q3497)>0;(Q3651+Q3577-Q3578-Q3616+Q3497)*9%;0)-Q3661)
+                    const parte1CorrenteAtual = (baseCalculoCorrenteAtual > 0 ? baseCalculoCorrenteAtual * 0.15 : 0) - Q3659Atual;
+                    const parte1CorrenteAnterior = (baseCalculoCorrenteAnterior > 0 ? baseCalculoCorrenteAnterior * 0.15 : 0) - Q3659Anterior;
+                    
+                    const parte2CorrenteAtual = (baseCalculoCorrenteAtual > 240 ? (baseCalculoCorrenteAtual - 240) * 0.10 : 0) - Q3660Atual;
+                    const parte2CorrenteAnterior = (baseCalculoCorrenteAnterior > 240 ? (baseCalculoCorrenteAnterior - 240) * 0.10 : 0) - Q3660Anterior;
+                    
+                    const parte3CorrenteAtual = (baseCalculoCorrenteAtual > 0 ? baseCalculoCorrenteAtual * 0.09 : 0) - Q3661Atual;
+                    const parte3CorrenteAnterior = (baseCalculoCorrenteAnterior > 0 ? baseCalculoCorrenteAnterior * 0.09 : 0) - Q3661Anterior;
+                    
+                    const impostosCorrentes = {
+                        atual: parte1CorrenteAtual + parte2CorrenteAtual + parte3CorrenteAtual,
+                        anterior: parte1CorrenteAnterior + parte2CorrenteAnterior + parte3CorrenteAnterior
+                    };
+                    
+                    // TOTAL Geral de impostos = Impostos correntes + Impostos diferidos
+                    const totalGeralImpostos = {
+                        atual: impostosCorrentes.atual + impostosDiferidos.atual,
+                        anterior: impostosCorrentes.anterior + impostosDiferidos.anterior
+                    };
+                    
+                    // Adicionar as linhas de impostos após "Lucro antes dos impostos"
+                    fragment.appendChild(createRow({ 
+                        descricao: 'Imposto de renda e contribuição social - correntes', 
+                        valor_atual: impostosCorrentes.atual, 
+                        valor_anterior: impostosCorrentes.anterior 
+                    }, false, false, false, false));
+                    
+                    fragment.appendChild(createRow({ 
+                        descricao: 'Imposto de renda e contribuição social - diferidos', 
+                        valor_atual: impostosDiferidos.atual, 
+                        valor_anterior: impostosDiferidos.anterior 
+                    }, false, false, false, false));
+                    
+                    data.filter(i => i.hierarquia.startsWith('4.')).forEach(item => fragment.appendChild(createRow(item)));
+                    fragment.appendChild(createSpacerRow());
+                    
+                    // (=) RESULTADO LÍQUIDO DO EXERCÍCIO = Lucro antes dos impostos - TOTAL Geral de impostos
+                    const resultadoLiquidoExercicio = {
+                        atual: lucroAntesImp.atual - totalGeralImpostos.atual,
+                        anterior: lucroAntesImp.anterior - totalGeralImpostos.anterior
+                    };
+                    fragment.appendChild(createRow({ 
+                        descricao: '(=) RESULTADO LÍQUIDO DO EXERCÍCIO', 
+                        valor_atual: resultadoLiquidoExercicio.atual, 
+                        valor_anterior: resultadoLiquidoExercicio.anterior 
+                    }, true, false, true, true));
+
+                    tbody.appendChild(fragment);
+
+                } catch (error) {
+                    console.error("Erro ao carregar DRE:", error);
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-10 text-destructive-foreground">Falha ao carregar os dados. ${error.message}</td></tr>`;
+                }
+            }
+
+            document.body.addEventListener(MITRA_UPDATE_EVENT_DRE, loadAndRenderDRE);
+            
+            const initializeComponent = () => {
+                loadAndRenderDRE();
+            };
+
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                    if (window.componentData && window.componentData.queryDRE1 && window.componentData.varMes) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        document.getElementById('dre-container').innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente não foram carregadas da plataforma.</div>`;
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>

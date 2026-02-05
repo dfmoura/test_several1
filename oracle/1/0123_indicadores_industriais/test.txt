@@ -1,0 +1,21 @@
+para o arquivo industria8.jsp
+para a guia 'Gerir Entregas' no card 'Custo entrega'  , grafico e tabela
+popular os dados com a query do arquivo query_base2.sql
+lembrando que no card mostra a media de custo, no grafico a evolução da media de custo, e na tabela o detalhamento com todos dados da query
+
+respeitar os filtros de codemp para empresa e dtneg para datas
+fazer da melhor forma possivel
+---
+
+
+
+para o arquivo industria10.jsp
+para a guia 'Gerir Entregas' no card 'Qualidade na entrega'  , grafico e tabela
+popular os dados com a query do arquivo query_base3.sql
+lembrando que no card mostra em percentual referente ao campo AD_FEEDBACK
+quantos sao 1 = conforme e 2 = não conforme
+ , no grafico a evolução deste percentual, e na tabela o detalhamento com todos dados da query
+
+respeitar os filtros de codemp para empresa e dtneg para datas
+fazer da melhor forma possivel
+

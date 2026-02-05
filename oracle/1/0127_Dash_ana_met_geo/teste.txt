@@ -1,0 +1,762 @@
+// ===== Funções de exportação para Excel =====
+
+// Exportação para Parceiros do Vendedor
+function exportVendedorParceirosToExcel() {
+    const rows = vendedorParceirosRaw || [];
+    if (rows.length === 0) {
+        alert("Não há dados para exportar");
+        return;
+    }
+    
+    const headers = [
+        "CODPARC",
+        "PARCEIRO",
+        "QTD_PREV",
+        "QTD_REAL",
+        "% ATING. QTD",
+        "VLR_PREV",
+        "VLR_REAL",
+        "% ATING. VLR",
+        "TICKET_MEDIO_REAL",
+        "TICKET_MEDIO_PREV",
+        "VAR. % TICKET_MEDIO"
+    ];
+    
+    const numericFields = [
+        "QTD_PREV",
+        "QTD_REAL",
+        "% ATING. QTD",
+        "VLR_PREV",
+        "VLR_REAL",
+        "% ATING. VLR",
+        "TICKET_MEDIO_REAL",
+        "TICKET_MEDIO_PREV",
+        "VAR. % TICKET_MEDIO"
+    ];
+    
+    // Gera XML SpreadsheetML para Excel (.xls)
+    let xml = '<?xml version="1.0"?>\n';
+    xml += '<?mso-application progid="Excel.Sheet"?>\n';
+    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:o="urn:schemas-microsoft-com:office:office"\n';
+    xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n';
+    xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:html="http://www.w3.org/TR/REC-html40">\n';
+
+    // Define estilos de formatação numérica brasileira
+    xml += "<Styles>\n";
+    xml += '<Style ss:ID="NumeroBR">\n';
+    xml += '<NumberFormat ss:Format="#.##0,00"/>\n';
+    xml += "</Style>\n";
+    xml += '<Style ss:ID="NumeroBRInteiro">\n';
+    xml += '<NumberFormat ss:Format="#.##0"/>\n';
+    xml += "</Style>\n";
+    xml += '<Style ss:ID="PercentualBR">\n';
+    xml += '<NumberFormat ss:Format="#.##0,00%"/>\n';
+    xml += "</Style>\n";
+    xml += "</Styles>\n";
+
+    xml += `<Worksheet ss:Name="Parceiros Vendedor ${currentVendedorCod}">\n`;
+    xml += "<Table>\n";
+
+    // Cabeçalhos
+    xml += "<Row>\n";
+    headers.forEach((header) => {
+        xml += `<Cell><Data ss:Type="String">${escapeXml(header)}</Data></Cell>\n`;
+    });
+    xml += "</Row>\n";
+
+    // Dados
+    rows.forEach((row) => {
+        const qr = parseFloat(row.QTDREAL || 0);
+        const qp = parseFloat(row.QTDPREV || 0);
+        const vr = parseFloat(row.VLR_REAL || 0);
+        const vp = parseFloat(row.VLR_PREV || 0);
+        const pctQtd = qp > 0 ? (qr / qp) * 100 : null;
+        const pctVlr = vp > 0 ? (vr / vp) * 100 : null;
+        const ticketPrev = qp > 0 ? vp / qp : 0;
+        const ticketReal = qr > 0 ? vr / qr : 0;
+        const variacaoTicket = ticketPrev > 0 ? ((ticketReal - ticketPrev) / ticketPrev) * 100 : null;
+
+        xml += "<Row>\n";
+        headers.forEach((header) => {
+            let value;
+            
+            // Mapeia as colunas calculadas
+            if (header === "CODPARC") {
+                value = row.CODPARC || "";
+            } else if (header === "PARCEIRO") {
+                value = row.PARCEIRO || "";
+            } else if (header === "QTD_PREV") {
+                value = qp;
+            } else if (header === "QTD_REAL") {
+                value = qr;
+            } else if (header === "% ATING. QTD") {
+                value = pctQtd;
+            } else if (header === "VLR_PREV") {
+                value = vp;
+            } else if (header === "VLR_REAL") {
+                value = vr;
+            } else if (header === "% ATING. VLR") {
+                value = pctVlr;
+            } else if (header === "TICKET_MEDIO_REAL") {
+                value = ticketReal;
+            } else if (header === "TICKET_MEDIO_PREV") {
+                value = ticketPrev;
+            } else if (header === "VAR. % TICKET_MEDIO") {
+                value = variacaoTicket;
+            } else {
+                value = "";
+            }
+
+            if (numericFields.includes(header)) {
+                // Usa tipo Number para evitar apóstrofo no Excel
+                const numValue = value === null || value === undefined ? "" : parseFloat(value) || 0;
+                // Aplica estilo brasileiro
+                const isPercentual = header.includes("%") || header.includes("VAR.");
+                const isValor = header.includes("VLR") || header.includes("TICKET");
+                let styleId;
+                let finalValue = numValue;
+                
+                if (isPercentual) {
+                    styleId = "PercentualBR";
+                    // Excel espera valores de percentual como decimais (0.855 para 85.5%)
+                    finalValue = numValue / 100;
+                } else if (isValor) {
+                    styleId = "NumeroBR";
+                } else {
+                    styleId = "NumeroBRInteiro";
+                }
+                
+                if (value === null || value === undefined || value === "") {
+                    xml += `<Cell><Data ss:Type="String"></Data></Cell>\n`;
+                } else {
+                    xml += `<Cell ss:StyleID="${styleId}"><Data ss:Type="Number">${finalValue}</Data></Cell>\n`;
+                }
+            } else {
+                // Campos de texto
+                xml += `<Cell><Data ss:Type="String">${escapeXml(String(value))}</Data></Cell>\n`;
+            }
+        });
+        xml += "</Row>\n";
+    });
+
+    xml += "</Table>\n";
+    xml += "</Worksheet>\n";
+    xml += "</Workbook>";
+
+    const blob = new Blob([xml], {
+        type: "application/vnd.ms-excel",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `parceiros_vendedor_${currentVendedorCod}.xls`);
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+// Exportação para Marcas do Parceiro (do overlay de vendedor)
+function exportParceiroMarcasToExcel() {
+    const rows = parceiroMarcasRaw || [];
+    if (rows.length === 0) {
+        alert("Não há dados para exportar");
+        return;
+    }
+    
+    const headers = [
+        "MARCA",
+        "QTD_PREV",
+        "QTD_REAL",
+        "% ATING. QTD",
+        "VLR_PREV",
+        "VLR_REAL",
+        "% ATING. VLR",
+        "TICKET_MEDIO_REAL",
+        "TICKET_MEDIO_PREV",
+        "VAR. % TICKET_MEDIO"
+    ];
+    
+    const numericFields = [
+        "QTD_PREV",
+        "QTD_REAL",
+        "% ATING. QTD",
+        "VLR_PREV",
+        "VLR_REAL",
+        "% ATING. VLR",
+        "TICKET_MEDIO_REAL",
+        "TICKET_MEDIO_PREV",
+        "VAR. % TICKET_MEDIO"
+    ];
+    
+    let xml = '<?xml version="1.0"?>\n';
+    xml += '<?mso-application progid="Excel.Sheet"?>\n';
+    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:o="urn:schemas-microsoft-com:office:office"\n';
+    xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n';
+    xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:html="http://www.w3.org/TR/REC-html40">\n';
+
+    xml += "<Styles>\n";
+    xml += '<Style ss:ID="NumeroBR">\n';
+    xml += '<NumberFormat ss:Format="#.##0,00"/>\n';
+    xml += "</Style>\n";
+    xml += '<Style ss:ID="NumeroBRInteiro">\n';
+    xml += '<NumberFormat ss:Format="#.##0"/>\n';
+    xml += "</Style>\n";
+    xml += '<Style ss:ID="PercentualBR">\n';
+    xml += '<NumberFormat ss:Format="#.##0,00%"/>\n';
+    xml += "</Style>\n";
+    xml += "</Styles>\n";
+
+    xml += `<Worksheet ss:Name="Marcas Parceiro ${currentParceiroCod}">\n`;
+    xml += "<Table>\n";
+
+    // Cabeçalhos
+    xml += "<Row>\n";
+    headers.forEach((header) => {
+        xml += `<Cell><Data ss:Type="String">${escapeXml(header)}</Data></Cell>\n`;
+    });
+    xml += "</Row>\n";
+
+    // Dados
+    rows.forEach((row) => {
+        const qr = parseFloat(row.QTDREAL || 0);
+        const qp = parseFloat(row.QTDPREV || 0);
+        const vr = parseFloat(row.VLR_REAL || 0);
+        const vp = parseFloat(row.VLR_PREV || 0);
+        const pctQtd = qp > 0 ? (qr / qp) * 100 : null;
+        const pctVlr = vp > 0 ? (vr / vp) * 100 : null;
+        const ticketPrev = qp > 0 ? vp / qp : 0;
+        const ticketReal = qr > 0 ? vr / qr : 0;
+        const variacaoTicket = ticketPrev > 0 ? ((ticketReal - ticketPrev) / ticketPrev) * 100 : null;
+
+        xml += "<Row>\n";
+        headers.forEach((header) => {
+            let value;
+            
+            if (header === "MARCA") {
+                value = row.MARCA || "";
+            } else if (header === "QTD_PREV") {
+                value = qp;
+            } else if (header === "QTD_REAL") {
+                value = qr;
+            } else if (header === "% ATING. QTD") {
+                value = pctQtd;
+            } else if (header === "VLR_PREV") {
+                value = vp;
+            } else if (header === "VLR_REAL") {
+                value = vr;
+            } else if (header === "% ATING. VLR") {
+                value = pctVlr;
+            } else if (header === "TICKET_MEDIO_REAL") {
+                value = ticketReal;
+            } else if (header === "TICKET_MEDIO_PREV") {
+                value = ticketPrev;
+            } else if (header === "VAR. % TICKET_MEDIO") {
+                value = variacaoTicket;
+            } else {
+                value = "";
+            }
+
+            if (numericFields.includes(header)) {
+                const numValue = value === null || value === undefined ? "" : parseFloat(value) || 0;
+                const isPercentual = header.includes("%") || header.includes("VAR.");
+                const isValor = header.includes("VLR") || header.includes("TICKET");
+                let styleId;
+                let finalValue = numValue;
+                
+                if (isPercentual) {
+                    styleId = "PercentualBR";
+                    finalValue = numValue / 100;
+                } else if (isValor) {
+                    styleId = "NumeroBR";
+                } else {
+                    styleId = "NumeroBRInteiro";
+                }
+                
+                if (value === null || value === undefined || value === "") {
+                    xml += `<Cell><Data ss:Type="String"></Data></Cell>\n`;
+                } else {
+                    xml += `<Cell ss:StyleID="${styleId}"><Data ss:Type="Number">${finalValue}</Data></Cell>\n`;
+                }
+            } else {
+                xml += `<Cell><Data ss:Type="String">${escapeXml(String(value))}</Data></Cell>\n`;
+            }
+        });
+        xml += "</Row>\n";
+    });
+
+    xml += "</Table>\n";
+    xml += "</Worksheet>\n";
+    xml += "</Workbook>";
+
+    const blob = new Blob([xml], {
+        type: "application/vnd.ms-excel",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `marcas_parceiro_${currentParceiroCod}.xls`);
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+// Exportação para Marcas do Parceiro (da guia Parceiro)
+function exportParceiroMarcasFromParcToExcel() {
+    const rows = parceiroMarcasFromParcRaw || [];
+    if (rows.length === 0) {
+        alert("Não há dados para exportar");
+        return;
+    }
+    
+    const headers = [
+        "MARCA",
+        "QTD_PREV",
+        "QTD_REAL",
+        "% ATING. QTD",
+        "VLR_PREV",
+        "VLR_REAL",
+        "% ATING. VLR",
+        "TICKET_MEDIO_REAL",
+        "TICKET_MEDIO_PREV",
+        "VAR. % TICKET_MEDIO"
+    ];
+    
+    const numericFields = [
+        "QTD_PREV",
+        "QTD_REAL",
+        "% ATING. QTD",
+        "VLR_PREV",
+        "VLR_REAL",
+        "% ATING. VLR",
+        "TICKET_MEDIO_REAL",
+        "TICKET_MEDIO_PREV",
+        "VAR. % TICKET_MEDIO"
+    ];
+    
+    let xml = '<?xml version="1.0"?>\n';
+    xml += '<?mso-application progid="Excel.Sheet"?>\n';
+    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:o="urn:schemas-microsoft-com:office:office"\n';
+    xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n';
+    xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:html="http://www.w3.org/TR/REC-html40">\n';
+
+    xml += "<Styles>\n";
+    xml += '<Style ss:ID="NumeroBR">\n';
+    xml += '<NumberFormat ss:Format="#.##0,00"/>\n';
+    xml += "</Style>\n";
+    xml += '<Style ss:ID="NumeroBRInteiro">\n';
+    xml += '<NumberFormat ss:Format="#.##0"/>\n';
+    xml += "</Style>\n";
+    xml += '<Style ss:ID="PercentualBR">\n';
+    xml += '<NumberFormat ss:Format="#.##0,00%"/>\n';
+    xml += "</Style>\n";
+    xml += "</Styles>\n";
+
+    xml += `<Worksheet ss:Name="Marcas Parceiro ${currentParceiroCod}">\n`;
+    xml += "<Table>\n";
+
+    // Cabeçalhos
+    xml += "<Row>\n";
+    headers.forEach((header) => {
+        xml += `<Cell><Data ss:Type="String">${escapeXml(header)}</Data></Cell>\n`;
+    });
+    xml += "</Row>\n";
+
+    // Dados
+    rows.forEach((row) => {
+        const qr = parseFloat(row.QTDREAL || 0);
+        const qp = parseFloat(row.QTDPREV || 0);
+        const vr = parseFloat(row.VLR_REAL || 0);
+        const vp = parseFloat(row.VLR_PREV || 0);
+        const pctQtd = qp > 0 ? (qr / qp) * 100 : null;
+        const pctVlr = vp > 0 ? (vr / vp) * 100 : null;
+        const ticketPrev = qp > 0 ? vp / qp : 0;
+        const ticketReal = qr > 0 ? vr / qr : 0;
+        const variacaoTicket = ticketPrev > 0 ? ((ticketReal - ticketPrev) / ticketPrev) * 100 : null;
+
+        xml += "<Row>\n";
+        headers.forEach((header) => {
+            let value;
+            
+            if (header === "MARCA") {
+                value = row.MARCA || "";
+            } else if (header === "QTD_PREV") {
+                value = qp;
+            } else if (header === "QTD_REAL") {
+                value = qr;
+            } else if (header === "% ATING. QTD") {
+                value = pctQtd;
+            } else if (header === "VLR_PREV") {
+                value = vp;
+            } else if (header === "VLR_REAL") {
+                value = vr;
+            } else if (header === "% ATING. VLR") {
+                value = pctVlr;
+            } else if (header === "TICKET_MEDIO_REAL") {
+                value = ticketReal;
+            } else if (header === "TICKET_MEDIO_PREV") {
+                value = ticketPrev;
+            } else if (header === "VAR. % TICKET_MEDIO") {
+                value = variacaoTicket;
+            } else {
+                value = "";
+            }
+
+            if (numericFields.includes(header)) {
+                const numValue = value === null || value === undefined ? "" : parseFloat(value) || 0;
+                const isPercentual = header.includes("%") || header.includes("VAR.");
+                const isValor = header.includes("VLR") || header.includes("TICKET");
+                let styleId;
+                let finalValue = numValue;
+                
+                if (isPercentual) {
+                    styleId = "PercentualBR";
+                    finalValue = numValue / 100;
+                } else if (isValor) {
+                    styleId = "NumeroBR";
+                } else {
+                    styleId = "NumeroBRInteiro";
+                }
+                
+                if (value === null || value === undefined || value === "") {
+                    xml += `<Cell><Data ss:Type="String"></Data></Cell>\n`;
+                } else {
+                    xml += `<Cell ss:StyleID="${styleId}"><Data ss:Type="Number">${finalValue}</Data></Cell>\n`;
+                }
+            } else {
+                xml += `<Cell><Data ss:Type="String">${escapeXml(String(value))}</Data></Cell>\n`;
+            }
+        });
+        xml += "</Row>\n";
+    });
+
+    xml += "</Table>\n";
+    xml += "</Worksheet>\n";
+    xml += "</Workbook>";
+
+    const blob = new Blob([xml], {
+        type: "application/vnd.ms-excel",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `marcas_parceiro_${currentParceiroCod}_detalhe.xls`);
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+// Exportação para Vendedores da Marca
+function exportMarcaVendedoresToExcel() {
+    const rows = marcaVendedoresRaw || [];
+    if (rows.length === 0) {
+        alert("Não há dados para exportar");
+        return;
+    }
+    
+    const headers = [
+        "CODVEND",
+        "APELIDO",
+        "QTD_PREV",
+        "QTD_REAL",
+        "% ATING. QTD",
+        "VLR_PREV",
+        "VLR_REAL",
+        "% ATING. VLR",
+        "TICKET_MEDIO_REAL",
+        "TICKET_MEDIO_PREV",
+        "VAR. % TICKET_MEDIO"
+    ];
+    
+    const numericFields = [
+        "QTD_PREV",
+        "QTD_REAL",
+        "% ATING. QTD",
+        "VLR_PREV",
+        "VLR_REAL",
+        "% ATING. VLR",
+        "TICKET_MEDIO_REAL",
+        "TICKET_MEDIO_PREV",
+        "VAR. % TICKET_MEDIO"
+    ];
+    
+    let xml = '<?xml version="1.0"?>\n';
+    xml += '<?mso-application progid="Excel.Sheet"?>\n';
+    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:o="urn:schemas-microsoft-com:office:office"\n';
+    xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n';
+    xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:html="http://www.w3.org/TR/REC-html40">\n';
+
+    xml += "<Styles>\n";
+    xml += '<Style ss:ID="NumeroBR">\n';
+    xml += '<NumberFormat ss:Format="#.##0,00"/>\n';
+    xml += "</Style>\n";
+    xml += '<Style ss:ID="NumeroBRInteiro">\n';
+    xml += '<NumberFormat ss:Format="#.##0"/>\n';
+    xml += "</Style>\n";
+    xml += '<Style ss:ID="PercentualBR">\n';
+    xml += '<NumberFormat ss:Format="#.##0,00%"/>\n';
+    xml += "</Style>\n";
+    xml += "</Styles>\n";
+
+    xml += `<Worksheet ss:Name="Vendedores Marca ${currentMarca || ''}">\n`;
+    xml += "<Table>\n";
+
+    // Cabeçalhos
+    xml += "<Row>\n";
+    headers.forEach((header) => {
+        xml += `<Cell><Data ss:Type="String">${escapeXml(header)}</Data></Cell>\n`;
+    });
+    xml += "</Row>\n";
+
+    // Dados
+    rows.forEach((row) => {
+        const qr = parseFloat(row.QTDREAL || 0);
+        const qp = parseFloat(row.QTDPREV || 0);
+        const vr = parseFloat(row.VLR_REAL || 0);
+        const vp = parseFloat(row.VLR_PREV || 0);
+        const pctQtd = qp > 0 ? (qr / qp) * 100 : null;
+        const pctVlr = vp > 0 ? (vr / vp) * 100 : null;
+        const ticketPrev = qp > 0 ? vp / qp : 0;
+        const ticketReal = qr > 0 ? vr / qr : 0;
+        const variacaoTicket = ticketPrev > 0 ? ((ticketReal - ticketPrev) / ticketPrev) * 100 : null;
+
+        xml += "<Row>\n";
+        headers.forEach((header) => {
+            let value;
+            
+            if (header === "CODVEND") {
+                value = row.CODVEND || "";
+            } else if (header === "APELIDO") {
+                value = row.APELIDO || "";
+            } else if (header === "QTD_PREV") {
+                value = qp;
+            } else if (header === "QTD_REAL") {
+                value = qr;
+            } else if (header === "% ATING. QTD") {
+                value = pctQtd;
+            } else if (header === "VLR_PREV") {
+                value = vp;
+            } else if (header === "VLR_REAL") {
+                value = vr;
+            } else if (header === "% ATING. VLR") {
+                value = pctVlr;
+            } else if (header === "TICKET_MEDIO_REAL") {
+                value = ticketReal;
+            } else if (header === "TICKET_MEDIO_PREV") {
+                value = ticketPrev;
+            } else if (header === "VAR. % TICKET_MEDIO") {
+                value = variacaoTicket;
+            } else {
+                value = "";
+            }
+
+            if (numericFields.includes(header)) {
+                const numValue = value === null || value === undefined ? "" : parseFloat(value) || 0;
+                const isPercentual = header.includes("%") || header.includes("VAR.");
+                const isValor = header.includes("VLR") || header.includes("TICKET");
+                let styleId;
+                let finalValue = numValue;
+                
+                if (isPercentual) {
+                    styleId = "PercentualBR";
+                    finalValue = numValue / 100;
+                } else if (isValor) {
+                    styleId = "NumeroBR";
+                } else {
+                    styleId = "NumeroBRInteiro";
+                }
+                
+                if (value === null || value === undefined || value === "") {
+                    xml += `<Cell><Data ss:Type="String"></Data></Cell>\n`;
+                } else {
+                    xml += `<Cell ss:StyleID="${styleId}"><Data ss:Type="Number">${finalValue}</Data></Cell>\n`;
+                }
+            } else {
+                xml += `<Cell><Data ss:Type="String">${escapeXml(String(value))}</Data></Cell>\n`;
+            }
+        });
+        xml += "</Row>\n";
+    });
+
+    xml += "</Table>\n";
+    xml += "</Worksheet>\n";
+    xml += "</Workbook>";
+
+    const blob = new Blob([xml], {
+        type: "application/vnd.ms-excel",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `vendedores_marca_${currentMarca || 'geral'}.xls`);
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+// Exportação para Parceiros do Vendedor da Marca
+function exportMarcaVendedorParceirosToExcel() {
+    const rows = marcaVendedorParceirosRaw || [];
+    if (rows.length === 0) {
+        alert("Não há dados para exportar");
+        return;
+    }
+    
+    const headers = [
+        "CODPARC",
+        "PARCEIRO",
+        "QTD_PREV",
+        "QTD_REAL",
+        "% ATING. QTD",
+        "VLR_PREV",
+        "VLR_REAL",
+        "% ATING. VLR",
+        "TICKET_MEDIO_REAL",
+        "TICKET_MEDIO_PREV",
+        "VAR. % TICKET_MEDIO"
+    ];
+    
+    const numericFields = [
+        "QTD_PREV",
+        "QTD_REAL",
+        "% ATING. QTD",
+        "VLR_PREV",
+        "VLR_REAL",
+        "% ATING. VLR",
+        "TICKET_MEDIO_REAL",
+        "TICKET_MEDIO_PREV",
+        "VAR. % TICKET_MEDIO"
+    ];
+    
+    let xml = '<?xml version="1.0"?>\n';
+    xml += '<?mso-application progid="Excel.Sheet"?>\n';
+    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:o="urn:schemas-microsoft-com:office:office"\n';
+    xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n';
+    xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:html="http://www.w3.org/TR/REC-html40">\n';
+
+    xml += "<Styles>\n";
+    xml += '<Style ss:ID="NumeroBR">\n';
+    xml += '<NumberFormat ss:Format="#.##0,00"/>\n';
+    xml += "</Style>\n";
+    xml += '<Style ss:ID="NumeroBRInteiro">\n';
+    xml += '<NumberFormat ss:Format="#.##0"/>\n';
+    xml += "</Style>\n";
+    xml += '<Style ss:ID="PercentualBR">\n';
+    xml += '<NumberFormat ss:Format="#.##0,00%"/>\n';
+    xml += "</Style>\n";
+    xml += "</Styles>\n";
+
+    xml += `<Worksheet ss:Name="Parceiros Vendedor ${currentVendedorCod} Marca ${currentMarca || ''}">\n`;
+    xml += "<Table>\n";
+
+    // Cabeçalhos
+    xml += "<Row>\n";
+    headers.forEach((header) => {
+        xml += `<Cell><Data ss:Type="String">${escapeXml(header)}</Data></Cell>\n`;
+    });
+    xml += "</Row>\n";
+
+    // Dados
+    rows.forEach((row) => {
+        const qr = parseFloat(row.QTDREAL || 0);
+        const qp = parseFloat(row.QTDPREV || 0);
+        const vr = parseFloat(row.VLR_REAL || 0);
+        const vp = parseFloat(row.VLR_PREV || 0);
+        const pctQtd = qp > 0 ? (qr / qp) * 100 : null;
+        const pctVlr = vp > 0 ? (vr / vp) * 100 : null;
+        const ticketPrev = qp > 0 ? vp / qp : 0;
+        const ticketReal = qr > 0 ? vr / qr : 0;
+        const variacaoTicket = ticketPrev > 0 ? ((ticketReal - ticketPrev) / ticketPrev) * 100 : null;
+
+        xml += "<Row>\n";
+        headers.forEach((header) => {
+            let value;
+            
+            if (header === "CODPARC") {
+                value = row.CODPARC || "";
+            } else if (header === "PARCEIRO") {
+                value = row.PARCEIRO || "";
+            } else if (header === "QTD_PREV") {
+                value = qp;
+            } else if (header === "QTD_REAL") {
+                value = qr;
+            } else if (header === "% ATING. QTD") {
+                value = pctQtd;
+            } else if (header === "VLR_PREV") {
+                value = vp;
+            } else if (header === "VLR_REAL") {
+                value = vr;
+            } else if (header === "% ATING. VLR") {
+                value = pctVlr;
+            } else if (header === "TICKET_MEDIO_REAL") {
+                value = ticketReal;
+            } else if (header === "TICKET_MEDIO_PREV") {
+                value = ticketPrev;
+            } else if (header === "VAR. % TICKET_MEDIO") {
+                value = variacaoTicket;
+            } else {
+                value = "";
+            }
+
+            if (numericFields.includes(header)) {
+                const numValue = value === null || value === undefined ? "" : parseFloat(value) || 0;
+                const isPercentual = header.includes("%") || header.includes("VAR.");
+                const isValor = header.includes("VLR") || header.includes("TICKET");
+                let styleId;
+                let finalValue = numValue;
+                
+                if (isPercentual) {
+                    styleId = "PercentualBR";
+                    finalValue = numValue / 100;
+                } else if (isValor) {
+                    styleId = "NumeroBR";
+                } else {
+                    styleId = "NumeroBRInteiro";
+                }
+                
+                if (value === null || value === undefined || value === "") {
+                    xml += `<Cell><Data ss:Type="String"></Data></Cell>\n`;
+                } else {
+                    xml += `<Cell ss:StyleID="${styleId}"><Data ss:Type="Number">${finalValue}</Data></Cell>\n`;
+                }
+            } else {
+                xml += `<Cell><Data ss:Type="String">${escapeXml(String(value))}</Data></Cell>\n`;
+            }
+        });
+        xml += "</Row>\n";
+    });
+
+    xml += "</Table>\n";
+    xml += "</Worksheet>\n";
+    xml += "</Workbook>";
+
+    const blob = new Blob([xml], {
+        type: "application/vnd.ms-excel",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `parceiros_vendedor_${currentVendedorCod}_marca_${currentMarca || 'geral'}.xls`);
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}

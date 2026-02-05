@@ -1,0 +1,27 @@
+para o arquivo index112.html
+REVISAR O CALCULO DA PAGINA 6, FAZER COM BASE NAS INFORMAÇÕES DA queryBP1 da pagina 3,
+utilizar as hierarquias abaixo para fazer os calculos:
+
+Liquidez Corrente =  AC / PC  =  1.1 / 2.1
+Liquidez Seca = (AC - ESTOQUE) / PC = (1.1 / 1.1.3) / 2.1
+Liquidez Geral = (AC + RLP) / (PC + PNC) = 1.1 / 2.
+Solvência Geral = ATIVO TOTAL / (PC + PNC) = 1. / 2.
+
+pode manter o layout existente, so ajustar os dados
+muito cuidado para nao estragar nada
+
+
+
+para o arquivo index113.html
+a partir da pagina 9
+referente a 'queryNOTA1', verificar no relatório para quebrar as paginas correntamente
+
+lembrando que toda pagina nesta parte das 'Notas Explicativas' tem este cabeçalho:
+
+Tecway Serviços e Locação de Equipamentos Ltda
+Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024
+(Valores expressos em milhares de reais, exceto quando indicado de outra forma)
+
+
+e este rodapé:
+Notas explicativas 9

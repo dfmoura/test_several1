@@ -1,0 +1,12 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PROMPT.
+
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 WS-NOME PIC X(30).
+
+       PROCEDURE DIVISION.
+           DISPLAY "Digite seu nome: " WITH NO ADVANCING
+           ACCEPT WS-NOME
+           DISPLAY "Ola, " WS-NOME
+           STOP RUN.
