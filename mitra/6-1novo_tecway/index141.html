@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de variáveis dos indicadores</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --border: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+    </style>
+</head>
+
+<body class="p-4 sm:p-6 lg:p-8">
+    <div id="report-container" class="w-full max-w-5xl mx-auto">
+        <div id="loading-state" class="flex items-center justify-center py-16">
+            <p class="text-lg text-muted-foreground">Carregando dados do balanço...</p>
+        </div>
+        <div id="report-content" class="hidden space-y-12">
+            <section>
+                <h2 class="text-lg font-bold border-b border-border pb-2 mb-4">Base de variáveis dos indicadores</h2>
+                <p class="text-sm text-muted-foreground mb-4">Totais (atual e anterior) de cada variável utilizada nas fórmulas dos indicadores.</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b-2 border-foreground">
+                                <th class="text-left py-2 px-3 font-semibold">Variável</th>
+                                <th class="text-left py-2 px-3 font-semibold text-muted-foreground">Origem</th>
+                                <th class="text-right py-2 px-3 font-semibold w-32" data-dynamic-text="current-year-var">–</th>
+                                <th class="text-right py-2 px-3 font-semibold w-32" data-dynamic-text="previous-year-var">–</th>
+                            </tr>
+                        </thead>
+                        <tbody id="base-variaveis-tbody">
+                            <tr><td colspan="4" class="p-4 text-center text-muted-foreground">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-indicadores-bp';
+
+        function updateMitra() {
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+
+        /**
+         * Extrai o ano a partir do mês de referência (ex.: "12/2024" -> "2024").
+         * Usado para títulos dinâmicos "ano atual" e "ano anterior".
+         */
+        function parseYearFromMes(mesReferencia) {
+            const s = (mesReferencia != null && mesReferencia !== '') ? String(mesReferencia).trim() : '';
+            if (!s) return String(new Date().getFullYear());
+            if (s.includes('/')) {
+                const partes = s.split('/');
+                const ano = (partes[1] || partes[0] || '').trim();
+                if (ano.length === 4 && /^\d{4}$/.test(ano)) return ano;
+            }
+            if (/^\d{4}$/.test(s)) return s;
+            return String(new Date().getFullYear());
+        }
+
+        /**
+         * Retorna a soma dos valores (valorAtual, valorAnterior) de todos os itens do BP
+         * cuja hierarquia é exatamente igual ao código ou começa com código + '.'.
+         * Ex.: código "1.1" soma 1.1, 1.1.1, 1.1.12, etc.
+         * Quando o código termina em '.', também considera hierarquia sem o ponto (ex.: "2." considera "2").
+         */
+        function getValorByHierarquia(bpData, code) {
+            if (!bpData || !Array.isArray(bpData)) return { valorAtual: 0, valorAnterior: 0 };
+            const normalized = (code || '').toString().trim();
+            const match = (h) => {
+                if (!h) return false;
+                const s = String(h).trim();
+                if (s === normalized) return true;
+                if (s.startsWith(normalized + '.')) return true;
+                if (normalized.endsWith('.') && s === normalized.slice(0, -1)) return true;
+                return false;
+            };
+            return bpData.filter(d => match(d.hierarquia)).reduce(
+                (acc, item) => {
+                    acc.valorAtual += parseFloat(item.valorAtual) || 0;
+                    acc.valorAnterior += parseFloat(item.valorAnterior) || 0;
+                    return acc;
+                },
+                { valorAtual: 0, valorAnterior: 0 }
+            );
+        }
+
+        /**
+         * Monta o objeto de base para os indicadores a partir do BP (mesma estrutura queryDadosBP/index126).
+         * Chaves: 1., 1.1, 1.1.1, 1.1.12, 1.2, 1.2.1, 2., 2.1, 2.2, 2.1.4, 2.2.1, 3.
+         * 1., 2. e 3. (ativo total, passivo total, PL) são obtidos por soma dos filhos quando a agregação direta for zero.
+         */
+        function computeBPBase(bpData) {
+            if (!bpData || bpData.length === 0) return null;
+            const v11 = getValorByHierarquia(bpData, '1.1');
+            const v12 = getValorByHierarquia(bpData, '1.2');
+            const v21 = getValorByHierarquia(bpData, '2.1');
+            const v22 = getValorByHierarquia(bpData, '2.2');
+            const v31 = getValorByHierarquia(bpData, '3.1');
+            const v32 = getValorByHierarquia(bpData, '3.2');
+            const v33 = getValorByHierarquia(bpData, '3.3');
+            const v1ponto = getValorByHierarquia(bpData, '1.');
+            const v2ponto = getValorByHierarquia(bpData, '2.');
+            const v3ponto = getValorByHierarquia(bpData, '3.');
+            const total1 = (v1ponto.valorAtual !== 0 || v1ponto.valorAnterior !== 0)
+                ? v1ponto
+                : { valorAtual: v11.valorAtual + v12.valorAtual, valorAnterior: v11.valorAnterior + v12.valorAnterior };
+            const total2 = (v2ponto.valorAtual !== 0 || v2ponto.valorAnterior !== 0)
+                ? v2ponto
+                : { valorAtual: v21.valorAtual + v22.valorAtual, valorAnterior: v21.valorAnterior + v22.valorAnterior };
+            const total3 = (v3ponto.valorAtual !== 0 || v3ponto.valorAnterior !== 0)
+                ? v3ponto
+                : { valorAtual: v31.valorAtual + v32.valorAtual + v33.valorAtual, valorAnterior: v31.valorAnterior + v32.valorAnterior + v33.valorAnterior };
+            return {
+                '1.': total1,
+                '1.1': v11,
+                '1.1.1': getValorByHierarquia(bpData, '1.1.1'),
+                '1.1.12': getValorByHierarquia(bpData, '1.1.12'),
+                '1.2': v12,
+                '1.2.1': getValorByHierarquia(bpData, '1.2.1'),
+                '1.2.7': getValorByHierarquia(bpData, '1.2.7'),
+                '1.2.10': getValorByHierarquia(bpData, '1.2.10'),
+                '2.': total2,
+                '2.1': v21,
+                '2.2': v22,
+                '2.1.4': getValorByHierarquia(bpData, '2.1.4'),
+                '2.2.1': getValorByHierarquia(bpData, '2.2.1'),
+                '3.': total3
+            };
+        }
+
+        function formatCurrency(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) return '–';
+            return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+        }
+
+        function formatRatio(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) return '–';
+            return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+        }
+
+        function formatPercent(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) return '–';
+            return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num) + ' %';
+        }
+
+        /**
+         * Processa o resultado da DRE (queryDadosDRE) em uma lista de objetos
+         * com hierarquia e valores atual/anterior.
+         */
+        function processDREResult(result) {
+            if (!result || !result.data || result.data.length === 0) return null;
+            const headers = (result.headers || []).map(h => (h && h.name ? h.name.toUpperCase() : ''));
+            const colMap = {
+                hierarquia: headers.indexOf('HIERARQUIA'),
+                valorAtual: headers.indexOf('VALOR_ANO_ATUAL'),
+                valorAnterior: headers.indexOf('VALOR_ANO_ANTERIOR')
+            };
+            if (colMap.hierarquia === -1 || colMap.valorAtual === -1 || colMap.valorAnterior === -1) return null;
+            return result.data.map(row => ({
+                hierarquia: (row[colMap.hierarquia] || '').toString().trim(),
+                valorAtual: parseFloat(row[colMap.valorAtual]) || 0,
+                valorAnterior: parseFloat(row[colMap.valorAnterior]) || 0
+            }));
+        }
+
+        function calculateSumDRE(dreData, prefix) {
+            if (!dreData || !Array.isArray(dreData)) return { atual: 0, anterior: 0 };
+            return dreData
+                .filter(item => item.hierarquia && item.hierarquia.startsWith(prefix))
+                .reduce(
+                    (acc, item) => {
+                        acc.atual += item.valorAtual || 0;
+                        acc.anterior += item.valorAnterior || 0;
+                        return acc;
+                    },
+                    { atual: 0, anterior: 0 }
+                );
+        }
+
+        function calculateFormulaDRE(dreData, formula) {
+            const regex = /([+\-]?)([0-9.]+)/g;
+            const matches = [...formula.matchAll(regex)];
+            let result = { atual: 0, anterior: 0 };
+            let isFirst = true;
+
+            matches.forEach(match => {
+                const operator = match[1] || '+';
+                const prefix = match[2];
+                const sum = calculateSumDRE(dreData, prefix);
+
+                if (isFirst || operator === '+') {
+                    result.atual += sum.atual;
+                    result.anterior += sum.anterior;
+                } else if (operator === '-') {
+                    result.atual -= sum.atual;
+                    result.anterior -= sum.anterior;
+                }
+
+                isFirst = false;
+            });
+
+            return result;
+        }
+
+        /**
+         * Replica o cálculo do lucro líquido (resultado líquido do exercício)
+         * conforme implementado no relatório DRE (index132.html).
+         */
+        function computeLucroLiquidoFromDRE(dreData) {
+            if (!dreData || !Array.isArray(dreData) || dreData.length === 0) {
+                return { atual: 0, anterior: 0 };
+            }
+
+            const receitaOperacionalLiquida = calculateFormulaDRE(dreData, '1.+2.');
+            const custoServico = calculateSumDRE(dreData, '3.');
+            const resultadoOperacionalBruto = {
+                atual: receitaOperacionalLiquida.atual + custoServico.atual,
+                anterior: receitaOperacionalLiquida.anterior + custoServico.anterior
+            };
+
+            const despesasReceitasOperacionais = calculateSumDRE(dreData, '4.');
+            const resultadoOperacionalLiquido = {
+                atual: resultadoOperacionalBruto.atual + despesasReceitasOperacionais.atual,
+                anterior: resultadoOperacionalBruto.anterior + despesasReceitasOperacionais.anterior
+            };
+
+            const outrasReceitas = calculateSumDRE(dreData, '5.');
+            const resultadoAntesImpostos = {
+                atual: resultadoOperacionalLiquido.atual + outrasReceitas.atual,
+                anterior: resultadoOperacionalLiquido.anterior + outrasReceitas.anterior
+            };
+
+            const baseDiferida = calculateSumDRE(dreData, '6.1');
+            const reversoes = calculateSumDRE(dreData, '7.1');
+
+            const baseCalculoDiferidoAtual = (baseDiferida.atual * -1) - reversoes.atual;
+            const baseCalculoDiferidoAnterior = (baseDiferida.anterior * -1) - reversoes.anterior;
+
+            const Q3659Atual = baseCalculoDiferidoAtual > 0 ? baseCalculoDiferidoAtual * 0.15 : 0;
+            const Q3659Anterior = baseCalculoDiferidoAnterior > 0 ? baseCalculoDiferidoAnterior * 0.15 : 0;
+
+            const Q3660Atual = baseCalculoDiferidoAtual > 240000 ? (baseCalculoDiferidoAtual - 240000) * 0.10 : 0;
+            const Q3660Anterior = baseCalculoDiferidoAnterior > 240000 ? (baseCalculoDiferidoAnterior - 240000) * 0.10 : 0;
+
+            const Q3661Atual = baseCalculoDiferidoAtual > 0 ? baseCalculoDiferidoAtual * 0.09 : 0;
+            const Q3661Anterior = baseCalculoDiferidoAnterior > 0 ? baseCalculoDiferidoAnterior * 0.09 : 0;
+
+            const brindes = calculateSumDRE(dreData, '8.1');
+            const provisaoPecld = calculateSumDRE(dreData, '8.2');
+            const reversaoPecld = calculateSumDRE(dreData, '8.3');
+            const outrasDespesasNaoOp = calculateSumDRE(dreData, '8.4');
+
+            const baseCalculoCorrenteAtual =
+                resultadoAntesImpostos.atual +
+                provisaoPecld.atual -
+                reversaoPecld.atual -
+                outrasDespesasNaoOp.atual +
+                brindes.atual;
+
+            const baseCalculoCorrenteAnterior =
+                resultadoAntesImpostos.anterior +
+                provisaoPecld.anterior -
+                reversaoPecld.anterior -
+                outrasDespesasNaoOp.anterior +
+                brindes.anterior;
+
+            const irpj15CorrenteAtual = (baseCalculoCorrenteAtual > 0 ? baseCalculoCorrenteAtual * 0.15 : 0) - Q3659Atual;
+            const irpj15CorrenteAnterior = (baseCalculoCorrenteAnterior > 0 ? baseCalculoCorrenteAnterior * 0.15 : 0) - Q3659Anterior;
+
+            const irpj10CorrenteAtual = (baseCalculoCorrenteAtual > 240000 ? (baseCalculoCorrenteAtual - 240000) * 0.10 : 0) - Q3660Atual;
+            const irpj10CorrenteAnterior = (baseCalculoCorrenteAnterior > 240000 ? (baseCalculoCorrenteAnterior - 240000) * 0.10 : 0) - Q3660Anterior;
+
+            const csllCorrenteAtual = (baseCalculoCorrenteAtual > 0 ? baseCalculoCorrenteAtual * 0.09 : 0) - Q3661Atual;
+            const csllCorrenteAnterior = (baseCalculoCorrenteAnterior > 0 ? baseCalculoCorrenteAnterior * 0.09 : 0) - Q3661Anterior;
+
+            const totalCorrente = {
+                atual: irpj15CorrenteAtual + irpj10CorrenteAtual + csllCorrenteAtual,
+                anterior: irpj15CorrenteAnterior + irpj10CorrenteAnterior + csllCorrenteAnterior
+            };
+
+            const totalDiferido = {
+                atual: Q3659Atual + Q3660Atual + Q3661Atual,
+                anterior: Q3659Anterior + Q3660Anterior + Q3661Anterior
+            };
+
+            const totalGeralImpostos = {
+                atual: totalCorrente.atual + totalDiferido.atual,
+                anterior: totalCorrente.anterior + totalDiferido.anterior
+            };
+
+            return {
+                atual: resultadoAntesImpostos.atual - totalGeralImpostos.atual,
+                anterior: resultadoAntesImpostos.anterior - totalGeralImpostos.anterior
+            };
+        }
+
+        function formatValor(value, format) {
+            if (value == null || isNaN(value)) return '–';
+            switch (format) {
+                case 'percent': return formatPercent(value);
+                case 'currency': return formatCurrency(value);
+                default: return formatRatio(value);
+            }
+        }
+
+        /**
+         * Monta a lista completa de variáveis usadas nas fórmulas dos indicadores,
+         * com total atual e anterior para cada uma (base totalizada).
+         */
+        function computeBaseVariaveis(bpBase, dreData) {
+            const vars = [];
+            const push = (nome, origem, atual, anterior, format) => {
+                vars.push({ nome, origem, atual, anterior, format: format || 'currency' });
+            };
+
+            if (bpBase) {
+                push('Ativo total', 'BP (1.)', bpBase['1.'].valorAtual, bpBase['1.'].valorAnterior);
+                push('Ativo circulante (AC)', 'BP (1.1)', bpBase['1.1'].valorAtual, bpBase['1.1'].valorAnterior);
+                push('Disponibilidade', 'BP (1.1.1)', bpBase['1.1.1'].valorAtual, bpBase['1.1.1'].valorAnterior);
+                push('Estoque', 'BP (1.1.12)', bpBase['1.1.12'].valorAtual, bpBase['1.1.12'].valorAnterior);
+                push('Ativo não circulante (ANC)', 'BP (1.2)', bpBase['1.2'].valorAtual, bpBase['1.2'].valorAnterior);
+                push('RLP (Realizável a longo prazo)', 'BP (1.2.1)', bpBase['1.2.1'].valorAtual, bpBase['1.2.1'].valorAnterior);
+                push('Depreciação', 'BP (1.2.7)', bpBase['1.2.7'].valorAtual, bpBase['1.2.7'].valorAnterior);
+                push('Amortização', 'BP (1.2.10)', bpBase['1.2.10'].valorAtual, bpBase['1.2.10'].valorAnterior);
+                push('Passivo total (PC + PNC)', 'BP (2.)', bpBase['2.'].valorAtual, bpBase['2.'].valorAnterior);
+                push('Passivo circulante (PC)', 'BP (2.1)', bpBase['2.1'].valorAtual, bpBase['2.1'].valorAnterior);
+                push('Passivo não circulante (PNC)', 'BP (2.2)', bpBase['2.2'].valorAtual, bpBase['2.2'].valorAnterior);
+                push('Empréstimo', 'BP (2.1.4)', bpBase['2.1.4'].valorAtual, bpBase['2.1.4'].valorAnterior);
+                push('Financiamento', 'BP (2.2.1)', bpBase['2.2.1'].valorAtual, bpBase['2.2.1'].valorAnterior);
+                push('Patrimônio líquido (PL)', 'BP (3.)', bpBase['3.'].valorAtual, bpBase['3.'].valorAnterior);
+                push('AC - Estoque', 'BP (1.1 - 1.1.12)', bpBase['1.1'].valorAtual - bpBase['1.1.12'].valorAtual, bpBase['1.1'].valorAnterior - bpBase['1.1.12'].valorAnterior);
+                push('AC + RLP', 'BP (1.1 + 1.2.1)', bpBase['1.1'].valorAtual + bpBase['1.2.1'].valorAtual, bpBase['1.1'].valorAnterior + bpBase['1.2.1'].valorAnterior);
+                push('ANC - RLP', 'BP (1.2 - 1.2.1)', bpBase['1.2'].valorAtual - bpBase['1.2.1'].valorAtual, bpBase['1.2'].valorAnterior - bpBase['1.2.1'].valorAnterior);
+                push('PNC + PL', 'BP (2.2 + 3.)', bpBase['2.2'].valorAtual + bpBase['3.'].valorAtual, bpBase['2.2'].valorAnterior + bpBase['3.'].valorAnterior);
+                push('Empréstimo + Financiamento', 'BP (2.1.4 + 2.2.1)', bpBase['2.1.4'].valorAtual + bpBase['2.2.1'].valorAtual, bpBase['2.1.4'].valorAnterior + bpBase['2.2.1'].valorAnterior);
+                push('Dívida líquida', 'BP (2. - 1.1.1)', bpBase['2.'].valorAtual - bpBase['1.1.1'].valorAtual, bpBase['2.'].valorAnterior - bpBase['1.1.1'].valorAnterior);
+            }
+
+            if (dreData && dreData.length > 0) {
+                const receitaBruta = calculateSumDRE(dreData, '1.');
+                const receitaLiquida = calculateFormulaDRE(dreData, '1.+2.');
+                const csp = calculateSumDRE(dreData, '3.');
+                const lucroBruto = { atual: receitaLiquida.atual + csp.atual, anterior: receitaLiquida.anterior + csp.anterior };
+                const lucroOperacional = calculateFormulaDRE(dreData, '1.+2.+3.');
+                const lucroLiquido = computeLucroLiquidoFromDRE(dreData);
+                const deprec = bpBase ? (bpBase['1.2.7'] || { valorAtual: 0, valorAnterior: 0 }) : { valorAtual: 0, valorAnterior: 0 };
+                const amort = bpBase ? (bpBase['1.2.10'] || { valorAtual: 0, valorAnterior: 0 }) : { valorAtual: 0, valorAnterior: 0 };
+                const ebitda = {
+                    atual: (lucroOperacional.atual || 0) + deprec.valorAtual + amort.valorAtual,
+                    anterior: (lucroOperacional.anterior || 0) + deprec.valorAnterior + amort.valorAnterior
+                };
+
+                push('Receita bruta', 'DRE (1.)', receitaBruta.atual, receitaBruta.anterior);
+                push('Receita líquida', 'DRE (1.+2.)', receitaLiquida.atual, receitaLiquida.anterior);
+                push('CSP (Custo dos serviços/produtos)', 'DRE (3.)', csp.atual, csp.anterior);
+                push('Lucro bruto', 'DRE (Receita líquida + CSP)', lucroBruto.atual, lucroBruto.anterior);
+                push('Lucro operacional', 'DRE (1.+2.+3.)', lucroOperacional.atual, lucroOperacional.anterior);
+                push('Lucro líquido', 'DRE (calculado)', lucroLiquido.atual, lucroLiquido.anterior);
+                push('EBITDA', 'Lucro oper. + Deprec. + Amort.', ebitda.atual, ebitda.anterior);
+            }
+
+            return vars;
+        }
+
+        function renderBaseVariaveis(bpData, dreData, currentYear, previousYear) {
+            const tbodyVar = document.getElementById('base-variaveis-tbody');
+            if (!tbodyVar) return;
+
+            const base = computeBPBase(bpData);
+            if (!base) {
+                tbodyVar.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-muted-foreground">Nenhum dado do balanço disponível.</td></tr>';
+                return;
+            }
+
+            const baseVariaveis = computeBaseVariaveis(base, dreData);
+            tbodyVar.innerHTML = baseVariaveis.map(v => `
+                <tr class="border-b border-border">
+                    <td class="py-2 px-3 font-medium">${v.nome}</td>
+                    <td class="py-2 px-3 text-muted-foreground text-xs">${v.origem}</td>
+                    <td class="py-2 px-3 text-right tabular-nums">${formatValor(v.atual, v.format)}</td>
+                    <td class="py-2 px-3 text-right tabular-nums">${formatValor(v.anterior, v.format)}</td>
+                </tr>
+            `).join('');
+            document.querySelectorAll('[data-dynamic-text="current-year-var"]').forEach(el => { el.textContent = currentYear; });
+            document.querySelectorAll('[data-dynamic-text="previous-year-var"]').forEach(el => { el.textContent = previousYear; });
+        }
+
+        function processBPResult(result) {
+            if (!result || !result.data || result.data.length === 0) return null;
+            const headers = (result.headers || []).map(h => (h && h.name ? h.name.toUpperCase() : ''));
+            const colMap = {
+                hierarquia: headers.indexOf('HIERARQUIA'),
+                descricao: headers.indexOf('DESCRICAO'),
+                valorAtual: headers.indexOf('VALOR_ATUAL'),
+                valorAnterior: headers.indexOf('VALOR_ANTERIOR'),
+                sinal: headers.indexOf('SINAL')
+            };
+            if (colMap.hierarquia === -1 || colMap.valorAtual === -1 || colMap.valorAnterior === -1) return null;
+            return result.data.map(row => {
+                const sinal = colMap.sinal !== -1 ? (parseFloat(row[colMap.sinal]) || 1) : 1;
+                const vA = parseFloat(row[colMap.valorAtual]) || 0;
+                const vAnt = parseFloat(row[colMap.valorAnterior]) || 0;
+                return {
+                    hierarquia: (row[colMap.hierarquia] || '').toString().trim(),
+                    descricao: row[colMap.descricao] || '',
+                    valorAtual: vA * sinal,
+                    valorAnterior: vAnt * sinal
+                };
+            });
+        }
+
+        async function fetchAndRenderData() {
+            const container = document.getElementById('report-container');
+            const loadingEl = document.getElementById('loading-state');
+            const contentEl = document.getElementById('report-content');
+
+            contentEl.classList.add('hidden');
+            loadingEl.classList.remove('hidden');
+            loadingEl.textContent = 'Carregando dados do balanço...';
+
+            const queryBP = window.componentData && (window.componentData.queryDadosBP || window.componentData.queryDados || window.componentData.queryBP1);
+            const queryDRE = window.componentData && window.componentData.queryDadosDRE;
+
+            if (!queryBP) {
+                loadingEl.textContent = 'Erro: query do balanço não configurada (queryDadosBP, queryDados ou queryBP1).';
+                return;
+            }
+
+            try {
+                const bpResult = await queryMitra({ query: queryBP });
+                const bpData = processBPResult(bpResult);
+
+                let dreData = null;
+                if (queryDRE) {
+                    try {
+                        const dreResult = await queryMitra({ query: queryDRE });
+                        dreData = processDREResult(dreResult);
+                    } catch (e) {
+                        console.error('Falha ao carregar dados da DRE (queryDadosDRE):', e);
+                        dreData = null;
+                    }
+                }
+
+                let dateString = '';
+                if (bpResult && bpResult.headers && bpResult.data && bpResult.data.length > 0) {
+                    const headers = (bpResult.headers || []).map(h => (h && h.name ? String(h.name).toUpperCase() : ''));
+                    const mesIdx = headers.indexOf('MES');
+                    if (mesIdx !== -1 && bpResult.data[0][mesIdx] != null && bpResult.data[0][mesIdx] !== '') {
+                        dateString = String(bpResult.data[0][mesIdx]).trim();
+                    }
+                }
+                if (!dateString && window.componentData && window.componentData.varMes) {
+                    const mesResult = await queryMitra({ query: 'SELECT ' + window.componentData.varMes });
+                    if (mesResult && mesResult.data && mesResult.data[0] && mesResult.data[0][0])
+                        dateString = String(mesResult.data[0][0]).trim();
+                }
+                const currentYear = parseYearFromMes(dateString);
+                const previousYear = parseInt(currentYear, 10) - 1;
+
+                if (bpData && bpData.length > 0) {
+                    renderBaseVariaveis(bpData, dreData, currentYear, previousYear);
+                    loadingEl.classList.add('hidden');
+                    contentEl.classList.remove('hidden');
+                } else {
+                    loadingEl.textContent = 'Nenhum dado encontrado para o balanço.';
+                    contentEl.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error('Falha ao carregar indicadores:', err);
+                loadingEl.textContent = 'Erro ao carregar dados do balanço.';
+                contentEl.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, fetchAndRenderData);
+            const maxWait = 5000;
+            const interval = 100;
+            const start = Date.now();
+            const ti = setInterval(() => {
+                const queryBP = window.componentData && (window.componentData.queryDadosBP || window.componentData.queryDados || window.componentData.queryBP1);
+                if (window.componentData && queryBP) {
+                    clearInterval(ti);
+                    fetchAndRenderData();
+                } else if (Date.now() - start > maxWait) {
+                    clearInterval(ti);
+                    document.getElementById('loading-state').textContent = 'Erro: configurações do componente (componentData) não carregadas a tempo.';
+                }
+            }, interval);
+        });
+    </script>
+</body>
+
+</html>

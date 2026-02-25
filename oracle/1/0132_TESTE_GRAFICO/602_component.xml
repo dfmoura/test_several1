@@ -1,0 +1,222 @@
+<gadget>
+  <level id="lvl_v50ooj" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <chart id="cht_v50ook" type="line" nroColuna="6">
+        <expression type="sql" data-source="MGEDS"><![CDATA[WITH dados AS (
+    SELECT 'PROJB' projeto, TO_DATE('01/2025','MM/YYYY') periodo, 100 valor FROM dual UNION ALL
+    SELECT 'PROJB', TO_DATE('02/2025','MM/YYYY'), 200 FROM dual UNION ALL
+    SELECT 'PROJB', TO_DATE('03/2025','MM/YYYY'), 450 FROM dual UNION ALL
+    SELECT 'PROJB', TO_DATE('04/2025','MM/YYYY'), 300 FROM dual UNION ALL
+    SELECT 'PROJC', TO_DATE('01/2025','MM/YYYY'), 400 FROM dual UNION ALL
+    SELECT 'PROJC', TO_DATE('02/2025','MM/YYYY'), 300 FROM dual UNION ALL
+    SELECT 'PROJC', TO_DATE('03/2025','MM/YYYY'), 900 FROM dual UNION ALL
+    SELECT 'PROJC', TO_DATE('04/2025','MM/YYYY'), 100 FROM dual
+)
+SELECT 
+    TO_CHAR(periodo,'MM/YYYY') periodo,
+    MAX(CASE WHEN projeto = 'PROJA' THEN valor END) AS PROJA,
+    MAX(CASE WHEN projeto = 'PROJB' THEN valor END) AS PROJB,
+    MAX(CASE WHEN projeto = 'PROJC' THEN valor END) AS PROJC,
+    MAX(CASE WHEN projeto = 'PROJD' THEN valor END) AS PROJD,
+    MAX(CASE WHEN projeto = 'PROJE' THEN valor END) AS PROJE,
+    MAX(CASE WHEN projeto = 'PROJF' THEN valor END) AS PROJF,
+    MAX(CASE WHEN projeto = 'PROJG' THEN valor END) AS PROJG,
+    MAX(CASE WHEN projeto = 'PROJH' THEN valor END) AS PROJH,
+    MAX(CASE WHEN projeto = 'PROJI' THEN valor END) AS PROJI,
+    MAX(CASE WHEN projeto = 'PROJJ' THEN valor END) AS PROJJ,
+    MAX(CASE WHEN projeto = 'PROJK' THEN valor END) AS PROJK,
+    MAX(CASE WHEN projeto = 'PROJL' THEN valor END) AS PROJL,
+    MAX(CASE WHEN projeto = 'PROJM' THEN valor END) AS PROJM,
+    MAX(CASE WHEN projeto = 'PROJN' THEN valor END) AS PROJN,
+    MAX(CASE WHEN projeto = 'PROJO' THEN valor END) AS PROJO,
+    MAX(CASE WHEN projeto = 'PROJP' THEN valor END) AS PROJP,
+    MAX(CASE WHEN projeto = 'PROJQ' THEN valor END) AS PROJQ,
+    MAX(CASE WHEN projeto = 'PROJR' THEN valor END) AS PROJR,
+    MAX(CASE WHEN projeto = 'PROJS' THEN valor END) AS PROJS,
+    MAX(CASE WHEN projeto = 'PROJT' THEN valor END) AS PROJT,
+    MAX(CASE WHEN projeto = 'PROJU' THEN valor END) AS PROJU,
+    MAX(CASE WHEN projeto = 'PROJV' THEN valor END) AS PROJV,
+    MAX(CASE WHEN projeto = 'PROJW' THEN valor END) AS PROJW,
+    MAX(CASE WHEN projeto = 'PROJX' THEN valor END) AS PROJX,
+    MAX(CASE WHEN projeto = 'PROJY' THEN valor END) AS PROJY,
+    MAX(CASE WHEN projeto = 'PROJZ' THEN valor END) AS PROJZ
+FROM dados
+GROUP BY periodo
+ORDER BY periodo]]></expression>
+        <metadata>
+          <field name="PERIODO" label="PERIODO" type="S" visible="true" useFooter="false"/>
+          <field name="PROJA" label="PROJA" type="I" visible="true" useFooter="false"/>
+          <field name="PROJB" label="PROJB" type="I" visible="true" useFooter="false"/>
+          <field name="PROJC" label="PROJC" type="I" visible="true" useFooter="false"/>
+          <field name="PROJD" label="PROJD" type="I" visible="true" useFooter="false"/>
+          <field name="PROJE" label="PROJE" type="I" visible="true" useFooter="false"/>
+          <field name="PROJF" label="PROJF" type="I" visible="true" useFooter="false"/>
+          <field name="PROJG" label="PROJG" type="I" visible="true" useFooter="false"/>
+          <field name="PROJH" label="PROJH" type="I" visible="true" useFooter="false"/>
+          <field name="PROJI" label="PROJI" type="I" visible="true" useFooter="false"/>
+          <field name="PROJJ" label="PROJJ" type="I" visible="true" useFooter="false"/>
+          <field name="PROJK" label="PROJK" type="I" visible="true" useFooter="false"/>
+          <field name="PROJL" label="PROJL" type="I" visible="true" useFooter="false"/>
+          <field name="PROJM" label="PROJM" type="I" visible="true" useFooter="false"/>
+          <field name="PROJN" label="PROJN" type="I" visible="true" useFooter="false"/>
+          <field name="PROJO" label="PROJO" type="I" visible="true" useFooter="false"/>
+          <field name="PROJP" label="PROJP" type="I" visible="true" useFooter="false"/>
+          <field name="PROJQ" label="PROJQ" type="I" visible="true" useFooter="false"/>
+          <field name="PROJR" label="PROJR" type="I" visible="true" useFooter="false"/>
+          <field name="PROJS" label="PROJS" type="I" visible="true" useFooter="false"/>
+          <field name="PROJT" label="PROJT" type="I" visible="true" useFooter="false"/>
+          <field name="PROJU" label="PROJU" type="I" visible="true" useFooter="false"/>
+          <field name="PROJV" label="PROJV" type="I" visible="true" useFooter="false"/>
+          <field name="PROJW" label="PROJW" type="I" visible="true" useFooter="false"/>
+          <field name="PROJX" label="PROJX" type="I" visible="true" useFooter="false"/>
+          <field name="PROJY" label="PROJY" type="I" visible="true" useFooter="false"/>
+          <field name="PROJZ" label="PROJZ" type="I" visible="true" useFooter="false"/>
+        </metadata>
+        <horizontal-axis>
+          <linear resultRotation="0" vResizing="true">
+            <mask/>
+          </linear>
+        </horizontal-axis>
+        <vertical-axis>
+          <category field="$PERIODO" rotation="0" dropLabel="true">
+            <initView value="disabled"/>
+            <title></title>
+          </category>
+        </vertical-axis>
+        <series>
+          <serie type="line" circle-intersection="true" condition="$PROJA IS NOT NULL">
+            <xField>$PROJA</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJA]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJB IS NOT NULL">
+            <xField>$PROJB</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJB]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJC IS NOT NULL">
+            <xField>$PROJC</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJC]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJD IS NOT NULL">
+            <xField>$PROJD</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJD]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJE IS NOT NULL">
+            <xField>$PROJE</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJE]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJF IS NOT NULL">
+            <xField>$PROJF</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJF]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJG IS NOT NULL">
+            <xField>$PROJG</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJG]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJH IS NOT NULL">
+            <xField>$PROJH</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJH]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJI IS NOT NULL">
+            <xField>$PROJI</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJI]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJJ IS NOT NULL">
+            <xField>$PROJJ</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJJ]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJK IS NOT NULL">
+            <xField>$PROJK</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJK]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJL IS NOT NULL">
+            <xField>$PROJL</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJL]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJM IS NOT NULL">
+            <xField>$PROJM</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJM]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJN IS NOT NULL">
+            <xField>$PROJN</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJN]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJO IS NOT NULL">
+            <xField>$PROJO</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJO]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJP IS NOT NULL">
+            <xField>$PROJP</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJP]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJQ IS NOT NULL">
+            <xField>$PROJQ</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJQ]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJR IS NOT NULL">
+            <xField>$PROJR</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJR]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJS IS NOT NULL">
+            <xField>$PROJS</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJS]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJT IS NOT NULL">
+            <xField>$PROJT</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJT]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJU IS NOT NULL">
+            <xField>$PROJU</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJU]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJV IS NOT NULL">
+            <xField>$PROJV</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJV]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJW IS NOT NULL">
+            <xField>$PROJW</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJW]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJX IS NOT NULL">
+            <xField>$PROJX</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJX]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJY IS NOT NULL">
+            <xField>$PROJY</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJY]]></display>
+          </serie>
+          <serie type="line" circle-intersection="true" condition="$PROJZ IS NOT NULL">
+            <xField>$PROJZ</xField>
+            <yField>$PERIODO</yField>
+            <display><![CDATA[PROJZ]]></display>
+          </serie>
+        </series>
+        <legend position="top" direction="v"/>
+      </chart>
+    </container>
+  </level>
+</gadget>

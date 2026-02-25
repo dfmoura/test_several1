@@ -1,0 +1,19 @@
+PARA O ARQUIVO query23.sql
+
+ajustar na query
+
+na tabela 'CONTA_SUB_DET_INICIAL_NOTAS' foi adicionado o campo 'SINAL'
+neste campo deve ser multiplicado pelo valor de BP_TECWAY ou DRE_TECWAY, 
+
+pois ele alterara o sinal de ambos caso nao tenha sido preenchido nada considerar 1
+
+
+---------------------
+para o arquivo index123.html
+
+para a 'queryNOTAdet' no campo 'DESCRICAO' quando o campo nao possui valores esta aparecendo um traço assim '-' 
+corrigir para que nao apareça nada
+
+
+
+--------------------

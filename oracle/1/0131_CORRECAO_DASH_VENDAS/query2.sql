@@ -1,0 +1,592 @@
+-- query2.sql: baseado em query1.sql com todas as tratativas,
+-- porém QTD e VLR (totais do período) prevalecem da lógica do query.sql
+-- (soma direta em VGF_VENDAS_SATIS no intervalo de dtmov).
+
+SELECT
+
+SUM(T.QTDPREV) AS QTDPREV,
+
+-- QTD e VLR do período: mesma lógica do query.sql (prevalente)
+MAX(V.QTD_CORRETO) AS QTDREAL,
+
+MAX(V.VLR_CORRETO) AS VLR_REAL,
+
+SUM(T.VLR_PREV) AS VLR_PREV,
+
+-- Percentuais recalculados com base nos QTD e VLR prevalentes (query.sql)
+CASE WHEN SUM(T.QTDPREV) = 0 THEN 0 ELSE MAX(V.QTD_CORRETO) * 100 / NULLIF(SUM(T.QTDPREV), 0) END AS PERC,
+
+CASE WHEN SUM(T.VLR_PREV) = 0 THEN 0 ELSE NVL(MAX(V.VLR_CORRETO) * 100 / NULLIF(SUM(T.VLR_PREV), 0), 0) END AS PERC_VLR,
+
+SUM(T.PED_A_FAT) AS PED_A_FAT,
+
+SUM(T.VLR_FINANCEIRO) AS VLR_FINANCEIRO,
+
+SUM(T.QTDPREV_ACC) AS QTDPREV_ACC,
+
+SUM(T.QTDREAL_ACC) AS QTDREAL_ACC,
+
+SUM(T.VLR_PREV_ACC) AS VLR_PREV_ACC,
+
+SUM(T.VLR_REAL_ACC) AS VLR_REAL_ACC,
+
+SUM(T.PERC_ACC) AS PERC_ACC,
+
+SUM(T.PERC_VLR_ACC) AS PERC_VLR_ACC,
+
+SUM(T.PED_A_FAT_ACC) AS PED_A_FAT_ACC,
+
+SUM(T.VLR_FINANCEIRO_ACC) AS VLR_FINANCEIRO_ACC
+
+FROM (
+
+SELECT
+QTDPREV,
+QTDREAL,
+VLR_PREV,
+VLR_REAL,
+PERC,
+PERC_VLR,
+PED_A_FAT,
+VLR_FINANCEIRO,
+QTDPREV_ACC,
+QTDREAL_ACC,
+VLR_PREV_ACC,
+VLR_REAL_ACC,
+PERC_ACC,
+PERC_VLR_ACC,
+PED_A_FAT_ACC,
+VLR_FINANCEIRO_ACC
+FROM (
+
+
+
+SELECT
+
+SUM(QTDPREV) AS QTDPREV,
+
+SUM(QTDREAL) AS QTDREAL,
+
+SUM(VLR_PREV) AS VLR_PREV,
+
+SUM(VLR_REAL) AS VLR_REAL,
+
+CASE WHEN SUM(QTDPREV) = 0 THEN 0 ELSE SUM(QTDREAL) * 100 / NULLIF(SUM(QTDPREV), 0) END AS PERC,
+
+CASE WHEN SUM(VLR_PREV) = 0 THEN 0 ELSE NVL(SUM(VLR_REAL) * 100 / NULLIF(SUM(VLR_PREV), 0), 0) END AS PERC_VLR,
+
+MAX (CASE WHEN 1=1 THEN (SELECT count(*) FROM vw_ped_a_fat_satis_DET)ELSE 0 END) PED_A_FAT,
+
+MAX (CASE WHEN 1=1 THEN (SELECT SUM(VLR_FINANCEIRO) FROM vw_ped_a_fat_satis_DET)ELSE 0 END) VLR_FINANCEIRO,
+
+
+
+
+
+0 QTDPREV_ACC,
+
+0 QTDREAL_ACC,
+
+0 VLR_PREV_ACC,
+
+0 VLR_REAL_ACC,
+
+0 PERC_ACC,
+
+0 PERC_VLR_ACC,
+
+0 PED_A_FAT_ACC,
+
+0 VLR_FINANCEIRO_ACC
+
+
+
+FROM
+
+(
+
+SELECT
+
+DTREF,
+
+CODMETA,
+
+CODVEND,
+
+APELIDO,
+
+CODGER,
+
+CODPARC,
+
+PARCEIRO,
+
+MARCA,
+
+CODGRUPOPROD,
+
+SUM(QTDPREV) AS QTDPREV,
+
+SUM(QTDREAL) AS QTDREAL,
+
+SUM(QTDPREV * PRECOLT) AS VLR_PREV,
+
+SUM(NVL(VLRREAL, 0)) AS VLR_REAL
+
+FROM(
+
+SELECT MET.CODMETA,MET.DTREF, NVL(MET.CODVEND,0) AS CODVEND, NVL(VEN.APELIDO,0) AS APELIDO,NVL(VEN.CODGER,0) AS CODGER, NVL(MET.CODPARC,0) AS CODPARC, 
+
+NVL(PAR.RAZAOSOCIAL,0) AS PARCEIRO, 
+
+NVL(MET.MARCA,0) AS MARCA,
+
+NVL(VGF.CODGRUPOPROD,MAR.AD_GRUPOPROD) AS CODGRUPOPROD,
+
+NVL(VGF.CODCENCUS,0) AS CODCENCUS, 
+
+NVL(MET.QTDPREV,0) AS QTDPREV, 
+
+SUM(NVL(VGF.QTD,0)) AS QTDREAL,
+
+NVL(PRC.VLRVENDALT,0)AS PRECOLT, 
+
+SUM(NVL(VGF.VLR,0)) AS VLRREAL
+
+FROM TGFMET MET
+
+LEFT JOIN TGFMAR MAR ON MAR.DESCRICAO = MET.MARCA
+
+LEFT JOIN VGF_VENDAS_SATIS VGF ON MET.DTREF = TRUNC(VGF.DTMOV,'MM') 
+    AND MET.CODVEND = VGF.CODVEND 
+    AND MET.CODPARC = VGF.CODPARC 
+    AND MET.MARCA = VGF.MARCA 
+    AND VGF.BONIFICACAO = 'N'
+    -- Filtro de datas para valores REAIS: respeita o intervalo exato
+    AND TRUNC(VGF.DTMOV) BETWEEN CAST('16/01/2026' AS DATE) AND CAST('16/01/2026' AS DATE)
+
+LEFT JOIN AD_PRECOMARCA PRC ON (MET.MARCA = PRC.MARCA AND PRC.CODMETA = MET.CODMETA AND PRC.DTREF = (SELECT MAX(DTREF) FROM AD_PRECOMARCA WHERE CODMETA = MET.CODMETA AND DTREF <= MET.DTREF AND MARCA = MET.MARCA))
+
+LEFT JOIN TGFPAR PAR ON MET.CODPARC = PAR.CODPARC
+
+LEFT JOIN TGFVEN VEN ON MET.CODVEND = VEN.CODVEND
+
+--WHERE (VGF.CODCENCUS = :P_CR OR :P_CR IS NULL)
+
+GROUP BY NVL(VGF.CODGRUPOPROD,MAR.AD_GRUPOPROD), MET.CODMETA,MET.DTREF,NVL(MET.CODVEND,0),NVL(VEN.APELIDO,0),NVL(VEN.CODGER,0),NVL(MET.CODPARC,0),NVL(PAR.RAZAOSOCIAL,0),NVL(MET.MARCA,0),NVL(VGF.CODCENCUS,0), NVL(MET.QTDPREV,0), NVL(PRC.VLRVENDALT,0)
+
+)
+
+
+
+WHERE 
+
+CODMETA = 4--:P_CODMETA
+
+-- Para valores PREVISTOS: sempre busca o mês completo, independente do intervalo
+-- Se o intervalo for de 17/11/2025 a 25/11/2025, busca todas as metas de novembro/2025
+--AND TRUNC(DTREF,'MM') BETWEEN TRUNC(CAST('16/01/2026' AS DATE),'MM') AND TRUNC(CAST('16/01/2026' AS DATE),'MM')
+AND TRUNC(DTREF,'MM') BETWEEN TRUNC(CAST('16/01/2026' AS DATE),'MM') AND TRUNC(CAST('16/01/2026' AS DATE),'MM')
+/*
+
+
+AND ((:P_NTEMMETA = 'S' AND (QTDPREV <> 0 OR QTDREAL <>  0 OR VLRREAL<> 0)) OR :P_NTEMMETA = 'N')
+
+AND (CODGRUPOPROD = :P_GRUPOPROD OR :P_GRUPOPROD IS NULL)
+
+AND (CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)
+
+AND (CODVEND IN :P_CODVEND) AND (CODGER IN :P_COORD)
+
+AND (MARCA IN :P_MARCA)
+*/
+/*AND (CODCENCUS = :P_CR OR :P_CR IS NULL)*/
+
+
+
+AND
+
+(
+
+	CODVEND = (SELECT CODVEND FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO) 
+
+	OR CODVEND IN (SELECT VEN.CODVEND FROM TGFVEN VEN, TSIUSU USU WHERE USU.CODVEND = VEN.CODGER AND USU.CODUSU = STP_GET_CODUSULOGADO)
+
+	OR CODVEND IN (SELECT VEN.CODVEND FROM TGFVEN VEN, TSIUSU USU WHERE USU.CODVEND = VEN.AD_COORDENADOR AND USU.CODUSU = STP_GET_CODUSULOGADO)
+
+	OR (SELECT AD_GESTOR_META FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO) = 'S' 
+
+)
+
+GROUP BY
+
+DTREF,
+
+CODMETA,
+
+CODVEND,
+
+APELIDO,
+
+CODGER,
+
+CODPARC,
+
+PARCEIRO,
+
+MARCA,
+
+CODGRUPOPROD
+
+)
+
+
+
+
+
+UNION ALL
+
+
+
+SELECT
+
+0 QTDPREV,
+
+0 QTDREAL,
+
+0 VLR_PREV,
+
+0 VLR_REAL,
+
+0 PERC,
+
+0 PERC_VLR,
+
+0 PED_A_FAT,
+
+0 VLR_FINANCEIRO,
+
+SUM(QTDPREV) AS QTDPREV_ACC,
+
+SUM(QTDREAL) AS QTDREAL_ACC,
+
+SUM(VLR_PREV) AS VLR_PREV_ACC,
+
+SUM(VLR_REAL) AS VLR_REAL_ACC,
+
+
+
+CASE 
+
+WHEN SUM(QTDPREV) = 0 THEN 0 
+
+ELSE SUM(QTDREAL) * 100 / NULLIF(SUM(QTDPREV), 0) 
+
+END AS PERC_ACC,
+
+
+
+CASE 
+
+WHEN SUM(VLR_PREV) = 0 THEN 0 
+
+ELSE NVL(SUM(VLR_REAL) * 100 / NULLIF(SUM(VLR_PREV), 0), 0) 
+
+END AS PERC_VLR_ACC,
+
+0 PED_A_FAT_ACC,
+
+
+
+0 VLR_FINANCEIRO_ACC
+
+
+
+
+
+FROM
+
+(
+
+    SELECT
+
+        DTREF,
+
+        CODMETA,
+
+        CODVEND,
+
+        APELIDO,
+
+        CODGER,
+
+        CODPARC,
+
+        PARCEIRO,
+
+        MARCA,
+
+        CODGRUPOPROD,
+
+        SUM(QTDPREV) AS QTDPREV,
+
+        SUM(QTDREAL) AS QTDREAL,
+
+        SUM(QTDPREV * PRECOLT) AS VLR_PREV,
+
+        SUM(NVL(VLRREAL, 0)) AS VLR_REAL
+
+    FROM
+
+    (
+
+        SELECT 
+
+            MET.CODMETA,
+
+            MET.DTREF,
+
+            NVL(MET.CODVEND,0) AS CODVEND,
+
+            NVL(VEN.APELIDO,0) AS APELIDO,
+
+            NVL(VEN.CODGER,0) AS CODGER,
+
+            NVL(MET.CODPARC,0) AS CODPARC,
+
+            NVL(PAR.RAZAOSOCIAL,0) AS PARCEIRO,
+
+            NVL(MET.MARCA,0) AS MARCA,
+
+            NVL(VGF.CODGRUPOPROD, MAR.AD_GRUPOPROD) AS CODGRUPOPROD,
+
+            NVL(VGF.CODCENCUS,0) AS CODCENCUS,
+
+            NVL(MET.QTDPREV,0) AS QTDPREV,
+
+            SUM(NVL(VGF.QTD,0)) AS QTDREAL,
+
+            NVL(PRC.VLRVENDALT,0) AS PRECOLT,
+
+            SUM(NVL(VGF.VLR,0)) AS VLRREAL
+
+        FROM TGFMET MET
+
+            LEFT JOIN TGFMAR MAR 
+
+                   ON MAR.DESCRICAO = MET.MARCA
+
+            LEFT JOIN VGF_VENDAS_SATIS VGF 
+
+                   ON MET.DTREF = TRUNC(VGF.DTMOV,'MM') 
+
+                  AND MET.CODVEND = VGF.CODVEND 
+
+                  AND MET.CODPARC = VGF.CODPARC 
+
+                  AND MET.MARCA = VGF.MARCA 
+
+                  AND VGF.BONIFICACAO = 'N'
+                  -- Filtro de datas para valores REAIS: respeita o intervalo exato
+                  AND TRUNC(VGF.DTMOV) BETWEEN 
+                      CASE 
+                          WHEN EXTRACT(MONTH FROM SYSDATE) >= 7 
+                              THEN TO_DATE('01/07/' || EXTRACT(YEAR FROM SYSDATE), 'DD/MM/YYYY')
+                          ELSE 
+                              TO_DATE('01/07/' || (EXTRACT(YEAR FROM SYSDATE) - 1), 'DD/MM/YYYY')
+                      END
+                  AND
+                      CASE 
+                          WHEN EXTRACT(MONTH FROM SYSDATE) >= 7 
+                              THEN TO_DATE('30/06/' || (EXTRACT(YEAR FROM SYSDATE) + 1), 'DD/MM/YYYY')
+                          ELSE 
+                              TO_DATE('30/06/' || EXTRACT(YEAR FROM SYSDATE), 'DD/MM/YYYY')
+                      END
+
+            LEFT JOIN AD_PRECOMARCA PRC 
+
+                   ON (MET.MARCA = PRC.MARCA 
+
+                   AND PRC.CODMETA = MET.CODMETA 
+
+                   AND PRC.DTREF = (
+
+                        SELECT MAX(DTREF) 
+
+                        FROM AD_PRECOMARCA 
+
+                        WHERE CODMETA = MET.CODMETA 
+
+                          AND DTREF <= MET.DTREF 
+
+                          AND MARCA = MET.MARCA))
+
+            LEFT JOIN TGFPAR PAR 
+
+                   ON MET.CODPARC = PAR.CODPARC
+
+            LEFT JOIN TGFVEN VEN 
+
+                   ON MET.CODVEND = VEN.CODVEND
+
+--        WHERE (VGF.CODCENCUS = :P_CR OR :P_CR IS NULL)
+
+        GROUP BY 
+
+            NVL(VGF.CODGRUPOPROD, MAR.AD_GRUPOPROD),
+
+            MET.CODMETA,
+
+            MET.DTREF,
+
+            NVL(MET.CODVEND,0),
+
+            NVL(VEN.APELIDO,0),
+
+            NVL(VEN.CODGER,0),
+
+            NVL(MET.CODPARC,0),
+
+            NVL(PAR.RAZAOSOCIAL,0),
+
+            NVL(MET.MARCA,0),
+
+            NVL(VGF.CODCENCUS,0),
+
+            NVL(MET.QTDPREV,0),
+
+            NVL(PRC.VLRVENDALT,0)
+
+    )
+
+    WHERE 
+
+        CODMETA =  4--:P_CODMETA
+
+
+
+        --------------------------------------------------------------------
+
+        -- P PERÍODO AUTOMÁTICO DA SAFRA P
+
+        -- (01/07 ¿ 30/06 baseado na data atual)
+
+        --------------------------------------------------------------------
+
+        -- Para valores PREVISTOS: sempre busca o mês completo, independente do intervalo
+        AND TRUNC(DTREF,'MM') BETWEEN
+
+            TRUNC(CASE 
+
+                WHEN EXTRACT(MONTH FROM SYSDATE) >= 7 
+
+                    THEN TO_DATE('01/07/' || EXTRACT(YEAR FROM SYSDATE), 'DD/MM/YYYY')
+
+                ELSE 
+
+                    TO_DATE('01/07/' || (EXTRACT(YEAR FROM SYSDATE) - 1), 'DD/MM/YYYY')
+
+            END, 'MM')
+
+        AND
+
+            TRUNC(CASE 
+
+                WHEN EXTRACT(MONTH FROM SYSDATE) >= 7 
+
+                    THEN TO_DATE('30/06/' || (EXTRACT(YEAR FROM SYSDATE) + 1), 'DD/MM/YYYY')
+
+                ELSE 
+
+                    TO_DATE('30/06/' || EXTRACT(YEAR FROM SYSDATE), 'DD/MM/YYYY')
+
+            END, 'MM')
+
+/*
+
+        AND (
+
+            (:P_NTEMMETA = 'S' AND (QTDPREV <> 0 OR QTDREAL <> 0 OR VLRREAL <> 0))
+
+            OR :P_NTEMMETA = 'N'
+
+        )
+
+
+
+        AND (CODGRUPOPROD = :P_GRUPOPROD OR :P_GRUPOPROD IS NULL)
+
+        AND (CODPARC = :P_CODPARC OR :P_CODPARC IS NULL)
+
+        AND (CODVEND IN :P_CODVEND)
+
+        AND (CODGER IN :P_COORD)
+
+        AND (MARCA IN :P_MARCA)
+
+*/
+
+        AND (
+
+            CODVEND = (SELECT CODVEND FROM TSIUSU WHERE CODUSU = STP_GET_CODUSULOGADO)
+
+            OR CODVEND IN (
+
+                SELECT VEN.CODVEND 
+
+                FROM TGFVEN VEN, TSIUSU USU 
+
+                WHERE USU.CODVEND = VEN.CODGER 
+
+                  AND USU.CODUSU = STP_GET_CODUSULOGADO
+
+            )
+
+            OR CODVEND IN (
+
+                SELECT VEN.CODVEND 
+
+                FROM TGFVEN VEN, TSIUSU USU 
+
+                WHERE USU.CODVEND = VEN.AD_COORDENADOR 
+
+                  AND USU.CODUSU = STP_GET_CODUSULOGADO
+
+            )
+
+            OR (SELECT AD_GESTOR_META 
+
+                FROM TSIUSU 
+
+                WHERE CODUSU = STP_GET_CODUSULOGADO) = 'S'
+
+        )
+
+    GROUP BY
+
+        DTREF,
+
+        CODMETA,
+
+        CODVEND,
+
+        APELIDO,
+
+        CODGER,
+
+        CODPARC,
+
+        PARCEIRO,
+
+        MARCA,
+
+        CODGRUPOPROD
+
+)
+
+) ) T
+CROSS JOIN (
+    SELECT SUM(QTD) AS QTD_CORRETO, SUM(VLR) AS VLR_CORRETO
+    FROM VGF_VENDAS_SATIS
+    WHERE TRUNC(DTMOV) BETWEEN CAST('16/01/2026' AS DATE) AND CAST('16/01/2026' AS DATE)
+) V

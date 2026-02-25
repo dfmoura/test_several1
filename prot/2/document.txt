@@ -1,0 +1,377 @@
+    Visão Geral
+
+
+Basepath:
+/api/provisioned-events/v2
+Tags
+AREADOINVESTIDORPUBLICA
+Tipo:
+REST
+Download:
+Swagger 2.0
+Adicionado:
+June 21, 2024 6:46 PM
+Visão Geral
+
+Trata-se do provisionamento de recebimento de pagamentos de proventos dos valores mobiliários admitidos à Negociação na B3, tais como Dividendos, Juros Sobre Capital Próprio, Rendimentos e outros eventos em dinheiro.
+
+``
+
+OPT-IN OPT-OUT
+
+A B3 com o foco no cliente, iniciou um projeto para melhorar a experiência dos investidores pessoa física em um portal no qual o usuário poderá acompanhar os seus investimentos de forma consolidada e poderá compartilhar suas informações com terceiros mediante consentimento livre, informado e expresso fornecido e gerido pela B3 na da plataforma
+
+O consentimento expresso é uma exigência legal (Lei do Sigilo Bancário – LC 105/2001). Ela permite que a B3 possa compartilhar tais informações e também servirá para atender as regras da Lei Geral de Proteção de Dados Pessoais (“LGPD”).
+
+Em paralelo a isto, possibilitar o compartilhamento das informações é um passo importante para fomentar o desenvolvimento econômico e tecnológico do mercado.
+
+Opt-in
+
+Para a B3 disponibilizar as informações do investidor, será necessário que o mesmo informe por meio da área logada do investidor, no site da B3, que está de acordo em disponibilizar os seus dados para a empresa em questão. Isso poderá ser feito de forma fluida em uma jornada integrada com os aplicativos e plataformas disponíveis no mercado, para isso as empresas interessadas em consumir esses dados terão que assinar um contrato com a B3 e terão que se adaptar para aceitar o consentimento dos clientes por meio da plataforma da B3.
+
+Opt-out
+
+Para que o consentimento mencionado seja livre e ainda sejam atendidas as exigências legais (LGPD e Lei do Sigilo Bancário) é imprescindível que a B3 forneça a possibilidade de o investidor retirar o consentimento dado a qualquer momento. Para tanto, será necessário que o mesmo informe por meio da área logada do investidor, no site da B3, que não autoriza mais o envio de seus dados para a empresa em questão, com isso suspenderemos o envio dos dados automaticamente.
+
+``
+
+
+Regras e Boas Práticas
+
+Para garantir a saúde da nossa plataforma e um acesso justo para todos aconselhamos seguir as orientações de boas práticas de consumo das APIs.
+
+As APIs terão como parâmetro de entrada o CPF do investidor e a data de referência do conteúdo, sendo assim, os clientes deverão implementar soluções que atendam os seguintes itens:
+
+    Consultar cada CPF uma vez por dia;
+    Buscar os dados somente do período que ainda não tenha sido consultado anteriormente;
+    Para as APIs de movimentação, fazer as chamadas somente dos produtos em que o investidor tiver posição.
+    Os dados serão atualizados de segunda a sexta a partir das 23 horas;
+    As APIs funcionarão 24 horas por dia e 7 dias por semana.
+    Faremos o controle de requisições por segundo e por instituição;
+
+As APIs terão as seguintes regras de paginação:
+
+    Serão 20 itens por página
+    Respostas superiores a 20 itens serão paginadas
+
+A API tem como característica os seguintes itens:
+
+    Os campos principais são obrigatórios;
+    Não há busca aproximada para textos;
+    O campo referenceDate deve ser informado no formato: AAAA-MM-DD;
+    Nenhum dos parâmetros de entrada é do tipo lista, dessa forma, não há como pesquisar mais de um documento por chamada;
+    Não é possível selecionar quais campos devem ser retornados;
+    Os dados disponíveis para consulta são a partir de 11/2019
+
+
+Host
+
+    Certificação: https://apib3i-cert.b3.com.br:2443
+    Produção: https://investidor.b3.com.br:2443
+
+
+Modelo de Autenticação
+
+Clique aqui para mais informações sobre o Modelo de Autenticação utilizado.
+
+
+
+
+Métodos
+
+
+
+Método de segurança.
+Oauth2 - 1df059ec-3090-4429-a229-176388b174ed
+Provisioned Events
+GET
+/investors/{documentNumber}
+Dados até D-1 dos eventos corporativos de renda variável provisionados por investidor.
+Parameters
+Name	Description
+documentNumber *
+string
+(path)
+	
+
+Número do documento
+referenceDate *
+string($date)
+(query)
+	
+
+Data de referência da informação
+page
+integer($int32)
+(query)
+	
+
+Number of the page being requested (the value of the first page is 1).
+Responses
+Response content type
+Code	Description
+200	
+
+Ok
+
+{
+  "data": {
+    "provisionedEvents": [
+      {
+        "documentNumber": "00123456789",
+        "referenceDate": "2020-01-01",
+        "productCategoryName": "XXXXX",
+        "productTypeName": "XXXXX",
+        "corporateActionTypeDescription": "XXXXX",
+        "paymentDate": "2020-01-01",
+        "participantName": "XXXXX",
+        "participantDocumentNumber": "unde",
+        "eventValue": "10,01",
+        "eventQuantity": 30,
+        "netValue": "10,01",
+        "tickerSymbol": "XXXXX",
+        "isin": "XXXXX",
+        "distributionIdentification": 1,
+        "bookkeeperName": "XXXXXX",
+        "corporationName": "XXXXXX",
+        "specificationCode": "XXXXXX",
+        "approvalDate": "2020-01-01",
+        "updateDate": "2020-01-01",
+        "specialExDate": "2020-01-01",
+        "incomeTaxPercent": 1586275072.80495,
+        "incomeTaxAmount": 6692813407.6614,
+        "grossAmount": "10,01",
+        "availableQuantity": 29,
+        "unavailableQuantity": 7419521529.9619,
+        "reasons": [
+          {
+            "reasonName": "XXXXX",
+            "collateralQuantity": 3453936090.30659,
+            "counterpartName": "XXXXX"
+          }
+        ]
+      }
+    ]
+  },
+  "Links": {
+    "self": "laboriosam",
+    "first": "quisquam",
+    "prev": "voluptatibus",
+    "next": "consequuntur",
+    "last": "quidem"
+  }
+}
+
+400	
+
+Bad Request 400.01 - Invalid format for value (valor) 400.02 - Invalid length for (campo)(valor) 400.03 - Invalid value for (campo)(valor)
+401	
+
+Unauthorized
+403	
+
+Forbidden
+404	
+
+Not found
+422	
+
+Unprocessable Entity 422.01 - Formato inválido para CPF/CNPJ 422.02 - Participante não autorizado acessar CPF/CNPJ 422.03 - CPF/CNPJ não localizado 422.04 - Formato inválido para Data de Referência AAAA-MM-DD 422.05 - Data de referência deve ser inferior a data atual 422.06 - A data final é menor que data inicial 422.07 - A data inicial de referência não pode ser inferior ao ano de 2018
+
+{
+  "Errors": [
+    {
+      "code": "nostrum",
+      "message": "ipsa"
+    }
+  ]
+}
+
+429	
+
+Too Many Requests
+500	
+
+Internal server error
+503	
+
+Service Unavailable
+Taxonomia
+Errors{
+Errors	[...]
+}
+reasons{
+reasonName*	string
+example: XXXXX
+maxLength: 100
+
+Motivo da garantia indisponível
+Enum:
+Array [ 17 ]
+collateralQuantity*	number($double)
+example: 3453936090.30659
+
+Collateral Product Quantity
+counterpartName*	string
+example: XXXXX
+maxLength: 100
+
+Contraparte do motivo indisponivel
+}
+ProvisionedEventsRsp{
+data	Data{...}
+Links*	Link{...}
+}
+Error{
+code*	string
+example: nostrum
+
+Business error code.
+message*	string
+example: ipsa
+
+Brief business error message
+}
+Data{
+provisionedEvents	[...]
+}
+Link{
+self*	string
+example: laboriosam
+
+Current page link
+first	string
+example: quisquam
+
+First page link
+prev	string
+example: voluptatibus
+
+Next page link
+next	string
+example: consequuntur
+
+Next page link
+last	string
+example: quidem
+
+Last page link
+}
+ProvisionedEvents{
+documentNumber*	string
+example: 00123456789
+maxLength: 14
+
+Número do documento
+referenceDate*	string($date)
+example: 2020-01-01
+
+Data de referência da informação
+productCategoryName*	string
+example: XXXXX
+maxLength: 100
+
+Armazena as categorias de cada produto. ExRENDA VARIAVEL
+productTypeName*	string
+example: XXXXX
+maxLength: 100
+
+Tipos de produtos utilizados em renda variável. Dominio - ACOES - BDRs - FUNDOS IMOBILIARIOS
+corporateActionTypeDescription*	string
+example: XXXXX
+maxLength: 100
+
+Descrição do Tipo de Evento Corporativo Dominio DIVIDENDO RESTITUIÇÃO DE CAPITAL BONIFICAÇÃO EM DINHEIRO JUROS SOBRE CAPITAL PRÓPRIO RENDIMENTO JUROS AMORTIZAÇÃO PREMIO ATUALIZAÇÃO MONETÁRIA BONIFICAÇÃO EM ATIVOS RESTITUIÇÃO CAPITAL EM AÇÕES RESTITUIÇÃO CAPITALCOM REDUÇÃO DO NÚMERO DE AÇÕES DESDOBRAMENTO DE AÇÕES GRUPAMENTO SUBSCRIÇÃO PRIORIDADE DE SUBSCRICAO EXERCICIO DE SUBSCRICAO SUBSCRICAO COM RENUNCIA DO DIREITO DE PREFERENCIA INCORPORAÇÃO FUSÃO CANCELAMENTO DE FRAÇÕES LEILÃO DE FRAÇÕES DOAÇÃO DE FRAÇÕES ADMINISTRAÇÃO DE FRAÇÕES COMPRA DE FRAÇÕES VENDA DE FRAÇÕES CISÃO COM RED. DE CAPITAL CISÃO COM RED. DE CAPITAL E QTDE ATUALIZACAO EVENTO COM MÚLTIPLOS REQUISITOS E RESULTADOS RESGATE PARCIAL RENDA FIXA RESGATE RENDA FIXA CONVERSÃO DE ATIVOS DISSIDÊNCIA RESGATE RENDA VARIÁVEL RENDIMENTO LÍQUIDO SOBRAS DE SUBSCRIÇÃO
+Enum:
+Array [ 37 ]
+paymentDate	string($date)
+example: 2020-01-01
+
+Data de pagamento.
+participantName*	string
+example: XXXXX
+maxLength: 120
+
+Nome do participante (Corretora)
+participantDocumentNumber*	string
+example: unde
+maxLength: 14
+
+Participant document number
+eventValue*	number($double)
+example: 10,01
+
+Valor do Evento Corporativo, este valor pode estar expresso em fator ou em dinheiro. Para eventos em dinheiro, este campo trará valor monetário Para eventos em ativo/voluntário esse campo trará um fator
+eventQuantity*	number($double)
+example: 30
+
+Quantidade de ativos que para calculo do evento corporativo
+netValue*	number($double)
+example: 10,01
+
+Valor Líquido a receber
+tickerSymbol*	string
+example: XXXXX
+maxLength: 35
+
+Código que identifica um instrumento negociado/registrado em bolsa de valores. O símbolo é uma forma curta e conveniente de identificar um instrumento.
+isin*	string
+example: XXXXX
+maxLength: 12
+
+INTERNATIONAL SECURITIES IDENTIFICATION NUMBER – É uma padronização internacional na codificação de títulos financeiros, atribuindo a cada ativo um código único de identificação. O código para os títulos e valores mobiliários brasileiros apresenta a estrutura BR AAAA BBB CC 7, onde a) os dois primeiros caracteres (BR) identificam o código do BRASIL; b) os quatro caracteres (AAAA) são alfanuméricos e identificam o emissor; c) os três caracteres (BBB) são alfanuméricos e identificam o tipo de ativo, podendo ter sequência automática na segunda posição (sequência 1) e na terceira posição (sequência 2) ou não ter qualquer sequência; d) os dois caracteres (CC) são alfanuméricos e identificam a espécie, quando se tratar de ações, ou representam uma sequência automática, para identificar cada emissão de título e valor mobiliário, quando se tratar de outras categorias; e e) o último caractere (7) é o dígito de controle.
+distributionIdentification*	integer($int32)
+example: 1
+minimum: -2147483648
+maximum: 2147483647
+
+Código de distribuição do papel Este código identifica a versão do ativo. O par "ISIN" + "Código de Distribuição" é necessário para instrumentos que têm depositário, como ações e ouro. Não há distribuição de derivativos.
+bookkeeperName*	string
+example: XXXXXX
+maxLength: 20
+
+É o nome simplificado da instituição devidamente habilitada ou autorizada para a prestação de serviço de escrituração de Cotas, contratada por Administrador Legal.
+corporationName*	string
+example: XXXXXX
+maxLength: 250
+
+Este campo possui o nome da instituição.
+specificationCode	string
+example: XXXXXX
+maxLength: 10
+
+Código de especificação das ações ON, PN, e assim por diante.
+approvalDate*	string($date)
+example: 2020-01-01
+
+Data de aprovação da deliberação do evento pelo emissor
+updateDate*	string($date)
+example: 2020-01-01
+
+Data atualização do evento, data do provisionamento consideração as liquidação das negociações feitas na data base.
+specialExDate*	string($date)
+example: 2020-01-01
+
+Data Ex
+incomeTaxPercent*	number($double)
+example: 1586275072.80495
+
+Percentual de imposto de renda.
+incomeTaxAmount*	number($double)
+example: 6692813407.6614
+
+Valor do imposto de renda
+grossAmount*	number($double)
+example: 10,01
+
+Valor bruto
+availableQuantity*	number($double)
+example: 29
+
+Quantidade disponível para usufruto do cliente (vender ou usufruir – qtde de ativos)
+unavailableQuantity*	number($double)
+example: 7419521529.9619
+
+Total blocked
+reasons	[...]
+}

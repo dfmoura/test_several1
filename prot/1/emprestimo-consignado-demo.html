@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Empréstimo Consignado - Demonstração do Fluxo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface2: #243044;
+      --border: #2d3d52;
+      --text: #e8edf4;
+      --text-muted: #8b9cb4;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.12);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+      --danger: #ef4444;
+      --servidor: #06b6d4;
+      --prefeitura: #8b5cf6;
+      --banco: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .header p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+
+    .flow-diagram {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1.5rem 2rem;
+      flex-wrap: wrap;
+    }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+    }
+
+    .panel {
+      flex: 1;
+      min-width: 280px;
+      max-width: 380px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      padding: 1rem 1.25rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .panel-header.servidor { background: linear-gradient(90deg, rgba(6, 182, 212, 0.2), transparent); color: var(--servidor); }
+    .panel-header.prefeitura { background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), transparent); color: var(--prefeitura); }
+    .panel-header.banco { background: linear-gradient(90deg, rgba(16, 185, 129, 0.2), transparent); color: var(--banco); }
+
+    .panel-body {
+      padding: 1.25rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .badge-success { background: var(--success-bg); color: var(--success); }
+    .badge-warning { background: var(--warning-bg); color: var(--warning); }
+    .badge-muted { background: var(--surface2); color: var(--text-muted); }
+
+    .saldo-box {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .saldo-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .saldo-valor {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--success);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .form-group input,
+    .form-group select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.75rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    .btn-success:hover { filter: brightness(1.1); }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .lista-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+
+    .lista-item:last-child { border-bottom: none; }
+
+    .lista-item .valor {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .requisicao-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+    }
+
+    .requisicao-card .linha {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+    }
+
+    .requisicao-card .linha:last-child { margin-bottom: 0; }
+
+    .acoes-aprovacao {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .acoes-aprovacao .btn { flex: 1; }
+
+    .ordem-banco {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .ordem-banco .titulo {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--banco);
+    }
+
+    .ordem-banco .detalhe {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+    }
+
+    .log-evento {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 0.35rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .log-evento:last-child { border-bottom: none; }
+
+    .log-evento::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      flex-shrink: 0;
+    }
+
+    .log-evento.pending::before { background: var(--warning); }
+    .log-evento.rejected::before { background: var(--danger); }
+
+    @media (max-width: 900px) {
+      .flow-arrow { display: none; }
+      .panel { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>Empréstimo Consignado — Fluxo Integrado</h1>
+    <p>Servidor Público · Prefeitura (Folha) · Instituição Bancária</p>
+  </header>
+
+  <main class="flow-diagram">
+    <!-- APP SERVIDOR -->
+    <section class="panel" id="panel-servidor">
+      <div class="panel-header servidor">
+        <span>📱</span> App do Servidor
+      </div>
+      <div class="panel-body">
+        <div class="saldo-box">
+          <div class="saldo-label">Margem disponível para consignado</div>
+          <div class="saldo-valor" id="saldo-disponivel">R$ 12.450,00</div>
+          <div class="saldo-label" style="margin-top: 0.5rem;">Origem: Controle de Folha (Prefeitura)</div>
+        </div>
+
+        <div class="form-group">
+          <label>Valor desejado (R$)</label>
+          <input type="number" id="valor-emprestimo" placeholder="Ex: 5000" value="5000" min="100" step="100">
+        </div>
+        <div class="form-group">
+          <label>Parcelas</label>
+          <select id="parcelas">
+            <option value="12">12x</option>
+            <option value="24">24x</option>
+            <option value="36">36x</option>
+            <option value="48">48x</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="btn-solicitar" style="width: 100%;">
+          Solicitar Empréstimo Consignado
+        </button>
+
+        <div id="minha-requisicao" style="display: none;">
+          <div class="requisicao-card">
+            <strong>Sua requisição</strong>
+            <div class="linha"><span>Valor:</span> <span id="req-valor">—</span></div>
+            <div class="linha"><span>Parcelas:</span> <span id="req-parcelas">—</span></div>
+            <div class="linha"><span>Status:</span> <span id="req-status" class="badge badge-warning">Aguardando aprovação</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- PREFEITURA -->
+    <section class="panel" id="panel-prefeitura">
+      <div class="panel-header prefeitura">
+        <span>🏛️</span> Prefeitura (Folha de Pagamento)
+      </div>
+      <div class="panel-body">
+        <div id="aprovacao-area">
+          <div class="saldo-label" style="margin-bottom: 0.5rem;">Requisição para aprovação</div>
+          <div id="requisicao-pendente" class="empty-state">
+            Nenhuma requisição no momento.
+          </div>
+          <div id="requisicao-aprovacao" style="display: none;">
+            <div class="requisicao-card">
+              <div class="linha"><span>Servidor:</span> <span id="aprov-servidor">—</span></div>
+              <div class="linha"><span>Valor:</span> <span id="aprov-valor">—</span></div>
+              <div class="linha"><span>Parcelas:</span> <span id="aprov-parcelas">—</span></div>
+              <div class="linha"><span>Parcela (aprox.):</span> <span id="aprov-parcela">—</span></div>
+              <div class="acoes-aprovacao">
+                <button class="btn btn-success" id="btn-aprovar">Aprovar</button>
+                <button class="btn btn-danger" id="btn-rejeitar">Rejeitar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 0.5rem;">
+          <div class="saldo-label" style="margin-bottom: 0.5rem;">Provisões na folha (descontos futuros)</div>
+          <div id="provisoes-lista" class="empty-state">
+            Nenhuma provisão.
+          </div>
+        </div>
+
+        <div id="log-prefeitura" style="margin-top: auto; font-size: 0.8rem; color: var(--text-muted);">
+          <!-- eventos -->
+        </div>
+      </div>
+    </section>
+
+    <div class="flow-arrow">→</div>
+
+    <!-- BANCO -->
+    <section class="panel" id="panel-banco">
+      <div class="panel-header banco">
+        <span>🏦</span> Instituição Bancária
+      </div>
+      <div class="panel-body">
+        <div id="ordem-credito-area">
+          <div class="saldo-label" style="margin-bottom: 0.5rem;">Ordem de crédito</div>
+          <div id="ordem-vazia" class="empty-state">
+            Aguardando aprovação da prefeitura.
+          </div>
+          <div id="ordem-preenchida" style="display: none;" class="ordem-banco">
+            <div class="titulo">Crédito em conta</div>
+            <div class="detalhe"><span>Beneficiário:</span> <span id="ordem-servidor">—</span></div>
+            <div class="detalhe"><span>Valor:</span> <span id="ordem-valor">—</span></div>
+            <div class="detalhe"><span>Referência:</span> <span id="ordem-ref">—</span></div>
+            <div class="detalhe"><span>Status:</span> <span class="badge badge-success">Creditado</span></div>
+          </div>
+        </div>
+
+        <div id="log-banco" style="margin-top: auto; font-size: 0.8rem; color: var(--text-muted);">
+          <!-- eventos -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const SALDO_INICIAL = 12450;
+      let saldoAtual = SALDO_INICIAL;
+      let requisicaoAtual = null;
+      const SERVidor_NOME = 'Maria Silva (Mat. 12345)';
+
+      const el = {
+        saldoDisponivel: document.getElementById('saldo-disponivel'),
+        valorEmprestimo: document.getElementById('valor-emprestimo'),
+        parcelas: document.getElementById('parcelas'),
+        btnSolicitar: document.getElementById('btn-solicitar'),
+        minhaRequisicao: document.getElementById('minha-requisicao'),
+        reqValor: document.getElementById('req-valor'),
+        reqParcelas: document.getElementById('req-parcelas'),
+        reqStatus: document.getElementById('req-status'),
+        requisicaoPendente: document.getElementById('requisicao-pendente'),
+        requisicaoAprovacao: document.getElementById('requisicao-aprovacao'),
+        aprovServidor: document.getElementById('aprov-servidor'),
+        aprovValor: document.getElementById('aprov-valor'),
+        aprovParcelas: document.getElementById('aprov-parcelas'),
+        aprovParcela: document.getElementById('aprov-parcela'),
+        btnAprovar: document.getElementById('btn-aprovar'),
+        btnRejeitar: document.getElementById('btn-rejeitar'),
+        provisoesLista: document.getElementById('provisoes-lista'),
+        logPrefeitura: document.getElementById('log-prefeitura'),
+        ordemVazia: document.getElementById('ordem-vazia'),
+        ordemPreenchida: document.getElementById('ordem-preenchida'),
+        ordemServidor: document.getElementById('ordem-servidor'),
+        ordemValor: document.getElementById('ordem-valor'),
+        ordemRef: document.getElementById('ordem-ref'),
+        logBanco: document.getElementById('log-banco'),
+      };
+
+      function formatarMoeda(v) {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+      }
+
+      function atualizarSaldo() {
+        el.saldoDisponivel.textContent = formatarMoeda(saldoAtual);
+      }
+
+      function addLogPrefeitura(msg, tipo = 'ok') {
+        const div = document.createElement('div');
+        div.className = 'log-evento' + (tipo === 'pending' ? ' pending' : tipo === 'rejected' ? ' rejected' : '');
+        div.textContent = new Date().toLocaleTimeString('pt-BR') + ' — ' + msg;
+        el.logPrefeitura.appendChild(div);
+      }
+
+      function addLogBanco(msg) {
+        const div = document.createElement('div');
+        div.className = 'log-evento';
+        div.textContent = new Date().toLocaleTimeString('pt-BR') + ' — ' + msg;
+        el.logBanco.appendChild(div);
+      }
+
+      function parcelasNaFolha(valor, n) {
+        const lista = [];
+        const parcela = valor / n;
+        for (let i = 1; i <= n; i++) {
+          lista.push({ numero: i, valor: parcela, mes: 'Folha ' + i });
+        }
+        return lista;
+      }
+
+      el.btnSolicitar.addEventListener('click', function () {
+        const valor = parseFloat(el.valorEmprestimo.value) || 0;
+        const n = parseInt(el.parcelas.value, 10);
+        if (valor < 100) {
+          alert('Informe um valor válido (mín. R$ 100,00).');
+          return;
+        }
+        if (valor > saldoAtual) {
+          alert('Valor acima da margem disponível. Saldo: ' + formatarMoeda(saldoAtual));
+          return;
+        }
+
+        requisicaoAtual = {
+          id: 'REQ-' + Date.now(),
+          servidor: SERVidor_NOME,
+          valor,
+          parcelas: n,
+          parcelaAprox: valor / n,
+          status: 'pendente',
+        };
+
+        el.minhaRequisicao.style.display = 'block';
+        el.reqValor.textContent = formatarMoeda(valor);
+        el.reqParcelas.textContent = n + 'x';
+        el.reqStatus.textContent = 'Aguardando aprovação';
+        el.reqStatus.className = 'badge badge-warning';
+
+        el.requisicaoPendente.style.display = 'none';
+        el.requisicaoAprovacao.style.display = 'block';
+        el.aprovServidor.textContent = requisicaoAtual.servidor;
+        el.aprovValor.textContent = formatarMoeda(requisicaoAtual.valor);
+        el.aprovParcelas.textContent = requisicaoAtual.parcelas + 'x';
+        el.aprovParcela.textContent = formatarMoeda(requisicaoAtual.parcelaAprox);
+
+        addLogPrefeitura('Nova requisição recebida: ' + requisicaoAtual.id, 'pending');
+      });
+
+      el.btnAprovar.addEventListener('click', function () {
+        if (!requisicaoAtual || requisicaoAtual.status !== 'pendente') return;
+
+        requisicaoAtual.status = 'aprovado';
+        saldoAtual -= requisicaoAtual.valor;
+        atualizarSaldo();
+
+        el.reqStatus.textContent = 'Aprovado';
+        el.reqStatus.className = 'badge badge-success';
+
+        const provisoes = parcelasNaFolha(requisicaoAtual.valor, requisicaoAtual.parcelas);
+        el.provisoesLista.innerHTML = '';
+        el.provisoesLista.classList.remove('empty-state');
+        provisoes.slice(0, 5).forEach(function (p) {
+          const li = document.createElement('div');
+          li.className = 'lista-item';
+          li.innerHTML = '<span>Parcela ' + p.numero + ' (' + p.mes + ')</span><span class="valor">' + formatarMoeda(p.valor) + '</span>';
+          el.provisoesLista.appendChild(li);
+        });
+        if (provisoes.length > 5) {
+          const li = document.createElement('div');
+          li.className = 'lista-item';
+          li.innerHTML = '<span>... +' + (provisoes.length - 5) + ' parcelas</span><span></span>';
+          el.provisoesLista.appendChild(li);
+        }
+
+        addLogPrefeitura('Requisição aprovada. Provisões geradas na folha.');
+
+        el.requisicaoAprovacao.style.display = 'none';
+        el.requisicaoPendente.style.display = 'block';
+        el.requisicaoPendente.textContent = 'Nenhuma requisição no momento.';
+
+        el.ordemVazia.style.display = 'none';
+        el.ordemPreenchida.style.display = 'block';
+        el.ordemServidor.textContent = requisicaoAtual.servidor;
+        el.ordemValor.textContent = formatarMoeda(requisicaoAtual.valor);
+        el.ordemRef.textContent = requisicaoAtual.id;
+        addLogBanco('Ordem de crédito recebida. Valor creditado na conta do servidor.');
+      });
+
+      el.btnRejeitar.addEventListener('click', function () {
+        if (!requisicaoAtual || requisicaoAtual.status !== 'pendente') return;
+
+        requisicaoAtual.status = 'rejeitado';
+        el.reqStatus.textContent = 'Rejeitado';
+        el.reqStatus.className = 'badge badge-muted';
+
+        addLogPrefeitura('Requisição rejeitada.', 'rejected');
+
+        el.requisicaoAprovacao.style.display = 'none';
+        el.requisicaoPendente.style.display = 'block';
+        el.requisicaoPendente.textContent = 'Nenhuma requisição no momento.';
+        requisicaoAtual = null;
+      });
+
+      atualizarSaldo();
+    })();
+  </script>
+</body>
+</html>
