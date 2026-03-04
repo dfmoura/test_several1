@@ -1,0 +1,1105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="nfse_rj" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="45" bottomMargin="45">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.9487171000000096"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="NUNOTA" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[new BigDecimal(188383)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["./"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+  CIDEMP.NOMECID AS CIDEMP,
+  CIDPARC.NOMECID AS CIDPARC,
+  NFSE.XMLNFSE,
+CAB.OBSERVACAO AS OBS_NOTA,
+NVL(EMP.AD_LOGONFSE, 'logo.png') AS AD_LOGONFSE
+FROM
+  TGFCAB CAB
+INNER JOIN TGFNFSE NFSE ON (CAB.NUNOTA = NFSE.NUNOTA)
+INNER JOIN TSIEMP EMP ON (CAB.CODEMP = EMP.CODEMP)
+INNER JOIN TGFPAR PARC ON (CAB.CODPARC = PARC.CODPARC)
+INNER JOIN TSICID CIDEMP ON (EMP.CODCID = CIDEMP.CODCID)
+INNER JOIN TSICID CIDPARC ON (PARC.CODCID = CIDPARC.CODCID)
+WHERE
+  CAB.NUNOTA = $P{NUNOTA}]]>
+	</queryString>
+	<field name="CIDEMP" class="java.lang.String"/>
+	<field name="CIDPARC" class="java.lang.String"/>
+	<field name="XMLNFSE" class="java.sql.Clob"/>
+	<field name="OBS_NOTA" class="java.lang.String"/>
+	<field name="AD_LOGONFSE" class="java.lang.String"/>
+	<variable name="V_XMLNFSE" class="java.lang.Object">
+		<variableExpression><![CDATA[new org.jdom.input.SAXBuilder().build($F{XMLNFSE}.getCharacterStream()).getRootElement()]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="752" splitType="Stretch">
+			<rectangle>
+				<reportElement key="rectangle-7" mode="Opaque" x="0" y="325" width="555" height="159"/>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="0" y="587" width="555" height="165"/>
+				<graphicElement>
+					<pen lineWidth="1.25"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="0" y="504" width="555" height="47"/>
+				<graphicElement>
+					<pen lineWidth="1.25"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="0" y="224" width="555" height="100"/>
+				<graphicElement>
+					<pen lineWidth="1.25"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="0" y="98" width="555" height="126"/>
+				<graphicElement>
+					<pen lineWidth="1.25"/>
+				</graphicElement>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="417" y="2" width="138" height="32"/>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="417" y="34" width="138" height="32"/>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="417" y="66" width="138" height="32"/>
+			</rectangle>
+			<elementGroup/>
+			<rectangle>
+				<reportElement mode="Transparent" x="0" y="2" width="555" height="96"/>
+				<graphicElement>
+					<pen lineWidth="1.25"/>
+				</graphicElement>
+			</rectangle>
+			<image>
+				<reportElement x="11" y="5" width="81" height="75"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "logomarca_riodejaneiro.png"]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="4" y="78" width="231" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+	(org.jdom.Element)$V{V_XMLNFSE},
+	".//InfNfse/DataEmissaoRps"
+)+ "u" +
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+        (org.jdom.Element)$V{V_XMLNFSE},
+        ".//InfNfse/PrestadorServico/IdentificacaoPrestador/Cnpj"
+    )
++ "i" +
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+        (org.jdom.Element)$V{V_XMLNFSE},
+        ".//InfNfse/PrestadorServico/IdentificacaoPrestador/Cnpj"
+    )]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="419" y="3" width="100" height="14"/>
+				<textElement>
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Número da Nota]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="420" y="36" width="135" height="14"/>
+				<textElement>
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Data e Hora de Emissão]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="420" y="68" width="135" height="14"/>
+				<textElement>
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Código de Verificação]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="418" y="14" width="137" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.StringUtils.padl(
+    com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+        (org.jdom.Element)$V{V_XMLNFSE},
+        ".//InfNfse/Numero"
+    ),
+    8,
+    '0'
+)]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="417" y="46" width="137" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/DataEmissao"
+).replace("T", " ")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="418" y="78" width="137" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/CodigoVerificacao"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="109" y="7" width="307" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PREFEITURA DA CIDADE DO RIO DE JANEIRO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="109" y="30" width="307" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="false"/>
+				</textElement>
+				<text><![CDATA[SECRETARIA MUNICIAL DE FAZENDA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="110" y="56" width="307" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="false"/>
+				</textElement>
+				<text><![CDATA[NOTA FISCAL DE SERVIÇOS ELETRONICA - NFS-e]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="109" y="77" width="307" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="false"/>
+				</textElement>
+				<text><![CDATA[- NOTA CARIOCA -]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="99" width="552" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PRESTADOR DE SERVIÇOS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="107" y="122" width="57" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[CPF/CNPJ:]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="164" y="122" width="118" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.StringUtils.formataCgcCpf(
+    com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+        (org.jdom.Element)$V{V_XMLNFSE},
+        ".//InfNfse/PrestadorServico/IdentificacaoPrestador/Cnpj"
+    )
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="259" y="122" width="95" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Inscrição Mun.:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="330" y="122" width="77" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[( com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            ".//InfNfse/PrestadorServico/IdentificacaoPrestador/InscricaoMunicipal"
+) == null) ? "---" :
+  new com.sankhya.util.StringFormat().format(
+    com.sankhya.util.StringUtils.padl(
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            ".//InfNfse/PrestadorServico/IdentificacaoPrestador/InscricaoMunicipal"
+        ),
+        8,
+        '0'
+    ),
+    "#.###.###-#"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="405" y="122" width="88" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Inscrição Est.:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="472" y="122" width="97" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[( com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            ".//InfNfse/PrestadorServico/IdentificacaoPrestador/InscricaoEstadual"
+) == null) ? "---" :
+  new com.sankhya.util.StringFormat().format(
+    com.sankhya.util.StringUtils.padl(
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            ".//InfNfse/PrestadorServico/IdentificacaoPrestador/InscricaoEstadual"
+        ),
+        8,
+        '0'
+    ),
+    "#.###.###-#"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="107" y="143" width="98" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Nome/Razão Social:]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="205" y="143" width="350" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/PrestadorServico/RazaoSocial"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="107" y="163" width="98" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Nome Fantasia:]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="205" y="163" width="225" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/PrestadorServico/RazaoSocial"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="4" y="183" width="57" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Endereço:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="4" y="203" width="57" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Município:]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="61" y="183" width="494" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/PrestadorServico/Endereco/Endereco"
+) + " " +
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/PrestadorServico/Endereco/Bairro"
+) + " - CEP: " +
+com.sankhya.util.StringUtils.formataCep(
+    com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+        (org.jdom.Element)$V{V_XMLNFSE},
+        ".//InfNfse/PrestadorServico/Endereco/Cep"
+    )
+)]]></textFieldExpression>
+			</textField>
+			<textField pattern="">
+				<reportElement x="62" y="203" width="149" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CIDEMP}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="213" y="203" width="19" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[UF:]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="232" y="203" width="21" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/PrestadorServico/Endereco/Uf"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="430" y="163" width="50" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Telefone:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="480" y="163" width="75" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            ".//InfNfse/PrestadorServico/Contato/Telefone"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="265" y="203" width="36" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[E-mail:]]></text>
+			</staticText>
+			<textField pattern="" isBlankWhenNull="true">
+				<reportElement x="315" y="204" width="254" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/PrestadorServico/Contato/Email"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="224" width="552" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOMADOR DE SERVIÇOS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="4" y="244" width="57" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[CPF/CNPJ:]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="62" y="244" width="123" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[(
+    "".equals(
+        com.sankhya.util.StringUtils.getNullAsEmpty(
+            com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                (org.jdom.Element)$V{V_XMLNFSE},
+                ".//InfNfse/TomadorServico/IdentificacaoTomador/CpfCnpj/Cnpj"
+            )
+        )
+    )?
+    (
+        com.sankhya.util.StringUtils.formataCgcCpf(
+            com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                (org.jdom.Element)$V{V_XMLNFSE},
+                ".//InfNfse/TomadorServico/IdentificacaoTomador/CpfCnpj/Cpf"
+            )
+
+        )
+
+    )
+    :
+    (
+        com.sankhya.util.StringUtils.formataCgcCpf(
+            com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                (org.jdom.Element)$V{V_XMLNFSE},
+                ".//InfNfse/TomadorServico/IdentificacaoTomador/CpfCnpj/Cnpj"
+            )
+
+        )
+    )
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="166" y="244" width="103" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Inscrição Municipal:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="269" y="244" width="80" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[( com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            "..//InfNfse/TomadorServico/IdentificacaoTomador/InscricaoMunicipal"
+) == null) ? "---" :
+  new com.sankhya.util.StringFormat().format(
+    com.sankhya.util.StringUtils.padl(
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            ".//.//InfNfse/TomadorServico/IdentificacaoTomador/InscricaoMunicipal"
+        ),
+        8,
+        '0'
+    ),
+    "#.###.###-#"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="393" y="244" width="103" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Inscrição Estadual:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="479" y="244" width="99" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[( com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            ".//InfNfse/TomadorServico/IdentificacaoTomador/InscricaoEstadual"
+) == null) ? "---" :
+  new com.sankhya.util.StringFormat().format(
+    com.sankhya.util.StringUtils.padl(
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            ".//InfNfse/TomadorServico/IdentificacaoTomador/InscricaoEstadual"
+        ),
+        8,
+        '0'
+    ),
+    "#.###.###-#"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="5" y="264" width="98" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Nome/Razão Social:]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="103" y="264" width="449" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/TomadorServico/RazaoSocial"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="4" y="284" width="52" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Endereço:]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="56" y="284" width="440" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/TomadorServico/Endereco/Endereco"
+)
++ " - " +
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/TomadorServico/Endereco/Bairro"
+) + " - CEP: " +
+com.sankhya.util.StringUtils.formataCep(
+    com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+        (org.jdom.Element)$V{V_XMLNFSE},
+        ".//InfNfse/TomadorServico/Endereco/Cep"
+    )
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="393" y="284" width="53" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Telefone:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="442" y="284" width="99" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            ".//InfNfse/TomadorServico/Contato/Telefone"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="4" y="304" width="52" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Município:]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="56" y="304" width="155" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CIDPARC}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="211" y="304" width="19" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[UF:]]></text>
+			</staticText>
+			<textField pattern="">
+				<reportElement x="232" y="304" width="21" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/TomadorServico/Endereco/Uf"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="258" y="304" width="36" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[E-mail:]]></text>
+			</staticText>
+			<textField pattern="" isBlankWhenNull="true">
+				<reportElement x="297" y="304" width="254" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/TomadorServico/Contato/Email"
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="324" width="554" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DISCRIMINAÇÃO DOS SERVIÇOS]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="484" width="555" height="20"/>
+				<box leftPadding="0">
+					<topPen lineWidth="1.25" lineStyle="Solid"/>
+					<leftPen lineWidth="1.25" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.25" lineStyle="Solid"/>
+					<rightPen lineWidth="1.25" lineStyle="Solid"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["VALOR DA NOTA = R$ " +
+com.sankhya.util.StringUtils.formatNumeric(
+    com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+        (org.jdom.Element)$V{V_XMLNFSE},
+        ".//InfNfse/Servico/Valores/ValorLiquidoNfse"
+    )
+).trim()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="7" y="504" width="99" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10"/>
+				</textElement>
+				<text><![CDATA[Serviço Prestado:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="7" y="524" width="547" height="27"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new com.sankhya.util.StringFormat().format(
+    com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                (org.jdom.Element)$V{V_XMLNFSE},
+                ".//InfNfse/Servico/CodigoTributacaoMunicipio"
+    )
+    , "##.##.##"
+) + " - " +
+br.com.sankhya.jasperfuncs.Funcoes.pdes(
+    $P{REPORT_CONNECTION},
+    "DESCRLST",
+    "TGFLST",
+    "CODLST="+
+    Integer.parseInt(
+    com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                (org.jdom.Element)$V{V_XMLNFSE},
+                ".//InfNfse/Servico/ItemListaServico/"
+    )
+)
+
+)]]></textFieldExpression>
+			</textField>
+			<rectangle>
+				<reportElement mode="Transparent" x="0" y="551" width="92" height="36"/>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="92" y="551" width="99" height="36"/>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="191" y="551" width="92" height="36"/>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="283" y="551" width="89" height="36"/>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="372" y="551" width="93" height="36"/>
+			</rectangle>
+			<rectangle>
+				<reportElement mode="Transparent" x="465" y="551" width="90" height="36"/>
+				<graphicElement>
+					<pen lineWidth="1.25"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement x="3" y="549" width="90" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Deduções (R$):]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="93" y="549" width="98" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Desconto Incond. (R$):]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="193" y="549" width="98" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Base de Calculo (R$):]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="286" y="549" width="77" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Alíquota (%)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="373" y="549" width="98" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Valor do ISS (R$):]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="466" y="549" width="89" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Crédito Gerado (R$):]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="4" y="567" width="85" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.StringUtils.formatNumeric(
+    (
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/Deducoes"
+        )
+    ) == null ? "0"
+    :
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/Deducoes"
+        )
+)]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="true">
+				<reportElement x="103" y="567" width="85" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.StringUtils.formatNumeric(
+    (
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/DescontoIncondicional"
+        )
+    ) == null ? "0"
+    :
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/DescontoIncondicional"
+        )
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="195" y="567" width="85" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[-----]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="282" y="567" width="85" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[-----]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="373" y="567" width="85" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[-----]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="468" y="567" width="85" height="20"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[com.sankhya.util.StringUtils.formatNumeric(
+    (
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/CreditoGerado"
+        )
+    ) == null ? "0"
+    :
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/CreditoGerado"
+        )
+)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="587" width="552" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[OUTRAS INFORMAÇÕES]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="7" y="650" width="544" height="20"/>
+				<textElement verticalAlignment="Middle" markup="none">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<text><![CDATA[- NFS-e emitida com observância ao Regime de Tributação Especial conferido para Sociedade de profissionais.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="7" y="608" width="544" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<text><![CDATA[- Esta NFS-e foi emitida com respaldo na Lei nº 5.098 de 15/10/2009 e no Decreto nº 32.250 de 11/05/2010]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="7" y="629" width="544" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<text><![CDATA[- PROCON-RJ: Av. Rio Branco n° 25, 5° andar, tel 151: www.procon.rj.gov.br]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="7" y="671" width="544" height="20"/>
+				<textElement verticalAlignment="Middle"/>
+				<text><![CDATA[- Documento emitido por ME ou EPP optante pelo Simples Nacional. Não gera direito a crédito fiscal IPI.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="7" y="692" width="544" height="20"/>
+				<textElement verticalAlignment="Middle" markup="none">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<text><![CDATA[- Esta NFS-e não gera crédito para abatimetno de IPTU.]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="7" y="713" width="544" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["- Esta NFS-e substitui o RPS N°: " +
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/IdentificacaoRps/Numero"
+)
++ " Serie " +
+com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+    (org.jdom.Element)$V{V_XMLNFSE},
+    ".//InfNfse/IdentificacaoRps/Serie"
+)
++ ", emitido em " +
+new SimpleDateFormat("dd/MM/yyyy").format(
+    new java.text.SimpleDateFormat("yyyy-MM-dd").parse(
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+            (org.jdom.Element)$V{V_XMLNFSE},
+            ".//InfNfse/DataEmissaoRps"
+        )
+    )
+) + "."]]></textFieldExpression>
+			</textField>
+			<image>
+				<reportElement key="logo-franchising" x="2" y="119" width="101" height="64"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + $F{AD_LOGONFSE}]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement key="staticText-24" mode="Transparent" x="1" y="344" width="55" height="38" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Descrição:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-18" stretchType="RelativeToBandHeight" x="56" y="344" width="499" height="38"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="false" pdfFontName="Helvetica"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{OBS_NOTA}]]></textFieldExpression>
+			</textField>
+			<subreport>
+				<reportElement key="Ficha_de_itens_nota_rj" x="0" y="383" width="554" height="37"/>
+				<subreportParameter name="NUNOTA">
+					<subreportParameterExpression><![CDATA[$P{NUNOTA}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "Ficha_de_itens_nota_rj.jasper"]]></subreportExpression>
+			</subreport>
+			<textField pattern="" isBlankWhenNull="true">
+				<reportElement x="97" y="462" width="96" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["R$ "+
+com.sankhya.util.StringUtils.formatNumeric(
+    (
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/ValorCsll"
+        )
+    ) == null ? "0"
+    :
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/ValorCsll"
+        )
+).trim()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="97" y="444" width="85" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Retenção de CSLL]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2" y="462" width="95" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["R$ "
++
+com.sankhya.util.StringUtils.formatNumeric(
+    (
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/ValorCofins"
+        )
+    ) == null ? "0"
+    :
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/ValorCofins"
+        )
+).trim()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="444" width="90" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Retenção de COFINS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="282" y="444" width="98" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Retenção de IRPJ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="192" y="444" width="90" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Retenção de INSS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="472" y="444" width="81" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Outras Retenções]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="382" y="444" width="90" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Retenção de PIS]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="192" y="462" width="91" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["R$ "+
+com.sankhya.util.StringUtils.formatNumeric(
+    (
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/ValorInss"
+        )
+    ) == null ? "0"
+    :
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/ValorInss"
+        )
+).trim()]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="true">
+				<reportElement x="282" y="462" width="98" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["R$ "+
+com.sankhya.util.StringUtils.formatNumeric(
+    (
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/ValorIr"
+        )
+    ) == null ? "0"
+    :
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/ValorIr"
+        )
+).trim()]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="382" y="464" width="97" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["R$ "+
+com.sankhya.util.StringUtils.formatNumeric(
+    (
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/ValorPis"
+        )
+    ) == null ? "0"
+    :
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/ValorPis"
+        )
+).trim()]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="true">
+				<reportElement x="472" y="464" width="85" height="20"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["R$ "+
+com.sankhya.util.StringUtils.formatNumeric(
+    (
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/OutrasRetencoes"
+        )
+    ) == null ? "0"
+    :
+        com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+                    (org.jdom.Element)$V{V_XMLNFSE},
+                    ".//InfNfse/Servico/Valores/DescontoIncondicional"
+        )
+).trim()]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="7" y="734" width="544" height="18"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["- Valor líquido a pagar: R$ " +
+com.sankhya.util.StringUtils.formatNumeric(
+    com.sankhya.util.XMLUtils.SimpleXPath.getNodeText(
+        (org.jdom.Element)$V{V_XMLNFSE},
+        ".//InfNfse/Servico/Valores/ValorLiquidoNfse"
+    )
+).trim()]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="26"/>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

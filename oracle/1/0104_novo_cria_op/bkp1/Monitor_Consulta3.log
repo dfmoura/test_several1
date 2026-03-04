@@ -1,0 +1,493 @@
+-------------------------------------------------------------------------------------------------------
+##ID_1## tempo: 2 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1045
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_2## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.DbExplorer
+-------------------------------------------------------------------------------------------------------
+##ID_3## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT TSIPAR.ABA AS ABA,TSIPAR.CHAVE AS CHAVE,TSIPAR.CLASSE AS CLASSE,TSIPAR.CODUSU AS CODUSU,TSIPAR.DATA AS DATA,TSIPAR.DESCRICAO AS DESCRICAO,TSIPAR.INTEIRO AS INTEIRO,TSIPAR.LOGICO AS LOGICO,TSIPAR.MODULO AS MODULO,TSIPAR.NUMDEC AS NUMDEC,TSIPAR.TEXTO AS TEXTO,TSIPAR.TIPO AS TIPO FROM TSIPAR /*SQL_92_JOINED_TABLES*/  WHERE (TSIPAR.CHAVE = ? AND TSIPAR.CODUSU = ?)
+Params:
+  1 = DBEXPMAXROW
+  2 = 0
+-------------------------------------------------------------------------------------------------------
+##ID_4## tempo: 0 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT TSIPAR.ABA AS ABA,TSIPAR.CHAVE AS CHAVE,TSIPAR.CLASSE AS CLASSE,TSIPAR.CODUSU AS CODUSU,TSIPAR.DATA AS DATA,TSIPAR.DESCRICAO AS DESCRICAO,TSIPAR.INTEIRO AS INTEIRO,TSIPAR.LOGICO AS LOGICO,TSIPAR.MODULO AS MODULO,TSIPAR.NUMDEC AS NUMDEC,TSIPAR.TEXTO AS TEXTO,TSIPAR.TIPO AS TIPO FROM TSIPAR /*SQL_92_JOINED_TABLES*/  WHERE (TSIPAR.CHAVE = ? AND TSIPAR.CODUSU = ?)
+Params:
+  1 = DBEXPDEC
+  2 = 0
+-------------------------------------------------------------------------------------------------------
+##ID_5## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT               X.*            FROM (              SELECT                IPA.CODPRODPA,                IPA.NROLOTE,                IPA.CONTROLEPA,                (SELECT SUM(QTDPRODUZIR) FROM TPRIPA IPA2 WHERE IPA2.IDIPROC = 15697) AS QTDPRODUZIR,                PRO.COMPLDESC,                PRO.CODVOL,                PRO.CODGRUPOPROD,                PRO.DESCRPROD,                MPS.DTINICMPS,                MPS.DTFINMPS,                PRO.DECQTD,                PRO.REFERENCIA,                GRU.DESCRGRUPOPROD,                IPROC.PRIORIDADE AS PRIORIDADE,                (SELECT COUNT(1) FROM TPRIPA IPA3 WHERE IPA3.IDIPROC = IPA.IDIPROC) AS QTDPRODUTOS,                (CASE WHEN IPA.NROLOTE <> 'CURINGA' THEN 1 ELSE 2 END) AS ORDER_NROLOTE              FROM                TPRIPA IPA                INNER JOIN TGFPRO PRO ON (IPA.CODPRODPA = PRO.CODPROD)                INNER JOIN TPRIPROC IPROC ON (IPROC.IDIPROC = IPA.IDIPROC)                INNER JOIN TGFGRU GRU ON (PRO.CODGRUPOPROD = GRU.CODGRUPOPROD)                LEFT JOIN TPRMPS MPS ON (MPS.NUMPS = IPROC.NUMPS)              WHERE                IPA.IDIPROC = 15697              ORDER BY                IPA.CODPRODPA,                ORDER_NROLOTE,                IPA.CONTROLEPA            ) X
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_6## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1045
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_7## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.DbExplorer
+-------------------------------------------------------------------------------------------------------
+##ID_8## tempo: 0 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT              APO.NUAPO,              APO.IDIATV,              TO_CHAR(APO.DHAPO, 'DD/MM/YYYY HH24:MI') AS DHAPO,              APO.CODUSU,              USU.NOMEUSU,              APO.OBSERVACAO,              F_DESCROPC('TPRAPO','SITUACAO',APO.SITUACAO) DESC_SITUACAO            FROM TPRAPO APO            INNER JOIN TSIUSU USU ON APO.CODUSU = USU.CODUSU            WHERE APO.IDIATV = 19739            ORDER BY APO.NUAPO
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_9## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1045
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_10## tempo: 0 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: ActionButtonsSP.executeJava
+uri: /mge/service.sbr
+*/
+SELECT TSIBTA.CODMODULO AS CODMODULO,'$$CLOBFIELD(TSIBTA.CONFIG)$$' AS CONFIG,TSIBTA.CONTROLAACESSO AS CONTROLAACESSO,TSIBTA.DESCRICAO AS DESCRICAO,TSIBTA.IDBTNACAO AS IDBTNACAO,TSIBTA.NOMEINSTANCIA AS NOMEINSTANCIA,TSIBTA.ORDEM AS ORDEM,TSIBTA.RESOURCEID AS RESOURCEID,TSIBTA.TECLAATALHO AS TECLAATALHO,TSIBTA.TIPO AS TIPO FROM TSIBTA /*SQL_92_JOINED_TABLES*/  WHERE (TSIBTA.IDBTNACAO = ?)
+Params:
+  1 = 301
+-------------------------------------------------------------------------------------------------------
+##ID_11## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: ActionButtonsSP.executeJava
+uri: /mge/service.sbr
+*/
+SELECT CONFIG FROM TSIBTA WHERE TSIBTA.IDBTNACAO = ?
+Params:
+  1 = 301
+-------------------------------------------------------------------------------------------------------
+##ID_12## tempo: 2 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1045
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_13## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT TDDINS.ADICIONAL AS adicional,TDDINS.ATIVO AS ativo,TDDINS.CATEGORIA AS categoria,TDDINS.DEFINICAOINST AS definicaoInst,TDDINS.DESCRINSTANCIA AS descricao,TDDINS.EXPRESSAO AS expressao,TDDINS.ISLIB AS isLib,TDDINS.NOMEINSTANCIA AS nome,TDDINS.NOMETAB AS nomeTabela,TDDINS.NUINSTANCIA AS numero,TDDINS.NUINSTANCIAEXT AS numeroExtensao,TDDINS.NUINSTANCIAPAI AS numeroPai,TDDINS.RAIZ AS raiz,TDDINS.RESOURCEID AS resourceID,TDDINS.DESCRTELA AS telaDescription,TDDINS.TIPOFORM AS tipoForm,TDDINS.FILTRO AS usaCriterio FROM TDDINS /*SQL_92_JOINED_TABLES*/   WHERE (TDDINS.NOMEINSTANCIA = ?)  AND ROWNUM <= 501
+Params:
+  1 = InstanciaAtividade
+-------------------------------------------------------------------------------------------------------
+##ID_14## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT DESCRINSTANCIA AS TEXTO FROM TDDINS WHERE NOMEINSTANCIA=?
+Params:
+  1 = InstanciaAtividade
+-------------------------------------------------------------------------------------------------------
+##ID_15## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT IDIPROC, STATUSPROC, NROLOTE FROM TPRIPROC WHERE IDIPROC = ?
+Params:
+  1 = 15697.0
+-------------------------------------------------------------------------------------------------------
+##ID_16## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT NVL(MAX(IDIATV), 0) AS IDIATV FROM TPRIATV WHERE IDIPROC = ?
+Params:
+  1 = 15697.0
+-------------------------------------------------------------------------------------------------------
+##ID_17## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT NVL(MAX(NUAPO), 0) + 1 AS PROX_NUAPO FROM TPRAPO
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_18## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+INSERT INTO TPRAPO (CODUSU, DHAPO, IDIATV, NUAPO, OBSERVACAO, SITUACAO) VALUES (?, ?, ?, ?, ?, ?)
+Params:
+  1 = 0
+  2 = 2026-03-03 17:32:49.207
+  3 = 19739
+  4 = 15197
+  5 = 
+  6 = P
+-------------------------------------------------------------------------------------------------------
+##ID_19## tempo: 0 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT NVL(MAX(SEQAPA), 0) AS SEQAPA FROM TPRAPA WHERE NUAPO = ?
+Params:
+  1 = 15197
+-------------------------------------------------------------------------------------------------------
+##ID_20## tempo: 0 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT TPRIPA.CODPRODPA AS CODPRODPA,        TPRIPA.CONTROLEPA AS CONTROLEPA,        TPRIPA.QTDPRODUZIR AS QTDPRODUZIR   FROM TPRIPA  WHERE TPRIPA.IDIPROC = ?
+Params:
+  1 = 15697.0
+-------------------------------------------------------------------------------------------------------
+##ID_21## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+INSERT INTO TPRAPA (CODMPE, CODPRODPA, CONTROLEPA, NUAPO, QTDAPONTADA, QTDFAT, QTDFATSP, QTDMPE, QTDPERDA, SEQAPA) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+Params:
+  1 = 0
+  2 = 1
+  3 =  
+  4 = 15197
+  5 = 1
+  6 = 0
+  7 = 0
+  8 = 0
+  9 = 0
+  10 = 1
+-------------------------------------------------------------------------------------------------------
+##ID_22## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT NVL(MAX(SEQMP), 0) AS SEQMP FROM TPRAMP WHERE NUAPO = ?
+Params:
+  1 = 15197
+-------------------------------------------------------------------------------------------------------
+##ID_23## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT TGFITE.CODPROD AS CODPRODMP,        TGFITE.CONTROLE AS CONTROLEMP,        SUM(TGFITE.QTDNEG) AS QTD,        COALESCE(MAX(TGFPRO.CODVOL), 'UN') AS CODVOL   FROM TGFITE   INNER JOIN TGFCAB ON (TGFITE.NUNOTA = TGFCAB.NUNOTA)   INNER JOIN TGFPRO ON (TGFPRO.CODPROD = TGFITE.CODPROD)  WHERE TGFCAB.IDIPROC = ?    AND TGFITE.SEQUENCIA > 0    AND TGFCAB.TIPMOV <> 'F'  GROUP BY TGFITE.CODPROD, TGFITE.CONTROLE
+Params:
+  1 = 15697.0
+-------------------------------------------------------------------------------------------------------
+##ID_24## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT IDEFX FROM TPRIATV WHERE IDIATV = ?
+Params:
+  1 = 19739
+-------------------------------------------------------------------------------------------------------
+##ID_25## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 301
+class: 69@br.com.triggerint.modulos.snk.acoes.CadastrarCabecApontamentoBTFromParam
+descr: Criar Apontamento
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT X.CODPRODMP,        X.CONTROLEMP,        SUM(X.QTDNEG) AS QTD,        COALESCE(MAX(PRO.CODVOL), 'UN') AS CODVOL   FROM (         SELECT TGFITE.CODPROD AS CODPRODMP,                TGFITE.CONTROLE AS CONTROLEMP,                SUM(CASE WHEN (TPRIATV.IDEFX = ? OR ? = 0) THEN TGFITE.QTDNEG ELSE 0 END) AS QTDNEG           FROM TGFITE           INNER JOIN TGFCAB ON (TGFITE.NUNOTA = TGFCAB.NUNOTA)           INNER JOIN (SELECT DISTINCT CODPROD, CONTROLE, DTVAL FROM TGFEST) TGFEST ON (TGFEST.CODPROD = TGFITE.CODPROD AND TGFEST.CONTROLE = TGFITE.CONTROLE)           INNER JOIN TPRROPE ON TGFCAB.NUNOTA = TPRROPE.NUNOTA           INNER JOIN TPRIATV ON (TPRIATV.IDIATV = TPRROPE.IDIATV AND TGFCAB.IDIPROC = TPRIATV.IDIPROC)          WHERE TGFCAB.IDIPROC = ?            AND TGFITE.SEQUENCIA > 0            AND TGFCAB.TIPMOV <> 'F'            AND NOT EXISTS (                  SELECT 1                    FROM TPRAPO APO                    INNER JOIN TPRASP ASP ON (ASP.NUAPO = APO.NUAPO)                    INNER JOIN TPRLSP LSP ON (LSP.CODPRODSP = ASP.CODPRODSP)                   WHERE APO.IDIATV = TPRIATV.IDIATV                     AND LSP.IDEFX = TPRIATV.IDEFX                )          GROUP BY TGFITE.CODPROD, TGFITE.CONTROLE, TGFEST.DTVAL, TPRIATV.IDEFX         UNION ALL         SELECT TGFITE.CODPROD AS CODPRODMP,                TGFITE.CONTROLE AS CONTROLEMP,                SUM(CASE WHEN TPRIATV.IDEFX <> ? THEN TGFITE.QTDNEG ELSE 0 END) AS QTDNEG           FROM TGFITE           INNER JOIN TGFCAB ON (TGFITE.NUNOTA = TGFCAB.NUNOTA)           INNER JOIN (SELECT DISTINCT CODPROD, CONTROLE, DTVAL FROM TGFEST) TGFEST ON (TGFEST.CODPROD = TGFITE.CODPROD AND TGFEST.CONTROLE = TGFITE.CONTROLE)           INNER JOIN TPRROPE ON TGFCAB.NUNOTA = TPRROPE.NUNOTA           INNER JOIN TPRIATV ON (TPRIATV.IDIATV = TPRROPE.IDIATV AND TGFCAB.IDIPROC = TPRIATV.IDIPROC)          WHERE TGFCAB.IDIPROC = ?            AND TGFITE.SEQUENCIA > 0            AND TGFCAB.TIPMOV <> 'F'            AND NOT EXISTS (                  SELECT 1                    FROM TPRAPO APO                    INNER JOIN TPRASP ASP ON (ASP.NUAPO = APO.NUAPO)                    INNER JOIN TPRLSP LSP ON (LSP.CODPRODSP = ASP.CODPRODSP)                   WHERE APO.IDIATV = TPRIATV.IDIATV                     AND LSP.IDEFX = TPRIATV.IDEFX                )          GROUP BY TGFITE.CODPROD, TGFITE.CONTROLE, TGFEST.DTVAL, TPRIATV.IDEFX        ) X        INNER JOIN TGFPRO PRO ON (PRO.CODPROD = X.CODPRODMP)  WHERE X.QTDNEG > 0  GROUP BY X.CODPRODMP, X.CONTROLEMP
+Params:
+  1 = 220
+  2 = 220
+  3 = 15697.0
+  4 = 220
+  5 = 15697.0
+-------------------------------------------------------------------------------------------------------
+##ID_26## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1040
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_27## tempo: 2 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1045
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_28## tempo: 2 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.DbExplorer
+-------------------------------------------------------------------------------------------------------
+##ID_29## tempo: 2 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.DbExplorer
+-------------------------------------------------------------------------------------------------------
+##ID_30## tempo: 13 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT                 IDIPROC,                IDIATV,                TO_CHAR(DHINICIO, 'DD/MM/YYYY') AS DTFAB,                CODPRODPA,                DESCRPROD,                NROLOTE,                QTDPRODUZIR            FROM (                SELECT                     TPRIATV.IDIPROC AS IDIPROC,                    TPRIATV.IDIATV AS IDIATV,                    TPRIATV.DHINICIO AS DHINICIO,                    TPRIPA.CODPRODPA,                    TGFPRO.DESCRPROD,                    TPRIPA.NROLOTE,                    TPRIPA.QTDPRODUZIR                FROM TPRIATV                LEFT JOIN TPRIPA ON TPRIATV.IDIPROC = TPRIPA.IDIPROC                LEFT JOIN TGFPRO ON TPRIPA.CODPRODPA = TGFPRO.CODPROD,                TPRATV R2_Atividade,                TPREFX R0_ElementoFluxo,                TPRIPROC R1_CabecalhoInstanciaProcesso                WHERE R2_Atividade.IDEFX = R0_ElementoFluxo.IDEFX                  AND TPRIATV.IDIPROC = R1_CabecalhoInstanciaProcesso.IDIPROC                  AND TPRIATV.IDEFX = R2_Atividade.IDEFX                  AND R0_ElementoFluxo.TIPO IN (1101, 1109, 1110)                  AND R1_CabecalhoInstanciaProcesso.STATUSPROC NOT IN ('C', 'S', 'AP', 'P', 'P2')                  AND TPRIATV.DHINICIO IS NOT NULL                  AND TPRIATV.DHFINAL IS NULL                  AND NOT EXISTS (                    SELECT 1 FROM TPREIATV EIATV                    WHERE EIATV.IDIATV = TPRIATV.IDIATV                      AND EIATV.TIPO = 'P'                      AND EIATV.DHFINAL IS NULL                  )            )            ORDER BY IDIPROC ASC
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_31## tempo: 2 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT              APO.NUAPO,              APO.IDIATV,              TO_CHAR(APO.DHAPO, 'DD/MM/YYYY HH24:MI') AS DHAPO,              APO.CODUSU,              USU.NOMEUSU,              APO.OBSERVACAO,              F_DESCROPC('TPRAPO','SITUACAO',APO.SITUACAO) DESC_SITUACAO            FROM TPRAPO APO            INNER JOIN TSIUSU USU ON APO.CODUSU = USU.CODUSU            WHERE APO.IDIATV = 19739            ORDER BY APO.NUAPO
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_32## tempo: 2 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1045
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_33## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.DbExplorer
+-------------------------------------------------------------------------------------------------------
+##ID_34## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT              APA.NUAPO,              APA.SEQAPA,              APA.CODPRODPA,              PRO.DESCRPROD,              APA.CONTROLEPA,              APA.QTDAPONTADA,              APA.QTDFAT,              APA.QTDFATSP,              APA.QTDPERDA,              APA.CODMPE,              APA.QTDMPE            FROM TPRAPA APA            INNER JOIN TGFPRO PRO ON APA.CODPRODPA = PRO.CODPROD            WHERE APA.NUAPO = 15197            ORDER BY 1, 2, 3
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_35## tempo: 2 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1045
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_36## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.DbExplorer
+-------------------------------------------------------------------------------------------------------
+##ID_37## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT              AMP.NUAPO,              AMP.SEQAPA,              AMP.SEQMP,              AMP.CODPRODMP,              PRO.DESCRPROD,              AMP.CONTROLEMP,              AMP.QTD,              AMP.CODVOL,              F_DESCROPC('TPRAMP','TIPOUSO',AMP.TIPOUSO) DESC_TIPOUSO            FROM TPRAMP AMP            INNER JOIN TGFPRO PRO ON AMP.CODPRODMP = PRO.CODPROD            WHERE AMP.NUAPO = 15197 AND AMP.SEQAPA = 1            ORDER BY 1, 2, 3
+Params:

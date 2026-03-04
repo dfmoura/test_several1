@@ -1,0 +1,290 @@
+-------------------------------------------------------------------------------------------------------
+##ID_365## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1175
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_366## tempo: 1 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+service-name: ActionButtonsSP.getActions
+uri: /mge/service.sbr
+*/
+SELECT * FROM (SELECT TSIBTA.CODMODULO AS CODMODULO,'$$CLOBFIELD(TSIBTA.CONFIG)$$' AS CONFIG,TSIBTA.CONTROLAACESSO AS CONTROLAACESSO,TSIBTA.DESCRICAO AS DESCRICAO,TSIBTA.IDBTNACAO AS IDBTNACAO,TSIBTA.NOMEINSTANCIA AS NOMEINSTANCIA,TSIBTA.ORDEM AS ORDEM,TSIBTA.RESOURCEID AS RESOURCEID,TSIBTA.TECLAATALHO AS TECLAATALHO,TSIBTA.TIPO AS TIPO FROM TSIBTA /*SQL_92_JOINED_TABLES*/   WHERE ( TSIBTA.NOMEINSTANCIA = ? )  ORDER BY ORDEM) WHERE ROWNUM <= 501
+Params:
+  1 = InstanciaAtividade
+-------------------------------------------------------------------------------------------------------
+##ID_367## tempo: 1 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+service-name: ActionButtonsSP.getActions
+uri: /mge/service.sbr
+*/
+SELECT CONFIG FROM TSIBTA WHERE TSIBTA.IDBTNACAO = ?
+Params:
+  1 = 30
+-------------------------------------------------------------------------------------------------------
+##ID_368## tempo: 1 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+service-name: ActionButtonsSP.getActions
+uri: /mge/service.sbr
+*/
+SELECT CONFIG FROM TSIBTA WHERE TSIBTA.IDBTNACAO = ?
+Params:
+  1 = 299
+-------------------------------------------------------------------------------------------------------
+##ID_369## tempo: 1 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+service-name: ActionButtonsSP.getActions
+uri: /mge/service.sbr
+*/
+SELECT CONFIG FROM TSIBTA WHERE TSIBTA.IDBTNACAO = ?
+Params:
+  1 = 300
+-------------------------------------------------------------------------------------------------------
+##ID_370## tempo: 1 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+service-name: ActionButtonsSP.getActions
+uri: /mge/service.sbr
+*/
+SELECT CONFIG FROM TSIBTA WHERE TSIBTA.IDBTNACAO = ?
+Params:
+  1 = 301
+-------------------------------------------------------------------------------------------------------
+##ID_371## tempo: 1 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+service-name: ActionButtonsSP.getActions
+uri: /mge/service.sbr
+*/
+SELECT CONFIG FROM TSIBTA WHERE TSIBTA.IDBTNACAO = ?
+Params:
+  1 = 302
+-------------------------------------------------------------------------------------------------------
+##ID_372## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1183
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_373## tempo: 1 (ms)
+/* Runtime-info
+Application: CadastroTelasAdicionais
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/CadastroTelasAdicionais.xhtml5
+ResourceID: br.com.sankhya.core.cfg.DicionarioDados
+service-name: SystemUtilsSP.getConf
+uri: /mge/service.sbr
+*/
+SELECT TSICFG.CHAVE AS CHAVE,TSICFG.CHAVEPAI AS CHAVEPAI,TSICFG.CODUSU AS CODUSU,'$$CLOBFIELD(TSICFG.CONFIG)$$' AS CONFIG,TSICFG.TIPO AS TIPO FROM TSICFG /*SQL_92_JOINED_TABLES*/  WHERE (TSICFG.CHAVE = ? AND TSICFG.TIPO = ? AND TSICFG.CODUSU = ?)
+Params:
+  1 = br.com.sankhya.core.cfg.DicionarioDados_DataGridCharts
+  2 = T
+  3 = 0
+-------------------------------------------------------------------------------------------------------
+##ID_374## tempo: 1 (ms)
+/* Runtime-info
+Application: CadastroTelasAdicionais
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/CadastroTelasAdicionais.xhtml5
+ResourceID: br.com.sankhya.core.cfg.DicionarioDados
+service-name: SystemUtilsSP.getConf
+uri: /mge/service.sbr
+*/
+SELECT TSICFG.CHAVE AS CHAVE,TSICFG.CHAVEPAI AS CHAVEPAI,TSICFG.CODUSU AS CODUSU,'$$CLOBFIELD(TSICFG.CONFIG)$$' AS CONFIG,TSICFG.TIPO AS TIPO FROM TSICFG /*SQL_92_JOINED_TABLES*/  WHERE (TSICFG.CHAVE = ? AND TSICFG.TIPO = ? AND TSICFG.CODUSU = ?)
+Params:
+  1 = br.com.sankhya.core.cfg.DicionarioDados_DataGridCharts
+  2 = T
+  3 = 0
+-------------------------------------------------------------------------------------------------------
+##ID_375## tempo: 2 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1183
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_376## tempo: 1 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+service-name: ActionButtonsSP.executeJava
+uri: /mge/service.sbr
+*/
+SELECT TSIBTA.CODMODULO AS CODMODULO,'$$CLOBFIELD(TSIBTA.CONFIG)$$' AS CONFIG,TSIBTA.CONTROLAACESSO AS CONTROLAACESSO,TSIBTA.DESCRICAO AS DESCRICAO,TSIBTA.IDBTNACAO AS IDBTNACAO,TSIBTA.NOMEINSTANCIA AS NOMEINSTANCIA,TSIBTA.ORDEM AS ORDEM,TSIBTA.RESOURCEID AS RESOURCEID,TSIBTA.TECLAATALHO AS TECLAATALHO,TSIBTA.TIPO AS TIPO FROM TSIBTA /*SQL_92_JOINED_TABLES*/  WHERE (TSIBTA.IDBTNACAO = ?)
+Params:
+  1 = 302
+-------------------------------------------------------------------------------------------------------
+##ID_377## tempo: 2 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+service-name: ActionButtonsSP.executeJava
+uri: /mge/service.sbr
+*/
+SELECT CONFIG FROM TSIBTA WHERE TSIBTA.IDBTNACAO = ?
+Params:
+  1 = 302
+-------------------------------------------------------------------------------------------------------
+##ID_378## tempo: 2 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1183
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_379## tempo: 1 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+actionID: 302
+class: 69@br.com.triggerint.modulos.snk.acoes.CriarApontamentoBTFromParam
+descr: Criar Apontamento Teste
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT TPRIATV.AD_QUALIDADE AS AD_QUALIDADE,TPRIATV.AD_REABERTA AS AD_REABERTA,TPRIATV.CODEXEC AS CODEXEC,TPRIATV.CODMTP AS CODMTP,TPRIATV.CODPARCTERC AS CODPARCTERC,TPRIATV.CODULTEXEC AS CODULTEXEC,TPRIATV.CODUSU AS CODUSU,TPRIATV.CODUSUFIN AS CODUSUFIN,TPRIATV.CODWCP AS CODWCP,TPRIATV.DHACEITE AS DHACEITE,TPRIATV.DHFINAL AS DHFINAL,TPRIATV.DHFINPREV AS DHFINPREV,TPRIATV.DHINCLUSAO AS DHINCLUSAO,TPRIATV.DHINICIO AS DHINICIO,TPRIATV.DHINIPREV AS DHINIPREV,TPRIATV.IDEFX AS IDEFX,TPRIATV.IDEXECWFLOW AS IDEXECWFLOW,TPRIATV.IDIATV AS IDIATV,TPRIATV.IDIPROC AS IDIPROC,TPRIATV.TEMPOGASTOMIN AS TEMPOGASTOMIN FROM TPRIATV /*SQL_92_JOINED_TABLES*/  WHERE (TPRIATV.IDIATV = ?)
+Params:
+  1 = 19739
+-------------------------------------------------------------------------------------------------------
+##ID_380## tempo: 1 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+actionID: 302
+class: 69@br.com.triggerint.modulos.snk.acoes.CriarApontamentoBTFromParam
+descr: Criar Apontamento Teste
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT COUNT(IDEIATV) FROM TPREIATV WHERE IDIATV = 19739 AND TIPO in ('P', 'T', 'S') AND DHFINAL IS NULL
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_381## tempo: 1 (ms)
+/* Runtime-info
+Application: OperacaoProducao
+Referer: https://satis2.nuvemdatacom.com.br:8110/mgeprod/OperacaoProducao.xhtml5
+ResourceID: br.com.sankhya.producao.cad.OperacaoProducao
+actionID: 302
+class: 69@br.com.triggerint.modulos.snk.acoes.CriarApontamentoBTFromParam
+descr: Criar Apontamento Teste
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT IDCCQ FROM TPRATV WHERE IDEFX = 220
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_382## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1175
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_383## tempo: 1 (ms)
+/* Runtime-info
+Application: workspace
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/system.jsp
+service-name: SystemUtilsSP.getBDRegistroStatus
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.core.cfg.AdministracaoServidor
+-------------------------------------------------------------------------------------------------------
+##ID_384## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-1175
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_385## tempo: 1 (ms)
+/* Runtime-info
+Application: workspace
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/system.jsp
+service-name: SystemUtilsSP.getBDRegistroStatus
+uri: /mge/service.sbr
+*/
+SELECT SYS_CONTEXT('USERENV','CURRENT_SCHEMA') FROM DUAL
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_386## tempo: 1 (ms)
+/* Runtime-info
+Application: workspace
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/system.jsp
+service-name: SystemUtilsSP.getBDRegistroStatus
+uri: /mge/service.sbr
+*/
+SELECT * FROM TSIPAR WHERE CHAVE = ? AND CODUSU = ?
+Params:
+  1 = tSEBRA97#P@
+  2 = 0
+-------------------------------------------------------------------------------------------------------
+##ID_387## tempo: 1 (ms)
+/* Runtime-info
+Application: workspace
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/system.jsp
+service-name: SystemUtilsSP.getBDRegistroStatus
+uri: /mge/service.sbr
+*/
+SELECT SYS_CONTEXT('USERENV','CURRENT_SCHEMA') FROM DUAL
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_388## tempo: 1 (ms)
+/* Runtime-info
+Application: workspace
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/system.jsp
+service-name: SystemUtilsSP.getBDRegistroStatus
+uri: /mge/service.sbr
+*/
+SELECT * FROM TSIPAR WHERE CHAVE = ? AND CODUSU = ?
+Params:
+  1 = tSEBRA97#P@
+  2 = 0

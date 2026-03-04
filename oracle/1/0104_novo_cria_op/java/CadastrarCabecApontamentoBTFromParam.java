@@ -98,8 +98,9 @@ public class CadastrarCabecApontamentoBTFromParam implements AcaoRotinaJava {
                 return;
             }
 
-            // 2) Obter IDIATV atual do processo (máximo IDIATV para o IDIPROC)
-            BigDecimal idiatv = obterIdiatvAtual(contexto, idiproc);
+            // 2) Obter IDIATV: primeiro do parâmetro IDIATV (exigido pela regra personalizada CORE_E01128),
+            //    depois do processo (MAX(IDIATV) para o IDIPROC).
+            BigDecimal idiatv = obterIdiatvDoParamOuProcesso(contexto, idiproc);
             if (idiatv == null) {
                 return;
             }
@@ -118,7 +119,7 @@ public class CadastrarCabecApontamentoBTFromParam implements AcaoRotinaJava {
             int itensCriados = inserirItensPA(contexto, idiproc, nuapo);
 
             // 6) Inserir materiais em TPRAMP, seguindo o padrão observado nos logs
-            int mpsCriadas = inserirMateriaisMP(contexto, idiproc, nuapo);
+            int mpsCriadas = inserirMateriaisMP(contexto, idiproc, idiatv, nuapo);
 
             StringBuilder msg = new StringBuilder();
             msg.append("Apontamento criado com sucesso!\n\n");
@@ -193,10 +194,21 @@ public class CadastrarCabecApontamentoBTFromParam implements AcaoRotinaJava {
     }
 
     /**
-     * Obter IDIATV atual com base no IDIPROC:
-     * SELECT MAX(IDIATV) IDIATV FROM TPRIATV WHERE IDIPROC = ?
+     * Obtém IDIATV: primeiro do parâmetro IDIATV (para satisfazer a regra personalizada CORE_E01128
+     * que exige "Parâmetro IDIATV é obrigatório para criar o apontamento"); se não informado,
+     * obtém do processo: SELECT MAX(IDIATV) FROM TPRIATV WHERE IDIPROC = ?
+     * Recomenda-se que o frontend (JX.acionarBotao) envie IDIATV junto com IDIPROC quando disponível.
      */
-    private BigDecimal obterIdiatvAtual(ContextoAcao contexto, BigDecimal idiproc) throws Exception {
+    private BigDecimal obterIdiatvDoParamOuProcesso(ContextoAcao contexto, BigDecimal idiproc) throws Exception {
+        Object paramIdiatv = contexto.getParam("IDIATV");
+        if (paramIdiatv != null) {
+            BigDecimal idiatv = toBigDecimal(paramIdiatv);
+            if (idiatv != null && idiatv.compareTo(BigDecimal.ZERO) > 0) {
+                System.out.println("CadastrarCabecApontamentoBTFromParam - Parâmetro IDIATV recebido: " + idiatv);
+                return idiatv;
+            }
+        }
+
         QueryExecutor query = contexto.getQuery();
         query.setParam("IDIPROC", idiproc);
         query.nativeSelect("SELECT NVL(MAX(IDIATV), 0) AS IDIATV FROM TPRIATV WHERE IDIPROC = {IDIPROC}");
@@ -208,11 +220,28 @@ public class CadastrarCabecApontamentoBTFromParam implements AcaoRotinaJava {
         query.close();
 
         if (idiatv == null || BigDecimal.ZERO.compareTo(idiatv) == 0) {
-            contexto.mostraErro("Nenhuma atividade (IDIATV) encontrada para o processo IDIPROC: " + idiproc);
+            contexto.mostraErro("Nenhuma atividade (IDIATV) encontrada para o processo IDIPROC: " + idiproc
+                    + ". Envie o parâmetro IDIATV na chamada do botão (ex.: JX.acionarBotao({ IDIPROC: x, IDIATV: y })) para satisfazer a regra personalizada.");
             return null;
         }
 
         return idiatv;
+    }
+
+    private static BigDecimal toBigDecimal(Object value) {
+        if (value == null) return null;
+        if (value instanceof BigDecimal) return (BigDecimal) value;
+        if (value instanceof Number) return BigDecimal.valueOf(((Number) value).doubleValue());
+        if (value instanceof String) {
+            String s = ((String) value).trim();
+            if (s.isEmpty()) return null;
+            try {
+                return new BigDecimal(s);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     /**
@@ -361,66 +390,187 @@ public class CadastrarCabecApontamentoBTFromParam implements AcaoRotinaJava {
     }
 
     /**
-     * Insere registros de matéria-prima em TPRAMP para o NUAPO recém-criado,
-     * seguindo o padrão observado nos logs de criarApontamento:
+     * Insere registros de matéria-prima em TPRAMP para o NUAPO recém-criado.
      *
-     * - CODLOCALBAIXA = 101 (conforme params dos INSERTs em TPRAMP)
-     * - CODMPE = NULL
-     * - CODPRODMP, CONTROLEMP, QTD, CODVOL vêm de uma query de apoio de MP
-     * - QTDMPE = NULL
-     * - QTDPERDA = 0
-     * - SEQAPA = 1 (primeiro apontamento de PA gerado nesta rotina)
-     * - SEQMP incremental por NUAPO (MAX(SEQMP)+1)
-     * - TIPOUSO = 'C'
-     * - VINCULOSERIEPA = 'N'
+     * A lógica foi reescrita para espelhar de forma mais fiel o comportamento
+     * observado nos logs do serviço nativo OperacaoProducaoSP.criarApontamento,
+     * utilizando a lista de materiais TPRLMP amarrada ao processo (IDPROC/IDEFX)
+     * e ao produto acabado (CODPRODPA/CONTROLEPA) efetivamente apontado em TPRAPA.
+     *
+     * Para cada item de PA já criado em TPRAPA para o NUAPO:
+     *  - obtém a QTDAPONTADA e o SEQAPA;
+     *  - calcula as MPs pela query baseada em TPRLMP (QTDMISTURA * QTDAPONTADA para TIPOQTD = 'V');
+     *  - insere em TPRAMP com SEQMP incremental por NUAPO.
      */
-    private int inserirMateriaisMP(ContextoAcao contexto, BigDecimal idiproc, BigDecimal nuapo) throws Exception {
+    private int inserirMateriaisMP(ContextoAcao contexto, BigDecimal idiproc, BigDecimal idiatv, BigDecimal nuapo) throws Exception {
         int mpsCriadas = 0;
 
-        // Considera o SEQAPA gerado como 1 para o primeiro apontamento criado pela rotina.
-        // Caso existam outros SEQAPA para o mesmo NUAPO, eles serão respeitados pela consulta de base.
-        BigDecimal seqapa = BigDecimal.ONE;
+        if (idiproc == null || nuapo == null) {
+            return 0;
+        }
 
-        // Obter SEQMP base existente para o NUAPO (pode já existir MP de outros apontamentos)
+        // IDPROC (processo modelado) e IDEFX (elemento de fluxo) são usados
+        // pela mesma query que o serviço nativo utiliza para montar as MPs.
+        BigDecimal idproc = obterIdprocPorIdiproc(contexto, idiproc);
+        BigDecimal idefx = obterIdefxPorIdiatv(contexto, idiatv);
+
+        if (idproc == null) {
+            return 0;
+        }
+        if (idefx == null) {
+            idefx = BigDecimal.ZERO;
+        }
+
+        // SEQMP base já existente para o NUAPO (caso haja MPs prévias).
         BigDecimal seqmpAtual = obterSeqmpBase(contexto, nuapo);
 
-        // Query de apoio para materiais, baseada nos trechos do log que somam QTD por CODPROD/CONTROLE:
-        // Estrutura simplificada que agrega MP por IDIPROC (ajuste pode ser necessário conforme regras).
-        QueryExecutor query = contexto.getQuery();
-        query.setParam("IDIPROC", idiproc);
+        // Percorre os itens de PA já gravados em TPRAPA para este NUAPO.
+        QueryExecutor queryApa = contexto.getQuery();
+        queryApa.setParam("NUAPO", nuapo);
+        queryApa.nativeSelect(
+                "SELECT CODPRODPA, CONTROLEPA, QTDAPONTADA, SEQAPA " +
+                        "  FROM TPRAPA " +
+                        " WHERE NUAPO = {NUAPO}"
+        );
 
-        String sqlMp =
-                "SELECT TGFITE.CODPROD AS CODPRODMP, " +
-                        "       TGFITE.CONTROLE AS CONTROLEMP, " +
-                        "       SUM(TGFITE.QTDNEG) AS QTD, " +
-                        "       COALESCE(MAX(TGFPRO.CODVOL), 'UN') AS CODVOL " +
-                        "  FROM TGFITE " +
-                        "  INNER JOIN TGFCAB ON (TGFITE.NUNOTA = TGFCAB.NUNOTA) " +
-                        "  INNER JOIN TGFPRO ON (TGFPRO.CODPROD = TGFITE.CODPROD) " +
-                        " WHERE TGFCAB.IDIPROC = {IDIPROC} " +
-                        "   AND TGFITE.SEQUENCIA > 0 " +
-                        "   AND TGFCAB.TIPMOV <> 'F' " +
-                        " GROUP BY TGFITE.CODPROD, TGFITE.CONTROLE";
+        while (queryApa.next()) {
+            BigDecimal codProdPa = queryApa.getBigDecimal("CODPRODPA");
+            String controlePa = queryApa.getString("CONTROLEPA");
+            BigDecimal qtdApontada = queryApa.getBigDecimal("QTDAPONTADA");
+            BigDecimal seqapa = queryApa.getBigDecimal("SEQAPA");
 
-        query.nativeSelect(sqlMp);
-
-        while (query.next()) {
-            BigDecimal codProdMp = query.getBigDecimal("CODPRODMP");
-            String controleMp = query.getString("CONTROLEMP");
-            BigDecimal qtd = query.getBigDecimal("QTD");
-            String codVol = query.getString("CODVOL");
-
-            if (codProdMp == null || qtd == null || qtd.compareTo(BigDecimal.ZERO) == 0) {
+            if (codProdPa == null || qtdApontada == null || seqapa == null) {
                 continue;
             }
 
-            seqmpAtual = seqmpAtual.add(BigDecimal.ONE);
-            inserirItemMP(contexto, nuapo, seqapa, seqmpAtual, codProdMp, controleMp, qtd, codVol);
-            mpsCriadas++;
+            String controlePaParam = (controlePa == null || controlePa.trim().isEmpty()) ? " " : controlePa.trim();
+            String tipoMaterial = "T"; // mesmo parâmetro usado no log: considera MPs normais
+
+            QueryExecutor queryMp = contexto.getQuery();
+            queryMp.setParam("CONTROLEPA", controlePaParam);
+            queryMp.setParam("QTDAPONTADA", qtdApontada);
+            queryMp.setParam("IDPROC", idproc);
+            queryMp.setParam("IDEFX", idefx);
+            queryMp.setParam("TIPOMAT", tipoMaterial);
+            queryMp.setParam("CODPRODPA", codProdPa);
+            queryMp.setParam("CONTROLEPA2", controlePaParam);
+            queryMp.setParam("CONTROLEPA3", controlePaParam);
+
+            String sqlMpLmp =
+                    "SELECT X.CODPRODMP, " +
+                            "       X.CONTROLEMP, " +
+                            "       SUM(X.QTDMISTURA) AS QTDMISTURA, " +
+                            "       X.CODVOL, " +
+                            "       X.CODLOCALORIG, " +
+                            "       X.TIPOUSOMP, " +
+                            "       X.FIXAQTDAPO, " +
+                            "       X.TIPOQTD, " +
+                            "       X.VINCULOSERIEPA " +
+                            "  FROM ( " +
+                            "        SELECT LMP.CODPRODMP, " +
+                            "               (CASE " +
+                            "                   WHEN LMP.TIPOCONTROLEMP = 'L' THEN LMP.CONTROLEMP " +
+                            "                   WHEN LMP.TIPOCONTROLEMP = 'H' THEN {CONTROLEPA} " +
+                            "                   ELSE ' ' " +
+                            "               END) AS CONTROLEMP, " +
+                            "               (CASE WHEN LMP.TIPOQTD = 'V' THEN LMP.QTDMISTURA * {QTDAPONTADA} ELSE LMP.QTDMISTURA END) AS QTDMISTURA, " +
+                            "               LMP.PROPMPFIXA, " +
+                            "               NVL(LMP.CODVOL, PRO.CODVOL) AS CODVOL, " +
+                            "               LMP.CODLOCALORIG, " +
+                            "               LMP.TIPOUSOMP, " +
+                            "               LMP.FIXAQTDAPO, " +
+                            "               LMP.TIPOQTD, " +
+                            "               NVL(LMP.VINCULOSERIEPA, 'N') AS VINCULOSERIEPA " +
+                            "          FROM TPRLMP LMP " +
+                            "          INNER JOIN TPREFX EFX ON (EFX.IDEFX = LMP.IDEFX) " +
+                            "          INNER JOIN TPRATV ATV ON (ATV.IDEFX = LMP.IDEFX) " +
+                            "          INNER JOIN TGFPRO PRO ON (PRO.CODPROD = LMP.CODPRODMP) " +
+                            "         WHERE EFX.IDPROC = {IDPROC} " +
+                            "           AND (({IDEFX} = 0 AND ATV.LISTAMPPADRAO = 'S') OR ({IDEFX} > 0 AND ATV.IDEFX = {IDEFX})) " +
+                            "           AND ({TIPOMAT} = 'T' OR LMP.GERAREQUISICAO = {TIPOMAT}) " +
+                            "           AND LMP.CODPRODPA = {CODPRODPA} " +
+                            "           AND LMP.TIPOUSOMP IN ('N') " +
+                            "           AND ( " +
+                            "                 (NVL(LMP.CONTROLEPA, ' ') <> ' ' AND NVL(LMP.CONTROLEPA, ' ') = {CONTROLEPA2}) " +
+                            "                 OR (NVL(LMP.CONTROLEPA, ' ') = ' ' AND NOT EXISTS ( " +
+                            "                        SELECT 1 " +
+                            "                          FROM TPRLMP LMP2 " +
+                            "                         WHERE LMP2.IDEFX = LMP.IDEFX " +
+                            "                           AND LMP2.CODPRODPA = LMP.CODPRODPA " +
+                            "                           AND NVL(LMP2.CONTROLEPA, ' ') = {CONTROLEPA3} " +
+                            "                           AND LMP2.CODPRODMP = LMP.CODPRODMP " +
+                            "                           AND LMP2.CONTROLEMP = LMP.CONTROLEMP " +
+                            "                           AND LMP2.SEQMP <> LMP.SEQMP " +
+                            "                     ) " +
+                            "                 ) " +
+                            "             ) " +
+                            "        ) X " +
+                            " GROUP BY X.CODPRODMP, X.PROPMPFIXA, X.CONTROLEMP, X.CODVOL, X.CODLOCALORIG, X.TIPOUSOMP, X.FIXAQTDAPO, X.TIPOQTD, X.VINCULOSERIEPA";
+
+            queryMp.nativeSelect(sqlMpLmp);
+
+            while (queryMp.next()) {
+                BigDecimal codProdMp = queryMp.getBigDecimal("CODPRODMP");
+                String controleMp = queryMp.getString("CONTROLEMP");
+                BigDecimal qtd = queryMp.getBigDecimal("QTDMISTURA");
+                String codVol = queryMp.getString("CODVOL");
+
+                if (codProdMp == null || qtd == null || qtd.compareTo(BigDecimal.ZERO) == 0) {
+                    continue;
+                }
+
+                seqmpAtual = seqmpAtual.add(BigDecimal.ONE);
+                inserirItemMP(contexto, nuapo, seqapa, seqmpAtual, codProdMp, controleMp, qtd, codVol);
+                mpsCriadas++;
+            }
+
+            queryMp.close();
+        }
+
+        queryApa.close();
+        return mpsCriadas;
+    }
+
+    /**
+     * Obtém o IDEFX (elemento de fluxo) associado a um IDIATV.
+     * Usado para espelhar a lógica nativa de montagem de MPs.
+     */
+    private BigDecimal obterIdefxPorIdiatv(ContextoAcao contexto, BigDecimal idiatv) throws Exception {
+        if (idiatv == null) {
+            return null;
+        }
+        QueryExecutor query = contexto.getQuery();
+        query.setParam("IDIATV", idiatv);
+        query.nativeSelect("SELECT IDEFX FROM TPRIATV WHERE IDIATV = {IDIATV}");
+
+        BigDecimal idefx = null;
+        if (query.next()) {
+            idefx = query.getBigDecimal("IDEFX");
         }
 
         query.close();
-        return mpsCriadas;
+        return idefx;
+    }
+
+    /**
+     * Obtém o IDPROC (processo modelado) a partir do IDIPROC (instância do processo).
+     */
+    private BigDecimal obterIdprocPorIdiproc(ContextoAcao contexto, BigDecimal idiproc) throws Exception {
+        if (idiproc == null) {
+            return null;
+        }
+
+        QueryExecutor query = contexto.getQuery();
+        query.setParam("IDIPROC", idiproc);
+        query.nativeSelect("SELECT IDPROC FROM TPRIPROC WHERE IDIPROC = {IDIPROC}");
+
+        BigDecimal idproc = null;
+        if (query.next()) {
+            idproc = query.getBigDecimal("IDPROC");
+        }
+
+        query.close();
+        return idproc;
     }
 
     /**
@@ -461,24 +611,21 @@ public class CadastrarCabecApontamentoBTFromParam implements AcaoRotinaJava {
 
         QueryExecutor query = contexto.getQuery();
         query.setParam("CODLOCALBAIXA", codLocalBaixa);
-        // Algumas regras personalizadas não aceitam CODMPE nulo; usamos 0 como padrão "sem motivo de perda".
-        query.setParam("CODMPE", zero);
         query.setParam("CODPRODMP", codProdMp);
-        query.setParam("CODVOL", codVol);
+        query.setParam("CODVOL", codVol != null ? codVol : "UN");
         query.setParam("CONTROLEMP", controleMp);
         query.setParam("NUAPO", nuapo);
         query.setParam("QTD", qtd);
-        // Algumas regras personalizadas não aceitam QTDMPE nulo; usamos 0 como padrão.
-        query.setParam("QTDMPE", zero);
         query.setParam("QTDPERDA", zero);
         query.setParam("SEQAPA", seqapa);
         query.setParam("SEQMP", seqmp);
         query.setParam("TIPOUSO", "C");
         query.setParam("VINCULOSERIEPA", "N");
 
+        // Conforme logs (OperacaoProducaoSP.criarApontamento): CODMPE e QTDMPE = NULL em TPRAMP
         query.update(
                 "INSERT INTO TPRAMP (CODLOCALBAIXA, CODMPE, CODPRODMP, CODVOL, CONTROLEMP, NUAPO, QTD, QTDMPE, QTDPERDA, SEQAPA, SEQMP, TIPOUSO, VINCULOSERIEPA) " +
-                        "VALUES ({CODLOCALBAIXA}, {CODMPE}, {CODPRODMP}, {CODVOL}, {CONTROLEMP}, {NUAPO}, {QTD}, {QTDMPE}, {QTDPERDA}, {SEQAPA}, {SEQMP}, {TIPOUSO}, {VINCULOSERIEPA})"
+                        "VALUES ({CODLOCALBAIXA}, NULL, {CODPRODMP}, {CODVOL}, {CONTROLEMP}, {NUAPO}, {QTD}, NULL, {QTDPERDA}, {SEQAPA}, {SEQMP}, {TIPOUSO}, {VINCULOSERIEPA})"
         );
         query.close();
     }

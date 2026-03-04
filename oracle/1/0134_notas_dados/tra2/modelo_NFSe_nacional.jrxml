@@ -1,0 +1,1934 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="modelo_NFSe_nacional_corrigido" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="br.com.sankhya.datasource.xml.query" value="SELECT NFSE.XMLNFSE, NVL(EMP.AD_LOGONFSE, &apos;logo.png&apos;) AS AD_LOGONFSE FROM TGFNFSE NFSE, TSIEMP EMP, TGFCAB CAB WHERE NFSE.NUNOTA = CAB.NUNOTA AND CAB.CODEMP = EMP.CODEMP AND NFSE.NUNOTA = $P{NUNOTA}"/>
+	<property name="br.com.sankhya.datasource.xml.date.pattern" value="yyyy-MM-dd"/>
+	<property name="br.com.sankhya.datasource.xml.number.pattern" value="#,##0.00"/>
+	<property name="ireport.zoom" value="1.9487171000000125"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="816"/>
+	<property name="ireport.definition"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="br.com.sankhya.jasperfuncs.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<import value="com.sankhya.util.*"/>
+	<parameter name="NUNOTA" class="java.math.BigDecimal" isForPrompting="false"/>
+	<parameter name="ARQUIVO_LOGO" class="java.lang.String"/>
+	<parameter name="JDBC_CONNECTION" class="java.sql.Connection" isForPrompting="false">
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PDIR_MODELO" class="java.lang.String"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\users\\diogo\\Downloads\\"]]></defaultValueExpression>
+	</parameter>
+	<queryString language="xPath">
+		<![CDATA[/NFSe/infNFSe]]>
+	</queryString>
+	<field name="IdNFSe" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/@Id]]></fieldDescription>
+	</field>
+	<field name="LocalEmissao" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/xLocEmi]]></fieldDescription>
+	</field>
+	<field name="field" class="java.lang.String"/>
+	<field name="LocalPrestacao" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/xLocPrestacao]]></fieldDescription>
+	</field>
+	<field name="NumeroNfse" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/nNFSe]]></fieldDescription>
+	</field>
+	<field name="CodigoLocalIncidencia" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/cLocIncid]]></fieldDescription>
+	</field>
+	<field name="NomeLocalIncidencia" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/xLocIncid]]></fieldDescription>
+	</field>
+	<field name="TributacaoNacional" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/xTribNac]]></fieldDescription>
+	</field>
+	<field name="VersaoAplic" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/verAplic]]></fieldDescription>
+	</field>
+	<field name="CodigoAmbienteGer" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/ambGer]]></fieldDescription>
+	</field>
+	<field name="TipoEmissao" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/tpEmis]]></fieldDescription>
+	</field>
+	<field name="ProcessoEmissao" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/procEmi]]></fieldDescription>
+	</field>
+	<field name="CodigoStatus" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/cStat]]></fieldDescription>
+	</field>
+	<field name="DataProcessamento" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/dhProc]]></fieldDescription>
+	</field>
+	<field name="NumeroDFSe" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/nDFSe]]></fieldDescription>
+	</field>
+	<field name="InscMunicipalEmitente" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/IM]]></fieldDescription>
+	</field>
+	<field name="CNPJ" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/CNPJ]]></fieldDescription>
+	</field>
+	<field name="Nome" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/xNome]]></fieldDescription>
+	</field>
+	<field name="Logradouro" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/enderNac/xLgr]]></fieldDescription>
+	</field>
+	<field name="Numero" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/enderNac/nro]]></fieldDescription>
+	</field>
+	<field name="Bairro" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/enderNac/xBairro]]></fieldDescription>
+	</field>
+	<field name="CodigoMunicipio" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/enderNac/cMun]]></fieldDescription>
+	</field>
+	<field name="UF" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/enderNac/UF]]></fieldDescription>
+	</field>
+	<field name="CEP" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/enderNac/CEP]]></fieldDescription>
+	</field>
+	<field name="Telefone" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/fone]]></fieldDescription>
+	</field>
+	<field name="Email" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/emit/email]]></fieldDescription>
+	</field>
+	<field name="ValorTotalRetido" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/valores/vTotalRet]]></fieldDescription>
+	</field>
+	<field name="ValorLiquido" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/valores/vLiq]]></fieldDescription>
+	</field>
+	<field name="CalculoBM" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/valores/vCalcBM]]></fieldDescription>
+	</field>
+	<field name="BCISSQN" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/valores/vBC]]></fieldDescription>
+	</field>
+	<field name="AliquotaAplicada" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/valores/pAliqAplic]]></fieldDescription>
+	</field>
+	<field name="ValorISSQN" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/valores/vISSQN]]></fieldDescription>
+	</field>
+	<field name="TipoAmbiente" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/tpAmb]]></fieldDescription>
+	</field>
+	<field name="DataEmissao" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/dhEmi]]></fieldDescription>
+	</field>
+	<field name="VersaoAplicacapDPS" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/verAplic]]></fieldDescription>
+	</field>
+	<field name="Serie" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/serie]]></fieldDescription>
+	</field>
+	<field name="NumeroDPS" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/nDPS]]></fieldDescription>
+	</field>
+	<field name="DataCompetencia" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/dCompet]]></fieldDescription>
+	</field>
+	<field name="TipoEmit" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/tpEmit]]></fieldDescription>
+	</field>
+	<field name="CodigoLocalEmissao" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/cLocEmi]]></fieldDescription>
+	</field>
+	<field name="CNPJPrestador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/prest/CNPJ]]></fieldDescription>
+	</field>
+	<field name="TelefonePrestador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/prest/fone]]></fieldDescription>
+	</field>
+	<field name="SimplesNacional" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/prest/regTrib/opSimpNac]]></fieldDescription>
+	</field>
+	<field name="regApTribSN" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/prest/regTrib/regApTribSN]]></fieldDescription>
+	</field>
+	<field name="RegimeEspecialTributacao" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/prest/regTrib/regEspTrib]]></fieldDescription>
+	</field>
+	<field name="InscMunicipalTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/IM]]></fieldDescription>
+	</field>
+	<field name="EmailTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/email]]></fieldDescription>
+	</field>
+	<field name="CNPJTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/CNPJ]]></fieldDescription>
+	</field>
+	<field name="CPFTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/CPF]]></fieldDescription>
+	</field>
+	<field name="NomeTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/xNome]]></fieldDescription>
+	</field>
+	<field name="TelefoneTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/fone]]></fieldDescription>
+	</field>
+	<field name="LogradouroTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/end/xLgr]]></fieldDescription>
+	</field>
+	<field name="NumeroEnderecoTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/end/nro]]></fieldDescription>
+	</field>
+	<field name="BairroTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/end/xBairro]]></fieldDescription>
+	</field>
+	<field name="CodigoMunicipioTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/end/endNac/cMun]]></fieldDescription>
+	</field>
+	<field name="CEPTomador" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/toma/end/endNac/CEP]]></fieldDescription>
+	</field>
+	<field name="InfComplementares" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/serv/infoCompl/xInfComp]]></fieldDescription>
+	</field>
+	<field name="CodigoLocalPrestacaoServico" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/serv/locPrest/cLocPrestacao]]></fieldDescription>
+	</field>
+	<field name="PaisPrestacaoServico" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/serv/locPrest/cPaisPrestacao]]></fieldDescription>
+	</field>
+	<field name="PaisResultadoPrestacaoServico" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/serv/locPrest/cPaisConsum]]></fieldDescription>
+	</field>
+	<field name="CodigoTributacaoNacionalServico" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/serv/cServ/cTribNac]]></fieldDescription>
+	</field>
+	<field name="CodigoTributacaoMunicipalServico" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/serv/cServ/cTribMun]]></fieldDescription>
+	</field>
+	<field name="DescricaoServico" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/serv/cServ/xDescServ]]></fieldDescription>
+	</field>
+	<field name="NBS" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/serv/cServ/cNBS]]></fieldDescription>
+	</field>
+	<field name="ValorServico" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/vServPrest/vServ]]></fieldDescription>
+	</field>
+	<field name="ValorDescontIncondicional" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/vDescCondIncond/vDescIncond]]></fieldDescription>
+	</field>
+	<field name="ValorDescontoCondicional" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/vDescCondIncond/vDescCond]]></fieldDescription>
+	</field>
+	<field name="TotalDedRed" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/vDedRed/vDR]]></fieldDescription>
+	</field>
+	<field name="TribISSQN" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/tribISSQN]]></fieldDescription>
+	</field>
+	<field name="TipoRetencaoISSQN" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/tpRetISSQN]]></fieldDescription>
+	</field>
+	<field name="TipoImunidade" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/tpImunidade]]></fieldDescription>
+	</field>
+	<field name="BeneficioMunicipal" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/nBM]]></fieldDescription>
+	</field>
+	<field name="SuspensaoExigISSQN" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/exigSusp/tpSusp]]></fieldDescription>
+	</field>
+	<field name="NumeroProcSuspensao" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/exigSusp/nProcesso]]></fieldDescription>
+	</field>
+	<field name="RetIRRF" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/vRetIRRF]]></fieldDescription>
+	</field>
+	<field name="RetCP" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/vRetCP]]></fieldDescription>
+	</field>
+	<field name="RetCSLL" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/vRetCSLL]]></fieldDescription>
+	</field>
+	<field name="ValorPis" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/piscofins/vPis]]></fieldDescription>
+	</field>
+	<field name="ValorCofins" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/piscofins/vCofins]]></fieldDescription>
+	</field>
+	<field name="RetPisCofins" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/piscofins/tpRetPisCofins]]></fieldDescription>
+	</field>
+	<field name="TotalTributoSN" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/totTrib/pTotTribSN]]></fieldDescription>
+	</field>
+	<field name="ValorTotalTribFederal" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/totTrib/vTotTribFed]]></fieldDescription>
+	</field>
+	<field name="ValorTotalTribEstadual" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/totTrib/vTotTribEst]]></fieldDescription>
+	</field>
+	<field name="ValorTotalTribMunicipal" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/totTrib/vTotTribMun]]></fieldDescription>
+	</field>
+	<field name="PorcentagemTribFederal" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/totTrib/pTotTrib/pTotTribFed]]></fieldDescription>
+	</field>
+	<field name="PorcentagemTribEstadual" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/totTrib/pTotTrib/pTotTribEst]]></fieldDescription>
+	</field>
+	<field name="PorcentagemTribMunicipal" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/valores/trib/totTrib/pTotTrib/pTotTribMun]]></fieldDescription>
+	</field>
+	<field name="ChaveNFSeSubs" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/infNFSe/DPS/infDPS/subst/chSubstda]]></fieldDescription>
+	</field>
+	<field name="VersaoNFSe" class="java.lang.String">
+		<fieldDescription><![CDATA[/NFSe/@versao]]></fieldDescription>
+	</field>
+	<field name="AD_LOGONFSE" class="java.lang.String"/>
+	<background>
+		<band height="800" splitType="Stretch">
+			<staticText>
+				<reportElement x="1" y="0" width="551" height="600" forecolor="#DDDDDD">
+					<printWhenExpression><![CDATA[Funcoes.pdes(
+                        $P{JDBC_CONNECTION},
+                        "NUNOTA ",
+                        "TGFCAN CAN ",
+                        "CAN.NUNOTA =" + $P{NUNOTA}) != ""]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font fontName="Times New Roman" size="50" pdfFontName="Times-Roman"/>
+				</textElement>
+				<text><![CDATA[CANCELADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="0" width="551" height="600" forecolor="#DDDDDD">
+					<printWhenExpression><![CDATA[Funcoes.pdes(
+                            $P{JDBC_CONNECTION},
+                            "NUNOTASUB ",
+                            "TGFCAB CAB ",
+                            "CAB.NUNOTA =" + $P{NUNOTA}) != ""]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font fontName="Times New Roman" size="50" pdfFontName="Times-Roman"/>
+				</textElement>
+				<text><![CDATA[SUBSTITUÍDA]]></text>
+			</staticText>
+		</band>
+	</background>
+	<title>
+		<band height="50" splitType="Stretch">
+			<image scaleImage="RealSize" vAlign="Middle" onErrorType="Blank">
+				<reportElement stretchType="RelativeToBandHeight" isPrintRepeatedValues="false" x="2" y="0" width="122" height="49"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "logonfsenacional.jpg"]]></imageExpression>
+			</image>
+			<image scaleImage="RealSize" vAlign="Middle">
+				<reportElement stretchType="RelativeToBandHeight" isPrintRepeatedValues="false" x="431" y="0" width="122" height="49"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} +
+Funcoes.pdes(
+                        $P{JDBC_CONNECTION},
+                        "NVL(EMP.AD_LOGONFSE, 'logo.png')",
+                        "TSIEMP EMP, TGFCAB CAB",
+                        "CAB.CODEMP = EMP.CODEMP AND CAB.NUNOTA = " + $P{NUNOTA})]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="179" y="25" width="214" height="19"/>
+				<textElement>
+					<font fontName="Courier New" size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Documento Auxiliar da NFS-e]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="49" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="50"/>
+			</line>
+			<line>
+				<reportElement x="555" y="0" width="1" height="50"/>
+			</line>
+			<elementGroup>
+				<staticText>
+					<reportElement x="241" y="8" width="52" height="20"/>
+					<textElement>
+						<font fontName="Courier New" size="14" isBold="true"/>
+					</textElement>
+					<text><![CDATA[DANFSe v]]></text>
+				</staticText>
+				<textField isBlankWhenNull="true">
+					<reportElement x="294" y="8" width="38" height="20"/>
+					<textElement>
+						<font fontName="Courier New" size="14" isBold="true"/>
+					</textElement>
+					<textFieldExpression class="java.lang.String"><![CDATA[$F{VersaoNFSe}]]></textFieldExpression>
+				</textField>
+			</elementGroup>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="53" splitType="Stretch">
+			<staticText>
+				<reportElement x="1" y="0" width="413" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Chave de Acesso da NFS-e]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="8" width="413" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{IdNFSe}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="16" width="137" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Número da NFS-e]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="24" width="137" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NumeroNfse}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="32" width="137" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Número da DPS]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="40" width="137" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NumeroDPS}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="138" y="16" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Competência da NFS-e]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="138" y="24" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.text.SimpleDateFormat("yyyy-MM-dd").parse($F{DataCompetencia})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="138" y="32" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Série da DPS]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="138" y="40" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{Serie}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="16" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Data e Hora da emissão da NFS-e]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy HH:mm:ss" isBlankWhenNull="true">
+				<reportElement x="276" y="24" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse($F{DataProcessamento})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="32" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Data e Hora da emissão da DPS]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy HH:mm:ss" isBlankWhenNull="true">
+				<reportElement x="276" y="40" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse($F{DataEmissao})]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="51" width="555" height="1"/>
+			</line>
+			<image onErrorType="Blank">
+				<reportElement x="417" y="0" width="49" height="49"/>
+				<imageExpression class="java.lang.String"><![CDATA["http://zxing.org/w/chart?cht=qr&chs=230x230&chld=L&choe=UTF-8&chl="
+                    + java.net.URLEncoder.encode(
+                    "https://www.nfse.gov.br/ConsultaPublica/?tpc=1&chave=" + $F{IdNFSe}.replace("NFS", ""))]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="469" y="8" width="86" height="34" forecolor="#4F4F4F"/>
+				<textElement>
+					<font fontName="Courier New" size="5"/>
+				</textElement>
+				<text><![CDATA[A autenticidade desta NFS-e pode ser verificada pela leitura deste código QR ou pela consulta da chave de acesso no portal nacional da NFS-e]]></text>
+			</staticText>
+			<line>
+				<reportElement x="0" y="0" width="1" height="53"/>
+			</line>
+			<line>
+				<reportElement x="555" y="0" width="1" height="53"/>
+			</line>
+		</band>
+		<band height="69" splitType="Stretch">
+			<staticText>
+				<reportElement x="1" y="0" width="137" height="16"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[EMITENTE DA NFS-e]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="138" y="0" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CNPJ / CPF / NIF]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="138" y="8" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[DanfeUtils.formatCnpj($F{CNPJ})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="0" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Inscrição Municipal]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="8" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{InscMunicipalEmitente}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="414" y="0" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Telefone]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="414" y="8" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[DanfeUtils.formatTelefone($F{Telefone})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="16" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Nome / Nome empresarial]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="24" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{Nome}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="16" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[E-mail]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="24" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{Email}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="32" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Endereço]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="40" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{Logradouro} + " " + $F{Numero} + " - " + $F{Bairro}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="32" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Municipio]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="40" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[Funcoes.pdes(
+					    $P{JDBC_CONNECTION},
+					    "CID.NOMECID || ' - ' || UF.UF",
+					    "TSICID CID INNER JOIN TSIUFS UF ON CID.UF = UF.CODUF",
+					    "CID.CODMUNFIS = " + $F{CodigoMunicipio} +
+					    " AND CID.CODCID = ( " +
+					    "     SELECT MIN(CODCID) " +
+					    "     FROM TSICID " +
+					    "     WHERE CODMUNFIS = " + $F{CodigoMunicipio} +
+					    " )"
+					)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="414" y="32" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CEP]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="414" y="40" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[DanfeUtils.formatCep($F{CEP})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="48" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Simples Nacional na Data de Competência]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="56" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{SimplesNacional}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Não Optante"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="56" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{SimplesNacional}.equals("2")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Optante - Microempreendedor Individual (MEI)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="56" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{SimplesNacional}.equals("3")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Optante - Microempresa ou Empresa de Pequeno Porte (ME/EPP)"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="48" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Regime de Apuração Tributária pelo SN]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="56" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{regApTribSN}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Regime de apuração dos tributos federais e municipal pelo SN"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="56" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{regApTribSN}.equals("2")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Regime de apuração dos tributos federais pelo SN e o ISSQN pela NFS-e conforme respectiva legislação municipal do tributo"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="56" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{regApTribSN}.equals("3")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Regime de apuração dos tributos federais e municipal pela NFS-e conforme respectivas legilações federal e municipal de cada tributo"]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="68" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="69"/>
+			</line>
+			<line>
+				<reportElement x="555" y="0" width="1" height="69"/>
+			</line>
+		</band>
+		<band height="53" splitType="Stretch">
+			<staticText>
+				<reportElement x="1" y="0" width="137" height="16"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOMADOR DO SERVIÇO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="138" y="0" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CNPJ / CPF / NIF]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="138" y="8" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CNPJTomador} == null ? DanfeUtils.formatCnpj($F{CPFTomador}) : DanfeUtils.formatCnpj($F{CNPJTomador})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="0" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Inscricão Municipal]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="8" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{InscMunicipalTomador}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="414" y="0" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Telefone]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="414" y="8" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[DanfeUtils.formatTelefone($F{TelefoneTomador})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="16" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Nome / Nome empresarial]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="24" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NomeTomador}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="16" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[E-mail]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="24" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{EmailTomador}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="32" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Endereço]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="40" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{LogradouroTomador} + " " + $F{NumeroEnderecoTomador} + " - " + $F{BairroTomador}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="32" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Municipio]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="40" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[Funcoes.pdes(
+                        $P{JDBC_CONNECTION},
+                        "CONCAT(CID.NOMECID, CONCAT(' - ', UF.UF))",
+                        "TSICID CID INNER JOIN TSIUFS UF ON CID.UF = UF.CODUF",
+                        "CID.CODMUNFIS =" + $F{CodigoMunicipioTomador})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="414" y="32" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CEP]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="414" y="40" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[DanfeUtils.formatCep($F{CEPTomador})]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="52" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="53"/>
+			</line>
+			<line>
+				<reportElement x="555" y="0" width="1" height="53"/>
+			</line>
+		</band>
+		<band height="58" splitType="Stretch">
+			<staticText>
+				<reportElement x="1" y="0" width="554" height="10"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[SERVIÇO PRESTADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="10" width="137" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Código de Tributação Nacional]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="18" width="137" height="16"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CodigoTributacaoNacionalServico} + " - " +  $F{TributacaoNacional}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="138" y="10" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Código de Tributação Municipal]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="138" y="18" width="138" height="16"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CodigoTributacaoMunicipalServico}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="10" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Local da Prestação]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="18" width="138" height="16"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[Funcoes.pdes(
+                        $P{JDBC_CONNECTION},
+                        "CONCAT(CID.NOMECID, CONCAT(' - ', UF.UF))",
+                        "TSICID CID INNER JOIN TSIUFS UF ON CID.UF = UF.CODUF",
+                        "CID.CODMUNFIS =" + $F{CodigoLocalPrestacaoServico})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="414" y="10" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[País de Prestação]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="414" y="18" width="138" height="16"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PaisPrestacaoServico}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="34" width="554" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Descrição do Serviço]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="1" y="42" width="554" height="15"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DescricaoServico}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="57" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="57"/>
+			</line>
+			<line>
+				<reportElement x="555" y="0" width="1" height="57"/>
+			</line>
+		</band>
+		<band height="50" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="0" y="0" width="556" height="50"/>
+				<textElement>
+					<font fontName="Courier New" size="6"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[Funcoes.pdes(
+    $P{JDBC_CONNECTION},
+    "'Itens                          | Qtde | Vrl. Unit.   | Vlr. Total' "
+    + "|| CHR(10) || "
+    + "LISTAGG("
+    + "RPAD(PRO.DESCRPROD,30) || ' | ' || "
+    + "LPAD(ITE.QTDNEG,4) || ' | ' || "
+    + "LPAD(TO_CHAR(ITE.VLRUNIT,'FM999G999G990D00'),12) || ' | ' || "
+    + "LPAD(TO_CHAR(ITE.VLRTOT,'FM999G999G990D00'),12), "
+    + "CHR(10)) WITHIN GROUP (ORDER BY PRO.DESCRPROD)",
+    "TGFCAB CAB "
+    + "INNER JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA "
+    + "INNER JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD",
+    "ITE.NUNOTA = " + $P{NUNOTA}
+)]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="1" y="49" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="50"/>
+			</line>
+			<line>
+				<reportElement x="555" y="0" width="1" height="50"/>
+			</line>
+		</band>
+		<band height="154" splitType="Stretch">
+			<staticText>
+				<reportElement x="1" y="0" width="554" height="10"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TRIBUTAÇÃO MUNICIPAL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="10" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Tribuação do ISSQN]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="18" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{TribISSQN}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Operação tributável"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="18" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{TribISSQN}.equals("2")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Imunidade"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="18" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{TribISSQN}.equals("3")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Exportação de serviço"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="18" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{TribISSQN}.equals("4")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Não Incidência"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="10" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[País Resultado da Prestação do Serviço]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="18" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PaisResultadoPrestacaoServico}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="26" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Município de Incidência do ISSQN]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="34" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[Funcoes.pdes(
+                        $P{JDBC_CONNECTION},
+                        "CONCAT(CID.NOMECID, CONCAT(' - ', UF.UF))",
+                        "TSICID CID INNER JOIN TSIUFS UF ON CID.UF = UF.CODUF",
+                        "CID.CODMUNFIS =" + $F{CodigoLocalIncidencia})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="26" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Regime Especial de Tributação]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="34" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{RegimeEspecialTributacao}.equals("0")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Nenhum"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="34" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{RegimeEspecialTributacao}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Ato Cooperado (Cooperativa)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="34" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{RegimeEspecialTributacao}.equals("2")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Estimativa"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="34" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{RegimeEspecialTributacao}.equals("3")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Microempresa Municipal"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="34" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{RegimeEspecialTributacao}.equals("4")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Notário ou Registrador"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="34" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{RegimeEspecialTributacao}.equals("5")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Profissional Autônomo"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="34" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{RegimeEspecialTributacao}.equals("6")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Sociedade de Profissionais"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="42" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Tipo de Imunidade]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="50" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{TipoImunidade}.equals("0")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Imunidade (tipo não informado na nota de origem)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="50" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{TipoImunidade}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Patrimônio, renda ou serviços, uns dos outros (CF88, Art 150, VI, a)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="50" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{TipoImunidade}.equals("2")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Templos de qualquer culto (CF88, Art 150, VI, b)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="50" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{TipoImunidade}.equals("3")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Patrimônio, renda ou serviços dos partidos políticos, inclusive suas fundações, das entidades sindicais dos trabalhadores, das instituições de educação e de assistência social, sem fins lucrativos, atendidos os requisitos da lei (CF88, Art 150, VI, c)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="50" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{TipoImunidade}.equals("4")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Livros, jornais, periódicos e o papel destinado a sua impressão (CF88, Art 150, VI, d)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="50" width="275" height="8">
+					<printWhenExpression><![CDATA[$F{TipoImunidade}.equals("5")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Fonogramas e videofonogramas musicais produzidos no Brasil contendo obras musicais ou literomusicais de autores brasileiros e/ou obras em geral interpretadas por artistas brasileiros bem como os suportes materiais ou arquivos digitais que os contenham, salvo na etapa de replicação industrial de mídias ópticas de leitura a laser.   (CF88, Art 150, VI, e)"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="42" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Suspensão de Exigibilidade de ISSQN]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="50" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{SuspensaoExigISSQN} == null]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Não"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="50" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{SuspensaoExigISSQN}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Exigibilidade do ISSQN Suspensa por Decisão Judicial"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="50" width="276" height="8">
+					<printWhenExpression><![CDATA[$F{SuspensaoExigISSQN}.equals("2")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Exigibilidade do ISSQN Suspensa por Processo Administrativo"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="58" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Número do Processo Suspensão]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="66" width="275" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NumeroProcSuspensao}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="58" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Benefício Municipal]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="66" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{BeneficioMunicipal}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="74" width="137" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Valor do Serviço]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="82" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="10" y="82" width="128" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorServico})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="138" y="74" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Desconto incondicionado]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="138" y="82" width="9" height="8">
+					<printWhenExpression><![CDATA[$F{ValorDescontIncondicional} != null]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="147" y="82" width="129" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorDescontIncondicional})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="74" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total Deduções/Reduções]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="276" y="82" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="285" y="82" width="129" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{TotalDedRed} == null ? "0.00" : $F{TotalDedRed})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="414" y="74" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cálculo do BM]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="414" y="82" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="423" y="82" width="129" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{CalculoBM} == null ? "0.00" : $F{CalculoBM})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="90" width="137" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[BC ISSQN]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="98" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="10" y="98" width="128" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{BCISSQN}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="138" y="90" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Alíquota Aplicada %]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="138" y="98" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AliquotaAplicada}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="90" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Retenção do ISSQN]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="98" width="138" height="8">
+					<printWhenExpression><![CDATA[$F{TipoRetencaoISSQN}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Não Retido"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="98" width="138" height="8">
+					<printWhenExpression><![CDATA[$F{TipoRetencaoISSQN}.equals("2")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Retido pelo Tomador"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="98" width="138" height="8">
+					<printWhenExpression><![CDATA[$F{TipoRetencaoISSQN}.equals("3")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Retido pelo Intermediário"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="414" y="90" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ISSQN Apurado]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="414" y="98" width="9" height="8">
+					<printWhenExpression><![CDATA[$F{TipoRetencaoISSQN}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="423" y="98" width="129" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{TipoRetencaoISSQN}.equals("1") ? $F{ValorISSQN} : null)]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="1" y="107" width="554" height="1"/>
+			</line>
+			<staticText>
+				<reportElement x="1" y="107" width="554" height="10"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TRIBUTAÇÃO FEDERAL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="117" width="137" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[IRRF]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="125" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="10" y="125" width="128" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{RetIRRF})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="138" y="117" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CP]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="138" y="125" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="147" y="125" width="129" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{RetCP} == null ? BigDecimal.ZERO : DanfeUtils.getCurrencyAsBigDecimal($F{RetCP})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="117" width="276" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[CSLL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="276" y="125" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="285" y="125" width="267" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{RetCSLL})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="1" y="133" width="137" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PIS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="141" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="10" y="141" width="128" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorPis})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="138" y="133" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[COFINS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="138" y="141" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="147" y="141" width="129" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorCofins})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="133" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Retenção do PIS/COFINS]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="141" width="138" height="8">
+					<printWhenExpression><![CDATA[$F{RetPisCofins}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Retido"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="276" y="141" width="138" height="8">
+					<printWhenExpression><![CDATA[$F{RetPisCofins}.equals("2")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Não Retido"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="414" y="133" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAL TRIBUTAÇÃO FEDERAL]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="414" y="141" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="423" y="141" width="129" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{RetIRRF} == null ? "0.00" : $F{RetIRRF})
+                        .add(DanfeUtils.getCurrencyAsBigDecimal($F{RetCP} == null ? "0.00" : $F{RetCP}))
+                        .add(DanfeUtils.getCurrencyAsBigDecimal($F{RetCSLL} == null ? "0.00" : $F{RetCSLL}))
+                        .add(DanfeUtils.getCurrencyAsBigDecimal($F{ValorPis} == null ? "0.00" : $F{ValorPis}))
+                        .add(DanfeUtils.getCurrencyAsBigDecimal($F{ValorCofins} == null ? "0.00" : $F{ValorCofins}))]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="153" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="154"/>
+			</line>
+			<line>
+				<reportElement x="555" y="0" width="1" height="154"/>
+			</line>
+		</band>
+		<band height="77">
+			<staticText>
+				<reportElement x="1" y="0" width="554" height="10"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[VALOR TOTAL DA NFS-E]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="99" y="10" width="88" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Valor do Serviço]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="99" y="18" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="108" y="18" width="79" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorServico})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="197" y="10" width="79" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Desconto Condicionado]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="197" y="18" width="9" height="8">
+					<printWhenExpression><![CDATA[$F{ValorDescontoCondicional} != null]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="206" y="18" width="70" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorDescontoCondicional})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="276" y="10" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Desconto Incondicionado]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="276" y="18" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="285" y="18" width="129" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorDescontIncondicional} == null ? "0.00" : $F{ValorDescontIncondicional})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="414" y="10" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[ISSQN Retido]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="414" y="18" width="9" height="8">
+					<printWhenExpression><![CDATA[!$F{TipoRetencaoISSQN}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="423" y="18" width="129" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal(!$F{TipoRetencaoISSQN}.equals("1") ? $F{ValorISSQN} : null)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="99" y="26" width="88" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[IRRF, CP, CSLL - Retidos]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="99" y="34" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="108" y="34" width="79" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorTotalRetido})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="197" y="26" width="217" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PIS/COFINS Retidos]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="197" y="34" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="206" y="34" width="208" height="8">
+					<printWhenExpression><![CDATA[$F{RetPisCofins}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[com.sankhya.util.BigDecimalUtil.getValueOrZero(DanfeUtils.getCurrencyAsBigDecimal($F{ValorPis}))
+                        .add(com.sankhya.util.BigDecimalUtil.getValueOrZero(DanfeUtils.getCurrencyAsBigDecimal($F{ValorCofins})))]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="414" y="26" width="138" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Valor Líquido da NFS-e]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="414" y="34" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="423" y="34" width="129" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorLiquido})]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="46" width="555" height="1"/>
+			</line>
+			<staticText>
+				<reportElement x="1" y="46" width="554" height="10"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAIS APROXIMADOS DOS TRIBUTOS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1" y="56" width="184" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Federais]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="64" width="184" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ValorTotalTribFederal} == null ? $F{PorcentagemTribFederal} == null ? "" : $F{PorcentagemTribFederal} + "%" : "R$" + $F{ValorTotalTribFederal}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="185" y="56" width="185" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Estaduais]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="185" y="64" width="185" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ValorTotalTribEstadual} == null ? $F{PorcentagemTribEstadual} == null ? "" : $F{PorcentagemTribEstadual} + "%" : "R$" + $F{ValorTotalTribEstadual}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="370" y="56" width="185" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Municipais]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="370" y="64" width="185" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ValorTotalTribMunicipal} == null ? $F{PorcentagemTribMunicipal} == null ? "" : $F{PorcentagemTribMunicipal} + "%" : "R$" + $F{ValorTotalTribMunicipal}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="76" width="555" height="1"/>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="77"/>
+			</line>
+			<line>
+				<reportElement x="555" y="0" width="1" height="77"/>
+			</line>
+			<staticText>
+				<reportElement x="2" y="10" width="88" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Valor do IBS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="18" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="11" y="18" width="79" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorServico})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="26" width="88" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Valor do CBS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="34" width="9" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<text><![CDATA[R$]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="true">
+				<reportElement x="11" y="34" width="79" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[DanfeUtils.getCurrencyAsBigDecimal($F{ValorServico})]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="50">
+			<staticText>
+				<reportElement x="1" y="0" width="554" height="10"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[INFORMAÇÕES COMPLEMENTARES]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToBandHeight" x="1" y="10" width="554" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{InfComplementares}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="1" y="18" width="554" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[NBS]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement positionType="Float" x="1" y="26" width="554" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NBS}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="1" y="34" width="554" height="8">
+					<printWhenExpression><![CDATA[Funcoes.pdes(
+                        $P{JDBC_CONNECTION},
+                        "NUNOTASUB ",
+                        "TGFCAB CAB ",
+                        "CAB.NUNOTA =" + $P{NUNOTA}) != ""]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font fontName="Courier New" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[NFSe Substituta]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement positionType="Float" x="1" y="42" width="554" height="8"/>
+				<textElement>
+					<font fontName="Courier New" size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ChaveNFSeSubs}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement positionType="Float" stretchType="RelativeToBandHeight" x="0" y="0" width="1" height="50"/>
+			</line>
+			<line>
+				<reportElement positionType="Float" stretchType="RelativeToBandHeight" x="555" y="0" width="1" height="50"/>
+			</line>
+			<line>
+				<reportElement positionType="Float" x="0" y="49" width="555" height="1"/>
+			</line>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>
