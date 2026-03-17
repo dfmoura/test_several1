@@ -1,0 +1,334 @@
+-------------------------------------------------------------------------------------------------------
+##ID_97## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-2772
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_98## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: ActionButtonsSP.executeJava
+uri: /mge/service.sbr
+*/
+SELECT TSIBTA.CODMODULO AS CODMODULO,'$$CLOBFIELD(TSIBTA.CONFIG)$$' AS CONFIG,TSIBTA.CONTROLAACESSO AS CONTROLAACESSO,TSIBTA.DESCRICAO AS DESCRICAO,TSIBTA.IDBTNACAO AS IDBTNACAO,TSIBTA.NOMEINSTANCIA AS NOMEINSTANCIA,TSIBTA.ORDEM AS ORDEM,TSIBTA.RESOURCEID AS RESOURCEID,TSIBTA.TECLAATALHO AS TECLAATALHO,TSIBTA.TIPO AS TIPO FROM TSIBTA /*SQL_92_JOINED_TABLES*/  WHERE (TSIBTA.IDBTNACAO = ?)
+Params:
+  1 = 304
+-------------------------------------------------------------------------------------------------------
+##ID_99## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: ActionButtonsSP.executeJava
+uri: /mge/service.sbr
+*/
+SELECT CONFIG FROM TSIBTA WHERE TSIBTA.IDBTNACAO = ?
+Params:
+  1 = 304
+-------------------------------------------------------------------------------------------------------
+##ID_100## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-2772
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_101## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 304
+class: 71@br.com.triggerint.modulos.snk.acoes.IniciarProducaoBTFromParam
+descr: Iniciar Produção
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT IDIATV, IDIPROC, DHACEITE FROM TPRIATV WHERE IDIATV = ?
+Params:
+  1 = 3341.0
+-------------------------------------------------------------------------------------------------------
+##ID_102## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 304
+class: 71@br.com.triggerint.modulos.snk.acoes.IniciarProducaoBTFromParam
+descr: Iniciar Produção
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT IDIPROC, STATUSPROC FROM TPRIPROC WHERE IDIPROC = ?
+Params:
+  1 = 2283.0
+-------------------------------------------------------------------------------------------------------
+##ID_103## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 304
+class: 71@br.com.triggerint.modulos.snk.acoes.IniciarProducaoBTFromParam
+descr: Iniciar Produção
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT IDIATV, DHACEITE FROM TPRIATV WHERE IDIATV = ?
+Params:
+  1 = 3341.0
+-------------------------------------------------------------------------------------------------------
+##ID_104## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 304
+class: 71@br.com.triggerint.modulos.snk.acoes.IniciarProducaoBTFromParam
+descr: Iniciar Produção
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+UPDATE TPRIATV SET CODEXEC = ?, CODUSU = ?, DHACEITE = ?, DHINICIO = ? WHERE IDIATV = ?
+Params:
+  1 = 0
+  2 = 0
+  3 = 2026-03-06 14:21:39.555
+  4 = 2026-03-06 14:21:39.555
+  5 = 3341.0
+-------------------------------------------------------------------------------------------------------
+##ID_105## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-2772
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_106## tempo: 2 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.DbExplorer
+-------------------------------------------------------------------------------------------------------
+##ID_107## tempo: 11 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT                 IDIPROC,                IDIATV,                TO_CHAR(DHINCLUSAO, 'DD/MM/YYYY') AS DTFAB,                CODPRODPA,                DESCRPROD,                NROLOTE,                QTDPRODUZIR            FROM (                SELECT                     TPRIATV.IDIPROC AS IDIPROC,                    TPRIATV.IDIATV AS IDIATV,                    TPRIATV.DHINCLUSAO AS DHINCLUSAO,                    TPRIPA.CODPRODPA,                    TGFPRO.DESCRPROD,                    TPRIPA.NROLOTE,                    TPRIPA.QTDPRODUZIR                FROM TPRIATV                LEFT JOIN TPRIPA ON TPRIATV.IDIPROC = TPRIPA.IDIPROC                LEFT JOIN TGFPRO ON TPRIPA.CODPRODPA = TGFPRO.CODPROD,                TPRATV R2_Atividade,                TPREFX R0_ElementoFluxo,                TPRIPROC R1_CabecalhoInstanciaProcesso                WHERE R2_Atividade.IDEFX = R0_ElementoFluxo.IDEFX                  AND TPRIATV.IDIPROC = R1_CabecalhoInstanciaProcesso.IDIPROC                  AND TPRIATV.IDEFX = R2_Atividade.IDEFX                  AND R0_ElementoFluxo.TIPO IN (1101, 1109, 1110)                  AND R1_CabecalhoInstanciaProcesso.STATUSPROC NOT IN ('C', 'S', 'AP', 'P', 'P2')                  AND TPRIATV.CODEXEC IS NULL                  AND TPRIATV.DHACEITE IS NULL            )            ORDER BY IDIPROC ASC
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_108## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-2772
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_109## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.DbExplorer
+-------------------------------------------------------------------------------------------------------
+##ID_110## tempo: 13 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT                 IDIPROC,                IDIATV,                TO_CHAR(DHINICIO, 'DD/MM/YYYY') AS DTFAB,                CODPRODPA,                DESCRPROD,                NROLOTE,                QTDPRODUZIR            FROM (                SELECT                     TPRIATV.IDIPROC AS IDIPROC,                    TPRIATV.IDIATV AS IDIATV,                    TPRIATV.DHINICIO AS DHINICIO,                    TPRIPA.CODPRODPA,                    TGFPRO.DESCRPROD,                    TPRIPA.NROLOTE,                    TPRIPA.QTDPRODUZIR                FROM TPRIATV                LEFT JOIN TPRIPA ON TPRIATV.IDIPROC = TPRIPA.IDIPROC                LEFT JOIN TGFPRO ON TPRIPA.CODPRODPA = TGFPRO.CODPROD,                TPRATV R2_Atividade,                TPREFX R0_ElementoFluxo,                TPRIPROC R1_CabecalhoInstanciaProcesso                WHERE R2_Atividade.IDEFX = R0_ElementoFluxo.IDEFX                  AND TPRIATV.IDIPROC = R1_CabecalhoInstanciaProcesso.IDIPROC                  AND TPRIATV.IDEFX = R2_Atividade.IDEFX                  AND R0_ElementoFluxo.TIPO IN (1101, 1109, 1110)                  AND R1_CabecalhoInstanciaProcesso.STATUSPROC NOT IN ('C', 'S', 'AP', 'P', 'P2')                  AND TPRIATV.DHINICIO IS NOT NULL                  AND TPRIATV.DHFINAL IS NULL                  AND NOT EXISTS (                    SELECT 1 FROM TPREIATV EIATV                    WHERE EIATV.IDIATV = TPRIATV.IDIATV                      AND EIATV.TIPO = 'P'                      AND EIATV.DHFINAL IS NULL                  )            )            ORDER BY IDIPROC ASC
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_111## tempo: 2 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-2772
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_112## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.DbExplorer
+-------------------------------------------------------------------------------------------------------
+##ID_113## tempo: 42 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT               X.*            FROM (              SELECT                IPA.CODPRODPA,                IPA.NROLOTE,                IPA.CONTROLEPA,                (SELECT SUM(QTDPRODUZIR) FROM TPRIPA IPA2 WHERE IPA2.IDIPROC = 2283) AS QTDPRODUZIR,                PRO.COMPLDESC,                PRO.CODVOL,                PRO.CODGRUPOPROD,                PRO.DESCRPROD,                MPS.DTINICMPS,                MPS.DTFINMPS,                PRO.DECQTD,                PRO.REFERENCIA,                GRU.DESCRGRUPOPROD,                IPROC.PRIORIDADE AS PRIORIDADE,                (SELECT COUNT(1) FROM TPRIPA IPA3 WHERE IPA3.IDIPROC = IPA.IDIPROC) AS QTDPRODUTOS,                (CASE WHEN IPA.NROLOTE <> 'CURINGA' THEN 1 ELSE 2 END) AS ORDER_NROLOTE              FROM                TPRIPA IPA                INNER JOIN TGFPRO PRO ON (IPA.CODPRODPA = PRO.CODPROD)                INNER JOIN TPRIPROC IPROC ON (IPROC.IDIPROC = IPA.IDIPROC)                INNER JOIN TGFGRU GRU ON (PRO.CODGRUPOPROD = GRU.CODGRUPOPROD)                LEFT JOIN TPRMPS MPS ON (MPS.NUMPS = IPROC.NUMPS)              WHERE                IPA.IDIPROC = 2283              ORDER BY                IPA.CODPRODPA,                ORDER_NROLOTE,                IPA.CONTROLEPA            ) X
+Params:
+-------------------------------------------------------------------------------------------------------
+##ID_114## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-2772
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_115## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: ActionButtonsSP.executeJava
+uri: /mge/service.sbr
+*/
+SELECT TSIBTA.CODMODULO AS CODMODULO,'$$CLOBFIELD(TSIBTA.CONFIG)$$' AS CONFIG,TSIBTA.CONTROLAACESSO AS CONTROLAACESSO,TSIBTA.DESCRICAO AS DESCRICAO,TSIBTA.IDBTNACAO AS IDBTNACAO,TSIBTA.NOMEINSTANCIA AS NOMEINSTANCIA,TSIBTA.ORDEM AS ORDEM,TSIBTA.RESOURCEID AS RESOURCEID,TSIBTA.TECLAATALHO AS TECLAATALHO,TSIBTA.TIPO AS TIPO FROM TSIBTA /*SQL_92_JOINED_TABLES*/  WHERE (TSIBTA.IDBTNACAO = ?)
+Params:
+  1 = 299
+-------------------------------------------------------------------------------------------------------
+##ID_116## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: ActionButtonsSP.executeJava
+uri: /mge/service.sbr
+*/
+SELECT CONFIG FROM TSIBTA WHERE TSIBTA.IDBTNACAO = ?
+Params:
+  1 = 299
+-------------------------------------------------------------------------------------------------------
+##ID_117## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-2772
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_118## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 299
+class: 68@br.com.triggerint.modulos.snk.acoes.PararProducaoBTFromParam
+descr: Parar Produção
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT IDIPROC, STATUSPROC, NROLOTE FROM TPRIPROC WHERE IDIPROC = ?
+Params:
+  1 = 2283
+-------------------------------------------------------------------------------------------------------
+##ID_119## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 299
+class: 68@br.com.triggerint.modulos.snk.acoes.PararProducaoBTFromParam
+descr: Parar Produção
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT IATV.IDIATV FROM TPRIATV IATV WHERE IATV.IDIPROC = ? AND IATV.DHINICIO IS NOT NULL AND IATV.DHFINAL IS NULL AND NOT EXISTS (  SELECT 1 FROM TPREIATV EIATV   WHERE EIATV.IDIATV = IATV.IDIATV AND EIATV.TIPO = 'P' AND EIATV.DHFINAL IS NULL) ORDER BY IATV.IDIATV
+Params:
+  1 = 2283
+-------------------------------------------------------------------------------------------------------
+##ID_120## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+actionID: 299
+class: 68@br.com.triggerint.modulos.snk.acoes.PararProducaoBTFromParam
+descr: Parar Produção
+service-name: ActionButtonsSP.executeJava
+txManual: false
+uri: /mge/service.sbr
+*/
+SELECT EIATV.IDEIATV FROM TPREIATV EIATV WHERE EIATV.IDIATV = ? AND EIATV.DHFINAL IS NULL AND EIATV.TIPO = 'N'
+Params:
+  1 = 3341
+-------------------------------------------------------------------------------------------------------
+##ID_121## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-2772
+  5 = 23e4902741086828fc357b0c511b616b05e85285
+-------------------------------------------------------------------------------------------------------
+##ID_122## tempo: 1 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT
+	PROP.NOME,
+	PROP.VALOR
+FROM
+	TRDCON CTR
+	INNER JOIN TRDPCO PCO2
+		ON (CTR.NUCONTROLE = PCO2.NUCONTROLE AND PCO2.NOME = 'resourceID')
+	INNER JOIN TRDPCO PROP
+		ON (CTR.NUCONTROLE = PROP.NUCONTROLE AND PROP.NOME = 'legacyResourceID')
+WHERE
+	CTR.TIPOCONTROLE = 'MN'
+	AND PCO2.VALOR = ?
+Params:
+  1 = br.com.sankhya.DbExplorer
+-------------------------------------------------------------------------------------------------------
+##ID_123## tempo: 13 (ms)
+/* Runtime-info
+Referer: https://satis2.nuvemdatacom.com.br:8110/mge/html5component.mge
+service-name: DbExplorerSP.executeQuery
+uri: /mge/service.sbr
+*/
+SELECT                 IDIPROC,                IDIATV,                TO_CHAR(DHINICIO, 'DD/MM/YYYY') AS DTFAB,                CODPRODPA,                DESCRPROD,                NROLOTE,                QTDPRODUZIR            FROM (                SELECT                     TPRIATV.IDIPROC AS IDIPROC,                    TPRIATV.IDIATV AS IDIATV,                    TPRIATV.DHINICIO AS DHINICIO,                    TPRIPA.CODPRODPA,                    TGFPRO.DESCRPROD,                    TPRIPA.NROLOTE,                    TPRIPA.QTDPRODUZIR                FROM TPRIATV                LEFT JOIN TPRIPA ON TPRIATV.IDIPROC = TPRIPA.IDIPROC                LEFT JOIN TGFPRO ON TPRIPA.CODPRODPA = TGFPRO.CODPROD,                TPRATV R2_Atividade,                TPREFX R0_ElementoFluxo,                TPRIPROC R1_CabecalhoInstanciaProcesso                WHERE R2_Atividade.IDEFX = R0_ElementoFluxo.IDEFX                  AND TPRIATV.IDIPROC = R1_CabecalhoInstanciaProcesso.IDIPROC                  AND TPRIATV.IDEFX = R2_Atividade.IDEFX                  AND R0_ElementoFluxo.TIPO IN (1101, 1109, 1110)                  AND R1_CabecalhoInstanciaProcesso.STATUSPROC NOT IN ('C', 'S', 'AP', 'P', 'P2')                  AND TPRIATV.DHINICIO IS NOT NULL                  AND TPRIATV.DHFINAL IS NULL                  AND NOT EXISTS (                    SELECT 1 FROM TPREIATV EIATV                    WHERE EIATV.IDIATV = TPRIATV.IDIATV                      AND EIATV.TIPO = 'P'                      AND EIATV.DHFINAL IS NULL                  )            )            ORDER BY IDIPROC ASC
+Params:

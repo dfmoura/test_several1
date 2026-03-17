@@ -7,6 +7,7 @@ import br.com.sankhya.extensions.actionbutton.Registro;
 import com.sankhya.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -143,6 +144,15 @@ public class PararProducaoBTFromParam implements AcaoRotinaJava {
                 paradas++;
             }
 
+            if (paradas == 0) {
+                contexto.mostraErro(
+                    "Nenhum registro de execução (TPREIATV TIPO 'N') encontrado para as atividades em andamento. "
+                        + "Se a produção foi iniciada pela tela customizada, atualize o JAR do botão 'Iniciar produção' (IniciarProducaoBTFromParam) que agora grava esse registro. "
+                        + "IDIPROC: " + idiproc + "."
+                );
+                return;
+            }
+
             StringBuilder mensagemSucesso = new StringBuilder();
             mensagemSucesso.append("Produção parada com sucesso!\n\n");
             mensagemSucesso.append("Informações:\n");
@@ -166,33 +176,26 @@ public class PararProducaoBTFromParam implements AcaoRotinaJava {
     }
 
     /**
-     * Obtém IDIPROC: primeiro do parâmetro IDIPROC (chamada via JX.acionarBotao no HTML5),
+     * Obtém IDIPROC: primeiro do parâmetro IDIPROC ou idiproc (chamada via JX.acionarBotao no HTML5),
      * depois da linha selecionada (comportamento em tela nativa).
+     * Normaliza para BigDecimal com escala 0 (inteiro) para evitar falhas de binding no driver/QueryExecutor.
      */
     private BigDecimal obterIdiproc(ContextoAcao contexto) throws Exception {
         Object param = contexto.getParam("IDIPROC");
+        if (param == null) {
+            param = contexto.getParam("idiproc");
+        }
         if (param != null) {
             System.out.println("PararProducaoBTFromParam - Parâmetro IDIPROC recebido (chamada do componente HTML5): " + param);
-            if (param instanceof BigDecimal) {
-                return (BigDecimal) param;
+            if (param instanceof String && ((String) param).trim().isEmpty()) {
+                contexto.mostraErro("Parâmetro IDIPROC não pode ser vazio.");
+                return null;
             }
-            if (param instanceof Number) {
-                return BigDecimal.valueOf(((Number) param).doubleValue());
+            BigDecimal parsed = parseBigDecimalIdiproc(param);
+            if (parsed != null) {
+                return parsed;
             }
-            if (param instanceof String) {
-                String s = ((String) param).trim();
-                if (s.isEmpty()) {
-                    contexto.mostraErro("Parâmetro IDIPROC não pode ser vazio.");
-                    return null;
-                }
-                try {
-                    return new BigDecimal(s);
-                } catch (NumberFormatException e) {
-                    contexto.mostraErro("Parâmetro IDIPROC inválido: " + s);
-                    return null;
-                }
-            }
-            contexto.mostraErro("Parâmetro IDIPROC possui formato inválido.");
+            contexto.mostraErro("Parâmetro IDIPROC inválido: " + param);
             return null;
         }
 
@@ -200,16 +203,36 @@ public class PararProducaoBTFromParam implements AcaoRotinaJava {
         if (linhas != null && linhas.length == 1) {
             Object idiprocObj = linhas[0].getCampo("IDIPROC");
             if (idiprocObj != null) {
-                if (idiprocObj instanceof BigDecimal) {
-                    return (BigDecimal) idiprocObj;
-                }
-                if (idiprocObj instanceof Number) {
-                    return BigDecimal.valueOf(((Number) idiprocObj).doubleValue());
+                BigDecimal parsed = parseBigDecimalIdiproc(idiprocObj);
+                if (parsed != null) {
+                    return parsed;
                 }
             }
         }
 
         contexto.mostraErro("Nenhum IDIPROC informado. No componente HTML5, clique no registro da guia Iniciadas; o IDIPROC será enviado automaticamente.");
+        return null;
+    }
+
+    /** Converte para BigDecimal com escala 0 (inteiro) para uso em SQL. Retorna null se inválido. */
+    private BigDecimal parseBigDecimalIdiproc(Object param) {
+        if (param instanceof BigDecimal) {
+            return ((BigDecimal) param).setScale(0, RoundingMode.DOWN);
+        }
+        if (param instanceof Number) {
+            return BigDecimal.valueOf(((Number) param).longValue());
+        }
+        if (param instanceof String) {
+            String s = ((String) param).trim();
+            if (s.isEmpty()) {
+                return null;
+            }
+            try {
+                return new BigDecimal(s).setScale(0, RoundingMode.DOWN);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
         return null;
     }
 

@@ -392,15 +392,11 @@ public class CadastrarCabecApontamentoBTFromParam implements AcaoRotinaJava {
     /**
      * Insere registros de matéria-prima em TPRAMP para o NUAPO recém-criado.
      *
-     * A lógica foi reescrita para espelhar de forma mais fiel o comportamento
-     * observado nos logs do serviço nativo OperacaoProducaoSP.criarApontamento,
-     * utilizando a lista de materiais TPRLMP amarrada ao processo (IDPROC/IDEFX)
-     * e ao produto acabado (CODPRODPA/CONTROLEPA) efetivamente apontado em TPRAPA.
-     *
-     * Para cada item de PA já criado em TPRAPA para o NUAPO:
-     *  - obtém a QTDAPONTADA e o SEQAPA;
-     *  - calcula as MPs pela query baseada em TPRLMP (QTDMISTURA * QTDAPONTADA para TIPOQTD = 'V');
-     *  - insere em TPRAMP com SEQMP incremental por NUAPO.
+     * Estratégia:
+     * 1) Tenta montar as MPs a partir da lista de materiais (TPRLMP), usando a
+     *    mesma query-base observada no serviço OperacaoProducaoSP.criarApontamento.
+     * 2) Se nada for encontrado em TPRLMP, mantém os fallbacks anteriores
+     *    baseados em TGFITE/TGFCAB/TGFPRO.
      */
     private int inserirMateriaisMP(ContextoAcao contexto, BigDecimal idiproc, BigDecimal idiatv, BigDecimal nuapo) throws Exception {
         int mpsCriadas = 0;
@@ -409,125 +405,273 @@ public class CadastrarCabecApontamentoBTFromParam implements AcaoRotinaJava {
             return 0;
         }
 
-        // IDPROC (processo modelado) e IDEFX (elemento de fluxo) são usados
-        // pela mesma query que o serviço nativo utiliza para montar as MPs.
+        // SEQMP base já existente para o NUAPO (caso haja MPs prévias).
+        BigDecimal seqmpAtual = obterSeqmpBase(contexto, nuapo);
+
+        // 1) Primeira tentativa: usar a lista de materiais da operação (TPRLMP),
+        //    espelhando a query observada em OperacaoProducaoSP.criarApontamento.
         BigDecimal idproc = obterIdprocPorIdiproc(contexto, idiproc);
         BigDecimal idefx = obterIdefxPorIdiatv(contexto, idiatv);
-
-        if (idproc == null) {
-            return 0;
-        }
         if (idefx == null) {
             idefx = BigDecimal.ZERO;
         }
 
-        // SEQMP base já existente para o NUAPO (caso haja MPs prévias).
-        BigDecimal seqmpAtual = obterSeqmpBase(contexto, nuapo);
+        if (idproc != null) {
+            // Buscar um produto PA de referência (assumindo um PA principal por OP).
+            QueryExecutor queryPa = contexto.getQuery();
+            queryPa.setParam("IDIPROC", idiproc);
+            queryPa.nativeSelect(
+                    "SELECT CODPRODPA, NVL(CONTROLEPA, ' ') AS CONTROLEPA, QTDPRODUZIR AS QTDAPONTADA " +
+                            "FROM TPRIPA " +
+                            "WHERE IDIPROC = {IDIPROC} " +
+                            "  AND ROWNUM = 1"
+            );
 
-        // Percorre os itens de PA já gravados em TPRAPA para este NUAPO.
-        QueryExecutor queryApa = contexto.getQuery();
-        queryApa.setParam("NUAPO", nuapo);
-        queryApa.nativeSelect(
-                "SELECT CODPRODPA, CONTROLEPA, QTDAPONTADA, SEQAPA " +
-                        "  FROM TPRAPA " +
-                        " WHERE NUAPO = {NUAPO}"
-        );
+            BigDecimal codProdPaBase = null;
+            String controlePaBase = null;
+            BigDecimal qtdApontadaBase = null;
 
-        while (queryApa.next()) {
-            BigDecimal codProdPa = queryApa.getBigDecimal("CODPRODPA");
-            String controlePa = queryApa.getString("CONTROLEPA");
-            BigDecimal qtdApontada = queryApa.getBigDecimal("QTDAPONTADA");
-            BigDecimal seqapa = queryApa.getBigDecimal("SEQAPA");
+            if (queryPa.next()) {
+                codProdPaBase = queryPa.getBigDecimal("CODPRODPA");
+                controlePaBase = queryPa.getString("CONTROLEPA");
+                qtdApontadaBase = queryPa.getBigDecimal("QTDAPONTADA");
+            }
+            queryPa.close();
 
-            if (codProdPa == null || qtdApontada == null || seqapa == null) {
+            if (codProdPaBase != null && qtdApontadaBase != null) {
+                BigDecimal seqapa = BigDecimal.ONE; // SEQAPA do primeiro PA criado pela rotina
+                String controlePaParam = (controlePaBase == null || controlePaBase.trim().isEmpty())
+                        ? " "
+                        : controlePaBase.trim();
+
+                QueryExecutor queryLmp = contexto.getQuery();
+                queryLmp.setParam("CONTROLEPA", controlePaParam);
+                queryLmp.setParam("QTDAPONTADA", qtdApontadaBase);
+                queryLmp.setParam("IDPROC", idproc);
+                queryLmp.setParam("IDEFX", idefx);
+                queryLmp.setParam("CODPRODPA", codProdPaBase);
+                queryLmp.setParam("CONTROLEPA2", controlePaParam);
+                queryLmp.setParam("CONTROLEPA3", controlePaParam);
+
+                String sqlLmp =
+                        "SELECT X.CODPRODMP, " +
+                                "       X.CONTROLEMP, " +
+                                "       SUM(X.QTDMISTURA) AS QTD, " +
+                                "       X.CODVOL " +
+                                "  FROM ( " +
+                                "        SELECT LMP.CODPRODMP, " +
+                                "               (CASE " +
+                                "                    WHEN LMP.TIPOCONTROLEMP = 'L' THEN LMP.CONTROLEMP " +
+                                "                    WHEN LMP.TIPOCONTROLEMP = 'H' THEN {CONTROLEPA} " +
+                                "                    ELSE ' ' " +
+                                "               END) AS CONTROLEMP, " +
+                                "               (CASE WHEN LMP.TIPOQTD = 'V' THEN LMP.QTDMISTURA * {QTDAPONTADA} ELSE LMP.QTDMISTURA END) AS QTDMISTURA, " +
+                                "               NVL(LMP.CODVOL, PRO.CODVOL) AS CODVOL " +
+                                "          FROM TPRLMP LMP " +
+                                "          INNER JOIN TPREFX EFX ON (EFX.IDEFX = LMP.IDEFX) " +
+                                "          INNER JOIN TPRATV ATV ON (ATV.IDEFX = LMP.IDEFX) " +
+                                "          INNER JOIN TGFPRO PRO ON (PRO.CODPROD = LMP.CODPRODMP) " +
+                                "         WHERE EFX.IDPROC = {IDPROC} " +
+                                "           AND (({IDEFX} = 0 AND ATV.LISTAMPPADRAO = 'S') OR ({IDEFX} > 0 AND ATV.IDEFX = {IDEFX})) " +
+                                "           AND LMP.CODPRODPA = {CODPRODPA} " +
+                                "       ) X " +
+                                " GROUP BY X.CODPRODMP, X.CONTROLEMP, X.CODVOL";
+
+                queryLmp.nativeSelect(sqlLmp);
+
+                while (queryLmp.next()) {
+                    BigDecimal codProdMp = queryLmp.getBigDecimal("CODPRODMP");
+                    String controleMp = queryLmp.getString("CONTROLEMP");
+                    BigDecimal qtd = queryLmp.getBigDecimal("QTD");
+                    String codVol = queryLmp.getString("CODVOL");
+
+                    if (codProdMp == null || qtd == null || qtd.compareTo(BigDecimal.ZERO) == 0) {
+                        continue;
+                    }
+
+                    seqmpAtual = seqmpAtual.add(BigDecimal.ONE);
+                    inserirItemMP(contexto, nuapo, seqapa, seqmpAtual, codProdMp, controleMp, qtd, codVol);
+                    mpsCriadas++;
+                }
+
+                queryLmp.close();
+
+                if (mpsCriadas > 0) {
+                    return mpsCriadas;
+                }
+            }
+        }
+
+        // 2) Fallbacks antigos baseados em TGFITE/TGFCAB/TGFPRO,
+        //    mantidos para cenários onde não há estrutura em TPRLMP.
+
+        BigDecimal seqapaFallback = BigDecimal.ONE;
+
+        // 2.1) Query simples agregando MPs por IDIPROC (movimentações de nota não fiscais).
+        QueryExecutor query = contexto.getQuery();
+        query.setParam("IDIPROC", idiproc);
+
+        String sqlMp =
+                "SELECT TGFITE.CODPROD AS CODPRODMP, " +
+                        "       TGFITE.CONTROLE AS CONTROLEMP, " +
+                        "       SUM(TGFITE.QTDNEG) AS QTD, " +
+                        "       COALESCE(MAX(TGFPRO.CODVOL), 'UN') AS CODVOL " +
+                        "  FROM TGFITE " +
+                        "  INNER JOIN TGFCAB ON (TGFITE.NUNOTA = TGFCAB.NUNOTA) " +
+                        "  INNER JOIN TGFPRO ON (TGFPRO.CODPROD = TGFITE.CODPROD) " +
+                        " WHERE TGFCAB.IDIPROC = {IDIPROC} " +
+                        "   AND TGFITE.SEQUENCIA > 0 " +
+                        "   AND TGFCAB.TIPMOV <> 'F' " +
+                        " GROUP BY TGFITE.CODPROD, TGFITE.CONTROLE";
+
+        query.nativeSelect(sqlMp);
+
+        boolean encontrouAlgumaMp = false;
+
+        while (query.next()) {
+            BigDecimal codProdMp = query.getBigDecimal("CODPRODMP");
+            String controleMp = query.getString("CONTROLEMP");
+            BigDecimal qtd = query.getBigDecimal("QTD");
+            String codVol = query.getString("CODVOL");
+
+            if (codProdMp == null || qtd == null || qtd.compareTo(BigDecimal.ZERO) == 0) {
                 continue;
             }
 
-            String controlePaParam = (controlePa == null || controlePa.trim().isEmpty()) ? " " : controlePa.trim();
-            String tipoMaterial = "T"; // mesmo parâmetro usado no log: considera MPs normais
-
-            QueryExecutor queryMp = contexto.getQuery();
-            queryMp.setParam("CONTROLEPA", controlePaParam);
-            queryMp.setParam("QTDAPONTADA", qtdApontada);
-            queryMp.setParam("IDPROC", idproc);
-            queryMp.setParam("IDEFX", idefx);
-            queryMp.setParam("TIPOMAT", tipoMaterial);
-            queryMp.setParam("CODPRODPA", codProdPa);
-            queryMp.setParam("CONTROLEPA2", controlePaParam);
-            queryMp.setParam("CONTROLEPA3", controlePaParam);
-
-            String sqlMpLmp =
-                    "SELECT X.CODPRODMP, " +
-                            "       X.CONTROLEMP, " +
-                            "       SUM(X.QTDMISTURA) AS QTDMISTURA, " +
-                            "       X.CODVOL, " +
-                            "       X.CODLOCALORIG, " +
-                            "       X.TIPOUSOMP, " +
-                            "       X.FIXAQTDAPO, " +
-                            "       X.TIPOQTD, " +
-                            "       X.VINCULOSERIEPA " +
-                            "  FROM ( " +
-                            "        SELECT LMP.CODPRODMP, " +
-                            "               (CASE " +
-                            "                   WHEN LMP.TIPOCONTROLEMP = 'L' THEN LMP.CONTROLEMP " +
-                            "                   WHEN LMP.TIPOCONTROLEMP = 'H' THEN {CONTROLEPA} " +
-                            "                   ELSE ' ' " +
-                            "               END) AS CONTROLEMP, " +
-                            "               (CASE WHEN LMP.TIPOQTD = 'V' THEN LMP.QTDMISTURA * {QTDAPONTADA} ELSE LMP.QTDMISTURA END) AS QTDMISTURA, " +
-                            "               LMP.PROPMPFIXA, " +
-                            "               NVL(LMP.CODVOL, PRO.CODVOL) AS CODVOL, " +
-                            "               LMP.CODLOCALORIG, " +
-                            "               LMP.TIPOUSOMP, " +
-                            "               LMP.FIXAQTDAPO, " +
-                            "               LMP.TIPOQTD, " +
-                            "               NVL(LMP.VINCULOSERIEPA, 'N') AS VINCULOSERIEPA " +
-                            "          FROM TPRLMP LMP " +
-                            "          INNER JOIN TPREFX EFX ON (EFX.IDEFX = LMP.IDEFX) " +
-                            "          INNER JOIN TPRATV ATV ON (ATV.IDEFX = LMP.IDEFX) " +
-                            "          INNER JOIN TGFPRO PRO ON (PRO.CODPROD = LMP.CODPRODMP) " +
-                            "         WHERE EFX.IDPROC = {IDPROC} " +
-                            "           AND (({IDEFX} = 0 AND ATV.LISTAMPPADRAO = 'S') OR ({IDEFX} > 0 AND ATV.IDEFX = {IDEFX})) " +
-                            "           AND ({TIPOMAT} = 'T' OR LMP.GERAREQUISICAO = {TIPOMAT}) " +
-                            "           AND LMP.CODPRODPA = {CODPRODPA} " +
-                            "           AND LMP.TIPOUSOMP IN ('N') " +
-                            "           AND ( " +
-                            "                 (NVL(LMP.CONTROLEPA, ' ') <> ' ' AND NVL(LMP.CONTROLEPA, ' ') = {CONTROLEPA2}) " +
-                            "                 OR (NVL(LMP.CONTROLEPA, ' ') = ' ' AND NOT EXISTS ( " +
-                            "                        SELECT 1 " +
-                            "                          FROM TPRLMP LMP2 " +
-                            "                         WHERE LMP2.IDEFX = LMP.IDEFX " +
-                            "                           AND LMP2.CODPRODPA = LMP.CODPRODPA " +
-                            "                           AND NVL(LMP2.CONTROLEPA, ' ') = {CONTROLEPA3} " +
-                            "                           AND LMP2.CODPRODMP = LMP.CODPRODMP " +
-                            "                           AND LMP2.CONTROLEMP = LMP.CONTROLEMP " +
-                            "                           AND LMP2.SEQMP <> LMP.SEQMP " +
-                            "                     ) " +
-                            "                 ) " +
-                            "             ) " +
-                            "        ) X " +
-                            " GROUP BY X.CODPRODMP, X.PROPMPFIXA, X.CONTROLEMP, X.CODVOL, X.CODLOCALORIG, X.TIPOUSOMP, X.FIXAQTDAPO, X.TIPOQTD, X.VINCULOSERIEPA";
-
-            queryMp.nativeSelect(sqlMpLmp);
-
-            while (queryMp.next()) {
-                BigDecimal codProdMp = queryMp.getBigDecimal("CODPRODMP");
-                String controleMp = queryMp.getString("CONTROLEMP");
-                BigDecimal qtd = queryMp.getBigDecimal("QTDMISTURA");
-                String codVol = queryMp.getString("CODVOL");
-
-                if (codProdMp == null || qtd == null || qtd.compareTo(BigDecimal.ZERO) == 0) {
-                    continue;
-                }
-
-                seqmpAtual = seqmpAtual.add(BigDecimal.ONE);
-                inserirItemMP(contexto, nuapo, seqapa, seqmpAtual, codProdMp, controleMp, qtd, codVol);
-                mpsCriadas++;
-            }
-
-            queryMp.close();
+            encontrouAlgumaMp = true;
+            seqmpAtual = seqmpAtual.add(BigDecimal.ONE);
+            inserirItemMP(contexto, nuapo, seqapaFallback, seqmpAtual, codProdMp, controleMp, qtd, codVol);
+            mpsCriadas++;
         }
 
-        queryApa.close();
+        query.close();
+
+        if (encontrouAlgumaMp) {
+            return mpsCriadas;
+        }
+
+        // 2.2) Fallback adicional com IDEFX/TPRROPE/TPRIATV.
+        if (idefx == null) {
+            idefx = obterIdefxPorIdiatv(contexto, idiatv);
+        }
+        if (idefx == null) {
+            return mpsCriadas;
+        }
+
+        QueryExecutor queryFallback = contexto.getQuery();
+        queryFallback.setParam("IDIPROC", idiproc);
+        queryFallback.setParam("IDEFX", idefx);
+
+        String sqlMpFallback =
+                "SELECT X.CODPRODMP, " +
+                        "       X.CONTROLEMP, " +
+                        "       SUM(X.QTDNEG) AS QTD, " +
+                        "       COALESCE(MAX(PRO.CODVOL), 'UN') AS CODVOL " +
+                        "  FROM ( " +
+                        "        SELECT TGFITE.CODPROD AS CODPRODMP, " +
+                        "               TGFITE.CONTROLE AS CONTROLEMP, " +
+                        "               SUM(CASE WHEN (TPRIATV.IDEFX = {IDEFX} OR {IDEFX} = 0) THEN TGFITE.QTDNEG ELSE 0 END) AS QTDNEG " +
+                        "          FROM TGFITE " +
+                        "          INNER JOIN TGFCAB ON (TGFITE.NUNOTA = TGFCAB.NUNOTA) " +
+                        "          INNER JOIN (SELECT DISTINCT CODPROD, CONTROLE, DTVAL FROM TGFEST) TGFEST ON (TGFEST.CODPROD = TGFITE.CODPROD AND TGFEST.CONTROLE = TGFITE.CONTROLE) " +
+                        "          INNER JOIN TPRROPE ON TGFCAB.NUNOTA = TPRROPE.NUNOTA " +
+                        "          INNER JOIN TPRIATV ON (TPRIATV.IDIATV = TPRROPE.IDIATV AND TGFCAB.IDIPROC = TPRIATV.IDIPROC) " +
+                        "         WHERE TGFCAB.IDIPROC = {IDIPROC} " +
+                        "           AND TGFITE.SEQUENCIA > 0 " +
+                        "           AND TGFCAB.TIPMOV <> 'F' " +
+                        "           AND NOT EXISTS ( " +
+                        "                 SELECT 1 " +
+                        "                   FROM TPRAPO APO " +
+                        "                   INNER JOIN TPRASP ASP ON (ASP.NUAPO = APO.NUAPO) " +
+                        "                   INNER JOIN TPRLSP LSP ON (LSP.CODPRODSP = ASP.CODPRODSP) " +
+                        "                  WHERE APO.IDIATV = TPRIATV.IDIATV " +
+                        "                    AND LSP.IDEFX = TPRIATV.IDEFX " +
+                        "               ) " +
+                        "         GROUP BY TGFITE.CODPROD, TGFITE.CONTROLE, TGFEST.DTVAL, TPRIATV.IDEFX " +
+                        "        UNION ALL " +
+                        "        SELECT TGFITE.CODPROD AS CODPRODMP, " +
+                        "               TGFITE.CONTROLE AS CONTROLEMP, " +
+                        "               SUM(CASE WHEN TPRIATV.IDEFX <> {IDEFX} THEN TGFITE.QTDNEG ELSE 0 END) AS QTDNEG " +
+                        "          FROM TGFITE " +
+                        "          INNER JOIN TGFCAB ON (TGFITE.NUNOTA = TGFCAB.NUNOTA) " +
+                        "          INNER JOIN (SELECT DISTINCT CODPROD, CONTROLE, DTVAL FROM TGFEST) TGFEST ON (TGFEST.CODPROD = TGFITE.CODPROD AND TGFEST.CONTROLE = TGFITE.CONTROLE) " +
+                        "          INNER JOIN TPRROPE ON TGFCAB.NUNOTA = TPRROPE.NUNOTA " +
+                        "          INNER JOIN TPRIATV ON (TPRIATV.IDIATV = TPRROPE.IDIATV AND TGFCAB.IDIPROC = TPRIATV.IDIPROC) " +
+                        "         WHERE TGFCAB.IDIPROC = {IDIPROC} " +
+                        "           AND TGFITE.SEQUENCIA > 0 " +
+                        "           AND TGFCAB.TIPMOV <> 'F' " +
+                        "           AND NOT EXISTS ( " +
+                        "                 SELECT 1 " +
+                        "                   FROM TPRAPO APO " +
+                        "                   INNER JOIN TPRASP ASP ON (ASP.NUAPO = APO.NUAPO) " +
+                        "                   INNER JOIN TPRLSP LSP ON (LSP.CODPRODSP = ASP.CODPRODSP) " +
+                        "                  WHERE APO.IDIATV = TPRIATV.IDIATV " +
+                        "                    AND LSP.IDEFX = TPRIATV.IDEFX " +
+                        "               ) " +
+                        "         GROUP BY TGFITE.CODPROD, TGFITE.CONTROLE, TGFEST.DTVAL, TPRIATV.IDEFX " +
+                        "       ) X " +
+                        "       INNER JOIN TGFPRO PRO ON (PRO.CODPROD = X.CODPRODMP) " +
+                        " WHERE X.QTDNEG > 0 " +
+                        " GROUP BY X.CODPRODMP, X.CONTROLEMP";
+
+        queryFallback.nativeSelect(sqlMpFallback);
+
+        while (queryFallback.next()) {
+            BigDecimal codProdMp = queryFallback.getBigDecimal("CODPRODMP");
+            String controleMp = queryFallback.getString("CONTROLEMP");
+            BigDecimal qtd = queryFallback.getBigDecimal("QTD");
+            String codVol = queryFallback.getString("CODVOL");
+
+            if (codProdMp == null || qtd == null || qtd.compareTo(BigDecimal.ZERO) == 0) {
+                continue;
+            }
+
+            seqmpAtual = seqmpAtual.add(BigDecimal.ONE);
+            inserirItemMP(contexto, nuapo, seqapaFallback, seqmpAtual, codProdMp, controleMp, qtd, codVol);
+            mpsCriadas++;
+        }
+
+        queryFallback.close();
+
+        if (mpsCriadas > 0) {
+            return mpsCriadas;
+        }
+
+        // 2.3) Último recurso: relaxa o filtro de TIPMOV e considera qualquer movimento
+        //      de nota vinculado ao IDIPROC.
+        QueryExecutor queryRelax = contexto.getQuery();
+        queryRelax.setParam("IDIPROC", idiproc);
+
+        String sqlMpRelax =
+                "SELECT TGFITE.CODPROD AS CODPRODMP, " +
+                        "       TGFITE.CONTROLE AS CONTROLEMP, " +
+                        "       SUM(TGFITE.QTDNEG) AS QTD, " +
+                        "       COALESCE(MAX(TGFPRO.CODVOL), 'UN') AS CODVOL " +
+                        "  FROM TGFITE " +
+                        "  INNER JOIN TGFCAB ON (TGFITE.NUNOTA = TGFCAB.NUNOTA) " +
+                        "  INNER JOIN TGFPRO ON (TGFPRO.CODPROD = TGFITE.CODPROD) " +
+                        " WHERE TGFCAB.IDIPROC = {IDIPROC} " +
+                        "   AND TGFITE.SEQUENCIA > 0 " +
+                        " GROUP BY TGFITE.CODPROD, TGFITE.CONTROLE";
+
+        queryRelax.nativeSelect(sqlMpRelax);
+
+        while (queryRelax.next()) {
+            BigDecimal codProdMp = queryRelax.getBigDecimal("CODPRODMP");
+            String controleMp = queryRelax.getString("CONTROLEMP");
+            BigDecimal qtd = queryRelax.getBigDecimal("QTD");
+            String codVol = queryRelax.getString("CODVOL");
+
+            if (codProdMp == null || qtd == null || qtd.compareTo(BigDecimal.ZERO) == 0) {
+                continue;
+            }
+
+            seqmpAtual = seqmpAtual.add(BigDecimal.ONE);
+            inserirItemMP(contexto, nuapo, seqapaFallback, seqmpAtual, codProdMp, controleMp, qtd, codVol);
+            mpsCriadas++;
+        }
+
+        queryRelax.close();
         return mpsCriadas;
     }
 
@@ -613,7 +757,9 @@ public class CadastrarCabecApontamentoBTFromParam implements AcaoRotinaJava {
         query.setParam("CODLOCALBAIXA", codLocalBaixa);
         query.setParam("CODPRODMP", codProdMp);
         query.setParam("CODVOL", codVol != null ? codVol : "UN");
-        query.setParam("CONTROLEMP", controleMp);
+        // CONTROLEMP não pode ser nulo para as regras de certificação de TPRAMP.
+        // Usa espaço em branco quando não houver controle, compatível com as consultas nativas.
+        query.setParam("CONTROLEMP", (controleMp != null && !controleMp.trim().isEmpty()) ? controleMp : " ");
         query.setParam("NUAPO", nuapo);
         query.setParam("QTD", qtd);
         query.setParam("QTDPERDA", zero);
