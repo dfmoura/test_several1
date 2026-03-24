@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="template_etiquetas" pageWidth="283" pageHeight="227" columnWidth="283" leftMargin="0" rightMargin="0" topMargin="6" bottomMargin="3">
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="12"/>
+	<property name="ireport.definition"/>
+	<parameter name="NUNOTA" class="java.math.BigDecimal"/>
+	<queryString>
+		<![CDATA[SELECT *
+FROM (
+    SELECT
+        CAB.NUNOTA,
+        CAB.NUMNOTA,
+        PAR.NOMEPARC,
+        CAB.QTDVOL,
+        CAB.NUMNOTA AS CODIGOBARRAS,
+
+        EMP.RAZAOSOCIAL AS EMP_RAZAOSOCIAL,
+
+        ENDER.NOMEEND,
+        PAR.NUMEND,
+        PAR.COMPLEMENTO,
+        BAI.NOMEBAI,
+        CID.NOMECID,
+        CID.UF,
+
+        TRANS.NOMEPARC AS TRANS_NOMEPARC,
+
+        REV.IDREV,
+        SEP.CODAREASEP,
+
+
+        CASE WHEN SEP.CODAREASEP = 3 THEN TO_CHAR(ITE.CODPROD) END AS CODPROD_EXIBIR,
+        CASE WHEN SEP.CODAREASEP = 3 THEN PRO.DESCRPROD END AS DESCRPROD_EXIBIR,
+        CASE WHEN SEP.CODAREASEP = 3 THEN PRO.COMPLDESC END AS COMPLDESC_EXIBIR
+
+    FROM TGFCAB CAB
+
+    LEFT JOIN TGFPAR PAR ON PAR.CODPARC = CAB.CODPARC
+    LEFT JOIN TSIEND ENDER ON ENDER.CODEND = PAR.CODEND
+    LEFT JOIN TSIBAI BAI ON BAI.CODBAI = PAR.CODBAI
+    LEFT JOIN TSICID CID ON CID.CODCID = PAR.CODCID
+
+    LEFT JOIN TSIEMP EMP ON EMP.CODEMP = CAB.CODEMP
+    LEFT JOIN TGFPAR TRANS ON TRANS.CODPARC = CAB.CODPARCTRANSP
+
+    LEFT JOIN TGWREV REV ON REV.NUNOTA = CAB.NUNOTA
+    LEFT JOIN TGWSEP SEP ON SEP.NUSEPARACAO = REV.NUSEPARACAO
+
+
+    LEFT JOIN TGFITE ITE
+        ON ITE.NUNOTA = REV.NUNOTA
+       AND ITE.SEQUENCIA = REV.SEQUENCIA
+
+    LEFT JOIN TGFPRO PRO
+        ON PRO.CODPROD = ITE.CODPROD
+
+    WHERE CAB.NUNOTA = $P{NUNOTA}
+
+
+    ORDER BY
+        CASE WHEN SEP.CODAREASEP = 3 THEN 0 ELSE 1 END,
+        REV.SEQUENCIA
+)
+WHERE ROWNUM = 1]]>
+	</queryString>
+	<field name="CODPARC" class="java.math.BigDecimal"/>
+	<field name="NOMEPARC" class="java.lang.String"/>
+	<field name="NUNOTA" class="java.math.BigDecimal"/>
+	<field name="NUMNOTA" class="java.math.BigDecimal"/>
+	<field name="NUMPEDIDO" class="java.math.BigDecimal"/>
+	<field name="QTDVOL" class="java.math.BigDecimal"/>
+	<field name="RAZAOSOCIAL" class="java.lang.String"/>
+	<field name="TELEFONE" class="java.lang.String"/>
+	<field name="NUMEND" class="java.lang.String"/>
+	<field name="CEP" class="java.lang.String"/>
+	<field name="COMPLEMENTO" class="java.lang.String"/>
+	<field name="CAIXAPOSTAL" class="java.lang.String"/>
+	<field name="IDENTINSCESTAD" class="java.lang.String"/>
+	<field name="CGC_CPF" class="java.lang.String"/>
+	<field name="DTCAD" class="java.sql.Timestamp"/>
+	<field name="NOMECID" class="java.lang.String"/>
+	<field name="UF" class="java.lang.String"/>
+	<field name="NOMEEND" class="java.lang.String"/>
+	<field name="TIPO" class="java.lang.String"/>
+	<field name="NOMEBAI" class="java.lang.String"/>
+	<field name="CODREG" class="java.math.BigDecimal"/>
+	<field name="ENTREGA_NUM" class="java.lang.String"/>
+	<field name="ENTREGA_CEP" class="java.lang.String"/>
+	<field name="ENTREGA_COMPLEMENTO" class="java.lang.String"/>
+	<field name="ENTREGA_TIPO" class="java.lang.String"/>
+	<field name="ENTREGA_NOMEEND" class="java.lang.String"/>
+	<field name="ENTREGA_NOMEBAI" class="java.lang.String"/>
+	<field name="ENTREGA_NOMECID" class="java.lang.String"/>
+	<field name="ENTREGA_UF" class="java.lang.String"/>
+	<field name="RECEBE_NUM" class="java.lang.String"/>
+	<field name="RECEBE_COMPLEMENTO" class="java.lang.String"/>
+	<field name="RECEBE_CEP" class="java.lang.String"/>
+	<field name="RECEBE_TIPO" class="java.lang.String"/>
+	<field name="RECEBE_NOMEEND" class="java.lang.String"/>
+	<field name="RECEBE_NOMECID" class="java.lang.String"/>
+	<field name="RECEBE_UF" class="java.lang.String"/>
+	<field name="RECEBE_NOMEBAI" class="java.lang.String"/>
+	<field name="NOMECONTATO" class="java.lang.String"/>
+	<field name="CONTATO_NUM" class="java.lang.String"/>
+	<field name="CONTATO_COMPLEMENTO" class="java.lang.String"/>
+	<field name="CONTATO_CEP" class="java.lang.String"/>
+	<field name="CONTATO_TELEFONE" class="java.lang.String"/>
+	<field name="CONTATO_NOMEEND" class="java.lang.String"/>
+	<field name="CONTATO_TIPO" class="java.lang.String"/>
+	<field name="CONTATO_NOMEBAI" class="java.lang.String"/>
+	<field name="CONTATO_NOMECID" class="java.lang.String"/>
+	<field name="CONTATO_UF" class="java.lang.String"/>
+	<field name="EMP_RAZAOSOCIAL" class="java.lang.String"/>
+	<field name="EMP_TELEFONE" class="java.lang.String"/>
+	<field name="EMP_NOMEFANTASIA" class="java.lang.String"/>
+	<field name="EMP_NUMEND" class="java.lang.String"/>
+	<field name="EMP_EMAIL" class="java.lang.String"/>
+	<field name="EMP_NOMEEND" class="java.lang.String"/>
+	<field name="EMP_NOMEBAI" class="java.lang.String"/>
+	<field name="EMP_NOMECID" class="java.lang.String"/>
+	<field name="EMP_UF" class="java.lang.String"/>
+	<field name="TRANS_NOMEPARC" class="java.lang.String"/>
+	<field name="TRANS_RAZAOSOCIAL" class="java.lang.String"/>
+	<field name="TRANS_TELEFONE" class="java.lang.String"/>
+	<field name="SEQUENCIA" class="java.lang.Integer"/>
+	<field name="CODIGOBARRAS" class="java.lang.String"/>
+	<field name="IDREV" class="java.lang.String"/>
+	<field name="CODPROD_EXIBIR" class="java.lang.String"/>
+	<field name="DESCRPROD_EXIBIR" class="java.lang.String"/>
+	<field name="COMPLDESC_EXIBIR" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="204" splitType="Stretch">
+			<staticText>
+				<reportElement x="5" y="15" width="24" height="14"/>
+				<textElement>
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[OC:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="29" y="15" width="70" height="14"/>
+				<textElement>
+					<font size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[br.com.sankhya.jasperfuncs.Funcoes.pdes($P{REPORT_CONNECTION},"CAB.ORDEMCARGA", "TGFCAB CAB", "CAB.NUNOTA = " + $F{NUNOTA})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="123" y="15" width="33" height="24"/>
+				<textElement>
+					<font size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PED:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="5" y="29" width="75" height="13"/>
+				<textElement>
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Destinatário:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="5" y="43" width="268" height="12"/>
+				<textElement>
+					<font size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{NOMEPARC}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="5" y="58" width="28" height="12"/>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<text><![CDATA[Rua: ]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="33" y="58" width="245" height="12"/>
+				<textElement textAlignment="Left">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ENTREGA_NOMEEND} != null
+	? $F{ENTREGA_NOMEEND}
+		+ ($F{ENTREGA_NUM} != null ? ", " + $F{ENTREGA_NUM} : "")
+		+ ($F{ENTREGA_COMPLEMENTO} != null && $F{ENTREGA_COMPLEMENTO}.toString().trim().length() > 0 ? ", " + $F{ENTREGA_COMPLEMENTO} : "")
+: (
+	$F{NOMEEND} != null
+		? $F{NOMEEND}
+			+ ($F{NUMEND} != null ? ", " + $F{NUMEND} : "")
+			+ ($F{COMPLEMENTO} != null && $F{COMPLEMENTO}.toString().trim().length() > 0 ? ", " + $F{COMPLEMENTO} : "")
+		: ""
+)]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="5" y="69" width="268" height="10"/>
+				<textElement textAlignment="Left">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{ENTREGA_NOMEBAI} != null && $F{ENTREGA_NOMEBAI}.toString().trim().length() > 0
+	? $F{ENTREGA_NOMEBAI}
+	: (
+		$F{NOMEBAI} != null && !"ESTADOS".equalsIgnoreCase($F{NOMEBAI}.toString().trim())
+			? $F{NOMEBAI}
+			: ""
+	)]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="5" y="80" width="100" height="10"/>
+				<textElement textAlignment="Left">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[($F{ENTREGA_NOMECID} != null ? $F{ENTREGA_NOMECID} : ($F{NOMECID} != null ? $F{NOMECID} : ""))
++ (
+	$F{ENTREGA_UF} != null
+		? "-" + $F{ENTREGA_UF}
+		: ($F{UF} != null ? "-" + $F{UF} : "")
+)]]></textFieldExpression>
+			</textField>
+			<rectangle>
+				<reportElement x="0" y="90" width="283" height="39" backcolor="#000000"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="85" y="90" width="45" height="20" forecolor="#FFFFFF" backcolor="#000000"/>
+				<textElement verticalAlignment="Middle">
+					<font size="13" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Nota:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="85" y="110" width="61" height="19" forecolor="#FFFFFF" backcolor="#000000"/>
+				<textElement verticalAlignment="Middle">
+					<font size="13" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Volume:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="146" y="110" width="95" height="19" forecolor="#FFFFFF" backcolor="#000000"/>
+				<textElement verticalAlignment="Middle">
+					<font size="13" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[($F{SEQUENCIA} != null && $F{QTDVOL} != null) ? ($F{SEQUENCIA}.toString() + "/" + $F{QTDVOL}.toString()) : ($F{QTDVOL} != null ? $F{QTDVOL}.toString() : "")]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="129" width="278" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#000000"/>
+				</graphicElement>
+			</line>
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="158" width="268" height="15"/>
+				<textElement textAlignment="Center">
+					<font size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{TRANS_NOMEPARC}]]></textFieldExpression>
+			</textField>
+			<componentElement>
+				<reportElement x="5" y="131" width="254" height="30"/>
+				<jr:barbecue xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd" type="Code128" drawText="false" checksumRequired="false">
+					<jr:codeExpression><![CDATA[$F{CODIGOBARRAS} != null ? $F{CODIGOBARRAS} : ($F{NUNOTA} != null ? $F{NUNOTA}.toString() : "0")]]></jr:codeExpression>
+				</jr:barbecue>
+			</componentElement>
+			<staticText>
+				<reportElement x="105" y="80" width="6" height="10"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[-]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="111" y="80" width="160" height="10"/>
+				<textElement>
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[br.com.sankhya.jasperfuncs.Funcoes.pdes($P{REPORT_CONNECTION},"CEP","TGFPAR PAR","PAR.CODPARC = "+$F{CODPARC})]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="130" y="90" width="100" height="20" forecolor="#FFFFFF"/>
+				<textElement verticalAlignment="Middle">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUMNOTA}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="156" y="15" width="100" height="24"/>
+				<textElement>
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[br.com.sankhya.jasperfuncs.Funcoes.pdes($P{REPORT_CONNECTION}, "CAB.NUMNOTA",
+  "TGFCAB CAB INNER JOIN TGFVAR VAR ON VAR.NUNOTAORIG = CAB.NUNOTA",
+  "VAR.NUNOTA = " + $F{NUNOTA})]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="5" y="0" width="271" height="15"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{EMP_RAZAOSOCIAL}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="85" y="173" width="6" height="15"/>
+				<textElement>
+					<font size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[-]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="173" width="85" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CODPROD_EXIBIR}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="91" y="173" width="100" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRPROD_EXIBIR}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="191" y="173" width="92" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{COMPLDESC_EXIBIR}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

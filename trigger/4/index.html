@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Relatorio - Balanço Patrimonial e DRE</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__brand">
+        <img class="topbar__logo" src="./logo.png" alt="Logo" />
+        <div>
+          <div class="topbar__title">Gerador de Relatorio Financeiro</div>
+          <div class="topbar__subtitle">Upload ou Ctrl+V para interpretar e gerar o relatorio</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card">
+        <h2 class="card__title">1) Enviar dados</h2>
+        <p class="muted">
+          Aceita: <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>, <code>.txt</code>, <code>.json</code>. Você pode
+          fazer upload ou colar conteudo com <kbd>Ctrl</kbd>+<kbd>V</kbd>.
+        </p>
+
+        <div class="upload">
+          <div id="dropZone" class="upload__drop">
+            <div class="upload__icon">📁</div>
+            <div class="upload__text">
+              Arraste e solte os arquivos aqui
+              <div class="upload__hint">Ou selecione abaixo (pode ser um ou mais)</div>
+            </div>
+            <div class="upload__actions">
+              <input id="fileInput" type="file" multiple accept=".xlsx,.xls,.csv,.txt,.json" />
+              <button id="chooseFilesBtn" class="btn btn--primary" type="button">Selecionar arquivos</button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="paste">
+            <div class="paste__label">Colar dados (Ctrl+V)</div>
+            <textarea
+              id="pasteBox"
+              class="textarea"
+              rows="10"
+              placeholder="Cole tabelas/valores textuais, CSV/TSV, ou JSON aqui..."
+            ></textarea>
+            <div class="paste__actions">
+              <button id="usePasteBtn" class="btn" type="button">Adicionar conteudo colado</button>
+              <button id="clearPasteBtn" class="btn btn--ghost" type="button">Limpar</button>
+            </div>
+            <div class="muted small">
+              Dica: se voce colar CSV/TSV com cabecalho, tentaremos transformar em tabelas automaticamente.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card__title">2) Revisar e classificar</h2>
+        <div class="muted small">O sistema tenta classificar automaticamente pelo nome do arquivo (você pode ajustar).</div>
+
+        <div id="inputsTableWrap" class="table-wrap">
+          <table id="inputsTable" class="table">
+            <thead>
+              <tr>
+                <th>Fonte</th>
+                <th>Tipo</th>
+                <th>Resumo dos dados</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label class="label">Incluir no relatorio</label>
+            <div class="checks">
+              <label class="check"><input type="checkbox" id="includeBalance" checked /> Balanço Patrimonial</label>
+              <label class="check"><input type="checkbox" id="includeIncome" checked /> Demonstração de Resultado (DRE)</label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="maxRows">Amostra por arquivo (linhas)</label>
+            <input id="maxRows" class="input" type="number" min="1" max="200" value="25" />
+          </div>
+        </div>
+
+        <div class="row row--end">
+          <button id="parseBtn" class="btn btn--primary" type="button">Preparar contexto</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card__title">3) Gerar relatorio de indicadores</h2>
+
+        <div class="grid-2">
+          <div class="field">
+            <label class="label" for="openaiKey">Token OpenAI (opcional)</label>
+            <input id="openaiKey" class="input" type="password" placeholder="Opcional — deixe vazio para calculo local" />
+            <div class="muted small">
+              Os indicadores sao calculados localmente sem necessidade de API key. O token e usado apenas para gerar uma narrativa adicional via ChatGPT.
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="model">Modelo</label>
+            <select id="model" class="input">
+              <option value="gpt-4o-mini" selected>gpt-4o-mini</option>
+              <option value="gpt-4o">gpt-4o</option>
+              <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+              <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+            </select>
+            <div class="muted small">Se o seu modelo estiver indisponível, altere aqui.</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="promptExtra">Instrucoes adicionais (opcional)</label>
+          <textarea
+            id="promptExtra"
+            class="textarea textarea--sm"
+            rows="4"
+            placeholder="Ex.: focar em liquidez e endividamento; indicar riscos; sugerir melhorias..."
+          ></textarea>
+        </div>
+
+        <div class="row row--end">
+          <button id="generateBtn" class="btn btn--primary" type="button" disabled>Calcular e Gerar relatorio</button>
+        </div>
+
+        <div id="statusBox" class="statusBox" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="card" id="reportCard" hidden>
+        <h2 class="card__title">Relatorio gerado</h2>
+        <div class="row row--between">
+          <div class="muted small">Inclui a `logo.png` no cabeçalho.</div>
+          <div class="row row--end">
+            <button id="downloadBtn" class="btn btn--ghost" type="button">Download (HTML)</button>
+            <button id="printBtn" class="btn" type="button">Gerar PDF</button>
+          </div>
+        </div>
+        <div id="reportContainer" class="report"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="muted small">
+        Inicie com `node server.mjs` na pasta `trigger/4` e abra `http://localhost:8080`.
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
+

@@ -1,0 +1,37 @@
+	FÓRMULA
+LIQUIDEZ	
+(LC) Liquidez corrente	AC/PC
+(LS) Liquidez seca	(AC - ESTOQUE) / PC
+(LG) Liquidez geral	(AC + RLP) / (PC + PNC)
+(LI) Liquidez imediata	DISPONIBILIDADE / PC
+ESTRUTURA DE CAPITAL	
+(EG) Endividamento geral	((PC + PNC) / (AC + ANC)) * 100
+(PCT) Participação de capital de terceiros	((PC + PNC) / PL) * 100
+(CE) Composição do endividamento	(PC / (PC + PNC)) * 100
+(IPL) Imobilização do patrimônio líquido	((ANC - RLP) / PL) * 100
+(IRNC) Imobilização do recurso não corrente	((ANC - RLP) / (PNC + PL)) * 100
+(DL) Dívida líquida	(PC + PNC) - DISPONIBILIDADES 
+(DB) Dívida bruta	PC + PNC
+(EO) Endividamento oneroso	(EMPRÉSTIMO + FINANCIAMENTO) / ATIVO TOTAL
+(SG) Solvência geral	ATIVO / (PC + PNC)
+RENTABILIDADE	
+(MB) Margem bruta	(lucro bruto / receita líquida) * 100
+(ML) Margem líquida	(lucro líquido / receita líquida) * 100
+(MO) Margem operacional	(lucro operacional / receita líquida) * 100
+(EBT) Ebitda	lucro operacional + depreciação + amortização
+(MEBT) Margem ebitida	(ebitda / faturamento) * 100
+(LUC) Lucratividade	(lucro líquido / receita bruta) x 100
+(ROE) Retorno sobre o patrimônio	(lucro líquido) / PL) * 100
+(ROA) Retorno sobre o ativo	((lucro líquido / ativo total)) * 100
+(MC) Margem de contribuição	(receita líquida - CSP)
+
+
+
+
+-----
+AC = Ativo Circulante
+PC = Passivo Circulante
+PNC = Passivo não Circulante
+ANC = Ativo não Circulante
+PL = Patrimônio Líquido
+RLP = Realizavel a longo prazo
