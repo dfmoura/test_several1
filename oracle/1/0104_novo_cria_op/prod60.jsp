@@ -1,0 +1,4286 @@
+<!DOCTYPE html>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Sistema de Controle de Produção</title>
+    <script src="https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+      /* Layout e componentes priorizam mobile (mobile-first); breakpoints apenas para telas maiores */
+      :root {
+        --verde-escuro: #14532d;
+        --verde-medio: #22c55e;
+        --verde-claro: #bbf7d0;
+        --verde-hover: #16a34a;
+        --cinza-fundo: #f6fef9;
+        --cinza-tabela: #e5e7eb;
+        --cinza-borda: #d1fae5;
+        --cinza-texto: #374151;
+        --branco: #fff;
+        --vermelho: #ef4444;
+        --amarelo: #facc15;
+        --sombra: 0 2px 8px rgba(20, 83, 45, 0.08);
+      }
+
+      html {
+        font-size: 14px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: var(--cinza-fundo);
+        color: var(--cinza-texto);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+      }
+
+      /* Header fixo */
+      header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: var(--verde-escuro);
+        color: var(--branco);
+        display: flex;
+        align-items: center;
+        height: 60px;
+        box-shadow: var(--sombra);
+        z-index: 100;
+        padding: 0 12px;
+      }
+
+      .header-icon {
+        width: 32px;
+        height: 32px;
+        margin-right: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .header-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        flex: 1;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .filtro-btn {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--branco);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(8px);
+        white-space: nowrap;
+      }
+
+      .filtro-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-1px);
+      }
+
+      .filtro-btn.ativo {
+        background: var(--verde-medio);
+        color: var(--branco);
+        border-color: var(--verde-medio);
+        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+      }
+
+      .refresh-btn {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.08),
+          rgba(255, 255, 255, 0.02)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--branco);
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0.8;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .refresh-btn:hover {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.15),
+          rgba(255, 255, 255, 0.05)
+        );
+        border-color: rgba(255, 255, 255, 0.25);
+        opacity: 1;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .refresh-btn:active {
+        transform: translateY(0px) scale(0.95);
+      }
+
+      /* Main content */
+      main {
+        flex: 1 1 auto;
+        margin-top: 60px;
+        margin-bottom: 70px;
+        padding: 12px;
+        max-width: 800px;
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Tabela de operações */
+      .tabela-op {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: var(--branco);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--sombra);
+        margin-bottom: 16px;
+      }
+
+      .tabela-op thead {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+
+      .tabela-op th,
+      .tabela-op td {
+        padding: 10px 6px;
+        text-align: left;
+        font-size: 0.95rem;
+        border-right: 1px solid var(--cinza-tabela);
+      }
+
+      .tabela-op th:last-child,
+      .tabela-op td:last-child {
+        border-right: none;
+      }
+
+      .tabela-op th {
+        background: var(--verde-claro);
+        color: var(--verde-escuro);
+        font-weight: 600;
+        border-bottom: 2px solid var(--cinza-borda);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+      }
+
+      .tabela-op tr {
+        border-bottom: 1px solid var(--cinza-tabela);
+        transition: background 0.15s;
+      }
+
+      .tabela-op tr[data-clicavel="true"]:hover,
+      .tabela-op tr[data-row-clicavel]:hover {
+        background: var(--verde-claro);
+        cursor: pointer;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+      }
+
+      .tabela-op tr[data-clicavel="true"]:active,
+      .tabela-op tr[data-row-clicavel]:active {
+        transform: translateY(0px);
+      }
+
+      .tabela-op td {
+        color: var(--cinza-texto);
+      }
+
+      .tabela-op tr:last-child {
+        border-bottom: none;
+      }
+
+      .tabela-op tfoot {
+        background: var(--cinza-fundo);
+      }
+
+      .tabela-op tfoot td {
+        padding: 8px 6px;
+        font-size: 0.85rem;
+        color: var(--cinza-texto);
+        font-weight: 500;
+        text-align: right;
+        border-top: 1px solid var(--cinza-borda);
+        opacity: 0.8;
+      }
+
+      .sem-registros {
+        text-align: center;
+        color: var(--verde-escuro);
+        padding: 40px 20px;
+        font-size: 1.1rem;
+        background: var(--branco);
+        border-radius: 12px;
+        box-shadow: var(--sombra);
+      }
+
+      /* Footer fixo */
+      footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 70px;
+        background: var(--verde-escuro);
+        color: var(--branco);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        font-weight: 500;
+        box-shadow: 0 -2px 8px rgba(20, 83, 45, 0.08);
+        z-index: 100;
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+      }
+
+      /* Responsividade */
+      @media (max-width: 480px) {
+        header {
+          padding: 0 8px;
+          height: 56px;
+        }
+
+        .header-title {
+          font-size: 1.1rem;
+        }
+
+        .filtro-btn {
+          padding: 6px 12px;
+          font-size: 0.8rem;
+        }
+
+        .refresh-btn {
+          width: 32px;
+          height: 32px;
+        }
+
+        main {
+          margin-top: 56px;
+          padding: 8px;
+        }
+
+        .tabela-op th,
+        .tabela-op td {
+          padding: 8px 4px;
+          font-size: 0.85rem;
+        }
+      }
+
+      /* Overlay detalhe do registro - mobile first */
+      .overlay-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 83, 45, 0.4);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        z-index: 200;
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 0;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+      }
+
+      .overlay-backdrop.ativo {
+        display: flex;
+        opacity: 1;
+      }
+
+      .overlay-panel {
+        background: var(--branco);
+        width: 100%;
+        max-width: 100%;
+        max-height: 92dvh;
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        box-shadow: 0 -4px 24px rgba(20, 83, 45, 0.15);
+        display: flex;
+        flex-direction: column;
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+      }
+
+      @supports not (max-height: 92dvh) {
+        .overlay-panel {
+          max-height: 92vh;
+        }
+      }
+
+      .overlay-backdrop.ativo .overlay-panel {
+        transform: translateY(0);
+      }
+
+      .overlay-handle {
+        padding: 10px 0 6px;
+        display: flex;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .overlay-handle::before {
+        content: "";
+        width: 40px;
+        height: 4px;
+        background: var(--cinza-tabela);
+        border-radius: 2px;
+      }
+
+      .overlay-header {
+        padding: 8px 16px 12px;
+        border-bottom: 1px solid var(--cinza-borda);
+        flex-shrink: 0;
+      }
+
+      .overlay-titulo {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--verde-escuro);
+      }
+
+      .overlay-body {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 16px;
+        padding-bottom: 24px;
+      }
+
+      .detalhe-item {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--cinza-borda);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .detalhe-item:last-of-type {
+        border-bottom: none;
+      }
+
+      .detalhe-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--verde-escuro);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .detalhe-valor {
+        font-size: 0.95rem;
+        color: var(--cinza-texto);
+        line-height: 1.4;
+        word-break: break-word;
+      }
+
+      .overlay-actions {
+        padding: 16px;
+        padding-bottom: max(16px, env(safe-area-inset-bottom));
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex-shrink: 0;
+        border-top: 1px solid var(--cinza-borda);
+        background: var(--cinza-fundo);
+      }
+
+      .overlay-btn {
+        width: 100%;
+        min-height: 48px; /* alvo de toque >= 44px para mobile */
+        padding: 14px 20px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+
+      .overlay-btn-fechar {
+        background: var(--branco);
+        color: var(--cinza-texto);
+        border: 2px solid var(--cinza-tabela);
+      }
+
+      .overlay-btn-fechar:hover,
+      .overlay-btn-fechar:active {
+        background: var(--cinza-tabela);
+        color: var(--verde-escuro);
+      }
+
+      .overlay-btn-acao {
+        background: var(--verde-medio);
+        color: var(--branco);
+        border: 2px solid var(--verde-medio);
+      }
+
+      .overlay-btn-acao.parar {
+        background: var(--vermelho);
+        border-color: var(--vermelho);
+      }
+
+      .overlay-btn-acao.parar:hover,
+      .overlay-btn-acao.parar:active {
+        background: #dc2626;
+        border-color: #dc2626;
+      }
+
+      .overlay-btn-acao:hover,
+      .overlay-btn-acao:active {
+        background: var(--verde-hover);
+        border-color: var(--verde-hover);
+        transform: translateY(-1px);
+      }
+
+      .overlay-observacao {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--cinza-tabela);
+      }
+
+      .overlay-actions .overlay-observacao {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+        width: 100%;
+      }
+
+      .overlay-observacao .detalhe-label {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .overlay-observacao textarea {
+        width: 100%;
+        min-height: 72px;
+        padding: 10px 12px;
+        border: 1px solid var(--cinza-tabela);
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        resize: vertical;
+        box-sizing: border-box;
+      }
+
+      .overlay-observacao.revelada {
+        animation: overlayObsParadaIn 0.22s ease;
+      }
+
+      @keyframes overlayObsParadaIn {
+        from {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (min-width: 481px) {
+        .overlay-backdrop {
+          align-items: flex-end;
+          padding: 0;
+        }
+
+        .overlay-panel {
+          width: 100%;
+          max-width: 100%;
+          max-height: 100dvh;
+          height: 100dvh;
+          border-radius: 0;
+        }
+
+        .overlay-backdrop.ativo .overlay-panel {
+          transform: translateY(0);
+        }
+
+        .overlay-handle {
+          padding: 8px 0 4px;
+        }
+      }
+
+      @supports not (height: 100dvh) {
+        @media (min-width: 481px) {
+          .overlay-panel {
+            max-height: 100vh;
+            height: 100vh;
+          }
+        }
+      }
+
+      /* Abas dentro do overlay (Geral / Apontamentos / Execuções) */
+      .overlay-tabs {
+        margin-top: 12px;
+      }
+
+      .overlay-geral-cabecalho {
+        margin-top: 12px;
+      }
+
+      .overlay-geral-cabecalho .overlay-campos-grid {
+        gap: 6px;
+      }
+
+      .overlay-geral-cabecalho .overlay-campo input {
+        padding: 5px 7px;
+        font-size: 0.82rem;
+      }
+
+      .overlay-tabs-header {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid var(--cinza-borda);
+        padding-bottom: 4px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .overlay-tab-button {
+        flex: 1;
+        white-space: nowrap;
+        padding: 8px 10px;
+        font-size: 0.85rem;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--cinza-texto);
+        font-weight: 500;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .overlay-tab-button.ativo {
+        background: var(--verde-claro);
+        color: var(--verde-escuro);
+        border-color: var(--verde-medio);
+      }
+
+      .overlay-tabs-content {
+        margin-top: 4px;
+      }
+
+      .overlay-tab-content {
+        display: none;
+      }
+
+      .overlay-tab-content.ativo {
+        display: block;
+      }
+
+      /* Balanças (AD_DETBALANCAS) na guia Geral */
+      .balancas-container {
+        margin-top: 12px;
+        padding-top: 8px;
+        border-top: 1px solid var(--cinza-borda);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .balancas-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .balancas-titulo {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--verde-escuro);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .balancas-badge {
+        background: var(--verde-claro);
+        color: var(--verde-escuro);
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .balancas-btn-abrir {
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--verde-medio);
+        background: var(--verde-medio);
+        color: var(--branco);
+        font-size: 0.8rem;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .balancas-btn-abrir:hover {
+        background: var(--verde-hover);
+      }
+
+      .balancas-lista {
+        border-radius: 8px;
+        border: 1px solid var(--cinza-borda);
+        background: var(--branco);
+        max-height: 180px;
+        overflow-y: auto;
+      }
+
+      .balancas-tabela {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+      }
+
+      .balancas-tabela th,
+      .balancas-tabela td {
+        padding: 4px 6px;
+        border-bottom: 1px solid var(--cinza-tabela);
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      .balancas-tabela th {
+        background: var(--verde-claro);
+        color: var(--verde-escuro);
+        position: sticky;
+        top: 0;
+        font-weight: 600;
+      }
+
+      .balancas-vazia {
+        padding: 6px 8px;
+        font-size: 0.8rem;
+        color: var(--cinza-texto);
+        opacity: 0.8;
+      }
+
+      .overlay-balancas-select {
+        width: 100%;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--cinza-tabela);
+        font-size: 0.9rem;
+        background: #f9fafb;
+        color: var(--cinza-texto);
+      }
+
+      .overlay-balancas-info {
+        font-size: 0.8rem;
+        color: var(--cinza-texto);
+        margin-bottom: 8px;
+      }
+
+      .overlay-campos-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .overlay-campo {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .overlay-campo label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--verde-escuro);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .overlay-campo input {
+        width: 100%;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--cinza-tabela);
+        font-size: 0.9rem;
+        background: #f9fafb;
+        color: var(--cinza-texto);
+      }
+
+      .overlay-campo input:disabled {
+        opacity: 0.9;
+        cursor: not-allowed;
+      }
+
+      @media (min-width: 420px) {
+        .overlay-campos-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      /* Tabela Execuções (TPREIATV) – compacta e mobile */
+      .overlay-execucoes-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-top: 4px;
+        max-height: 50vh;
+        overflow-y: auto;
+      }
+      .overlay-tabela-execucoes {
+        width: 100%;
+        min-width: 320px;
+        border-collapse: collapse;
+        font-size: 0.7rem;
+        background: var(--branco);
+        border-radius: 8px;
+        border: 1px solid var(--cinza-borda);
+      }
+      .overlay-tabela-execucoes th,
+      .overlay-tabela-execucoes td {
+        padding: 4px 6px;
+        text-align: left;
+        border-bottom: 1px solid var(--cinza-tabela);
+        white-space: nowrap;
+      }
+      .overlay-tabela-execucoes th {
+        background: var(--verde-claro);
+        color: var(--verde-escuro);
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+      }
+      .overlay-tabela-execucoes td {
+        color: var(--cinza-texto);
+      }
+      .overlay-tabela-execucoes input.overlay-exec-input {
+        width: 100%;
+        min-width: 0;
+        padding: 2px 4px;
+        font-size: 0.7rem;
+        border: 1px solid var(--cinza-tabela);
+        border-radius: 4px;
+        background: #f9fafb;
+        color: var(--cinza-texto);
+      }
+      .overlay-tabela-execucoes input.overlay-exec-input:disabled {
+        opacity: 0.95;
+        cursor: default;
+      }
+      .overlay-execucoes-placeholder {
+        font-size: 0.85rem;
+        color: var(--cinza-texto);
+        opacity: 0.8;
+        margin: 0;
+        padding: 8px 0;
+      }
+
+      /* Guia Apontamentos: botão Gerar Apontamento, confirmação e níveis sequenciais (mobile-first) */
+      .apontamentos-acoes {
+        margin-bottom: 12px;
+      }
+      .btn-gerar-apontamento {
+        width: 100%;
+        max-width: 220px;
+      }
+      .apontamentos-container { margin-top: 6px; }
+      .apontamentos-nivel { display: none; }
+      .apontamentos-nivel.ativo { display: block; }
+      .apontamentos-voltar {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        font-size: 0.85rem;
+        color: var(--verde-escuro);
+        background: transparent;
+        border: 1px solid var(--verde-medio);
+        border-radius: 8px;
+        cursor: pointer;
+        margin-bottom: 10px;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .apontamentos-voltar:hover { background: var(--verde-claro); }
+      .apontamentos-titulo-nivel {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--verde-escuro);
+        margin-bottom: 8px;
+      }
+      .apontamentos-placeholder {
+        font-size: 0.85rem;
+        color: var(--cinza-texto);
+        opacity: 0.8;
+        padding: 12px 0;
+      }
+      .apontamentos-tabela-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-top: 6px;
+        max-height: 45vh;
+        overflow-y: auto;
+        border-radius: 8px;
+        border: 1px solid var(--cinza-borda);
+        background: var(--branco);
+      }
+      .apontamentos-tabela {
+        width: 100%;
+        min-width: 280px;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+      }
+      .apontamentos-tabela th,
+      .apontamentos-tabela td {
+        padding: 8px 6px;
+        text-align: left;
+        border-bottom: 1px solid var(--cinza-tabela);
+      }
+      .apontamentos-tabela th {
+        background: var(--verde-claro);
+        color: var(--verde-escuro);
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        white-space: nowrap;
+      }
+      .apontamentos-tabela td { color: var(--cinza-texto); }
+      /* Oculta NUAPO e SEQAPA nas grades de Itens e Materiais,
+         mantendo os dados para navegação e integrações */
+      #apontamentosTabelaItens th:nth-child(1),
+      #apontamentosTabelaItens td:nth-child(1),
+      #apontamentosTabelaItens th:nth-child(2),
+      #apontamentosTabelaItens td:nth-child(2),
+      #apontamentosTabelaMateriais th:nth-child(1),
+      #apontamentosTabelaMateriais td:nth-child(1),
+      #apontamentosTabelaMateriais th:nth-child(2),
+      #apontamentosTabelaMateriais td:nth-child(2) {
+        display: none;
+      }
+      .apontamentos-tabela tr[data-clicavel="true"]:hover {
+        background: var(--verde-claro);
+        cursor: pointer;
+      }
+      .apontamentos-btn-confirmar {
+        font-size: 0.75rem;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--verde-medio);
+        background: var(--branco);
+        color: var(--verde-escuro);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .apontamentos-btn-confirmar:hover {
+        background: var(--verde-claro);
+      }
+      .apontamentos-btn-confirmar[disabled] {
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      /* Visão expandida (todos os apontamentos com itens e materiais visíveis) */
+      .apont-stack-exp {
+        margin-top: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .apont-exp-loading,
+      .apont-exp-err {
+        font-size: 0.85rem;
+        color: var(--cinza-texto);
+        padding: 10px 0;
+      }
+      .apont-exp-card {
+        border: 1px solid var(--cinza-borda);
+        border-radius: 10px;
+        background: linear-gradient(180deg, var(--branco) 0%, rgba(245, 250, 246, 0.35) 100%);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+      }
+      .apont-exp-card-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+        padding: 10px 12px;
+        background: var(--verde-claro);
+        border-bottom: 1px solid var(--cinza-borda);
+      }
+      .apont-exp-card-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--verde-escuro);
+      }
+      .apont-exp-card-meta {
+        font-size: 0.8rem;
+        color: var(--cinza-texto);
+      }
+      .apont-exp-card-sit {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--verde-escuro);
+        margin-left: auto;
+      }
+      .apont-exp-itens {
+        padding: 10px 12px 12px;
+      }
+      .apont-exp-item-bloco {
+        margin-top: 12px;
+        padding-left: 10px;
+        border-left: 3px solid var(--verde-medio);
+      }
+      .apont-exp-item-bloco:first-child {
+        margin-top: 0;
+      }
+      .apont-exp-item-resumo {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--verde-escuro);
+        margin-bottom: 6px;
+      }
+      .apont-exp-mat-wrap {
+        max-height: 32vh;
+        margin-top: 4px;
+      }
+      .apont-exp-tabela-mat {
+        font-size: 0.78rem;
+      }
+      .apont-exp-tabela-mat th {
+        font-size: 0.75rem;
+      }
+      .apont-exp-empty {
+        font-size: 0.82rem;
+        color: var(--cinza-texto);
+        opacity: 0.85;
+        margin: 4px 0;
+      }
+      .apont-exp-mini-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        font-size: 0.78rem;
+        color: var(--cinza-texto);
+        margin-bottom: 8px;
+      }
+      .apont-exp-kv b {
+        color: var(--verde-escuro);
+        font-weight: 600;
+        margin-right: 4px;
+      }
+      .apont-exp-subtitulo-mat {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--verde-escuro);
+        margin: 8px 0 4px;
+      }
+
+      /* Detalhamento de materiais (AD_TPRAMPITE) */
+      .overlay-resumo-quantidades {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+      .overlay-resumo-quantidades span {
+        display: block;
+      }
+      .overlay-resumo-qtd-pai {
+        font-weight: 600;
+        color: var(--verde-escuro);
+      }
+      .overlay-resumo-qtd-det {
+        font-weight: 600;
+      }
+      .overlay-resumo-qtd-det.ok {
+        color: var(--verde-medio);
+      }
+      .overlay-resumo-qtd-det.warn {
+        color: var(--amarelo);
+      }
+      .overlay-resumo-qtd-det.err {
+        color: var(--vermelho);
+      }
+      .overlay-resumo-qtd-dif {
+        font-size: 0.8rem;
+        opacity: 0.85;
+      }
+      .btn-det-tpramp {
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: none;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--verde-claro);
+        color: var(--verde-escuro);
+        -webkit-tap-highlight-color: transparent;
+        white-space: nowrap;
+      }
+      .btn-det-tpramp:hover,
+      .btn-det-tpramp:active {
+        background: var(--verde-medio);
+        color: var(--branco);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header fixo -->
+    <header>
+      <span class="header-icon" aria-label="Menu">
+        <svg
+          width="24"
+          height="24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M8 12h8M12 8v8" />
+        </svg>
+      </span>
+      <span class="header-title">OP's</span>
+      <div class="header-actions">
+        <button class="filtro-btn ativo" data-situacao="Agd. Aceite">
+          Agd. Aceite
+        </button>
+        <button class="filtro-btn" data-situacao="Iniciadas">Iniciadas</button>
+        <button class="filtro-btn" data-situacao="Paradas">Paradas</button>
+        <button
+          class="refresh-btn"
+          onclick="atualizarTabela()"
+          title="Atualizar tabela"
+          aria-label="Atualizar tabela"
+        >
+          <svg
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 1v6" />
+            <path d="M12 17v6" />
+            <path d="M4.93 4.93l4.24 4.24" />
+            <path d="M16.24 16.24l4.24 4.24" />
+            <path d="M1 12h6" />
+            <path d="M17 12h6" />
+            <path d="M4.93 19.07l4.24-4.24" />
+            <path d="M16.24 7.76l4.24-4.24" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main>
+      <!-- Tabela de operações -->
+      <table class="tabela-op" id="tabelaOp">
+        <thead>
+          <tr>
+            <th>OP</th>
+            <th>Data</th>
+            <th>Produto</th>
+            <th>Qtd. Produzir</th>
+            <th>Lote</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyOp">
+          <!-- Linhas geradas via JS -->
+        </tbody>
+        <tfoot id="tfootTotal" style="display: none">
+          <tr>
+            <td colspan="5"></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="sem-registros" id="semRegistros" style="display: none">
+        Nenhuma operação encontrada.
+      </div>
+    </main>
+
+    <!-- Footer fixo -->
+    <footer>Sistema de Controle de Produção &copy;</footer>
+
+    <!-- Overlay detalhe do registro (mobile first) -->
+    <div class="overlay-backdrop" id="overlayDetalhe" role="dialog" aria-modal="true" aria-labelledby="overlayTitulo">
+      <div class="overlay-panel" id="overlayPanel">
+        <div class="overlay-handle" aria-hidden="true"></div>
+        <div class="overlay-header">
+          <h2 class="overlay-titulo" id="overlayTitulo">Detalhe da operação</h2>
+        </div>
+        <div class="overlay-body" id="overlayBody">
+          <!-- Preenchido via JS -->
+        </div>
+        <div class="overlay-actions" id="overlayActions">
+          <button type="button" class="overlay-btn overlay-btn-acao" id="overlayBtnConfirmarApontamento" style="display: none;">Confirmar</button>
+          <button type="button" class="overlay-btn overlay-btn-acao" id="overlayBtnAcao" style="display: none;">Ação</button>
+          <div class="overlay-observacao" id="overlayObservacaoParada" style="display: none" aria-hidden="true">
+            <span class="detalhe-label">OBSERVAÇÃO PARA A PARADA (OPCIONAL)</span>
+            <textarea id="inputObservacaoParada" placeholder="Ex.: troca de ferramenta, manutenção..." maxlength="500"></textarea>
+          </div>
+          <button type="button" class="overlay-btn overlay-btn-acao" id="overlayBtnIniciar" style="display: none;">Iniciar</button>
+          <button type="button" class="overlay-btn overlay-btn-fechar" id="overlayBtnFechar">Fechar</button>
+          <button type="button" class="overlay-btn overlay-btn-acao" id="overlayBtnRelatorio">Relatório</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay detalhamento de materiais (TPRAMP x AD_TPRAMPITE) -->
+    <div
+      class="overlay-backdrop"
+      id="overlayDetTpramp"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="overlayDetTprampTitulo"
+    >
+      <div class="overlay-panel" id="overlayDetTprampPanel">
+        <div class="overlay-handle" aria-hidden="true"></div>
+        <div class="overlay-header">
+          <h2 class="overlay-titulo" id="overlayDetTprampTitulo">
+            Detalhamento do material
+          </h2>
+        </div>
+        <div class="overlay-body" id="overlayDetTprampBody">
+          <!-- Preenchido via JS -->
+        </div>
+        <div class="overlay-actions">
+          <button
+            type="button"
+            class="overlay-btn overlay-btn-fechar"
+            id="overlayDetTprampBtnFechar"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay cadastro de balanças (AD_DETBALANCAS) -->
+    <div
+      class="overlay-backdrop"
+      id="overlayBalancas"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="overlayBalancasTitulo"
+    >
+      <div class="overlay-panel" id="overlayBalancasPanel">
+        <div class="overlay-handle" aria-hidden="true"></div>
+        <div class="overlay-header">
+          <h2 class="overlay-titulo" id="overlayBalancasTitulo">
+            Cadastrar balança na operação
+          </h2>
+        </div>
+        <div class="overlay-body" id="overlayBalancasBody">
+          <!-- Preenchido via JS -->
+        </div>
+        <div class="overlay-actions">
+          <button
+            type="button"
+            class="overlay-btn overlay-btn-acao"
+            id="overlayBalancasBtnSalvar"
+          >
+            Salvar
+          </button>
+          <button
+            type="button"
+            class="overlay-btn overlay-btn-fechar"
+            id="overlayBalancasBtnFechar"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- Configuração para acionar botões Java no Sankhya (componente HTML5) ---
+      // Botão "Continuar produção" (guia Paradas): classe ContinuarProducaoBTFromParam,
+      // que recebe parâmetro IDIPROC via JX.acionarBotao. Cadastre no Sankhya e use o ID aqui.
+      const ID_BOTAO_CONTINUAR_PRODUCAO = 300;
+      // Botão "Parar a produção" (guia Iniciadas): classe PararProducaoBTFromParam,
+      // que recebe parâmetro IDIPROC via JX.acionarBotao. Cadastre no Sankhya e use o ID aqui.
+      const ID_BOTAO_PARAR_PRODUCAO = 299;
+      // Botão "Gerar Apontamento" (guia Apontamentos, overlay Iniciadas): classe CadastrarCabecApontamentoBTFromParam,
+      // que recebe parâmetro IDIPROC via JX.acionarBotao. Cadastre no Sankhya e use o ID aqui.
+      const ID_BOTAO_GERAR_APONTAMENTO = 301;
+      // Botão "Confirmar Apontamento" (guia Apontamentos, overlay Iniciadas): classe ConfirmarApontamentoBTFromParam,
+      // que recebe parâmetro NUAPO via JX.acionarBotao. Cadastre no Sankhya e use o ID aqui.
+      const ID_BOTAO_CONFIRMAR_APONTAMENTO = 303;
+      // Botão "Iniciar produção" (guia Agd. Aceite): classe IniciarProducaoBTFromParam,
+      // que recebe parâmetros IDIPROC e IDIATV via JX.acionarBotao. Cadastre no Sankhya e use o ID aqui.
+      const ID_BOTAO_INICIAR_PRODUCAO = 304;
+
+      // Estado global
+      let filtroAtual = "Agd. Aceite";
+      let operacoes = [];
+
+      // Função para formatar data no padrão brasileiro
+      function formatarData(dataStr) {
+        if (!dataStr) return "";
+        try {
+          const data = new Date(dataStr);
+          if (isNaN(data.getTime())) {
+            return dataStr;
+          }
+          return data.toLocaleDateString("pt-BR");
+        } catch (error) {
+          return dataStr;
+        }
+      }
+
+      // Função para carregar operações aguardando aceite usando SankhyaJX
+      async function carregarOperacoesAguardandoAceite() {
+        try {
+          // Verificar se SankhyaJX está disponível
+          if (typeof JX === "undefined" || !JX.consultar) {
+            console.error("SankhyaJX não está disponível");
+            mostrarErro("Biblioteca SankhyaJX não está disponível");
+            return;
+          }
+
+          const sql = `
+            SELECT 
+                IDIPROC,
+                IDIATV,
+                CODWCP,
+                NOMEWCP,
+                TO_CHAR(DHINCLUSAO, 'DD/MM/YYYY') AS DTFAB,
+                CODPRODPA,
+                DESCRPROD,
+                NROLOTE,
+                QTDPRODUZIR
+            FROM (
+                SELECT 
+                    TPRIATV.IDIPROC AS IDIPROC,
+                    TPRIATV.IDIATV AS IDIATV,
+                    TPRIATV.CODWCP AS CODWCP,
+                    TPRWCP.NOME AS NOMEWCP,
+                    TPRIATV.DHINCLUSAO AS DHINCLUSAO,
+                    TPRIPA.CODPRODPA,
+                    TGFPRO.DESCRPROD,
+                    TPRIPA.NROLOTE,
+                    TPRIPA.QTDPRODUZIR
+                FROM TPRIATV
+                LEFT JOIN TPRIPA ON TPRIATV.IDIPROC = TPRIPA.IDIPROC
+                LEFT JOIN TGFPRO ON TPRIPA.CODPRODPA = TGFPRO.CODPROD
+                LEFT JOIN TPRWCP ON TPRIATV.CODWCP  = TPRWCP.CODWCP
+                , TPRATV R2_Atividade,
+                TPREFX R0_ElementoFluxo,
+                TPRIPROC R1_CabecalhoInstanciaProcesso
+                WHERE R2_Atividade.IDEFX = R0_ElementoFluxo.IDEFX
+                  AND TPRIATV.IDIPROC = R1_CabecalhoInstanciaProcesso.IDIPROC
+                  AND TPRIATV.IDEFX = R2_Atividade.IDEFX
+                  AND R0_ElementoFluxo.TIPO IN (1101, 1109, 1110)
+                  AND R1_CabecalhoInstanciaProcesso.STATUSPROC NOT IN ('C', 'S', 'AP', 'P', 'P2')
+                  AND TPRIATV.CODEXEC IS NULL
+                  AND TPRIATV.DHACEITE IS NULL
+            )
+            ORDER BY IDIPROC ASC
+          `;
+
+          // Executar query usando SankhyaJX
+          const resultado = await JX.consultar(sql);
+
+          if (resultado && resultado.length > 0) {
+            var seenIdiproc = {};
+            operacoes = [];
+            resultado.forEach(function (item) {
+              var idiproc = item.IDIPROC || item.idiproc;
+              if (!seenIdiproc[idiproc]) {
+                seenIdiproc[idiproc] = true;
+                operacoes.push({
+                  idiproc: idiproc,
+                  idiatv: item.IDIATV != null ? item.IDIATV : item.idiatv,
+                  codwcp: item.CODWCP != null ? item.CODWCP : item.codwcp,
+                  nomewcp:
+                    item.NOMEWCP != null
+                      ? item.NOMEWCP
+                      : item.nomewcp != null
+                        ? item.nomewcp
+                        : "",
+                  dtfab: item.DTFAB || item.dtfab || item.DHINCLUSAO || item.dhinclusao,
+                  codprodpa: item.CODPRODPA || item.codprodpa,
+                  descprod: item.DESCRPROD || item.descrprod || item.DESCRICAO || item.descricao,
+                  qtdproduzir: item.QTDPRODUZIR || item.qtdproduzir || 0,
+                  nrolote: item.NROLOTE || item.nrolote || "",
+                  situacao: "Agd. Aceite",
+                });
+              }
+            });
+          } else {
+            operacoes = [];
+          }
+
+          // Atualizar tabela
+          renderTabela();
+        } catch (error) {
+          console.error("Erro ao carregar operações:", error);
+          mostrarErro("Erro ao carregar operações: " + error.message);
+          operacoes = [];
+          renderTabela();
+        }
+      }
+
+      // Função para carregar operações iniciadas usando SankhyaJX
+      async function carregarOperacoesIniciadas() {
+        try {
+          // Verificar se SankhyaJX está disponível
+          if (typeof JX === "undefined" || !JX.consultar) {
+            console.error("SankhyaJX não está disponível");
+            mostrarErro("Biblioteca SankhyaJX não está disponível");
+            return;
+          }
+
+          const sql = `
+            SELECT 
+                IDIPROC,
+                IDIATV,
+                CODWCP,
+                NOMEWCP,
+                TO_CHAR(DHINICIO, 'DD/MM/YYYY') AS DTFAB,
+                CODPRODPA,
+                DESCRPROD,
+                CODREGMAPA,
+                AD_DENSIDADE,
+                AD_GARANTIAS,
+                NROLOTE,
+                QTDPRODUZIR
+            FROM (
+                SELECT 
+                    TPRIATV.IDIPROC AS IDIPROC,
+                    TPRIATV.IDIATV AS IDIATV,
+                    TPRIATV.CODWCP AS CODWCP,
+                    TPRWCP.NOME AS NOMEWCP,
+                    TPRIATV.DHINICIO AS DHINICIO,
+                    TPRIPA.CODPRODPA,
+                    TGFPRO.DESCRPROD,
+                    CASE 
+                      WHEN TGFPRO.CODREGMAPA IS NULL OR TGFPRO.CODREGMAPA = 'NA'
+                      THEN 'NA'
+                      ELSE TGFPRO.CODREGMAPA
+                    END AS CODREGMAPA,
+                    TGFPRO.AD_DENSIDADE,
+                    TGFPRO.AD_GARANTIAS,
+                    TPRIPA.NROLOTE,
+                    TPRIPA.QTDPRODUZIR
+                FROM TPRIATV
+                LEFT JOIN TPRIPA ON TPRIATV.IDIPROC = TPRIPA.IDIPROC
+                LEFT JOIN TGFPRO ON TPRIPA.CODPRODPA = TGFPRO.CODPROD
+                LEFT JOIN TPRWCP ON TPRIATV.CODWCP  = TPRWCP.CODWCP
+                , TPRATV R2_Atividade,
+                TPREFX R0_ElementoFluxo,
+                TPRIPROC R1_CabecalhoInstanciaProcesso
+                WHERE R2_Atividade.IDEFX = R0_ElementoFluxo.IDEFX
+                  AND TPRIATV.IDIPROC = R1_CabecalhoInstanciaProcesso.IDIPROC
+                  AND TPRIATV.IDEFX = R2_Atividade.IDEFX
+                  AND R0_ElementoFluxo.TIPO IN (1101, 1109, 1110)
+                  AND R1_CabecalhoInstanciaProcesso.STATUSPROC NOT IN ('C', 'S', 'AP', 'P', 'P2')
+                  AND TPRIATV.DHINICIO IS NOT NULL
+                  AND TPRIATV.DHFINAL IS NULL
+                  AND NOT EXISTS (
+                    SELECT 1 FROM TPREIATV EIATV
+                    WHERE EIATV.IDIATV = TPRIATV.IDIATV
+                      AND EIATV.TIPO = 'P'
+                      AND EIATV.DHFINAL IS NULL
+                  )
+            )
+            ORDER BY IDIPROC ASC
+          `;
+
+          // Executar query usando SankhyaJX
+          const resultado = await JX.consultar(sql);
+
+          if (resultado && resultado.length > 0) {
+            // Transformar dados do banco para o formato esperado
+            operacoes = resultado.map((item) => ({
+              idiproc: item.IDIPROC || item.idiproc,
+              idiatv: item.IDIATV != null ? item.IDIATV : item.idiatv,
+              codwcp: item.CODWCP != null ? item.CODWCP : item.codwcp,
+              nomewcp:
+                item.NOMEWCP != null
+                  ? item.NOMEWCP
+                  : item.nomewcp != null
+                    ? item.nomewcp
+                    : "",
+              dtfab: item.DTFAB || item.dtfab || item.DHINICIO || item.dhinicio,
+              codprodpa: item.CODPRODPA || item.codprodpa,
+              descprod:
+                item.DESCRPROD ||
+                item.descrprod ||
+                item.DESCRICAO ||
+                item.descricao,
+              codregmapa: item.CODREGMAPA || item.codregmapa || "",
+              densidade: item.AD_DENSIDADE || item.ad_densidade || "",
+              garantias: item.AD_GARANTIAS || item.ad_garantias || "",
+              qtdproduzir: item.QTDPRODUZIR || item.qtdproduzir || 0,
+              nrolote: item.NROLOTE || item.nrolote || "",
+              situacao: "Iniciadas",
+            }));
+          } else {
+            operacoes = [];
+          }
+
+          // Atualizar tabela
+          renderTabela();
+        } catch (error) {
+          console.error("Erro ao carregar operações:", error);
+          mostrarErro("Erro ao carregar operações: " + error.message);
+          operacoes = [];
+          renderTabela();
+        }
+      }
+
+      // Função para carregar operações paradas usando SankhyaJX
+      async function carregarOperacoesParadas() {
+        try {
+          // Verificar se SankhyaJX está disponível
+          if (typeof JX === "undefined" || !JX.consultar) {
+            console.error("SankhyaJX não está disponível");
+            mostrarErro("Biblioteca SankhyaJX não está disponível");
+            return;
+          }
+
+          const sql = `
+            SELECT 
+                IDIPROC,
+                IDIATV,
+                CODWCP,
+                NOMEWCP,
+                TO_CHAR(DHINICIO, 'DD/MM/YYYY') AS DTFAB,
+                CODPRODPA,
+                DESCRPROD,
+                NROLOTE,
+                QTDPRODUZIR
+            FROM (
+                SELECT 
+                    TPRIATV.IDIPROC AS IDIPROC,
+                    TPRIATV.IDIATV AS IDIATV,
+                    TPRIATV.CODWCP AS CODWCP,
+                    TPRWCP.NOME AS NOMEWCP,
+                    TPRIATV.DHINICIO AS DHINICIO,
+                    TPRIPA.CODPRODPA,
+                    TGFPRO.DESCRPROD,
+                    TPRIPA.NROLOTE,
+                    TPRIPA.QTDPRODUZIR
+                FROM TPRIATV
+                LEFT JOIN TPRIPA ON TPRIATV.IDIPROC = TPRIPA.IDIPROC
+                LEFT JOIN TGFPRO ON TPRIPA.CODPRODPA = TGFPRO.CODPROD
+                LEFT JOIN TPRWCP ON TPRIATV.CODWCP  = TPRWCP.CODWCP
+                , TPRATV R2_Atividade,
+                TPREFX R0_ElementoFluxo,
+                TPRIPROC R1_CabecalhoInstanciaProcesso
+                WHERE R2_Atividade.IDEFX = R0_ElementoFluxo.IDEFX
+                  AND TPRIATV.IDIPROC = R1_CabecalhoInstanciaProcesso.IDIPROC
+                  AND TPRIATV.IDEFX = R2_Atividade.IDEFX
+                  AND R0_ElementoFluxo.TIPO IN (1101, 1109, 1110)
+                  AND R1_CabecalhoInstanciaProcesso.STATUSPROC NOT IN ('C', 'S', 'AP', 'P', 'P2')
+                  AND TPRIATV.DHINICIO IS NOT NULL
+                  AND TPRIATV.DHFINAL IS NULL
+                  AND EXISTS (
+                    SELECT 1 FROM TPREIATV EIATV
+                    WHERE EIATV.IDIATV = TPRIATV.IDIATV
+                      AND EIATV.TIPO = 'P'
+                      AND EIATV.DHFINAL IS NULL
+                  )
+            )
+            ORDER BY IDIPROC ASC
+          `;
+
+          // Executar query usando SankhyaJX
+          const resultado = await JX.consultar(sql);
+
+          if (resultado && resultado.length > 0) {
+            // Transformar dados do banco para o formato esperado
+            operacoes = resultado.map((item) => ({
+              idiproc: item.IDIPROC || item.idiproc,
+              idiatv: item.IDIATV != null ? item.IDIATV : item.idiatv,
+              codwcp: item.CODWCP != null ? item.CODWCP : item.codwcp,
+              nomewcp:
+                item.NOMEWCP != null
+                  ? item.NOMEWCP
+                  : item.nomewcp != null
+                    ? item.nomewcp
+                    : "",
+              dtfab: item.DTFAB || item.dtfab || item.DHINICIO || item.dhinicio,
+              codprodpa: item.CODPRODPA || item.codprodpa,
+              descprod:
+                item.DESCRPROD ||
+                item.descrprod ||
+                item.DESCRICAO ||
+                item.descricao,
+              qtdproduzir: item.QTDPRODUZIR || item.qtdproduzir || 0,
+              nrolote: item.NROLOTE || item.nrolote || "",
+              situacao: "Paradas",
+            }));
+          } else {
+            operacoes = [];
+          }
+
+          // Atualizar tabela
+          renderTabela();
+        } catch (error) {
+          console.error("Erro ao carregar operações:", error);
+          mostrarErro("Erro ao carregar operações: " + error.message);
+          operacoes = [];
+          renderTabela();
+        }
+      }
+
+      // Função para mostrar erro
+      function mostrarErro(mensagem) {
+        const tbody = document.getElementById("tbodyOp");
+        const semRegistros = document.getElementById("semRegistros");
+        if (tbody) tbody.innerHTML = "";
+        if (semRegistros) {
+          semRegistros.textContent = mensagem;
+          semRegistros.style.display = "block";
+        }
+      }
+
+      // Função para renderizar a tabela de operações
+      function renderTabela() {
+        const tbody = document.getElementById("tbodyOp");
+        const semRegistros = document.getElementById("semRegistros");
+        const tfootTotal = document.getElementById("tfootTotal");
+        if (!tbody) return;
+
+        tbody.innerHTML = "";
+
+        // Filtrar operações pela situação
+        const filtradas = operacoes.filter((op) => op.situacao === filtroAtual);
+
+        if (filtradas.length === 0) {
+          if (semRegistros) {
+            semRegistros.style.display = "block";
+          }
+          if (tfootTotal) {
+            tfootTotal.style.display = "none";
+          }
+          return;
+        } else {
+          if (semRegistros) {
+            semRegistros.style.display = "none";
+          }
+        }
+
+        filtradas.forEach((op) => {
+          const temAcao =
+            filtroAtual !== "Agd. Aceite" &&
+            (op.situacao === "Iniciadas" || op.situacao === "Paradas");
+          const tr = document.createElement("tr");
+          tr.setAttribute("data-row-clicavel", "true");
+          tr.setAttribute("data-clicavel", temAcao ? "true" : "false");
+
+          tr.innerHTML = `
+          <td>${op.idiproc}</td>
+          <td>${formatarData(op.dtfab)}</td>
+          <td>${op.codprodpa} - ${op.descprod || ""}</td>
+          <td>${op.qtdproduzir}</td>
+          <td>${op.nrolote}</td>
+        `;
+
+          tr.tabIndex = 0;
+          tr.setAttribute("role", "button");
+          tr.setAttribute("aria-label", "Ver detalhes da operação " + op.idiproc);
+          tr.addEventListener("click", () => abrirOverlayDetalhe(op));
+          tr.addEventListener("keypress", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              abrirOverlayDetalhe(op);
+            }
+          });
+
+          tbody.appendChild(tr);
+        });
+
+        // Atualizar total de registros
+        if (tfootTotal) {
+          const totalText =
+            filtradas.length === 1
+              ? "1 registro encontrado"
+              : `${filtradas.length} registros encontrados`;
+          tfootTotal.querySelector("td").textContent = totalText;
+          tfootTotal.style.display = "";
+        }
+      }
+
+      // Função para alternar filtro
+      document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".filtro-btn").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            document
+              .querySelectorAll(".filtro-btn")
+              .forEach((b) => b.classList.remove("ativo"));
+            this.classList.add("ativo");
+            filtroAtual = this.getAttribute("data-situacao");
+
+            // Se for "Agd. Aceite", carregar do banco
+            if (filtroAtual === "Agd. Aceite") {
+              carregarOperacoesAguardandoAceite();
+            } else if (filtroAtual === "Iniciadas") {
+              carregarOperacoesIniciadas();
+            } else if (filtroAtual === "Paradas") {
+              carregarOperacoesParadas();
+            } else {
+              // Para outros filtros, apenas renderizar (você pode implementar outras queries)
+              renderTabela();
+            }
+          });
+        });
+
+        // Carregar dados iniciais
+        carregarOperacoesAguardandoAceite();
+      });
+
+      // Função para atualizar a tabela
+      function atualizarTabela() {
+        const btn = document.querySelector(".refresh-btn");
+        const svg = btn.querySelector("svg");
+
+        // Desabilita o botão durante a atualização
+        btn.disabled = true;
+        btn.style.opacity = "0.4";
+        btn.style.transform = "scale(0.95)";
+
+        // Adiciona animação de rotação
+        svg.style.transform = "rotate(720deg)";
+        svg.style.transition =
+          "transform 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+
+        // Recarregar dados conforme o filtro
+        if (filtroAtual === "Agd. Aceite") {
+          carregarOperacoesAguardandoAceite().finally(() => {
+            svg.style.transform = "rotate(0deg)";
+            svg.style.transition = "transform 0.3s ease-out";
+            btn.disabled = false;
+            btn.style.opacity = "";
+            btn.style.transform = "";
+          });
+        } else if (filtroAtual === "Iniciadas") {
+          carregarOperacoesIniciadas().finally(() => {
+            svg.style.transform = "rotate(0deg)";
+            svg.style.transition = "transform 0.3s ease-out";
+            btn.disabled = false;
+            btn.style.opacity = "";
+            btn.style.transform = "";
+          });
+        } else if (filtroAtual === "Paradas") {
+          carregarOperacoesParadas().finally(() => {
+            svg.style.transform = "rotate(0deg)";
+            svg.style.transition = "transform 0.3s ease-out";
+            btn.disabled = false;
+            btn.style.opacity = "";
+            btn.style.transform = "";
+          });
+        } else {
+          // Para outros filtros, apenas renderizar
+          setTimeout(() => {
+            renderTabela();
+            svg.style.transform = "rotate(0deg)";
+            svg.style.transition = "transform 0.3s ease-out";
+            btn.disabled = false;
+            btn.style.opacity = "";
+            btn.style.transform = "";
+          }, 1200);
+        }
+      }
+
+      // Referência à operação exibida no overlay (para o botão de ação)
+      let opOverlay = null;
+      // Filtro/aba que estava ativa quando o overlay foi aberto (evita usar aba atual se usuário trocou com overlay aberto)
+      let filtroOverlay = null;
+      // Fluxo "Parar a produção": 1º clique revela observação; 2º clique confirma (executarAcaoOp).
+      let paradaObsReveladaOverlay = false;
+
+      // --- Balanças (AD_DETBALANCAS) ---
+
+      // Carrega balanças cadastradas para a atividade (IDIATV)
+      async function carregarBalancasPorAtividade(idiatv) {
+        if (
+          idiatv == null ||
+          idiatv === "" ||
+          typeof JX === "undefined" ||
+          !JX.consultar
+        ) {
+          return [];
+        }
+        try {
+          const idNum = Number(idiatv);
+          const idVal = isNaN(idNum) ? idiatv : idNum;
+          const sql = `
+            SELECT
+              B.CODIGO,
+              B.CODIMT,
+              I.DESCRICAO,
+              I.PLACASERIE
+            FROM AD_DETBALANCAS B
+            INNER JOIN TMEIMT I ON I.CODIMT = B.CODIMT
+            WHERE B.IDIATV = ${idVal}
+            ORDER BY B.CODIGO
+          `;
+          const resultado = await JX.consultar(sql);
+          return resultado && Array.isArray(resultado) ? resultado : [];
+        } catch (e) {
+          console.error("Erro ao carregar balanças da atividade:", e);
+          return [];
+        }
+      }
+
+      // Carrega balanças disponíveis (TMEIMT) para o dropdown
+      async function carregarBalancasDisponiveis() {
+        if (typeof JX === "undefined" || !JX.consultar) {
+          return [];
+        }
+        try {
+          const sql = `
+            SELECT
+              CODIMT,
+              DESCRICAO,
+              PLACASERIE
+            FROM TMEIMT
+            WHERE ATIVO = 'S'
+              AND DESCRICAO LIKE '%BALAN%'
+            ORDER BY PLACASERIE
+          `;
+          const resultado = await JX.consultar(sql);
+          return resultado && Array.isArray(resultado) ? resultado : [];
+        } catch (e) {
+          console.error("Erro ao carregar balanças disponíveis:", e);
+          return [];
+        }
+      }
+
+      // Obtém próximo CODIGO sequencial em AD_DETBALANCAS para o IDIATV
+      async function obterProximoCodigoBalanca(idiatv) {
+        if (
+          idiatv == null ||
+          idiatv === "" ||
+          typeof JX === "undefined" ||
+          !JX.consultar
+        ) {
+          return 1;
+        }
+        try {
+          const idNum = Number(idiatv);
+          const idVal = isNaN(idNum) ? idiatv : idNum;
+          const sql = `
+            SELECT NVL(MAX(CODIGO), 0) AS ULTIMO
+            FROM AD_DETBALANCAS
+            WHERE IDIATV = ${idVal}
+          `;
+          const resultado = await JX.consultar(sql);
+          if (resultado && resultado.length > 0) {
+            const linha = resultado[0];
+            const ultimo =
+              linha.ULTIMO != null
+                ? linha.ULTIMO
+                : linha.ultimo != null
+                ? linha.ultimo
+                : 0;
+            const num = Number(ultimo);
+            return (isNaN(num) ? 0 : num) + 1;
+          }
+        } catch (e) {
+          console.error("Erro ao obter próximo código de balança:", e);
+        }
+        return 1;
+      }
+
+      // Insere registro em AD_DETBALANCAS para o IDIATV/CODIMT
+      async function inserirBalancaAtividade(idiatv, codimt) {
+        if (idiatv == null || idiatv === "") {
+          throw new Error("IDIATV não informado.");
+        }
+        if (codimt == null || codimt === "") {
+          throw new Error("CODIMT não informado.");
+        }
+
+        const proxCodigo = await obterProximoCodigoBalanca(idiatv);
+
+        // Tenta usar JX.salvar (API de alto nível)
+        if (typeof JX !== "undefined" && JX.salvar) {
+          const dados = {
+            IDIATV: Number(idiatv),
+            CODIGO: proxCodigo,
+            CODIMT: Number(codimt),
+          };
+          return await JX.salvar(dados, "AD_DETBALANCAS");
+        }
+
+        // Alternativa: JX.executar com SQL direto
+        if (typeof JX !== "undefined" && JX.executar) {
+          const idNum = Number(idiatv);
+          const idVal = isNaN(idNum) ? idiatv : idNum;
+          const codNum = Number(codimt);
+          const codVal = isNaN(codNum) ? codimt : codNum;
+          const sql = `
+            INSERT INTO AD_DETBALANCAS (IDIATV, CODIGO, CODIMT)
+            VALUES (${idVal}, ${proxCodigo}, ${codVal})
+          `;
+          return await JX.executar(sql);
+        }
+
+        // Fallback: tentar via JX.consultar, se suportar DML
+        if (typeof JX !== "undefined" && JX.consultar) {
+          const idNum = Number(idiatv);
+          const idVal = isNaN(idNum) ? idiatv : idNum;
+          const codNum = Number(codimt);
+          const codVal = isNaN(codNum) ? codimt : codNum;
+          const sql = `
+            INSERT INTO AD_DETBALANCAS (IDIATV, CODIGO, CODIMT)
+            VALUES (${idVal}, ${proxCodigo}, ${codVal})
+          `;
+          return await JX.consultar(sql);
+        }
+
+        throw new Error(
+          "Nenhuma API de gravação disponível (JX.salvar / JX.executar / JX.consultar)."
+        );
+      }
+
+      // Exclui registro em AD_DETBALANCAS para o IDIATV/CODIGO
+      async function excluirBalancaAtividade(idiatv, codigo) {
+        if (idiatv == null || idiatv === "") {
+          throw new Error("IDIATV não informado para exclusão.");
+        }
+        if (codigo == null || codigo === "") {
+          throw new Error("CODIGO não informado para exclusão.");
+        }
+
+        // Usa JX.deletar quando disponível
+        if (typeof JX !== "undefined" && JX.deletar) {
+          const idNum = Number(idiatv);
+          const idVal = isNaN(idNum) ? idiatv : idNum;
+          const codNum = Number(codigo);
+          const codVal = isNaN(codNum) ? codigo : codNum;
+          return await JX.deletar("AD_DETBALANCAS", [
+            {
+              IDIATV: idVal,
+              CODIGO: codVal,
+            },
+          ]);
+        }
+
+        // Alternativa: JX.executar com DELETE direto
+        if (typeof JX !== "undefined" && JX.executar) {
+          const idNum = Number(idiatv);
+          const idVal = isNaN(idNum) ? idiatv : idNum;
+          const codNum = Number(codigo);
+          const codVal = isNaN(codNum) ? codigo : codNum;
+          const sql = `
+            DELETE FROM AD_DETBALANCAS
+            WHERE IDIATV = ${idVal}
+              AND CODIGO = ${codVal}
+          `;
+          return await JX.executar(sql);
+        }
+
+        // Fallback: JX.consultar com DELETE
+        if (typeof JX !== "undefined" && JX.consultar) {
+          const idNum = Number(idiatv);
+          const idVal = isNaN(idNum) ? idiatv : idNum;
+          const codNum = Number(codigo);
+          const codVal = isNaN(codNum) ? codigo : codNum;
+          const sql = `
+            DELETE FROM AD_DETBALANCAS
+            WHERE IDIATV = ${idVal}
+              AND CODIGO = ${codVal}
+          `;
+          return await JX.consultar(sql);
+        }
+
+        throw new Error("Biblioteca SankhyaJX não está disponível para exclusão.");
+      }
+
+      // Renderiza lista de balanças na guia Geral
+      async function atualizarListaBalancasNaGuiaGeral() {
+        const container = document.getElementById("balancasAtividadeContainer");
+        const listaDiv = document.getElementById("balancasLista");
+        if (!container || !listaDiv) return;
+        const idiatvAttr = container.getAttribute("data-idiatv");
+        if (!idiatvAttr) {
+          listaDiv.innerHTML =
+            '<div class="balancas-vazia">Atividade (IDIATV) não disponível para esta operação.</div>';
+          return;
+        }
+
+        const balancas = await carregarBalancasPorAtividade(idiatvAttr);
+        if (!balancas || balancas.length === 0) {
+          listaDiv.innerHTML =
+            '<div class="balancas-vazia">Nenhuma balança cadastrada para esta operação.</div>';
+        } else {
+          let html =
+            '<table class="balancas-tabela"><thead><tr><th>Código</th><th>Placa de série</th><th>Ações</th></tr></thead><tbody>';
+          balancas.forEach(function (b) {
+            const codigo = b.CODIGO != null ? b.CODIGO : b.codigo;
+            const placas = b.PLACASERIE != null ? b.PLACASERIE : b.placaserie;
+            html +=
+              "<tr><td>" +
+              (codigo != null ? codigo : "") +
+              "</td><td>" +
+              (placas != null ? placas : "") +
+              '</td><td><button type="button" class="overlay-btn overlay-btn-acao" data-role="excluir-balanca" data-codigo="' +
+              (codigo != null ? codigo : "") +
+              '">Excluir</button></td></tr>';
+          });
+          html += "</tbody></table>";
+          listaDiv.innerHTML = html;
+        }
+
+        const badge = document.getElementById("balancasQtdBadge");
+        if (badge) {
+          const qtd = balancas ? balancas.length : 0;
+          badge.textContent = qtd + (qtd === 1 ? " balança" : " balanças");
+        }
+
+        // Handler para exclusão de balanças na tabela
+        listaDiv.onclick = async function (e) {
+          const btn = e.target.closest('button[data-role="excluir-balanca"]');
+          if (!btn) return;
+          e.preventDefault();
+          const codigo = btn.getAttribute("data-codigo");
+          if (!codigo) return;
+
+          const confirma = confirm(
+            "Deseja realmente excluir a balança de código " +
+              codigo +
+              " desta operação?"
+          );
+          if (!confirma) {
+            return;
+          }
+
+          try {
+            await excluirBalancaAtividade(idiatvAttr, codigo);
+            await atualizarListaBalancasNaGuiaGeral();
+          } catch (e2) {
+            console.error("Erro ao excluir balança da atividade:", e2);
+            alert(
+              "Erro ao excluir balança: " +
+                (e2 && e2.message ? e2.message : e2)
+            );
+          }
+        };
+      }
+
+      // Abre overlay para cadastrar balança
+      async function abrirOverlayBalancas(idiatv) {
+        const overlay = document.getElementById("overlayBalancas");
+        const body = document.getElementById("overlayBalancasBody");
+        const btnSalvar = document.getElementById("overlayBalancasBtnSalvar");
+        const btnFechar = document.getElementById("overlayBalancasBtnFechar");
+        if (!overlay || !body || !btnSalvar || !btnFechar) return;
+
+        if (idiatv == null || idiatv === "") {
+          alert(
+            "Atividade (IDIATV) não está disponível para esta operação. Não é possível cadastrar balança."
+          );
+          return;
+        }
+
+        overlay.setAttribute("data-idiatv", String(idiatv));
+
+        body.innerHTML =
+          '<p class="overlay-balancas-info">Selecione a balança (apresentada pela placa de série). Será criado um registro simples em <strong>AD_DETBALANCAS</strong> com o IDIATV atual, o próximo código sequencial e o CODIMT escolhido.</p>' +
+          '<label class="detalhe-label" for="selectBalanca">Placa de série da balança</label>' +
+          '<select id="selectBalanca" class="overlay-balancas-select"><option value="">Carregando balanças disponíveis...</option></select>';
+
+        const select = document.getElementById("selectBalanca");
+
+        // Carregar opções do dropdown
+        try {
+          const balancasDisp = await carregarBalancasDisponiveis();
+          if (!select) return;
+          if (!balancasDisp || balancasDisp.length === 0) {
+            select.innerHTML =
+              '<option value="">Nenhuma balança ativa encontrada.</option>';
+          } else {
+            let options =
+              '<option value="">Selecione uma balança...</option>';
+            balancasDisp.forEach(function (b) {
+              const codimt = b.CODIMT != null ? b.CODIMT : b.codimt;
+              const placas =
+                b.PLACASERIE != null ? b.PLACASERIE : b.placaserie;
+              const label = placas != null ? placas : "";
+              options +=
+                '<option value="' +
+                codimt +
+                '">' +
+                label +
+                "</option>";
+            });
+            select.innerHTML = options;
+          }
+        } catch (e) {
+          console.error("Erro ao montar dropdown de balanças:", e);
+          if (select) {
+            select.innerHTML =
+              '<option value="">Erro ao carregar balanças.</option>';
+          }
+        }
+
+        btnSalvar.onclick = async function () {
+          const selectEl = document.getElementById("selectBalanca");
+          if (!selectEl) return;
+          const codimt = selectEl.value;
+          if (!codimt) {
+            alert("Escolha uma balança para cadastrar.");
+            return;
+          }
+          try {
+            await inserirBalancaAtividade(idiatv, codimt);
+            alert("Balança cadastrada com sucesso.");
+            fecharOverlayBalancas();
+            await atualizarListaBalancasNaGuiaGeral();
+          } catch (e) {
+            console.error("Erro ao salvar balança:", e);
+            alert(
+              "Erro ao cadastrar balança: " + (e && e.message ? e.message : e)
+            );
+          }
+        };
+
+        btnFechar.onclick = function () {
+          fecharOverlayBalancas();
+        };
+
+        overlay.classList.add("ativo");
+        overlay.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+      }
+
+      function fecharOverlayBalancas() {
+        const overlay = document.getElementById("overlayBalancas");
+        if (!overlay) return;
+        overlay.classList.remove("ativo");
+        overlay.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+      }
+
+      // Carrega os dados da aba "Geral" para a OP (query específica por IDIPROC)
+      async function carregarDadosGeralOp(idiproc) {
+        if (!idiproc || typeof JX === "undefined" || !JX.consultar) {
+          return null;
+        }
+        try {
+          const idNum = Number(idiproc);
+          const idVal = isNaN(idNum) ? idiproc : idNum;
+
+          const sql = `
+            SELECT 
+              X.*
+            FROM (
+              SELECT
+                IPA.CODPRODPA,
+                IPA.NROLOTE,
+                IPA.CONTROLEPA,
+                (SELECT SUM(QTDPRODUZIR) FROM TPRIPA IPA2 WHERE IPA2.IDIPROC = ${idVal}) AS QTDPRODUZIR,
+                PRO.COMPLDESC,
+                PRO.CODVOL,
+                PRO.CODGRUPOPROD,
+                PRO.DESCRPROD,
+                MPS.DTINICMPS,
+                MPS.DTFINMPS,
+                PRO.DECQTD,
+                PRO.REFERENCIA,
+                GRU.DESCRGRUPOPROD,
+                IPROC.PRIORIDADE AS PRIORIDADE,
+                (SELECT COUNT(1) FROM TPRIPA IPA3 WHERE IPA3.IDIPROC = IPA.IDIPROC) AS QTDPRODUTOS,
+                (CASE WHEN IPA.NROLOTE <> 'CURINGA' THEN 1 ELSE 2 END) AS ORDER_NROLOTE
+              FROM
+                TPRIPA IPA
+                INNER JOIN TGFPRO PRO ON (IPA.CODPRODPA = PRO.CODPROD)
+                INNER JOIN TPRIPROC IPROC ON (IPROC.IDIPROC = IPA.IDIPROC)
+                INNER JOIN TGFGRU GRU ON (PRO.CODGRUPOPROD = GRU.CODGRUPOPROD)
+                LEFT JOIN TPRMPS MPS ON (MPS.NUMPS = IPROC.NUMPS)
+              WHERE
+                IPA.IDIPROC = ${idVal}
+              ORDER BY
+                IPA.CODPRODPA,
+                ORDER_NROLOTE,
+                IPA.CONTROLEPA
+            ) X
+          `;
+
+          const resultado = await JX.consultar(sql);
+          if (resultado && resultado.length > 0) {
+            return resultado[0];
+          }
+        } catch (e) {
+          console.error("Erro ao carregar dados da aba Geral:", e);
+        }
+        return null;
+      }
+
+      // Carrega execuções (TPREIATV) para o IDIATV da atividade (aba Execuções)
+      async function carregarExecucoes(idiatv) {
+        if (idiatv == null || idiatv === "" || typeof JX === "undefined" || !JX.consultar) {
+          return [];
+        }
+        try {
+          const idNum = Number(idiatv);
+          const idVal = isNaN(idNum) ? idiatv : idNum;
+          const sql = `
+            SELECT
+              TO_CHAR(ATV.DHINICIO, 'DD/MM/YYYY HH24:MI') AS DHINICIO,
+              TO_CHAR(ATV.DHFINAL, 'DD/MM/YYYY HH24:MI') AS DHFINAL,
+              ATV.TIPO,
+              ATV.CODEXEC,
+              USU.NOMEUSU,
+              ATV.OBSERVACAO,
+              ATV.CODMTP
+            FROM TPREIATV ATV
+            INNER JOIN TSIUSU USU ON ATV.CODEXEC = USU.CODUSU
+            WHERE ATV.IDIATV = ${idVal}
+          `;
+          const resultado = await JX.consultar(sql);
+          return resultado && Array.isArray(resultado) ? resultado : [];
+        } catch (e) {
+          console.error("Erro ao carregar execuções:", e);
+          return [];
+        }
+      }
+
+      // Cabeçalhos de apontamento (TPRAPO) por IDIATV – guia Apontamentos, nível 1
+      async function carregarCabecApontamentoPorIdiatv(idiatv) {
+        if (idiatv == null || idiatv === "" || typeof JX === "undefined" || !JX.consultar) return [];
+        try {
+          const idVal = isNaN(Number(idiatv)) ? idiatv : Number(idiatv);
+          const sql = `
+            SELECT
+              APO.NUAPO,
+              APO.IDIATV,
+              TO_CHAR(APO.DHAPO, 'DD/MM/YYYY HH24:MI') AS DHAPO,
+              APO.CODUSU,
+              USU.NOMEUSU,
+              APO.OBSERVACAO,
+              F_DESCROPC('TPRAPO','SITUACAO',APO.SITUACAO) DESC_SITUACAO
+            FROM TPRAPO APO
+            INNER JOIN TSIUSU USU ON APO.CODUSU = USU.CODUSU
+            WHERE APO.IDIATV = ${idVal}
+            ORDER BY APO.NUAPO
+          `;
+          const resultado = await JX.consultar(sql);
+          return resultado && Array.isArray(resultado) ? resultado : [];
+        } catch (e) {
+          console.error("Erro ao carregar apontamentos por IDIATV:", e);
+          return [];
+        }
+      }
+
+      function escApontOverlay(v) {
+        if (v == null || v === undefined) return "";
+        return String(v)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      // Preenche blocos expandidos (itens + materiais) abaixo da tabela de cabeçalhos — sem navegação por etapas
+      async function preencherApontamentosExpandido(body, rowsCabec) {
+        var stackEl = body.querySelector("#apontamentosStackExpandido");
+        if (!stackEl) return;
+        if (!rowsCabec || rowsCabec.length === 0) {
+          stackEl.style.display = "none";
+          stackEl.innerHTML = "";
+          return;
+        }
+        var esc = escApontOverlay;
+        stackEl.style.display = "flex";
+        stackEl.innerHTML =
+          '<p class="apont-exp-loading">Carregando itens e materiais...</p>';
+        try {
+          var cardsHtml = await Promise.all(
+            rowsCabec.map(async function (r) {
+              var nuapo = r.NUAPO != null ? r.NUAPO : r.nuapo;
+              var dhapoC =
+                r.DHAPO != null ? r.DHAPO : r.dhapo != null ? r.dhapo : "";
+              var nomeusuC =
+                r.NOMEUSU != null ? r.NOMEUSU : r.nomeusu != null ? r.nomeusu : "";
+              var descSitC =
+                r.DESC_SITUACAO != null
+                  ? r.DESC_SITUACAO
+                  : r.desc_situacao != null
+                    ? r.desc_situacao
+                    : "";
+              var headMeta =
+                (dhapoC || nomeusuC
+                  ? '<span class="apont-exp-card-meta">' +
+                    esc(dhapoC) +
+                    (dhapoC && nomeusuC ? " · " : "") +
+                    esc(nomeusuC) +
+                    "</span>"
+                  : "") +
+                (descSitC
+                  ? '<span class="apont-exp-card-sit">' + esc(descSitC) + "</span>"
+                  : "");
+              var itens = await carregarItensApontamentoPorNuapo(nuapo);
+              if (itens.length === 0) {
+                return (
+                  '<section class="apont-exp-card">' +
+                  '<header class="apont-exp-card-head">' +
+                  '<span class="apont-exp-card-title">Apontamento ' +
+                  esc(nuapo) +
+                  "</span>" +
+                  headMeta +
+                  "</header>" +
+                  '<div class="apont-exp-itens"><p class="apont-exp-empty">Nenhum item neste apontamento.</p></div>' +
+                  "</section>"
+                );
+              }
+              var blocosItens = await Promise.all(
+                itens.map(async function (rItem) {
+                  var seq =
+                    rItem.SEQAPA != null ? rItem.SEQAPA : rItem.seqapa;
+                  var cod =
+                    rItem.CODPRODPA != null
+                      ? rItem.CODPRODPA
+                      : rItem.codprodpa;
+                  var desc =
+                    rItem.DESCRPROD != null
+                      ? rItem.DESCRPROD
+                      : rItem.descrprod != null
+                        ? rItem.descrprod
+                        : "";
+                  var ctrl =
+                    rItem.CONTROLEPA != null
+                      ? rItem.CONTROLEPA
+                      : rItem.controlepa != null
+                        ? rItem.controlepa
+                        : "";
+                  var qtdA =
+                    rItem.QTDAPONTADA != null
+                      ? rItem.QTDAPONTADA
+                      : rItem.qtdapontada != null
+                        ? rItem.qtdapontada
+                        : "";
+                  var qtdF =
+                    rItem.QTDFAT != null
+                      ? rItem.QTDFAT
+                      : rItem.qtdfat != null
+                        ? rItem.qtdfat
+                        : "";
+                  var qtdFS =
+                    rItem.QTDFATSP != null
+                      ? rItem.QTDFATSP
+                      : rItem.qtdfatsp != null
+                        ? rItem.qtdfatsp
+                        : "";
+                  var qtdP =
+                    rItem.QTDPERDA != null
+                      ? rItem.QTDPERDA
+                      : rItem.qtdperda != null
+                        ? rItem.qtdperda
+                        : "";
+                  var codmpe =
+                    rItem.CODMPE != null
+                      ? rItem.CODMPE
+                      : rItem.codmpe != null
+                        ? rItem.codmpe
+                        : "";
+                  var qtdmpe =
+                    rItem.QTDMPE != null
+                      ? rItem.QTDMPE
+                      : rItem.qtdmpe != null
+                        ? rItem.qtdmpe
+                        : "";
+                  var rowsMat = await carregarMateriaisPorNuapoSeqapa(
+                    nuapo,
+                    seq
+                  );
+                  var somasMap =
+                    await carregarSomasTprampitePorNuapoSeqapa(nuapo, seq);
+                  var matRows = "";
+                  if (rowsMat.length === 0) {
+                    matRows =
+                      '<tr><td colspan="6" class="apontamentos-placeholder">Nenhum material.</td></tr>';
+                  } else {
+                    rowsMat.forEach(function (rm) {
+                      var nm = rm.NUAPO != null ? rm.NUAPO : rm.nuapo;
+                      var seqm = rm.SEQAPA != null ? rm.SEQAPA : rm.seqapa;
+                      var seqmp = rm.SEQMP != null ? rm.SEQMP : rm.seqmp;
+                      var codp =
+                        rm.CODPRODMP != null ? rm.CODPRODMP : rm.codprodmp;
+                      var desm =
+                        rm.DESCRPROD != null
+                          ? rm.DESCRPROD
+                          : rm.descrprod != null
+                            ? rm.descrprod
+                            : "";
+                      var ctrlm =
+                        rm.CONTROLEMP != null
+                          ? rm.CONTROLEMP
+                          : rm.controlemp != null
+                            ? rm.controlemp
+                            : "";
+                      var qtdm = rm.QTD != null ? rm.QTD : rm.qtd != null ? rm.qtd : "";
+                      var codvol =
+                        rm.CODVOL != null ? rm.CODVOL : rm.codvol != null ? rm.codvol : "";
+                      var kMp = chaveMaterialTprampite(codp, ctrlm);
+                      var qtdApontVal = somasMap.has(kMp)
+                        ? somasMap.get(kMp)
+                        : 0;
+                      var qtdApontTxt =
+                        qtdApontVal === 0 ? "0" : String(qtdApontVal);
+                      var produtoDescricao =
+                        (codp != null && codp !== ""
+                          ? String(codp)
+                          : "") +
+                        (desm != null && desm !== ""
+                          ? " - " + String(desm)
+                          : "");
+                      matRows +=
+                        "<tr>" +
+                        "<td>" +
+                        esc(seqmp) +
+                        "</td><td>" +
+                        esc(produtoDescricao) +
+                        "</td><td>" +
+                        esc(ctrlm) +
+                        "</td><td>" +
+                        esc(qtdm) +
+                        '</td><td class="apont-mat-qtd-apont">' +
+                        esc(qtdApontTxt) +
+                        '</td><td><button type="button" class="btn-det-tpramp" data-tpramp-det="1" data-nuapo="' +
+                        esc(nm) +
+                        '" data-seqapa="' +
+                        esc(seqm) +
+                        '" data-codprodmp="' +
+                        esc(codp) +
+                        '" data-controlemp="' +
+                        esc(ctrlm) +
+                        '" data-qtd="' +
+                        esc(qtdm) +
+                        '" data-descrprod="' +
+                        esc(desm) +
+                        '" data-codvol="' +
+                        esc(codvol) +
+                        '">Detalhar</button></td></tr>';
+                    });
+                  }
+                  return (
+                    '<div class="apont-exp-item-bloco">' +
+                    '<div class="apont-exp-item-resumo">Item seq. ' +
+                    esc(seq) +
+                    " · " +
+                    esc(cod) +
+                    " — " +
+                    esc(desc) +
+                    " · Lote " +
+                    esc(ctrl) +
+                    "</div>" +
+                    '<div class="apont-exp-mini-grid">' +
+                    '<span class="apont-exp-kv"><b>Qtd. apo.</b> ' +
+                    esc(qtdA) +
+                    "</span>" +
+                    '<span class="apont-exp-kv"><b>Qtd. fat.</b> ' +
+                    esc(qtdF) +
+                    "</span>" +
+                    '<span class="apont-exp-kv"><b>Fat. SP</b> ' +
+                    esc(qtdFS) +
+                    "</span>" +
+                    '<span class="apont-exp-kv"><b>Perda</b> ' +
+                    esc(qtdP) +
+                    "</span>" +
+                    '<span class="apont-exp-kv"><b>MPE</b> ' +
+                    esc(codmpe) +
+                    " / " +
+                    esc(qtdmpe) +
+                    "</span></div>" +
+                    '<p class="apont-exp-subtitulo-mat">Materiais (seq. ' +
+                    esc(seq) +
+                    ")</p>" +
+                    '<div class="apontamentos-tabela-wrap apont-exp-mat-wrap">' +
+                    '<table class="apontamentos-tabela apont-exp-tabela-mat">' +
+                    "<thead><tr><th>Seq.</th><th>Produto</th><th>Lote</th><th>Qtd.</th><th>Qtd. Apont.</th><th>Ação</th></tr></thead>" +
+                    '<tbody data-apont-mat="1" data-nuapo="' +
+                    esc(nuapo) +
+                    '" data-seqapa="' +
+                    esc(seq) +
+                    '">' +
+                    matRows +
+                    "</tbody></table></div></div>"
+                  );
+                })
+              );
+              return (
+                '<section class="apont-exp-card">' +
+                '<header class="apont-exp-card-head">' +
+                '<span class="apont-exp-card-title">Apontamento ' +
+                esc(nuapo) +
+                "</span>" +
+                headMeta +
+                "</header>" +
+                '<div class="apont-exp-itens">' +
+                blocosItens.join("") +
+                "</div>" +
+                "</section>"
+              );
+            })
+          );
+          stackEl.innerHTML = cardsHtml.join("");
+        } catch (e) {
+          console.error("Erro ao montar apontamentos expandidos:", e);
+          stackEl.innerHTML =
+            '<p class="apont-exp-err">Não foi possível carregar itens e materiais.</p>';
+        }
+      }
+
+      function sincronizarBotaoConfirmarApontamentoOverlay(rows) {
+        var btn = document.getElementById("overlayBtnConfirmarApontamento");
+        if (!btn) return;
+        var overlay = document.getElementById("overlayDetalhe");
+        if (
+          !overlay ||
+          !overlay.classList.contains("ativo") ||
+          filtroOverlay !== "Iniciadas"
+        ) {
+          btn.style.display = "none";
+          btn.disabled = true;
+          btn.removeAttribute("data-nuapo");
+          btn.removeAttribute("data-desc-situacao");
+          return;
+        }
+        var first = null;
+        if (rows && rows.length) {
+          for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
+            var descSit =
+              r.DESC_SITUACAO != null
+                ? r.DESC_SITUACAO
+                : r.desc_situacao != null
+                  ? r.desc_situacao
+                  : "";
+            if (
+              !descSit ||
+              descSit.toUpperCase().indexOf("CONFIRM") === -1
+            ) {
+              first = r;
+              break;
+            }
+          }
+        }
+        if (!first) {
+          btn.style.display = "none";
+          btn.disabled = true;
+          btn.removeAttribute("data-nuapo");
+          btn.removeAttribute("data-desc-situacao");
+          return;
+        }
+        var nuapo = first.NUAPO != null ? first.NUAPO : first.nuapo;
+        var descSitF =
+          first.DESC_SITUACAO != null
+            ? first.DESC_SITUACAO
+            : first.desc_situacao != null
+              ? first.desc_situacao
+              : "";
+        btn.style.display = "flex";
+        btn.disabled = false;
+        btn.setAttribute("data-nuapo", nuapo);
+        btn.setAttribute("data-desc-situacao", descSitF);
+      }
+
+      async function aplicarListaApontamentosNoOverlay(body, rows) {
+        var btnGerar = body.querySelector("#btnGerarApontamento");
+        if (btnGerar) {
+          btnGerar.style.display = rows.length > 0 ? "none" : "";
+        }
+        var placeholderCabec = body.querySelector("#apontamentosPlaceholderCabec");
+        if (rows.length === 0) {
+          if (placeholderCabec) {
+            placeholderCabec.textContent = "Nenhum apontamento.";
+            placeholderCabec.style.display = "";
+          }
+        } else {
+          if (placeholderCabec) placeholderCabec.style.display = "none";
+        }
+        sincronizarBotaoConfirmarApontamentoOverlay(rows);
+        await preencherApontamentosExpandido(body, rows);
+      }
+
+      // Atualiza a lista de apontamentos exibida na guia Apontamentos do overlay (sem fechar o overlay)
+      function refreshListaApontamentosNoOverlay() {
+        var overlay = document.getElementById("overlayDetalhe");
+        var body = document.getElementById("overlayBody");
+        var apontContainer = document.getElementById("apontamentosContainer");
+        if (!overlay || !overlay.classList.contains("ativo") || !body || !apontContainer) return;
+        var idiatv = apontContainer.getAttribute("data-idiatv");
+        var placeholderCabec = body.querySelector("#apontamentosPlaceholderCabec");
+        if (!placeholderCabec || !body.querySelector("#apontamentosContainer")) return;
+        placeholderCabec.textContent = "Atualizando apontamentos...";
+        placeholderCabec.style.display = "";
+        carregarCabecApontamentoPorIdiatv(idiatv).then(function (rows) {
+          if (!apontContainer.parentNode) return;
+          aplicarListaApontamentosNoOverlay(body, rows || []).catch(function (e) {
+            console.error("Erro ao atualizar apontamentos no overlay:", e);
+          });
+        });
+      }
+
+      // Itens do apontamento (TPRAPA) por NUAPO – guia Apontamentos, nível 2
+      async function carregarItensApontamentoPorNuapo(nuapo) {
+        if (!nuapo || typeof JX === "undefined" || !JX.consultar) return [];
+        try {
+          const nVal = isNaN(Number(nuapo)) ? nuapo : Number(nuapo);
+          const sql = `
+            SELECT
+              APA.NUAPO,
+              APA.SEQAPA,
+              APA.CODPRODPA,
+              PRO.DESCRPROD,
+              APA.CONTROLEPA,
+              APA.QTDAPONTADA,
+              APA.QTDFAT,
+              APA.QTDFATSP,
+              APA.QTDPERDA,
+              APA.CODMPE,
+              APA.QTDMPE
+            FROM TPRAPA APA
+            INNER JOIN TGFPRO PRO ON APA.CODPRODPA = PRO.CODPROD
+            WHERE APA.NUAPO = ${nVal}
+            ORDER BY 1, 2, 3
+          `;
+          const resultado = await JX.consultar(sql);
+          return resultado && Array.isArray(resultado) ? resultado : [];
+        } catch (e) {
+          console.error("Erro ao carregar itens do apontamento:", e);
+          return [];
+        }
+      }
+
+      // Materiais (TPRAMP) por NUAPO e SEQAPA – guia Apontamentos, nível 3
+      async function carregarMateriaisPorNuapoSeqapa(nuapo, seqapa) {
+        if (!nuapo || seqapa == null || typeof JX === "undefined" || !JX.consultar) return [];
+        try {
+          const nVal = isNaN(Number(nuapo)) ? nuapo : Number(nuapo);
+          const sVal = isNaN(Number(seqapa)) ? seqapa : Number(seqapa);
+          const sql = `
+            SELECT
+              AMP.NUAPO,
+              AMP.SEQAPA,
+              AMP.SEQMP,
+              AMP.CODPRODMP,
+              PRO.DESCRPROD,
+              AMP.CONTROLEMP,
+              AMP.QTD,
+              AMP.CODVOL,
+              F_DESCROPC('TPRAMP','TIPOUSO',AMP.TIPOUSO) DESC_TIPOUSO
+            FROM TPRAMP AMP
+            INNER JOIN TGFPRO PRO ON AMP.CODPRODMP = PRO.CODPROD
+            WHERE AMP.NUAPO = ${nVal} AND AMP.SEQAPA = ${sVal}
+            ORDER BY 1, 2, 3
+          `;
+          const resultado = await JX.consultar(sql);
+          return resultado && Array.isArray(resultado) ? resultado : [];
+        } catch (e) {
+          console.error("Erro ao carregar materiais do item:", e);
+          return [];
+        }
+      }
+
+      function chaveMaterialTprampite(codprodmp, controlemp) {
+        var c =
+          codprodmp != null && codprodmp !== undefined
+            ? String(codprodmp).trim()
+            : "";
+        var t =
+          controlemp != null && controlemp !== undefined
+            ? String(controlemp).trim()
+            : "";
+        return c + "\x00" + t;
+      }
+
+      /** Compara NUAPO/SEQAPA de atributos (evita falha por "5" vs 5, "5.0" vs "5", espaços). */
+      function nuapoSeqapaAttrsIguais(aNuapo, aSeqapa, bNuapo, bSeqapa) {
+        function normN(v) {
+          if (v == null || v === "") return "";
+          var s = String(v).trim();
+          if (s === "") return "";
+          var n = Number(s);
+          return !isNaN(n) && isFinite(n) ? String(n) : s;
+        }
+        return (
+          normN(aNuapo) === normN(bNuapo) && normN(aSeqapa) === normN(bSeqapa)
+        );
+      }
+
+      // Soma QUANTIDADE em AD_TPRAMPITE por material (mesmo filtro do overlay Detalhar)
+      async function carregarSomasTprampitePorNuapoSeqapa(nuapo, seqapa) {
+        if (!nuapo || seqapa == null || typeof JX === "undefined" || !JX.consultar) {
+          return new Map();
+        }
+        try {
+          const nVal = isNaN(Number(nuapo)) ? nuapo : Number(nuapo);
+          const sVal = isNaN(Number(seqapa)) ? seqapa : Number(seqapa);
+          const sql = `
+            SELECT
+              CODPRODMP,
+              CONTROLEMP,
+              NVL(SUM(QUANTIDADE), 0) AS SOMA
+            FROM AD_TPRAMPITE
+            WHERE NUAPO = ${nVal} AND SEQAPA = ${sVal}
+            GROUP BY CODPRODMP, CONTROLEMP
+          `;
+          const resultado = await JX.consultar(sql);
+          const map = new Map();
+          if (Array.isArray(resultado)) {
+            resultado.forEach(function (row) {
+              const cod =
+                row.CODPRODMP != null ? row.CODPRODMP : row.codprodmp;
+              const ctrl =
+                row.CONTROLEMP != null ? row.CONTROLEMP : row.controlemp;
+              const somaRaw = row.SOMA != null ? row.SOMA : row.soma;
+              const q = Number(somaRaw);
+              map.set(
+                chaveMaterialTprampite(cod, ctrl),
+                isNaN(q) ? 0 : q
+              );
+            });
+          }
+          return map;
+        } catch (e) {
+          console.error("Erro ao carregar somas AD_TPRAMPITE:", e);
+          return new Map();
+        }
+      }
+
+      async function atualizarTabelaQtdApontMateriais(tbody, nuapo, seqapa) {
+        if (!tbody || !tbody.parentNode) return;
+        var somasMap = await carregarSomasTprampitePorNuapoSeqapa(nuapo, seqapa);
+        var rows = tbody.querySelectorAll("tr");
+        rows.forEach(function (tr) {
+          var btn = tr.querySelector('button[data-tpramp-det="1"]');
+          if (!btn) return;
+          var cod = btn.getAttribute("data-codprodmp");
+          var ctrl = btn.getAttribute("data-controlemp");
+          var kMp = chaveMaterialTprampite(cod, ctrl);
+          var qtdApontVal = somasMap.has(kMp) ? somasMap.get(kMp) : 0;
+          var qtdApontTxt =
+            qtdApontVal === 0 ? "0" : String(qtdApontVal);
+          /* Visão expandida: 6 colunas (Qtd. Apont. = 5ª); lista antiga: 8 colunas (= 7ª). */
+          var cell =
+            tr.querySelector("td.apont-mat-qtd-apont") ||
+            tr.querySelector("td:nth-child(7)") ||
+            tr.querySelector("td:nth-child(5)");
+          if (cell) cell.textContent = qtdApontTxt;
+        });
+      }
+
+      /**
+       * Atualiza "Qtd. Apont." na guia Apontamentos (visão expandida e lista por níveis),
+       * após salvar/fechar o overlay de detalhe AD_TPRAMPITE.
+       */
+      async function sincronizarQtdApontAposDetalheTpramp(ctx) {
+        if (!ctx || ctx.nuapo == null || ctx.seqapa == null) return;
+        var nuapo = ctx.nuapo;
+        var seqapa = ctx.seqapa;
+        var overlayBody = document.getElementById("overlayBody");
+        if (!overlayBody) return;
+        var tbodies = overlayBody.querySelectorAll('tbody[data-apont-mat="1"]');
+        var alvos = [];
+        tbodies.forEach(function (tb) {
+          if (
+            nuapoSeqapaAttrsIguais(
+              nuapo,
+              seqapa,
+              tb.getAttribute("data-nuapo"),
+              tb.getAttribute("data-seqapa")
+            )
+          ) {
+            alvos.push(tb);
+          }
+        });
+        var tbodyMat = document.getElementById("apontamentosTbodyMateriais");
+        if (
+          tbodyMat &&
+          tbodyMat.parentNode &&
+          tbodyMat.querySelector('button[data-tpramp-det="1"]')
+        ) {
+          alvos.push(tbodyMat);
+        }
+        function atualizarTodos() {
+          var prom = alvos.map(function (tb) {
+            return atualizarTabelaQtdApontMateriais(tb, nuapo, seqapa);
+          });
+          return Promise.all(prom);
+        }
+        await atualizarTodos();
+        /* Segunda leitura após commit/consistência do BD (casos intermitentes). */
+        await new Promise(function (r) {
+          setTimeout(r, 120);
+        });
+        await atualizarTodos();
+      }
+
+      function montarConteudoDefaultOverlay(op, body) {
+        body.innerHTML =
+          '<div class="detalhe-item"><span class="detalhe-label">OP</span><span class="detalhe-valor">' +
+          (op.idiproc != null ? op.idiproc : "-") +
+          "</span></div>" +
+          '<div class="detalhe-item"><span class="detalhe-label">Data</span><span class="detalhe-valor">' +
+          (formatarData(op.dtfab) || "-") +
+          "</span></div>" +
+          '<div class="detalhe-item"><span class="detalhe-label">Código do produto</span><span class="detalhe-valor">' +
+          (op.codprodpa != null ? op.codprodpa : "-") +
+          "</span></div>" +
+          '<div class="detalhe-item"><span class="detalhe-label">Descrição do produto</span><span class="detalhe-valor">' +
+          (op.descprod || "-") +
+          "</span></div>" +
+          '<div class="detalhe-item"><span class="detalhe-label">Reator</span><span class="detalhe-valor">' +
+          (op.codwcp != null && op.codwcp !== "" ? op.codwcp : "-") +
+          (op.nomewcp != null && op.nomewcp !== "" ? " - " + op.nomewcp : "") +
+          "</span></div>" +
+          '<div class="detalhe-item"><span class="detalhe-label">Quantidade a produzir</span><span class="detalhe-valor">' +
+          (op.qtdproduzir != null ? op.qtdproduzir : "-") +
+          "</span></div>" +
+          '<div class="detalhe-item"><span class="detalhe-label">Lote</span><span class="detalhe-valor">' +
+          (op.nrolote != null && op.nrolote !== "" ? op.nrolote : "-") +
+          "</span></div>" +
+          '<div class="detalhe-item"><span class="detalhe-label">Situação</span><span class="detalhe-valor">' +
+          (op.situacao || filtroAtual || "-") +
+          "</span></div>";
+      }
+
+      function montarConteudoOverlayIniciadas(op, body, dadosGeral) {
+        const getVal = (obj, key, fallback) =>
+          obj && (obj[key] ?? obj[key.toLowerCase()]) != null
+            ? obj[key] ?? obj[key.toLowerCase()]
+            : fallback;
+
+        const codprodpa = getVal(dadosGeral, "CODPRODPA", op.codprodpa);
+        const nrolote = getVal(dadosGeral, "NROLOTE", op.nrolote);
+        const qtdproduzir = getVal(dadosGeral, "QTDPRODUZIR", op.qtdproduzir);
+        const codwcp = getVal(dadosGeral, "CODWCP", op.codwcp);
+        const nomewcp = getVal(dadosGeral, "NOMEWCP", op.nomewcp);
+        const codvol = getVal(dadosGeral, "CODVOL", "");
+        const codgrupoprod = getVal(dadosGeral, "CODGRUPOPROD", "");
+        const descrprod = getVal(dadosGeral, "DESCRPROD", op.descprod);
+        const decqtd = getVal(dadosGeral, "DECQTD", "");
+        const referencia = getVal(dadosGeral, "REFERENCIA", "");
+        const descrgrupoprod = getVal(dadosGeral, "DESCRGRUPOPROD", "");
+        const qtdprodutos = getVal(dadosGeral, "QTDPRODUTOS", "");
+        const codregmapa =
+          op.codregmapa != null
+            ? op.codregmapa
+            : getVal(dadosGeral, "CODREGMAPA", "");
+        const densidade =
+          op.densidade != null
+            ? op.densidade
+            : getVal(dadosGeral, "AD_DENSIDADE", "");
+        const garantias =
+          op.garantias != null
+            ? op.garantias
+            : getVal(dadosGeral, "AD_GARANTIAS", "");
+
+        body.innerHTML =
+          // Cabeçalho mais compacto: apenas informações-chave
+          '<div class="detalhe-item"><span class="detalhe-label">OP</span><span class="detalhe-valor">' +
+          (op.idiproc != null ? op.idiproc : "-") +
+          "</span></div>" +
+          '<div class="detalhe-item"><span class="detalhe-label">Situação</span><span class="detalhe-valor">' +
+          (op.situacao || filtroAtual || "-") +
+          "</span></div>" +
+          '<div class="detalhe-item"><span class="detalhe-label">Produto</span><span class="detalhe-valor">' +
+          (codprodpa != null ? codprodpa : "") +
+          (descrprod ? " - " + descrprod : "") +
+          "</span></div>" +
+          '<div class="overlay-geral-cabecalho">' +
+          '<div class="overlay-campos-grid">' +
+          '<div class="overlay-campo"><label>Reator</label><input type="text" disabled value="' +
+          (codwcp != null ? codwcp : "") +
+          '"></div>' +
+          '<div class="overlay-campo"><label>Descrição Reator</label><input type="text" disabled value="' +
+          (nomewcp != null ? nomewcp : "") +
+          '"></div>' +
+          '<div class="overlay-campo"><label>Lote</label><input type="text" disabled value="' +
+          (nrolote != null ? nrolote : "") +
+          '"></div>' +
+          '<div class="overlay-campo"><label>Qtd. Produzir (total)</label><input type="text" disabled value="' +
+          (qtdproduzir != null ? qtdproduzir : "") +
+          '"></div>' +
+          '<div class="overlay-campo"><label>Registro MAPA</label><input type="text" disabled value="' +
+          (codregmapa != null && codregmapa !== "" ? codregmapa : "") +
+          '"></div>' +
+          '<div class="overlay-campo"><label>Densidade</label><input type="text" disabled value="' +
+          (densidade != null && densidade !== "" ? densidade : "") +
+          '"></div>' +
+          '<div class="overlay-campo"><label>Garantias</label><input type="text" disabled value="' +
+          (garantias != null && garantias !== "" ? garantias : "") +
+          '"></div>' +
+          '<div class="overlay-campo"><label>Descrição produto</label><input type="text" disabled value="' +
+          (descrprod != null ? descrprod : "") +
+          '"></div>' +
+          "</div>" +
+          '<div class="balancas-container" id="balancasAtividadeContainer" data-idiatv="' +
+          (op.idiatv != null ? op.idiatv : op.IDIATV != null ? op.IDIATV : "") +
+          '">' +
+          '<div class="balancas-header">' +
+          '<span class="balancas-titulo">Balanças cadastradas</span>' +
+          '<span class="balancas-badge" id="balancasQtdBadge">0 balanças</span>' +
+          '<button type="button" class="balancas-btn-abrir" id="btnGerenciarBalancas">Cadastrar balança</button>' +
+          "</div>" +
+          '<div class="balancas-lista" id="balancasLista"></div>' +
+          "</div>" +
+          "</div>" +
+          '<div class="overlay-tabs">' +
+          '<div class="overlay-tabs-header">' +
+          '<button type="button" class="overlay-tab-button ativo" data-tab="apontamentos">Apontamentos</button>' +
+          '<button type="button" class="overlay-tab-button" data-tab="execucoes">Paradas realizadas</button>' +
+          "</div>" +
+          '<div class="overlay-tabs-content">' +
+          '<div class="overlay-tab-content ativo" data-tab-content="apontamentos">' +
+          '<div class="apontamentos-acoes">' +
+          '<button type="button" class="overlay-btn overlay-btn-acao btn-gerar-apontamento" id="btnGerarApontamento">Gerar Apontamento</button>' +
+          '</div>' +
+          '<div class="apontamentos-container" id="apontamentosContainer" data-carregado="false" data-idiatv="' + (op.idiatv != null ? op.idiatv : (op.IDIATV != null ? op.IDIATV : '')) + '">' +
+          '<div class="apontamentos-nivel apontamentos-nivel-cabec ativo" id="apontamentosNivelCabec">' +
+          '<p class="apontamentos-placeholder" id="apontamentosPlaceholderCabec">Carregando apontamentos...</p>' +
+          '<div id="apontamentosStackExpandido" class="apont-stack-exp" style="display:none;" aria-live="polite"></div>' +
+          '</div>' +
+          '<div class="apontamentos-nivel apontamentos-nivel-itens" id="apontamentosNivelItens">' +
+          '<button type="button" class="apontamentos-voltar" id="apontamentosVoltarItens">← Voltar</button>' +
+          '<p class="apontamentos-titulo-nivel" id="apontamentosTituloItens">Itens do apontamento</p>' +
+          '<div class="apontamentos-tabela-wrap" id="apontamentosTabelaItensWrap" style="display:none;"><table class="apontamentos-tabela" id="apontamentosTabelaItens"><thead><tr><th>NUAPO</th><th>SEQAPA</th><th>Cód. Prod.</th><th>Descr.</th><th>Lote</th><th>Qtd. Apo.</th><th>Qtd. Fat.</th><th>Qtd. Fat. SP.</th><th>Qtd. Perda</th><th>Cód. MPE</th><th>Qtd. MPE</th></tr></thead><tbody id="apontamentosTbodyItens"></tbody></table></div>' +
+          '</div>' +
+          '<div class="apontamentos-nivel apontamentos-nivel-materiais" id="apontamentosNivelMateriais">' +
+          '<button type="button" class="apontamentos-voltar" id="apontamentosVoltarMateriais">← Voltar</button>' +
+          '<p class="apontamentos-titulo-nivel" id="apontamentosTituloMateriais">Materiais</p>' +
+          '<div class="apontamentos-tabela-wrap" id="apontamentosTabelaMateriaisWrap" style="display:none;"><table class="apontamentos-tabela" id="apontamentosTabelaMateriais"><thead><tr><th>NUAPO</th><th>SEQAPA</th><th>Seq.</th><th>Produto / Descrição</th><th>Lote</th><th>Qtd.</th><th>Qtd. Apont.</th><th>Ação</th></tr></thead><tbody id="apontamentosTbodyMateriais"></tbody></table></div>' +
+          '</div>' +
+          '</div></div>' +
+          "</div>" +
+          '<div class="overlay-tab-content" data-tab-content="execucoes">' +
+          '<div class="overlay-execucoes-container" id="execucoesContainer" data-carregado="false">' +
+          '<p class="overlay-execucoes-placeholder">Toque aqui para carregar as execuções.</p>' +
+          "</div>" +
+          "</div>" +
+          "</div>" +
+          "</div>";
+
+        // Controle das abas (Execuções: carrega sob demanda ao exibir a aba)
+        const tabButtons = body.querySelectorAll(".overlay-tab-button");
+        const tabContents = body.querySelectorAll(".overlay-tab-content");
+        const execucoesContainer = body.querySelector("#execucoesContainer");
+        const idiatv = op.idiatv != null ? op.idiatv : op.IDIATV;
+
+        // Inicializa seção de balanças no cabeçalho de detalhe
+        const btnGerenciarBalancas = body.querySelector(
+          "#btnGerenciarBalancas"
+        );
+        if (btnGerenciarBalancas) {
+          btnGerenciarBalancas.addEventListener("click", function () {
+            if (idiatv == null || idiatv === "") {
+              alert(
+                "Atividade (IDIATV) não está disponível para esta operação. Não é possível cadastrar balança."
+              );
+              return;
+            }
+            abrirOverlayBalancas(idiatv);
+          });
+          // Carrega lista inicial de balanças
+          atualizarListaBalancasNaGuiaGeral();
+        }
+
+        tabButtons.forEach((btn) => {
+          btn.addEventListener("click", function () {
+            const alvo = this.getAttribute("data-tab");
+            tabButtons.forEach((b) => b.classList.remove("ativo"));
+            tabContents.forEach((c) => c.classList.remove("ativo"));
+            this.classList.add("ativo");
+            const alvoContent = body.querySelector(
+              '.overlay-tab-content[data-tab-content="' + alvo + '"]'
+            );
+            if (alvoContent) {
+              alvoContent.classList.add("ativo");
+            }
+            if (alvo === "apontamentos") {
+              var apontContainer = body.querySelector("#apontamentosContainer");
+              if (apontContainer && apontContainer.getAttribute("data-carregado") !== "true") {
+                apontContainer.setAttribute("data-carregado", "true");
+                var idiatvApo = apontContainer.getAttribute("data-idiatv");
+                var placeholderCabec = body.querySelector("#apontamentosPlaceholderCabec");
+                if (placeholderCabec) placeholderCabec.textContent = "Carregando apontamentos...";
+                carregarCabecApontamentoPorIdiatv(idiatvApo).then(function (rows) {
+                  if (!apontContainer.parentNode) return;
+                  aplicarListaApontamentosNoOverlay(body, rows || []).catch(function (e) {
+                    console.error("Erro ao carregar apontamentos:", e);
+                  });
+                });
+              }
+            }
+            if (alvo === "execucoes" && execucoesContainer && execucoesContainer.getAttribute("data-carregado") !== "true") {
+              execucoesContainer.setAttribute("data-carregado", "true");
+              if (idiatv == null || idiatv === "") {
+                execucoesContainer.innerHTML = "<p class=\"overlay-execucoes-placeholder\">Dados da atividade não disponíveis.</p>";
+                return;
+              }
+              execucoesContainer.innerHTML = "<p class=\"overlay-execucoes-placeholder\">Carregando execuções...</p>";
+              carregarExecucoes(idiatv).then(function (rows) {
+                if (!execucoesContainer.parentNode) return;
+                if (rows.length === 0) {
+                  execucoesContainer.innerHTML = "<p class=\"overlay-execucoes-placeholder\">Nenhuma execução encontrada.</p>";
+                  return;
+                }
+                const esc = function (v) {
+                  if (v == null || v === undefined) return "";
+                  return String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+                };
+                var html = "<table class=\"overlay-tabela-execucoes\"><thead><tr>" +
+                  "<th>Início</th><th>Fim</th><th>Tipo</th><th>Exec.</th><th>Usuário</th><th>Observ.</th><th>CODMTP</th></tr></thead><tbody>";
+                rows.forEach(function (r) {
+                  var dhinicio = r.DHINICIO != null ? r.DHINICIO : (r.dhinicio != null ? r.dhinicio : "");
+                  var dhfinal = r.DHFINAL != null ? r.DHFINAL : (r.dhfinal != null ? r.dhfinal : "");
+                  var tipo = r.TIPO != null ? r.TIPO : (r.tipo != null ? r.tipo : "");
+                  var codexec = r.CODEXEC != null ? r.CODEXEC : (r.codexec != null ? r.codexec : "");
+                  var nomeusu = r.NOMEUSU != null ? r.NOMEUSU : (r.nomeusu != null ? r.nomeusu : "");
+                  var obs = r.OBSERVACAO != null ? r.OBSERVACAO : (r.observacao != null ? r.observacao : "");
+                  var codmtp = r.CODMTP != null ? r.CODMTP : (r.codmtp != null ? r.codmtp : "");
+                  html += "<tr><td><input type=\"text\" class=\"overlay-exec-input\" disabled value=\"" + esc(dhinicio) + "\"></td>" +
+                    "<td><input type=\"text\" class=\"overlay-exec-input\" disabled value=\"" + esc(dhfinal) + "\"></td>" +
+                    "<td><input type=\"text\" class=\"overlay-exec-input\" disabled value=\"" + esc(tipo) + "\"></td>" +
+                    "<td><input type=\"text\" class=\"overlay-exec-input\" disabled value=\"" + esc(codexec) + "\"></td>" +
+                    "<td><input type=\"text\" class=\"overlay-exec-input\" disabled value=\"" + esc(nomeusu) + "\"></td>" +
+                    "<td><input type=\"text\" class=\"overlay-exec-input\" disabled value=\"" + esc(obs) + "\"></td>" +
+                    "<td><input type=\"text\" class=\"overlay-exec-input\" disabled value=\"" + esc(codmtp) + "\"></td></tr>";
+                });
+                html += "</tbody></table>";
+                execucoesContainer.innerHTML = html;
+              });
+            }
+          });
+        });
+
+        // Garante carga inicial da guia ativa (agora "Apontamentos")
+        const tabAtivaInicial = body.querySelector(".overlay-tab-button.ativo");
+        if (tabAtivaInicial) {
+          tabAtivaInicial.click();
+        }
+        // Botão "Gerar Apontamento" na guia Apontamentos: aciona o JAR CadastrarCabecApontamentoBTFromParam com IDIPROC
+        var btnGerarApont = body.querySelector("#btnGerarApontamento");
+        if (btnGerarApont) {
+          btnGerarApont.addEventListener("click", executarGerarApontamento);
+        }
+      }
+
+      // Abre o overlay com todos os detalhes do registro (mobile first)
+      function abrirOverlayDetalhe(op) {
+        opOverlay = op;
+        filtroOverlay = filtroAtual;
+        var overlay = document.getElementById("overlayDetalhe");
+        var body = document.getElementById("overlayBody");
+        var btnAcao = document.getElementById("overlayBtnAcao");
+        var btnIniciar = document.getElementById("overlayBtnIniciar");
+        var btnConfirmarApo = document.getElementById("overlayBtnConfirmarApontamento");
+        if (!overlay || !body || !btnAcao) return;
+
+        if (btnConfirmarApo) {
+          btnConfirmarApo.style.display = "none";
+          btnConfirmarApo.disabled = true;
+          btnConfirmarApo.removeAttribute("data-nuapo");
+          btnConfirmarApo.removeAttribute("data-desc-situacao");
+        }
+
+        // placeholder enquanto carrega dados adicionais (quando Iniciadas)
+        body.innerHTML =
+          '<div class="detalhe-item"><span class="detalhe-label">Carregando detalhes</span><span class="detalhe-valor">Aguarde...</span></div>';
+
+        var mostraAcao =
+          filtroAtual === "Iniciadas" || filtroAtual === "Paradas";
+        var obsParadaWrap = document.getElementById("overlayObservacaoParada");
+        var inputObsParada = document.getElementById("inputObservacaoParada");
+        if (mostraAcao) {
+          btnAcao.style.display = "flex";
+          var ehParar = filtroAtual === "Iniciadas";
+          btnAcao.textContent = ehParar ? "Parar a produção" : "Continuar produção";
+          if (ehParar) btnAcao.classList.add("parar"); else btnAcao.classList.remove("parar");
+          btnAcao.removeAttribute("aria-expanded");
+          paradaObsReveladaOverlay = false;
+          if (ehParar) {
+            if (obsParadaWrap) {
+              obsParadaWrap.style.display = "none";
+              obsParadaWrap.setAttribute("aria-hidden", "true");
+              obsParadaWrap.classList.remove("revelada");
+            }
+            if (inputObsParada) inputObsParada.value = "";
+            btnAcao.onclick = function () {
+              if (!paradaObsReveladaOverlay) {
+                paradaObsReveladaOverlay = true;
+                if (obsParadaWrap) {
+                  obsParadaWrap.style.display = "block";
+                  obsParadaWrap.setAttribute("aria-hidden", "false");
+                  obsParadaWrap.classList.add("revelada");
+                }
+                btnAcao.textContent = "Confirmar parada";
+                btnAcao.setAttribute("aria-expanded", "true");
+                if (inputObsParada) {
+                  inputObsParada.value = "";
+                  setTimeout(function () {
+                    try {
+                      inputObsParada.focus();
+                    } catch (e) {}
+                  }, 0);
+                }
+                return;
+              }
+              executarAcaoOp(opOverlay, filtroOverlay);
+            };
+          } else {
+            btnAcao.onclick = function () {
+              executarAcaoOp(opOverlay, filtroOverlay);
+            };
+            if (obsParadaWrap) {
+              obsParadaWrap.style.display = "none";
+              obsParadaWrap.setAttribute("aria-hidden", "true");
+              obsParadaWrap.classList.remove("revelada");
+            }
+          }
+        } else {
+          btnAcao.style.display = "none";
+          btnAcao.classList.remove("parar");
+          btnAcao.onclick = null;
+          paradaObsReveladaOverlay = false;
+          if (obsParadaWrap) {
+            obsParadaWrap.style.display = "none";
+            obsParadaWrap.setAttribute("aria-hidden", "true");
+            obsParadaWrap.classList.remove("revelada");
+          }
+        }
+
+        if (btnIniciar) {
+          if (filtroAtual === "Agd. Aceite") {
+            btnIniciar.style.display = "flex";
+            btnIniciar.onclick = function () {
+              executarIniciarProducao();
+            };
+          } else {
+            btnIniciar.style.display = "none";
+            btnIniciar.onclick = null;
+          }
+        }
+
+        var btnFecharOverlay = document.getElementById("overlayBtnFechar");
+        if (btnFecharOverlay) {
+          btnFecharOverlay.textContent =
+            filtroAtual === "Iniciadas" ? "Voltar" : "Fechar";
+        }
+
+        overlay.classList.add("ativo");
+        overlay.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+        if (btnIniciar && btnIniciar.style.display === "flex") {
+          btnIniciar.focus();
+        } else {
+          btnAcao.focus();
+        }
+
+        if (filtroAtual === "Iniciadas") {
+          carregarDadosGeralOp(op.idiproc).then(function (dados) {
+            montarConteudoOverlayIniciadas(op, body, dados || {});
+          });
+        } else {
+          montarConteudoDefaultOverlay(op, body);
+        }
+      }
+
+      function fecharOverlayDetalhe() {
+        var overlay = document.getElementById("overlayDetalhe");
+        if (!overlay) return;
+        var filtroAntesFechar = filtroOverlay;
+        overlay.classList.remove("ativo");
+        overlay.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+        opOverlay = null;
+        filtroOverlay = null;
+        var obsParadaFechar = document.getElementById("inputObservacaoParada");
+        if (obsParadaFechar) obsParadaFechar.value = "";
+        if (filtroAntesFechar === "Iniciadas") {
+          paradaObsReveladaOverlay = false;
+          var obsWrapFechar = document.getElementById("overlayObservacaoParada");
+          if (obsWrapFechar) {
+            obsWrapFechar.style.display = "none";
+            obsWrapFechar.setAttribute("aria-hidden", "true");
+            obsWrapFechar.classList.remove("revelada");
+          }
+          var btnAcaoFechar = document.getElementById("overlayBtnAcao");
+          if (btnAcaoFechar) {
+            btnAcaoFechar.textContent = "Parar a produção";
+            btnAcaoFechar.removeAttribute("aria-expanded");
+          }
+        }
+        var btnConfFechar = document.getElementById("overlayBtnConfirmarApontamento");
+        if (btnConfFechar) {
+          btnConfFechar.style.display = "none";
+          btnConfFechar.disabled = true;
+          btnConfFechar.removeAttribute("data-nuapo");
+          btnConfFechar.removeAttribute("data-desc-situacao");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        var overlay = document.getElementById("overlayDetalhe");
+        var btnFechar = document.getElementById("overlayBtnFechar");
+        var btnRelatorio = document.getElementById("overlayBtnRelatorio");
+        if (overlay) {
+          overlay.addEventListener("click", function (e) {
+            if (e.target === overlay) fecharOverlayDetalhe();
+          });
+          document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && overlay.classList.contains("ativo")) {
+              fecharOverlayDetalhe();
+            }
+          });
+        }
+        if (btnFechar) {
+          btnFechar.addEventListener("click", fecharOverlayDetalhe);
+        }
+        var btnConfApo = document.getElementById("overlayBtnConfirmarApontamento");
+        if (btnConfApo) {
+          btnConfApo.addEventListener("click", function () {
+            var nuapo = this.getAttribute("data-nuapo");
+            var descSit = this.getAttribute("data-desc-situacao") || "";
+            executarConfirmarApontamento(nuapo, descSit);
+          });
+        }
+        if (btnRelatorio) {
+          btnRelatorio.addEventListener("click", function () {
+            gerarRelatorioPdf();
+          });
+        }
+      });
+
+      // Executa "Gerar Apontamento" na guia Apontamentos: chama o botão Java CadastrarCabecApontamentoBTFromParam com IDIPROC e IDIATV
+      // A regra personalizada CORE_E01128 exige o parâmetro IDIATV para criar o apontamento; enviar IDIATV quando disponível.
+      function executarGerarApontamento() {
+        if (typeof JX === "undefined" || !JX.acionarBotao) {
+          alert("Erro: Biblioteca SankhyaJX não está disponível");
+          return;
+        }
+        if (!opOverlay || (opOverlay.idiproc !== 0 && !opOverlay.idiproc)) {
+          alert("Erro: IDIPROC não encontrado na operação");
+          return;
+        }
+        var idiprocVal = Number(opOverlay.idiproc);
+        if (isNaN(idiprocVal)) idiprocVal = opOverlay.idiproc;
+        var idiatvVal = opOverlay.idiatv != null ? opOverlay.idiatv : opOverlay.IDIATV;
+        if (idiatvVal != null && idiatvVal !== "") idiatvVal = Number(idiatvVal);
+        if ((idiatvVal == null || isNaN(idiatvVal) || idiatvVal <= 0) && opOverlay.idiatv != null) idiatvVal = opOverlay.idiatv;
+        var params = { IDIPROC: idiprocVal };
+        if (idiatvVal != null && !isNaN(idiatvVal) && idiatvVal > 0) params.IDIATV = idiatvVal;
+
+        var msg =
+          "Deseja gerar um novo apontamento para a OP " +
+          opOverlay.idiproc +
+          "?\n\nProduto: " +
+          (opOverlay.codprodpa || "") +
+          " - " +
+          (opOverlay.descprod || "");
+        if (!confirm(msg)) return;
+
+        JX.acionarBotao(
+          params,
+          { tipo: "JAVA", idBotao: ID_BOTAO_GERAR_APONTAMENTO }
+        )
+          .then(function (resultado) {
+            if (resultado && resultado.mensagem) alert(resultado.mensagem);
+            atualizarTabela();
+            refreshListaApontamentosNoOverlay();
+          })
+          .catch(function (erro) {
+            alert("Erro ao gerar apontamento: " + (erro.message || erro));
+          });
+      }
+
+      // Confirma um apontamento existente (NUAPO) na guia Apontamentos:
+      // chama o botão Java ConfirmarApontamentoBTFromParam com NUAPO.
+      function numeroSeguro(valor) {
+        var n = Number(valor);
+        return isNaN(n) ? 0 : n;
+      }
+
+      async function validarMargemQtdMateriaisPorNuapo(nuapo) {
+        if (
+          typeof JX === "undefined" ||
+          !JX.consultar ||
+          nuapo == null ||
+          nuapo === ""
+        ) {
+          return {
+            ok: false,
+            totalQtd: 0,
+            totalQtdApont: 0,
+            minAceito: 0,
+            maxAceito: 0,
+          };
+        }
+        try {
+          var nVal = isNaN(Number(nuapo)) ? nuapo : Number(nuapo);
+          var sql = `
+            SELECT
+              (SELECT NVL(SUM(AMP.QTD), 0) FROM TPRAMP AMP WHERE AMP.NUAPO = ${nVal}) AS TOTAL_QTD,
+              (SELECT NVL(SUM(ITE.QUANTIDADE), 0) FROM AD_TPRAMPITE ITE WHERE ITE.NUAPO = ${nVal}) AS TOTAL_QTD_APONT
+            FROM DUAL
+          `;
+          var rows = await JX.consultar(sql);
+          var row = Array.isArray(rows) && rows.length > 0 ? rows[0] : {};
+          var totalQtd = numeroSeguro(
+            row.TOTAL_QTD != null ? row.TOTAL_QTD : row.total_qtd
+          );
+          var totalQtdApont = numeroSeguro(
+            row.TOTAL_QTD_APONT != null
+              ? row.TOTAL_QTD_APONT
+              : row.total_qtd_apont
+          );
+
+          /* Qtd. Apont. = 0: só aceita Qtd. total zero (materiais sem apontamento). */
+          if (totalQtdApont === 0) {
+            return {
+              ok: totalQtd === 0,
+              totalQtd: totalQtd,
+              totalQtdApont: totalQtdApont,
+              minAceito: 0,
+              maxAceito: 0,
+            };
+          }
+
+          /* Igualdade ou Qtd. dentro de ±2% em relação a Qtd. Apont. (com eps para somas Oracle). */
+          var minAceito = totalQtdApont * 0.98;
+          var maxAceito = totalQtdApont * 1.02;
+          var diffAbs = Math.abs(totalQtd - totalQtdApont);
+          var margem2pct = Math.abs(totalQtdApont) * 0.02;
+          var epsNum =
+            1e-12 *
+            Math.max(
+              Math.abs(totalQtd),
+              Math.abs(totalQtdApont),
+              1
+            );
+          var okMargem = diffAbs <= margem2pct + epsNum;
+          return {
+            ok: okMargem,
+            totalQtd: totalQtd,
+            totalQtdApont: totalQtdApont,
+            minAceito: minAceito,
+            maxAceito: maxAceito,
+          };
+        } catch (e) {
+          console.error("Erro ao validar totais de materiais do apontamento:", e);
+          return {
+            ok: false,
+            totalQtd: 0,
+            totalQtdApont: 0,
+            minAceito: 0,
+            maxAceito: 0,
+          };
+        }
+      }
+
+      async function executarConfirmarApontamento(nuapo, descSituacao) {
+        if (typeof JX === "undefined" || !JX.acionarBotao) {
+          alert("Erro: Biblioteca SankhyaJX não está disponível");
+          return;
+        }
+        if (!nuapo) {
+          alert("Erro: NUAPO não informado para confirmação do apontamento.");
+          return;
+        }
+
+        // Bloqueio amigável quando já está confirmado (backend também valida).
+        if (descSituacao && descSituacao.toUpperCase().indexOf("CONFIRM") !== -1) {
+          alert("Este apontamento já está confirmado.");
+          return;
+        }
+
+        var nuapoVal = Number(nuapo);
+        if (isNaN(nuapoVal)) nuapoVal = nuapo;
+
+        var validacao = await validarMargemQtdMateriaisPorNuapo(nuapoVal);
+        if (!validacao.ok) {
+          alert(
+            "Não foi possível confirmar o apontamento.\n\n" +
+              "A quantidade total dos materiais (Qtd.) está fora da margem permitida de 2% em relação à quantidade apontada (Qtd. Apont.).\n" +
+              "Qtd. total: " +
+              validacao.totalQtd +
+              "\n" +
+              "Qtd. apontada total: " +
+              validacao.totalQtdApont +
+              "\n" +
+              "Faixa aceita: " +
+              validacao.minAceito +
+              " até " +
+              validacao.maxAceito
+          );
+          return;
+        }
+
+        var params = { NUAPO: nuapoVal };
+
+        var msg =
+          "Deseja confirmar o apontamento NUAPO " +
+          nuapo +
+          "?";
+        if (!confirm(msg)) return;
+
+        JX.acionarBotao(
+          params,
+          { tipo: "JAVA", idBotao: ID_BOTAO_CONFIRMAR_APONTAMENTO }
+        )
+          .then(function (resultado) {
+            if (resultado && resultado.mensagem) alert(resultado.mensagem);
+            atualizarTabela();
+            refreshListaApontamentosNoOverlay();
+          })
+          .catch(function (erro) {
+            alert("Erro ao confirmar apontamento: " + (erro.message || erro));
+          });
+      }
+
+      // Executa "Iniciar produção" na guia Agd. Aceite: chama o botão Java IniciarProducaoBTFromParam com IDIPROC e IDIATV
+      function executarIniciarProducao() {
+        if (typeof JX === "undefined" || !JX.acionarBotao) {
+          alert("Erro: Biblioteca SankhyaJX não está disponível");
+          return;
+        }
+        if (!opOverlay || (opOverlay.idiproc !== 0 && !opOverlay.idiproc)) {
+          alert("Erro: IDIPROC não encontrado na operação");
+          return;
+        }
+        var idiprocVal = Number(opOverlay.idiproc);
+        if (isNaN(idiprocVal)) idiprocVal = opOverlay.idiproc;
+        var idiatvVal = opOverlay.idiatv != null ? opOverlay.idiatv : opOverlay.IDIATV;
+        if (idiatvVal != null && idiatvVal !== "") idiatvVal = Number(idiatvVal);
+        if ((idiatvVal == null || isNaN(idiatvVal) || idiatvVal <= 0) && opOverlay.idiatv != null) idiatvVal = opOverlay.idiatv;
+        var params = { IDIPROC: idiprocVal };
+        if (idiatvVal != null && !isNaN(idiatvVal) && idiatvVal > 0) params.IDIATV = idiatvVal;
+
+        var msg =
+          "Deseja iniciar a produção da OP " +
+          opOverlay.idiproc +
+          "?\n\nProduto: " +
+          (opOverlay.codprodpa || "") +
+          " - " +
+          (opOverlay.descprod || "");
+        if (!confirm(msg)) return;
+
+        JX.acionarBotao(
+          params,
+          { tipo: "JAVA", idBotao: ID_BOTAO_INICIAR_PRODUCAO }
+        )
+          .then(function (resultado) {
+            if (resultado && resultado.mensagem) alert(resultado.mensagem);
+            atualizarTabela();
+            fecharOverlayDetalhe();
+          })
+          .catch(function (erro) {
+            alert("Erro ao iniciar produção: " + (erro.message || erro));
+          });
+      }
+
+      // Gera PDF com o detalhamento completo da operação exibida no overlay
+      async function gerarRelatorioPdf() {
+        if (!opOverlay) {
+          alert("Nenhuma operação selecionada.");
+          return;
+        }
+
+        var jsPdfNamespace = window.jspdf || (window.jsPDF ? { jsPDF: window.jsPDF } : null);
+        if (!jsPdfNamespace || !jsPdfNamespace.jsPDF) {
+          alert("Biblioteca de PDF não foi carregada.");
+          return;
+        }
+
+        var jsPDF = jsPdfNamespace.jsPDF;
+        var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+        // Cores para layout profissional (tema verde do sistema)
+        var corVerdeEscuro = [20, 83, 45];
+        var corVerdeMedio = [34, 197, 94];
+        var corCinzaTexto = [55, 65, 81];
+        var corCinzaClaro = [229, 231, 235];
+        var corBranco = [255, 255, 255];
+
+        var op = opOverlay;
+        var idiprocVal = op.idiproc != null ? op.idiproc : op.IDIPROC;
+        var idiatvVal = op.idiatv != null ? op.idiatv : op.IDIATV;
+
+        function texto(v) {
+          if (v == null || v === undefined) return "-";
+          return String(v);
+        }
+
+        var yAtual = 15;
+        var numPagina = 1;
+        var margemEsqPadrao = 15;
+        var margemDir = 195;
+        var larguraUtil = margemDir - margemEsqPadrao;
+
+        function rodape() {
+          doc.setDrawColor(corCinzaClaro[0], corCinzaClaro[1], corCinzaClaro[2]);
+          doc.setLineWidth(0.2);
+          doc.line(15, 285, 195, 285);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(corCinzaTexto[0], corCinzaTexto[1], corCinzaTexto[2]);
+          doc.text("Sistema de Controle de Produção — Relatório da Operação — Página " + numPagina, 105, 291, { align: "center" });
+          doc.setTextColor(0, 0, 0);
+        }
+
+        function addLinha(text, opts) {
+          opts = opts || {};
+          var margemEsq = opts.x != null ? opts.x : margemEsqPadrao;
+          var maxLargura = larguraUtil - (margemEsq - margemEsqPadrao);
+          var linhas = doc.splitTextToSize(text, maxLargura);
+          for (var i = 0; i < linhas.length; i++) {
+            if (yAtual > 275) {
+              rodape();
+              doc.addPage();
+              numPagina++;
+              yAtual = 20;
+            }
+            doc.text(linhas[i], margemEsq, yAtual);
+            yAtual += 5;
+          }
+        }
+
+        function tituloSecao(titulo) {
+          if (yAtual > 270) {
+            rodape();
+            doc.addPage();
+            numPagina++;
+            yAtual = 20;
+          }
+          doc.setFillColor(corVerdeEscuro[0], corVerdeEscuro[1], corVerdeEscuro[2]);
+          doc.rect(15, yAtual - 4, larguraUtil, 8, "F");
+          doc.setTextColor(corBranco[0], corBranco[1], corBranco[2]);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text(titulo, 18, yAtual + 2);
+          doc.setTextColor(0, 0, 0);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          yAtual += 10;
+        }
+
+        // Cabeçalho visual do documento
+        doc.setFillColor(corVerdeEscuro[0], corVerdeEscuro[1], corVerdeEscuro[2]);
+        doc.rect(0, 0, 210, 12, "F");
+        doc.setDrawColor(corVerdeMedio[0], corVerdeMedio[1], corVerdeMedio[2]);
+        doc.setLineWidth(0.5);
+        doc.line(0, 12, 210, 12);
+        doc.setTextColor(corBranco[0], corBranco[1], corBranco[2]);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("Relatório da Operação", 105, 8, { align: "center" });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text("Sistema de Controle de Produção", 105, 11.5, { align: "center" });
+        doc.setTextColor(0, 0, 0);
+        yAtual = 22;
+
+        doc.setDrawColor(corCinzaClaro[0], corCinzaClaro[1], corCinzaClaro[2]);
+        doc.setLineWidth(0.2);
+        doc.line(15, yAtual, 195, yAtual);
+        yAtual += 6;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(corVerdeEscuro[0], corVerdeEscuro[1], corVerdeEscuro[2]);
+        addLinha("Resumo da operação");
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        addLinha("Data de geração: " + formatarDataHoraAtualParaBD());
+        addLinha("ID da OP: " + texto(idiprocVal));
+        addLinha("Situação atual: " + texto(op.situacao || filtroAtual));
+        yAtual += 4;
+
+        // Seção Geral
+        tituloSecao("1. Dados gerais da operação");
+
+        var dadosGeral = null;
+        try {
+          if (idiprocVal != null) {
+            dadosGeral = await carregarDadosGeralOp(idiprocVal);
+          }
+        } catch (e) {
+          dadosGeral = null;
+        }
+
+        function getVal(obj, key, fallback) {
+          if (!obj) return fallback;
+          var k1 = key;
+          var k2 = key.toLowerCase();
+          if (obj[k1] != null) return obj[k1];
+          if (obj[k2] != null) return obj[k2];
+          return fallback;
+        }
+
+        var codprodpa = getVal(dadosGeral, "CODPRODPA", op.codprodpa);
+        var nrolote = getVal(dadosGeral, "NROLOTE", op.nrolote);
+        var controlepa = getVal(dadosGeral, "CONTROLEPA", "");
+        var qtdproduzir = getVal(dadosGeral, "QTDPRODUZIR", op.qtdproduzir);
+        var compldesc = getVal(dadosGeral, "COMPLDESC", "");
+        var codvol = getVal(dadosGeral, "CODVOL", "");
+        var codgrupoprod = getVal(dadosGeral, "CODGRUPOPROD", "");
+        var descrprod = getVal(dadosGeral, "DESCRPROD", op.descprod);
+        var dtinicmps = getVal(dadosGeral, "DTINICMPS", "");
+        var dtfinmps = getVal(dadosGeral, "DTFINMPS", "");
+        var decqtd = getVal(dadosGeral, "DECQTD", "");
+        var referencia = getVal(dadosGeral, "REFERENCIA", "");
+        var descrgrupoprod = getVal(dadosGeral, "DESCRGRUPOPROD", "");
+        var prioridade = getVal(dadosGeral, "PRIORIDADE", "");
+        var qtdprodutos = getVal(dadosGeral, "QTDPRODUTOS", "");
+
+        addLinha("Produto: " + texto(codprodpa) + " - " + texto(descrprod));
+        addLinha("Lote / Controle PA: " + texto(nrolote) + " / " + texto(controlepa));
+        addLinha("Quantidade a produzir (total): " + texto(qtdproduzir) + " " + texto(codvol));
+        addLinha("Grupo / Código grupo: " + texto(descrgrupoprod) + " / " + texto(codgrupoprod));
+        addLinha("Referência: " + texto(referencia));
+        addLinha("Compl. descrição: " + texto(compldesc));
+        addLinha("Data início MPS: " + texto(dtinicmps));
+        addLinha("Data fim MPS: " + texto(dtfinmps));
+        addLinha("Dec. qtd: " + texto(decqtd));
+        addLinha("Qtd. produtos na OP: " + texto(qtdprodutos));
+        yAtual += 4;
+
+        // Seção Apontamentos
+        tituloSecao("2. Apontamentos da atividade");
+
+        var cabecApont = [];
+        var itensPorNuapo = {};
+        var matsPorNuapoSeq = {};
+
+        if (idiatvVal != null && idiatvVal !== "") {
+          try {
+            cabecApont = await carregarCabecApontamentoPorIdiatv(idiatvVal);
+          } catch (e2) {
+            cabecApont = [];
+          }
+        }
+
+        if (!cabecApont || cabecApont.length === 0) {
+          addLinha("Nenhum apontamento encontrado.");
+        } else {
+          for (var iCab = 0; iCab < cabecApont.length; iCab++) {
+            var cab = cabecApont[iCab];
+            var nuapo = cab.NUAPO != null ? cab.NUAPO : cab.nuapo;
+            var dhapo = cab.DHAPO != null ? cab.DHAPO : cab.dhapo;
+            var codusu = cab.CODUSU != null ? cab.CODUSU : cab.codusu;
+            var nomeusu = cab.NOMEUSU != null ? cab.NOMEUSU : cab.nomeusu;
+            var descSit = cab.DESC_SITUACAO != null ? cab.DESC_SITUACAO : cab.desc_situacao;
+            var obsApo = cab.OBSERVACAO != null ? cab.OBSERVACAO : cab.observacao;
+
+            addLinha("Apontamento NUAPO " + texto(nuapo) + " (" + texto(descSit) + ")");
+            addLinha("Usuário / Código: " + texto(nomeusu) + " / " + texto(codusu));
+            addLinha("Data/Hora: " + texto(dhapo));
+            if (obsApo) addLinha("Observação: " + texto(obsApo));
+
+            try {
+              var itens = await carregarItensApontamentoPorNuapo(nuapo);
+              itensPorNuapo[nuapo] = itens || [];
+            } catch (e3) {
+              itensPorNuapo[nuapo] = [];
+            }
+
+            var itensAtual = itensPorNuapo[nuapo];
+            if (!itensAtual || itensAtual.length === 0) {
+              addLinha("Itens: nenhum item cadastrado.");
+            } else {
+              for (var iIt = 0; iIt < itensAtual.length; iIt++) {
+                var it = itensAtual[iIt];
+                var seqapa = it.SEQAPA != null ? it.SEQAPA : it.seqapa;
+                var codpa = it.CODPRODPA != null ? it.CODPRODPA : it.codprodpa;
+                var descpa = it.DESCRPROD != null ? it.DESCRPROD : (it.descrprod != null ? it.descrprod : "");
+                var ctrlpa = it.CONTROLEPA != null ? it.CONTROLEPA : it.controlepa;
+                var qtdA = it.QTDAPONTADA != null ? it.QTDAPONTADA : it.qtdapontada;
+                var qtdF = it.QTDFAT != null ? it.QTDFAT : it.qtdfat;
+                var qtdFS = it.QTDFATSP != null ? it.QTDFATSP : it.qtdfatsp;
+                var qtdP = it.QTDPERDA != null ? it.QTDPERDA : it.qtdperda;
+                var codmpe = it.CODMPE != null ? it.CODMPE : it.codmpe;
+                var qtdmpe = it.QTDMPE != null ? it.QTDMPE : it.qtdmpe;
+
+                addLinha("  Item seq. " + texto(seqapa) + " – " + texto(codpa) + " - " + texto(descpa));
+                addLinha("    Controle PA: " + texto(ctrlpa));
+                addLinha("    Qtd. apontada / Faturada / SP / Perda: " + texto(qtdA) + " / " + texto(qtdF) + " / " + texto(qtdFS) + " / " + texto(qtdP));
+                addLinha("    CODMPE / QTDMPE: " + texto(codmpe) + " / " + texto(qtdmpe));
+
+                var chaveMat = String(nuapo) + "#" + String(seqapa);
+                try {
+                  var mats = await carregarMateriaisPorNuapoSeqapa(nuapo, seqapa);
+                  matsPorNuapoSeq[chaveMat] = mats || [];
+                } catch (e4) {
+                  matsPorNuapoSeq[chaveMat] = [];
+                }
+
+                var matsAtual = matsPorNuapoSeq[chaveMat];
+                if (matsAtual && matsAtual.length > 0) {
+                  addLinha("");
+                  addLinha("    ==== Materiais do item (matéria-prima consumida) ====");
+                  for (var iM = 0; iM < matsAtual.length; iM++) {
+                    var m = matsAtual[iM];
+                    var codmp = m.CODPRODMP != null ? m.CODPRODMP : m.codprodmp;
+                    var descmp = m.DESCRPROD != null ? m.DESCRPROD : (m.descrprod != null ? m.descrprod : "");
+                    var ctrlmp = m.CONTROLEMP != null ? m.CONTROLEMP : m.controlemp;
+                    var qtdmp = m.QTD != null ? m.QTD : m.qtd;
+                    var codvolmp = m.CODVOL != null ? m.CODVOL : m.codvol;
+                    var tipoUso = m.DESC_TIPOUSO != null ? m.DESC_TIPOUSO : m.desc_tipouso;
+                    addLinha(
+                      "      " +
+                        texto(codmp) +
+                        " - " +
+                        texto(descmp) +
+                        " | Controle: " +
+                        texto(ctrlmp) +
+                        " | Qtd: " +
+                        texto(qtdmp) +
+                        " " +
+                        texto(codvolmp) +
+                        " | Tipo uso: " +
+                        texto(tipoUso)
+                    );
+
+                    // Detalhamento AD_TPRAMPITE para cada material (quando existir)
+                    var ctxDet = {
+                      nuapo: nuapo,
+                      seqapa: seqapa,
+                      codprodmp: codmp,
+                      controlemp: ctrlmp,
+                      qtd: qtdmp,
+                      descrprod: descmp,
+                      codvol: codvolmp
+                    };
+                    var detalhes = [];
+                    try {
+                      detalhes = await carregarDetalhesTprampite(ctxDet);
+                    } catch (eDet) {
+                      detalhes = [];
+                    }
+                    if (detalhes && detalhes.length > 0) {
+                      addLinha("        >>> Detalhamento do material (AD_TPRAMPITE) <<<");
+                      for (var iD = 0; iD < detalhes.length; iD++) {
+                        var d = detalhes[iD];
+                        var codDet = d.CODIGO != null ? d.CODIGO : d.codigo;
+                        var qtdDet = d.QUANTIDADE != null ? d.QUANTIDADE : d.quantidade;
+                        var dhDet = d.DHLANCAMENTO != null ? d.DHLANCAMENTO : d.dhlancamento;
+                        var obsDet = d.OBSERVACAO != null ? d.OBSERVACAO : d.observacao;
+                        var linhaDet =
+                          "          Código " +
+                          texto(codDet) +
+                          " | Qtde: " +
+                          texto(qtdDet) +
+                          " | DH Lanç.: " +
+                          texto(dhDet);
+                        if (obsDet) {
+                          linhaDet += " | Obs.: " + texto(obsDet);
+                        }
+                        addLinha(linhaDet);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            yAtual += 4;
+          }
+        }
+
+        // Seção Execuções
+        tituloSecao("3. Execuções da atividade");
+
+        var execucoes = [];
+        if (idiatvVal != null && idiatvVal !== "") {
+          try {
+            execucoes = await carregarExecucoes(idiatvVal);
+          } catch (e5) {
+            execucoes = [];
+          }
+        }
+
+        if (!execucoes || execucoes.length === 0) {
+          addLinha("Nenhuma execução encontrada.");
+        } else {
+          for (var iEx = 0; iEx < execucoes.length; iEx++) {
+            var ex = execucoes[iEx];
+            var dhinicio = ex.DHINICIO != null ? ex.DHINICIO : ex.dhinicio;
+            var dhfinal = ex.DHFINAL != null ? ex.DHFINAL : ex.dhfinal;
+            var tipo = ex.TIPO != null ? ex.TIPO : ex.tipo;
+            var codexec = ex.CODEXEC != null ? ex.CODEXEC : ex.codexec;
+            var nomeusuEx = ex.NOMEUSU != null ? ex.NOMEUSU : ex.nomeusu;
+            var obsEx = ex.OBSERVACAO != null ? ex.OBSERVACAO : ex.observacao;
+            var codmtp = ex.CODMTP != null ? ex.CODMTP : ex.codmtp;
+
+            addLinha(
+              "Execução " +
+                (iEx + 1) +
+                " – Tipo: " +
+                texto(tipo) +
+                " | Usuário: " +
+                texto(nomeusuEx) +
+                " (" +
+                texto(codexec) +
+                ")"
+            );
+            addLinha("  Início / Fim: " + texto(dhinicio) + " / " + texto(dhfinal));
+            addLinha("  CODMTP: " + texto(codmtp));
+            if (obsEx) addLinha("  Observação: " + texto(obsEx));
+          }
+        }
+
+        rodape();
+        doc.save("relatorio_op_" + texto(idiprocVal) + ".pdf");
+      }
+
+      // Executa a ação (Parar ou Continuar produção) a partir do overlay.
+      // op: operação (usa opOverlay se não informado). filtroEfetivo: aba no momento da abertura do overlay (evita troca de aba quebrar o botão).
+      function executarAcaoOp(op, filtroEfetivo) {
+        if (typeof JX === "undefined" || !JX.acionarBotao) {
+          alert("Erro: Biblioteca SankhyaJX não está disponível");
+          return;
+        }
+        op = op || opOverlay;
+        if (!op || (op.idiproc !== 0 && !op.idiproc)) {
+          alert("Erro: IDIPROC não encontrado na operação. Feche o detalhe e abra novamente.");
+          return;
+        }
+        filtroEfetivo = filtroEfetivo != null ? filtroEfetivo : filtroAtual;
+        var idiprocVal = Number(op.idiproc);
+        if (isNaN(idiprocVal)) idiprocVal = op.idiproc;
+
+        if (filtroEfetivo === "Paradas") {
+          var msgParadas =
+            "Deseja retomar a produção para a OP " +
+            op.idiproc +
+            "?\n\nProduto: " +
+            op.codprodpa +
+            " - " +
+            (op.descprod || "");
+          if (!confirm(msgParadas)) return;
+          var btnAcaoParadas = document.getElementById("overlayBtnAcao");
+          if (btnAcaoParadas) { btnAcaoParadas.disabled = true; }
+          JX.acionarBotao(
+            { IDIPROC: idiprocVal },
+            { tipo: "JAVA", idBotao: ID_BOTAO_CONTINUAR_PRODUCAO }
+          )
+            .then(function (resultado) {
+              if (resultado && resultado.mensagem) alert(resultado.mensagem);
+              fecharOverlayDetalhe();
+              atualizarTabela();
+            })
+            .catch(function (erro) {
+              alert("Erro ao retomar produção: " + (erro.message || erro));
+            })
+            .finally(function () {
+              if (btnAcaoParadas) { btnAcaoParadas.disabled = false; }
+            });
+          return;
+        }
+
+        if (filtroEfetivo === "Iniciadas") {
+          var msgParar =
+            "Deseja parar a produção da OP " +
+            op.idiproc +
+            "?\n\nProduto: " +
+            op.codprodpa +
+            " - " +
+            (op.descprod || "");
+          if (!confirm(msgParar)) {
+            // Cancelou o confirm: volta ao 1º passo (oculta observação como ao abrir o overlay)
+            paradaObsReveladaOverlay = false;
+            var obsWrapCanc = document.getElementById("overlayObservacaoParada");
+            var inputObsCanc = document.getElementById("inputObservacaoParada");
+            var btnAcaoCanc = document.getElementById("overlayBtnAcao");
+            if (obsWrapCanc) {
+              obsWrapCanc.style.display = "none";
+              obsWrapCanc.setAttribute("aria-hidden", "true");
+              obsWrapCanc.classList.remove("revelada");
+            }
+            if (inputObsCanc) inputObsCanc.value = "";
+            if (btnAcaoCanc) {
+              btnAcaoCanc.textContent = "Parar a produção";
+              btnAcaoCanc.removeAttribute("aria-expanded");
+            }
+            return;
+          }
+          var inputObs = document.getElementById("inputObservacaoParada");
+          var observacao = (inputObs && inputObs.value) ? String(inputObs.value).trim() : "";
+          // Garantir IDIPROC como inteiro para o backend (evita falha de binding no QueryExecutor)
+          var idiprocInt = isNaN(Number(idiprocVal)) ? idiprocVal : parseInt(Number(idiprocVal), 10);
+          var paramsParar = { IDIPROC: idiprocInt, OBSERVACAO: observacao };
+          var btnAcao = document.getElementById("overlayBtnAcao");
+          if (btnAcao) { btnAcao.disabled = true; }
+          JX.acionarBotao(
+            paramsParar,
+            { tipo: "JAVA", idBotao: ID_BOTAO_PARAR_PRODUCAO }
+          )
+            .then(function (resultado) {
+              if (resultado && resultado.mensagem) alert(resultado.mensagem);
+              fecharOverlayDetalhe();
+              atualizarTabela();
+            })
+            .catch(function (erro) {
+              var msg = (erro && erro.message) ? erro.message : String(erro);
+              if (erro && erro.mensagem) msg = erro.mensagem;
+              alert("Erro ao parar produção: " + msg);
+            })
+            .finally(function () {
+              if (btnAcao) { btnAcao.disabled = false; }
+            });
+        }
+      }
+
+      // ----------------- Detalhamento de materiais (AD_TPRAMPITE) -----------------
+      let detTprampContexto = null;
+
+      function escSqlTexto(valor) {
+        if (valor == null) return "";
+        return String(valor).replace(/'/g, "''");
+      }
+
+      async function carregarDetalhesTprampite(ctx) {
+        if (!ctx || typeof JX === "undefined" || !JX.consultar) {
+          return [];
+        }
+        try {
+          const nVal = isNaN(Number(ctx.nuapo)) ? ctx.nuapo : Number(ctx.nuapo);
+          const sVal = isNaN(Number(ctx.seqapa)) ? ctx.seqapa : Number(ctx.seqapa);
+          const cVal = isNaN(Number(ctx.codprodmp)) ? ctx.codprodmp : Number(ctx.codprodmp);
+          const ctrl = escSqlTexto(ctx.controlemp || "");
+          const sql = `
+            SELECT
+              NUAPO,
+              SEQAPA,
+              CODPRODMP,
+              CONTROLEMP,
+              CODIGO,
+              QUANTIDADE,
+              DHLANCAMENTO,
+              OBSERVACAO
+            FROM AD_TPRAMPITE
+            WHERE NUAPO = ${nVal}
+              AND SEQAPA = ${sVal}
+              AND CODPRODMP = ${cVal}
+              AND CONTROLEMP = '${ctrl}'
+            ORDER BY CODIGO
+          `;
+          const res = await JX.consultar(sql);
+          return Array.isArray(res) ? res : [];
+        } catch (e) {
+          console.error("Erro ao carregar detalhes AD_TPRAMPITE:", e);
+          return [];
+        }
+      }
+
+      function formatarDataHoraAtualParaBD() {
+        const agora = new Date();
+        const dd = String(agora.getDate()).padStart(2, "0");
+        const mm = String(agora.getMonth() + 1).padStart(2, "0");
+        const yyyy = String(agora.getFullYear());
+        const hh = String(agora.getHours()).padStart(2, "0");
+        const mi = String(agora.getMinutes()).padStart(2, "0");
+        return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+      }
+
+      function atualizarResumoQuantidades(ctx, linhas) {
+        const body = document.getElementById("overlayDetTprampBody");
+        if (!body) return;
+        const spanPai = body.querySelector(
+          ".overlay-resumo-qtd-pai span[data-qtd-pai]"
+        );
+        const spanDet = body.querySelector(
+          ".overlay-resumo-qtd-det span[data-qtd-det]"
+        );
+        const spanDif = body.querySelector(
+          ".overlay-resumo-qtd-dif span[data-qtd-dif]"
+        );
+        const qtdPai = Number(ctx.qtd) || 0;
+        const somaDet = (linhas || []).reduce(function (acc, r) {
+          const q = Number(r.QUANTIDADE != null ? r.QUANTIDADE : r.quantidade);
+          return acc + (isNaN(q) ? 0 : q);
+        }, 0);
+        const dif = somaDet - qtdPai;
+        if (spanPai) spanPai.textContent = qtdPai;
+        if (spanDet) {
+          spanDet.textContent = somaDet;
+          spanDet.parentElement.classList.remove("ok", "warn", "err");
+          if (Math.abs(dif) < 0.00001) {
+            spanDet.parentElement.classList.add("ok");
+          } else if (somaDet > qtdPai) {
+            spanDet.parentElement.classList.add("err");
+          } else {
+            spanDet.parentElement.classList.add("warn");
+          }
+        }
+        if (spanDif) spanDif.textContent = dif;
+      }
+
+      async function abrirOverlayDetTpramp(dataset) {
+        if (!dataset) return;
+        detTprampContexto = {
+          nuapo: dataset.nuapo,
+          seqapa: dataset.seqapa,
+          codprodmp: dataset.codprodmp,
+          controlemp: dataset.controlemp,
+          qtd: dataset.qtd,
+          descrprod: dataset.descrprod,
+          codvol: dataset.codvol,
+        };
+
+        const overlay = document.getElementById("overlayDetTpramp");
+        const body = document.getElementById("overlayDetTprampBody");
+        if (!overlay || !body) return;
+
+        const titulo = document.getElementById("overlayDetTprampTitulo");
+        if (titulo) {
+          titulo.textContent = "Detalhamento do material";
+        }
+
+        const descProduto =
+          (detTprampContexto.codprodmp || "") +
+          (detTprampContexto.descrprod
+            ? " - " + detTprampContexto.descrprod
+            : "");
+
+        body.innerHTML =
+          '<div class="detalhe-item">' +
+          '<span class="detalhe-label">Material</span>' +
+          '<span class="detalhe-valor">' +
+          descProduto +
+          "</span>" +
+          "</div>" +
+          '<div class="detalhe-item">' +
+          '<span class="detalhe-label">Controle / Unidade</span>' +
+          '<span class="detalhe-valor">' +
+          (detTprampContexto.controlemp || "-") +
+          " / " +
+          (detTprampContexto.codvol || "-") +
+          "</span>" +
+          "</div>" +
+          '<div class="overlay-resumo-quantidades">' +
+          '<div class="overlay-resumo-qtd-pai">Qtd. informada na OP (TPRAMP): <span data-qtd-pai></span></div>' +
+          '<div class="overlay-resumo-qtd-det">Soma do detalhamento (AD_TPRAMPITE): <span data-qtd-det></span></div>' +
+          '<div class="overlay-resumo-qtd-dif">Diferença (detalhe - OP): <span data-qtd-dif></span></div>' +
+          "</div>" +
+          '<div class="apontamentos-tabela-wrap" style="margin-top: 4px; max-height: 40vh;">' +
+          '<table class="apontamentos-tabela" id="tprampiteTabela">' +
+          "<thead><tr>" +
+          "<th>CODIGO</th>" +
+          "<th>QUANTIDADE</th>" +
+          "<th>DH LANC.</th>" +
+          "<th>OBSERVACAO</th>" +
+          "<th>Ações</th>" +
+          "</tr></thead>" +
+          '<tbody id="tprampiteTbody"></tbody>' +
+          "</table>" +
+          "</div>" +
+          '<div class="detalhe-item" style="margin-top: 10px; border-bottom: none;">' +
+          '<span class="detalhe-label">Novo detalhe / Edição</span>' +
+          '<div class="overlay-campos-grid" style="margin-top: 6px;">' +
+          '<div class="overlay-campo">' +
+          "<label>Quantidade</label>" +
+          '<input type="number" step="any" id="tprampiteQtd" />' +
+          "</div>" +
+          '<div class="overlay-campo">' +
+          "<label>Observação</label>" +
+          '<input type="text" id="tprampiteObs" />' +
+          "</div>" +
+          '<div class="overlay-campo">' +
+          "<label>Data/Hora lançamento</label>" +
+          '<input type="text" id="tprampiteDhInfo" disabled value="Será preenchida automaticamente ao salvar" />' +
+          "</div>" +
+          "</div>" +
+          '<div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">' +
+          '<button type="button" class="overlay-btn overlay-btn-acao" style="min-height: 40px; padding: 10px 16px;" id="tprampiteBtnSalvar">Salvar detalhe</button>' +
+          '<button type="button" class="overlay-btn overlay-btn-fechar" style="min-height: 40px; padding: 10px 16px;" id="tprampiteBtnNovo">Limpar edição</button>' +
+          "</div>" +
+          "</div>";
+
+        overlay.classList.add("ativo");
+        overlay.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+
+        overlay.dataset.editCodigo = "";
+
+        async function preencherTabela() {
+          const linhas = await carregarDetalhesTprampite(detTprampContexto);
+          const tbody = document.getElementById("tprampiteTbody");
+          if (!tbody) return;
+          tbody.innerHTML = "";
+          if (!linhas || linhas.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="5" class="apontamentos-placeholder">Nenhum detalhe lançado.</td></tr>';
+          } else {
+            const escHtml = function (v) {
+              if (v == null || v === undefined) return "";
+              return String(v)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+            };
+            linhas.forEach(function (r) {
+              const codigo =
+                r.CODIGO != null ? r.CODIGO : r.codigo != null ? r.codigo : "";
+              const qtd =
+                r.QUANTIDADE != null
+                  ? r.QUANTIDADE
+                  : r.quantidade != null
+                  ? r.quantidade
+                  : "";
+              const dh =
+                r.DHLANCAMENTO != null
+                  ? r.DHLANCAMENTO
+                  : r.dhlancamento != null
+                  ? r.dhlancamento
+                  : "";
+              const obs =
+                r.OBSERVACAO != null
+                  ? r.OBSERVACAO
+                  : r.observacao != null
+                  ? r.observacao
+                  : "";
+              const tr = document.createElement("tr");
+              tr.setAttribute("data-codigo", codigo);
+              tr.innerHTML =
+                "<td>" +
+                escHtml(codigo) +
+                "</td><td>" +
+                escHtml(qtd) +
+                "</td><td>" +
+                escHtml(dh) +
+                "</td><td>" +
+                escHtml(obs) +
+                '</td><td><button type="button" class="btn-det-tpramp" data-acao="editar" data-codigo="' +
+                escHtml(codigo) +
+                '" data-qtd="' +
+                escHtml(qtd) +
+                '" data-dh="' +
+                escHtml(dh) +
+                '" data-obs="' +
+                escHtml(obs) +
+                '">Editar</button> ' +
+                '<button type="button" class="btn-det-tpramp" data-acao="excluir" data-codigo="' +
+                escHtml(codigo) +
+                '">Excluir</button></td>';
+              tbody.appendChild(tr);
+            });
+          }
+          atualizarResumoQuantidades(detTprampContexto, linhas);
+        }
+
+        await preencherTabela();
+
+        const btnSalvar = document.getElementById("tprampiteBtnSalvar");
+        const btnNovo = document.getElementById("tprampiteBtnNovo");
+        const tbodyDet = document.getElementById("tprampiteTbody");
+
+        if (btnNovo) {
+          btnNovo.onclick = function () {
+            const qtdEl = document.getElementById("tprampiteQtd");
+            const obsEl = document.getElementById("tprampiteObs");
+            if (qtdEl) qtdEl.value = "";
+            if (obsEl) obsEl.value = "";
+            overlay.dataset.editCodigo = "";
+          };
+        }
+
+        if (btnSalvar) {
+          btnSalvar.onclick = async function () {
+            if (typeof JX === "undefined" || !JX.salvar || !detTprampContexto) {
+              alert("Biblioteca SankhyaJX não está disponível.");
+              return;
+            }
+            const qtdEl = document.getElementById("tprampiteQtd");
+            const obsEl = document.getElementById("tprampiteObs");
+            const qtd = qtdEl ? Number(qtdEl.value) : NaN;
+            if (!qtdEl || isNaN(qtd)) {
+              alert("Informe uma quantidade válida.");
+              return;
+            }
+            const obs = obsEl ? String(obsEl.value || "").trim() : "";
+            const dados = {
+              NUAPO: detTprampContexto.nuapo,
+              SEQAPA: detTprampContexto.seqapa,
+              CODPRODMP: detTprampContexto.codprodmp,
+              CONTROLEMP: detTprampContexto.controlemp,
+              QUANTIDADE: qtd,
+              OBSERVACAO: obs,
+            };
+            let pk = null;
+            const editCodigo = overlay.dataset.editCodigo;
+            if (editCodigo) {
+              pk = {
+                NUAPO: detTprampContexto.nuapo,
+                SEQAPA: detTprampContexto.seqapa,
+                CODPRODMP: detTprampContexto.codprodmp,
+                CONTROLEMP: detTprampContexto.controlemp,
+                CODIGO: Number(editCodigo),
+              };
+              dados.CODIGO = Number(editCodigo);
+            } else {
+              // Inclusão: data/hora automática
+              dados.DHLANCAMENTO = formatarDataHoraAtualParaBD();
+            }
+            try {
+              await JX.salvar(dados, "AD_TPRAMPITE", pk || undefined);
+              overlay.dataset.editCodigo = "";
+              if (qtdEl) qtdEl.value = "";
+              if (obsEl) obsEl.value = "";
+              await preencherTabela();
+            } catch (e) {
+              console.error("Erro ao salvar detalhe AD_TPRAMPITE:", e);
+              alert(
+                "Erro ao salvar detalhe do material: " +
+                  (e && e.message ? e.message : e)
+              );
+            }
+          };
+        }
+
+        if (tbodyDet) {
+          tbodyDet.onclick = async function (ev) {
+            const btn = ev.target.closest("button.btn-det-tpramp");
+            if (!btn) return;
+            const acao = btn.getAttribute("data-acao");
+            const codigo = btn.getAttribute("data-codigo");
+            if (!acao || !codigo) return;
+            if (acao === "editar") {
+              const qtd = btn.getAttribute("data-qtd");
+              const qtdEl = document.getElementById("tprampiteQtd");
+              if (qtdEl) qtdEl.value = qtd || "";
+              overlay.dataset.editCodigo = codigo;
+            } else if (acao === "excluir") {
+              if (
+                !confirm(
+                  "Deseja excluir o detalhe CODIGO " +
+                    codigo +
+                    " deste material?"
+                )
+              ) {
+                return;
+              }
+              if (typeof JX === "undefined" || !JX.deletar) {
+                alert("Biblioteca SankhyaJX não está disponível.");
+                return;
+              }
+              try {
+                await JX.deletar("AD_TPRAMPITE", [
+                  {
+                    NUAPO: detTprampContexto.nuapo,
+                    SEQAPA: detTprampContexto.seqapa,
+                    CODPRODMP: detTprampContexto.codprodmp,
+                    CONTROLEMP: detTprampContexto.controlemp,
+                    CODIGO: Number(codigo),
+                  },
+                ]);
+                overlay.dataset.editCodigo = "";
+                await preencherTabela();
+              } catch (e) {
+                console.error("Erro ao excluir detalhe AD_TPRAMPITE:", e);
+                alert(
+                  "Erro ao excluir detalhe do material: " +
+                    (e && e.message ? e.message : e)
+                );
+              }
+            }
+          };
+        }
+      }
+
+      async function fecharOverlayDetTpramp() {
+        const ctx = detTprampContexto;
+        const overlay = document.getElementById("overlayDetTpramp");
+        if (!overlay) return;
+        overlay.classList.remove("ativo");
+        overlay.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+        detTprampContexto = null;
+        if (ctx && ctx.nuapo != null && ctx.seqapa != null) {
+          try {
+            await sincronizarQtdApontAposDetalheTpramp(ctx);
+          } catch (e) {
+            console.error("Erro ao atualizar Qtd. Apont. após detalhar material:", e);
+          }
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const overlayDet = document.getElementById("overlayDetTpramp");
+        const btnFecharDet = document.getElementById(
+          "overlayDetTprampBtnFechar"
+        );
+        if (overlayDet) {
+          overlayDet.addEventListener("click", function (e) {
+            if (e.target === overlayDet) fecharOverlayDetTpramp();
+          });
+          document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && overlayDet.classList.contains("ativo")) {
+              fecharOverlayDetTpramp();
+            }
+          });
+        }
+        if (btnFecharDet) {
+          btnFecharDet.addEventListener("click", fecharOverlayDetTpramp);
+        }
+      });
+
+      // Delegação global para o botão "Detalhar" de cada material (TPRAMP)
+      document.addEventListener("click", function (e) {
+        const btn = e.target.closest('button[data-tpramp-det="1"]');
+        if (!btn) return;
+        const dataset = {
+          nuapo: btn.getAttribute("data-nuapo"),
+          seqapa: btn.getAttribute("data-seqapa"),
+          codprodmp: btn.getAttribute("data-codprodmp"),
+          controlemp: btn.getAttribute("data-controlemp"),
+          qtd: btn.getAttribute("data-qtd"),
+          descrprod: btn.getAttribute("data-descrprod"),
+          codvol: btn.getAttribute("data-codvol"),
+        };
+        abrirOverlayDetTpramp(dataset);
+      });
+    </script>
+  </body>
+</html>
