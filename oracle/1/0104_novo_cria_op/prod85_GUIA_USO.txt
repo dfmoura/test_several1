@@ -1,0 +1,230 @@
+================================================================================
+  GUIA DE USO DA TELA "OP's" (arquivo prod85.jsp)
+  Sistema de Controle de Produção — linguagem simples
+================================================================================
+
+1. O QUE É ESTA TELA?
+---------------------
+É uma tela para acompanhar Ordens de Produção (OP's): ver em que situação
+cada uma está, abrir os detalhes e fazer ações como iniciar, parar, retomar,
+gerar apontamento e confirmar (o que no sistema também finaliza a OP).
+
+A tela foi pensada para celular e computador (texto e botões grandes, barra
+fixa em cima e embaixo).
+
+
+2. PARTES DA TELA (VISÃO GERAL)
+-------------------------------
+- Barra VERDE no topo: título "OP's" e os filtros de situação.
+- Área central: tabela com as OP's (número da OP, data, produto, quantidade,
+  lote).
+- Barra cinza embaixo: nome do sistema (rodapé).
+
+Ao lado dos filtros existe um ícone de ATUALIZAR (setas em círculo): use
+quando quiser recarregar a lista sem mudar de filtro.
+
+
+3. OS BOTÕES DE FILTRO NO TOPO
+------------------------------
+Cada botão mostra um tipo de lista:
+
+  • "Prod. Não Inic."  —  Produção ainda não começou nesta OP.
+  • "Inic."            —  Produção já começou (em andamento).
+  • "Par."             —  Produção está parada.
+  • "Fin."             —  OP já finalizada.
+
+O botão que está mais “destacado” (verde) é o filtro ativo. Ao trocar de
+filtro, a lista é buscada de novo no sistema.
+
+
+4. A TABELA PRINCIPAL
+---------------------
+Colunas (da esquerda para a direita):
+
+  OP .............. número da ordem de produção
+  Data ............ na guia "Fin." vira "Data término" (quando a OP acabou)
+  Produto ......... código e nome do produto
+  Qtd. Produzir ... quantidade prevista
+  Lote ............ lote da OP
+
+Em baixo da tabela pode aparecer quantos registros foram encontrados.
+
+Se não houver nada na lista, aparece a mensagem: "Nenhuma operação encontrada."
+
+Para VER OS DETALHES de uma OP, toque ou clique na LINHA inteira da OP
+(em "Inic." e "Par." a linha fica com destaque ao passar o mouse; nas outras
+guias também dá para abrir o detalhe clicando na linha).
+
+
+5. GUIA "FIN." (FINALIZADAS) — BARRA EXTRA
+------------------------------------------
+Quando você está em "Fin.", acima da tabela aparece uma faixa branca com:
+
+  • "Máx. registros" — escolhe se quer ver até 100, 200, 300 ou 500 OP's
+    na consulta (útil quando há muitas finalizadas).
+
+  • "Relatório" — gera um relatório em PDF com a lista de OP's finalizadas
+    que está na tela (depende do navegador: pode baixar ou abrir o arquivo).
+
+  • "Voltar" — volta o filtro para "Prod. Não Inic." e recarrega essa lista.
+
+
+6. JANELA DE DETALHE (OVERLAY)
+------------------------------
+Ao clicar numa OP, abre uma janela por cima da tela com mais informações e
+botões. Para sair:
+
+  • botão "Fechar" ou "Voltar" (conforme a situação), ou
+  • tocar fora da janela branca, ou
+  • tecla ESC no teclado.
+
+O que aparece depende do filtro que estava ativo quando você abriu a OP.
+
+
+6.1. Detalhe na guia "Prod. Não Inic."
+--------------------------------------
+Mostra dados básicos da OP (código, produto, reator, quantidade, lote, etc.).
+
+Botões importantes:
+
+  • "Iniciar a Produção" — inicia a produção dessa OP no sistema. O sistema
+    pede confirmação antes de executar.
+
+  • "Relatório" — gera um PDF com informações da OP em foco.
+
+  • "Fechar" — fecha a janela.
+
+
+6.2. Detalhe na guia "Inic." (produção em andamento)
+----------------------------------------------------
+Esta é a tela mais completa. No topo do detalhe aparecem resumo da OP,
+reator, lote, quantidade, registro MAPA, densidade, garantias (campos só
+leitura quando o sistema assim mostrar).
+
+Balanças:
+  • "Balanças cadastradas" — lista as balanças ligadas à atividade.
+  • "Cadastrar balança" — abre outra janela para escolher a balança (placa
+    de série) e salvar. Se o sistema disser que não tem atividade (IDIATV),
+    não será possível cadastrar.
+
+Abas dentro do detalhe:
+
+  a) "Apontamentos"
+     - "Gerar Apontamento" — só aparece quando ainda não existe apontamento.
+       Cria um novo apontamento; o sistema pede confirmação.
+     - Quando já existem apontamentos, eles aparecem em cartões/lista; é
+       possível navegar por itens e materiais (níveis "Voltar" dentro da guia).
+     - Botão "Detalhar" em materiais abre outra janela com detalhamento
+       (incluindo casos especiais como água, se o sistema mostrar).
+     - Na barra de baixo da janela principal pode aparecer o botão
+       "Confirmar": ele confirma o apontamento indicado e FINALIZA a OP,
+       conforme a mensagem de confirmação. Só aparece quando há apontamento
+       pendente de confirmação (não aparece para apontamento já confirmado).
+       Antes de confirmar, o sistema pode bloquear se as quantidades de
+       materiais estiverem fora da margem permitida (mensagem explica o motivo).
+
+  b) "Paradas realizadas"
+     - Ao entrar nesta aba, carrega o histórico de execuções/paradas
+       (início, fim, tipo, usuário, observação, etc.), em formato de tabela
+       somente leitura.
+
+Na parte de baixo da janela de detalhe (sempre visível nesta guia):
+
+  • "Parar a produção" — primeiro clique mostra um campo OPCIONAL de
+    observação para a parada; o botão vira "Confirmar parada". Depois de
+    confirmar no sistema, a produção para e a lista atualiza.
+
+  • "Voltar" — fecha o detalhe (nesta guia o texto do botão é "Voltar" em vez
+    de "Fechar").
+
+  • "Relatório" — PDF com dados da OP.
+
+
+6.3. Detalhe na guia "Par." (paradas)
+-------------------------------------
+Mostra os mesmos dados resumidos da OP (como na produção não iniciada).
+
+Botões:
+
+  • "Continuar produção" — retoma a produção. O sistema pede confirmação.
+
+  • "Relatório" e "Fechar" — igual à ideia das outras guias.
+
+
+6.4. Detalhe na guia "Fin." (finalizadas)
+-----------------------------------------
+Somente consulta: datas de instalação e término, produto, grupo, quantidade,
+lote, situação. Não há botão de ação de produção aqui.
+
+Continua disponível o "Relatório" (PDF da OP) e "Fechar".
+
+
+7. JANELA "CADASTRAR BALANÇA NA OPERAÇÃO"
+-----------------------------------------
+Aberta a partir de "Cadastrar balança" na guia "Inic.".
+
+  • Escolha a balança na lista (placa de série).
+  • "Salvar" grava a associação.
+  • "Fechar" (ou equivalente) encerra sem obrigar a salvar.
+
+Na lista de balanças já cadastradas, pode haver "Excluir" em cada linha para
+remover aquela balança da atividade (conforme permissão do sistema).
+
+
+8. COISAS IMPORTANTES PARA O DIA A DIA
+--------------------------------------
+- Sempre confira se está no filtro certo (Não iniciada, Iniciada, Parada ou
+  Finalizada) antes de procurar uma OP.
+
+- Depois de qualquer ação importante (iniciar, parar, retomar, gerar ou
+  confirmar apontamento), a lista tende a atualizar; se não atualizar, use
+  o botão de ATUALIZAR no topo.
+
+- Mensagens em pop-up (alertas) vêm do sistema: leia antes de clicar em OK.
+
+- A tela usa a biblioteca SankhyaJX no navegador: é preciso estar no ambiente
+  Sankhya com essa integração funcionando; se aparecer erro de biblioteca
+  indisponível, informe o suporte técnico.
+
+
+9. RESUMO RÁPIDO DOS FLUXOS
+---------------------------
+  Quero COMEÇAR a produção:
+    "Prod. Não Inic." → clique na OP → "Iniciar a Produção" → confirme.
+
+  Quero PARAR:
+    "Inic." → clique na OP → "Parar a produção" → se quiser, preencha
+    observação → "Confirmar parada" → confirme.
+
+  Quero RETOMAR depois de parada:
+    "Par." → clique na OP → "Continuar produção" → confirme.
+
+  Quero APONTAR e depois ENCERRAR a OP:
+    "Inic." → clique na OP → guia "Apontamentos" → "Gerar Apontamento"
+    (se ainda não tiver) → preencha/consulte itens e materiais no sistema
+    conforme o processo da fábrica → quando o botão "Confirmar" aparecer na
+    barra inferior, use-o para confirmar o apontamento e finalizar a OP
+    (sempre leia a mensagem de confirmação).
+
+
+10. DÚVIDAS COMUNS
+------------------
+  "Por que não aparece Gerar Apontamento?"
+    Porque já existe pelo menos um apontamento para aquela atividade; aí a
+    lista mostra os apontamentos em vez do botão de gerar.
+
+  "Por que não aparece Confirmar?"
+    Porque não há apontamento pendente na situação esperada, ou não está na
+    guia "Inic." com o detalhe aberto, ou o primeiro apontamento listado já
+    está confirmado.
+
+  "A linha não fica destacada ao passar o mouse"
+    Nas listas "Prod. Não Inic." e "Fin." o destaque pode ser diferente, mas
+    o clique na linha ainda abre o detalhe.
+
+
+================================================================================
+Documento gerado com base na implementação da tela prod85.jsp (Sistema de
+Controle de Produção). Em caso de divergência com regras de negócio novas no
+servidor, prevalece o comportamento do sistema em produção.
+================================================================================

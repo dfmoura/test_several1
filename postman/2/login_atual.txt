@@ -1,0 +1,6 @@
+curl --location 'https://api.sankhya.com.br/authenticate' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'X-Token: f2b9be0c-d801-4605-8ab7-51eb12e61838' \
+--data-urlencode 'grant_type=client_credentials' \
+--data-urlencode 'client_id=e2fc1256-9a8e-4d82-ae51-94d734066328' \
+--data-urlencode 'client_secret=8PjyH1wgCAvmd6VzDtEWw0k9hw90rjWy'

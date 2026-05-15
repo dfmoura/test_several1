@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demonstrativo do Resultado do Exercício - DRE</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --destructive: 0 84.2% 60.2%;
+            --border: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: 'Calibri', sans-serif;
+            font-size: 10px;
+        }
+        
+        /* Garantir Calibri 10px em todos os textos */
+        body, button, table, th, td, h1, h2, h3, h4, h5, h6, p, span, div {
+            font-family: 'Calibri', sans-serif;
+            font-size: 10px;
+        }
+        
+        .report-container {
+            color: #000;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+    <div id="report-container" class="w-full h-full">
+        <div id="loading-state" class="flex items-center justify-center h-full">
+            <p class="text-lg text-muted-foreground">Carregando dados...</p>
+        </div>
+        
+        <div id="report-content" class="hidden w-full">
+            <!-- Título do Relatório -->
+            <section class="text-left my-8">
+                <h2 class="font-bold">Demonstrativo do Resultado do Exercício - DRE</h2>
+                <p>Período: Janeiro a Dezembro de 2024</p>
+            </section>
+            
+            <!-- Tabela DRE -->
+            <main id="dre-table-container">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="text-left font-bold pb-2"></th>
+                            <th class="text-right font-bold pb-2 w-32">2023</th>
+                            <th class="text-right font-bold pb-2 w-32">2024</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dre-tbody">
+                        <!-- Linhas serão injetadas aqui -->
+                    </tbody>
+                </table>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-dre-report';
+
+        function updateMitra() {
+            console.log("Sinal de update para [DRE Report] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const dreTbody = document.getElementById('dre-tbody');
+            const loadingState = document.getElementById('loading-state');
+            const tableContainer = document.getElementById('dre-table-container');
+            const reportContent = document.getElementById('report-content');
+
+            function formatCurrency(value) {
+                if (value === null || value === undefined || String(value).trim() === '') {
+                    return '0,00';
+                }
+                const number = parseFloat(value);
+                if (isNaN(number)) {
+                    return '0,00';
+                }
+
+                const formatted = new Intl.NumberFormat('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(Math.abs(number));
+
+                return number < 0 ? `(${formatted})` : formatted;
+            }
+
+            function getIndentationClass(hierarquia) {
+                if (!hierarquia || typeof hierarquia !== 'string') return '';
+                const level = (hierarquia.match(/\./g) || []).length;
+                if (level === 0) return '';
+                // Tailwind jit needs full class names: pl-4, pl-8, pl-12, pl-16
+                const paddingValues = { 1: 'pl-4', 2: 'pl-8', 3: 'pl-12', 4: 'pl-16' };
+                return paddingValues[level] || `pl-${level * 4}`;
+            }
+
+            function renderDRE(data) {
+                dreTbody.innerHTML = '';
+                const fragment = document.createDocumentFragment();
+
+                const headers = data.headers.map(h => (h && typeof h.name === 'string' ? h.name.toUpperCase() : ''));
+                const colMap = {
+                    HIERARQUIA: headers.indexOf('HIERARQUIA'),
+                    DESCRICAO: headers.indexOf('DESCRICAO'),
+                    FORMATACAO: headers.indexOf('FORMATACAO'),
+                    VALOR_ANTERIOR: headers.indexOf('VALOR_ANTERIOR'),
+                    VALOR_ATUAL: headers.indexOf('VALOR_ATUAL')
+                };
+
+                if (Object.values(colMap).some(index => index === -1)) {
+                    console.error('Erro de mapeamento de colunas. A query deve retornar: HIERARQUIA, DESCRICAO, FORMATACAO, VALOR_ANTERIOR, VALOR_ATUAL.', headers);
+                    loadingState.innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50">Erro Crítico: A query configurada não retorna as colunas esperadas.</div>`;
+                    loadingState.classList.remove('hidden');
+                    reportContent.classList.add('hidden');
+                    return;
+                }
+
+                data.data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    
+                    const descricao = row[colMap.DESCRICAO] || '';
+                    const hierarquia = row[colMap.HIERARQUIA] || '';
+                    const formatacao = row[colMap.FORMATACAO] || '';
+                    const valorAnterior = row[colMap.VALOR_ANTERIOR];
+                    const valorAtual = row[colMap.VALOR_ATUAL];
+
+                    const tdDesc = document.createElement('td');
+                    tdDesc.textContent = descricao;
+                    tdDesc.className = `py-0.5 ${getIndentationClass(hierarquia)}`;
+
+                    const tdAnterior = document.createElement('td');
+                    tdAnterior.textContent = formatCurrency(valorAnterior);
+                    tdAnterior.className = 'text-right';
+                    
+                    const tdAtual = document.createElement('td');
+                    tdAtual.textContent = formatCurrency(valorAtual);
+                    tdAtual.className = 'text-right';
+
+                    if (formatacao.includes('N')) {
+                        tr.classList.add('font-bold');
+                    }
+                     if (descricao.startsWith('(=)') || descricao.startsWith('TOTAL')) {
+                        tr.classList.add('border-t', 'border-gray-300');
+                    }
+
+                    tr.appendChild(tdDesc);
+                    tr.appendChild(tdAnterior);
+                    tr.appendChild(tdAtual);
+                    fragment.appendChild(tr);
+                });
+
+                dreTbody.appendChild(fragment);
+                loadingState.classList.add('hidden');
+                reportContent.classList.remove('hidden');
+            }
+
+            async function fetchDataAndRender() {
+                try {
+                    loadingState.classList.remove('hidden');
+                    loadingState.textContent = 'Carregando dados...';
+                    reportContent.classList.add('hidden');
+
+                    const result = await queryMitra({ query: componentData.queryDRE });
+
+                    if (!result || !result.data || result.data.length === 0) {
+                        loadingState.textContent = 'Nenhum dado encontrado para o período selecionado.';
+                        return;
+                    }
+                    
+                    renderDRE(result);
+
+                } catch (error) {
+                    console.error("Falha ao buscar dados da DRE:", error);
+                    loadingState.innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50">Ocorreu um erro ao carregar os dados. Verifique o console.</div>`;
+                    loadingState.classList.remove('hidden');
+                    reportContent.classList.add('hidden');
+                }
+            }
+
+            function initializeComponent() {
+                document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, fetchDataAndRender);
+                fetchDataAndRender();
+            }
+            
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+
+                const checkInterval = setInterval(() => {
+                    if (window.componentData && window.componentData.queryDRE) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        document.getElementById('report-container').innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente não foram carregadas da plataforma.</div>`;
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>

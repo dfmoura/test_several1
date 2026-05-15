@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanço Patrimonial e DRE</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        body {
+            background-color: #e5e7eb;
+            color: hsl(var(--foreground));
+        }
+
+        .page-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .page {
+            background-color: hsl(var(--background));
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            color: hsl(var(--foreground));
+        }
+
+        @media print {
+            body {
+                background-color: white !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .page-container {
+                padding: 0;
+                gap: 0;
+                margin: 0;
+                display: block; /* ESSENCIAL */
+            }
+            .page {
+                box-shadow: none;
+                margin: 0;
+                padding: 10mm;
+                page-break-after: always;
+                width: 100%;
+                min-height: 0;
+                height: auto;
+                border: none;
+                page-break-inside: avoid; /* Adicionado */
+            }
+            .page:last-child {
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print sticky top-0 z-50 bg-white/80 backdrop-blur-sm p-4 text-right border-b shadow-sm">
+        <button onclick="window.print()" class="bg-primary text-primary-foreground rounded-md px-6 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            Imprimir Relatório
+        </button>
+    </div>
+
+    <div class="page-container">
+        <!-- Página 1: Capa -->
+        <div class="page flex flex-col justify-between items-center text-center">
+            <div></div> <!-- Espaçador para empurrar o conteúdo para o centro -->
+            <div>
+                <div class="mb-24">
+                    <h1 class="text-5xl font-bold tracking-widest">
+                        <span class="text-[#E30613]">TEC</span><span class="text-gray-700">WAY</span>
+                    </h1>
+                    <p class="mt-1 text-sm tracking-[0.3em] text-gray-500">serviços e locação</p>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <p class="font-semibold tracking-wider">TECWAY SERVIÇOS E LOCAÇÃO DE EQUIPAMENTOS LTDA</p>
+                    <p class="font-semibold tracking-wider">DEMONSTRAÇÕES FINANCEIRAS</p>
+                    <p class="tracking-wider" data-dynamic-text="full-date-upper">31 DE DEZEMBRO DE 2024</p>
+                </div>
+            </div>
+            <div class="text-sm">
+                <p>Manaus/AM.</p>
+            </div>
+        </div>
+
+        <!-- Página 2: Termo de Abertura -->
+        <div class="page text-xs flex flex-col">
+            <header class="w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="termo-title">Termo de Abertura do Balanço Patrimonial 31 de dezembro de 2024</p>
+                <hr class="mt-2 border-gray-700">
+            </header>
+            <main class="flex-grow pt-16 space-y-10">
+                <p class="text-center max-w-xl mx-auto leading-relaxed" data-dynamic-text="termo-period">
+                    Contém este 0018 folhas numeradas seguida e eletronicamente de 0001 a 0018 e servirão para o registro do "BALANÇO PATRIMONIAL" de número 0025 da empresa abaixo identificada, no período de 01/01/2024 a 31/12/2024.
+                </p>
+                <div class="space-y-2">
+                    <p><span class="font-bold">Empresa:</span> TECWAY SERVIÇOS E LOCAÇÃO DE EQUIPAMENTOS LTDA</p>
+                    <p><span class="font-bold">CNPJ N°:</span> 13.392.705/0001-43</p>
+                    <p><span class="font-bold">NIRE N°:</span> 13200556445</p>
+                    <p><span class="font-bold">Endereço:</span> Rua Helena Cardoso, nº 420, Bairro: Santa Etelvina, CEP: 69.059-290 Manaus – Amazonas</p>
+                </div>
+                <p class="pt-8 text-center" data-dynamic-text="termo-footer-date">Manaus (Am), 31 de dezembro de 2024</p>
+            </main>
+            <footer class="mt-auto pt-16">
+                <div class="grid grid-cols-2 gap-x-16 text-center">
+                    <div class="border-t border-gray-700 pt-2">
+                        <p class="font-bold">JEISE HELLEN PIRES FERREIRA</p>
+                        <p>CPF 003.483.222-08</p>
+                        <p>Contadora CRC/AM: 017791/O</p>
+                    </div>
+                    <div class="border-t border-gray-700 pt-2">
+                        <p class="font-bold">FÁBIO GUERRA GARCIA</p>
+                        <p>CPF 813.742.591-87</p>
+                        <p>Sócio Administrador</p>
+                    </div>
+                </div>
+                <div class="text-right mt-4">2</div>
+            </footer>
+        </div>
+
+        <!-- Página 3: Balanço Patrimonial (Dinâmico) -->
+        <div class="page text-xs flex flex-col">
+            <div id="report-container" class="flex-grow">
+                <!-- Report Header -->
+                <header class="mb-8">
+                    <h2 class="text-lg font-bold text-primary">Tecway Serviços e Locação de Equipamentos Ltda</h2>
+                    <p class="text-sm text-muted-foreground mt-1" data-dynamic-text="bp-subtitle">Balanços patrimoniais dos exercícios findos em 31 de Dezembro de 2024.</p>
+                    <p class="text-sm text-muted-foreground">Em milhares de reais (R$)</p>
+                </header>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12">
+                    <!-- Coluna do Ativo -->
+                    <div class="flex flex-col">
+                        <div class="flex-grow">
+                            <table class="w-full text-[10px]">
+                                <thead>
+                                    <tr class="border-b-2 border-gray-700">
+                                        <th class="px-4 py-3 text-left font-semibold text-secondary-foreground w-[55%]">Ativo</th>
+                                        <th class="px-1 py-3 text-center font-semibold text-secondary-foreground w-12">Notas</th>
+                                        <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-16" data-dynamic-text="current-year">2024</th>
+                                        <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-16" data-dynamic-text="previous-year">2023</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ativo-tbody">
+                                    <tr>
+                                        <td colspan="4" class="text-center p-12 text-muted-foreground">
+                                            Carregando dados do relatório...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Coluna do Passivo e PL -->
+                    <div class="flex flex-col">
+                        <div class="flex-grow">
+                            <table class="w-full text-[10px]">
+                                <thead>
+                                    <tr class="border-b-2 border-gray-700">
+                                        <th class="px-4 py-3 text-left font-semibold text-secondary-foreground w-[55%]">Passivo</th>
+                                        <th class="px-1 py-3 text-center font-semibold text-secondary-foreground w-12">Notas</th>
+                                        <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-16" data-dynamic-text="current-year">2024</th>
+                                        <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-16" data-dynamic-text="previous-year">2023</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="passivo-tbody">
+                                     <tr>
+                                        <td colspan="4" class="text-center p-12 text-muted-foreground">
+                                            Carregando dados do relatório...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Totals Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 mt-4 text-[10px]">
+                    <div>
+                        <table class="w-full">
+                            <tbody id="total-ativo-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <table class="w-full">
+                            <tbody id="total-passivo-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">3</div>
+            </footer>
+        </div>
+        
+        <!-- Página 4: DRE -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="dre-title">Demonstrações dos resultados dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+            </header>
+            <main id="dre-container" class="flex-grow pt-4">
+                <div class="text-center p-12 text-muted-foreground">Carregando dados da DRE...</div>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">4</div>
+            </footer>
+        </div>
+
+        <!-- Página 5: DFC (Demonstração de Fluxo de Caixa) -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="dfc-title">Demonstrações de fluxo de caixa dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+            </header>
+            <main id="dfc-container" class="flex-grow pt-4">
+                <div class="text-center p-12 text-muted-foreground">Carregando dados da DFC...</div>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">5</div>
+            </footer>
+        </div>
+
+        <!-- Página 6: Indicadores Financeiros -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="indicadores-title">Indicadores financeiros em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <main class="flex-grow pt-4">
+                <table class="text-center">
+                    <thead>
+                        <tr>
+                            <th class="text-left font-bold">Indicador</th>
+                            <th class="font-bold" data-dynamic-text="current-year">2024</th>
+                            <th class="font-bold" data-dynamic-text="previous-year">2023</th>
+                        </tr>
+                    </thead>
+                    <tbody id="indicadores-tbody" class="divide-y-2 divide-gray-300">
+                        <tr>
+                            <td colspan="3" class="p-6 text-center text-muted-foreground">
+                                Carregando indicadores...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">6</div>
+            </footer>
+        </div>
+
+        <!-- Página 7: Resultados Abrangentes -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="resultados-abrangentes-title">Demonstrações dos resultados abrangentes dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <main id="resultados-abrangentes-container" class="flex-grow pt-4">
+                <div class="text-center p-12 text-muted-foreground">Carregando resultados abrangentes...</div>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">7</div>
+            </footer>
+        </div>
+
+        <!-- Página 8: Patrimônio Líquido -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="w-full text-left mb-4">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="pl-title">Demonstrações do patrimônio líquido em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <hr class="mt-2">
+            </header>
+            <main class="flex-grow">
+                <table class="w-full">
+                    <thead>
+                        <tr class="font-bold">
+                            <th class="text-left"></th>
+                            <th class="text-right">Capital Social</th>
+                            <th class="text-right">Ajuste da Avaliação</th>
+                            <th class="text-right">Lucros ou Prejuízos Acumulados</th>
+                            <th class="text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pl-tbody">
+                        <tr>
+                            <td colspan="5" class="text-center p-8 text-muted-foreground">Carregando dados do patrimônio líquido...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">8</div>
+            </footer>
+        </div>
+    </div>
+
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-bp-report';
+
+        function updateMitra() {
+            console.log("Sinal de update para [Relatório Financeiro] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const ativoMap = [
+                { id: 100, parent: null, description: 'Ativo circulante', colAtual: null, colAnterior: null, style: 'title' },
+                { id: 101, parent: 100, description: 'Caixa e equivalentes de caixa', colAtual: 'ATUAL_1', colAnterior: 'ANTERIOR_1', style: 'item', nota: 4 },
+                { id: 102, parent: 100, description: 'Contas a receber', colAtual: 'ATUAL_2', colAnterior: 'ANTERIOR_2', style: 'item', nota: 5 },
+                { id: 103, parent: 100, description: 'Estoques', colAtual: 'ATUAL_6', colAnterior: 'ANTERIOR_6', style: 'item', nota: 6 },
+                { id: 104, parent: 100, description: 'Impostos a recuperar', colAtual: 'ATUAL_4', colAnterior: 'ANTERIOR_4', style: 'item', nota: 7 },
+                { id: 105, parent: 100, description: 'Mútuo a receber', colAtual: 'ATUAL_5', colAnterior: 'ANTERIOR_5', style: 'item', nota: 8 },
+                { id: 106, parent: 100, description: 'Adiantamentos', colAtual: 'ATUAL_3', colAnterior: 'ANTERIOR_3', style: 'item', nota: 9 },
+                { id: 199, parent: null, description: '', style: 'total', sumOf: [101, 102, 103, 104, 105, 106] },
+                
+                { id: 200, parent: null, description: 'Ativo não circulante', colAtual: null, colAnterior: null, style: 'title' },
+                { id: 201, parent: 200, description: 'Investimentos temporários', colAtual: 'ATUAL_7', colAnterior: 'ANTERIOR_7', style: 'item' },
+                { id: 202, parent: 200, description: 'Investimentos', colAtual: 'ATUAL_8', colAnterior: 'ANTERIOR_8', style: 'item', nota: 10 },
+                { id: 203, parent: 200, description: 'Propriedades para investimentos', colAtual: 'ATUAL_10', colAnterior: 'ANTERIOR_10', style: 'item', nota: 11 },
+                { id: 204, parent: 200, description: 'Imobilizado', colAtual: 'ATUAL_9', colAnterior: 'ANTERIOR_9', style: 'item', nota: 12 },
+                { id: 205, parent: 200, description: 'Intangível', colAtual: 'ATUAL_11', colAnterior: 'ANTERIOR_11', style: 'item' },
+                { id: 299, parent: null, description: '', style: 'total', sumOf: [201, 202, 203, 204, 205] },
+
+                { id: 999, parent: null, description: 'Total do ativo', style: 'grand-total', sumOf: [199, 299] }
+            ];
+
+            const passivoMap = [
+                { id: 300, parent: null, description: 'Passivo circulante', style: 'title' },
+                { id: 301, parent: 300, description: 'Fornecedores', colAtual: 'ATUAL_12', colAnterior: 'ANTERIOR_12', style: 'item', nota: 13 },
+                { id: 302, parent: 300, description: 'Adiantamento de clientes', colAtual: 'ATUAL_13', colAnterior: 'ANTERIOR_13', style: 'item' },
+                { id: 303, parent: 300, description: 'Empréstimos e financiamentos (PC)', colAtual: 'ATUAL_15', colAnterior: 'ANTERIOR_15', style: 'item', nota: 14 },
+                { id: 304, parent: 300, description: 'Consórcios a pagar', colAtual: 'ATUAL_19', colAnterior: 'ANTERIOR_19', style: 'item', nota: 15 },
+                { id: 305, parent: 300, description: 'Obrigações tributárias (PC)', colAtual: 'ATUAL_16', colAnterior: 'ANTERIOR_16', style: 'item', nota: 7 },
+                { id: 306, parent: 300, description: 'Obrigações trabalhistas', colAtual: 'ATUAL_14', colAnterior: 'ANTERIOR_14', style: 'item' },
+                { id: 307, parent: 300, description: 'Outras obrigações a pagar (PC)', colAtual: 'ATUAL_36', colAnterior: 'ANTERIOR_36', style: 'item' },
+                { id: 308, parent: 300, description: 'Mútuos a pagar (PC)', colAtual: 'ATUAL_18', colAnterior: 'ANTERIOR_18', style: 'item', nota: 16 },
+                { id: 399, parent: null, description: '', style: 'total', sumOf: [301, 302, 303, 304, 305, 306, 307, 308] },
+
+                { id: 400, parent: null, description: 'Passivo não circulante', style: 'title' },
+                { id: 401, parent: 400, description: 'Empréstimos e financiamentos (PNC)', colAtual: 'ATUAL_20', colAnterior: 'ANTERIOR_20', style: 'item', nota: 14 },
+                { id: 402, parent: 400, description: 'Obrigações tributárias (PNC)', colAtual: 'ATUAL_21', colAnterior: 'ANTERIOR_21', style: 'item', nota: 7 },
+                { id: 403, parent: 400, description: 'Mútuos a pagar (PNC)', colAtual: 'ATUAL_23', colAnterior: 'ANTERIOR_23', style: 'item', nota: 16 },
+                { id: 404, parent: 400, description: 'Impostos diferidos', colAtual: 'ATUAL_22', colAnterior: 'ANTERIOR_22', style: 'item', nota: 7 },
+                { id: 499, parent: null, description: '', style: 'total', sumOf: [401, 402, 403, 404] },
+                
+                { id: 500, parent: null, description: 'Patrimônio líquido', style: 'title' },
+                { id: 501, parent: 500, description: 'Capital social', colAtual: 'ATUAL_24', colAnterior: 'ANTERIOR_24', style: 'item', nota: 17 },
+                { id: 502, parent: 500, description: 'Lucros acumulados', colAtual: 'ATUAL_25', colAnterior: 'ANTERIOR_25', style: 'item' },
+                { id: 599, parent: null, description: '', style: 'total', sumOf: [501, 502] },
+
+                { id: 899, parent: null, description: 'Total do passivo e patrimônio líquido', style: 'grand-total', sumOf: [399, 499, 599] }
+            ];
+
+            const ativoTbody = document.getElementById('ativo-tbody');
+            const passivoTbody = document.getElementById('passivo-tbody');
+            const totalAtivoTbody = document.getElementById('total-ativo-tbody');
+            const totalPassivoTbody = document.getElementById('total-passivo-tbody');
+            const dreContainer = document.getElementById('dre-container');
+            const dfcContainer = document.getElementById('dfc-container');
+            const indicadoresTbody = document.getElementById('indicadores-tbody');
+            const resultadosAbrangentesContainer = document.getElementById('resultados-abrangentes-container');
+            const plTbody = document.getElementById('pl-tbody');
+
+            async function getMitraVariableValue(variableName) {
+                if (!variableName || !variableName.startsWith(':VAR_')) {
+                    console.error("Nome de variável inválido. Deve começar com ':VAR_'. Usando data atual como fallback.", variableName);
+                    const now = new Date();
+                    return `${now.getMonth() + 1}/${now.getFullYear()}`;
+                }
+                try {
+                    const result = await queryMitra({ query: `SELECT ${variableName}` });
+                    if (result && result.data && result.data.length > 0 && result.data[0].length > 0) {
+                        return result.data[0][0];
+                    }
+                    console.warn(`A variável ${variableName} retornou vazia. Usando data atual como fallback.`);
+                    const now = new Date();
+                    return `${now.getMonth() + 1}/${now.getFullYear()}`;
+                } catch (error) {
+                    console.error(`Falha ao obter o valor da variável ${variableName}. Usando data atual como fallback.`, error);
+                    const now = new Date();
+                    return `${now.getMonth() + 1}/${now.getFullYear()}`;
+                }
+            }
+            
+            function updateReportMetadata(currentYear) {
+                if (!currentYear || isNaN(parseInt(currentYear))) {
+                    console.error("updateReportMetadata: Ano inválido ou não fornecido.", currentYear);
+                    return;
+                }
+                const previousYear = parseInt(currentYear, 10) - 1;
+
+                document.querySelectorAll('[data-dynamic-text="current-year"]').forEach(el => {
+                    el.textContent = currentYear;
+                });
+                document.querySelectorAll('[data-dynamic-text="previous-year"]').forEach(el => {
+                    el.textContent = previousYear;
+                });
+
+                const textUpdates = {
+                    'full-date-upper': `31 DE DEZEMBRO DE ${currentYear}`,
+                    'termo-title': `Termo de Abertura do Balanço Patrimonial 31 de dezembro de ${currentYear}`,
+                    'termo-footer-date': `Manaus (Am), 31 de dezembro de ${currentYear}`,
+                    'bp-subtitle': `Balanços patrimoniais dos exercícios findos em 31 de Dezembro de ${currentYear}.`,
+                    'dre-title': `Demonstrações dos resultados dos exercícios findos em 31 de dezembro de ${currentYear}`,
+                    'dfc-title': `Demonstrações de fluxo de caixa dos exercícios findos em 31 de dezembro de ${currentYear}`,
+                    'indicadores-title': `Indicadores financeiros em 31 de dezembro de ${currentYear}`,
+                    'resultados-abrangentes-title': `Demonstrações dos resultados abrangentes dos exercícios findos em 31 de dezembro de ${currentYear}`,
+                    'pl-title': `Demonstrações do patrimônio líquido em 31 de dezembro de ${currentYear}`
+                };
+
+                for (const key in textUpdates) {
+                    const el = document.querySelector(`[data-dynamic-text="${key}"]`);
+                    if (el) el.textContent = textUpdates[key];
+                }
+
+                const termoPeriodEl = document.querySelector('[data-dynamic-text="termo-period"]');
+                if (termoPeriodEl) {
+                    termoPeriodEl.textContent = termoPeriodEl.textContent.replace(/no período de 01\/01\/\d{4} a 31\/12\/\d{4}/, `no período de 01/01/${currentYear} a 31/12/${currentYear}`);
+                }
+            }
+
+
+            function formatCurrency(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                if (number === 0) return '0';
+                return number.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+            
+            function formatDREValue(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                if (number === 0) return '(0)';
+                
+                const formattedAbs = Math.abs(number).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+                return number < 0 ? `(${formattedAbs})` : formattedAbs;
+            }
+
+            function formatDFCValue(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                if (number === 0) return '0';
+                
+                const formattedAbs = Math.abs(number).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+                return number < 0 ? `(${formattedAbs})` : formattedAbs;
+            }
+
+            function formatRatio(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                return number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function normalizeText(text) {
+                return (text || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            }
+
+            function formatParts(parts, defaultOperator = '+') {
+                if (!Array.isArray(parts) || parts.length === 0) return null;
+                const formatted = [];
+                for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+                    const formattedValue = formatCurrency(part.value);
+                    if (formattedValue === '-') return null;
+                    const operator = i === 0 ? '' : ` ${part.operator || defaultOperator} `;
+                    formatted.push(`${operator}${formattedValue}`);
+                }
+                return formatted.join('');
+            }
+
+            function formatIndicatorCell(numeratorParts, denominatorParts, result) {
+                if (!numeratorParts || !denominatorParts || numeratorParts.length === 0 || denominatorParts.length === 0) {
+                    return '<div class="text-center">-</div>';
+                }
+                
+                let numeratorValue = 0;
+                numeratorParts.forEach(part => {
+                    const val = parseFloat(part.value) || 0;
+                    if (part.operator === '-') {
+                        numeratorValue -= val;
+                    } else {
+                        numeratorValue += val;
+                    }
+                });
+                
+                let denominatorValue = 0;
+                denominatorParts.forEach(part => {
+                    const val = parseFloat(part.value) || 0;
+                    if (part.operator === '-') {
+                        denominatorValue -= val;
+                    } else {
+                        denominatorValue += val;
+                    }
+                });
+                
+                const numeratorText = formatCurrency(numeratorValue);
+                const denominatorText = formatCurrency(denominatorValue);
+                const ratioText = formatRatio(result);
+                
+                if (ratioText === '-' || numeratorText === '-' || denominatorText === '-') {
+                    return '<div class="text-center">-</div>';
+                }
+                
+                return `
+                    <div class="flex items-center justify-center">
+                        <div class="text-right border-b border-gray-500 w-20">${numeratorText}</div>
+                        <div class="w-20 font-bold text-lg ml-4">${ratioText}</div>
+                    </div>
+                    <div class="text-center w-20">${denominatorText}</div>
+                `;
+            }
+
+            function extractDfcRowValue(dfcResult, searchTerm) {
+                if (!dfcResult || !dfcResult.data || dfcResult.data.length === 0) return null;
+
+                const headerMap = dfcResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+
+                const dfcIndex = headerMap['DFC'];
+                const valorAtualIndex = headerMap['VALOR_ATUAL'];
+                const valorAnteriorIndex = headerMap['VALOR_ANTERIOR'];
+                if (dfcIndex === undefined || valorAtualIndex === undefined || valorAnteriorIndex === undefined) return null;
+
+                const search = normalizeText(searchTerm);
+                const matchedRow = dfcResult.data.find(row => normalizeText(row[dfcIndex]).includes(search));
+                if (!matchedRow) return null;
+
+                return {
+                    valorAtual: parseFloat(matchedRow[valorAtualIndex]) || 0,
+                    valorAnterior: parseFloat(matchedRow[valorAnteriorIndex]) || 0
+                };
+            }
+
+            function renderTable(tbody, processedData) {
+                tbody.innerHTML = '';
+                const fragment = document.createDocumentFragment();
+                processedData.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    let innerHTML = '';
+                    const nextRow = processedData[index + 1];
+                    const hasBottomBorder = row.style === 'item' && (!nextRow || nextRow.style !== 'total');
+
+                    switch (row.style) {
+                        case 'title':
+                            tr.className = 'font-bold';
+                            innerHTML = `<td colspan="4" class="px-4 py-3">${row.description}</td>`;
+                            break;
+                        case 'total':
+                            tr.className = 'font-bold border-t border-gray-400';
+                            innerHTML = `
+                                <td class="px-4 py-2">${row.description}</td>
+                                <td class="px-1 py-2 text-center"></td>
+                                <td class="px-1 py-2 text-right font-mono">${formatCurrency(row.valorAtual)}</td>
+                                <td class="px-1 py-2 text-right font-mono">${formatCurrency(row.valorAnterior)}</td>
+                            `;
+                            break;
+                        case 'item':
+                            tr.className = `${hasBottomBorder ? 'border-b border-border' : ''}`;
+                            innerHTML = `
+                                <td class="px-4 py-1.5">${row.description}</td>
+                                <td class="px-1 py-1.5 text-center font-mono">${row.nota || ''}</td>
+                                <td class="px-1 py-1.5 text-right font-mono">${formatCurrency(row.valorAtual)}</td>
+                                <td class="px-1 py-1.5 text-right font-mono">${formatCurrency(row.valorAnterior)}</td>
+                            `;
+                            break;
+                    }
+                    tr.innerHTML = innerHTML;
+                    fragment.appendChild(tr);
+                });
+                tbody.appendChild(fragment);
+            }
+
+            function renderGrandTotal(tbody, totalData, description) {
+                if (!tbody || !totalData) {
+                    if (tbody) tbody.innerHTML = '';
+                    return;
+                };
+
+                tbody.innerHTML = '';
+                const tr = document.createElement('tr');
+                tr.className = 'font-bold border-t border-b-2 border-gray-700 text-[10px]';
+
+                tr.innerHTML = `
+                    <td class="px-4 py-1 w-[55%]">${description}</td>
+                    <td class="px-1 py-1 text-center font-mono w-12"></td>
+                    <td class="px-1 py-1 text-right font-mono w-16">${formatCurrency(totalData.valorAtual)}</td>
+                    <td class="px-1 py-1 text-right font-mono w-16">${formatCurrency(totalData.valorAnterior)}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            function computeDREValues(dreResult) {
+                if (!dreResult || !dreResult.data || dreResult.data.length === 0) return null;
+
+                const rawData = dreResult.data[0];
+                const headerMap = dreResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+                const getValue = (colName) => parseFloat(rawData[headerMap[colName.toUpperCase()]]) || 0;
+
+                const r = {
+                    atual_1: getValue('ATUAL_1'), anterior_1: getValue('ANTERIOR_1'),
+                    atual_2: getValue('ATUAL_2'), anterior_2: getValue('ANTERIOR_2'),
+                    atual_3: getValue('ATUAL_3'), anterior_3: getValue('ANTERIOR_3'),
+                    atual_4: getValue('ATUAL_4'), anterior_4: getValue('ANTERIOR_4'),
+                    atual_5: getValue('ATUAL_5'), anterior_5: getValue('ANTERIOR_5'),
+                    atual_6: getValue('ATUAL_6'), anterior_6: getValue('ANTERIOR_6'),
+                    atual_7: getValue('ATUAL_7'), anterior_7: getValue('ANTERIOR_7'),
+                    atual_8: getValue('ATUAL_8'), anterior_8: getValue('ANTERIOR_8'),
+                    atual_9: getValue('ATUAL_9'), anterior_9: getValue('ANTERIOR_9'),
+                    atual_10: getValue('ATUAL_10'), anterior_10: getValue('ANTERIOR_10'),
+                    atual_11: getValue('ATUAL_11'), anterior_11: getValue('ANTERIOR_11'),
+                };
+
+                const calc = {
+                    lucroBrutoAtual: r.atual_1 + r.atual_2,
+                    lucroBrutoAnt: r.anterior_1 + r.anterior_2,
+                    totalDespesasOpAtual: r.atual_3 + r.atual_4 + r.atual_5 + r.atual_10 + r.atual_11,
+                    totalDespesasOpAnt: r.anterior_3 + r.anterior_4 + r.anterior_5 + r.anterior_10 + r.anterior_11,
+                };
+                calc.lucroAntesFinAtual = calc.lucroBrutoAtual + calc.totalDespesasOpAtual;
+                calc.lucroAntesFinAnt = calc.lucroBrutoAnt + calc.totalDespesasOpAnt;
+                calc.resultadoFinAtual = r.atual_6 + r.atual_7;
+                calc.resultadoFinAnt = r.anterior_6 + r.anterior_7;
+                calc.lucroAntesImpAtual = calc.lucroAntesFinAtual + calc.resultadoFinAtual;
+                calc.lucroAntesImpAnt = calc.lucroAntesFinAnt + calc.resultadoFinAnt;
+                calc.lucroExercicioAtual = calc.lucroAntesImpAtual + r.atual_8 + r.atual_9;
+                calc.lucroExercicioAnt = calc.lucroAntesImpAnt + r.anterior_8 + r.anterior_9;
+
+                return { r, calc };
+            }
+
+            function renderDRE(dreResult) {
+                const dreData = computeDREValues(dreResult);
+                if (!dreData) {
+                    dreContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Nenhum dado para DRE encontrado.</div>`;
+                    return;
+                }
+
+                const { r, calc } = dreData;
+
+                const dreRows = [
+                    { desc: 'Receitas', isHeader: true },
+                    { desc: 'Receita operacional líquida', nota: 18, atual: r.atual_1, anterior: r.anterior_1 },
+                    { desc: 'Custos operacionais', nota: 19, atual: r.atual_2, anterior: r.anterior_2 },
+                    { desc: 'Lucro bruto', nota: '', atual: calc.lucroBrutoAtual, anterior: calc.lucroBrutoAnt, isTotal: true, hasTopBorder: true },
+                    { desc: 'Despesas operacionais', isHeader: true },
+                    { desc: 'Despesas com pessoal', nota: 20, atual: r.atual_3, anterior: r.anterior_3 },
+                    { desc: 'Despesas gerais e administrativas', nota: 21, atual: r.atual_4, anterior: r.anterior_4 },
+                    { desc: 'Despesas tributárias', nota: '', atual: r.atual_5, anterior: r.anterior_5 },
+                    { desc: 'Resultado de equivalência patrimonial', nota: '', atual: r.atual_10, anterior: r.anterior_10 },
+                    { desc: 'Outras receitas não operacionais', nota: 22, atual: r.atual_11, anterior: r.anterior_11 },
+                    { desc: '', nota: '', atual: calc.totalDespesasOpAtual, anterior: calc.totalDespesasOpAnt, isSubTotal: true, hasTopBorder: true },
+                    { desc: 'Lucro antes do resultado financeiro', nota: '', atual: calc.lucroAntesFinAtual, anterior: calc.lucroAntesFinAnt, isTotal: true },
+                    { desc: 'Receitas financeiras', nota: '', atual: r.atual_6, anterior: r.anterior_6 },
+                    { desc: 'Despesas financeiras', nota: '', atual: r.atual_7, anterior: r.anterior_7 },
+                    { desc: 'Resultado financeiro', nota: 23, atual: calc.resultadoFinAtual, anterior: calc.resultadoFinAnt, isSubTotal: true, hasTopBorder: true },
+                    { desc: 'Lucro antes dos impostos', nota: '', atual: calc.lucroAntesImpAtual, anterior: calc.lucroAntesImpAnt, isTotal: true },
+                    { desc: 'Imposto de renda e contribuição social - correntes', nota: 24, atual: r.atual_8, anterior: r.anterior_8 },
+                    { desc: 'Imposto de renda e contribuição social - diferidos', nota: 24, atual: r.atual_9, anterior: r.anterior_9 },
+                    { desc: 'Lucro do exercício', nota: '', atual: calc.lucroExercicioAtual, anterior: calc.lucroExercicioAnt, isTotal: true, hasTopBorder: true, hasBottomBorder: true },
+                ];
+
+                let tableHtml = `
+                    <table class="w-full text-[10px] mt-4">
+                        <thead class="border-b border-gray-700">
+                            <tr>
+                                <th class="text-left font-semibold pb-2 w-[55%]"></th>
+                                <th class="text-center font-semibold pb-2 w-[15%]">Notas</th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="current-year">2024</th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="previous-year">2023</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                dreRows.forEach(row => {
+                    if (row.isHeader) {
+                        tableHtml += `<tr><td colspan="4" class="pt-4 pb-1 font-semibold text-primary">${row.desc}</td></tr>`;
+                    } else {
+                        const fontWeight = row.isTotal ? 'font-bold' : 'font-normal';
+                        const borderTop = row.hasTopBorder ? 'border-t border-gray-400' : '';
+                        const borderBottom = row.hasBottomBorder ? 'border-b border-gray-400' : '';
+                        const paddingClass = (row.isTotal || row.isSubTotal) ? 'py-2' : 'py-1';
+                        tableHtml += `
+                            <tr class="${fontWeight} ${paddingClass} ${borderTop} ${borderBottom}">
+                                <td class="text-left">${row.desc}</td>
+                                <td class="text-center">${row.nota || ''}</td>
+                                <td class="text-right font-mono">${formatDREValue(row.atual)}</td>
+                                <td class="text-right font-mono">${formatDREValue(row.anterior)}</td>
+                            </tr>`;
+                    }
+                });
+
+                tableHtml += `</tbody></table>`;
+                dreContainer.innerHTML = tableHtml;
+            }
+
+            function renderResultadosAbrangentes(dreResult) {
+                if (!resultadosAbrangentesContainer) return;
+
+                const dreData = computeDREValues(dreResult);
+                if (!dreData) {
+                    resultadosAbrangentesContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Nenhum dado para resultados abrangentes encontrado.</div>`;
+                    return;
+                }
+
+                const { calc } = dreData;
+                const outrosText = '-';
+                const resultadoAbrangenteAtual = calc.lucroExercicioAtual;
+                const resultadoAbrangenteAnterior = calc.lucroExercicioAnt;
+
+                resultadosAbrangentesContainer.innerHTML = `
+                    <table class="w-full text-[10px]">
+                        <thead class="border-b border-gray-700">
+                            <tr>
+                                <th class="text-left font-semibold pb-2 w-[70%]"></th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="current-year">2024</th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="previous-year">2023</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-gray-400">
+                                <td class="py-1">Lucro líquido do exercício</td>
+                                <td class="text-right font-mono">${formatDREValue(calc.lucroExercicioAtual)}</td>
+                                <td class="text-right font-mono">${formatDREValue(calc.lucroExercicioAnt)}</td>
+                            </tr>
+                            <tr class="border-b border-gray-400">
+                                <td class="py-1">Outros resultados abrangentes</td>
+                                <td class="text-right">${outrosText}</td>
+                                <td class="text-right">${outrosText}</td>
+                            </tr>
+                            <tr class="font-bold border-t-2 border-b-2 border-gray-700">
+                                <td class="py-1">Resultado abrangente do exercício</td>
+                                <td class="text-right font-mono">${formatDREValue(resultadoAbrangenteAtual)}</td>
+                                <td class="text-right font-mono">${formatDREValue(resultadoAbrangenteAnterior)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            function renderPatrimonioLiquido(passivoData, dreResult, dfcResult, currentYear) {
+                if (!plTbody) return;
+                if (!passivoData || passivoData.length === 0) {
+                    plTbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-muted-foreground">Nenhum dado de patrimônio líquido encontrado.</td></tr>`;
+                    return;
+                }
+
+                const dreData = computeDREValues(dreResult);
+                const dfcLucrosDistribuidos = extractDfcRowValue(dfcResult, 'lucros distribuidos');
+                const getItem = (id) => passivoData.find(item => item.id === id);
+                const capitalItem = getItem(501) || {};
+                const lucrosItem = getItem(502) || {};
+                const totalItem = getItem(599) || {};
+
+                const capitalAtual = capitalItem.valorAtual;
+                const capitalAnterior = capitalItem.valorAnterior;
+                const lucrosAtual = lucrosItem.valorAtual;
+                const lucrosAnterior = lucrosItem.valorAnterior;
+                const totalAtual = totalItem.valorAtual;
+                const totalAnterior = totalItem.valorAnterior;
+
+                if ([capitalAtual, capitalAnterior, lucrosAtual, lucrosAnterior, totalAtual, totalAnterior].every(v => v === undefined)) {
+                    plTbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-muted-foreground">Dados de patrimônio líquido indisponíveis.</td></tr>`;
+                    return;
+                }
+
+                const ajusteAtual = (totalAtual ?? 0) - (capitalAtual ?? 0) - (lucrosAtual ?? 0);
+                const ajusteAnterior = (totalAnterior ?? 0) - (capitalAnterior ?? 0) - (lucrosAnterior ?? 0);
+                const ajusteDelta = ajusteAtual - ajusteAnterior;
+
+                const lucroExercicioAtual = dreData?.calc?.lucroExercicioAtual;
+                const previousYear = isNaN(parseInt(currentYear, 10)) ? 'Ano anterior' : (parseInt(currentYear, 10) - 1);
+
+                const formatPLTotal = (value) => {
+                    if (value === null || value === undefined || isNaN(value)) return '-';
+                    return formatCurrency(value);
+                };
+
+                const formatPLChange = (value) => {
+                    if (value === null || value === undefined || isNaN(value)) return '-';
+                    return formatDREValue(value);
+                };
+
+                const rows = [
+                    {
+                        label: `Saldos em 31 de dezembro de ${previousYear}`,
+                        capital: capitalAnterior,
+                        ajuste: ajusteAnterior,
+                        lucros: lucrosAnterior,
+                        total: totalAnterior,
+                        type: 'balance'
+                    },
+                    {
+                        label: 'Lucros distribuídos',
+                        capital: null,
+                        ajuste: null,
+                        lucros: dfcLucrosDistribuidos ? dfcLucrosDistribuidos.valorAtual : null,
+                        total: dfcLucrosDistribuidos ? dfcLucrosDistribuidos.valorAtual : null,
+                        indent: true
+                    },
+                    {
+                        label: 'Lucro do exercício',
+                        capital: null,
+                        ajuste: null,
+                        lucros: lucroExercicioAtual,
+                        total: lucroExercicioAtual,
+                        indent: true
+                    },
+                    {
+                        label: 'Ajuste de Avaliação',
+                        capital: null,
+                        ajuste: ajusteDelta,
+                        lucros: null,
+                        total: ajusteDelta,
+                        indent: true
+                    },
+                    {
+                        label: `Saldos em 31 de dezembro de ${currentYear}`,
+                        capital: capitalAtual,
+                        ajuste: ajusteAtual,
+                        lucros: lucrosAtual,
+                        total: totalAtual,
+                        type: 'balance'
+                    }
+                ];
+
+                plTbody.innerHTML = rows.map(row => {
+                    const isBalance = row.type === 'balance';
+                    const borderClasses = isBalance ? 'border-t-2 border-b-2 border-gray-700 font-bold' : '';
+                    const indentClass = row.indent ? 'pl-4' : '';
+                    const formatter = isBalance ? formatPLTotal : formatPLChange;
+
+                    return `
+                        <tr class="${borderClasses}">
+                            <td class="py-1 ${indentClass}">${row.label}</td>
+                            <td class="text-right font-mono">${formatter(row.capital)}</td>
+                            <td class="text-right font-mono">${formatter(row.ajuste)}</td>
+                            <td class="text-right font-mono">${formatter(row.lucros)}</td>
+                            <td class="text-right font-mono">${formatter(row.total)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            function renderDFC(dfcResult) {
+                if (!dfcResult || !dfcResult.data || dfcResult.data.length === 0) {
+                    dfcContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Nenhum dado para DFC encontrado.</div>`;
+                    return;
+                }
+
+                const headerMap = dfcResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+
+                const ordemIndex = headerMap['ORDEM'];
+                const dfcIndex = headerMap['DFC'];
+                const valorAtualIndex = headerMap['VALOR_ATUAL'];
+                const valorAnteriorIndex = headerMap['VALOR_ANTERIOR'];
+
+                if (ordemIndex === undefined || dfcIndex === undefined || valorAtualIndex === undefined || valorAnteriorIndex === undefined) {
+                    dfcContainer.innerHTML = `<div class="text-center p-12 text-destructive">Erro: Estrutura de dados da DFC inválida.</div>`;
+                    return;
+                }
+
+                const baseRows = dfcResult.data.map(row => {
+                    const rawDesc = row[dfcIndex];
+                    const descricao = typeof rawDesc === 'string' ? rawDesc : String(rawDesc || '');
+                    return {
+                        ordem: parseInt(row[ordemIndex]) || 0,
+                        descricao,
+                        valorAtual: parseFloat(row[valorAtualIndex]) || 0,
+                        valorAnterior: parseFloat(row[valorAnteriorIndex]) || 0
+                    };
+                }).sort((a, b) => a.ordem - b.ordem);
+
+                const subtotalRules = [
+                    { after: 11, label: 'Subtotal', rangeStart: 1, rangeEnd: 11, mode: 'sum', isSubtotal: true },
+                    { after: 20, label: 'Caixa líquido consumido nas atividades operacionais', rangeStart: 1, rangeEnd: 20, mode: 'sum', isTotal: true },
+                    { after: 24, label: 'Caixa líquido gerado (consumido) nas atividades de investimentos', rangeStart: 1, rangeEnd: 24, mode: 'sum', isTotal: true },
+                    { after: 28, label: 'Caixa gerado nas atividades de financiamentos', rangeStart: 1, rangeEnd: 28, mode: 'sum', isTotal: true },
+                    { after: 30, label: 'Aumento de caixa e equivalentes de caixa', rangeStart: 29, rangeEnd: 30, mode: 'diff', isTotal: true, isGrand: true }
+                ];
+
+                const calcSubtotal = (rule) => baseRows.reduce((acc, row) => {
+                    if (row.ordem >= rule.rangeStart && row.ordem <= rule.rangeEnd) {
+                        if (rule.mode === 'diff') {
+                            // diff mode: end - start (ex.: ordem 30 - ordem 29)
+                            if (row.ordem === rule.rangeStart) {
+                                acc.valorAtual -= row.valorAtual;
+                                acc.valorAnterior -= row.valorAnterior;
+                            } else if (row.ordem === rule.rangeEnd) {
+                                acc.valorAtual += row.valorAtual;
+                                acc.valorAnterior += row.valorAnterior;
+                            }
+                        } else { // default sum
+                            acc.valorAtual += row.valorAtual;
+                            acc.valorAnterior += row.valorAnterior;
+                        }
+                    }
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+
+                const processedRows = [];
+
+                baseRows.forEach(row => {
+                    const indentClass = (/^\s+/.test(row.descricao)) ? 'pl-4' : '';
+
+                    // Linha mesclada acima da ordem 12
+                    if (row.ordem === 12) {
+                        processedRows.push({
+                            type: 'merged-note',
+                            descricao: 'Variação nos ativos e passivos operacionais'
+                        });
+                    }
+
+                    // Linha mesclada acima da ordem 21
+                    if (row.ordem === 21) {
+                        processedRows.push({
+                            type: 'merged-note',
+                            descricao: 'Fluxo de caixa das atividades de investimentos'
+                        });
+                    }
+
+                    // Linha mesclada acima da ordem 25
+                    if (row.ordem === 25) {
+                        processedRows.push({
+                            type: 'merged-note',
+                            descricao: 'Fluxo de caixa das atividades de financiamentos'
+                        });
+                    }
+
+                    processedRows.push({
+                        type: 'item',
+                        descricao: row.descricao,
+                        valorAtual: row.valorAtual,
+                        valorAnterior: row.valorAnterior,
+                        indent: indentClass
+                    });
+
+                    // Linha mesclada logo abaixo da ordem 1
+                    if (row.ordem === 1) {
+                        processedRows.push({
+                            type: 'merged-note',
+                            descricao: 'Ajuste para reconciliar o prejuízo do exercício com os recursos provenientes das atividades operacionais'
+                        });
+                    }
+
+                    const rule = subtotalRules.find(r => r.after === row.ordem);
+                    if (rule) {
+                        const subtotal = calcSubtotal(rule);
+                        processedRows.push({
+                            type: rule.isSubtotal ? 'subtotal' : 'total',
+                            descricao: rule.label,
+                            valorAtual: subtotal.valorAtual,
+                            valorAnterior: subtotal.valorAnterior,
+                            isGrand: rule.isGrand
+                        });
+                    }
+                });
+
+                let tableHtml = `
+                    <table class="w-full text-[10px] mt-4">
+                        <thead class="border-b border-gray-700">
+                            <tr>
+                                <th class="text-left font-semibold pb-2 w-[70%]"></th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="current-year">2024</th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="previous-year">2023</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                processedRows.forEach(row => {
+                    if (row.type === 'merged-note') {
+                        tableHtml += `
+                            <tr>
+                                <td colspan="3" class="text-left py-1 text-[10px]">${row.descricao}</td>
+                            </tr>`;
+                        return;
+                    }
+
+                    const isTotalRow = row.type !== 'item';
+                    const fontWeight = isTotalRow ? 'font-bold' : 'font-normal';
+                    const borderTop = isTotalRow ? 'border-t border-gray-400' : '';
+                    const borderBottom = row.isGrand ? 'border-b-2 border-gray-700' : '';
+                    const paddingClass = isTotalRow ? 'py-2' : 'py-1';
+                    const indentClass = row.indent || '';
+                    const descDisplay = row.descricao || '';
+
+                    tableHtml += `
+                        <tr class="${fontWeight} ${paddingClass} ${borderTop} ${borderBottom}">
+                            <td class="text-left ${indentClass}">${descDisplay}</td>
+                            <td class="text-right font-mono">${formatDFCValue(row.valorAtual)}</td>
+                            <td class="text-right font-mono">${formatDFCValue(row.valorAnterior)}</td>
+                        </tr>`;
+                });
+
+                tableHtml += `</tbody></table>`;
+                dfcContainer.innerHTML = tableHtml;
+            }
+
+
+            function processReportData(reportMap, result) {
+                if (!result || !result.data || result.data.length === 0) return null;
+                
+                const rawData = result.data[0];
+                const headerMap = result.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+
+                const calculatedValues = new Map();
+
+                reportMap.forEach(item => {
+                    if (item.colAtual && item.colAnterior) {
+                        const indexAtual = headerMap[item.colAtual.toUpperCase()];
+                        const indexAnterior = headerMap[item.colAnterior.toUpperCase()];
+                        calculatedValues.set(item.id, {
+                            atual: parseFloat(rawData[indexAtual]) || 0,
+                            anterior: parseFloat(rawData[indexAnterior]) || 0
+                        });
+                    }
+                });
+
+                reportMap.forEach(item => {
+                    if (item.sumOf) {
+                        const total = item.sumOf.reduce((acc, childId) => {
+                            const childValue = calculatedValues.get(childId);
+                            if (childValue) {
+                                acc.atual += childValue.atual;
+                                acc.anterior += childValue.anterior;
+                            }
+                            return acc;
+                        }, { atual: 0, anterior: 0 });
+                        calculatedValues.set(item.id, total);
+                    }
+                });
+
+                return reportMap.map(item => {
+                    const values = calculatedValues.get(item.id);
+                    return {
+                        ...item,
+                        valorAtual: values ? values.atual : undefined,
+                        valorAnterior: values ? values.anterior : undefined
+                    };
+                });
+            }
+
+            function renderIndicadores(indicadoresResult) {
+                if (!indicadoresTbody) return;
+                if (!indicadoresResult || !indicadoresResult.data || indicadoresResult.data.length === 0) {
+                    indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-muted-foreground">Nenhum indicador encontrado.</td></tr>`;
+                    return;
+                }
+
+                const headerMap = indicadoresResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+
+                const getValue = (row, key) => {
+                    const idx = headerMap[key];
+                    if (idx === undefined) return undefined;
+                    const val = parseFloat(row[idx]);
+                    return isNaN(val) ? undefined : val;
+                };
+
+                const indicadorData = indicadoresResult.data.reduce((acc, row) => {
+                    const ordem = getValue(row, 'ORDEM');
+                    if (ordem === undefined || ordem === null) return acc;
+                    acc[ordem] = {
+                        descricao: row[headerMap['DESCRICAO']] || '',
+                        valorAtual: getValue(row, 'VALOR_ATUAL'),
+                        valorAnterior: getValue(row, 'VALOR_ANTERIOR'),
+                        v1Atual: getValue(row, 'V1_ATUAL'),
+                        v1Anterior: getValue(row, 'V1_ANTERIOR'),
+                        v13Atual: getValue(row, 'V13_ATUAL'),
+                        v13Anterior: getValue(row, 'V13_ANTERIOR'),
+                        v17Atual: getValue(row, 'V17_ATUAL'),
+                        v17Anterior: getValue(row, 'V17_ANTERIOR'),
+                        v27Atual: getValue(row, 'V27_ATUAL'),
+                        v27Anterior: getValue(row, 'V27_ANTERIOR'),
+                        v28Atual: getValue(row, 'V28_ATUAL'),
+                        v28Anterior: getValue(row, 'V28_ANTERIOR'),
+                        v42Atual: getValue(row, 'V42_ATUAL'),
+                        v42Anterior: getValue(row, 'V42_ANTERIOR')
+                    };
+                    return acc;
+                }, {});
+
+                const indicadoresConfig = [
+                    {
+                        ordem: 1001,
+                        titulo: 'Liquidez Corrente',
+                        formula: 'AC / PC'
+                    },
+                    {
+                        ordem: 1002,
+                        titulo: 'Liquidez Seca',
+                        formula: '(AC - ESTOQUE) / PC'
+                    },
+                    {
+                        ordem: 1003,
+                        titulo: 'Liquidez Geral',
+                        formula: '(AC + RLP) / (PC + PNC)'
+                    },
+                    {
+                        ordem: 1004,
+                        titulo: 'Solvência Geral',
+                        formula: 'ATIVO TOTAL / (PC + PNC)'
+                    }
+                ];
+
+                const rowsHtml = indicadoresConfig.map(cfg => {
+                    const data = indicadorData[cfg.ordem];
+                    if (!data) {
+                        return `<tr><td colspan="3" class="p-6 text-center text-muted-foreground">Dados de ${cfg.titulo} indisponíveis.</td></tr>`;
+                    }
+                    
+                    let numPartsAtual, denPartsAtual, numPartsAnterior, denPartsAnterior;
+                    
+                    if (cfg.ordem === 1001) {
+                        numPartsAtual = [{ value: data.v1Atual }];
+                        denPartsAtual = [{ value: data.v28Atual }];
+                        numPartsAnterior = [{ value: data.v1Anterior }];
+                        denPartsAnterior = [{ value: data.v28Anterior }];
+                    } else if (cfg.ordem === 1002) {
+                        numPartsAtual = [{ value: data.v1Atual }, { value: data.v13Atual, operator: '-' }];
+                        denPartsAtual = [{ value: data.v28Atual }];
+                        numPartsAnterior = [{ value: data.v1Anterior }, { value: data.v13Anterior, operator: '-' }];
+                        denPartsAnterior = [{ value: data.v28Anterior }];
+                    } else if (cfg.ordem === 1003) {
+                        numPartsAtual = [{ value: data.v1Atual }, { value: data.v17Atual, operator: '+' }];
+                        denPartsAtual = [{ value: data.v28Atual }, { value: data.v42Atual, operator: '+' }];
+                        numPartsAnterior = [{ value: data.v1Anterior }, { value: data.v17Anterior, operator: '+' }];
+                        denPartsAnterior = [{ value: data.v28Anterior }, { value: data.v42Anterior, operator: '+' }];
+                    } else if (cfg.ordem === 1004) {
+                        numPartsAtual = [{ value: data.v27Atual }];
+                        denPartsAtual = [{ value: data.v28Atual }, { value: data.v42Atual, operator: '+' }];
+                        numPartsAnterior = [{ value: data.v27Anterior }];
+                        denPartsAnterior = [{ value: data.v28Anterior }, { value: data.v42Anterior, operator: '+' }];
+                    }
+                    
+                    return `
+                        <tr class="pt-4">
+                            <td class="text-left font-bold py-3">${cfg.titulo}</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="text-left pl-4">${cfg.formula}</td>
+                            <td>${formatIndicatorCell(numPartsAtual, denPartsAtual, data.valorAtual)}</td>
+                            <td>${formatIndicatorCell(numPartsAnterior, denPartsAnterior, data.valorAnterior)}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                indicadoresTbody.innerHTML = rowsHtml;
+            }
+
+            async function fetchAndRenderReports() {
+                const loadingHtml = `<tr><td colspan="4" class="text-center p-12 text-muted-foreground">Buscando dados...</td></tr>`;
+                ativoTbody.innerHTML = loadingHtml;
+                passivoTbody.innerHTML = loadingHtml;
+                totalAtivoTbody.innerHTML = '';
+                totalPassivoTbody.innerHTML = '';
+                dreContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Buscando dados da DRE...</div>`;
+                dfcContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Buscando dados da DFC...</div>`;
+                indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-muted-foreground">Buscando indicadores...</td></tr>`;
+                if (resultadosAbrangentesContainer) {
+                    resultadosAbrangentesContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Buscando resultados abrangentes...</div>`;
+                }
+                if (plTbody) {
+                    plTbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-muted-foreground">Buscando dados do patrimônio líquido...</td></tr>`;
+                }
+
+                try {
+                    const dfcQuery = (componentData && (componentData.queryDFC || componentData.varDFC)) || null;
+                    if (!dfcQuery) {
+                        throw new Error('Configuração da query DFC ausente (queryDFC ou varDFC).');
+                    }
+                    const indicadoresQuery = componentData && componentData.queryINDICADOR;
+                    if (!indicadoresQuery) {
+                        throw new Error('Configuração da query INDICADOR ausente (queryINDICADOR).');
+                    }
+
+                    const [dateString, ativoResult, passivoResult, dreResult, dfcResult, indicadoresResult] = await Promise.all([
+                        getMitraVariableValue(componentData.varMes),
+                        queryMitra({ query: componentData.queryBPAtivo }),
+                        queryMitra({ query: componentData.queryBPPassivo }),
+                        queryMitra({ query: componentData.queryDRE }),
+                        queryMitra({ query: dfcQuery }),
+                        queryMitra({ query: indicadoresQuery })
+                    ]);
+
+                    const processedAtivo = processReportData(ativoMap, ativoResult);
+                    if (processedAtivo) {
+                        const totalAtivoData = processedAtivo.find(item => item.style === 'grand-total');
+                        renderTable(ativoTbody, processedAtivo.filter(item => item.style !== 'grand-total'));
+                        renderGrandTotal(totalAtivoTbody, totalAtivoData, totalAtivoData.description);
+                    } else {
+                        ativoTbody.innerHTML = `<tr><td colspan="4" class="text-center p-12 text-muted-foreground">Nenhum dado de Ativo encontrado.</td></tr>`;
+                    }
+
+                    const processedPassivo = processReportData(passivoMap, passivoResult);
+                    if (processedPassivo) {
+                        const totalPassivoData = processedPassivo.find(item => item.style === 'grand-total');
+                        renderTable(passivoTbody, processedPassivo.filter(item => item.style !== 'grand-total'));
+                        renderGrandTotal(totalPassivoTbody, totalPassivoData, totalPassivoData.description);
+                    } else {
+                        passivoTbody.innerHTML = `<tr><td colspan="4" class="text-center p-12 text-muted-foreground">Nenhum dado de Passivo encontrado.</td></tr>`;
+                    }
+                    
+                    renderDRE(dreResult);
+                    renderDFC(dfcResult);
+                    renderIndicadores(indicadoresResult);
+                    renderResultadosAbrangentes(dreResult);
+                    
+                    let currentYear = new Date().getFullYear().toString();
+                    if (dateString && dateString.includes('/')) {
+                        const parts = dateString.split('/');
+                        if (parts.length === 2 && parts[1] && parts[1].length === 4) {
+                           currentYear = parts[1];
+                        }
+                    }
+                    renderPatrimonioLiquido(processedPassivo, dreResult, dfcResult, currentYear);
+                    updateReportMetadata(currentYear);
+
+                } catch (error) {
+                    console.error("Falha ao buscar ou processar dados do relatório:", error);
+                    const errorHtml = `<div class="text-center p-12 text-destructive bg-destructive/10">Ocorreu um erro ao carregar o relatório.</div>`;
+                    ativoTbody.innerHTML = errorHtml.replace('div', 'tr').replace('div','<td colspan="4">');
+                    passivoTbody.innerHTML = errorHtml.replace('div', 'tr').replace('div','<td colspan="4">');
+                    dreContainer.innerHTML = errorHtml;
+                    dfcContainer.innerHTML = errorHtml;
+                    indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-destructive bg-destructive/10">Ocorreu um erro ao carregar os indicadores.</td></tr>`;
+                    if (resultadosAbrangentesContainer) {
+                        resultadosAbrangentesContainer.innerHTML = errorHtml;
+                    }
+                    if (plTbody) {
+                        plTbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-destructive bg-destructive/10">Ocorreu um erro ao carregar o patrimônio líquido.</td></tr>`;
+                    }
+                }
+            }
+
+            const initializeComponent = () => {
+                document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, fetchAndRenderReports);
+                fetchAndRenderReports();
+            };
+
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+
+                const checkInterval = setInterval(() => {
+                    const hasDFCQuery = window.componentData && (window.componentData.queryDFC || window.componentData.varDFC);
+                    const hasIndicadorQuery = window.componentData && window.componentData.queryINDICADOR;
+                    if (window.componentData && window.componentData.queryBPAtivo && window.componentData.queryBPPassivo && window.componentData.queryDRE && window.componentData.varMes && hasDFCQuery && hasIndicadorQuery) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        const errorMsg = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente não foram carregadas da plataforma.</div>`;
+                        if (document.getElementById('report-container')) {
+                            document.getElementById('report-container').innerHTML = errorMsg;
+                        }
+                        if (dfcContainer) {
+                            dfcContainer.innerHTML = errorMsg;
+                        }
+                        if (indicadoresTbody) {
+                            indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-destructive bg-destructive/10">Erro crítico: componentData não carregou.</td></tr>`;
+                        }
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>

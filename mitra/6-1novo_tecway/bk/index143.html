@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de variáveis dos indicadores</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --border: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .indicador-formula {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        /* Tabela responsiva: ocupa 100% do container e evita scroll horizontal */
+        #report-container {
+            max-width: 100%;
+        }
+
+        .table-indicadores {
+            table-layout: fixed;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .table-indicadores .col-cod {
+            width: 3rem;
+            min-width: 2.5rem;
+        }
+
+        .table-indicadores .col-indicador {
+            width: 18%;
+            min-width: 5rem;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .table-indicadores .col-formula {
+            width: 15%;
+            min-width: 4rem;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            font-size: 0.75rem;
+        }
+
+        .table-indicadores .col-mes {
+            width: 5%;
+            min-width: 2rem;
+            padding-left: 0.25rem !important;
+            padding-right: 0.25rem !important;
+            font-size: 0.75rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @media (min-width: 1024px) {
+            .table-indicadores .col-formula { font-size: 0.8125rem; }
+            .table-indicadores .col-mes { font-size: 0.8125rem; padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+        }
+    </style>
+</head>
+
+<body class="p-4 sm:p-6 lg:p-8">
+    <div id="report-container" class="w-full mx-auto px-0">
+        <div id="loading-state" class="flex items-center justify-center py-16">
+            <p class="text-lg text-muted-foreground">Carregando dados do balanço...</p>
+        </div>
+        <div id="report-content" class="hidden space-y-12">
+            <section>
+                <h2 class="text-lg font-bold border-b border-border pb-2 mb-4">Base de variáveis dos indicadores</h2>
+                <p class="text-sm text-muted-foreground mb-4">Valores mês a mês de cada variável utilizada nas fórmulas dos indicadores.</p>
+                <div class="w-full overflow-x-auto overflow-y-hidden">
+                    <table class="table-indicadores border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b-2 border-foreground">
+                                <th class="col-indicador text-left py-2 px-2 font-semibold">Variável</th>
+                                <th class="col-formula text-left py-2 px-2 font-semibold">Origem</th>
+                                <th class="col-mes text-right py-2 font-semibold">Jan</th>
+                                <th class="col-mes text-right py-2 font-semibold">Fev</th>
+                                <th class="col-mes text-right py-2 font-semibold">Mar</th>
+                                <th class="col-mes text-right py-2 font-semibold">Abr</th>
+                                <th class="col-mes text-right py-2 font-semibold">Mai</th>
+                                <th class="col-mes text-right py-2 font-semibold">Jun</th>
+                                <th class="col-mes text-right py-2 font-semibold">Jul</th>
+                                <th class="col-mes text-right py-2 font-semibold">Ago</th>
+                                <th class="col-mes text-right py-2 font-semibold">Set</th>
+                                <th class="col-mes text-right py-2 font-semibold">Out</th>
+                                <th class="col-mes text-right py-2 font-semibold">Nov</th>
+                                <th class="col-mes text-right py-2 font-semibold">Dez</th>
+                            </tr>
+                        </thead>
+                        <tbody id="base-variaveis-tbody">
+                            <tr><td colspan="14" class="p-4 text-center text-muted-foreground">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-indicadores-bp';
+
+        const MESES_COLS = ['VALOR_JAN','VALOR_FEV','VALOR_MAR','VALOR_ABR','VALOR_MAI','VALOR_JUN','VALOR_JUL','VALOR_AGO','VALOR_SET','VALOR_OUT','VALOR_NOV','VALOR_DEZ'];
+        const MES_KEYS = ['valorJan','valorFev','valorMar','valorAbr','valorMai','valorJun','valorJul','valorAgo','valorSet','valorOut','valorNov','valorDez'];
+
+        function updateMitra() {
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+
+        /**
+         * Retorna a soma dos valores mês a mês de todos os itens do BP
+         * cuja hierarquia é exatamente igual ao código ou começa com código + '.'.
+         */
+        function getValorByHierarquia(bpData, code) {
+            const empty = () => ({ valorJan:0, valorFev:0, valorMar:0, valorAbr:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 });
+            if (!bpData || !Array.isArray(bpData)) return empty();
+            const normalized = (code || '').toString().trim();
+            const match = (h) => {
+                if (!h) return false;
+                const s = String(h).trim();
+                if (s === normalized) return true;
+                if (s.startsWith(normalized + '.')) return true;
+                if (normalized.endsWith('.') && s === normalized.slice(0, -1)) return true;
+                return false;
+            };
+            const keys = ['valorJan','valorFev','valorMar','valorAbr','valorMai','valorJun','valorJul','valorAgo','valorSet','valorOut','valorNov','valorDez'];
+            return bpData.filter(d => match(d.hierarquia)).reduce(
+                (acc, item) => {
+                    keys.forEach((k, i) => { acc[k] += parseFloat(item[k]) || 0; });
+                    return acc;
+                },
+                { valorJan:0, valorFev:0, valorMar:0, valorAbr:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 }
+            );
+        }
+
+        /**
+         * Monta o objeto de base para os indicadores a partir do BP (queryDadosBP com VALOR_JAN ... VALOR_DEZ).
+         * 1., 2. e 3. são obtidos por soma dos filhos quando a agregação direta for zero em todos os meses.
+         */
+        function computeBPBase(bpData) {
+            if (!bpData || bpData.length === 0) return null;
+            const keys = ['valorJan','valorFev','valorMar','valorAbr','valorMai','valorJun','valorJul','valorAgo','valorSet','valorOut','valorNov','valorDez'];
+            const sum = (a, b) => keys.reduce((o, k) => { o[k] = (a[k]||0) + (b[k]||0); return o; }, {});
+            const sum3 = (a, b, c) => sum(sum(a, b), c);
+            const hasAny = (v) => keys.some(k => (v[k]||0) !== 0);
+            const v11 = getValorByHierarquia(bpData, '1.1');
+            const v12 = getValorByHierarquia(bpData, '1.2');
+            const v21 = getValorByHierarquia(bpData, '2.1');
+            const v22 = getValorByHierarquia(bpData, '2.2');
+            const v31 = getValorByHierarquia(bpData, '3.1');
+            const v32 = getValorByHierarquia(bpData, '3.2');
+            const v33 = getValorByHierarquia(bpData, '3.3');
+            const v1ponto = getValorByHierarquia(bpData, '1.');
+            const v2ponto = getValorByHierarquia(bpData, '2.');
+            const v3ponto = getValorByHierarquia(bpData, '3.');
+            const total1 = hasAny(v1ponto) ? v1ponto : sum(v11, v12);
+            const total2 = hasAny(v2ponto) ? v2ponto : sum(v21, v22);
+            const total3 = hasAny(v3ponto) ? v3ponto : sum3(v31, v32, v33);
+            return {
+                '1.': total1,
+                '1.1': v11,
+                '1.1.1': getValorByHierarquia(bpData, '1.1.1'),
+                '1.1.12': getValorByHierarquia(bpData, '1.1.12'),
+                '1.2': v12,
+                '1.2.1': getValorByHierarquia(bpData, '1.2.1'),
+                '1.2.7': getValorByHierarquia(bpData, '1.2.7'),
+                '1.2.10': getValorByHierarquia(bpData, '1.2.10'),
+                '2.': total2,
+                '2.1': v21,
+                '2.2': v22,
+                '2.1.4': getValorByHierarquia(bpData, '2.1.4'),
+                '2.2.1': getValorByHierarquia(bpData, '2.2.1'),
+                '3.': total3
+            };
+        }
+
+        function safeDiv(num, den) {
+            if (den == null || den === 0 || isNaN(den)) return null;
+            const n = parseFloat(num);
+            return (num != null && !isNaN(n)) ? n / den : null;
+        }
+
+        function formatCurrency(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) return '–';
+            return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+        }
+
+        function formatRatio(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) return '–';
+            return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+        }
+
+        function formatPercent(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) return '–';
+            return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num) + ' %';
+        }
+
+        /**
+         * Processa o resultado da DRE (queryDadosDRE) em uma lista de objetos
+         * com hierarquia e valores mês a mês.
+         */
+        function processDREResult(result) {
+            if (!result || !result.data || result.data.length === 0) return null;
+            const headers = (result.headers || []).map(h => (h && h.name ? h.name.toUpperCase() : ''));
+            const colMap = {
+                hierarquia: headers.indexOf('HIERARQUIA')
+            };
+            MESES_COLS.forEach((col, i) => { colMap[MES_KEYS[i]] = headers.indexOf(col); });
+            const hasMes = MES_KEYS.some(k => colMap[k] !== -1);
+            if (colMap.hierarquia === -1 || !hasMes) return null;
+            return result.data.map(row => {
+                const item = {
+                    hierarquia: (row[colMap.hierarquia] || '').toString().trim()
+                };
+                MES_KEYS.forEach((k, i) => {
+                    const idx = colMap[k];
+                    item[k] = idx !== -1 ? (parseFloat(row[idx]) || 0) : 0;
+                });
+                return item;
+            });
+        }
+
+        function calculateSumDRE(dreData, prefix) {
+            const empty = () => ({ valorJan:0, valorFev:0, valorMar:0, valorAbr:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 });
+            if (!dreData || !Array.isArray(dreData)) {
+                return empty();
+            }
+            const result = empty();
+            dreData
+                .filter(item => item.hierarquia && item.hierarquia.startsWith(prefix))
+                .forEach(item => {
+                    MES_KEYS.forEach(k => {
+                        result[k] += item[k] || 0;
+                    });
+                });
+            return result;
+        }
+
+        function calculateFormulaDRE(dreData, formula) {
+            const regex = /([+\-]?)([0-9.]+)/g;
+            const matches = [...formula.matchAll(regex)];
+            const result = { valorJan:0, valorFev:0, valorMar:0, valorAbr:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 };
+            let isFirst = true;
+
+            matches.forEach(match => {
+                const operator = match[1] || '+';
+                const prefix = match[2];
+                const sum = calculateSumDRE(dreData, prefix);
+
+                MES_KEYS.forEach(k => {
+                    if (isFirst || operator === '+') {
+                        result[k] += sum[k];
+                    } else if (operator === '-') {
+                        result[k] -= sum[k];
+                    }
+                });
+
+                isFirst = false;
+            });
+
+            return result;
+        }
+
+        /**
+         * Replica o cálculo do lucro líquido (resultado líquido do exercício)
+         * mês a mês conforme implementado no relatório DRE anual.
+         */
+        function computeLucroLiquidoFromDRE(dreData) {
+            const empty = () => ({ valorJan:0, valorFev:0, valorMar:0, valorAbr:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 });
+            if (!dreData || !Array.isArray(dreData) || dreData.length === 0) {
+                return empty();
+            }
+
+            const receitaOperacionalLiquida = calculateFormulaDRE(dreData, '1.+2.');
+            const custoServico = calculateSumDRE(dreData, '3.');
+            const resultadoOperacionalBruto = empty();
+            MES_KEYS.forEach(k => {
+                resultadoOperacionalBruto[k] = (receitaOperacionalLiquida[k] || 0) + (custoServico[k] || 0);
+            });
+
+            const despesasReceitasOperacionais = calculateSumDRE(dreData, '4.');
+            const resultadoOperacionalLiquido = empty();
+            MES_KEYS.forEach(k => {
+                resultadoOperacionalLiquido[k] = (resultadoOperacionalBruto[k] || 0) + (despesasReceitasOperacionais[k] || 0);
+            });
+
+            const outrasReceitas = calculateSumDRE(dreData, '5.');
+            const resultadoAntesImpostos = empty();
+            MES_KEYS.forEach(k => {
+                resultadoAntesImpostos[k] = (resultadoOperacionalLiquido[k] || 0) + (outrasReceitas[k] || 0);
+            });
+
+            const baseDiferida = calculateSumDRE(dreData, '6.1');
+            const reversoes = calculateSumDRE(dreData, '7.1');
+
+            const baseCalculoDiferido = empty();
+            MES_KEYS.forEach(k => {
+                baseCalculoDiferido[k] = (baseDiferida[k] * -1) - (reversoes[k] || 0);
+            });
+
+            const Q3659 = empty();
+            const Q3660 = empty();
+            const Q3661 = empty();
+            MES_KEYS.forEach(k => {
+                const baseVal = baseCalculoDiferido[k] || 0;
+                Q3659[k] = baseVal > 0 ? baseVal * 0.15 : 0;
+                Q3660[k] = baseVal > 240000 ? (baseVal - 240000) * 0.10 : 0;
+                Q3661[k] = baseVal > 0 ? baseVal * 0.09 : 0;
+            });
+
+            const brindes = calculateSumDRE(dreData, '8.1');
+            const provisaoPecld = calculateSumDRE(dreData, '8.2');
+            const reversaoPecld = calculateSumDRE(dreData, '8.3');
+            const outrasDespesasNaoOp = calculateSumDRE(dreData, '8.4');
+
+            const baseCalculoCorrente = empty();
+            MES_KEYS.forEach(k => {
+                baseCalculoCorrente[k] =
+                    (resultadoAntesImpostos[k] || 0) +
+                    (provisaoPecld[k] || 0) -
+                    (reversaoPecld[k] || 0) -
+                    (outrasDespesasNaoOp[k] || 0) +
+                    (brindes[k] || 0);
+            });
+
+            const irpj15Corrente = empty();
+            const irpj10Corrente = empty();
+            const csllCorrente = empty();
+            MES_KEYS.forEach(k => {
+                const baseVal = baseCalculoCorrente[k] || 0;
+                irpj15Corrente[k] = (baseVal > 0 ? baseVal * 0.15 : 0) - (Q3659[k] || 0);
+                irpj10Corrente[k] = (baseVal > 240000 ? (baseVal - 240000) * 0.10 : 0) - (Q3660[k] || 0);
+                csllCorrente[k] = (baseVal > 0 ? baseVal * 0.09 : 0) - (Q3661[k] || 0);
+            });
+
+            const totalCorrente = empty();
+            const totalDiferido = empty();
+            const totalGeralImpostos = empty();
+            MES_KEYS.forEach(k => {
+                totalCorrente[k] = (irpj15Corrente[k] || 0) + (irpj10Corrente[k] || 0) + (csllCorrente[k] || 0);
+                totalDiferido[k] = (Q3659[k] || 0) + (Q3660[k] || 0) + (Q3661[k] || 0);
+                totalGeralImpostos[k] = (totalCorrente[k] || 0) + (totalDiferido[k] || 0);
+            });
+
+            const lucroLiquido = empty();
+            MES_KEYS.forEach(k => {
+                lucroLiquido[k] = (resultadoAntesImpostos[k] || 0) - (totalGeralImpostos[k] || 0);
+            });
+
+            return lucroLiquido;
+        }
+
+        /**
+         * Calcula os indicadores de LIQUIDEZ e ESTRUTURA DE CAPITAL mês a mês.
+         */
+        function computeIndicadores(b) {
+            const r = (num, den) => safeDiv(num, den);
+            const pct = (num, den) => {
+                const q = safeDiv(num, den);
+                return q != null ? q * 100 : null;
+            };
+            const forMes = (fn) => MES_KEYS.map((k, i) => fn(i, k));
+
+            const get = (obj, key) => obj ? obj[key] : 0;
+
+            // LIQUIDEZ: um valor por mês
+            const LC_valores = forMes((i, k) => r(get(b['1.1'], k), get(b['2.1'], k)));
+            const LS_valores = forMes((i, k) => r(get(b['1.1'], k) - get(b['1.1.12'], k), get(b['2.1'], k)));
+            const LG_valores = forMes((i, k) => r(get(b['1.1'], k) + get(b['1.2.1'], k), get(b['2.'], k)));
+            const LI_valores = forMes((i, k) => r(get(b['1.1.1'], k), get(b['2.1'], k)));
+
+            // ESTRUTURA DE CAPITAL
+            const EG_valores = forMes((i, k) => pct(get(b['2.'], k), get(b['1.'], k)));
+            const PCT_valores = forMes((i, k) => pct(get(b['2.'], k), get(b['3.'], k)));
+            const CE_valores = forMes((i, k) => pct(get(b['2.1'], k), get(b['2.'], k)));
+            const IPL_valores = forMes((i, k) => pct(get(b['1.2'], k) - get(b['1.2.1'], k), get(b['3.'], k)));
+            const IRNC_valores = forMes((i, k) => pct(get(b['2.1'], k) - get(b['1.2.1'], k), get(b['2.2'], k) + get(b['3.'], k)));
+            const DL_valores = forMes((i, k) => get(b['2.'], k) - get(b['1.1.1'], k));
+            const DB_valores = forMes((i, k) => get(b['2.'], k));
+            const EO_valores = forMes((i, k) => r(get(b['2.1.4'], k) + get(b['2.2.1'], k), get(b['1.'], k)));
+            const SG_valores = forMes((i, k) => r(get(b['1.'], k), get(b['2.'], k)));
+
+            return {
+                liquidez: [
+                    { cod: 'LC', nome: 'Liquidez corrente', formula: 'AC/PC', valores: LC_valores, format: 'ratio' },
+                    { cod: 'LS', nome: 'Liquidez seca', formula: '(AC - ESTOQUE) / PC', valores: LS_valores, format: 'ratio' },
+                    { cod: 'LG', nome: 'Liquidez geral', formula: '(AC + RLP) / (PC + PNC)', valores: LG_valores, format: 'ratio' },
+                    { cod: 'LI', nome: 'Liquidez imediata', formula: 'DISPONIBILIDADE / PC', valores: LI_valores, format: 'ratio' }
+                ],
+                estrutura: [
+                    { cod: 'EG', nome: 'Endividamento geral', formula: '((PC + PNC) / (AC + ANC)) * 100', valores: EG_valores, format: 'percent' },
+                    { cod: 'PCT', nome: 'Participação de capital de terceiros', formula: '((PC + PNC) / PL) * 100', valores: PCT_valores, format: 'percent' },
+                    { cod: 'CE', nome: 'Composição do endividamento', formula: '(PC / (PC + PNC)) * 100', valores: CE_valores, format: 'percent' },
+                    { cod: 'IPL', nome: 'Imobilização do patrimônio líquido', formula: '((ANC - RLP) / PL) * 100', valores: IPL_valores, format: 'percent' },
+                    { cod: 'IRNC', nome: 'Imobilização do recurso não corrente', formula: '((ANC - RLP) / (PNC + PL)) * 100', valores: IRNC_valores, format: 'percent' },
+                    { cod: 'DL', nome: 'Dívida líquida', formula: '(PC + PNC) - DISPONIBILIDADES', valores: DL_valores, format: 'currency' },
+                    { cod: 'DB', nome: 'Dívida bruta', formula: 'PC + PNC', valores: DB_valores, format: 'currency' },
+                    { cod: 'EO', nome: 'Endividamento oneroso', formula: '(EMPRÉSTIMO + FINANCIAMENTO) / ATIVO TOTAL', valores: EO_valores, format: 'ratio' },
+                    { cod: 'SG', nome: 'Solvência geral', formula: 'ATIVO / (PC + PNC)', valores: SG_valores, format: 'ratio' }
+                ]
+            };
+        }
+
+        /**
+         * Calcula os indicadores de RENTABILIDADE mês a mês combinando BP (queryDadosBP) e DRE (queryDadosDRE).
+         */
+        function computeIndicadoresRentabilidade(bpBase, dreData) {
+            if (!bpBase || !dreData || !Array.isArray(dreData) || dreData.length === 0) {
+                return [];
+            }
+
+            const pct = (num, den) => {
+                const q = safeDiv(num, den);
+                return q != null ? q * 100 : null;
+            };
+
+            const receitaBruta = calculateSumDRE(dreData, '1.');
+            const receitaLiquida = calculateFormulaDRE(dreData, '1.+2.');
+            const csp = calculateSumDRE(dreData, '3.');
+
+            const lucroBruto = {};
+            MES_KEYS.forEach(k => {
+                lucroBruto[k] = (receitaLiquida[k] || 0) + (csp[k] || 0);
+            });
+
+            const lucroOperacional = calculateFormulaDRE(dreData, '1.+2.+3.');
+            const lucroLiquido = computeLucroLiquidoFromDRE(dreData);
+
+            const deprec = bpBase['1.2.7'] || { valorJan:0, valorFev:0, valorMar:0, valorAbr:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 };
+            const amort = bpBase['1.2.10'] || { valorJan:0, valorFev:0, valorMar:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 };
+
+            const ebt = MES_KEYS.map(k => (lucroOperacional[k] || 0) + (deprec[k] || 0) + (amort[k] || 0));
+            const mc = MES_KEYS.map(k => (receitaLiquida[k] || 0) + (csp[k] || 0));
+
+            const ativosTotais = bpBase['1.'] || { valorJan:0, valorFev:0, valorMar:0, valorAbr:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 };
+            const patrimonioLiquido = bpBase['3.'] || { valorJan:0, valorFev:0, valorMar:0, valorAbr:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 };
+
+            const MB_valores = MES_KEYS.map(k => pct(lucroBruto[k], receitaLiquida[k]));
+            const ML_valores = MES_KEYS.map(k => pct(lucroLiquido[k], receitaLiquida[k]));
+            const MO_valores = MES_KEYS.map(k => pct(lucroOperacional[k], receitaLiquida[k]));
+            const MEBT_valores = MES_KEYS.map((k, idx) => pct(ebt[idx], receitaBruta[k]));
+            const LUC_valores = MES_KEYS.map(k => pct(lucroLiquido[k], receitaBruta[k]));
+            const ROE_valores = MES_KEYS.map(k => pct(lucroLiquido[k], patrimonioLiquido[k]));
+            const ROA_valores = MES_KEYS.map(k => pct(lucroLiquido[k], ativosTotais[k]));
+            const MC_valores = mc;
+
+            return [
+                {
+                    cod: 'MB',
+                    nome: 'Margem bruta',
+                    formula: '(Lucro bruto / Receita líquida) * 100',
+                    valores: MB_valores,
+                    format: 'percent'
+                },
+                {
+                    cod: 'ML',
+                    nome: 'Margem líquida',
+                    formula: '(Lucro líquido / Receita líquida) * 100',
+                    valores: ML_valores,
+                    format: 'percent'
+                },
+                {
+                    cod: 'MO',
+                    nome: 'Margem operacional',
+                    formula: '(Lucro operacional / Receita líquida) * 100',
+                    valores: MO_valores,
+                    format: 'percent'
+                },
+                {
+                    cod: 'EBT',
+                    nome: 'EBITDA',
+                    formula: 'Lucro operacional + Depreciação + Amortização',
+                    valores: ebt,
+                    format: 'currency'
+                },
+                {
+                    cod: 'MEBT',
+                    nome: 'Margem EBITDA',
+                    formula: '(EBITDA / Receita bruta) * 100',
+                    valores: MEBT_valores,
+                    format: 'percent'
+                },
+                {
+                    cod: 'LUC',
+                    nome: 'Lucratividade',
+                    formula: '(Lucro líquido / Receita bruta) * 100',
+                    valores: LUC_valores,
+                    format: 'percent'
+                },
+                {
+                    cod: 'ROE',
+                    nome: 'Retorno sobre o patrimônio (ROE)',
+                    formula: '(Lucro líquido / PL) * 100',
+                    valores: ROE_valores,
+                    format: 'percent'
+                },
+                {
+                    cod: 'ROA',
+                    nome: 'Retorno sobre o ativo (ROA)',
+                    formula: '(Lucro líquido / Ativo total) * 100',
+                    valores: ROA_valores,
+                    format: 'percent'
+                },
+                {
+                    cod: 'MC',
+                    nome: 'Margem de contribuição',
+                    formula: 'Receita líquida - CSP',
+                    valores: MC_valores,
+                    format: 'currency'
+                }
+            ];
+        }
+
+        function formatValor(value, format) {
+            if (value == null || isNaN(value)) return '–';
+            switch (format) {
+                case 'percent': return formatPercent(value);
+                case 'currency': return formatCurrency(value);
+                default: return formatRatio(value);
+            }
+        }
+
+        /**
+         * Monta a lista completa de variáveis usadas nas fórmulas dos indicadores,
+         * com valores mês a mês (base de variáveis mês a mês).
+         */
+        function computeBaseVariaveis(bpBase, dreData) {
+            const vars = [];
+            const get = (obj, key) => obj && obj[key] != null ? obj[key] : 0;
+            const push = (nome, origem, valoresPorMes, format) => {
+                const valores = MES_KEYS.map(k => get(valoresPorMes, k));
+                vars.push({ nome, origem, valores, format: format || 'currency' });
+            };
+
+            if (bpBase) {
+                push('Ativo total', 'BP (1.)', bpBase['1.']);
+                push('Ativo circulante (AC)', 'BP (1.1)', bpBase['1.1']);
+                push('Disponibilidade', 'BP (1.1.1)', bpBase['1.1.1']);
+                push('Estoque', 'BP (1.1.12)', bpBase['1.1.12']);
+                push('Ativo não circulante (ANC)', 'BP (1.2)', bpBase['1.2']);
+                push('RLP (Realizável a longo prazo)', 'BP (1.2.1)', bpBase['1.2.1']);
+                push('Depreciação', 'BP (1.2.7)', bpBase['1.2.7']);
+                push('Amortização', 'BP (1.2.10)', bpBase['1.2.10']);
+                push('Passivo total (PC + PNC)', 'BP (2.)', bpBase['2.']);
+                push('Passivo circulante (PC)', 'BP (2.1)', bpBase['2.1']);
+                push('Passivo não circulante (PNC)', 'BP (2.2)', bpBase['2.2']);
+                push('Empréstimo', 'BP (2.1.4)', bpBase['2.1.4']);
+                push('Financiamento', 'BP (2.2.1)', bpBase['2.2.1']);
+                push('Patrimônio líquido (PL)', 'BP (3.)', bpBase['3.']);
+                const acMenosEstoque = {};
+                MES_KEYS.forEach(k => { acMenosEstoque[k] = get(bpBase['1.1'], k) - get(bpBase['1.1.12'], k); });
+                push('AC - Estoque', 'BP (1.1 - 1.1.12)', acMenosEstoque);
+                const acMaisRlp = {};
+                MES_KEYS.forEach(k => { acMaisRlp[k] = get(bpBase['1.1'], k) + get(bpBase['1.2.1'], k); });
+                push('AC + RLP', 'BP (1.1 + 1.2.1)', acMaisRlp);
+                const ancMenosRlp = {};
+                MES_KEYS.forEach(k => { ancMenosRlp[k] = get(bpBase['1.2'], k) - get(bpBase['1.2.1'], k); });
+                push('ANC - RLP', 'BP (1.2 - 1.2.1)', ancMenosRlp);
+                const pncMaisPL = {};
+                MES_KEYS.forEach(k => { pncMaisPL[k] = get(bpBase['2.2'], k) + get(bpBase['3.'], k); });
+                push('PNC + PL', 'BP (2.2 + 3.)', pncMaisPL);
+                const empMaisFin = {};
+                MES_KEYS.forEach(k => { empMaisFin[k] = get(bpBase['2.1.4'], k) + get(bpBase['2.2.1'], k); });
+                push('Empréstimo + Financiamento', 'BP (2.1.4 + 2.2.1)', empMaisFin);
+                const divLiquida = {};
+                MES_KEYS.forEach(k => { divLiquida[k] = get(bpBase['2.'], k) - get(bpBase['1.1.1'], k); });
+                push('Dívida líquida', 'BP (2. - 1.1.1)', divLiquida);
+            }
+
+            if (dreData && dreData.length > 0) {
+                const receitaBruta = calculateSumDRE(dreData, '1.');
+                const receitaLiquida = calculateFormulaDRE(dreData, '1.+2.');
+                const csp = calculateSumDRE(dreData, '3.');
+                const lucroBruto = {};
+                MES_KEYS.forEach(k => { lucroBruto[k] = (receitaLiquida[k] || 0) + (csp[k] || 0); });
+                const lucroOperacional = calculateFormulaDRE(dreData, '1.+2.+3.');
+                const lucroLiquido = computeLucroLiquidoFromDRE(dreData);
+                const deprec = bpBase ? (bpBase['1.2.7'] || {}) : {};
+                const amort = bpBase ? (bpBase['1.2.10'] || {}) : {};
+                const ebitda = {};
+                MES_KEYS.forEach(k => {
+                    ebitda[k] = (lucroOperacional[k] || 0) + get(deprec, k) + get(amort, k);
+                });
+                push('Receita bruta', 'DRE (1.)', receitaBruta);
+                push('Receita líquida', 'DRE (1.+2.)', receitaLiquida);
+                push('CSP (Custo dos serviços/produtos)', 'DRE (3.)', csp);
+                push('Lucro bruto', 'DRE (Receita líquida + CSP)', lucroBruto);
+                push('Lucro operacional', 'DRE (1.+2.+3.)', lucroOperacional);
+                push('Lucro líquido', 'DRE (calculado)', lucroLiquido);
+                push('EBITDA', 'Lucro oper. + Deprec. + Amort.', ebitda);
+            }
+
+            return vars;
+        }
+
+        function renderBaseVariaveis(bpData, dreData) {
+            const tbodyVar = document.getElementById('base-variaveis-tbody');
+            if (!tbodyVar) return;
+
+            const base = computeBPBase(bpData);
+            if (!base) {
+                tbodyVar.innerHTML = '<tr><td colspan="14" class="p-6 text-center text-muted-foreground">Nenhum dado do balanço disponível.</td></tr>';
+                return;
+            }
+
+            const baseVariaveis = computeBaseVariaveis(base, dreData);
+            const cellValores = (valores, format) => (valores || []).map(v => `<td class="col-mes py-2 text-right tabular-nums">${formatValor(v, format)}</td>`).join('');
+            tbodyVar.innerHTML = baseVariaveis.map(v => `
+                <tr class="border-b border-border">
+                    <td class="col-indicador py-2 px-2 font-medium">${v.nome}</td>
+                    <td class="col-formula py-2 px-2 text-muted-foreground text-xs">${v.origem}</td>
+                    ${cellValores(v.valores, v.format)}
+                </tr>
+            `).join('');
+        }
+
+        function renderIndicadores(bpData, dreData) {
+            const tbodyLiq = document.getElementById('indicadores-liquidez-tbody');
+            const tbodyEst = document.getElementById('indicadores-estrutura-tbody');
+            const tbodyRent = document.getElementById('indicadores-rentabilidade-tbody');
+            if (!tbodyLiq || !tbodyEst || !tbodyRent) return;
+
+            const base = computeBPBase(bpData);
+            if (!base) {
+                tbodyLiq.innerHTML = '<tr><td colspan="15" class="p-6 text-center text-muted-foreground">Nenhum dado do balanço disponível para calcular indicadores.</td></tr>';
+                tbodyEst.innerHTML = '<tr><td colspan="15" class="p-6 text-center text-muted-foreground">Nenhum dado do balanço disponível para calcular indicadores.</td></tr>';
+                tbodyRent.innerHTML = '<tr><td colspan="15" class="p-6 text-center text-muted-foreground">Nenhum dado do balanço disponível para calcular indicadores de rentabilidade.</td></tr>';
+                return;
+            }
+
+            const ind = computeIndicadores(base);
+            const cellValores = (valores, format) => (valores || []).map(v => `<td class="col-mes py-2 text-right tabular-nums">${formatValor(v, format)}</td>`).join('');
+
+            tbodyLiq.innerHTML = ind.liquidez.map(i => `
+                <tr class="border-b border-border">
+                    <td class="col-cod py-2 px-2 font-mono text-muted-foreground">${i.cod}</td>
+                    <td class="col-indicador py-2 px-2 font-medium">${i.nome}</td>
+                    <td class="col-formula py-2 px-2 indicador-formula">${i.formula}</td>
+                    ${cellValores(i.valores, i.format)}
+                </tr>
+            `).join('');
+
+            tbodyEst.innerHTML = ind.estrutura.map(i => `
+                <tr class="border-b border-border">
+                    <td class="col-cod py-2 px-2 font-mono text-muted-foreground">${i.cod}</td>
+                    <td class="col-indicador py-2 px-2 font-medium">${i.nome}</td>
+                    <td class="col-formula py-2 px-2 indicador-formula">${i.formula}</td>
+                    ${cellValores(i.valores, i.format)}
+                </tr>
+            `).join('');
+
+            const rent = computeIndicadoresRentabilidade(base, dreData || []);
+            if (!rent || rent.length === 0) {
+                tbodyRent.innerHTML = '<tr><td colspan="15" class="p-6 text-center text-muted-foreground">Nenhum dado da DRE disponível para calcular indicadores de rentabilidade (queryDadosDRE).</td></tr>';
+            } else {
+                tbodyRent.innerHTML = rent.map(i => `
+                    <tr class="border-b border-border">
+                        <td class="col-cod py-2 px-2 font-mono text-muted-foreground">${i.cod}</td>
+                        <td class="col-indicador py-2 px-2 font-medium">${i.nome}</td>
+                        <td class="col-formula py-2 px-2 indicador-formula">${i.formula}</td>
+                        ${cellValores(i.valores, i.format)}
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function processBPResult(result) {
+            if (!result || !result.data || result.data.length === 0) return null;
+            const headers = (result.headers || []).map(h => (h && h.name ? h.name.toUpperCase() : ''));
+            const colMap = {
+                ordem: headers.indexOf('ORDEM'),
+                descricao: headers.indexOf('DESCRICAO'),
+                formatacao: headers.indexOf('FORMATACAO'),
+                hierarquia: headers.indexOf('HIERARQUIA'),
+                sinal: headers.indexOf('SINAL')
+            };
+            MESES_COLS.forEach((col, i) => { colMap[MES_KEYS[i]] = headers.indexOf(col); });
+            const hasMes = MES_KEYS.some(k => colMap[k] !== -1);
+            if (colMap.hierarquia === -1 || !hasMes) return null;
+            return result.data.map(row => {
+                const sinal = colMap.sinal !== -1 ? (parseFloat(row[colMap.sinal]) || 1) : 1;
+                const item = {
+                    ordem: row[colMap.ordem],
+                    descricao: (row[colMap.descricao] || '').toString(),
+                    formatacao: row[colMap.formatacao] != null ? row[colMap.formatacao] : '',
+                    hierarquia: (row[colMap.hierarquia] || '').toString().trim()
+                };
+                MES_KEYS.forEach((k, i) => {
+                    const idx = colMap[k];
+                    item[k] = idx !== -1 ? (parseFloat(row[idx]) || 0) * sinal : 0;
+                });
+                return item;
+            });
+        }
+
+        async function fetchAndRenderData() {
+            const container = document.getElementById('report-container');
+            const loadingEl = document.getElementById('loading-state');
+            const contentEl = document.getElementById('report-content');
+
+            contentEl.classList.add('hidden');
+            loadingEl.classList.remove('hidden');
+            loadingEl.textContent = 'Carregando dados do balanço...';
+
+            const queryBP = window.componentData && (window.componentData.queryDadosBP || window.componentData.queryDados || window.componentData.queryBP1);
+            const queryDRE = window.componentData && window.componentData.queryDadosDRE;
+            if (!queryBP) {
+                loadingEl.textContent = 'Erro: query do balanço não configurada (queryDadosBP, queryDados ou queryBP1).';
+                return;
+            }
+
+            try {
+                const bpResult = await queryMitra({ query: queryBP });
+                const bpData = processBPResult(bpResult);
+
+                let dreData = null;
+                if (queryDRE) {
+                    try {
+                        const dreResult = await queryMitra({ query: queryDRE });
+                        dreData = processDREResult(dreResult);
+                    } catch (e) {
+                        console.error('Falha ao carregar dados da DRE (queryDadosDRE):', e);
+                        dreData = null;
+                    }
+                }
+
+                if (bpData && bpData.length > 0) {
+                    renderBaseVariaveis(bpData, dreData);
+                    loadingEl.classList.add('hidden');
+                    contentEl.classList.remove('hidden');
+                } else {
+                    loadingEl.textContent = 'Nenhum dado encontrado para o balanço.';
+                    contentEl.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error('Falha ao carregar indicadores:', err);
+                loadingEl.textContent = 'Erro ao carregar dados do balanço.';
+                contentEl.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, fetchAndRenderData);
+            const maxWait = 5000;
+            const interval = 100;
+            const start = Date.now();
+            const ti = setInterval(() => {
+                const queryBP = window.componentData && (window.componentData.queryDadosBP || window.componentData.queryDados || window.componentData.queryBP1);
+                if (window.componentData && queryBP) {
+                    clearInterval(ti);
+                    fetchAndRenderData();
+                } else if (Date.now() - start > maxWait) {
+                    clearInterval(ti);
+                    document.getElementById('loading-state').textContent = 'Erro: configurações do componente (componentData) não carregadas a tempo.';
+                }
+            }, interval);
+        });
+    </script>
+</body>
+
+</html>

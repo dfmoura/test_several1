@@ -1,0 +1,3139 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<metadata>
+  <exportInfo>
+    <exportTime>21/04/2026 12:20:56</exportTime>
+    <systemVersion>4.35b432</systemVersion>
+    <systemCharSet>ISO-8859-1</systemCharSet>
+    <dbMetadata>
+      <dbUser>SANKHYA</dbUser>
+      <urlConnection><![CDATA[jdbc:oracle:thin:@10.110.106.21:1521/braionsolucoesprd.sankhyacloud.com.br]]></urlConnection>
+      <jdbcDriver><![CDATA[Oracle JDBC driver 19.26.0.0.0]]></jdbcDriver>
+      <DBMS><![CDATA[Oracle - Oracle Database 19c EE High Perf Release 19.0.0.0.0 - Production
+Version 19.26.0.0.0]]></DBMS>
+    </dbMetadata>
+  </exportInfo>
+  <instances>
+    <instance name="AD_ATIVIDADES" isUpdate="false">
+      <instanceDescription><![CDATA[Atividades]]></instanceDescription>
+      <tableInfo name="AD_ATIVIDADES" sequenceType="A" sequenceField="NUATV" presentationField="TITULO">
+        <category><![CDATA[PROJETOS]]></category>
+        <telaDescription><![CDATA[Atividades e Tempo]]></telaDescription>
+        <tableDescription><![CDATA[Atividades]]></tableDescription>
+        <primaryKey>
+          <NUATV />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="NUATV" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N" size="10">
+          <description><![CDATA[ID Atividade]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[0]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[ID Atividade]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+          </properties>
+        </field>
+        <field name="TITULO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Título Atv.]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="DESCRICAO" systemField="N" dataType="C" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Descrição]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="TIPO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Tipo de Atividade]]></description>
+          <properties>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[9]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Tipo de Atividade]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="UIGroupName"><![CDATA[Projeto]]></prop>
+          </properties>
+        </field>
+        <field name="PROJETO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Projeto]]></description>
+          <properties>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[5]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Projeto]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="UIGroupName"><![CDATA[Projeto]]></prop>
+          </properties>
+        </field>
+        <field name="SOLICITANTE" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Solicitante]]></description>
+          <properties>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[8]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Solicitante]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="UIGroupName"><![CDATA[Cliente]]></prop>
+          </properties>
+        </field>
+        <field name="AREACLIENTE" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Área do Cliente]]></description>
+          <properties>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[10]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Área do Cliente]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="UIGroupName"><![CDATA[Cliente]]></prop>
+          </properties>
+        </field>
+        <field name="DTSOL" systemField="N" dataType="D" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Solicitação]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[6]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Data Solicitação]]></prop>
+            <prop name="filterType"><![CDATA[period]]></prop>
+          </properties>
+        </field>
+        <field name="AUTORIZADO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Autorizado]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[1]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="filterLabel"><![CDATA[Autorizado]]></prop>
+          </properties>
+        </field>
+        <field name="DTVAL" systemField="N" dataType="D" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Validação]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[7]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Data Validação]]></prop>
+            <prop name="filterType"><![CDATA[period]]></prop>
+          </properties>
+        </field>
+        <field name="CODREC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[+ Executante]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Equipe Execução]]></prop>
+          </properties>
+        </field>
+        <field name="STATUS" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Status]]></description>
+          <options>
+            <option value="NI"><![CDATA[Não Iniciado]]></option>
+            <option value="PE"><![CDATA[Prog. Execução]]></option>
+            <option value="EE"><![CDATA[Em Execução]]></option>
+            <option value="VI"><![CDATA[Validação Interna]]></option>
+            <option value="AV"><![CDATA[Aguard. Validação]]></option>
+            <option value="AO"><![CDATA[Aguard. Outros]]></option>
+            <option value="BQ"><![CDATA[Bloqueado]]></option>
+            <option value="C" default="S"><![CDATA[Concluído]]></option>
+          </options>
+          <properties>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[2]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="filterLabel"><![CDATA[Status]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="ANEXO" systemField="N" dataType="B" presentationType="M" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Anexo]]></description>
+        </field>
+        <field name="NEGOCIO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Negócio]]></description>
+          <options>
+            <option value="B"><![CDATA[BRAION]]></option>
+            <option value="N"><![CDATA[NEUON]]></option>
+            <option value="M" default="S"><![CDATA[MITRA]]></option>
+          </options>
+          <properties>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[3]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Negócio]]></prop>
+            <prop name="UIGroupName"><![CDATA[Projeto]]></prop>
+          </properties>
+        </field>
+        <field name="CODPARC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Cliente]]></description>
+          <properties>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[4]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Cliente]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="UIGroupName"><![CDATA[Projeto]]></prop>
+          </properties>
+        </field>
+        <field name="ESTIMATIVA" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Estimativa]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="ESTIMATIVA_MINUTOS" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Esforço Estimado (Minutos)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Tempo]]></prop>
+          </properties>
+        </field>
+        <field name="IDCLIENTE" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[ID Cliente]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="CODUSUINC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário de Inclusão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="UITabName"><![CDATA[Auditoria]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Inclusão]]></prop>
+          </properties>
+        </field>
+        <field name="DHINC" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data de Inclusão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="UITabName"><![CDATA[Auditoria]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Inclusão]]></prop>
+          </properties>
+        </field>
+        <field name="DHALTER" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data de Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="UITabName"><![CDATA[Auditoria]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Alteração]]></prop>
+          </properties>
+        </field>
+        <field name="CODUSUALTER" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário da Última Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="UITabName"><![CDATA[Auditoria]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Alteração]]></prop>
+          </properties>
+        </field>
+        <field name="CODUSUAUT" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário Autorizador]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="UITabName"><![CDATA[Auditoria]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Autorização]]></prop>
+          </properties>
+        </field>
+        <field name="DHAUT" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data de Autorização]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="UITabName"><![CDATA[Auditoria]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Autorização]]></prop>
+          </properties>
+        </field>
+        <field name="EQUIPEEXEC" systemField="N" dataType="S" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Equipe Executante]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT
+  NVL(LISTAGG(NOME, ' ? ')
+    WITHIN GROUP (ORDER BY NOME), 'NÃO INFORMADO')
+FROM (
+  SELECT DISTINCT REC.NOME
+  FROM AD_EQUIPEATV EQ
+  JOIN AD_RECURSOS REC
+    ON REC.CODREC = EQ.CODREC AND EQ.CODFUN = 1
+  WHERE EQ.NUATV = AD_ATIVIDADES.NUATV
+)]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Equipe]]></prop>
+          </properties>
+        </field>
+        <field name="REALIZADO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Esforço Real]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="REALIZADO_MINUTOS" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Esforço Real em Minutos]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Tempo]]></prop>
+          </properties>
+        </field>
+        <field name="PERCESFORCO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[% Realizado]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="CODREC_REMOVE" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[- Executante]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Equipe Execução]]></prop>
+          </properties>
+        </field>
+        <field name="CODGERENTE" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[+ Ger. Projeto/Tech Lead]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Equipe Projeto]]></prop>
+          </properties>
+        </field>
+        <field name="CODGERENTE_REMOVE" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[- Ger. Projeto/Tech Lead]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Equipe Projeto]]></prop>
+          </properties>
+        </field>
+        <field name="EQUIPEPROJ" systemField="N" dataType="S" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Equipe Projeto]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT
+  NVL(LISTAGG(NOME, ' ? ')
+    WITHIN GROUP (ORDER BY NOME), 'NÃO INFORMADO')
+FROM (
+  SELECT DISTINCT REC.NOME
+  FROM AD_EQUIPEATV EQ
+  JOIN AD_RECURSOS REC
+    ON REC.CODREC = EQ.CODREC AND EQ.CODFUN IN (2)
+  WHERE EQ.NUATV = AD_ATIVIDADES.NUATV
+)]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Equipe]]></prop>
+          </properties>
+        </field>
+        <field name="EQUIPEPROJT" systemField="N" dataType="S" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Equipe Tech Lead]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT
+  NVL(LISTAGG(NOME, ' ? ')
+    WITHIN GROUP (ORDER BY NOME), 'NÃO INFORMADO')
+FROM (
+  SELECT DISTINCT REC.NOME
+  FROM AD_EQUIPEATV EQ
+  JOIN AD_RECURSOS REC
+    ON REC.CODREC = EQ.CODREC AND EQ.CODFUN IN (3)
+  WHERE EQ.NUATV = AD_ATIVIDADES.NUATV
+)]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Equipe]]></prop>
+          </properties>
+        </field>
+        <field name="OCORRENCIAS" systemField="N" dataType="S" presentationType="T" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Comentários]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT 
+    XMLAGG(
+        XMLELEMENT(E, 
+            '[' || TO_CHAR(DATA, 'DD/MM/YYYY') || '] | ' ||
+            'ANEXO: ' || (CASE WHEN ANEXO IS NOT NULL THEN 'SIM' ELSE 'NÃO' END) || 
+            ' | USUÁRIO: ' || (SELECT NOMEUSU FROM TSIUSU WHERE CODUSU = AD_OCORRENCIAS.CODUSUINC) || 
+            CHR(10) || 
+            'DESCRICAO: ' || DESCRICAO || CHR(10) || -- Duas quebras de linha no final
+            '------------------------------------------------------------------' || CHR(10) 
+        ) ORDER BY DATA DESC
+    ).EXTRACT('//text()').GETCLOBVAL() AS HISTORICO_CONSOLIDADO
+FROM AD_OCORRENCIAS
+WHERE NUATV = AD_ATIVIDADES.NUATV
+GROUP BY NUATV]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Equipe]]></prop>
+          </properties>
+        </field>
+        <field name="SALDONEG" systemField="N" dataType="S" presentationType="T" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Saldo Negociação]]></description>
+          <expression><![CDATA[#type.sql#
+WITH CONSUMO_RECEITA AS (
+    SELECT 
+        NP_REF.NEG_ID,
+        SUM(
+            (TRUNC(W.HORAFIM/100)*60 + MOD(W.HORAFIM,100)) - 
+            (TRUNC(W.HORAINICIO/100)*60 + MOD(W.HORAINICIO,100)) - 
+            (TRUNC(NVL(W.INTERVALO,0)/100)*60 + MOD(NVL(W.INTERVALO,0),100))
+        ) AS MIN_CONSUMIDOS
+    FROM AD_WORKLOG W
+    JOIN AD_CLASSIFWORK CL ON CL.CODCLASSIF = W.CLASSIF
+    JOIN AD_ATIVIDADES A   ON W.NUATV = A.NUATV
+    JOIN AD_NEGPROJ NP_REF ON A.PROJETO = NP_REF.CODPROJ
+    WHERE CL.GERAREC = 'S'
+    GROUP BY NP_REF.NEG_ID
+)
+SELECT
+    -- Cabeçalho
+    TO_CLOB('NEGOCIAÇÃO: ' || NEG.NEG_ID || ' | TIPO: ' || F_DESCROPC('AD_NEGOCIACOES','TIPO',NEG.TIPO) || CASE WHEN NEG.TIPO = 'PACOTE' THEN ' ' WHEN NVL(NEG.HORAS_PREVISTAS,0) = 0 THEN ' ' ELSE ' COM Limite de Horas' END || ' | PROJETO: ' || ATV.PROJETO || ' - ' || PRJ.IDENTIFICACAO || CHR(10) ||
+    '__________________________________________________________________' || CHR(10)) ||
+    
+    CASE 
+        WHEN NEG.TIPO = 'PACOTE' THEN
+            (SELECT 
+                XMLAGG(
+                    XMLELEMENT(E, 
+                        'COMPETÊNCIA: ' || S.COMPETENCIA || CHR(10) ||
+                        '  BASE: ' || S.HR_PREVISTAS || 
+                        ' | CONSUMIDO: ' || S.HR_CONSUMIDAS || 
+                        ' | EXCEDENTE: ' || S.HR_EXCEDENTE || 
+                        ' | SALDO: ' || S.HR_SALDO || CHR(10) 
+                    ) ORDER BY S.COMPETENCIA DESC
+                ).EXTRACT('//text()').GETCLOBVAL()
+             FROM AD_NEGSALDO S 
+             WHERE S.NEG_ID = NEG.NEG_ID)
+        ELSE
+            -- Forçando o ELSE a ser CLOB para não dar conflito com o retorno da subquery acima
+            TO_CLOB('MODALIDADE: LIMITE DE HORAS' || CHR(10) ||
+            'TOTAL PREVISTO: ' || CASE WHEN NVL(NEG.HORAS_PREVISTAS,0) = 0 THEN 'Não Aplicavel' ELSE minutes_to_h_mm(NVL(NEG.HORAS_PREVISTAS,0) * 60) END || CHR(10) ||
+            'TOTAL CONSUMIDO: ' || minutes_to_h_mm(NVL(CON.MIN_CONSUMIDOS,0)) || CHR(10) ||
+            'SALDO DISPONÍVEL: ' || CASE WHEN NVL(NEG.HORAS_PREVISTAS,0) = 0 THEN 'Não Aplicavel' ELSE minutes_to_h_mm((NVL(NEG.HORAS_PREVISTAS,0) * 60) - NVL(CON.MIN_CONSUMIDOS,0)) END) 
+    END AS RESUMO_FINANCEIRO
+FROM AD_ATIVIDADES ATV
+LEFT JOIN TCSPRJ PRJ ON ATV.PROJETO = PRJ.CODPROJ
+INNER JOIN AD_NEGPROJ NP  ON NP.CODPROJ = ATV.PROJETO
+INNER JOIN AD_NEGOCIACOES NEG ON NEG.NEG_ID = NP.NEG_ID
+LEFT JOIN CONSUMO_RECEITA CON ON CON.NEG_ID = NEG.NEG_ID
+WHERE ATV.NUATV = AD_ATIVIDADES.NUATV
+  AND NEG.ATIVO = 'S']]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Negociação]]></prop>
+          </properties>
+        </field>
+        <field name="SUBPROJETO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Projeto Sankhya]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Cliente]]></prop>
+          </properties>
+        </field>
+        <field name="CONTATO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Contato (nome/cargo/fone/email)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Cliente]]></prop>
+          </properties>
+        </field>
+        <field name="QTDETAPA" systemField="N" dataType="S" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Qtd. Etapas]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT COUNT(*) || ' Etapa(s) Cadastrada(s)' FROM AD_ETAPAS WHERE NUATV = AD_ATIVIDADES.NUATV]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Equipe]]></prop>
+          </properties>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="Parceiro" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TGFPAR" />
+          <expression><![CDATA[@form-filter[this.CODPARC IN (SELECT AD_CODPARC FROM TCSPRJ WHERE AD_NEGOCIO = form.NEGOCIO)]]]></expression>
+          <fields>
+            <field localName="CODPARC" targetName="CODPARC" />
+          </fields>
+        </relation>
+        <relation entityName="Projeto" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TCSPRJ" />
+          <expression><![CDATA[@form-filter[this.AD_NEGOCIO = form.NEGOCIO and this.AD_CODPARC = form.CODPARC and this.ANALITICO = 'S']]]></expression>
+          <fields>
+            <field localName="PROJETO" targetName="CODPROJ" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <expression><![CDATA[@ref-param[description=Usu. Inclusão]]]></expression>
+          <fields>
+            <field localName="CODUSUINC" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <expression><![CDATA[@ref-param[description=Usu. Alteração]]]></expression>
+          <fields>
+            <field localName="CODUSUALTER" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="AD_RECURSOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_RECURSOS" />
+          <expression><![CDATA[@form-filter[this.CODREC IN (SELECT RFU.CODREC FROM AD_RECFUNCOES RFU WHERE   RFU.CODFUN = 1 AND RFU.ATIVO = 'S')]@ref-param[description=+ Executante]]]></expression>
+          <fields>
+            <field localName="CODREC" targetName="CODREC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_WORKLOG" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_WORKLOG" />
+          <fields>
+            <field localName="NUATV" targetName="NUATV" />
+          </fields>
+        </relation>
+        <relation entityName="AD_EQUIPEATV" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_EQUIPEATV" />
+          <fields>
+            <field localName="NUATV" targetName="NUATV" />
+          </fields>
+        </relation>
+        <relation entityName="AD_OCORRENCIAS" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_OCORRENCIAS" />
+          <fields>
+            <field localName="NUATV" targetName="NUATV" />
+          </fields>
+        </relation>
+        <relation entityName="AD_AREACLI" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_AREACLI" />
+          <fields>
+            <field localName="AREACLIENTE" targetName="CODAREA" />
+            <field localName="CODPARC" targetName="CODPARC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_NEGOCIOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_NEGOCIOS" />
+          <fields>
+            <field localName="NEGOCIO" targetName="NEGOCIO" />
+          </fields>
+        </relation>
+        <relation entityName="AD_TIPOATIVIDADES" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_TIPOATIVIDADES" />
+          <fields>
+            <field localName="TIPO" targetName="CODTIPO" />
+            <field localName="NEGOCIO" targetName="NEGOCIO" />
+          </fields>
+        </relation>
+        <relation entityName="AD_SOLCLI" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_SOLCLI" />
+          <expression><![CDATA[@form-filter[this.CODPARC = form.CODPARC]]]></expression>
+          <fields>
+            <field localName="CODPARC" targetName="CODPARC" />
+            <field localName="SOLICITANTE" targetName="SOLICITANTE" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <expression><![CDATA[@ref-param[description=Usu. Autorização]]]></expression>
+          <fields>
+            <field localName="CODUSUAUT" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="AD_RECURSOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_RECURSOS" />
+          <expression><![CDATA[@form-filter[this.CODREC IN (SELECT EQ.CODREC FROM AD_EQUIPEATV EQ WHERE  EQ.CODFUN = 1 AND EQ.NUATV = form.NUATV)]@ref-param[description=- Executante]]]></expression>
+          <fields>
+            <field localName="CODREC_REMOVE" targetName="CODREC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_RECURSOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_RECURSOS" />
+          <expression><![CDATA[@form-filter[this.CODREC IN (SELECT RFU.CODREC FROM AD_RECFUNCOES RFU WHERE   RFU.CODFUN IN (2,3) AND RFU.ATIVO = 'S')]@ref-param[description=+ Ger. Projeto]]]></expression>
+          <fields>
+            <field localName="CODGERENTE" targetName="CODREC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_RECURSOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_RECURSOS" />
+          <expression><![CDATA[@form-filter[this.CODREC IN (SELECT EQ.CODREC FROM AD_EQUIPEATV EQ WHERE  EQ.CODFUN IN (2,3) AND EQ.NUATV = form.NUATV)]@ref-param[description=- Ger. Proj.]]]></expression>
+          <fields>
+            <field localName="CODGERENTE_REMOVE" targetName="CODREC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_ESTIMATIVAS" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_ESTIMATIVAS" />
+          <fields>
+            <field localName="NUATV" targetName="NUATV" />
+          </fields>
+        </relation>
+        <relation entityName="AD_SUBPROJETOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_SUBPROJETOS" />
+          <fields>
+            <field localName="SUBPROJETO" targetName="CODSUBPROJ" />
+            <field localName="NEGOCIO" targetName="NEGOCIO" />
+          </fields>
+        </relation>
+        <relation entityName="AD_ETAPAS" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_ETAPAS" />
+          <fields>
+            <field localName="NUATV" targetName="NUATV" />
+          </fields>
+        </relation>
+      </relationShip>
+      <actions>
+        <action type="SP">
+          <description><![CDATA[Adicionar Subprojeto - BRAION]]></description>
+          <actionConfig>
+            <dbCall name="STP_CRIA_SUBPROJETO_NEUON" refreshType="SEL" txManual="false" rootEntity="AD_ATIVIDADES" />
+            <params>
+              <promptParam label="Novo Subprojeto" name="DESCR_SUBPROJ" required="true" saveLast="false" paramType="S" />
+            </params>
+          </actionConfig>
+          <storedProcedure><![CDATA[CREATE OR REPLACE  PROCEDURE "STP_CRIA_SUBPROJETO_NEUON" (
+       P_CODUSU NUMBER,        -- Código do usuário logado
+       P_IDSESSAO VARCHAR2,    -- Identificador da execução. Serve para buscar informações dos parâmetros/campos da execução.
+       P_QTDLINHAS NUMBER,     -- Informa a quantidade de registros selecionados no momento da execução.
+       P_MENSAGEM OUT VARCHAR2 -- Caso seja passada uma mensagem aqui, ela será exibida como uma informação ao usuário.
+) AS
+       PARAM_DESCR_SUBPROJ VARCHAR2(4000);
+       FIELD_NUATV NUMBER;
+       V_NEGOCIO   VARCHAR2(4000);
+       P_COUNT  NUMBER;
+       V_SEQ    NUMBER;
+BEGIN
+
+       -- Os valores informados pelo formulário de parâmetros, podem ser obtidos com as funções:
+       --     ACT_INT_PARAM
+       --     ACT_DEC_PARAM
+       --     ACT_TXT_PARAM
+       --     ACT_DTA_PARAM
+       -- Estas funções recebem 2 argumentos:
+       --     ID DA SESSÃO - Identificador da execução (Obtido através de P_IDSESSAO))
+       --     NOME DO PARAMETRO - Determina qual parametro deve se deseja obter.
+
+       PARAM_DESCR_SUBPROJ := ACT_TXT_PARAM(P_IDSESSAO, 'DESCR_SUBPROJ');
+
+       FOR I IN 1..P_QTDLINHAS -- Este loop permite obter o valor de campos dos registros envolvidos na execução.
+       LOOP                    -- A variável "I" representa o registro corrente.
+           -- Para obter o valor dos campos utilize uma das seguintes funções:
+           --     ACT_INT_FIELD (Retorna o valor de um campo tipo NUMÉRICO INTEIRO))
+           --     ACT_DEC_FIELD (Retorna o valor de um campo tipo NUMÉRICO DECIMAL))
+           --     ACT_TXT_FIELD (Retorna o valor de um campo tipo TEXTO),
+           --     ACT_DTA_FIELD (Retorna o valor de um campo tipo DATA)
+           -- Estas funções recebem 3 argumentos:
+           --     ID DA SESSÃO - Identificador da execução (Obtido através do parâmetro P_IDSESSAO))
+           --     NÚMERO DA LINHA - Relativo a qual linha selecionada.
+           --     NOME DO CAMPO - Determina qual campo deve ser obtido.
+           --FIELD_NUATV := ACT_INT_FIELD(P_IDSESSAO, I, 'NUATV');
+           --V_NEGOCIO := ACT_TXT_PARAM(P_IDSESSAO, 'NEGOCIO');
+
+        --EVITA DUPLICIDADE
+           SELECT COUNT(*) INTO P_COUNT FROM AD_SUBPROJETOS WHERE NEGOCIO = 'B' AND UPPER(DESCRSUBPROJ) = UPPER(PARAM_DESCR_SUBPROJ);
+           IF P_COUNT > 0 THEN
+                P_MENSAGEM := 'ERRO. Subprojeto já cadastrado!';
+                RETURN;
+           END IF;
+
+        --INSERE SUBPROJETO BRAION
+           SELECT NVL(MAX(CODSUBPROJ),0) + 1 INTO V_SEQ FROM AD_SUBPROJETOS;
+           INSERT INTO AD_SUBPROJETOS (CODSUBPROJ, NEGOCIO, DESCRSUBPROJ)
+           VALUES (V_SEQ, 'B', UPPER(PARAM_DESCR_SUBPROJ));
+
+           P_MENSAGEM := 'Adicionado com Sucesso!';
+
+
+       END LOOP;
+
+
+
+
+-- <ESCREVA SEU CÓDIGO DE FINALIZAÇÃO AQUI> --
+
+
+
+END;]]></storedProcedure>
+        </action>
+        <action type="SP">
+          <description><![CDATA[Adicionar Solicitante]]></description>
+          <actionConfig>
+            <dbCall name="STP_CRIA_SOLICITANTE_NEUON" refreshType="SEL" txManual="false" rootEntity="AD_ATIVIDADES" />
+            <params>
+              <promptParam label="Nome Solicitante" name="DESCR_SOL" required="true" saveLast="false" paramType="S" />
+              <promptParam label="Parceiro" name="CODPARC" required="false" saveLast="false" entityName="Parceiro" paramType="ENTITY" />
+              <promptParam label="Fone" name="TELEFONE" required="false" saveLast="false" paramType="S" />
+              <promptParam label="E-Mail" name="EMAIL" required="false" saveLast="false" paramType="S" />
+            </params>
+          </actionConfig>
+          <storedProcedure><![CDATA[CREATE OR REPLACE  PROCEDURE "STP_CRIA_SOLICITANTE_NEUON" (
+       P_CODUSU NUMBER,        -- Código do usuário logado
+       P_IDSESSAO VARCHAR2,    -- Identificador da execução. Serve para buscar informações dos parâmetros/campos da execução.
+       P_QTDLINHAS NUMBER,     -- Informa a quantidade de registros selecionados no momento da execução.
+       P_MENSAGEM OUT VARCHAR2 -- Caso seja passada uma mensagem aqui, ela será exibida como uma informação ao usuário.
+) AS
+       PARAM_DESCR_SOL VARCHAR2(4000);
+       PARAM_CODPARC    NUMBER;
+       PARAM_TELEFONE VARCHAR2(4000);
+       PARAM_EMAIL VARCHAR2(4000);
+       FIELD_NUATV NUMBER;
+       V_CODPARC   VARCHAR2(4000);
+       P_COUNT  NUMBER;
+       V_SEQ    NUMBER;
+BEGIN
+
+       -- Os valores informados pelo formulário de parâmetros, podem ser obtidos com as funções:
+       --     ACT_INT_PARAM
+       --     ACT_DEC_PARAM
+       --     ACT_TXT_PARAM
+       --     ACT_DTA_PARAM
+       -- Estas funções recebem 2 argumentos:
+       --     ID DA SESSÃO - Identificador da execução (Obtido através de P_IDSESSAO))
+       --     NOME DO PARAMETRO - Determina qual parametro deve se deseja obter.
+
+       PARAM_DESCR_SOL := ACT_TXT_PARAM(P_IDSESSAO, 'DESCR_SOL');
+       PARAM_CODPARC := ACT_INT_PARAM(P_IDSESSAO, 'CODPARC');
+       PARAM_TELEFONE := ACT_TXT_PARAM(P_IDSESSAO, 'TELEFONE');
+       PARAM_EMAIL := ACT_TXT_PARAM(P_IDSESSAO, 'EMAIL');
+
+       FOR I IN 1..P_QTDLINHAS -- Este loop permite obter o valor de campos dos registros envolvidos na execução.
+       LOOP                    -- A variável "I" representa o registro corrente.
+           -- Para obter o valor dos campos utilize uma das seguintes funções:
+           --     ACT_INT_FIELD (Retorna o valor de um campo tipo NUMÉRICO INTEIRO))
+           --     ACT_DEC_FIELD (Retorna o valor de um campo tipo NUMÉRICO DECIMAL))
+           --     ACT_TXT_FIELD (Retorna o valor de um campo tipo TEXTO),
+           --     ACT_DTA_FIELD (Retorna o valor de um campo tipo DATA)
+           -- Estas funções recebem 3 argumentos:
+           --     ID DA SESSÃO - Identificador da execução (Obtido através do parâmetro P_IDSESSAO))
+           --     NÚMERO DA LINHA - Relativo a qual linha selecionada.
+           --     NOME DO CAMPO - Determina qual campo deve ser obtido.
+           FIELD_NUATV := ACT_INT_FIELD(P_IDSESSAO, I, 'NUATV');
+           V_CODPARC := ACT_TXT_PARAM(P_IDSESSAO, 'CODPARC');
+
+        --EVITA DUPLICIDADE
+           SELECT COUNT(*) INTO P_COUNT FROM AD_SOLCLI WHERE CODPARC = NVL(PARAM_CODPARC,V_CODPARC) AND UPPER(NOMESOL) = UPPER(PARAM_DESCR_SOL);
+           IF P_COUNT > 0 THEN
+                P_MENSAGEM := 'ERRO. Solicitante já cadastrado!';
+                RETURN;
+           END IF;
+
+           IF PARAM_CODPARC IS NULL AND V_CODPARC IS NULL THEN
+                P_MENSAGEM := 'ERRO. Informe um Parceiro!';
+                RETURN;
+           END IF;
+
+
+        --INSERE SUBPROJETO BRAION
+           SELECT NVL(MAX(SOLICITANTE),0) + 1 INTO V_SEQ FROM AD_SOLCLI;
+           INSERT INTO AD_SOLCLI (SOLICITANTE, CODPARC, NOMESOL, TELEFONE, EMAIL)
+           VALUES (V_SEQ, NVL(PARAM_CODPARC,V_CODPARC), UPPER(PARAM_DESCR_SOL), PARAM_TELEFONE, PARAM_EMAIL);
+
+           P_MENSAGEM := 'Adicionado com Sucesso!';
+
+       END LOOP;
+
+
+
+
+-- <ESCREVA SEU CÓDIGO DE FINALIZAÇÃO AQUI> --
+
+
+
+END;]]></storedProcedure>
+        </action>
+        <action type="LC">
+          <description><![CDATA[Liberação Retroativa de Atividades]]></description>
+          <actionConfig>
+            <laucher resourceID="br.com.sankhya.menu.adicional.AD_LIBRETROATV" />
+            <params />
+          </actionConfig>
+        </action>
+      </actions>
+    </instance>
+    <instance name="AD_RECFUNCOES" isUpdate="false">
+      <instanceDescription><![CDATA[Funções do Recurso]]></instanceDescription>
+      <tableInfo name="AD_RECFUNCOES" sequenceType="M">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Cadastro]]></telaDescription>
+        <tableDescription><![CDATA[Funções do Recurso]]></tableDescription>
+        <primaryKey>
+          <CODREC />
+          <CODFUN />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="CODREC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Cód. Recurso]]></description>
+        </field>
+        <field name="CODFUN" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N" size="10">
+          <description><![CDATA[Cód. Função]]></description>
+        </field>
+        <field name="ATIVO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Função Ativa?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="AD_FUNCOES" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_FUNCOES" />
+          <fields>
+            <field localName="CODFUN" targetName="CODFUN" />
+          </fields>
+        </relation>
+      </relationShip>
+    </instance>
+    <instance name="AD_WORKLOG" isUpdate="false">
+      <instanceDescription><![CDATA[Apontamentos]]></instanceDescription>
+      <tableInfo name="AD_WORKLOG" sequenceType="A" sequenceField="ID_WORKLOG">
+        <category><![CDATA[PROJETOS]]></category>
+        <telaDescription><![CDATA[Atividades e Tempo]]></telaDescription>
+        <tableDescription><![CDATA[Apontamento de Horas]]></tableDescription>
+        <primaryKey>
+          <NUATV />
+          <ID_WORKLOG />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="NUATV" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N" size="10">
+          <description><![CDATA[ID Atv.]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[0]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[N.Ú.Atividade]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+          </properties>
+        </field>
+        <field name="ID_WORKLOG" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Apontamento]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="DATA" systemField="N" dataType="D" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[1]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Data Apontamento]]></prop>
+            <prop name="filterType"><![CDATA[period]]></prop>
+          </properties>
+        </field>
+        <field name="HORAINICIO" systemField="N" dataType="T" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Hora Início]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="HORAFIM" systemField="N" dataType="T" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Hora Fim]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="INTERVALO" systemField="N" dataType="T" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Intervalo]]></description>
+        </field>
+        <field name="DESCRAPONT" systemField="N" dataType="C" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Descrição das Atividades]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="CODUSUINC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário Inclusão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="CODUSUALTER" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="DHALTER" systemField="N" dataType="D" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="DHINC" systemField="N" dataType="D" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Inclusão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="CODREC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Executante]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[2]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Executante]]></prop>
+            <prop name="filterType"><![CDATA[mult-list]]></prop>
+          </properties>
+        </field>
+        <field name="TEMPOTOT" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Tempo]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="TEMPOTOT_MINUTOS" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Tempo Total em Minutos]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="TEMPOTOTHR" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Tempo-DEC]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="gridFooterOper"><![CDATA[sum]]></prop>
+          </properties>
+        </field>
+        <field name="AUTORIZADO" systemField="N" dataType="S" presentationType="O" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Autorizado Atv.]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT AUTORIZADO FROM AD_ATIVIDADES WHERE NUATV = AD_WORKLOG.NUATV]]></expression>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="STATUS" systemField="N" dataType="S" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Status Atv.]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT F_DESCROPC('AD_ATIVIDADES','STATUS',STATUS) FROM AD_ATIVIDADES WHERE NUATV = AD_WORKLOG.NUATV]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="ESTIMATIVA" systemField="N" dataType="S" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Estimativa Atv.]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT ESTIMATIVA FROM AD_ATIVIDADES WHERE NUATV = AD_WORKLOG.NUATV]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="REALIZADO" systemField="N" dataType="S" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Realizado Atv.]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT REALIZADO FROM AD_ATIVIDADES WHERE NUATV = AD_WORKLOG.NUATV]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="PERCESFORCO" systemField="N" dataType="S" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[% Realizado Atv.]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT PERCESFORCO FROM AD_ATIVIDADES WHERE NUATV = AD_WORKLOG.NUATV]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="DESCRICAO" systemField="N" dataType="C" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Descrição Atv.]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT DESCRICAO FROM AD_ATIVIDADES WHERE NUATV = AD_WORKLOG.NUATV]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="NEGOCIO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Negócio]]></description>
+          <options>
+            <option value="B"><![CDATA[BRAION]]></option>
+            <option value="N"><![CDATA[NEUON]]></option>
+            <option value="M" default="S"><![CDATA[MITRA]]></option>
+          </options>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[5]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="filterType"><![CDATA[mult-list]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Negócio]]></prop>
+          </properties>
+        </field>
+        <field name="CODPARC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Parceiro]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[3]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Cliente]]></prop>
+            <prop name="filterType"><![CDATA[mult-list]]></prop>
+          </properties>
+        </field>
+        <field name="PROJETO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Projeto]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[4]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Projeto]]></prop>
+            <prop name="filterType"><![CDATA[mult-list]]></prop>
+          </properties>
+        </field>
+        <field name="NEG_ID" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[ID Negociação]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="ACORDO_ID" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Negociação de Pagamento]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="CLASSIF" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Classificação]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="IDSALDO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[ID Saldo (Neg. Pacote)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="REG_EXPERIENCE" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Lançou Tarefa Experience?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+        </field>
+        <field name="USER_EXPERIENCE" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Usuário Experience]]></description>
+        </field>
+        <field name="OBS" systemField="N" dataType="S" presentationType="T" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Observação INTERNA]]></description>
+        </field>
+        <field name="ID_ETAPA" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Etapa]]></description>
+        </field>
+        <field name="SINCRONA" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Agenda Síncrona]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+        </field>
+        <field name="NOTA_AUTOAVALIACAO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[NOTA-Autoavaliação (0~10)]]></description>
+        </field>
+        <field name="NOTA_COMPCLI" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[NOTA-Comportamento Cliente (0~10)]]></description>
+        </field>
+        <field name="NOTA_SATCLI" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[NOTA-Satisfação do cliente (0~10)]]></description>
+        </field>
+        <field name="NOTA_PLATAFORMA" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[NOTA-Plataforma (0~10)]]></description>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="Parceiro" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TGFPAR" />
+          <fields>
+            <field localName="CODPARC" targetName="CODPARC" />
+          </fields>
+        </relation>
+        <relation entityName="Projeto" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TCSPRJ" />
+          <fields>
+            <field localName="PROJETO" targetName="CODPROJ" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <expression><![CDATA[@ref-param[description=Usuário Inclusão]]]></expression>
+          <fields>
+            <field localName="CODUSUINC" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <expression><![CDATA[@ref-param[description=Usuário Alteração]]]></expression>
+          <fields>
+            <field localName="CODUSUALTER" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="AD_RECURSOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_RECURSOS" />
+          <expression><![CDATA[@ref-param[description=Executante]]]></expression>
+          <fields>
+            <field localName="CODREC" targetName="CODREC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_ATIVIDADES" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_ATIVIDADES" />
+          <fields>
+            <field localName="NUATV" targetName="NUATV" />
+          </fields>
+        </relation>
+        <relation entityName="AD_NEGOCIOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_NEGOCIOS" />
+          <fields>
+            <field localName="NEGOCIO" targetName="NEGOCIO" />
+          </fields>
+        </relation>
+        <relation entityName="AD_RECURSOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_RECURSOS" />
+          <expression><![CDATA[@form-filter[this.HOMOLOGADOSNK = 'S']@ref-param[description=Usu. Experience]]]></expression>
+          <fields>
+            <field localName="USER_EXPERIENCE" targetName="CODREC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_NEGOCIACOES" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_NEGOCIACOES" />
+          <fields>
+            <field localName="NEG_ID" targetName="NEG_ID" />
+          </fields>
+        </relation>
+        <relation entityName="AD_NEGOCIACOESPAY" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_NEGOCIACOESPAY" />
+          <fields>
+            <field localName="ACORDO_ID" targetName="ACORDO_ID" />
+          </fields>
+        </relation>
+        <relation entityName="AD_CLASSIFWORK" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_CLASSIFWORK" />
+          <expression><![CDATA[@form-filter[(SELECT DISTINCT
+    1
+FROM TSIUSU USU
+INNER JOIN AD_RECURSOS R ON R.CODREC = USU.AD_CODREC
+WHERE USU.CODUSU = 0
+  AND (
+    -- Condição 1: Ter a função 2 ou 3
+    EXISTS (SELECT 1 FROM AD_RECFUNCOES F1 
+            WHERE F1.CODREC = R.CODREC AND F1.CODFUN IN (2, 3))
+    OR 
+    -- Condição 2: NÃO ter a função 1
+    NOT EXISTS (SELECT 1 FROM AD_RECFUNCOES F2 
+                WHERE F2.CODREC = R.CODREC AND F2.CODFUN = 1)
+  )) = 1 OR NVL(this.FLAG_APOIO_TEC,'N') = 'N']]]></expression>
+          <fields>
+            <field localName="CLASSIF" targetName="CODCLASSIF" />
+          </fields>
+        </relation>
+        <relation entityName="AD_NEGSALDO" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_NEGSALDO" />
+          <fields>
+            <field localName="NEG_ID" targetName="NEG_ID" />
+            <field localName="IDSALDO" targetName="IDSALDO" />
+          </fields>
+        </relation>
+        <relation entityName="AD_ETAPAS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_ETAPAS" />
+          <fields>
+            <field localName="ID_ETAPA" targetName="ID_ETAPA" />
+            <field localName="NUATV" targetName="NUATV" />
+          </fields>
+        </relation>
+      </relationShip>
+    </instance>
+    <instance name="AD_TIPOATIVIDADES" isUpdate="false">
+      <instanceDescription><![CDATA[Tipos de Atividades]]></instanceDescription>
+      <tableInfo name="AD_TIPOATIVIDADES" sequenceType="A" sequenceField="CODTIPO" presentationField="DESCRICAO">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Cadastro]]></telaDescription>
+        <tableDescription><![CDATA[Tipos de Atividades]]></tableDescription>
+        <primaryKey>
+          <NEGOCIO />
+          <CODTIPO />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="CODTIPO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Cód. Tipo]]></description>
+        </field>
+        <field name="NEGOCIO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Negócio]]></description>
+          <options>
+            <option value="B"><![CDATA[BRAION]]></option>
+            <option value="N"><![CDATA[NEUON]]></option>
+            <option value="M" default="S"><![CDATA[MITRA]]></option>
+          </options>
+        </field>
+        <field name="DESCRICAO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Descrição]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+      </fields>
+    </instance>
+    <instance name="AD_SUBPROJETOS" isUpdate="false">
+      <instanceDescription><![CDATA[Subprojetos]]></instanceDescription>
+      <tableInfo name="AD_SUBPROJETOS" sequenceType="A" sequenceField="CODSUBPROJ" presentationField="DESCRSUBPROJ">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Cadastro]]></telaDescription>
+        <tableDescription><![CDATA[Subprojetos]]></tableDescription>
+        <primaryKey>
+          <NEGOCIO />
+          <CODSUBPROJ />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="CODSUBPROJ" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Cód. Subprojeto]]></description>
+        </field>
+        <field name="NEGOCIO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Negócio]]></description>
+          <options>
+            <option value="B"><![CDATA[BRAION]]></option>
+            <option value="N"><![CDATA[NEUON]]></option>
+            <option value="M" default="S"><![CDATA[MITRA]]></option>
+          </options>
+        </field>
+        <field name="DESCRSUBPROJ" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Subprojeto]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+      </fields>
+    </instance>
+    <instance name="AD_NEGPROJ" isUpdate="false">
+      <instanceDescription><![CDATA[Projetos Vinculados]]></instanceDescription>
+      <tableInfo name="AD_NEGPROJ" sequenceType="A" sequenceField="ID_NEG_PROJ">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Financeiro Receber]]></telaDescription>
+        <tableDescription><![CDATA[Vínculo de Projetos]]></tableDescription>
+        <primaryKey>
+          <NEG_ID />
+          <ID_NEG_PROJ />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="ID_NEG_PROJ" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Vinculo]]></description>
+        </field>
+        <field name="NEG_ID" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Negociação]]></description>
+        </field>
+        <field name="CODPROJ" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Projeto]]></description>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="Projeto" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TCSPRJ" />
+          <expression><![CDATA[@form-filter[this.AD_NEGOCIO = (select negocio from ad_negociacoes where neg_id = form.NEG_ID)
+AND
+this.AD_CODPARC = (select codparc from ad_negociacoes where neg_id = form.NEG_ID)]]]></expression>
+          <fields>
+            <field localName="CODPROJ" targetName="CODPROJ" />
+          </fields>
+        </relation>
+      </relationShip>
+    </instance>
+    <instance name="AD_CLASSIFWORK" isUpdate="false">
+      <instanceDescription><![CDATA[Classificação de Apontamento]]></instanceDescription>
+      <tableInfo name="AD_CLASSIFWORK" sequenceType="A" sequenceField="CODCLASSIF" presentationField="DESCRICAO">
+        <category><![CDATA[PROJETOS]]></category>
+        <telaDescription><![CDATA[Cadastro]]></telaDescription>
+        <tableDescription><![CDATA[Classificação de Apontamento]]></tableDescription>
+        <primaryKey>
+          <CODCLASSIF />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="CODCLASSIF" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Cód. Classificação]]></description>
+        </field>
+        <field name="DESCRICAO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Classificação]]></description>
+        </field>
+        <field name="GERAREC" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Gera Receita?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+        </field>
+        <field name="GERAPAG" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Gera Pagamento?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+        </field>
+        <field name="FLAG_APOIO_TEC" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Apoio Técnico?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+        </field>
+      </fields>
+    </instance>
+    <instance name="AD_EQUIPEATV" isUpdate="false">
+      <instanceDescription><![CDATA[Equipe]]></instanceDescription>
+      <tableInfo name="AD_EQUIPEATV" sequenceType="M">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Atividades e Tempo]]></telaDescription>
+        <tableDescription><![CDATA[Equipe Atividade]]></tableDescription>
+        <primaryKey>
+          <NUATV />
+          <CODREC />
+          <CODFUN />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="CODREC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N" size="10">
+          <description><![CDATA[Cód. Recurso]]></description>
+        </field>
+        <field name="NUATV" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[N.Ú.Atividade]]></description>
+        </field>
+        <field name="CODFUN" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N" size="10">
+          <description><![CDATA[Função]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[N]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="AD_RECURSOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_RECURSOS" />
+          <fields>
+            <field localName="CODREC" targetName="CODREC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_FUNCOES" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_FUNCOES" />
+          <expression><![CDATA[@form-filter[this.CODFUN IN (SELECT CODFUN FROM AD_RECFUNCOES WHERE CODREC = form.CODREC)]]]></expression>
+          <fields>
+            <field localName="CODFUN" targetName="CODFUN" />
+          </fields>
+        </relation>
+      </relationShip>
+    </instance>
+    <instance name="AD_NEGOCIOS" isUpdate="false">
+      <instanceDescription><![CDATA[Negócios]]></instanceDescription>
+      <tableInfo name="AD_NEGOCIOS" sequenceType="M" presentationField="IDENTIFICACAO">
+        <category><![CDATA[PROJETOS]]></category>
+        <telaDescription><![CDATA[Cadastro]]></telaDescription>
+        <tableDescription><![CDATA[Negócios]]></tableDescription>
+        <primaryKey>
+          <NEGOCIO />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="NEGOCIO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Negócio]]></description>
+          <options>
+            <option value="B"><![CDATA[BRAION]]></option>
+            <option value="N"><![CDATA[NEUON]]></option>
+            <option value="M" default="S"><![CDATA[MITRA]]></option>
+          </options>
+        </field>
+        <field name="IDENTIFICACAO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Identificação]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="GPPAD" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Ger. Proj. Padrão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="TLPAD" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Tech Lead Padrão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="AD_RECURSOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_RECURSOS" />
+          <expression><![CDATA[@form-filter[this.CODREC in (select codrec from ad_recfuncoes where codfun = 2)]@ref-param[description=Ger. Projeto]]]></expression>
+          <fields>
+            <field localName="GPPAD" targetName="CODREC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_TIPOATIVIDADES" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_TIPOATIVIDADES" />
+          <fields>
+            <field localName="NEGOCIO" targetName="NEGOCIO" />
+          </fields>
+        </relation>
+        <relation entityName="AD_RECURSOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_RECURSOS" />
+          <expression><![CDATA[@form-filter[this.CODREC in (select codrec from ad_recfuncoes where codfun = 3)]@ref-param[description=Tech Lead]]]></expression>
+          <fields>
+            <field localName="TLPAD" targetName="CODREC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_SUBPROJETOS" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_SUBPROJETOS" />
+          <fields>
+            <field localName="NEGOCIO" targetName="NEGOCIO" />
+          </fields>
+        </relation>
+      </relationShip>
+      <references>
+        <reference entityName="Projeto" tableName="TCSPRJ" type="I" insert="N" update="N" remove="N">
+          <!--Esse elemento "reference" diz respeito a campos da entidade exportada que são mencionados em tabelas do sistema.-->
+          <fields>
+            <field name="AD_NEGOCIO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" localName="NEGOCIO">
+              <description><![CDATA[Negócio]]></description>
+            </field>
+          </fields>
+        </reference>
+      </references>
+    </instance>
+    <instance name="AD_AREACLI" isUpdate="false">
+      <instanceDescription><![CDATA[Áreas do Cliente]]></instanceDescription>
+      <tableInfo name="AD_AREACLI" sequenceType="A" sequenceField="CODAREA" presentationField="DESCRICAO">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Cadastro]]></telaDescription>
+        <tableDescription><![CDATA[PROJ-Áreas do Cliente]]></tableDescription>
+        <primaryKey>
+          <CODPARC />
+          <CODAREA />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="CODAREA" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Cód. Área]]></description>
+        </field>
+        <field name="CODPARC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Cód. Parceiro]]></description>
+        </field>
+        <field name="DESCRICAO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Descrição]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+      </fields>
+      <references>
+        <reference entityName="Parceiro" tableName="TGFPAR" type="I" insert="N" update="N" remove="S">
+          <!--Esse elemento "reference" diz respeito a campos da entidade exportada que são mencionados em tabelas do sistema.-->
+          <fields>
+            <field name="CODPARC" systemField="S" localName="CODPARC" />
+          </fields>
+        </reference>
+      </references>
+    </instance>
+    <instance name="AD_RECURSOS" isUpdate="false">
+      <instanceDescription><![CDATA[Cad. Recursos]]></instanceDescription>
+      <tableInfo name="AD_RECURSOS" sequenceType="A" sequenceField="CODREC" presentationField="NOME">
+        <category><![CDATA[PROJETOS]]></category>
+        <telaDescription><![CDATA[Cadastro]]></telaDescription>
+        <tableDescription><![CDATA[Cad. Recursos]]></tableDescription>
+        <primaryKey>
+          <CODREC />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="CODREC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N" size="10">
+          <description><![CDATA[Cód. Recurso]]></description>
+        </field>
+        <field name="NOME" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Nome]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="ATIVO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Ativo?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[N]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="NOMECOMPLETO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Nome Completo]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="CPF" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[CPF]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="RG" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[RG]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="DTNAS" systemField="N" dataType="D" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Nascimento]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="EMAILBRAION" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Email Braion]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[E-mail]]></prop>
+          </properties>
+        </field>
+        <field name="EMAILNEUON" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Email Neuon]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[E-mail]]></prop>
+          </properties>
+        </field>
+        <field name="EMAIL" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Email Pessoal/Comercial]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[E-mail]]></prop>
+          </properties>
+        </field>
+        <field name="TIPO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Tipo]]></description>
+          <options>
+            <option value="P"><![CDATA[Próprio]]></option>
+            <option value="T"><![CDATA[Terceiros]]></option>
+            <option value="F" default="S"><![CDATA[FreeLancer]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[N]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="FUNCOES" systemField="N" dataType="S" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Funções]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT LISTAGG(FUN.DESCRFUN, ' ? ') WITHIN GROUP (ORDER BY FUN.CODFUN)
+FROM AD_RECFUNCOES RF
+INNER JOIN AD_FUNCOES FUN ON FUN.CODFUN = RF.CODFUN
+WHERE RF.CODREC = AD_RECURSOS.CODREC]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="CODPARC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Parceiro Faturamento]]></description>
+        </field>
+        <field name="HOMOLOGADOSNK" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Homologado Sankhya?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Homologações]]></prop>
+          </properties>
+        </field>
+        <field name="HOMOLOGADOMITRA" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Certificado Mitra?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Homologações]]></prop>
+          </properties>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="Parceiro" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TGFPAR" />
+          <fields>
+            <field localName="CODPARC" targetName="CODPARC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_RECFUNCOES" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_RECFUNCOES" />
+          <fields>
+            <field localName="CODREC" targetName="CODREC" />
+          </fields>
+        </relation>
+      </relationShip>
+      <references>
+        <reference entityName="Usuario" tableName="TSIUSU" type="I" insert="N" update="N" remove="N">
+          <!--Esse elemento "reference" diz respeito a campos da entidade exportada que são mencionados em tabelas do sistema.-->
+          <fields>
+            <field name="AD_CODREC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" localName="CODREC">
+              <description><![CDATA[Recurso]]></description>
+            </field>
+          </fields>
+        </reference>
+      </references>
+    </instance>
+    <instance name="AD_NEGSALDO" isUpdate="false">
+      <instanceDescription><![CDATA[Saldo Pacote]]></instanceDescription>
+      <tableInfo name="AD_NEGSALDO" sequenceType="A" sequenceField="IDSALDO" presentationField="COMPETENCIA">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Financeiro Receber]]></telaDescription>
+        <tableDescription><![CDATA[Saldo Pacote]]></tableDescription>
+        <primaryKey>
+          <NEG_ID />
+          <IDSALDO />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="NEG_ID" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Negociação]]></description>
+        </field>
+        <field name="IDSALDO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Saldo]]></description>
+        </field>
+        <field name="COMPETENCIA" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Mês]]></description>
+        </field>
+        <field name="HR_PREVISTAS" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Horas Base]]></description>
+        </field>
+        <field name="MIN_PREVISTAS" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Horas Base (MINUTOS)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="HR_CONSUMIDAS" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Consumidas]]></description>
+        </field>
+        <field name="MIN_CONSUMIDAS" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Consumidas (MINUTOS)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="HR_EXCEDENTE" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Excedente]]></description>
+        </field>
+        <field name="MIN_EXCEDENTE" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Excedente (MINUTOS)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="HR_SALDO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Saldo]]></description>
+        </field>
+        <field name="MIN_SALDO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Saldo (MINUTOS)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+      </fields>
+    </instance>
+    <instance name="AD_FUNCOES" isUpdate="false">
+      <instanceDescription><![CDATA[Cad. Funções]]></instanceDescription>
+      <tableInfo name="AD_FUNCOES" sequenceType="A" sequenceField="CODFUN" presentationField="DESCRFUN">
+        <category><![CDATA[PROJETOS]]></category>
+        <telaDescription><![CDATA[Cadastro]]></telaDescription>
+        <tableDescription><![CDATA[Funções]]></tableDescription>
+        <primaryKey>
+          <CODFUN />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="CODFUN" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Cód. Funcão]]></description>
+        </field>
+        <field name="DESCRFUN" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Descr. Função]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="APONTATEMPO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Aponta Tempo?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+        </field>
+      </fields>
+    </instance>
+    <instance name="AD_NEGFIN" isUpdate="false">
+      <instanceDescription><![CDATA[Parcelas do Empreito]]></instanceDescription>
+      <tableInfo name="AD_NEGFIN" sequenceType="A" sequenceField="SEQ">
+        <telaDescription><![CDATA[Financeiro Receber]]></telaDescription>
+        <tableDescription><![CDATA[Parcelas do Empreito]]></tableDescription>
+        <primaryKey>
+          <NEG_ID />
+          <SEQ />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="SEQ" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Sequencia]]></description>
+        </field>
+        <field name="NEG_ID" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Negociação]]></description>
+        </field>
+        <field name="DTVENC" systemField="N" dataType="D" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Vencimento]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="VALOR" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Valor Parcela]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="gridFooterOper"><![CDATA[sum]]></prop>
+          </properties>
+        </field>
+        <field name="HISTORICO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Histórico Parcela]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+      </fields>
+    </instance>
+    <instance name="AD_ETAPAS" isUpdate="false">
+      <instanceDescription><![CDATA[Etapas]]></instanceDescription>
+      <tableInfo name="AD_ETAPAS" sequenceType="A" sequenceField="ID_ETAPA" presentationField="ETAPA">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Atividades e Tempo]]></telaDescription>
+        <tableDescription><![CDATA[Etapas]]></tableDescription>
+        <primaryKey>
+          <NUATV />
+          <ID_ETAPA />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="NUATV" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Atividade]]></description>
+        </field>
+        <field name="ID_ETAPA" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Etapa]]></description>
+        </field>
+        <field name="IDMITRA" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[ID Sistema Mitra]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="ETAPA" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Etapa]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+      </fields>
+    </instance>
+    <instance name="AD_SOLCLI" isUpdate="false">
+      <instanceDescription><![CDATA[Solicitantes de Atividades]]></instanceDescription>
+      <tableInfo name="AD_SOLCLI" sequenceType="A" sequenceField="SOLICITANTE" presentationField="NOMESOL">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Cadastro]]></telaDescription>
+        <tableDescription><![CDATA[PROJ-Solicitantes do Cliente]]></tableDescription>
+        <primaryKey>
+          <CODPARC />
+          <SOLICITANTE />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="SOLICITANTE" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Solicitante]]></description>
+        </field>
+        <field name="CODPARC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Cód. Parceiro]]></description>
+        </field>
+        <field name="NOMESOL" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Nome Solicitante]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="TELEFONE" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Fone]]></description>
+        </field>
+        <field name="EMAIL" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[E-mail]]></description>
+        </field>
+      </fields>
+      <references>
+        <reference entityName="Parceiro" tableName="TGFPAR" type="I" insert="N" update="N" remove="S">
+          <!--Esse elemento "reference" diz respeito a campos da entidade exportada que são mencionados em tabelas do sistema.-->
+          <fields>
+            <field name="CODPARC" systemField="S" localName="CODPARC" />
+          </fields>
+        </reference>
+      </references>
+    </instance>
+    <instance name="AD_ESTIMATIVAS" isUpdate="false">
+      <instanceDescription><![CDATA[Estimativas]]></instanceDescription>
+      <tableInfo name="AD_ESTIMATIVAS" sequenceType="A" sequenceField="ID_ESTIMATIVA">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Atividades e Tempo]]></telaDescription>
+        <tableDescription><![CDATA[Estimativas]]></tableDescription>
+        <primaryKey>
+          <NUATV />
+          <ID_ESTIMATIVA />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="ID_ESTIMATIVA" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Estimativa]]></description>
+        </field>
+        <field name="NUATV" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Atividade]]></description>
+        </field>
+        <field name="TIPO_LANCAMENTO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Tipo]]></description>
+          <options>
+            <option value="I"><![CDATA[Inicial]]></option>
+            <option value="A"><![CDATA[Aditivo]]></option>
+            <option value="R" default="S"><![CDATA[Redução]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="HR_ESTIMATIVA" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Qtd. Horas]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="MIN_ESTIMATIVA" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Qtd. Horas (MIN)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="MOTIVO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Motivo]]></description>
+          <options>
+            <option value="I"><![CDATA[Estimativa Inicial]]></option>
+            <option value="M"><![CDATA[Mudança de Escopo]]></option>
+            <option value="C"><![CDATA[Complexidade Técnica]]></option>
+            <option value="E"><![CDATA[Erro de Estimativa]]></option>
+            <option value="D" default="S"><![CDATA[Dificuldade Técnica]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="JUSTIFICATIVA" systemField="N" dataType="S" presentationType="T" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Justificativa]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="CODUSUINC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário Inclusão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="DHINC" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Inclusão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="CODUSUALT" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="DHALTER" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <fields>
+            <field localName="CODUSUINC" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <fields>
+            <field localName="CODUSUALT" targetName="CODUSU" />
+          </fields>
+        </relation>
+      </relationShip>
+    </instance>
+    <instance name="AD_NEGOCIACOES" isUpdate="false">
+      <instanceDescription><![CDATA[Negociações Comerciais (Geral)]]></instanceDescription>
+      <tableInfo name="AD_NEGOCIACOES" sequenceType="A" sequenceField="NEG_ID" presentationField="DESCRICAO">
+        <category><![CDATA[PROJETOS]]></category>
+        <telaDescription><![CDATA[Financeiro Receber]]></telaDescription>
+        <tableDescription><![CDATA[Negociações]]></tableDescription>
+        <primaryKey>
+          <NEG_ID />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="NEG_ID" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N" size="10">
+          <description><![CDATA[ID Negociação]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[0]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[ID Negociação]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+          </properties>
+        </field>
+        <field name="CODPARC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Parceiro]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[1]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Parceiro]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+          </properties>
+        </field>
+        <field name="NEGOCIO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Negócio]]></description>
+          <options>
+            <option value="B"><![CDATA[BRAION]]></option>
+            <option value="N"><![CDATA[NEUON]]></option>
+            <option value="M" default="S"><![CDATA[MITRA]]></option>
+          </options>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[2]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Negócio]]></prop>
+          </properties>
+        </field>
+        <field name="TIPO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Tipo Negociação]]></description>
+          <options>
+            <option value="MEDICAO"><![CDATA[Medição]]></option>
+            <option value="EMPREITADA"><![CDATA[Empreito]]></option>
+            <option value="PACOTE" default="S"><![CDATA[Pacote de Horas]]></option>
+          </options>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[3]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Tipo Negociação]]></prop>
+          </properties>
+        </field>
+        <field name="VALOR_HORA" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Valor Hora da Medição]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Negociação]]></prop>
+          </properties>
+        </field>
+        <field name="IMPOSTO_PERC" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Cobrar Impostos? (%)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Faturamento]]></prop>
+          </properties>
+        </field>
+        <field name="DT_CRIACAO" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Inclusão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="USUARIO_CRIACAO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário Inclusão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="HORAS_PREVISTAS" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Limite de horas]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Negociação]]></prop>
+          </properties>
+        </field>
+        <field name="ATIVO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Ativo?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+          <properties>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[4]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="filterLabel"><![CDATA[Ativo?]]></prop>
+          </properties>
+        </field>
+        <field name="PROJVINC" systemField="N" dataType="S" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Projetos Vinculados]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT NVL(LISTAGG(PRJ.IDENTIFICACAO, ' ? '),'Sem Projeto Vinculado') AS PROJETOS FROM AD_NEGPROJ N
+INNER JOIN TCSPRJ PRJ ON PRJ.CODPROJ = N.CODPROJ WHERE NEG_ID = AD_NEGOCIACOES.NEG_ID]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="ANEXOS" systemField="N" dataType="B" presentationType="M" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Anexos]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Condições Comerciais]]></prop>
+          </properties>
+        </field>
+        <field name="OBSERVACAO" systemField="N" dataType="C" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Observação]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Condições Comerciais]]></prop>
+          </properties>
+        </field>
+        <field name="DESCRICAO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Descr. Neg.]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="CODUSUALT" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário de Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="DHALTER" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data de Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="VLRFIN" systemField="N" dataType="F" presentationType="P" calculated="S" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Valor Finan. Empreito]]></description>
+          <expression><![CDATA[#type.sql#
+SELECT SUM(VALOR) FROM AD_NEGFIN WHERE NEG_ID = AD_NEGOCIACOES.NEG_ID]]></expression>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Negociação]]></prop>
+          </properties>
+        </field>
+        <field name="DIAFECHFATURA" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Dia Fechamento Fatura (Medição)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Faturamento]]></prop>
+          </properties>
+        </field>
+        <field name="DIAVENCPROV" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Dia Vencimento Previsto (Medição)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Faturamento]]></prop>
+          </properties>
+        </field>
+        <field name="CODEMP" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Empresa Faturamento]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Faturamento]]></prop>
+          </properties>
+        </field>
+        <field name="RECORRENTE" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Recorrente Mensal?]]></description>
+          <options>
+            <option value="N"><![CDATA[Sem Recorrência]]></option>
+            <option value="RC"><![CDATA[Mensal Cumulativo]]></option>
+            <option value="RN" default="S"><![CDATA[Mensal não Cumulativo]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Pacote de Horas]]></prop>
+          </properties>
+        </field>
+        <field name="FORMA_COB" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Forma de Cobrança]]></description>
+          <options>
+            <option value="E"><![CDATA[Empreito]]></option>
+            <option value="M"><![CDATA[Horas do Pacote]]></option>
+            <option value="C" default="S"><![CDATA[Consumido]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Pacote de Horas]]></prop>
+          </properties>
+        </field>
+        <field name="ACAO_EXCEDENTE" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Ação ao exceder as horas do pacote]]></description>
+          <options>
+            <option value="B"><![CDATA[Bloquear]]></option>
+            <option value="C" default="S"><![CDATA[Cobrar por Medição]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Pacote de Horas]]></prop>
+          </properties>
+        </field>
+        <field name="QTD_HR_CONTRATADA" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Horas do Pacote]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Pacote de Horas]]></prop>
+          </properties>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="Parceiro" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TGFPAR" />
+          <fields>
+            <field localName="CODPARC" targetName="CODPARC" />
+          </fields>
+        </relation>
+        <relation entityName="Empresa" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIEMP" />
+          <fields>
+            <field localName="CODEMP" targetName="CODEMP" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <expression><![CDATA[@ref-param[description=Usuário Inclusão]]]></expression>
+          <fields>
+            <field localName="USUARIO_CRIACAO" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <fields>
+            <field localName="CODUSUALT" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="AD_NEGOCIOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_NEGOCIOS" />
+          <fields>
+            <field localName="NEGOCIO" targetName="NEGOCIO" />
+          </fields>
+        </relation>
+        <relation entityName="AD_NEGPROJ" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_NEGPROJ" />
+          <fields>
+            <field localName="NEG_ID" targetName="NEG_ID" />
+          </fields>
+        </relation>
+        <relation entityName="AD_NEGFIN" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_NEGFIN" />
+          <fields>
+            <field localName="NEG_ID" targetName="NEG_ID" />
+          </fields>
+        </relation>
+        <relation entityName="AD_NEGSALDO" type="I" insert="N" update="N" remove="S">
+          <targetInfo systemInstance="N" tableName="AD_NEGSALDO" />
+          <fields>
+            <field localName="NEG_ID" targetName="NEG_ID" />
+          </fields>
+        </relation>
+      </relationShip>
+    </instance>
+    <instance name="AD_NEGOCIACOESPAY" isUpdate="false">
+      <instanceDescription><![CDATA[Acordos de Pagamento (Recursos)]]></instanceDescription>
+      <tableInfo name="AD_NEGOCIACOESPAY" sequenceType="A" sequenceField="ACORDO_ID" presentationField="DESCRICAO">
+        <category><![CDATA[PROJETOS]]></category>
+        <telaDescription><![CDATA[Financeiro Pagar]]></telaDescription>
+        <tableDescription><![CDATA[Acordos de Pagamento]]></tableDescription>
+        <primaryKey>
+          <ACORDO_ID />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="ACORDO_ID" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[ID Acordo]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[0]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[ID Acordo]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+          </properties>
+        </field>
+        <field name="CODREC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Recurso]]></description>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[1]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Recurso]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+          </properties>
+        </field>
+        <field name="SCOPE" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Escopo]]></description>
+          <options>
+            <option value="GLOBAL"><![CDATA[VLR. HORA GLOBAL]]></option>
+            <option value="NEGOCIO"><![CDATA[VLR. HORA POR NEGÓCIO]]></option>
+            <option value="PROJETO"><![CDATA[VLR. HORA POR PROJETO]]></option>
+            <option value="WORKLOG"><![CDATA[VLR. HORA POR APONTAMENTO]]></option>
+            <option value="FIXO" default="S"><![CDATA[FIXO (MENSAL)]]></option>
+          </options>
+          <properties>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[3]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="filterLabel"><![CDATA[Escopo]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="NEGOCIO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Negócio]]></description>
+          <options>
+            <option value="B"><![CDATA[BRAION]]></option>
+            <option value="N"><![CDATA[NEUON]]></option>
+            <option value="M" default="S"><![CDATA[MITRA]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[ESCOPO por Negócio]]></prop>
+          </properties>
+        </field>
+        <field name="CODPROJ" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="10">
+          <description><![CDATA[Projeto]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[ESCOPO por Projeto]]></prop>
+          </properties>
+        </field>
+        <field name="TIPO_PAGAMENTO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Tipo de Pagamento]]></description>
+          <options>
+            <option value="F"><![CDATA[Fixo (Mensal)]]></option>
+            <option value="P"><![CDATA[Produtividade]]></option>
+            <option value="G" default="S"><![CDATA[Produtividade c/ Horas Garantidas]]></option>
+          </options>
+          <properties>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[2]]></prop>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="filterLabel"><![CDATA[Tipo de Pagamento]]></prop>
+          </properties>
+        </field>
+        <field name="VALOR_HORA" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Valor Hora]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Produtividade]]></prop>
+          </properties>
+        </field>
+        <field name="HORAS_GARANTIDAS" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Horas Garantidas (mês)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Produtividade]]></prop>
+          </properties>
+        </field>
+        <field name="VALOR_FIXO_MENSAL" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Vlr. Fixo Mensal]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Fixo]]></prop>
+          </properties>
+        </field>
+        <field name="FLAG_APOIO_TEC" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Recebe por Apoio Técnico?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Tech Lead]]></prop>
+          </properties>
+        </field>
+        <field name="VALOR_HORA_TECHLEAD" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Valor Hora (Tech Lead)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Tech Lead]]></prop>
+          </properties>
+        </field>
+        <field name="ATIVO" systemField="N" dataType="S" presentationType="O" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Ativo?]]></description>
+          <options>
+            <option value="S"><![CDATA[Sim]]></option>
+            <option value="N" default="S"><![CDATA[Não]]></option>
+          </options>
+          <properties>
+            <prop name="filterVoidExpression"><![CDATA[N]]></prop>
+            <prop name="filterConsFilLig"><![CDATA[S]]></prop>
+            <prop name="filterOrder"><![CDATA[4]]></prop>
+            <prop name="filterKeepLast"><![CDATA[S]]></prop>
+            <prop name="filterRequired"><![CDATA[N]]></prop>
+            <prop name="filterType"><![CDATA[default]]></prop>
+            <prop name="filterLabel"><![CDATA[Ativo?]]></prop>
+          </properties>
+        </field>
+        <field name="USUARIO_CRIACAO" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário de Criação]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="DT_CRIACAO" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data de Criação]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="DTVIGOR" systemField="N" dataType="D" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data de Vigor]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="CODUSUALT" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário de Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="DHALTER" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data de Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="OBSERVACAO" systemField="N" dataType="S" presentationType="T" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Observação]]></description>
+        </field>
+        <field name="DESCRICAO" systemField="N" dataType="S" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Descr. Neg.]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="LIMITEMES_TECHLEAD" systemField="N" dataType="F" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Limite Horas Mês (Tech Lead)]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="nuCasasDecimais"><![CDATA[2]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Tech Lead]]></prop>
+          </properties>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="Projeto" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TCSPRJ" />
+          <fields>
+            <field localName="CODPROJ" targetName="CODPROJ" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <fields>
+            <field localName="USUARIO_CRIACAO" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <fields>
+            <field localName="CODUSUALT" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="AD_RECURSOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_RECURSOS" />
+          <fields>
+            <field localName="CODREC" targetName="CODREC" />
+          </fields>
+        </relation>
+        <relation entityName="AD_NEGOCIOS" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="N" tableName="AD_NEGOCIOS" />
+          <fields>
+            <field localName="NEGOCIO" targetName="NEGOCIO" />
+          </fields>
+        </relation>
+      </relationShip>
+    </instance>
+    <instance name="AD_OCORRENCIAS" isUpdate="false">
+      <instanceDescription><![CDATA[Comentários]]></instanceDescription>
+      <tableInfo name="AD_OCORRENCIAS" sequenceType="A" sequenceField="SEQ">
+        <category><![CDATA[PROJETOS_SUB]]></category>
+        <telaDescription><![CDATA[Atividades e Tempo]]></telaDescription>
+        <tableDescription><![CDATA[Obs. e Ocorrências]]></tableDescription>
+        <primaryKey>
+          <NUATV />
+          <SEQ />
+        </primaryKey>
+      </tableInfo>
+      <fields>
+        <field name="SEQ" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[Sequência]]></description>
+        </field>
+        <field name="NUATV" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="S" allowDefault="S" visibleOnSearch="S" allowNull="N">
+          <description><![CDATA[N.Ú.Atividade]]></description>
+        </field>
+        <field name="DATA" systemField="N" dataType="D" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="DESCRICAO" systemField="N" dataType="C" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Descrição]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[N]]></prop>
+            <prop name="requerido"><![CDATA[S]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+          </properties>
+        </field>
+        <field name="ANEXO" systemField="N" dataType="B" presentationType="M" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Anexo]]></description>
+        </field>
+        <field name="CODUSUINC" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário Inclusão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="CODUSUALTER" systemField="N" dataType="I" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S" size="5">
+          <description><![CDATA[Usuário Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="DHINC" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Inclusão]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+        <field name="DHALTER" systemField="N" dataType="H" presentationType="P" calculated="N" allowSearch="N" allowDefault="S" visibleOnSearch="S" allowNull="S">
+          <description><![CDATA[Data Alteração]]></description>
+          <properties>
+            <prop name="nullable"><![CDATA[S]]></prop>
+            <prop name="visivel"><![CDATA[S]]></prop>
+            <prop name="readOnly"><![CDATA[S]]></prop>
+            <prop name="requerido"><![CDATA[N]]></prop>
+            <prop name="combobox"><![CDATA[N]]></prop>
+            <prop name="UIGroupName"><![CDATA[Auditoria]]></prop>
+          </properties>
+        </field>
+      </fields>
+      <relationShip>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <expression><![CDATA[@ref-param[description=Usuário Inclusão]]]></expression>
+          <fields>
+            <field localName="CODUSUINC" targetName="CODUSU" />
+          </fields>
+        </relation>
+        <relation entityName="Usuario" type="I" insert="N" update="N" remove="N">
+          <targetInfo systemInstance="S" tableName="TSIUSU" />
+          <expression><![CDATA[@ref-param[description=Usuário Alteração]]]></expression>
+          <fields>
+            <field localName="CODUSUALTER" targetName="CODUSU" />
+          </fields>
+        </relation>
+      </relationShip>
+    </instance>
+  </instances>
+</metadata>
+

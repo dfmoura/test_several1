@@ -1,0 +1,18 @@
+postman request POST 'http://cooperativa.snk.ativy.com:40160/mge/service.sbr?serviceName=MobileLoginSP.login&outputType=json%27 \
+  --header 'Content-Type: application/json' \
+  --header 'Cookie: JSESSIONID=_T4ywaSwhtk4Au-X-NYK5IALACLCevwUs5h2KWoK.d2-lv1660-app01' \
+  --body '{
+		   "serviceName": "MobileLoginSP.login",
+		      "requestBody": {
+		           "NOMUSU": {
+		               "$": "SUP"
+		           },
+		           "INTERNO":{
+		              "$":"monteccer"
+		           },
+		          "KEEPCONNECTED": {
+		              "$": "S"
+		          }
+		      }
+		  }'
+ 

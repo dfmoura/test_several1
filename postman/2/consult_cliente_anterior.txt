@@ -1,0 +1,23 @@
+postman request 'http://cooperativa.snk.ativy.com:40160/mge/service.sbr?serviceName=CRUDServiceProvider.loadRecords&outputType=json&mgeSession=NTQ5MENBNDAxQjhDQjgyRDI3MDE1ODg3MTdENDZCODA%3D%5Cn%27 \
+  --header 'Content-Type: application/json' \
+  --header 'Cookie: JSESSIONID=_T4ywaSwhtk4Au-X-NYK5IALACLCevwUs5h2KWoK.d2-lv1660-app01' \
+  --body '{
+	   "serviceName":"CRUDServiceProvider.loadRecords",
+	   "requestBody":{
+	                   "dataSet":{
+        	                      "rootEntity":"Parceiro",
+	                              "includePresentationFields": "S",
+                      	            "disableRowsLimit" : true,
+	                              "criteria":{"expression":
+	                                          {"$":"(this.DTALTER >= ? )"},
+                         	                   "parameter":{"$":"01/01/2026","type":"D"}},
+	                               "entity":[
+                             	              {
+                      	                       "fieldset":{
+   	                                                       "list": "CODPARC"
+                             	                          }
+	                                          }
+	                                        ]
+	                             }
+	                 }
+	}'

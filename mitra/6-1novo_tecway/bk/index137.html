@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indicadores – Balanço Patrimonial</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --border: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .indicador-formula {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        /* Tabela responsiva: ocupa 100% do container e evita scroll horizontal */
+        #report-container {
+            max-width: 100%;
+        }
+
+        .table-indicadores {
+            table-layout: fixed;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .table-indicadores .col-cod {
+            width: 3rem;
+            min-width: 2.5rem;
+        }
+
+        .table-indicadores .col-indicador {
+            width: 18%;
+            min-width: 5rem;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .table-indicadores .col-formula {
+            width: 15%;
+            min-width: 4rem;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            font-size: 0.75rem;
+        }
+
+        .table-indicadores .col-mes {
+            width: 5%;
+            min-width: 2rem;
+            padding-left: 0.25rem !important;
+            padding-right: 0.25rem !important;
+            font-size: 0.75rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @media (min-width: 1024px) {
+            .table-indicadores .col-formula { font-size: 0.8125rem; }
+            .table-indicadores .col-mes { font-size: 0.8125rem; padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+        }
+    </style>
+</head>
+
+<body class="p-4 sm:p-6 lg:p-8">
+    <div id="report-container" class="w-full mx-auto px-0">
+        <div id="loading-state" class="flex items-center justify-center py-16">
+            <p class="text-lg text-muted-foreground">Carregando dados do balanço...</p>
+        </div>
+        <div id="report-content" class="hidden space-y-12">
+            <header class="border-b border-border pb-4">
+                <h1 class="text-2xl font-bold">Indicadores financeiros</h1>
+                
+            </header>
+
+            <!-- Seção LIQUIDEZ -->
+            <section>
+                <h2 class="text-lg font-bold border-b border-border pb-2 mb-4">LIQUIDEZ</h2>
+                <div class="w-full overflow-x-auto overflow-y-hidden">
+                    <table class="table-indicadores border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b-2 border-foreground">
+                                <th class="col-cod text-left py-2 px-2 font-semibold">Cód.</th>
+                                <th class="col-indicador text-left py-2 px-2 font-semibold">Indicador</th>
+                                <th class="col-formula text-left py-2 px-2 font-semibold">Fórmula</th>
+                                <th class="col-mes text-right py-2 font-semibold">Jan</th>
+                                <th class="col-mes text-right py-2 font-semibold">Fev</th>
+                                <th class="col-mes text-right py-2 font-semibold">Mar</th>
+                                <th class="col-mes text-right py-2 font-semibold">Abr</th>
+                                <th class="col-mes text-right py-2 font-semibold">Mai</th>
+                                <th class="col-mes text-right py-2 font-semibold">Jun</th>
+                                <th class="col-mes text-right py-2 font-semibold">Jul</th>
+                                <th class="col-mes text-right py-2 font-semibold">Ago</th>
+                                <th class="col-mes text-right py-2 font-semibold">Set</th>
+                                <th class="col-mes text-right py-2 font-semibold">Out</th>
+                                <th class="col-mes text-right py-2 font-semibold">Nov</th>
+                                <th class="col-mes text-right py-2 font-semibold">Dez</th>
+                            </tr>
+                        </thead>
+                        <tbody id="indicadores-liquidez-tbody">
+                            <tr><td colspan="15" class="p-4 text-center text-muted-foreground">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Seção ESTRUTURA DE CAPITAL -->
+            <section>
+                <h2 class="text-lg font-bold border-b border-border pb-2 mb-4">ESTRUTURA DE CAPITAL</h2>
+                <div class="w-full overflow-x-auto overflow-y-hidden">
+                    <table class="table-indicadores border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b-2 border-foreground">
+                                <th class="col-cod text-left py-2 px-2 font-semibold">Cód.</th>
+                                <th class="col-indicador text-left py-2 px-2 font-semibold">Indicador</th>
+                                <th class="col-formula text-left py-2 px-2 font-semibold">Fórmula</th>
+                                <th class="col-mes text-right py-2 font-semibold">Jan</th>
+                                <th class="col-mes text-right py-2 font-semibold">Fev</th>
+                                <th class="col-mes text-right py-2 font-semibold">Mar</th>
+                                <th class="col-mes text-right py-2 font-semibold">Abr</th>
+                                <th class="col-mes text-right py-2 font-semibold">Mai</th>
+                                <th class="col-mes text-right py-2 font-semibold">Jun</th>
+                                <th class="col-mes text-right py-2 font-semibold">Jul</th>
+                                <th class="col-mes text-right py-2 font-semibold">Ago</th>
+                                <th class="col-mes text-right py-2 font-semibold">Set</th>
+                                <th class="col-mes text-right py-2 font-semibold">Out</th>
+                                <th class="col-mes text-right py-2 font-semibold">Nov</th>
+                                <th class="col-mes text-right py-2 font-semibold">Dez</th>
+                            </tr>
+                        </thead>
+                        <tbody id="indicadores-estrutura-tbody">
+                            <tr><td colspan="15" class="p-4 text-center text-muted-foreground">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-indicadores-bp';
+
+        const MESES_COLS = ['VALOR_JAN','VALOR_FEV','VALOR_MAR','VALOR_ABR','VALOR_MAI','VALOR_JUN','VALOR_JUL','VALOR_AGO','VALOR_SET','VALOR_OUT','VALOR_NOV','VALOR_DEZ'];
+        const MES_KEYS = ['valorJan','valorFev','valorMar','valorAbr','valorMai','valorJun','valorJul','valorAgo','valorSet','valorOut','valorNov','valorDez'];
+
+        function updateMitra() {
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+
+        /**
+         * Retorna a soma dos valores mês a mês de todos os itens do BP
+         * cuja hierarquia é exatamente igual ao código ou começa com código + '.'.
+         */
+        function getValorByHierarquia(bpData, code) {
+            const empty = () => ({ valorJan:0, valorFev:0, valorMar:0, valorAbr:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 });
+            if (!bpData || !Array.isArray(bpData)) return empty();
+            const normalized = (code || '').toString().trim();
+            const match = (h) => {
+                if (!h) return false;
+                const s = String(h).trim();
+                if (s === normalized) return true;
+                if (s.startsWith(normalized + '.')) return true;
+                if (normalized.endsWith('.') && s === normalized.slice(0, -1)) return true;
+                return false;
+            };
+            const keys = ['valorJan','valorFev','valorMar','valorAbr','valorMai','valorJun','valorJul','valorAgo','valorSet','valorOut','valorNov','valorDez'];
+            return bpData.filter(d => match(d.hierarquia)).reduce(
+                (acc, item) => {
+                    keys.forEach((k, i) => { acc[k] += parseFloat(item[k]) || 0; });
+                    return acc;
+                },
+                { valorJan:0, valorFev:0, valorMar:0, valorAbr:0, valorMai:0, valorJun:0, valorJul:0, valorAgo:0, valorSet:0, valorOut:0, valorNov:0, valorDez:0 }
+            );
+        }
+
+        /**
+         * Monta o objeto de base para os indicadores a partir do BP (queryDadosBP com VALOR_JAN ... VALOR_DEZ).
+         * 1., 2. e 3. são obtidos por soma dos filhos quando a agregação direta for zero em todos os meses.
+         */
+        function computeBPBase(bpData) {
+            if (!bpData || bpData.length === 0) return null;
+            const keys = ['valorJan','valorFev','valorMar','valorAbr','valorMai','valorJun','valorJul','valorAgo','valorSet','valorOut','valorNov','valorDez'];
+            const sum = (a, b) => keys.reduce((o, k) => { o[k] = (a[k]||0) + (b[k]||0); return o; }, {});
+            const sum3 = (a, b, c) => sum(sum(a, b), c);
+            const hasAny = (v) => keys.some(k => (v[k]||0) !== 0);
+            const v11 = getValorByHierarquia(bpData, '1.1');
+            const v12 = getValorByHierarquia(bpData, '1.2');
+            const v21 = getValorByHierarquia(bpData, '2.1');
+            const v22 = getValorByHierarquia(bpData, '2.2');
+            const v31 = getValorByHierarquia(bpData, '3.1');
+            const v32 = getValorByHierarquia(bpData, '3.2');
+            const v33 = getValorByHierarquia(bpData, '3.3');
+            const v1ponto = getValorByHierarquia(bpData, '1.');
+            const v2ponto = getValorByHierarquia(bpData, '2.');
+            const v3ponto = getValorByHierarquia(bpData, '3.');
+            const total1 = hasAny(v1ponto) ? v1ponto : sum(v11, v12);
+            const total2 = hasAny(v2ponto) ? v2ponto : sum(v21, v22);
+            const total3 = hasAny(v3ponto) ? v3ponto : sum3(v31, v32, v33);
+            return {
+                '1.': total1,
+                '1.1': v11,
+                '1.1.1': getValorByHierarquia(bpData, '1.1.1'),
+                '1.1.12': getValorByHierarquia(bpData, '1.1.12'),
+                '1.2': v12,
+                '1.2.1': getValorByHierarquia(bpData, '1.2.1'),
+                '2.': total2,
+                '2.1': v21,
+                '2.2': v22,
+                '2.1.4': getValorByHierarquia(bpData, '2.1.4'),
+                '2.2.1': getValorByHierarquia(bpData, '2.2.1'),
+                '3.': total3
+            };
+        }
+
+        function safeDiv(num, den) {
+            if (den == null || den === 0 || isNaN(den)) return null;
+            const n = parseFloat(num);
+            return (num != null && !isNaN(n)) ? n / den : null;
+        }
+
+        function formatCurrency(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) return '–';
+            return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+        }
+
+        function formatRatio(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) return '–';
+            return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+        }
+
+        function formatPercent(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) return '–';
+            return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num) + ' %';
+        }
+
+        /**
+         * Calcula os indicadores de LIQUIDEZ e ESTRUTURA DE CAPITAL mês a mês.
+         */
+        function computeIndicadores(b) {
+            const r = (num, den) => safeDiv(num, den);
+            const pct = (num, den) => {
+                const q = safeDiv(num, den);
+                return q != null ? q * 100 : null;
+            };
+            const forMes = (fn) => MES_KEYS.map((k, i) => fn(i, k));
+
+            const get = (obj, key) => obj ? obj[key] : 0;
+
+            // LIQUIDEZ: um valor por mês
+            const LC_valores = forMes((i, k) => r(get(b['1.1'], k), get(b['2.1'], k)));
+            const LS_valores = forMes((i, k) => r(get(b['1.1'], k) - get(b['1.1.12'], k), get(b['2.1'], k)));
+            const LG_valores = forMes((i, k) => r(get(b['1.1'], k) + get(b['1.2.1'], k), get(b['2.'], k)));
+            const LI_valores = forMes((i, k) => r(get(b['1.1.1'], k), get(b['2.1'], k)));
+
+            // ESTRUTURA DE CAPITAL
+            const EG_valores = forMes((i, k) => pct(get(b['2.'], k), get(b['1.'], k)));
+            const PCT_valores = forMes((i, k) => pct(get(b['2.'], k), get(b['3.'], k)));
+            const CE_valores = forMes((i, k) => pct(get(b['2.1'], k), get(b['2.'], k)));
+            const IPL_valores = forMes((i, k) => pct(get(b['1.2'], k) - get(b['1.2.1'], k), get(b['3.'], k)));
+            const IRNC_valores = forMes((i, k) => pct(get(b['2.1'], k) - get(b['1.2.1'], k), get(b['2.2'], k) + get(b['3.'], k)));
+            const DL_valores = forMes((i, k) => get(b['2.'], k) - get(b['1.1.1'], k));
+            const DB_valores = forMes((i, k) => get(b['2.'], k));
+            const EO_valores = forMes((i, k) => r(get(b['2.1.4'], k) + get(b['2.2.1'], k), get(b['1.'], k)));
+            const SG_valores = forMes((i, k) => r(get(b['1.'], k), get(b['2.'], k)));
+
+            return {
+                liquidez: [
+                    { cod: 'LC', nome: 'Liquidez corrente', formula: 'AC/PC', valores: LC_valores, format: 'ratio' },
+                    { cod: 'LS', nome: 'Liquidez seca', formula: '(AC - ESTOQUE) / PC', valores: LS_valores, format: 'ratio' },
+                    { cod: 'LG', nome: 'Liquidez geral', formula: '(AC + RLP) / (PC + PNC)', valores: LG_valores, format: 'ratio' },
+                    { cod: 'LI', nome: 'Liquidez imediata', formula: 'DISPONIBILIDADE / PC', valores: LI_valores, format: 'ratio' }
+                ],
+                estrutura: [
+                    { cod: 'EG', nome: 'Endividamento geral', formula: '((PC + PNC) / (AC + ANC)) * 100', valores: EG_valores, format: 'percent' },
+                    { cod: 'PCT', nome: 'Participação de capital de terceiros', formula: '((PC + PNC) / PL) * 100', valores: PCT_valores, format: 'percent' },
+                    { cod: 'CE', nome: 'Composição do endividamento', formula: '(PC / (PC + PNC)) * 100', valores: CE_valores, format: 'percent' },
+                    { cod: 'IPL', nome: 'Imobilização do patrimônio líquido', formula: '((ANC - RLP) / PL) * 100', valores: IPL_valores, format: 'percent' },
+                    { cod: 'IRNC', nome: 'Imobilização do recurso não corrente', formula: '((ANC - RLP) / (PNC + PL)) * 100', valores: IRNC_valores, format: 'percent' },
+                    { cod: 'DL', nome: 'Dívida líquida', formula: '(PC + PNC) - DISPONIBILIDADES', valores: DL_valores, format: 'currency' },
+                    { cod: 'DB', nome: 'Dívida bruta', formula: 'PC + PNC', valores: DB_valores, format: 'currency' },
+                    { cod: 'EO', nome: 'Endividamento oneroso', formula: '(EMPRÉSTIMO + FINANCIAMENTO) / ATIVO TOTAL', valores: EO_valores, format: 'ratio' },
+                    { cod: 'SG', nome: 'Solvência geral', formula: 'ATIVO / (PC + PNC)', valores: SG_valores, format: 'ratio' }
+                ]
+            };
+        }
+
+        function formatValor(value, format) {
+            if (value == null || isNaN(value)) return '–';
+            switch (format) {
+                case 'percent': return formatPercent(value);
+                case 'currency': return formatCurrency(value);
+                default: return formatRatio(value);
+            }
+        }
+
+        function renderIndicadores(bpData) {
+            const tbodyLiq = document.getElementById('indicadores-liquidez-tbody');
+            const tbodyEst = document.getElementById('indicadores-estrutura-tbody');
+            if (!tbodyLiq || !tbodyEst) return;
+
+            const base = computeBPBase(bpData);
+            if (!base) {
+                tbodyLiq.innerHTML = '<tr><td colspan="15" class="p-6 text-center text-muted-foreground">Nenhum dado do balanço disponível para calcular indicadores.</td></tr>';
+                tbodyEst.innerHTML = '<tr><td colspan="15" class="p-6 text-center text-muted-foreground">Nenhum dado do balanço disponível para calcular indicadores.</td></tr>';
+                return;
+            }
+
+            const ind = computeIndicadores(base);
+            const cellValores = (valores, format) => (valores || []).map(v => `<td class="col-mes py-2 text-right tabular-nums">${formatValor(v, format)}</td>`).join('');
+
+            tbodyLiq.innerHTML = ind.liquidez.map(i => `
+                <tr class="border-b border-border">
+                    <td class="col-cod py-2 px-2 font-mono text-muted-foreground">${i.cod}</td>
+                    <td class="col-indicador py-2 px-2 font-medium">${i.nome}</td>
+                    <td class="col-formula py-2 px-2 indicador-formula">${i.formula}</td>
+                    ${cellValores(i.valores, i.format)}
+                </tr>
+            `).join('');
+
+            tbodyEst.innerHTML = ind.estrutura.map(i => `
+                <tr class="border-b border-border">
+                    <td class="col-cod py-2 px-2 font-mono text-muted-foreground">${i.cod}</td>
+                    <td class="col-indicador py-2 px-2 font-medium">${i.nome}</td>
+                    <td class="col-formula py-2 px-2 indicador-formula">${i.formula}</td>
+                    ${cellValores(i.valores, i.format)}
+                </tr>
+            `).join('');
+        }
+
+        function processBPResult(result) {
+            if (!result || !result.data || result.data.length === 0) return null;
+            const headers = (result.headers || []).map(h => (h && h.name ? h.name.toUpperCase() : ''));
+            const colMap = {
+                ordem: headers.indexOf('ORDEM'),
+                descricao: headers.indexOf('DESCRICAO'),
+                formatacao: headers.indexOf('FORMATACAO'),
+                hierarquia: headers.indexOf('HIERARQUIA'),
+                sinal: headers.indexOf('SINAL')
+            };
+            MESES_COLS.forEach((col, i) => { colMap[MES_KEYS[i]] = headers.indexOf(col); });
+            const hasMes = MES_KEYS.some(k => colMap[k] !== -1);
+            if (colMap.hierarquia === -1 || !hasMes) return null;
+            return result.data.map(row => {
+                const sinal = colMap.sinal !== -1 ? (parseFloat(row[colMap.sinal]) || 1) : 1;
+                const item = {
+                    ordem: row[colMap.ordem],
+                    descricao: (row[colMap.descricao] || '').toString(),
+                    formatacao: row[colMap.formatacao] != null ? row[colMap.formatacao] : '',
+                    hierarquia: (row[colMap.hierarquia] || '').toString().trim()
+                };
+                MES_KEYS.forEach((k, i) => {
+                    const idx = colMap[k];
+                    item[k] = idx !== -1 ? (parseFloat(row[idx]) || 0) * sinal : 0;
+                });
+                return item;
+            });
+        }
+
+        async function fetchAndRenderData() {
+            const container = document.getElementById('report-container');
+            const loadingEl = document.getElementById('loading-state');
+            const contentEl = document.getElementById('report-content');
+
+            contentEl.classList.add('hidden');
+            loadingEl.classList.remove('hidden');
+            loadingEl.textContent = 'Carregando dados do balanço...';
+
+            const queryBP = window.componentData && (window.componentData.queryDadosBP || window.componentData.queryDados || window.componentData.queryBP1);
+            if (!queryBP) {
+                loadingEl.textContent = 'Erro: query do balanço não configurada (queryDadosBP, queryDados ou queryBP1).';
+                return;
+            }
+
+            try {
+                const bpResult = await queryMitra({ query: queryBP });
+                const bpData = processBPResult(bpResult);
+
+                if (bpData && bpData.length > 0) {
+                    renderIndicadores(bpData);
+                    loadingEl.classList.add('hidden');
+                    contentEl.classList.remove('hidden');
+                } else {
+                    loadingEl.textContent = 'Nenhum dado encontrado para o balanço.';
+                    contentEl.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error('Falha ao carregar indicadores:', err);
+                loadingEl.textContent = 'Erro ao carregar dados do balanço.';
+                contentEl.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, fetchAndRenderData);
+            const maxWait = 5000;
+            const interval = 100;
+            const start = Date.now();
+            const ti = setInterval(() => {
+                const queryBP = window.componentData && (window.componentData.queryDadosBP || window.componentData.queryDados || window.componentData.queryBP1);
+                if (window.componentData && queryBP) {
+                    clearInterval(ti);
+                    fetchAndRenderData();
+                } else if (Date.now() - start > maxWait) {
+                    clearInterval(ti);
+                    document.getElementById('loading-state').textContent = 'Erro: configurações do componente (componentData) não carregadas a tempo.';
+                }
+            }, interval);
+        });
+    </script>
+</body>
+
+</html>

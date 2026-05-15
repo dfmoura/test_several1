@@ -1,0 +1,771 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanço Patrimonial</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+    <div id="report-container" class="w-full h-full overflow-y-auto">
+        <div id="loading-state" class="flex items-center justify-center h-full">
+            <p class="text-lg text-muted-foreground">Carregando dados do balanço...</p>
+        </div>
+        <div id="report-content" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+                <!-- Coluna da Esquerda: Ativo -->
+                <div id="ativo-container" class="space-y-8"></div>
+                <!-- Coluna da Direita: Passivo e PL -->
+                <div id="passivo-pl-container" class="space-y-8"></div>
+            </div>
+            <!-- Seção de Totais -->
+            <div id="totais-container" class="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
+            </div>
+        </div>
+    </div>
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-balanco-patrimonial';
+        function updateMitra() {
+            console.log("Sinal de update para [Balanço Patrimonial] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+        function formatCurrency(value) {
+            const num = parseFloat(value);
+            if (isNaN(num)) {
+                return '0,00';
+            }
+            const formatted = new Intl.NumberFormat('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(Math.abs(num));
+            return num < 0 ? `(${formatted})` : formatted;
+        }
+        function generateTableHtml(title, items, subtotal, currentYear, previousYear) {
+            let itemsHtml = items.map(item => `
+                <tr class="border-b border-border">
+                    <td class="py-2 px-4 text-sm text-muted-foreground">${item.nomeGrupo}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAtual)}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAnterior)}</td>
+                </tr>
+            `).join('');
+            let subtotalHtml = `
+                <tr class="font-bold bg-secondary">
+                    <td class="py-2 px-4 text-sm">${subtotal.descricao}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotal.valorAtual)}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotal.valorAnterior)}</td>
+                </tr>
+            `;
+            return `
+                <div class="w-full">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-foreground">
+                                <th class="py-2 px-4 text-left text-base font-bold">${title}</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${currentYear}</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${previousYear}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                            ${subtotalHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        function generateTotalTableHtml(title, total, currentYear, previousYear) {
+             return `
+                <div class="w-full">
+                    <table class="w-full border-collapse">
+                        <tbody>
+                             <tr class="font-bold border-y-2 border-double border-foreground bg-secondary">
+                                <td class="py-3 px-4 text-base">${title}</td>
+                                <td class="py-3 px-4 text-base text-right tabular-nums w-32">${formatCurrency(total.valorAtual)}</td>
+                                <td class="py-3 px-4 text-base text-right tabular-nums w-32">${formatCurrency(total.valorAnterior)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        function normalizeOrder(value) {
+            return String(value || '').replace(/\s+/g, '');
+        }
+        function startsWithOrder(ordem, prefixo) {
+            const normalizado = normalizeOrder(ordem);
+            const prefixoNormalizado = normalizeOrder(prefixo);
+            return normalizado.startsWith(prefixoNormalizado);
+        }
+        function createSubtotal(descricao) {
+            return { descricao, valorAtual: 0, valorAnterior: 0 };
+        }
+        function sumItems(items, descricao) {
+            return items.reduce((acc, item) => {
+                acc.valorAtual += item.valorAtual;
+                acc.valorAnterior += item.valorAnterior;
+                return acc;
+            }, createSubtotal(descricao));
+        }
+        function renderReport(data, currentYear, previousYear) {
+            // ATIVO
+            const ativoCirculanteItems = data.filter(d => startsWithOrder(d.ordem, '1.1.'));
+            ativoCirculanteItems.sort((a, b) => normalizeOrder(a.ordem).localeCompare(normalizeOrder(b.ordem)));
+            const subtotalAtivoCirculante = sumItems(ativoCirculanteItems, '1.1. = Total do ativo circulante');
+
+            const ativoNaoCirculanteItems = data.filter(d => startsWithOrder(d.ordem, '1.2.'));
+            ativoNaoCirculanteItems.sort((a, b) => normalizeOrder(a.ordem).localeCompare(normalizeOrder(b.ordem)));
+            const subtotalAtivoNaoCirculante = sumItems(ativoNaoCirculanteItems, '1.2. = Total do ativo não circulante');
+            const totalAtivo = {
+                valorAtual: subtotalAtivoCirculante.valorAtual + subtotalAtivoNaoCirculante.valorAtual,
+                valorAnterior: subtotalAtivoCirculante.valorAnterior + subtotalAtivoNaoCirculante.valorAnterior
+            };
+            
+            // Subtotais customizados (somente exibição) para não impactar totais gerais
+            const duplicatasAReceberItems = ativoCirculanteItems.filter(item =>
+                startsWithOrder(item.ordem, '1.1.2.1.1') ||
+                startsWithOrder(item.ordem, '1.1.2.1.2') ||
+                startsWithOrder(item.ordem, '1.1.2.1.3') ||
+                startsWithOrder(item.ordem, '1.1.2.1.4')
+            );
+            const subtotalDuplicatasAReceber = sumItems(duplicatasAReceberItems, 'Duplicatas a receber');
+
+            const creditosItems = ativoCirculanteItems.filter(item =>
+                startsWithOrder(item.ordem, '1.1.2.1.1') ||
+                startsWithOrder(item.ordem, '1.1.2.1.2') ||
+                startsWithOrder(item.ordem, '1.1.2.1.3') ||
+                startsWithOrder(item.ordem, '1.1.2.1.4') ||
+                startsWithOrder(item.ordem, '1.1.2.2') ||
+                startsWithOrder(item.ordem, '1.1.2.3')
+            );
+            const subtotalCreditos = sumItems(creditosItems, 'Créditos');
+
+            let acBodyHtml = '';
+            let creditosGroupAdded = false;
+            let duplicatasGroupAdded = false;
+
+            ativoCirculanteItems.forEach(item => {
+                const isDuplicataItem =
+                    startsWithOrder(item.ordem, '1.1.2.1.1') ||
+                    startsWithOrder(item.ordem, '1.1.2.1.2') ||
+                    startsWithOrder(item.ordem, '1.1.2.1.3') ||
+                    startsWithOrder(item.ordem, '1.1.2.1.4');
+
+                const isCreditoItem = isDuplicataItem || startsWithOrder(item.ordem, '1.1.2.2') || startsWithOrder(item.ordem, '1.1.2.3');
+
+                // Colocar primeiro: totalizador "Créditos" (uma única vez, antes do 1º item do grupo)
+                if (isCreditoItem && !creditosGroupAdded) {
+                    acBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-4">${subtotalCreditos.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalCreditos.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalCreditos.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    creditosGroupAdded = true;
+                }
+
+                // Colocar primeiro: totalizador "Duplicatas a receber" (uma única vez, antes do 1º item do grupo)
+                if (isDuplicataItem && !duplicatasGroupAdded) {
+                    acBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-8">${subtotalDuplicatasAReceber.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalDuplicatasAReceber.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalDuplicatasAReceber.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    duplicatasGroupAdded = true;
+                }
+
+                // Indentação dos itens filhos
+                const indentClass = isDuplicataItem ? 'pl-12' : (isCreditoItem ? 'pl-8' : '');
+                acBodyHtml += `
+                    <tr class="border-b border-border">
+                        <td class="py-2 px-4 text-sm text-muted-foreground ${indentClass}">${item.nomeGrupo}</td>
+                        <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAtual)}</td>
+                        <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAnterior)}</td>
+                    </tr>
+                `;
+            });
+
+            const subtotalAcHtml = `
+                <tr class="font-bold bg-secondary">
+                    <td class="py-2 px-4 text-sm">${subtotalAtivoCirculante.descricao}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalAtivoCirculante.valorAtual)}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalAtivoCirculante.valorAnterior)}</td>
+                </tr>
+            `;
+
+            const htmlAtivoCirculante = `
+                <div class="w-full">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-foreground">
+                                <th class="py-2 px-4 text-left text-base font-bold">1.1. = Ativo circulante</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${currentYear}</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${previousYear}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${acBodyHtml}
+                            ${subtotalAcHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Subtotais customizados (somente exibição) para Ativo não circulante
+            const investimentosItems = ativoNaoCirculanteItems.filter(item =>
+                startsWithOrder(item.ordem, '1.2.2.1') ||
+                startsWithOrder(item.ordem, '1.2.2.2')
+            );
+            const subtotalInvestimentos = sumItems(investimentosItems, 'Investimentos');
+
+            const imobilizadoItems = ativoNaoCirculanteItems.filter(item =>
+                startsWithOrder(item.ordem, '1.2.3.1') ||
+                startsWithOrder(item.ordem, '1.2.3.2')
+            );
+            const subtotalImobilizado = sumItems(imobilizadoItems, 'Imobilizado');
+
+            const intangivelItems = ativoNaoCirculanteItems.filter(item =>
+                startsWithOrder(item.ordem, '1.2.4.1') ||
+                startsWithOrder(item.ordem, '1.2.4.2')
+            );
+            const subtotalIntangivel = sumItems(intangivelItems, 'Intangível');
+
+            let ancBodyHtml = '';
+            let investimentosGroupAdded = false;
+            let imobilizadoGroupAdded = false;
+            let intangivelGroupAdded = false;
+
+            ativoNaoCirculanteItems.forEach(item => {
+                const isInvestimentoItem =
+                    startsWithOrder(item.ordem, '1.2.2.1') ||
+                    startsWithOrder(item.ordem, '1.2.2.2');
+
+                const isImobilizadoItem =
+                    startsWithOrder(item.ordem, '1.2.3.1') ||
+                    startsWithOrder(item.ordem, '1.2.3.2');
+
+                const isIntangivelItem =
+                    startsWithOrder(item.ordem, '1.2.4.1') ||
+                    startsWithOrder(item.ordem, '1.2.4.2');
+
+                if (isInvestimentoItem && !investimentosGroupAdded) {
+                    ancBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-4">${subtotalInvestimentos.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalInvestimentos.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalInvestimentos.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    investimentosGroupAdded = true;
+                }
+
+                if (isImobilizadoItem && !imobilizadoGroupAdded) {
+                    ancBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-4">${subtotalImobilizado.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalImobilizado.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalImobilizado.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    imobilizadoGroupAdded = true;
+                }
+
+                if (isIntangivelItem && !intangivelGroupAdded) {
+                    ancBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-4">${subtotalIntangivel.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalIntangivel.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalIntangivel.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    intangivelGroupAdded = true;
+                }
+
+                const indentClass = (isInvestimentoItem || isImobilizadoItem || isIntangivelItem) ? 'pl-8' : '';
+                ancBodyHtml += `
+                    <tr class="border-b border-border">
+                        <td class="py-2 px-4 text-sm text-muted-foreground ${indentClass}">${item.nomeGrupo}</td>
+                        <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAtual)}</td>
+                        <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAnterior)}</td>
+                    </tr>
+                `;
+            });
+
+            const subtotalAncHtml = `
+                <tr class="font-bold bg-secondary">
+                    <td class="py-2 px-4 text-sm">${subtotalAtivoNaoCirculante.descricao}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalAtivoNaoCirculante.valorAtual)}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalAtivoNaoCirculante.valorAnterior)}</td>
+                </tr>
+            `;
+
+            const htmlAtivoNaoCirculante = `
+                <div class="w-full">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-foreground">
+                                <th class="py-2 px-4 text-left text-base font-bold">1.2. = Ativo não circulante</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${currentYear}</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${previousYear}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${ancBodyHtml}
+                            ${subtotalAncHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            document.getElementById('ativo-container').innerHTML = htmlAtivoCirculante + htmlAtivoNaoCirculante;
+
+            // PASSIVO
+            const passivoCirculanteItemsAll = data.filter(d => startsWithOrder(d.ordem, '2.1.'));
+            passivoCirculanteItemsAll.sort((a, b) => normalizeOrder(a.ordem).localeCompare(normalizeOrder(b.ordem)));
+
+            // Subtotal para Empréstimos (2.1.4.1.1 + 2.1.4.1.2)
+            const emprestimosPcItems = passivoCirculanteItemsAll.filter(item =>
+                startsWithOrder(item.ordem, '2.1.4.1.1') ||
+                startsWithOrder(item.ordem, '2.1.4.1.2')
+            );
+            const subtotalEmprestimosPc = sumItems(emprestimosPcItems, 'Empréstimos');
+
+            // Subtotal para Financiamentos (2.1.5.1 + 2.1.5.2)
+            const financiamentosPcItems = passivoCirculanteItemsAll.filter(item =>
+                startsWithOrder(item.ordem, '2.1.5.1') ||
+                startsWithOrder(item.ordem, '2.1.5.2')
+            );
+            const subtotalFinanciamentosPc = sumItems(financiamentosPcItems, 'Financiamentos');
+
+            // Totalizador-pai (circulante): Empréstimos + Financiamentos
+            const subtotalEmprestimosFinanciamentosPc = {
+                descricao: 'Empréstimos, financiamentos',
+                valorAtual: subtotalEmprestimosPc.valorAtual + subtotalFinanciamentosPc.valorAtual,
+                valorAnterior: subtotalEmprestimosPc.valorAnterior + subtotalFinanciamentosPc.valorAnterior
+            };
+
+            // O subtotal principal continua somando todos os itens, para não impactar o total geral.
+            const subtotalPassivoCirculante = sumItems(passivoCirculanteItemsAll, '2.1. = Total do passivo circulante');
+
+            let pcBodyHtml = '';
+            let emprestimosFinanciamentosPcGroupAdded = false;
+            let emprestimosPcGroupAdded = false;
+            let financiamentosPcGroupAdded = false;
+
+            passivoCirculanteItemsAll.forEach(item => {
+                const isEmprestimoPcItem =
+                    startsWithOrder(item.ordem, '2.1.4.1.1') ||
+                    startsWithOrder(item.ordem, '2.1.4.1.2');
+
+                const isFinanciamentoPcItem =
+                    startsWithOrder(item.ordem, '2.1.5.1') ||
+                    startsWithOrder(item.ordem, '2.1.5.2');
+
+                // Colocar primeiro: totalizador-pai (uma única vez, antes do 1º item do grupo)
+                if ((isEmprestimoPcItem || isFinanciamentoPcItem) && !emprestimosFinanciamentosPcGroupAdded) {
+                    pcBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-4">${subtotalEmprestimosFinanciamentosPc.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalEmprestimosFinanciamentosPc.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalEmprestimosFinanciamentosPc.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    emprestimosFinanciamentosPcGroupAdded = true;
+                }
+
+                // Colocar primeiro: totalizador "Empréstimos" antes dos 2 itens
+                if (isEmprestimoPcItem && !emprestimosPcGroupAdded) {
+                    pcBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-8">${subtotalEmprestimosPc.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalEmprestimosPc.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalEmprestimosPc.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    emprestimosPcGroupAdded = true;
+                }
+
+                // Colocar primeiro: totalizador "Financiamentos" antes dos 2 itens
+                if (isFinanciamentoPcItem && !financiamentosPcGroupAdded) {
+                    pcBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-8">${subtotalFinanciamentosPc.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalFinanciamentosPc.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalFinanciamentosPc.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    financiamentosPcGroupAdded = true;
+                }
+
+                // Aumenta a indentação dos itens filhos
+                const indentClass = (isEmprestimoPcItem || isFinanciamentoPcItem) ? 'pl-12' : '';
+                pcBodyHtml += `
+                    <tr class="border-b border-border">
+                        <td class="py-2 px-4 text-sm text-muted-foreground ${indentClass}">${item.nomeGrupo}</td>
+                        <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAtual)}</td>
+                        <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAnterior)}</td>
+                    </tr>
+                `;
+            });
+
+            const subtotalPcHtml = `
+                <tr class="font-bold bg-secondary">
+                    <td class="py-2 px-4 text-sm">${subtotalPassivoCirculante.descricao}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalPassivoCirculante.valorAtual)}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalPassivoCirculante.valorAnterior)}</td>
+                </tr>
+            `;
+
+            const htmlPassivoCirculante = `
+                <div class="w-full">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-foreground">
+                                <th class="py-2 px-4 text-left text-base font-bold">2.1. = Passivo circulante</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${currentYear}</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${previousYear}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pcBodyHtml}
+                            ${subtotalPcHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            // PASSIVO NÃO CIRCULANTE (com lógicas customizadas)
+            const passivoNaoCirculanteItemsAll = data.filter(d => startsWithOrder(d.ordem, '2.2.'));
+            passivoNaoCirculanteItemsAll.sort((a, b) => normalizeOrder(a.ordem).localeCompare(normalizeOrder(b.ordem)));
+
+            // Subtotal para Empréstimos
+            const emprestimosItems = passivoNaoCirculanteItemsAll.filter(item =>
+                startsWithOrder(item.ordem, '2.2.1.1.1') ||
+                startsWithOrder(item.ordem, '2.2.1.1.2')
+            );
+            const subtotalEmprestimos = sumItems(emprestimosItems, 'Empréstimos');
+            
+            // Subtotal para Financiamentos
+            const financiamentosItems = passivoNaoCirculanteItemsAll.filter(item =>
+                startsWithOrder(item.ordem, '2.2.1.2.1') ||
+                startsWithOrder(item.ordem, '2.2.1.2.2')
+            );
+            const subtotalFinanciamentos = sumItems(financiamentosItems, 'Financiamentos');
+            
+            // Novo totalizador-pai
+            const subtotalEmprestimosFinanciamentos = {
+                descricao: 'Empréstimos, financiamentos',
+                valorAtual: subtotalEmprestimos.valorAtual + subtotalFinanciamentos.valorAtual,
+                valorAnterior: subtotalEmprestimos.valorAnterior + subtotalFinanciamentos.valorAnterior
+            };
+
+            // O subtotal principal continua somando todos os itens, para não impactar o total geral.
+            const subtotalPassivoNaoCirculante = sumItems(passivoNaoCirculanteItemsAll, '2.2. = Total do passivo não circulante');
+
+            let pncBodyHtml = '';
+            let emprestimosFinanciamentosGroupAdded = false;
+            let emprestimosGroupAdded = false;
+            let financiamentosGroupAdded = false;
+
+            passivoNaoCirculanteItemsAll.forEach(item => {
+                const isEmprestimoItem =
+                    startsWithOrder(item.ordem, '2.2.1.1.1') ||
+                    startsWithOrder(item.ordem, '2.2.1.1.2');
+
+                const isFinanciamentoItem =
+                    startsWithOrder(item.ordem, '2.2.1.2.1') ||
+                    startsWithOrder(item.ordem, '2.2.1.2.2');
+
+                // Adiciona o novo totalizador-pai uma única vez
+                if ((isEmprestimoItem || isFinanciamentoItem) && !emprestimosFinanciamentosGroupAdded) {
+                    pncBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-8">${subtotalEmprestimosFinanciamentos.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalEmprestimosFinanciamentos.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalEmprestimosFinanciamentos.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    emprestimosFinanciamentosGroupAdded = true;
+                }
+
+                if (isEmprestimoItem && !emprestimosGroupAdded) {
+                    pncBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-12">${subtotalEmprestimos.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalEmprestimos.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalEmprestimos.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    emprestimosGroupAdded = true;
+                }
+
+                if (isFinanciamentoItem && !financiamentosGroupAdded) {
+                    pncBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-12">${subtotalFinanciamentos.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalFinanciamentos.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalFinanciamentos.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    financiamentosGroupAdded = true;
+                }
+                
+                // Aumenta a indentação dos itens filhos
+                const indentClass = (isEmprestimoItem || isFinanciamentoItem) ? 'pl-16' : '';
+                pncBodyHtml += `
+                    <tr class="border-b border-border">
+                        <td class="py-2 px-4 text-sm text-muted-foreground ${indentClass}">${item.nomeGrupo}</td>
+                        <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAtual)}</td>
+                        <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAnterior)}</td>
+                    </tr>
+                `;
+            });
+
+
+            const subtotalPncHtml = `
+                <tr class="font-bold bg-secondary">
+                    <td class="py-2 px-4 text-sm">${subtotalPassivoNaoCirculante.descricao}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalPassivoNaoCirculante.valorAtual)}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalPassivoNaoCirculante.valorAnterior)}</td>
+                </tr>
+            `;
+
+            const htmlPassivoNaoCirculante = `
+                <div class="w-full">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-foreground">
+                                <th class="py-2 px-4 text-left text-base font-bold">2.2. = Passivo não circulante</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${currentYear}</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${previousYear}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pncBodyHtml}
+                            ${subtotalPncHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // PATRIMÔNIO LÍQUIDO (com lógica customizada)
+            const plItemsAll = data.filter(d => startsWithOrder(d.ordem, '3.'));
+            plItemsAll.sort((a, b) => normalizeOrder(a.ordem).localeCompare(normalizeOrder(b.ordem)));
+
+            const lucrosPrejuizosItems = plItemsAll.filter(item =>
+                startsWithOrder(item.ordem, '3.3.1') ||
+                startsWithOrder(item.ordem, '3.3.2') ||
+                startsWithOrder(item.ordem, '3.3.3')
+            );
+            const subtotalLucrosPrejuizos = sumItems(lucrosPrejuizosItems, 'Lucros ou prejuízos acumulados');
+
+            let plBodyHtml = '';
+            let groupAdded = false;
+
+            plItemsAll.forEach(item => {
+                const isLucroPrejuizoItem =
+                    startsWithOrder(item.ordem, '3.3.1') ||
+                    startsWithOrder(item.ordem, '3.3.2') ||
+                    startsWithOrder(item.ordem, '3.3.3');
+
+                if (isLucroPrejuizoItem && !groupAdded) {
+                    plBodyHtml += `
+                        <tr class="font-bold bg-secondary">
+                            <td class="py-2 px-4 text-sm pl-4">${subtotalLucrosPrejuizos.descricao}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalLucrosPrejuizos.valorAtual)}</td>
+                            <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalLucrosPrejuizos.valorAnterior)}</td>
+                        </tr>
+                    `;
+                    groupAdded = true;
+                }
+
+                const indentClass = isLucroPrejuizoItem ? 'pl-8' : '';
+                plBodyHtml += `
+                    <tr class="border-b border-border">
+                        <td class="py-2 px-4 text-sm text-muted-foreground ${indentClass}">${item.nomeGrupo}</td>
+                        <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAtual)}</td>
+                        <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(item.valorAnterior)}</td>
+                    </tr>
+                `;
+            });
+
+            const subtotalPL = sumItems(plItemsAll, '3. = Total do patrimônio líquido');
+            const subtotalPLHtml = `
+                <tr class="font-bold bg-secondary">
+                    <td class="py-2 px-4 text-sm">${subtotalPL.descricao}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalPL.valorAtual)}</td>
+                    <td class="py-2 px-4 text-sm text-right tabular-nums">${formatCurrency(subtotalPL.valorAnterior)}</td>
+                </tr>
+            `;
+
+            const htmlPL = `
+                <div class="w-full">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-foreground">
+                                <th class="py-2 px-4 text-left text-base font-bold">3. = Patrimônio líquido</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${currentYear}</th>
+                                <th class="py-2 px-4 text-right text-sm font-semibold w-32">${previousYear}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${plBodyHtml}
+                            ${subtotalPLHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('passivo-pl-container').innerHTML = htmlPassivoCirculante + htmlPassivoNaoCirculante + htmlPL;
+
+            // TOTAIS
+            const totalPassivoPL = {
+                valorAtual: subtotalPassivoCirculante.valorAtual + subtotalPassivoNaoCirculante.valorAtual + subtotalPL.valorAtual,
+                valorAnterior: subtotalPassivoCirculante.valorAnterior + subtotalPassivoNaoCirculante.valorAnterior + subtotalPL.valorAnterior
+            };
+
+            const htmlTotalAtivo = generateTotalTableHtml('1. = Total do ativo', totalAtivo, currentYear, previousYear);
+            const htmlTotalPassivoPL = generateTotalTableHtml('2. + 3. = Total do passivo e patrimônio líquido', totalPassivoPL, currentYear, previousYear);
+            document.getElementById('totais-container').innerHTML = htmlTotalAtivo + htmlTotalPassivoPL;
+            
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('report-content').classList.remove('hidden');
+        }
+        async function fetchAndRenderData() {
+            const container = document.getElementById('report-container');
+            const contentEl = document.getElementById('report-content');
+            const loadingEl = document.getElementById('loading-state');
+            contentEl.classList.add('hidden');
+            loadingEl.classList.remove('hidden');
+            loadingEl.innerHTML = `<p class="text-lg text-muted-foreground">Carregando dados do balanço...</p>`;
+            
+            try {
+                const [reportResult, mesResult] = await Promise.all([
+                    queryMitra({ query: componentData.queryDados }),
+                    queryMitra({ query: `SELECT ${componentData.varMes}` })
+                ]);
+
+                if (!reportResult || !reportResult.data) {
+                    throw new Error("A consulta principal não retornou dados válidos.");
+                }
+
+                if (!mesResult || !mesResult.data || !mesResult.data[0] || !mesResult.data[0][0]) {
+                    throw new Error("Não foi possível obter a data de referência da plataforma. Por favor, selecione uma data no filtro.");
+                }
+
+                const dataReferenciaStr = mesResult.data[0][0];
+                const datePart = dataReferenciaStr.split(' ')[0];
+                const dataReferencia = new Date(datePart + 'T00:00:00');
+                
+                if (isNaN(dataReferencia.getTime())) {
+                    throw new Error(`Data de referência inválida: "${dataReferenciaStr}"`);
+                }
+
+                const currentYear = dataReferencia.getFullYear();
+                const previousYear = currentYear - 1;
+
+                const headers = reportResult.headers.map(h => (h && h.name ? h.name.toUpperCase() : ''));
+                const colMap = {
+                    ordem: headers.indexOf('ORDEM'),
+                    nomeGrupo: headers.indexOf('NOME_GRUPO'),
+                    valorAtual: headers.indexOf('ANO_ATUAL'),
+                    valorAnterior: headers.indexOf('ANO_ANTERIOR')
+                };
+
+                if (Object.values(colMap).some(index => index === -1)) {
+                    console.error('Erro de mapeamento de colunas. A query deve retornar: ORDEM, NOME_GRUPO, ANO_ATUAL, ANO_ANTERIOR.', headers);
+                    throw new Error("A query configurada não retorna as colunas esperadas.");
+                }
+
+                const processedData = reportResult.data.map(row => {
+                    return {
+                        ordem: row[colMap.ordem] || '',
+                        nomeGrupo: row[colMap.nomeGrupo] || 'N/A',
+                        valorAtual: parseFloat(row[colMap.valorAtual]) || 0,
+                        valorAnterior: parseFloat(row[colMap.valorAnterior]) || 0
+                    };
+                });
+                
+                renderReport(processedData, currentYear, previousYear);
+            } catch (error) {
+                console.error("Falha ao carregar dados do balanço:", error);
+                loadingEl.innerHTML = `<div class="p-8 text-center text-destructive-foreground bg-destructive h-full flex items-center justify-center rounded-lg">Erro Crítico: ${error.message}</div>`;
+            }
+        }
+        function initializeComponent() {
+            fetchAndRenderData();
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, fetchAndRenderData);
+            
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                    if (window.componentData && window.componentData.queryDados && window.componentData.varMes && window.componentData.varEmpresa) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        document.getElementById('report-container').innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente (queryDados, varMes, varEmpresa) não foram carregadas da plataforma.</div>`;
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>

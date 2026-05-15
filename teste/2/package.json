@@ -1,0 +1,13 @@
+{
+  "name": "mcp-server-simples",
+  "version": "1.0.0",
+  "description": "Servidor MCP didatico minimo via stdio",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

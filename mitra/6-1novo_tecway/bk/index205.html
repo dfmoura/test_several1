@@ -1,0 +1,2425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanço Patrimonial e DRE</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        body {
+            background-color: #e5e7eb;
+            color: hsl(var(--foreground));
+        }
+
+        .page-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .page {
+            background-color: hsl(var(--background));
+            width: 210mm;
+            min-height: 297mm;
+            padding: 30mm 20mm 40mm 20mm; /* 3cm no topo e 4cm no rodapé a partir da borda */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            color: hsl(var(--foreground));
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Paginas 2+ com fonte Arial e texto preto (capa preservada) */
+        .page-container > .page:not(:first-child),
+        .page-container > .page:not(:first-child) * {
+            color: #000 !important;
+            font-family: Arial, sans-serif !important;
+        }
+
+        /* =====================================================
+           CABEÇALHO PADRÃO — páginas 2 em diante
+           ===================================================== */
+
+        /*
+         * .page-header: wrapper do cabeçalho dentro de cada .page
+         * .page-header-line: linha de fora a fora ao final do cabeçalho
+         *
+         * POR QUE <div> e NÃO <hr>:
+         * O <hr> é ignorado ou renderizado sem borda em muitos browsers
+         * no modo de impressão. Um <div> com border-top explícito é
+         * 100% confiável tanto na tela quanto no print/PDF.
+         */
+        .page-header {
+            flex-shrink: 0;
+            margin-bottom: 1rem;
+        }
+
+        /* ── Indicadores Financeiros ──────────────────────────────────────────
+         * .ind-year-header: linha ABAIXO do cabeçalho de ano (underline do ano)
+         * .ind-num-val    : linha ABAIXO do numerador da fração (barra da fração)
+         * ─────────────────────────────────────────────────────────────────── */
+        .ind-year-header {
+            border-bottom: 1px solid #374151;
+        }
+        .ind-num-val {
+            border-bottom: 1px solid #374151;
+        }
+
+        /* ── DMPL: cabeçalhos e saldos intermediários ────────────────────────
+         * .dmpl-col-header: linha ABAIXO do cabeçalho de coluna (underline)
+         * .dmpl-saldo-val : linha ABAIXO dos valores de saldos intermediários (separador de período)
+         * ─────────────────────────────────────────────────────────────────── */
+        .dmpl-col-header {
+            border-bottom: 1px solid #374151;
+        }
+        .dmpl-saldo-val {
+            border-bottom: 1px solid #374151;
+        }
+
+        /* ── DRE ────────────────────────────────────────────────────────────
+         * .dre-year-header : linha ACIMA dos anos no cabeçalho (padrão da imagem)
+         * .dre-subtotal-val: linha simples acima dos valores de subtotais intermediários
+         * .dre-final-val   : linha simples acima + linha dupla abaixo (encerramento contábil)
+         * ─────────────────────────────────────────────────────────────────── */
+        .dre-year-header {
+            border-top: 1px solid #374151;
+        }
+        .dre-subtotal-val {
+            border-top: 1px solid #374151;
+        }
+        .dre-final-val {
+            border-top: 1px solid #374151;
+            border-bottom: 3px double #374151;
+        }
+
+        /* ── Balanço Patrimonial: alinhamento dos totais ───────────────────
+         * .bp-col-wrapper: flex column de altura total da célula do grid,
+         *   para que margin-top:auto no total funcione corretamente.
+         * .bp-col-main-table: cresce para preencher o espaço disponível.
+         * .bp-col-total-table: empurrado para o fundo pela margem automática.
+         * .bp-total-val: border-top simples + border-bottom dupla (padrão contábil).
+         * ─────────────────────────────────────────────────────────────────── */
+        .bp-col-wrapper {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .bp-col-main-table {
+            flex: 1 1 auto;
+        }
+        .bp-col-total-table {
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+        .bp-total-val {
+            border-top: 1px solid #374151;
+            border-bottom: 3px double #374151;
+        }
+
+        /* ── Notas explicativas: total contábil ─────────────────────────────
+         * Remove linhas internas da tabela e mantém fechamento no total:
+         * linha simples acima + linha dupla abaixo.
+         * ─────────────────────────────────────────────────────────────────── */
+        .notas-total-line td {
+            border-top: 1px solid #374151;
+            border-bottom: 3px double #374151;
+        }
+
+        .page-header-line {
+            margin-top: 6px;
+            height: 0;
+            border-top: 1.5px solid #374151; /* cinza-700 */
+        }
+
+        .page header {
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .page main,
+        .page > div[id*="container"],
+        .page > div[id*="report-container"] {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: visible;
+            position: relative;
+        }
+
+        .page footer {
+            flex-shrink: 0;
+            margin-top: auto;
+            position: relative;
+        }
+
+        .notas-page {
+            display: flex;
+            flex-direction: column;
+            min-height: 297mm;
+            font-size: 7px;
+            position: relative;
+        }
+
+        .notas-header {
+            flex-shrink: 0;
+        }
+
+        .notas-content {
+            overflow: visible;
+            min-height: 0;
+            flex: 1 1 auto;
+            position: relative;
+        }
+
+        .notas-footer {
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+
+        .notas-content section {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .notas-content p {
+            text-align: justify;
+            font-size: inherit;
+            font-family: inherit;
+        }
+
+        .nota-imagem-wrapper {
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        .nota-imagem {
+            display: inline-block;
+            width: auto;
+            height: auto;
+            max-width: 78%;
+            max-height: 150px;
+            object-fit: contain;
+        }
+
+        .notas-header p,
+        .notas-footer span {
+            font-size: inherit;
+            font-family: inherit;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            body {
+                background-color: white !important;
+                margin: 0;
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .page-container {
+                padding: 0 !important;
+                gap: 0 !important;
+                margin: 0 !important;
+                display: block !important;
+            }
+
+            .page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                padding: 30mm 20mm 40mm 20mm !important; /* 3cm no topo e 4cm no rodapé a partir da borda */
+                page-break-after: always !important;
+                page-break-inside: avoid !important;
+                break-after: page !important;
+                break-inside: avoid !important;
+                width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                border: none !important;
+                display: flex !important;
+                flex-direction: column !important;
+                position: relative !important;
+                overflow: hidden !important;
+            }
+
+            .page:last-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
+            .page header {
+                flex-shrink: 0 !important;
+                position: relative !important;
+                margin-bottom: 1rem !important;
+            }
+
+            .page main,
+            .page > div[id*="container"],
+            .page > div[id*="report-container"] {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                position: relative !important;
+            }
+
+            .page footer {
+                flex-shrink: 0 !important;
+                margin-top: auto !important;
+                position: relative !important;
+                padding-top: 1rem !important;
+            }
+
+            .notas-page {
+                width: 210mm !important;
+                height: 297mm !important;
+                min-height: 297mm !important;
+                max-height: 297mm !important;
+                padding: 30mm 20mm 40mm 20mm !important; /* 3cm no topo e 4cm no rodapé a partir da borda */
+                page-break-after: always !important;
+                page-break-inside: avoid !important;
+                break-after: page !important;
+                break-inside: avoid !important;
+                display: flex !important;
+                flex-direction: column !important;
+                position: relative !important;
+                overflow: hidden !important;
+            }
+
+            .notas-header {
+                flex-shrink: 0 !important;
+                position: relative !important;
+                margin-bottom: 1rem !important;
+            }
+
+            .notas-content {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                position: relative !important;
+            }
+
+            .notas-footer {
+                flex-shrink: 0 !important;
+                margin-top: auto !important;
+                position: relative !important;
+                padding-top: 1rem !important;
+            }
+
+            .notas-content section {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            table {
+                page-break-inside: auto !important;
+            }
+
+            tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            thead {
+                display: table-header-group !important;
+            }
+
+            tfoot {
+                display: table-footer-group !important;
+            }
+
+            .page.justify-between {
+                justify-content: space-between !important;
+            }
+
+            /* Garantir que elementos não ultrapassem os limites */
+            .page > * {
+                max-width: 100% !important;
+            }
+
+            /* Indicadores: garantia de renderização no print */
+            .ind-year-header,
+            .ind-num-val {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .ind-year-header { border-bottom: 1px solid #374151 !important; }
+            .ind-num-val     { border-bottom: 1px solid #374151 !important; }
+
+            /* DMPL: garantia de renderização no print */
+            .dmpl-col-header,
+            .dmpl-saldo-val {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .dmpl-col-header { border-bottom: 1px solid #374151 !important; }
+            .dmpl-saldo-val  { border-bottom: 1px solid #374151 !important; }
+
+            /* DRE: garantia de renderização no print */
+            .dre-year-header,
+            .dre-subtotal-val,
+            .dre-final-val {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .dre-year-header  { border-top: 1px solid #374151 !important; }
+            .dre-subtotal-val { border-top: 1px solid #374151 !important; }
+            .dre-final-val    { border-top: 1px solid #374151 !important; border-bottom: 3px double #374151 !important; }
+
+            /* BP: borda dupla no total — garantia no print */
+            .bp-total-val {
+                border-top: 1px solid #374151 !important;
+                border-bottom: 3px double #374151 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* Notas: garantia da linha de total no print */
+            .notas-total-line td {
+                border-top: 1px solid #374151 !important;
+                border-bottom: 3px double #374151 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* Linha do cabeçalho — garantia de renderização no print */
+            .page-header-line {
+                border-top: 1.5px solid #374151 !important;
+                height: 0 !important;
+                margin-top: 6px !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* Prevenir quebra de página dentro de elementos críticos */
+            header, footer {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print sticky top-0 z-50 bg-white/80 backdrop-blur-sm p-4 text-right border-b shadow-sm">
+        <button onclick="window.print()" class="bg-primary text-primary-foreground rounded-md px-6 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            Imprimir Relatório
+        </button>
+    </div>
+
+    <div class="page-container">
+        <!-- Página 1: Capa -->
+        <div class="page flex flex-col justify-between items-center text-center">
+            <div></div> <!-- Espaçador para empurrar o conteúdo para o centro -->
+            <div>
+                <div class="mb-24">
+                    <h1 class="text-5xl font-bold tracking-widest">
+                        <span class="text-[#E30613]">TEC</span><span class="text-gray-700">WAY</span>
+                    </h1>
+                    <p class="mt-1 text-sm tracking-[0.3em] text-gray-500">serviços e locação</p>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <p class="font-semibold tracking-wider">TECWAY SERVIÇOS E LOCAÇÃO DE EQUIPAMENTOS LTDA</p>
+                    <p class="font-semibold tracking-wider">DEMONSTRAÇÕES FINANCEIRAS</p>
+                    <p class="tracking-wider" data-dynamic-text="full-date-upper">31 DE DEZEMBRO DE 2024</p>
+                </div>
+            </div>
+            <div class="text-sm">
+                <p>Manaus/AM.</p>
+            </div>
+        </div>
+
+        <!-- Página 2: Termo de Abertura -->
+        <div class="page text-xs flex flex-col">
+            <header class="page-header w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="termo-title">Termo de Abertura do Balanço Patrimonial 31 de dezembro de 2024</p>
+                <div class="page-header-line"></div>
+            </header>
+            <main class="flex-grow pt-16 space-y-10">
+                <p class="text-center max-w-xl mx-auto leading-relaxed" data-dynamic-text="termo-period">
+                    Contém este 0018 folhas numeradas seguida e eletronicamente de 0001 a 0018 e servirão para o registro do "BALANÇO PATRIMONIAL" de número 0025 da empresa abaixo identificada, no período de 01/01/2024 a 31/12/2024.
+                </p>
+                <div class="space-y-2">
+                    <p><span class="font-bold">Empresa:</span> TECWAY SERVIÇOS E LOCAÇÃO DE EQUIPAMENTOS LTDA</p>
+                    <p><span class="font-bold">CNPJ N°:</span> 13.392.705/0001-43</p>
+                    <p><span class="font-bold">NIRE N°:</span> 13200556445</p>
+                    <p><span class="font-bold">Endereço:</span> Rua Helena Cardoso, nº 420, Bairro: Santa Etelvina, CEP: 69.059-290 Manaus – Amazonas</p>
+                </div>
+                <p class="pt-8 text-center" data-dynamic-text="termo-footer-date">Manaus (Am), 31 de dezembro de 2024</p>
+            </main>
+            <footer class="mt-auto pt-16">
+                <div class="grid grid-cols-2 gap-x-16 text-center">
+                    <div class="border-t border-gray-700 pt-2">
+                        <p class="font-bold">JEISE HELLEN PIRES FERREIRA</p>
+                        <p>CPF 003.483.222-08</p>
+                        <p>Contadora CRC/AM: 017791/O</p>
+                    </div>
+                    <div class="border-t border-gray-700 pt-2">
+                        <p class="font-bold">FÁBIO GUERRA GARCIA</p>
+                        <p>CPF 813.742.591-87</p>
+                        <p>Sócio Administrador</p>
+                    </div>
+                </div>
+                <div class="text-right mt-4">2</div>
+            </footer>
+        </div>
+
+        <!-- Página 3: Balanço Patrimonial (Dinâmico) - estrutura igual index100 -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="page-header w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="bp-subtitle">Balanços patrimoniais dos exercícios findos em 31 de Dezembro de 2024.</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <div class="page-header-line"></div>
+            </header>
+            <main id="report-container" class="flex-grow">
+                <div id="bp-loading-state" class="flex items-center justify-center p-12 text-muted-foreground">
+                    Carregando dados do relatório...
+                </div>
+                <div id="bp-report-content" class="hidden">
+                    <div class="grid grid-cols-2 gap-x-8">
+                        <!-- Coluna da Esquerda: Ativo -->
+                        <div id="ativo-container"></div>
+                        <!-- Coluna da Direita: Passivo e PL -->
+                        <div id="passivo-pl-container"></div>
+                    </div>
+                    <!-- totais-container mantido vazio (totais agora dentro de cada coluna) -->
+                    <div id="totais-container" class="hidden"></div>
+                </div>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">3</div>
+            </footer>
+        </div>
+        
+        <!-- Página 4: DRE -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="page-header w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="dre-title">Demonstrações dos resultados dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <div class="page-header-line"></div>
+            </header>
+            <main id="dre-container" class="flex-grow pt-4">
+                <div class="text-center p-12 text-muted-foreground">Carregando dados da DRE...</div>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">4</div>
+            </footer>
+        </div>
+
+        <!-- Página 5: DFC (Demonstração de Fluxo de Caixa) -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="page-header w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="dfc-title">Demonstrações de fluxo de caixa dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <div class="page-header-line"></div>
+            </header>
+            <main id="dfc-container" class="flex-grow pt-4">
+                <div class="text-center p-12 text-muted-foreground">Carregando dados da DFC...</div>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">5</div>
+            </footer>
+        </div>
+
+        <!-- Página 6: Indicadores Financeiros -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="page-header w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="indicadores-title">Indicadores financeiros em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <div class="page-header-line"></div>
+            </header>
+            <main class="flex-grow pt-4">
+                <table class="w-full">
+                    <thead>
+                        <tr>
+                            <th class="text-left w-[28%]"></th>
+                            <th class="text-right font-bold ind-year-header pb-1 w-[36%]" data-dynamic-text="current-year">2024</th>
+                            <th class="text-right font-bold ind-year-header pb-1 w-[36%]" data-dynamic-text="previous-year">2023</th>
+                        </tr>
+                    </thead>
+                    <tbody id="indicadores-tbody">
+                        <tr>
+                            <td colspan="3" class="p-6 text-center text-muted-foreground">
+                                Carregando indicadores...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">6</div>
+            </footer>
+        </div>
+
+        <!-- Página 7: Resultados Abrangentes -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="page-header w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="resultados-abrangentes-title">Demonstrações dos resultados abrangentes dos exercícios findos em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <div class="page-header-line"></div>
+            </header>
+            <main id="resultados-abrangentes-container" class="flex-grow pt-4">
+                <div class="text-center p-12 text-muted-foreground">Carregando resultados abrangentes...</div>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">7</div>
+            </footer>
+        </div>
+
+        <!-- Página 8: Patrimônio Líquido -->
+        <div class="page text-[10px] flex flex-col">
+            <header class="page-header w-full text-left">
+                <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                <p data-dynamic-text="pl-title">Demonstrações do patrimônio líquido em 31 de dezembro de 2024</p>
+                <p class="text-[9px] text-muted-foreground">Em milhares de reais (R$)</p>
+                <div class="page-header-line"></div>
+            </header>
+            <main class="flex-grow">
+                <table class="w-full text-[10px]">
+                    <thead>
+                        <tr>
+                            <th class="text-left py-1 w-[35%]"></th>
+                            <th class="text-right font-semibold pb-1 dmpl-col-header w-[15%]">Capital Social</th>
+                            <th class="text-right font-semibold pb-1 dmpl-col-header w-[15%]">Ajuste da Avaliação</th>
+                            <th class="text-right font-semibold pb-1 dmpl-col-header w-[20%]">Lucros ou Prejuízos Acumulados</th>
+                            <th class="text-right font-semibold pb-1 dmpl-col-header w-[15%]">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pl-tbody">
+                        <tr>
+                            <td colspan="5" class="text-center p-8 text-muted-foreground">Carregando dados do patrimônio líquido...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </main>
+            <footer class="mt-auto pt-16">
+                <p>As notas explicativas são parte integrante das demonstrações financeiras.</p>
+                <div class="text-right mt-4">8</div>
+            </footer>
+        </div>
+        
+        <!-- Página 9: Notas Explicativas (Dinâmica) -->
+        <div id="notas-dynamic-container">
+            <div class="page text-xs leading-relaxed notas-page">
+                <header class="page-header notas-header w-full text-left" data-notas-header>
+                    <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                    <p>Notas explicativas às demonstrações financeiras em 31 de dezembro de 2024</p>
+                    <p class="text-[7px] text-muted-foreground">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                    <div class="page-header-line"></div>
+                </header>
+                <div class="notas-content flex-1 flex items-center justify-center text-center p-12 text-muted-foreground">Carregando notas explicativas...</div>
+                <footer class="notas-footer mt-auto pt-16">
+                    <div class="flex items-center justify-between text-[10px]">
+                        <span class="text-muted-foreground"></span>
+                        <span class="font-semibold" data-notas-footer>9</span>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-bp-report';
+        const FIRST_NOTAS_PAGE_NUMBER = 9;
+
+        function updateMitra() {
+            console.log("Sinal de update para [Relatório Financeiro] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const bpLoadingState = document.getElementById('bp-loading-state');
+            const bpReportContent = document.getElementById('bp-report-content');
+            const ativoContainer = document.getElementById('ativo-container');
+            const passivoPlContainer = document.getElementById('passivo-pl-container');
+            const totaisContainer = document.getElementById('totais-container');
+            const dreContainer = document.getElementById('dre-container');
+            const dfcContainer = document.getElementById('dfc-container');
+            const indicadoresTbody = document.getElementById('indicadores-tbody');
+            const resultadosAbrangentesContainer = document.getElementById('resultados-abrangentes-container');
+            const plTbody = document.getElementById('pl-tbody');
+            const notasDynamicContainer = document.getElementById('notas-dynamic-container');
+
+            async function getMitraVariableValue(variableName) {
+                if (!variableName || !variableName.startsWith(':VAR_')) {
+                    console.error("Nome de variável inválido. Deve começar com ':VAR_'. Usando data atual como fallback.", variableName);
+                    const now = new Date();
+                    return `${now.getMonth() + 1}/${now.getFullYear()}`;
+                }
+                try {
+                    const result = await queryMitra({ query: `SELECT ${variableName}` });
+                    if (result && result.data && result.data.length > 0 && result.data[0].length > 0) {
+                        return result.data[0][0];
+                    }
+                    console.warn(`A variável ${variableName} retornou vazia. Usando data atual como fallback.`);
+                    const now = new Date();
+                    return `${now.getMonth() + 1}/${now.getFullYear()}`;
+                } catch (error) {
+                    console.error(`Falha ao obter o valor da variável ${variableName}. Usando data atual como fallback.`, error);
+                    const now = new Date();
+                    return `${now.getMonth() + 1}/${now.getFullYear()}`;
+                }
+            }
+            
+            function updateReportMetadata(currentYear) {
+                if (!currentYear || isNaN(parseInt(currentYear))) {
+                    console.error("updateReportMetadata: Ano inválido ou não fornecido.", currentYear);
+                    return;
+                }
+                const previousYear = parseInt(currentYear, 10) - 1;
+                const formatPageNumber = (value) => String(Math.max(parseInt(value, 10) || 0, 0)).padStart(4, '0');
+                const totalPages = document.querySelectorAll('.page').length;
+                const totalPagesFormatted = formatPageNumber(totalPages);
+
+                document.querySelectorAll('[data-dynamic-text="current-year"]').forEach(el => {
+                    el.textContent = currentYear;
+                });
+                document.querySelectorAll('[data-dynamic-text="previous-year"]').forEach(el => {
+                    el.textContent = previousYear;
+                });
+
+                const textUpdates = {
+                    'full-date-upper': `31 DE DEZEMBRO DE ${currentYear}`,
+                    'termo-title': `Termo de Abertura do Balanço Patrimonial 31 de dezembro de ${currentYear}`,
+                    'termo-footer-date': `Manaus (Am), 31 de dezembro de ${currentYear}`,
+                    'bp-subtitle': `Balanços patrimoniais dos exercícios findos em 31 de Dezembro de ${currentYear}.`,
+                    'dre-title': `Demonstrações dos resultados dos exercícios findos em 31 de dezembro de ${currentYear}`,
+                    'dfc-title': `Demonstrações de fluxo de caixa dos exercícios findos em 31 de dezembro de ${currentYear}`,
+                    'indicadores-title': `Indicadores financeiros em 31 de dezembro de ${currentYear}`,
+                    'resultados-abrangentes-title': `Demonstrações dos resultados abrangentes dos exercícios findos em 31 de dezembro de ${currentYear}`,
+                    'pl-title': `Demonstrações do patrimônio líquido em 31 de dezembro de ${currentYear}`
+                };
+
+                for (const key in textUpdates) {
+                    const el = document.querySelector(`[data-dynamic-text="${key}"]`);
+                    if (el) el.textContent = textUpdates[key];
+                }
+
+                const termoPeriodEl = document.querySelector('[data-dynamic-text="termo-period"]');
+                if (termoPeriodEl) {
+                    termoPeriodEl.textContent = termoPeriodEl.textContent.replace(
+                        /Contém este \d{4} folhas numeradas seguida e eletronicamente de 0001 a \d{4}/,
+                        `Contém este ${totalPagesFormatted} folhas numeradas seguida e eletronicamente de 0001 a ${totalPagesFormatted}`
+                    );
+                    termoPeriodEl.textContent = termoPeriodEl.textContent.replace(/no período de 01\/01\/\d{4} a 31\/12\/\d{4}/, `no período de 01/01/${currentYear} a 31/12/${currentYear}`);
+                }
+            }
+
+            /* formatCurrencyBP: mantida com decimais — usada nas Notas Explicativas */
+            function formatCurrencyBP(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                if (number === 0) return '0,00';
+                const formattedAbs = Math.abs(number).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return number < 0 ? `(${formattedAbs})` : formattedAbs;
+            }
+
+            /* formatBP: inteiros sem decimais — usada no layout do Balanço Patrimonial */
+            function formatBP(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                if (number === 0) return '0';
+                const abs = Math.round(Math.abs(number));
+                const formatted = abs.toLocaleString('pt-BR');
+                return number < 0 ? `(${formatted})` : formatted;
+            }
+
+            /*
+             * generateBPColumnHtml
+             * Gera uma única tabela para uma coluna do BP (Ativo ou Passivo+PL),
+             * seguindo o layout da imagem modelo:
+             *   - cabeçalho único no topo com título da coluna + Notas + anos
+             *   - seções: linha de título negrito (sem valores) + itens + subtotal
+             *     (subtotal: células de descrição/nota vazias, valores com border-top)
+             *   - linha de total no fundo com border-top e border-bottom nos valores
+             *
+             * @param {string}   mainTitle    "Ativo" ou "Passivo"
+             * @param {Array}    sections     [{title, items:[{descricao,nota,valorAtual,valorAnterior}], subtotal:{valorAtual,valorAnterior}}]
+             * @param {string}   totalTitle   "Total do ativo" etc.
+             * @param {object}   totalValues  {valorAtual, valorAnterior}
+             * @param {string}   currentYear
+             * @param {string}   previousYear
+             */
+            function generateBPColumnHtml(mainTitle, sections, totalTitle, totalValues, currentYear, previousYear) {
+                let sectionsHtml = '';
+
+                for (const section of sections) {
+                    /* Linha de título da seção — negrito, sem valores */
+                    sectionsHtml += `
+                        <tr>
+                            <td class="pt-3 pb-0.5 text-[10px] font-bold" colspan="4">${section.title}</td>
+                        </tr>
+                    `;
+
+                    /* Linhas dos itens */
+                    for (const item of section.items) {
+                        sectionsHtml += `
+                            <tr>
+                                <td class="py-0.5 pl-2 pr-1 text-[10px] text-muted-foreground">${item.descricao || ''}</td>
+                                <td class="py-0.5 px-1 text-[10px] text-muted-foreground text-center w-7">${item.nota || ''}</td>
+                                <td class="py-0.5 px-1 text-[10px] text-right tabular-nums w-14">${formatBP(item.valorAtual)}</td>
+                                <td class="py-0.5 px-1 text-[10px] text-right tabular-nums w-14">${formatBP(item.valorAnterior)}</td>
+                            </tr>
+                        `;
+                    }
+
+                    /* Linha de subtotal — descrição e nota vazias; valores com border-top */
+                    sectionsHtml += `
+                        <tr>
+                            <td class="py-1 text-[10px]"></td>
+                            <td class="py-1 text-[10px]"></td>
+                            <td class="py-1 px-1 text-[10px] text-right tabular-nums font-semibold border-t border-gray-600 w-14">${formatBP(section.subtotal.valorAtual)}</td>
+                            <td class="py-1 px-1 text-[10px] text-right tabular-nums font-semibold border-t border-gray-600 w-14">${formatBP(section.subtotal.valorAnterior)}</td>
+                        </tr>
+                    `;
+                }
+
+                /*
+                 * O total fica em tabela SEPARADA da principal.
+                 * O wrapper .bp-col-wrapper (flex-column, height:100%) faz com que
+                 * .bp-col-total-table desça até o fundo via margin-top:auto,
+                 * alinhando "Total do ativo" com "Total do passivo e PL" no mesmo nível.
+                 * A classe .bp-total-val aplica border-top simples + border-bottom dupla.
+                 */
+                return `
+                    <div class="bp-col-wrapper">
+                        <table class="bp-col-main-table w-full text-[10px] border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-700">
+                                    <th class="py-1 text-left text-[10px] font-bold">${mainTitle}</th>
+                                    <th class="py-1 px-1 text-center text-[10px] font-semibold w-7">Notas</th>
+                                    <th class="py-1 px-1 text-right text-[10px] font-semibold w-14">${currentYear}</th>
+                                    <th class="py-1 px-1 text-right text-[10px] font-semibold w-14">${previousYear}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${sectionsHtml}
+                            </tbody>
+                        </table>
+                        <table class="bp-col-total-table w-full text-[10px] border-collapse">
+                            <tbody>
+                                <tr class="font-bold">
+                                    <td class="py-2 text-[10px]" colspan="2">${totalTitle}</td>
+                                    <td class="py-2 px-1 text-[10px] text-right tabular-nums bp-total-val w-14">${formatBP(totalValues.valorAtual)}</td>
+                                    <td class="py-2 px-1 text-[10px] text-right tabular-nums bp-total-val w-14">${formatBP(totalValues.valorAnterior)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            function renderReportBP(data, currentYear, previousYear) {
+                /* ── Ativo ─────────────────────────────────────────────── */
+                const ativoCirculanteItems = data.filter(d => d.hierarquia && d.hierarquia.startsWith('1.1.'));
+                const subtotalAtivoCirculante = ativoCirculanteItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+
+                const ativoNaoCirculanteItems = data.filter(d => d.hierarquia && d.hierarquia.startsWith('1.2.'));
+                const subtotalAtivoNaoCirculante = ativoNaoCirculanteItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+
+                const totalAtivo = {
+                    valorAtual: subtotalAtivoCirculante.valorAtual + subtotalAtivoNaoCirculante.valorAtual,
+                    valorAnterior: subtotalAtivoCirculante.valorAnterior + subtotalAtivoNaoCirculante.valorAnterior
+                };
+
+                if (ativoContainer) {
+                    ativoContainer.innerHTML = generateBPColumnHtml(
+                        'Ativo',
+                        [
+                            { title: 'Ativo circulante',     items: ativoCirculanteItems,    subtotal: subtotalAtivoCirculante },
+                            { title: 'Ativo não circulante', items: ativoNaoCirculanteItems, subtotal: subtotalAtivoNaoCirculante }
+                        ],
+                        'Total do ativo',
+                        totalAtivo,
+                        currentYear,
+                        previousYear
+                    );
+                }
+
+                /* ── Passivo + Patrimônio Líquido ──────────────────────── */
+                const passivoCirculanteItems = data.filter(d => d.hierarquia && d.hierarquia.startsWith('2.1.'));
+                const subtotalPassivoCirculante = passivoCirculanteItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+
+                const passivoNaoCirculanteItems = data.filter(d => d.hierarquia && d.hierarquia.startsWith('2.2.'));
+                const subtotalPassivoNaoCirculante = passivoNaoCirculanteItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+
+                const plItems = data.filter(d => d.hierarquia && d.hierarquia.startsWith('3.1.'));
+                const subtotalPL = plItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+
+                const totalPassivoPL = {
+                    valorAtual: subtotalPassivoCirculante.valorAtual + subtotalPassivoNaoCirculante.valorAtual + subtotalPL.valorAtual,
+                    valorAnterior: subtotalPassivoCirculante.valorAnterior + subtotalPassivoNaoCirculante.valorAnterior + subtotalPL.valorAnterior
+                };
+
+                if (passivoPlContainer) {
+                    passivoPlContainer.innerHTML = generateBPColumnHtml(
+                        'Passivo',
+                        [
+                            { title: 'Passivo circulante',     items: passivoCirculanteItems,    subtotal: subtotalPassivoCirculante },
+                            { title: 'Passivo não circulante', items: passivoNaoCirculanteItems, subtotal: subtotalPassivoNaoCirculante },
+                            { title: 'Patrimônio líquido',     items: plItems,                   subtotal: subtotalPL }
+                        ],
+                        'Total do passivo e patrimônio líquido',
+                        totalPassivoPL,
+                        currentYear,
+                        previousYear
+                    );
+                }
+
+                /* totaisContainer agora está oculto (totais dentro de cada coluna) */
+                if (totaisContainer) totaisContainer.innerHTML = '';
+            }
+            
+            function formatDREValue(value) {
+                const num = Number(value) || 0;
+                if (Number.isNaN(num)) return '-';
+                if (Math.abs(num) < 0.5) return '0'; // Display 0 instead of (0)
+                const roundedNum = Math.round(num);
+                const formatted = new Intl.NumberFormat('de-DE').format(Math.abs(roundedNum));
+                return num < 0 ? `(${formatted})` : formatted;
+            }
+
+            function formatDFCValue(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                if (number === 0) return '0';
+                const formattedAbs = Math.abs(number).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                return number < 0 ? `(${formattedAbs})` : formattedAbs;
+            }
+
+            function formatRatio(value) {
+                const number = parseFloat(value);
+                if (isNaN(number)) return '-';
+                return number.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function escapeHtml(text) {
+                return (text || '').toString()
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function formatDescricaoHtml(text) {
+                const safeText = (text === null || text === undefined) ? '' : String(text);
+                const paragraphs = safeText.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+                const chunks = paragraphs.length > 0 ? paragraphs : (safeText.trim() ? [safeText.trim()] : []);
+                if (chunks.length === 0) return '';
+                return chunks.map(chunk => `<p>${escapeHtml(chunk).replace(/\n/g, '<br>')}</p>`).join('');
+            }
+
+            function normalizeText(text) {
+                return (text || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            }
+
+            function formatIndicatorCell(numeratorParts, denominatorParts, result) {
+                 const formatCurrencyIndicator = (value) => {
+                    const number = parseFloat(value);
+                    if (isNaN(number)) return '-';
+                    if (number === 0) return '0';
+                    return number.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                }
+
+                if (!numeratorParts || !denominatorParts || numeratorParts.length === 0 || denominatorParts.length === 0) {
+                    return '<div class="text-center">-</div>';
+                }
+                
+                let numeratorValue = 0;
+                numeratorParts.forEach(part => {
+                    const val = parseFloat(part.value) || 0;
+                    if (part.operator === '-') {
+                        numeratorValue -= val;
+                    } else {
+                        numeratorValue += val;
+                    }
+                });
+                
+                let denominatorValue = 0;
+                denominatorParts.forEach(part => {
+                    const val = parseFloat(part.value) || 0;
+                    if (part.operator === '-') {
+                        denominatorValue -= val;
+                    } else {
+                        denominatorValue += val;
+                    }
+                });
+                
+                const numeratorText = formatCurrencyIndicator(numeratorValue);
+                const denominatorText = formatCurrencyIndicator(denominatorValue);
+                const ratioText = formatRatio(result);
+                
+                if (ratioText === '-' || numeratorText === '-' || denominatorText === '-') {
+                    return '<div class="text-center">-</div>';
+                }
+                
+                return `
+                    <div class="flex items-center justify-center">
+                        <div class="text-right border-b border-gray-500 w-20">${numeratorText}</div>
+                        <div class="w-20 font-bold text-lg ml-4">${ratioText}</div>
+                    </div>
+                    <div class="text-center w-20">${denominatorText}</div>
+                `;
+            }
+
+            function extractDfcRowValue(dfcResult, searchTerm) {
+                if (!dfcResult || !dfcResult.data || dfcResult.data.length === 0) return null;
+                const headerMap = dfcResult.headers.reduce((acc, header, index) => {
+                    acc[(header && header.name ? header.name : '').toUpperCase()] = index;
+                    return acc;
+                }, {});
+                const search = normalizeText(searchTerm);
+                const descIndex = headerMap['DESCRICAO'];
+                const valorAnoAtualIdx = headerMap['VALOR_ANO_ATUAL'];
+                const valorAnoAnteriorIdx = headerMap['VALOR_ANO_ANTERIOR'];
+                if (descIndex !== undefined && valorAnoAtualIdx !== undefined && valorAnoAnteriorIdx !== undefined) {
+                    const matchedRow = dfcResult.data.find(row => normalizeText(String(row[descIndex] || '')).includes(search));
+                    if (!matchedRow) return null;
+                    return {
+                        valorAtual: parseFloat(matchedRow[valorAnoAtualIdx]) || 0,
+                        valorAnterior: parseFloat(matchedRow[valorAnoAnteriorIdx]) || 0
+                    };
+                }
+                const dfcIndex = headerMap['DFC'];
+                const valorAtualIndex = headerMap['VALOR_ATUAL'];
+                const valorAnteriorIndex = headerMap['VALOR_ANTERIOR'];
+                if (dfcIndex === undefined || valorAtualIndex === undefined || valorAnteriorIndex === undefined) return null;
+                const matchedRow = dfcResult.data.find(row => normalizeText(String(row[dfcIndex] || '')).includes(search));
+                if (!matchedRow) return null;
+                return {
+                    valorAtual: parseFloat(matchedRow[valorAtualIndex]) || 0,
+                    valorAnterior: parseFloat(matchedRow[valorAnteriorIndex]) || 0
+                };
+            }
+
+            function computeDREValues(dreResult) {
+                if (!dreResult || !dreResult.data || dreResult.data.length === 0) return null;
+                const rawData = dreResult.data[0];
+                const headerMap = dreResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+                const getValue = (colName) => parseFloat(rawData[headerMap[colName.toUpperCase()]]) || 0;
+
+                const r = {
+                    atual_1: getValue('ATUAL_1'), anterior_1: getValue('ANTERIOR_1'),
+                    atual_2: getValue('ATUAL_2'), anterior_2: getValue('ANTERIOR_2'),
+                    atual_3: getValue('ATUAL_3'), anterior_3: getValue('ANTERIOR_3'),
+                    atual_4: getValue('ATUAL_4'), anterior_4: getValue('ANTERIOR_4'),
+                    atual_5: getValue('ATUAL_5'), anterior_5: getValue('ANTERIOR_5'),
+                    atual_6: getValue('ATUAL_6'), anterior_6: getValue('ANTERIOR_6'),
+                    atual_7: getValue('ATUAL_7'), anterior_7: getValue('ANTERIOR_7'),
+                    atual_8: getValue('ATUAL_8'), anterior_8: getValue('ANTERIOR_8'),
+                    atual_9: getValue('ATUAL_9'), anterior_9: getValue('ANTERIOR_9'),
+                    atual_10: getValue('ATUAL_10'), anterior_10: getValue('ANTERIOR_10'),
+                    atual_11: getValue('ATUAL_11'), anterior_11: getValue('ANTERIOR_11'),
+                };
+
+                const calc = {
+                    lucroBrutoAtual: r.atual_1 + r.atual_2,
+                    lucroBrutoAnt: r.anterior_1 + r.anterior_2,
+                    totalDespesasOpAtual: r.atual_3 + r.atual_4 + r.atual_5 + r.atual_10 + r.atual_11,
+                    totalDespesasOpAnt: r.anterior_3 + r.anterior_4 + r.anterior_5 + r.anterior_10 + r.anterior_11,
+                };
+                calc.lucroAntesFinAtual = calc.lucroBrutoAtual + calc.totalDespesasOpAtual;
+                calc.lucroAntesFinAnt = calc.lucroBrutoAnt + calc.totalDespesasOpAnt;
+                calc.resultadoFinAtual = r.atual_6 + r.atual_7;
+                calc.resultadoFinAnt = r.anterior_6 + r.anterior_7;
+                calc.lucroAntesImpAtual = calc.lucroAntesFinAtual + calc.resultadoFinAtual;
+                calc.lucroAntesImpAnt = calc.lucroAntesFinAnt + calc.resultadoFinAnt;
+                calc.lucroExercicioAtual = calc.lucroAntesImpAtual + r.atual_8 + r.atual_9;
+                calc.lucroExercicioAnt = calc.lucroAntesImpAnt + r.anterior_8 + r.anterior_9;
+
+                return { r, calc };
+            }
+
+            /**
+             * Calcula os totais da DRE a partir da mesma estrutura usada na página 4 (HIERARQUIA, DESCRICAO, VALOR_ANO_ATUAL, VALOR_ANO_ANTERIOR).
+             * Retorna resultadoLiquidoExercicio { atual, anterior } para uso na página 7 (Resultados Abrangentes) e consistência com a DRE.
+             */
+            function computeDREFromHierarchy(dreResult) {
+                if (!dreResult || !dreResult.data || dreResult.data.length === 0) return null;
+                const headerMap = dreResult.headers.reduce((acc, header, index) => {
+                    acc[(header && header.name ? header.name : '').toString().toUpperCase()] = index;
+                    return acc;
+                }, {});
+                const hierarquiaIndex = headerMap['HIERARQUIA'];
+                const descIndex = headerMap['DESCRICAO'];
+                const notaIndex = headerMap['NOTA'];
+                const atualIndex = headerMap['VALOR_ANO_ATUAL'];
+                const anteriorIndex = headerMap['VALOR_ANO_ANTERIOR'];
+                if (descIndex === undefined || atualIndex === undefined || anteriorIndex === undefined) return null;
+
+                const data = dreResult.data.map(row => ({
+                    hierarquia: hierarquiaIndex !== undefined ? (row[hierarquiaIndex] || '').toString() : '',
+                    descricao: row[descIndex] || '',
+                    nota: notaIndex !== undefined ? (row[notaIndex] || '') : '',
+                    valor_atual: parseFloat(row[atualIndex]) || 0,
+                    valor_anterior: parseFloat(row[anteriorIndex]) || 0
+                }));
+
+                const calculateSum = (prefix) => data
+                    .filter(item => item.hierarquia && item.hierarquia.startsWith(prefix))
+                    .reduce((acc, item) => ({
+                        atual: acc.atual + item.valor_atual,
+                        anterior: acc.anterior + item.valor_anterior
+                    }), { atual: 0, anterior: 0 });
+
+                const receitas = calculateSum('1.');
+                const despesasOp = calculateSum('2.');
+                const resultadoFin = calculateSum('3.');
+                const lucroBruto = receitas;
+                const lucroAntesFin = { atual: lucroBruto.atual + despesasOp.atual, anterior: lucroBruto.anterior + despesasOp.anterior };
+                const lucroAntesImp = { atual: lucroAntesFin.atual + resultadoFin.atual, anterior: lucroAntesFin.anterior + resultadoFin.anterior };
+
+                const impostosCorrentes = calculateSum('4.1');
+                const impostosDiferidos = calculateSum('4.2');
+                const resultadoAjustadoAntesImpostos = {
+                    atual: lucroAntesImp.atual + impostosCorrentes.atual + impostosDiferidos.atual,
+                    anterior: lucroAntesImp.anterior + impostosCorrentes.anterior + impostosDiferidos.anterior
+                };
+
+                const novaBase = resultadoAjustadoAntesImpostos;
+                const limiteIrpj10 = 20 * 12;
+
+                const csll9 = {
+                    atual: novaBase.atual * -0.09,
+                    anterior: novaBase.anterior * -0.09
+                };
+
+                const irpj15 = {
+                    atual: novaBase.atual * -0.15,
+                    anterior: novaBase.anterior * -0.15
+                };
+
+                const irpj10 = {
+                    atual: novaBase.atual > limiteIrpj10 ? (novaBase.atual - limiteIrpj10) * -0.10 : 0,
+                    anterior: novaBase.anterior > limiteIrpj10 ? (novaBase.anterior - limiteIrpj10) * -0.10 : 0
+                };
+
+                const impostosCorrentesLinha = {
+                    atual: csll9.atual,
+                    anterior: csll9.anterior
+                };
+
+                const impostosDiferidosLinha = {
+                    atual: irpj15.atual + irpj10.atual,
+                    anterior: irpj15.anterior + irpj10.anterior
+                };
+                return {
+                    resultadoLiquidoExercicio: {
+                        atual: lucroAntesImp.atual + impostosCorrentesLinha.atual + impostosDiferidosLinha.atual,
+                        anterior: lucroAntesImp.anterior + impostosCorrentesLinha.anterior + impostosDiferidosLinha.anterior
+                    }
+                };
+            }
+
+            function renderDRE(dreResult) {
+                if (!dreResult || !dreResult.data || dreResult.data.length === 0) {
+                    dreContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Nenhum dado para DRE encontrado.</div>`;
+                    return;
+                }
+
+                const headerMap = dreResult.headers.reduce((acc, header, index) => {
+                    acc[header.name.toUpperCase()] = index;
+                    return acc;
+                }, {});
+
+                const hierarquiaIndex = headerMap['HIERARQUIA'];
+                const descIndex      = headerMap['DESCRICAO'];
+                const notaIndex      = headerMap['NOTA'];
+                const atualIndex     = headerMap['VALOR_ANO_ATUAL'];
+                const anteriorIndex  = headerMap['VALOR_ANO_ANTERIOR'];
+
+                if (descIndex === undefined || atualIndex === undefined || anteriorIndex === undefined) {
+                    dreContainer.innerHTML = `<div class="text-center p-12 text-destructive">Erro: Estrutura de dados da DRE inválida. Colunas DESCRICAO, VALOR_ANO_ATUAL, VALOR_ANO_ANTERIOR são obrigatórias.</div>`;
+                    console.error("DRE data structure is invalid. Missing required columns.", headerMap);
+                    return;
+                }
+
+                const data = dreResult.data.map(row => ({
+                    hierarquia:  hierarquiaIndex !== undefined ? (row[hierarquiaIndex] || '').toString() : '',
+                    descricao:   row[descIndex] || '',
+                    nota:        notaIndex !== undefined ? (row[notaIndex] || '') : '',
+                    valor_atual:     parseFloat(row[atualIndex])    || 0,
+                    valor_anterior:  parseFloat(row[anteriorIndex]) || 0
+                }));
+
+                /* ── Cálculos (idênticos à versão anterior) ──────────────── */
+                const calculateSum = (prefix) => data
+                    .filter(item => item.hierarquia && item.hierarquia.startsWith(prefix))
+                    .reduce((acc, item) => ({
+                        atual:     acc.atual     + item.valor_atual,
+                        anterior:  acc.anterior  + item.valor_anterior
+                    }), { atual: 0, anterior: 0 });
+
+                const receitas     = calculateSum('1.');
+                const despesasOp   = calculateSum('2.');
+                const resultadoFin = calculateSum('3.');
+
+                const lucroBruto      = receitas;
+                const lucroAntesFin   = { atual: lucroBruto.atual  + despesasOp.atual,   anterior: lucroBruto.anterior  + despesasOp.anterior };
+                const lucroAntesImp   = { atual: lucroAntesFin.atual + resultadoFin.atual, anterior: lucroAntesFin.anterior + resultadoFin.anterior };
+
+                const impostosCorrentes  = calculateSum('4.1');
+                const impostosDiferidos  = calculateSum('4.2');
+                const resultadoAjustado  = {
+                    atual:    lucroAntesImp.atual    + impostosCorrentes.atual    + impostosDiferidos.atual,
+                    anterior: lucroAntesImp.anterior + impostosCorrentes.anterior + impostosDiferidos.anterior
+                };
+
+                const novaBase     = resultadoAjustado;
+                const limiteIrpj10 = 20 * 12;
+
+                const csll9  = { atual: novaBase.atual * -0.09, anterior: novaBase.anterior * -0.09 };
+                const irpj15 = { atual: novaBase.atual * -0.15, anterior: novaBase.anterior * -0.15 };
+                const irpj10 = {
+                    atual:    novaBase.atual    > limiteIrpj10 ? (novaBase.atual    - limiteIrpj10) * -0.10 : 0,
+                    anterior: novaBase.anterior > limiteIrpj10 ? (novaBase.anterior - limiteIrpj10) * -0.10 : 0
+                };
+
+                const impostosCorrentesLinha = { atual: csll9.atual,  anterior: csll9.anterior };
+                const impostosDiferidosLinha = { atual: irpj15.atual + irpj10.atual, anterior: irpj15.anterior + irpj10.anterior };
+
+                const resultadoLiquidoExercicio = {
+                    atual:    lucroAntesImp.atual    + impostosCorrentesLinha.atual    + impostosDiferidosLinha.atual,
+                    anterior: lucroAntesImp.anterior + impostosCorrentesLinha.anterior + impostosDiferidosLinha.anterior
+                };
+
+                /* ── Helpers de nota ─────────────────────────────────────── */
+                /* Busca a primeira nota não-vazia dos itens de um prefixo */
+                const getGroupNota = (prefix) =>
+                    (data.find(i => i.hierarquia && i.hierarquia.startsWith(prefix) && i.nota) || {}).nota || '';
+
+                const notaResultadoFin    = getGroupNota('3.');
+                const notaImpCorrentes    = getGroupNota('4.1');
+                const notaImpDiferidos    = getGroupNota('4.2');
+
+                /* ── Helpers de renderização HTML ────────────────────────── */
+
+                /* Linha de item: sem borda inferior, nota em negrito */
+                const itemRow = (item) => `
+                    <tr>
+                        <td class="px-2 py-1 text-[10px]">${item.descricao || ''}</td>
+                        <td class="px-1 py-1 text-[10px] text-center font-bold w-10">${item.nota || ''}</td>
+                        <td class="px-1 py-1 text-[10px] text-right w-20">${formatDREValue(item.valor_atual)}</td>
+                        <td class="px-1 py-1 text-[10px] text-right w-20">${formatDREValue(item.valor_anterior)}</td>
+                    </tr>`;
+
+                /* Linha de subtotal intermediário:
+                 *   - descrição e nota: células normais (sem borda)
+                 *   - valores: borda-top simples (.dre-subtotal-val), negrito */
+                const subtotalRow = (descricao, nota, atual, anterior) => `
+                    <tr class="font-bold">
+                        <td class="px-2 py-1 text-[10px]">${descricao}</td>
+                        <td class="px-1 py-1 text-[10px] text-center w-10">${nota}</td>
+                        <td class="px-1 py-1 text-[10px] text-right dre-subtotal-val w-20">${formatDREValue(atual)}</td>
+                        <td class="px-1 py-1 text-[10px] text-right dre-subtotal-val w-20">${formatDREValue(anterior)}</td>
+                    </tr>`;
+
+                /* Espaçador */
+                const spacer = `<tr><td colspan="4" class="py-1.5"></td></tr>`;
+
+                /* ── Montagem da tabela ───────────────────────────────────── */
+                let tableHtml = `
+                    <table class="w-full text-[10px] border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="pb-1 text-left font-bold text-[10px]">Receitas</th>
+                                <th class="pb-1 px-1 text-center font-semibold text-[10px] w-10">Notas</th>
+                                <th class="pb-1 px-1 text-right font-semibold text-[10px] dre-year-header w-20"
+                                    data-dynamic-text="current-year">2024</th>
+                                <th class="pb-1 px-1 text-right font-semibold text-[10px] dre-year-header w-20"
+                                    data-dynamic-text="previous-year">2023</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                /* Espaço entre cabeçalho e primeiro item */
+                tableHtml += spacer;
+
+                /* 1. Itens de Receitas (hierarquia 1.) */
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('1.')).forEach(item => {
+                    tableHtml += itemRow(item);
+                });
+
+                /* Lucro bruto */
+                tableHtml += subtotalRow('Lucro bruto', '', lucroBruto.atual, lucroBruto.anterior);
+                tableHtml += spacer;
+
+                /* 2. Despesas Operacionais */
+                tableHtml += `
+                    <tr class="font-bold">
+                        <td class="px-2 py-1 text-[10px]">Despesas operacionais</td>
+                        <td colspan="3"></td>
+                    </tr>`;
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('2.')).forEach(item => {
+                    tableHtml += itemRow(item);
+                });
+
+                /* Subtotal despesas (descrição vazia, sem nota) */
+                tableHtml += subtotalRow('', '', despesasOp.atual, despesasOp.anterior);
+                tableHtml += spacer;
+
+                /* Lucro antes do resultado financeiro */
+                tableHtml += subtotalRow('Lucro antes do resultado financeiro', '', lucroAntesFin.atual, lucroAntesFin.anterior);
+                tableHtml += spacer;
+
+                /* 3. Itens Resultado Financeiro (hierarquia 3.) */
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('3.')).forEach(item => {
+                    tableHtml += itemRow(item);
+                });
+
+                /* Resultado financeiro — nota vem dos dados (ex: "23") */
+                tableHtml += subtotalRow('Resultado financeiro', notaResultadoFin, resultadoFin.atual, resultadoFin.anterior);
+                tableHtml += spacer;
+
+                /* Lucro antes dos impostos */
+                tableHtml += subtotalRow('Lucro antes dos impostos', '', lucroAntesImp.atual, lucroAntesImp.anterior);
+                tableHtml += spacer;
+
+                /* 4. Linhas de impostos com valores calculados
+                 *    Notas buscadas dos dados (ex: "24" para correntes e diferidos) */
+                tableHtml += `
+                    <tr>
+                        <td class="px-2 py-1 text-[10px]">Imposto de renda e contribuição social - correntes</td>
+                        <td class="px-1 py-1 text-[10px] text-center font-bold w-10">${notaImpCorrentes}</td>
+                        <td class="px-1 py-1 text-[10px] text-right w-20">${formatDREValue(impostosCorrentesLinha.atual)}</td>
+                        <td class="px-1 py-1 text-[10px] text-right w-20">${formatDREValue(impostosCorrentesLinha.anterior)}</td>
+                    </tr>
+                    <tr>
+                        <td class="px-2 py-1 text-[10px]">Imposto de renda e contribuição social - diferidos</td>
+                        <td class="px-1 py-1 text-[10px] text-center font-bold w-10">${notaImpDiferidos}</td>
+                        <td class="px-1 py-1 text-[10px] text-right w-20">${formatDREValue(impostosDiferidosLinha.atual)}</td>
+                        <td class="px-1 py-1 text-[10px] text-right w-20">${formatDREValue(impostosDiferidosLinha.anterior)}</td>
+                    </tr>`;
+
+                tableHtml += spacer;
+
+                /* Lucro do exercício — borda-top simples + borda-bottom dupla (.dre-final-val) */
+                tableHtml += `
+                    <tr class="font-bold">
+                        <td class="px-2 py-2 text-[10px]">Lucro do exercício</td>
+                        <td class="px-1 py-2 text-[10px] w-10"></td>
+                        <td class="px-1 py-2 text-[10px] text-right dre-final-val w-20">${formatDREValue(resultadoLiquidoExercicio.atual)}</td>
+                        <td class="px-1 py-2 text-[10px] text-right dre-final-val w-20">${formatDREValue(resultadoLiquidoExercicio.anterior)}</td>
+                    </tr>`;
+
+                tableHtml += `</tbody></table>`;
+                dreContainer.innerHTML = tableHtml;
+            }
+            
+            function processBPResult(bpResult) {
+                if (!bpResult || !bpResult.data || bpResult.data.length === 0) return null;
+                const headers = bpResult.headers.map(h => (h && h.name ? h.name.toUpperCase() : ''));
+                const colMap = {
+                    hierarquia: headers.indexOf('HIERARQUIA'),
+                    descricao: headers.indexOf('DESCRICAO'),
+                    nota: headers.indexOf('NOTA'),
+                    valorAtual: headers.indexOf('VALOR_ATUAL'),
+                    valorAnterior: headers.indexOf('VALOR_ANTERIOR'),
+                    sinal: headers.indexOf('SINAL')
+                };
+                if (colMap.hierarquia === -1 || colMap.descricao === -1 || colMap.valorAtual === -1 || colMap.valorAnterior === -1) return null;
+                return bpResult.data.map(row => {
+                    const sinal = colMap.sinal !== -1 ? (parseFloat(row[colMap.sinal]) || 1) : 1;
+                    const valorAtualOriginal = parseFloat(row[colMap.valorAtual]) || 0;
+                    const valorAnteriorOriginal = parseFloat(row[colMap.valorAnterior]) || 0;
+                    return {
+                        hierarquia: row[colMap.hierarquia] || '',
+                        descricao: row[colMap.descricao] || 'N/A',
+                        nota: colMap.nota !== -1 ? (row[colMap.nota] || '') : '',
+                        valorAtual: valorAtualOriginal * sinal,
+                        valorAnterior: valorAnteriorOriginal * sinal
+                    };
+                });
+            }
+
+            /**
+             * Renderiza a página 7 (Resultados Abrangentes) com base nos cálculos da DRE da página 4.
+             * Utiliza computeDREFromHierarchy(dreAResult) para obter o Resultado Líquido do Exercício
+             * exatamente como calculado na DRE (página 4).
+             */
+            function renderResultadosAbrangentes(dreAResult) {
+                if (!resultadosAbrangentesContainer) return;
+                const dreTotais = computeDREFromHierarchy(dreAResult);
+                if (!dreTotais || !dreTotais.resultadoLiquidoExercicio) {
+                    resultadosAbrangentesContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Nenhum dado para resultados abrangentes encontrado.</div>`;
+                    return;
+                }
+                const { resultadoLiquidoExercicio } = dreTotais;
+                const outrosText = '-';
+                const resultadoAbrangenteAtual = resultadoLiquidoExercicio.atual;
+                const resultadoAbrangenteAnterior = resultadoLiquidoExercicio.anterior;
+
+                resultadosAbrangentesContainer.innerHTML = `
+                    <table class="w-full text-[10px]">
+                        <thead>
+                            <tr>
+                                <th class="text-left w-[70%]"></th>
+                                <th class="text-right font-semibold pb-1 ind-year-header w-[15%]" data-dynamic-text="current-year">2024</th>
+                                <th class="text-right font-semibold pb-1 ind-year-header w-[15%]" data-dynamic-text="previous-year">2023</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="py-1 font-bold">Lucro líquido do exercício</td>
+                                <td class="text-right tabular-nums py-1">${formatDREValue(resultadoLiquidoExercicio.atual)}</td>
+                                <td class="text-right tabular-nums py-1">${formatDREValue(resultadoLiquidoExercicio.anterior)}</td>
+                            </tr>
+                            <tr>
+                                <td class="py-1 text-blue-600">Outros resultados abrangentes</td>
+                                <td class="text-right py-1">${outrosText}</td>
+                                <td class="text-right py-1">${outrosText}</td>
+                            </tr>
+                            <tr>
+                                <td class="py-1 font-bold">Resultado abrangente do exercício</td>
+                                <td class="text-right tabular-nums py-1 dre-final-val">${formatDREValue(resultadoAbrangenteAtual)}</td>
+                                <td class="text-right tabular-nums py-1 dre-final-val">${formatDREValue(resultadoAbrangenteAnterior)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            /**
+             * Renderiza a página 8 (Demonstração do Patrimônio Líquido) com base na DRE (páginas 3 e 4).
+             * Utiliza computeDREFromHierarchy(dreAResult) para o Resultado Líquido do Exercício, mesma estrutura da DRE.
+             * Colunas em duas colunas de ano (Ano Atual / Ano Anterior) como na DRE; formatação com formatDREValue.
+             */
+            function renderPatrimonioLiquido(bpData, dreAResult, dfcResult, currentYear) {
+                if (!plTbody) return;
+                const dreTotais = computeDREFromHierarchy(dreAResult);
+                const resultadoLiquidoExercicio = dreTotais?.resultadoLiquidoExercicio ?? { atual: null, anterior: null };
+                const dfcLucrosDistribuidos = extractDfcRowValue(dfcResult, 'lucros distribuidos');
+
+                const plItems = (bpData || []).filter(d => d.hierarquia && String(d.hierarquia).startsWith('3.1.'));
+                const byDesc = (pattern) => plItems.find(i => pattern.test(String(i.descricao || '')));
+                const capitalItem = byDesc(/capital/i) || plItems[0];
+                const ajusteItem = byDesc(/ajuste|avaliação|avaliacao/i) || plItems[1];
+                const lucrosItem = byDesc(/lucros|prejuízos acumulados|prejuizos acumulados/i) || plItems[2];
+                const capitalAtual = capitalItem?.valorAtual;
+                const capitalAnterior = capitalItem?.valorAnterior;
+                const lucrosAtual = lucrosItem?.valorAtual;
+                const lucrosAnterior = lucrosItem?.valorAnterior;
+                const totalAtual = plItems.length > 0 ? plItems.reduce((a, i) => a + (i.valorAtual || 0), 0) : (capitalAtual ?? 0) + (lucrosAtual ?? 0);
+                const totalAnterior = plItems.length > 0 ? plItems.reduce((a, i) => a + (i.valorAnterior || 0), 0) : (capitalAnterior ?? 0) + (lucrosAnterior ?? 0);
+                const ajusteAtual = ajusteItem ? (ajusteItem.valorAtual ?? (totalAtual - (capitalAtual ?? 0) - (lucrosAtual ?? 0))) : (totalAtual - (capitalAtual ?? 0) - (lucrosAtual ?? 0));
+                const ajusteAnterior = ajusteItem ? (ajusteItem.valorAnterior ?? (totalAnterior - (capitalAnterior ?? 0) - (lucrosAnterior ?? 0))) : (totalAnterior - (capitalAnterior ?? 0) - (lucrosAnterior ?? 0));
+                const ajusteDelta = (ajusteAtual ?? 0) - (ajusteAnterior ?? 0);
+
+                const previousYear = isNaN(parseInt(currentYear, 10)) ? 'Ano anterior' : (parseInt(currentYear, 10) - 1);
+                const fmt = (value) => (value === null || value === undefined || (typeof value === 'number' && isNaN(value))) ? '-' : formatDREValue(value);
+
+                const hasSaldos = [capitalAtual, capitalAnterior, lucrosAtual, lucrosAnterior, totalAtual, totalAnterior].some(v => v !== undefined && v !== null);
+                const hasDRE = resultadoLiquidoExercicio.atual !== null || resultadoLiquidoExercicio.anterior !== null;
+
+                if (!hasSaldos && !hasDRE) {
+                    plTbody.innerHTML = `<tr><td colspan="9" class="text-center p-6 text-muted-foreground">Nenhum dado de patrimônio líquido ou DRE encontrado.</td></tr>`;
+                    return;
+                }
+
+                const distAtual = dfcLucrosDistribuidos ? (dfcLucrosDistribuidos.valorAtual || 0) : 0;
+                const distAnterior = dfcLucrosDistribuidos ? (dfcLucrosDistribuidos.valorAnterior || 0) : 0;
+                const rAtual = resultadoLiquidoExercicio.atual ?? 0;
+                const rAnterior = resultadoLiquidoExercicio.anterior ?? 0;
+
+                // ── Saldo de abertura do período anterior (reconstruído a partir dos dados disponíveis) ──
+                const prevYear2 = String(parseInt(String(previousYear), 10) - 1);
+                const lucros2022 = (lucrosAnterior ?? 0) - rAnterior + distAnterior;
+                const capital2022 = capitalAnterior ?? 0;
+                const ajuste2022 = ajusteAnterior ?? 0; // sem dados de 2022, assume sem variação no período anterior
+                const total2022 = capital2022 + ajuste2022 + lucros2022;
+                const ajusteDeltaAnterior = (ajusteAnterior ?? 0) - ajuste2022; // = 0
+
+                const fmtDmpl = (value) => {
+                    if (value === null || value === undefined) return '-';
+                    if (Math.abs(value) < 0.5) return '-';
+                    return fmt(value);
+                };
+
+                const dmplRows = [
+                    { label: `Saldos em 31 de dezembro de ${prevYear2}`,     capital: capital2022,       ajuste: ajuste2022,          lucros: lucros2022,      total: total2022,      blue: true,  saldo: true  },
+                    { label: 'Lucros distribuídos',                           capital: null,              ajuste: null,                lucros: -distAnterior,   total: -distAnterior,  indent: true                },
+                    { label: 'Lucro do exercício',                            capital: null,              ajuste: null,                lucros: rAnterior,       total: rAnterior,      indent: true                },
+                    { label: 'Ajuste de Avaliação',                           capital: null,              ajuste: ajusteDeltaAnterior, lucros: null,            total: ajusteDeltaAnterior || null, indent: true  },
+                    { label: `Saldos em 31 de dezembro de ${previousYear}`,  capital: capitalAnterior,   ajuste: ajusteAnterior,      lucros: lucrosAnterior,  total: totalAnterior,  blue: true,  saldo: true  },
+                    { label: 'Lucros distribuídos',                           capital: null,              ajuste: null,                lucros: -distAtual,      total: -distAtual,     indent: true                },
+                    { label: 'Lucro do exercício',                            capital: null,              ajuste: null,                lucros: rAtual,          total: rAtual,         indent: true                },
+                    { label: 'Ajuste de Avaliação',                           capital: null,              ajuste: ajusteDelta,         lucros: null,            total: ajusteDelta || null, indent: true           },
+                    { label: `Saldo em 31 de dezembro de ${currentYear}`,    capital: capitalAtual,      ajuste: ajusteAtual,         lucros: lucrosAtual,     total: totalAtual,     bold: true,  finalRow: true}
+                ];
+
+                plTbody.innerHTML = dmplRows.map(row => {
+                    const labelClass = `py-1 px-4${row.indent ? ' pl-8' : ''}${row.blue ? ' text-blue-600' : ''}${row.bold ? ' font-bold' : ''}`;
+                    const valClass = `py-1 px-1 text-right tabular-nums${row.saldo ? ' dmpl-saldo-val' : ''}${row.finalRow ? ' dre-final-val font-bold' : ''}`;
+                    const c = (v) => `<td class="${valClass}">${fmtDmpl(v)}</td>`;
+                    return `<tr><td class="${labelClass}">${row.label}</td>${c(row.capital)}${c(row.ajuste)}${c(row.lucros)}${c(row.total)}</tr>`;
+                }).join('');
+            }
+
+            function renderDFC(dfcResult) {
+                if (!dfcContainer) return;
+                if (!dfcResult || !dfcResult.data || dfcResult.data.length === 0) {
+                    dfcContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Nenhum dado para DFC encontrado.</div>`;
+                    return;
+                }
+                const headerMap = dfcResult.headers.reduce((acc, header, index) => {
+                    acc[(header && header.name ? header.name : '').toUpperCase()] = index;
+                    return acc;
+                }, {});
+                const hierarquiaIdx = headerMap['HIERARQUIA'];
+                const descricaoIdx = headerMap['DESCRICAO'];
+                const notaIdx = headerMap['NOTA'];
+                const valorAnoAtualIdx = headerMap['VALOR_ANO_ATUAL'];
+                const valorAnoAnteriorIdx = headerMap['VALOR_ANO_ANTERIOR'];
+
+                if (hierarquiaIdx !== undefined && descricaoIdx !== undefined && valorAnoAtualIdx !== undefined && valorAnoAnteriorIdx !== undefined) {
+                    renderDFCHierarquia(dfcResult, { hierarquiaIdx, descricaoIdx, notaIdx, valorAnoAtualIdx, valorAnoAnteriorIdx });
+                    return;
+                }
+
+                const ordemIndex = headerMap['ORDEM'];
+                const dfcIndex = headerMap['DFC'];
+                const valorAtualIndex = headerMap['VALOR_ATUAL'];
+                const valorAnteriorIndex = headerMap['VALOR_ANTERIOR'];
+                if (ordemIndex === undefined || dfcIndex === undefined || valorAtualIndex === undefined || valorAnteriorIndex === undefined) {
+                    dfcContainer.innerHTML = `<div class="text-center p-12 text-destructive">Erro: Estrutura de dados da DFC inválida.</div>`;
+                    return;
+                }
+                const baseRows = dfcResult.data.map(row => {
+                    const rawDesc = row[dfcIndex];
+                    const descricao = typeof rawDesc === 'string' ? rawDesc : String(rawDesc || '');
+                    return {
+                        ordem: parseInt(row[ordemIndex]) || 0,
+                        descricao,
+                        valorAtual: parseFloat(row[valorAtualIndex]) || 0,
+                        valorAnterior: parseFloat(row[valorAnteriorIndex]) || 0
+                    };
+                }).sort((a, b) => a.ordem - b.ordem);
+
+                const subtotalRules = [
+                    { after: 11, label: 'Subtotal', rangeStart: 1, rangeEnd: 11, mode: 'sum', isSubtotal: true },
+                    { after: 20, label: 'Caixa líquido consumido nas atividades operacionais', rangeStart: 1, rangeEnd: 20, mode: 'sum', isTotal: true },
+                    { after: 24, label: 'Caixa líquido gerado (consumido) nas atividades de investimentos', rangeStart: 1, rangeEnd: 24, mode: 'sum', isTotal: true },
+                    { after: 28, label: 'Caixa gerado nas atividades de financiamentos', rangeStart: 1, rangeEnd: 28, mode: 'sum', isTotal: true },
+                    { after: 30, label: 'Aumento de caixa e equivalentes de caixa', rangeStart: 29, rangeEnd: 30, mode: 'diff', isTotal: true, isGrand: true }
+                ];
+
+                const calcSubtotal = (rule) => baseRows.reduce((acc, row) => {
+                    if (row.ordem >= rule.rangeStart && row.ordem <= rule.rangeEnd) {
+                        if (rule.mode === 'diff') {
+                            if (row.ordem === rule.rangeStart) {
+                                acc.valorAtual -= row.valorAtual; acc.valorAnterior -= row.valorAnterior;
+                            } else if (row.ordem === rule.rangeEnd) {
+                                acc.valorAtual += row.valorAtual; acc.valorAnterior += row.valorAnterior;
+                            }
+                        } else {
+                            acc.valorAtual += row.valorAtual; acc.valorAnterior += row.valorAnterior;
+                        }
+                    }
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+
+                const processedRows = [];
+                baseRows.forEach(row => {
+                    const indentClass = (/^\s+/.test(row.descricao)) ? 'pl-4' : '';
+                    if (row.ordem === 12) processedRows.push({ type: 'merged-note', descricao: 'Variação nos ativos e passivos operacionais' });
+                    if (row.ordem === 21) processedRows.push({ type: 'merged-note', descricao: 'Fluxo de caixa das atividades de investimentos' });
+                    if (row.ordem === 25) processedRows.push({ type: 'merged-note', descricao: 'Fluxo de caixa das atividades de financiamentos' });
+                    processedRows.push({ type: 'item', descricao: row.descricao, valorAtual: row.valorAtual, valorAnterior: row.valorAnterior, indent: indentClass });
+                    if (row.ordem === 1) processedRows.push({ type: 'merged-note', descricao: 'Ajuste para reconciliar o prejuízo do exercício com os recursos provenientes das atividades operacionais' });
+                    const rule = subtotalRules.find(r => r.after === row.ordem);
+                    if (rule) {
+                        const subtotal = calcSubtotal(rule);
+                        processedRows.push({ type: rule.isSubtotal ? 'subtotal' : 'total', descricao: rule.label, valorAtual: subtotal.valorAtual, valorAnterior: subtotal.valorAnterior, isGrand: rule.isGrand });
+                    }
+                });
+
+                let tableHtml = `
+                    <table class="w-full text-[10px] mt-4">
+                        <thead class="border-b border-gray-700">
+                            <tr>
+                                <th class="text-left font-semibold pb-2 w-[70%]"></th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="current-year">2024</th>
+                                <th class="text-right font-semibold pb-2 w-[15%]" data-dynamic-text="previous-year">2023</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                processedRows.forEach(row => {
+                    if (row.type === 'merged-note') {
+                        tableHtml += `<tr><td colspan="3" class="text-left py-1 text-[10px]">${row.descricao}</td></tr>`; return;
+                    }
+                    const isTotalRow = row.type !== 'item';
+                    const fontWeight = isTotalRow ? 'font-bold' : 'font-normal';
+                    const borderTop = isTotalRow ? 'border-t border-gray-400' : '';
+                    const borderBottom = row.isGrand ? 'border-b-2 border-gray-700' : '';
+                    const paddingClass = isTotalRow ? 'py-2' : 'py-1';
+                    const indentClass = row.indent || '';
+                    const descDisplay = row.descricao || '';
+                    tableHtml += `
+                        <tr class="${fontWeight} ${paddingClass} ${borderTop} ${borderBottom}">
+                            <td class="text-left ${indentClass}">${descDisplay}</td>
+                            <td class="text-right font-mono">${formatDFCValue(row.valorAtual)}</td>
+                            <td class="text-right font-mono">${formatDFCValue(row.valorAnterior)}</td>
+                        </tr>`;
+                });
+                tableHtml += `</tbody></table>`;
+                dfcContainer.innerHTML = tableHtml;
+            }
+
+            function renderDFCHierarquia(dfcResult, colMap) {
+                const { hierarquiaIdx, descricaoIdx, notaIdx, valorAnoAtualIdx, valorAnoAnteriorIdx } = colMap;
+                const data = dfcResult.data.map(row => ({
+                    hierarquia: row[hierarquiaIdx] != null ? String(row[hierarquiaIdx]).trim() : '',
+                    descricao: row[descricaoIdx] ?? '',
+                    nota: notaIdx !== undefined ? (row[notaIdx] ?? '') : '',
+                    valor_ano_atual: parseFloat(row[valorAnoAtualIdx]) || 0,
+                    valor_ano_anterior: parseFloat(row[valorAnoAnteriorIdx]) || 0
+                }));
+
+                const calculateSum = (prefix) => data
+                    .filter(item => item.hierarquia && item.hierarquia.startsWith(prefix))
+                    .reduce((acc, item) => ({
+                        atual: acc.atual + item.valor_ano_atual,
+                        anterior: acc.anterior + item.valor_ano_anterior
+                    }), { atual: 0, anterior: 0 });
+
+                const receitas = calculateSum('1.');
+                const despesasOp = calculateSum('2.');
+                const resultadoFin = calculateSum('3.');
+                const caixaInvestimentos = calculateSum('4.');
+                const caixaFinanciamentos = calculateSum('5.');
+
+                const lucroBruto = receitas;
+                const lucroAntesFin = { atual: lucroBruto.atual + despesasOp.atual, anterior: lucroBruto.anterior + despesasOp.anterior };
+                const lucroAntesImp = { atual: lucroAntesFin.atual + resultadoFin.atual, anterior: lucroAntesFin.anterior + resultadoFin.anterior };
+
+                const sum91a94 = data
+                    .filter(item => item.hierarquia && ['9.1', '9.2', '9.3', '9.4'].includes(item.hierarquia))
+                    .reduce((acc, item) => ({
+                        atual: acc.atual + (item.valor_ano_atual || 0),
+                        anterior: acc.anterior + (item.valor_ano_anterior || 0)
+                    }), { atual: 0, anterior: 0 });
+                const item95 = data.find(i => i.hierarquia === '9.5');
+                const val95Atual = item95 ? (item95.valor_ano_atual || 0) : 0;
+                const val95Anterior = item95 ? (item95.valor_ano_anterior || 0) : 0;
+                const lucroAntesImpostos = { atual: sum91a94.atual - val95Atual, anterior: sum91a94.anterior - val95Anterior };
+
+                const item81 = data.find(i => i.hierarquia === '8.1');
+                const item82 = data.find(i => i.hierarquia === '8.2');
+                const item83 = data.find(i => i.hierarquia === '8.3');
+                const item84 = data.find(i => i.hierarquia === '8.4');
+                const val81 = (v) => v ? (v.valor_ano_atual || 0) : 0;
+                const val82 = (v) => v ? (v.valor_ano_atual || 0) : 0;
+                const val83 = (v) => v ? (v.valor_ano_atual || 0) : 0;
+                const val84 = (v) => v ? (v.valor_ano_atual || 0) : 0;
+                const val81A = (v) => v ? (v.valor_ano_anterior || 0) : 0;
+                const val82A = (v) => v ? (v.valor_ano_anterior || 0) : 0;
+                const val83A = (v) => v ? (v.valor_ano_anterior || 0) : 0;
+                const val84A = (v) => v ? (v.valor_ano_anterior || 0) : 0;
+                const baseParaImpostoAtual = lucroAntesImpostos.atual + val82(item82) - val83(item83) - val84(item84) + val81(item81);
+                const baseParaImpostoAnterior = lucroAntesImpostos.anterior + val82A(item82) - val83A(item83) - val84A(item84) + val81A(item81);
+
+                const item71 = data.find(i => i.hierarquia === '7.1');
+                const item72 = data.find(i => i.hierarquia === '7.2');
+                const val71Atual = item71 ? (item71.valor_ano_atual || 0) : 0;
+                const val71Anterior = item71 ? (item71.valor_ano_anterior || 0) : 0;
+                const val72Atual = item72 ? (item72.valor_ano_atual || 0) : 0;
+                const val72Anterior = item72 ? (item72.valor_ano_anterior || 0) : 0;
+                const base72menos71Atual = val72Atual - val71Atual;
+                const base72menos71Anterior = val72Anterior - val71Anterior;
+                const irpj15Atual = base72menos71Atual > 0 ? base72menos71Atual * 0.15 : 0;
+                const irpj15Anterior = base72menos71Anterior > 0 ? base72menos71Anterior * 0.15 : 0;
+                const irpj10Atual = base72menos71Atual > 240000 ? (base72menos71Atual - 240000) * 0.10 : 0;
+                const irpj10Anterior = base72menos71Anterior > 240000 ? (base72menos71Anterior - 240000) * 0.10 : 0;
+                const csll9Atual = base72menos71Atual > 0 ? base72menos71Atual * 0.09 : 0;
+                const csll9Anterior = base72menos71Anterior > 0 ? base72menos71Anterior * 0.09 : 0;
+                const totalDiferidoAtual = irpj15Atual + irpj10Atual + csll9Atual;
+                const totalDiferidoAnterior = irpj15Anterior + irpj10Anterior + csll9Anterior;
+                const totalCorrenteAtual = (baseParaImpostoAtual > 0 ? baseParaImpostoAtual * 0.15 : 0) - irpj15Atual +
+                    (baseParaImpostoAtual > 240000 ? (baseParaImpostoAtual - 240000) * 0.10 : 0) - irpj10Atual +
+                    (baseParaImpostoAtual > 0 ? baseParaImpostoAtual * 0.09 : 0) - csll9Atual;
+                const totalCorrenteAnterior = (baseParaImpostoAnterior > 0 ? baseParaImpostoAnterior * 0.15 : 0) - irpj15Anterior +
+                    (baseParaImpostoAnterior > 240000 ? (baseParaImpostoAnterior - 240000) * 0.10 : 0) - irpj10Anterior +
+                    (baseParaImpostoAnterior > 0 ? baseParaImpostoAnterior * 0.09 : 0) - csll9Anterior;
+
+                const reversoes = calculateSum('4.1');
+                const baseDiferida = calculateSum('4.2');
+                const baseCalculoDiferidoAtual = (baseDiferida.atual * -1) - reversoes.atual;
+                const baseCalculoDiferidoAnterior = (baseDiferida.anterior * -1) - reversoes.anterior;
+                const Q3659Atual = baseCalculoDiferidoAtual > 0 ? baseCalculoDiferidoAtual * 0.15 : 0;
+                const Q3659Anterior = baseCalculoDiferidoAnterior > 0 ? baseCalculoDiferidoAnterior * 0.15 : 0;
+                const Q3660Atual = baseCalculoDiferidoAtual > 240 ? (baseCalculoDiferidoAtual - 240) * 0.10 : 0;
+                const Q3660Anterior = baseCalculoDiferidoAnterior > 240 ? (baseCalculoDiferidoAnterior - 240) * 0.10 : 0;
+                const Q3661Atual = baseCalculoDiferidoAtual > 0 ? baseCalculoDiferidoAtual * 0.09 : 0;
+                const Q3661Anterior = baseCalculoDiferidoAnterior > 0 ? baseCalculoDiferidoAnterior * 0.09 : 0;
+                const impostosDiferidos = { atual: Q3659Atual + Q3660Atual + Q3661Atual, anterior: Q3659Anterior + Q3660Anterior + Q3661Anterior };
+
+                const brindes = calculateSum('5.1');
+                const provisaoPecld = calculateSum('5.2');
+                const reversaoPecld = calculateSum('5.3');
+                const outrasDespesasNaoOp = calculateSum('5.4');
+                const baseCalculoCorrenteAtual = lucroAntesImp.atual + provisaoPecld.atual - reversaoPecld.atual - outrasDespesasNaoOp.atual + brindes.atual;
+                const baseCalculoCorrenteAnterior = lucroAntesImp.anterior + provisaoPecld.anterior - reversaoPecld.anterior - outrasDespesasNaoOp.anterior + brindes.anterior;
+                const impostosCorrentes = {
+                    atual: (baseCalculoCorrenteAtual > 0 ? baseCalculoCorrenteAtual * 0.15 : 0) - Q3659Atual +
+                        (baseCalculoCorrenteAtual > 240 ? (baseCalculoCorrenteAtual - 240) * 0.10 : 0) - Q3660Atual +
+                        (baseCalculoCorrenteAtual > 0 ? baseCalculoCorrenteAtual * 0.09 : 0) - Q3661Atual,
+                    anterior: (baseCalculoCorrenteAnterior > 0 ? baseCalculoCorrenteAnterior * 0.15 : 0) - Q3659Anterior +
+                        (baseCalculoCorrenteAnterior > 240 ? (baseCalculoCorrenteAnterior - 240) * 0.10 : 0) - Q3660Anterior +
+                        (baseCalculoCorrenteAnterior > 0 ? baseCalculoCorrenteAnterior * 0.09 : 0) - Q3661Anterior
+                };
+                const totalGeralImpostos = { atual: impostosCorrentes.atual + impostosDiferidos.atual, anterior: impostosCorrentes.anterior + impostosDiferidos.anterior };
+
+                const aumentoCaixa = {
+                    atual: receitas.atual + despesasOp.atual + resultadoFin.atual + caixaInvestimentos.atual + caixaFinanciamentos.atual,
+                    anterior: receitas.anterior + despesasOp.anterior + resultadoFin.anterior + caixaInvestimentos.anterior + caixaFinanciamentos.anterior
+                };
+
+                const rowDfc = (desc, nota, vAtual, vAnterior, bold, borderTop, borderDouble, bgSubtotal) => {
+                    const boldCl = bold ? 'font-bold' : '';
+                    const borderCl = borderDouble ? 'border-y-2 border-double border-gray-700' : (borderTop ? 'border-t border-border' : 'border-b border-border');
+                    const bgCl = bgSubtotal ? 'bg-secondary' : '';
+                    return `<tr class="${boldCl} ${borderCl} ${bgCl}">
+                        <td class="px-4 py-1.5 text-left text-[10px]">${desc || ''}</td>
+                        <td class="px-1 py-1.5 text-center font-mono text-[10px]">${nota || ''}</td>
+                        <td class="px-1 py-1.5 text-right font-mono text-[10px]">${vAtual !== undefined && vAtual !== '' ? formatDFCValue(vAtual) : ''}</td>
+                        <td class="px-1 py-1.5 text-right font-mono text-[10px]">${vAnterior !== undefined && vAnterior !== '' ? formatDFCValue(vAnterior) : ''}</td>
+                    </tr>`;
+                };
+                const rowObs = (text) => `<tr><td colspan="4" class="px-4 py-1.5 text-[10px] text-muted-foreground italic border-b border-border">${text}</td></tr>`;
+                const rowSpacer = () => `<tr><td colspan="4" class="py-1"></td></tr>`;
+
+                let tableHtml = `
+                    <table class="w-full text-[10px] mt-4">
+                        <thead>
+                            <tr class="border-b-2 border-gray-700">
+                                <th class="px-4 py-3 text-left font-semibold text-secondary-foreground w-[55%]">Descrição</th>
+                                <th class="px-1 py-3 text-center font-semibold text-secondary-foreground w-[15%]">Notas</th>
+                                <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-[15%]" data-dynamic-text="current-year">2024</th>
+                                <th class="px-1 py-3 text-right font-semibold text-secondary-foreground w-[15%]" data-dynamic-text="previous-year">2023</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                tableHtml += rowDfc('Fluxo de caixa das atividades operacionais', '', undefined, undefined, true);
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('1.')).forEach(item => {
+                    tableHtml += rowDfc(item.descricao, item.nota, item.valor_ano_atual, item.valor_ano_anterior, false);
+                    if (item.hierarquia === '1.1' && item.descricao && String(item.descricao).toLowerCase().includes('lucro do exercício')) {
+                        tableHtml += rowObs('Ajuste para reconciliar o prejuízo do exercício com os recursos provenientes das atividades operacionais');
+                    }
+                });
+                tableHtml += rowSpacer();
+
+                const itens2 = data.filter(i => i.hierarquia && i.hierarquia.startsWith('2.')).sort((a, b) => {
+                    const numA = parseFloat((a.hierarquia || '').split('.')[1]) || 0;
+                    const numB = parseFloat((b.hierarquia || '').split('.')[1]) || 0;
+                    return numA - numB;
+                });
+                itens2.forEach(item => {
+                    tableHtml += rowDfc(item.descricao, item.nota, item.valor_ano_atual, item.valor_ano_anterior, false);
+                    if (item.hierarquia === '2.7') {
+                        tableHtml += rowDfc('Imposto de renda e contribuição social - correntes', '', totalCorrenteAtual, totalCorrenteAnterior, false);
+                        tableHtml += rowDfc('Imposto de renda e contribuição social - diferidos', '', totalDiferidoAtual, totalDiferidoAnterior, false);
+                    }
+                });
+                tableHtml += rowDfc('', '', lucroAntesFin.atual, lucroAntesFin.anterior, true);
+                tableHtml += rowSpacer();
+                tableHtml += rowObs('Variação nos ativos e passivos operacionais');
+
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('3.')).forEach(item => {
+                    tableHtml += rowDfc(item.descricao, item.nota, item.valor_ano_atual, item.valor_ano_anterior, false);
+                });
+                tableHtml += rowDfc('Caixa líquido consumido nas atividades operacionais', '', lucroAntesImp.atual, lucroAntesImp.anterior, true);
+                tableHtml += rowSpacer();
+                tableHtml += rowSpacer();
+                tableHtml += rowSpacer();
+                tableHtml += rowSpacer();
+                tableHtml += rowDfc('Fluxo de caixa das atividades de investimentos', '', undefined, undefined, true);
+
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('4.')).forEach(item => {
+                    tableHtml += rowDfc(item.descricao, item.nota, item.valor_ano_atual, item.valor_ano_anterior, false);
+                });
+                tableHtml += rowDfc('Caixa líquido gerado (consumido) nas atividades de investimentos', '', caixaInvestimentos.atual, caixaInvestimentos.anterior, true);
+                tableHtml += rowSpacer();
+
+                tableHtml += rowDfc('Fluxo de caixa das atividades de financiamentos', '', undefined, undefined, true);
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('5.')).forEach(item => {
+                    tableHtml += rowDfc(item.descricao, item.nota, item.valor_ano_atual, item.valor_ano_anterior, false);
+                });
+                tableHtml += rowDfc('Caixa gerado nas atividades de financiamentos', '', caixaFinanciamentos.atual, caixaFinanciamentos.anterior, true);
+                tableHtml += rowSpacer();
+                tableHtml += rowSpacer();
+
+                tableHtml += rowDfc('Aumento de caixa e equivalentes de caixa', '', aumentoCaixa.atual, aumentoCaixa.anterior, true);
+                tableHtml += rowSpacer();
+                tableHtml += rowSpacer();
+
+                data.filter(i => i.hierarquia && i.hierarquia.startsWith('6.')).forEach(item => {
+                    tableHtml += rowDfc(item.descricao, item.nota, item.valor_ano_atual, item.valor_ano_anterior, false);
+                });
+                tableHtml += rowDfc('Aumento de caixa e equivalentes de caixa', '', aumentoCaixa.atual, aumentoCaixa.anterior, true, false, true, true);
+
+                tableHtml += `</tbody></table>`;
+                dfcContainer.innerHTML = tableHtml;
+            }
+
+            function buildNotasHeader(yearText) {
+                const yearDisplay = yearText || new Date().getFullYear();
+                return `
+                    <header class="page-header notas-header w-full text-left" data-notas-header>
+                        <p class="font-bold">Tecway Serviços e Locação de Equipamentos Ltda</p>
+                        <p>Notas explicativas às demonstrações financeiras em 31 de dezembro de ${yearDisplay}</p>
+                        <p class="text-[7px] text-muted-foreground">(Valores expressos em milhares de reais, exceto quando indicado de outra forma)</p>
+                        <div class="page-header-line"></div>
+                    </header>
+                `;
+            }
+
+            function buildNotasFooter(pageNumber) {
+                return `
+                    <footer class="notas-footer mt-auto pt-16">
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="text-muted-foreground"></span>
+                            <span class="font-semibold" data-notas-footer>${pageNumber}</span>
+                        </div>
+                    </footer>
+                `;
+            }
+
+            function buildNotasStatusPage(message, pageNumber, currentYear, isError = false) {
+                const yearText = currentYear || new Date().getFullYear();
+                const statusClass = isError ? 'text-destructive bg-destructive/10' : 'text-muted-foreground';
+                return `
+                    <div class="page text-xs leading-relaxed notas-page flex flex-col">
+                        ${buildNotasHeader(yearText)}
+                        <div class="notas-content flex-1 flex items-center justify-center text-center p-12 ${statusClass}">${escapeHtml(message || '')}</div>
+                        ${buildNotasFooter(pageNumber)}
+                    </div>
+                `;
+            }
+
+            function createNotasPageElement(pageNumber, yearText) {
+                const pageEl = document.createElement('div');
+                pageEl.className = 'page text-xs leading-relaxed notas-page';
+                pageEl.innerHTML = `
+                    ${buildNotasHeader(yearText)}
+                    <div class="notas-content space-y-3 flex-1" data-notas-content></div>
+                    ${buildNotasFooter(pageNumber)}
+                `;
+                return pageEl;
+            }
+
+            function measureNotasContentHeight(yearText) {
+                const measurePage = createNotasPageElement(FIRST_NOTAS_PAGE_NUMBER, yearText);
+                measurePage.style.visibility = 'hidden';
+                measurePage.style.position = 'absolute';
+                measurePage.style.pointerEvents = 'none';
+                measurePage.style.left = '-9999px';
+                measurePage.style.top = '0';
+                measurePage.style.width = '210mm';
+                measurePage.style.height = '297mm';
+                document.body.appendChild(measurePage);
+                
+                // Force layout calculation
+                void measurePage.offsetHeight;
+                
+                // Get actual heights
+                const headerEl = measurePage.querySelector('[data-notas-header]');
+                const footerEl = measurePage.querySelector('[data-notas-footer]');
+                
+                const pageStyle = getComputedStyle(measurePage);
+                const pagePaddingTop = parseFloat(pageStyle.paddingTop) || 113.39; // 30mm ≈ 113.39px
+                const pagePaddingBottom = parseFloat(pageStyle.paddingBottom) || 151.18; // 40mm ≈ 151.18px
+                const headerHeight = headerEl ? (headerEl.offsetHeight + (parseFloat(getComputedStyle(headerEl).marginBottom) || 0)) : 0;
+                const footerHeight = footerEl ? (footerEl.offsetHeight + (parseFloat(getComputedStyle(footerEl).marginTop) || 0) + (parseFloat(getComputedStyle(footerEl).paddingTop) || 0)) : 0;
+                
+                // Available height = page - padding - header - footer; margem de segurança para evitar corte
+                const pageHeightPx = measurePage.clientHeight;
+                const availableHeight = pageHeightPx - pagePaddingTop - pagePaddingBottom - headerHeight - footerHeight;
+                const safetyMargin = 60; // px de folga para evitar qualquer corte por overflow:hidden e espaçamentos
+                
+                measurePage.remove();
+                // Mínimo 650px para caber várias notas por página e não gerar uma página por registro
+                return Math.max(availableHeight - safetyMargin, 650);
+            }
+
+            /**
+             * Monta a tabela de contas (queryNOTAdetConta) para um ID_DET_INICIAL_NOTAS.
+             * Colunas: DESCRICAO_CONTA, VALOR_ATUAL, VALOR_ANTERIOR. Soma total no fim da tabela.
+             */
+            function buildContaTableHtml(contasRows, currentYear, previousYear) {
+                if (!contasRows || contasRows.length === 0) return '';
+                let sumAtual = 0, sumAnterior = 0;
+                const rowsHtml = contasRows.map(row => {
+                    const valorAtual = parseFloat(row.valorAtual);
+                    const valorAnterior = parseFloat(row.valorAnterior);
+                    if (!isNaN(valorAtual)) sumAtual += valorAtual;
+                    if (!isNaN(valorAnterior)) sumAnterior += valorAnterior;
+                    return `
+                        <tr>
+                            <td class="py-0.5 px-2 text-[9px] text-muted-foreground">${escapeHtml(String(row.descricaoConta || ''))}</td>
+                            <td class="py-0.5 px-2 text-[9px] text-right tabular-nums font-mono">${formatBP(row.valorAtual)}</td>
+                            <td class="py-0.5 px-2 text-[9px] text-right tabular-nums font-mono">${formatBP(row.valorAnterior)}</td>
+                        </tr>
+                    `;
+                }).join('');
+                const totalRow = `
+                    <tr class="font-bold bg-secondary notas-total-line">
+                        <td class="py-0.5 px-2 text-[9px]">Total</td>
+                        <td class="py-0.5 px-2 text-[9px] text-right tabular-nums font-mono">${formatBP(sumAtual)}</td>
+                        <td class="py-0.5 px-2 text-[9px] text-right tabular-nums font-mono">${formatBP(sumAnterior)}</td>
+                    </tr>
+                `;
+                return `
+                    <div class="mt-2 overflow-x-auto">
+                        <table class="w-full text-[9px] border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-600">
+                                    <th class="py-0.5 px-2 text-left font-semibold">Descrição da conta</th>
+                                    <th class="py-0.5 px-2 text-right font-semibold" data-dynamic-text="current-year">${currentYear || ''}</th>
+                                    <th class="py-0.5 px-2 text-right font-semibold" data-dynamic-text="previous-year">${previousYear || ''}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                                ${totalRow}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            function normalizeImageSrc(rawImage) {
+                if (rawImage == null) return '';
+                const value = String(rawImage).trim();
+                if (!value) return '';
+                if (/^data:image\//i.test(value)) return value;
+                if (/^https?:\/\//i.test(value) || /^blob:/i.test(value)) return value;
+                if (/^[A-Za-z0-9+/=\s]+$/.test(value)) {
+                    const compact = value.replace(/\s+/g, '');
+                    if (compact.length > 40) return `data:image/png;base64,${compact}`;
+                }
+                return '';
+            }
+
+            function buildNotaSection(nota, contasRows, imageRows, currentYear, previousYear) {
+                const section = document.createElement('section');
+                section.className = 'space-y-2 pb-3 last:pb-0';
+                const titleText = (nota.titulo && String(nota.titulo).trim().length > 0) ? nota.titulo : 'Nota explicativa';
+                let html = '<h3 class="font-bold">' + escapeHtml(titleText) + '</h3>' + formatDescricaoHtml(nota.descricao);
+                if (Array.isArray(imageRows) && imageRows.length > 0) {
+                    const imagesHtml = imageRows.map((row, index) => {
+                        const normalized = normalizeImageSrc(row.imagem);
+                        if (!normalized) return '';
+                        return `
+                            <div class="nota-imagem-wrapper">
+                                <img
+                                    src="${escapeHtml(normalized)}"
+                                    alt="Imagem da nota explicativa ${escapeHtml(String(nota.idDetInicialNotas || ''))}"
+                                    class="nota-imagem"
+                                    onerror="this.style.display='none';"
+                                />
+                            </div>
+                        `;
+                    }).join('');
+                    html += imagesHtml;
+                }
+                if (contasRows && contasRows.length > 0) {
+                    html += buildContaTableHtml(contasRows, currentYear, previousYear);
+                }
+                section.innerHTML = html;
+                return section;
+            }
+
+            /**
+             * Renderiza o detalhamento das notas explicativas (página 9).
+             * Origem: queryNOTAdet (sequência por DESCRICAO/ORDEM).
+             * queryNOTAdetConta: uma tabela por ID_DET_INICIAL_NOTAS. Colunas: DESCRICAO_CONTA, VALOR_ATUAL, VALOR_ANTERIOR; soma total no fim de cada tabela.
+             * Match por ID (queryNOTAdet) = ID_DET_INICIAL_NOTAS (queryNOTAdetConta).
+             * Campos queryNOTAdet: ID ou ID_DET_INICIAL_NOTAS, MES_REFERENCIA, DESCRICAO, ORDEM, TITULO.
+             * Campos queryNOTAdetConta: ID, ID_DET_INICIAL_NOTAS, DESCRICAO_CONTA, VALOR_ATUAL, VALOR_ANTERIOR.
+             */
+            function renderNotasExplicativas(notasResult, contasResult, imagensResult, currentYear) {
+                if (!notasDynamicContainer) return;
+                if (!notasResult || !Array.isArray(notasResult.data) || !Array.isArray(notasResult.headers)) {
+                    notasDynamicContainer.innerHTML = buildNotasStatusPage('Nenhuma nota explicativa encontrada para o mês selecionado.', FIRST_NOTAS_PAGE_NUMBER, currentYear);
+                    return;
+                }
+                const headerMap = notasResult.headers.reduce((acc, header, index) => {
+                    const name = (header && header.name ? header.name : (typeof header === 'string' ? header : '')).toString().toUpperCase();
+                    acc[name] = index;
+                    return acc;
+                }, {});
+                const ordemIndex = headerMap['ORDEM'];
+                const idIndex = headerMap['ID'] !== undefined ? headerMap['ID'] : headerMap['ID_DET_INICIAL_NOTAS'];
+                const tituloIndex = headerMap['TITULO'];
+                const descricaoIndex = headerMap['DESCRICAO'];
+                if (descricaoIndex === undefined) {
+                    notasDynamicContainer.innerHTML = buildNotasStatusPage('Estrutura de dados de notas inválida (coluna DESCRICAO ausente).', FIRST_NOTAS_PAGE_NUMBER, currentYear, true);
+                    return;
+                }
+                const getCell = (row, idx, key) => {
+                    if (row == null) return undefined;
+                    return idx !== undefined && Array.isArray(row) ? row[idx] : (row[key] ?? row[(key || '').toLowerCase()]);
+                };
+                const notasData = notasResult.data.map((row, index) => ({
+                    idDetInicialNotas: idIndex !== undefined ? (getCell(row, idIndex, 'ID') ?? getCell(row, idIndex, 'ID_DET_INICIAL_NOTAS')) ?? '' : '',
+                    id: idIndex !== undefined ? parseInt(getCell(row, idIndex, 'ID')) || index : index,
+                    ordem: ordemIndex !== undefined ? parseInt(getCell(row, ordemIndex, 'ORDEM')) || 0 : 0,
+                    titulo: tituloIndex !== undefined ? (getCell(row, tituloIndex, 'TITULO') || '') : '',
+                    descricao: getCell(row, descricaoIndex, 'DESCRICAO') ?? ''
+                })).sort((a, b) => a.ordem !== b.ordem ? a.ordem - b.ordem : a.id - b.id);
+                const previousYear = currentYear ? (parseInt(currentYear, 10) - 1).toString() : '';
+                let contasByDetId = {};
+                if (contasResult && Array.isArray(contasResult.data) && Array.isArray(contasResult.headers)) {
+                    const ch = contasResult.headers.reduce((acc, header, index) => {
+                        const name = (header && header.name ? header.name : (typeof header === 'string' ? header : '')).toString().toUpperCase();
+                        acc[name] = index;
+                        return acc;
+                    }, {});
+                    const idxIdDet = ch['ID_DET_INICIAL_NOTAS'];
+                    const idxDesc = ch['DESCRICAO_CONTA'];
+                    const idxAtual = ch['VALOR_ATUAL'];
+                    const idxAnterior = ch['VALOR_ANTERIOR'];
+                    const getContaCell = (row, colName) => {
+                        const idx = ch[colName];
+                        if (row == null) return undefined;
+                        if (Array.isArray(row) && idx !== undefined) return row[idx];
+                        const key = colName.toLowerCase();
+                        return row[key] ?? row[colName];
+                    };
+                    if (idxIdDet !== undefined && idxDesc !== undefined && idxAtual !== undefined && idxAnterior !== undefined) {
+                        contasResult.data.forEach(row => {
+                            const id = getContaCell(row, 'ID_DET_INICIAL_NOTAS');
+                            const key = id != null && id !== '' ? String(id) : '';
+                            if (!contasByDetId[key]) contasByDetId[key] = [];
+                            contasByDetId[key].push({
+                                descricaoConta: getContaCell(row, 'DESCRICAO_CONTA') ?? '',
+                                valorAtual: getContaCell(row, 'VALOR_ATUAL'),
+                                valorAnterior: getContaCell(row, 'VALOR_ANTERIOR')
+                            });
+                        });
+                    }
+                }
+                let imagensByDetId = {};
+                if (imagensResult && Array.isArray(imagensResult.data) && Array.isArray(imagensResult.headers)) {
+                    const ih = imagensResult.headers.reduce((acc, header, index) => {
+                        const name = (header && header.name ? header.name : (typeof header === 'string' ? header : '')).toString().toUpperCase();
+                        acc[name] = index;
+                        return acc;
+                    }, {});
+                    const idxIdDetImg = ih['ID_DET_INICIAL_NOTAS'];
+                    const idxImagem = ih['IMAGEM'];
+                    const getImagemCell = (row, colName) => {
+                        const idx = ih[colName];
+                        if (row == null) return undefined;
+                        if (Array.isArray(row) && idx !== undefined) return row[idx];
+                        const key = colName.toLowerCase();
+                        return row[key] ?? row[colName];
+                    };
+                    if (idxIdDetImg !== undefined && idxImagem !== undefined) {
+                        imagensResult.data.forEach(row => {
+                            const id = getImagemCell(row, 'ID_DET_INICIAL_NOTAS');
+                            const imagem = getImagemCell(row, 'IMAGEM');
+                            if (imagem == null || String(imagem).trim() === '') return;
+                            const key = id != null && id !== '' ? String(id) : '';
+                            if (!imagensByDetId[key]) imagensByDetId[key] = [];
+                            imagensByDetId[key].push({
+                                imagem
+                            });
+                        });
+                    }
+                }
+                if (notasData.length === 0) {
+                    notasDynamicContainer.innerHTML = buildNotasStatusPage('Nenhuma nota explicativa encontrada para o mês selecionado.', FIRST_NOTAS_PAGE_NUMBER, currentYear);
+                    return;
+                }
+                const yearText = currentYear || new Date().getFullYear();
+                notasDynamicContainer.innerHTML = '';
+                let currentPageNumber = FIRST_NOTAS_PAGE_NUMBER;
+                let currentPage = createNotasPageElement(currentPageNumber, yearText);
+                let currentContent = currentPage.querySelector('[data-notas-content]');
+                notasDynamicContainer.appendChild(currentPage);
+
+                void currentPage.offsetHeight;
+                void currentContent.offsetHeight;
+                const measuredMax = measureNotasContentHeight(yearText);
+                const actualClientHeight = currentContent.clientHeight || 0;
+                const MIN_USABLE_HEIGHT = 550;
+                const maxContentHeight = (actualClientHeight >= MIN_USABLE_HEIGHT)
+                    ? Math.min(measuredMax, actualClientHeight - 16)
+                    : Math.max(MIN_USABLE_HEIGHT, measuredMax - 60);
+
+                // scrollHeight é inflado pelo flex-grow do container e não reflete o conteúdo real.
+                // Usamos a posição + altura do último filho para medir o espaço ocupado de fato.
+                const getContentUsedHeight = (contentEl) => {
+                    if (!contentEl || !contentEl.children.length) return 0;
+                    const last = contentEl.children[contentEl.children.length - 1];
+                    return last.offsetTop + last.offsetHeight;
+                };
+
+                notasData.forEach(nota => {
+                    const contasRows = contasByDetId[nota.idDetInicialNotas != null ? String(nota.idDetInicialNotas) : ''] || [];
+                    const imageRows = imagensByDetId[nota.idDetInicialNotas != null ? String(nota.idDetInicialNotas) : ''] || [];
+                    const section = buildNotaSection(nota, contasRows, imageRows, currentYear, previousYear);
+                    currentContent.appendChild(section);
+                    void currentPage.offsetHeight;
+                    void currentContent.offsetHeight;
+                    // Quebrar página somente se: (1) a nota não cabe na altura disponível E
+                    // (2) já havia outro conteúdo na página (i.e., não é a primeira nota da página).
+                    // Se a nota está sozinha e mesmo assim transborda, mantém na página atual
+                    // para evitar loop infinito; a próxima nota abrirá nova página normalmente.
+                    if (getContentUsedHeight(currentContent) > maxContentHeight && currentContent.children.length > 1) {
+                        currentContent.removeChild(section);
+                        currentPageNumber += 1;
+                        currentPage = createNotasPageElement(currentPageNumber, yearText);
+                        currentContent = currentPage.querySelector('[data-notas-content]');
+                        notasDynamicContainer.appendChild(currentPage);
+                        currentContent.appendChild(section);
+                        void currentPage.offsetHeight;
+                        void currentContent.offsetHeight;
+                    }
+                });
+            }
+
+            /**
+             * Calcula totais do Balanço Patrimonial para indicadores, usando a MESMA estrutura da página 3:
+             * - 1.1.x = Ativo Circulante (AC)
+             * - 1.2.x = Ativo Não Circulante; 1.2.1.x = Realizável a Longo Prazo (RLP)
+             * - Estoque = itens com hierarquia 1.1.3.x
+             * - 2.1.x = Passivo Circulante (PC), 2.2.x = Passivo Não Circulante (PNC)
+             * - Total Ativo = AC + ANC (soma dos 1.1.x + 1.2.x)
+             */
+            function computeBPIndicadoresData(bpData) {
+                if (!bpData || !Array.isArray(bpData) || bpData.length === 0) return null;
+                const ativoCirculanteItems = bpData.filter(d => d.hierarquia && d.hierarquia.startsWith('1.1.'));
+                const subtotalAC = ativoCirculanteItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+                const ativoNaoCirculanteItems = bpData.filter(d => d.hierarquia && d.hierarquia.startsWith('1.2.'));
+                const subtotalANC = ativoNaoCirculanteItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+                const totalAtivo = {
+                    valorAtual: subtotalAC.valorAtual + subtotalANC.valorAtual,
+                    valorAnterior: subtotalAC.valorAnterior + subtotalANC.valorAnterior
+                };
+                const estoqueItems = bpData.filter(d => d.hierarquia && d.hierarquia.startsWith('1.1.3.'));
+                const estoque = estoqueItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+                const rlpItems = bpData.filter(d => d.hierarquia && d.hierarquia.startsWith('1.2.1.'));
+                const rlp = rlpItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+                const passivoCirculanteItems = bpData.filter(d => d.hierarquia && d.hierarquia.startsWith('2.1.'));
+                const subtotalPC = passivoCirculanteItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+                const passivoNaoCirculanteItems = bpData.filter(d => d.hierarquia && d.hierarquia.startsWith('2.2.'));
+                const subtotalPNC = passivoNaoCirculanteItems.reduce((acc, item) => {
+                    acc.valorAtual += item.valorAtual;
+                    acc.valorAnterior += item.valorAnterior;
+                    return acc;
+                }, { valorAtual: 0, valorAnterior: 0 });
+                const denomPCmaisPNC = {
+                    valorAtual: subtotalPC.valorAtual + subtotalPNC.valorAtual,
+                    valorAnterior: subtotalPC.valorAnterior + subtotalPNC.valorAnterior
+                };
+                return {
+                    AC: subtotalAC,
+                    estoque,
+                    RLP: rlp,
+                    totalAtivo,
+                    PC: subtotalPC,
+                    PNC: subtotalPNC,
+                    PCmaisPNC: denomPCmaisPNC
+                };
+            }
+
+            function renderIndicadores(bpData, currentYear, previousYear) {
+                if (!indicadoresTbody) return;
+                const base = computeBPIndicadoresData(bpData);
+                if (!base) {
+                    indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-muted-foreground">Nenhum dado do balanço disponível para calcular indicadores.</td></tr>`;
+                    return;
+                }
+                const safeRatio = (num, den) => (den != null && den !== 0 && !isNaN(den)) ? (num != null && !isNaN(num) ? num / den : null) : null;
+                const liqCorrenteAtual = safeRatio(base.AC.valorAtual, base.PC.valorAtual);
+                const liqCorrenteAnterior = safeRatio(base.AC.valorAnterior, base.PC.valorAnterior);
+                const numLiquidezSecaAtual = base.AC.valorAtual - base.estoque.valorAtual;
+                const numLiquidezSecaAnterior = base.AC.valorAnterior - base.estoque.valorAnterior;
+                const liqSecaAtual = safeRatio(numLiquidezSecaAtual, base.PC.valorAtual);
+                const liqSecaAnterior = safeRatio(numLiquidezSecaAnterior, base.PC.valorAnterior);
+                const numLiquidezGeralAtual = base.AC.valorAtual + base.RLP.valorAtual;
+                const numLiquidezGeralAnterior = base.AC.valorAnterior + base.RLP.valorAnterior;
+                const liqGeralAtual = safeRatio(numLiquidezGeralAtual, base.PCmaisPNC.valorAtual);
+                const liqGeralAnterior = safeRatio(numLiquidezGeralAnterior, base.PCmaisPNC.valorAnterior);
+                const solvGeralAtual = safeRatio(base.totalAtivo.valorAtual, base.PCmaisPNC.valorAtual);
+                const solvGeralAnterior = safeRatio(base.totalAtivo.valorAnterior, base.PCmaisPNC.valorAnterior);
+
+                const indicadoresConfig = [
+                    { titulo: 'Liquidez Corrente', formulaNum: 'AC', formulaDen: 'PC', numAtual: [{ value: base.AC.valorAtual }], denAtual: [{ value: base.PC.valorAtual }], numAnt: [{ value: base.AC.valorAnterior }], denAnt: [{ value: base.PC.valorAnterior }], resultAtual: liqCorrenteAtual, resultAnt: liqCorrenteAnterior },
+                    { titulo: 'Liquidez Seca', formulaNum: 'AC - ESTOQUE', formulaDen: 'PC', numAtual: [{ value: base.AC.valorAtual }, { value: base.estoque.valorAtual, operator: '-' }], denAtual: [{ value: base.PC.valorAtual }], numAnt: [{ value: base.AC.valorAnterior }, { value: base.estoque.valorAnterior, operator: '-' }], denAnt: [{ value: base.PC.valorAnterior }], resultAtual: liqSecaAtual, resultAnt: liqSecaAnterior },
+                    { titulo: 'Liquidez Geral', formulaNum: 'AC + RLP', formulaDen: 'PC + PNC', numAtual: [{ value: base.AC.valorAtual }, { value: base.RLP.valorAtual, operator: '+' }], denAtual: [{ value: base.PC.valorAtual }, { value: base.PNC.valorAtual, operator: '+' }], numAnt: [{ value: base.AC.valorAnterior }, { value: base.RLP.valorAnterior, operator: '+' }], denAnt: [{ value: base.PC.valorAnterior }, { value: base.PNC.valorAnterior, operator: '+' }], resultAtual: liqGeralAtual, resultAnt: liqGeralAnterior },
+                    { titulo: 'Solvência Geral', formulaNum: 'ATIVO TOTAL', formulaDen: 'PC + PNC', numAtual: [{ value: base.totalAtivo.valorAtual }], denAtual: [{ value: base.PC.valorAtual }, { value: base.PNC.valorAtual, operator: '+' }], numAnt: [{ value: base.totalAtivo.valorAnterior }], denAnt: [{ value: base.PC.valorAnterior }, { value: base.PNC.valorAnterior, operator: '+' }], resultAtual: solvGeralAtual, resultAnt: solvGeralAnterior }
+                ];
+
+                const formatIndVal = (value) => {
+                    const number = parseFloat(value);
+                    if (isNaN(number)) return '-';
+                    const abs = Math.round(Math.abs(number));
+                    const formatted = abs.toLocaleString('pt-BR');
+                    return number < 0 ? `(${formatted})` : formatted;
+                };
+
+                const calcSum = (parts) => parts.reduce((acc, p) => {
+                    const v = parseFloat(p.value) || 0;
+                    return p.operator === '-' ? acc - v : acc + v;
+                }, 0);
+
+                const rowsHtml = indicadoresConfig.map(cfg => {
+                    const numValAtual = calcSum(cfg.numAtual);
+                    const denValAtual = calcSum(cfg.denAtual);
+                    const numValAnt   = calcSum(cfg.numAnt);
+                    const denValAnt   = calcSum(cfg.denAnt);
+                    const ratioAtual  = (cfg.resultAtual != null && !isNaN(cfg.resultAtual)) ? formatRatio(cfg.resultAtual) : '-';
+                    const ratioAnt    = (cfg.resultAnt   != null && !isNaN(cfg.resultAnt))   ? formatRatio(cfg.resultAnt)   : '-';
+                    return `
+                        <tr>
+                            <td colspan="3" class="font-bold pt-4 pb-0">${cfg.titulo}</td>
+                        </tr>
+                        <tr>
+                            <td class="pb-3 align-top">
+                                <div class="text-blue-600 underline">${cfg.formulaNum}</div>
+                                <div>${cfg.formulaDen}</div>
+                            </td>
+                            <td class="pb-3 align-top text-right">
+                                <div class="flex items-baseline justify-end gap-4">
+                                    <div>
+                                        <div class="ind-num-val tabular-nums">${formatIndVal(numValAtual)}</div>
+                                        <div class="tabular-nums">${formatIndVal(denValAtual)}</div>
+                                    </div>
+                                    <div class="tabular-nums">${ratioAtual}</div>
+                                </div>
+                            </td>
+                            <td class="pb-3 align-top text-right">
+                                <div class="flex items-baseline justify-end gap-4">
+                                    <div>
+                                        <div class="ind-num-val tabular-nums">${formatIndVal(numValAnt)}</div>
+                                        <div class="tabular-nums">${formatIndVal(denValAnt)}</div>
+                                    </div>
+                                    <div class="tabular-nums">${ratioAnt}</div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                indicadoresTbody.innerHTML = rowsHtml;
+            }
+
+            async function fetchAndRenderReports() {
+                if (bpLoadingState) { bpLoadingState.classList.remove('hidden'); bpLoadingState.textContent = 'Carregando dados do relatório...'; }
+                if (bpReportContent) bpReportContent.classList.add('hidden');
+                if (ativoContainer) ativoContainer.innerHTML = '';
+                if (passivoPlContainer) passivoPlContainer.innerHTML = '';
+                if (totaisContainer) totaisContainer.innerHTML = '';
+                dreContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Buscando dados da DRE...</div>`;
+                dfcContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Buscando dados da DFC...</div>`;
+                indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-muted-foreground">Buscando indicadores...</td></tr>`;
+                if (resultadosAbrangentesContainer) resultadosAbrangentesContainer.innerHTML = `<div class="text-center p-12 text-muted-foreground">Buscando resultados...</div>`;
+                if (plTbody) plTbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-muted-foreground">Buscando dados do PL...</td></tr>`;
+                if (notasDynamicContainer) notasDynamicContainer.innerHTML = buildNotasStatusPage('Buscando notas...', FIRST_NOTAS_PAGE_NUMBER, null);
+
+                try {
+                    const dfcQuery = (componentData && (componentData.queryDFC || componentData.varDFC)) || null;
+                    if (!dfcQuery) throw new Error('Configuração da query DFC ausente (queryDFC ou varDFC).');
+                    const notasQuery = componentData && componentData.queryNOTAdet;
+                    if (!notasQuery) throw new Error('Configuração da query NOTAS_EXPLICATIVAS ausente (queryNOTAdet).');
+                    if (!componentData.queryBP1) throw new Error('Configuração da query do Balanço ausente (queryBP1).');
+                    if (!componentData.queryDRE1) throw new Error('Configuração da query da DRE ausente (queryDRE1).');
+                    const contasQuery = componentData && componentData.queryNOTAdetConta;
+                    const contasPromise = contasQuery ? queryMitra({ query: contasQuery }) : Promise.resolve(null);
+                    const imagemQuery = componentData && (componentData.queryNOTAdetImagem || componentData.varImagem);
+                    const imagensPromise = imagemQuery ? queryMitra({ query: imagemQuery }) : Promise.resolve(null);
+                    
+                    const [dateString, bpResult, dreResult, dreAResult, dfcResult, notasResult, contasResult, imagensResult] = await Promise.all([
+                        getMitraVariableValue(componentData.varMes),
+                        queryMitra({ query: componentData.queryBP1 }),
+                        queryMitra({ query: componentData.queryDRE1 }),
+                        queryMitra({ query: componentData.queryDRE1 }),
+                        queryMitra({ query: dfcQuery }),
+                        queryMitra({ query: notasQuery }),
+                        contasPromise,
+                        imagensPromise
+                    ]);
+
+                    const currentYearBP = dateString && dateString.includes('/') ? (dateString.split('/')[1] || new Date().getFullYear().toString()) : new Date().getFullYear().toString();
+                    const previousYearBP = parseInt(currentYearBP, 10) - 1;
+                    const processedBPData = processBPResult(bpResult);
+                    if (processedBPData && processedBPData.length > 0) {
+                        renderReportBP(processedBPData, currentYearBP, previousYearBP);
+                        if (bpLoadingState) bpLoadingState.classList.add('hidden');
+                        if (bpReportContent) bpReportContent.classList.remove('hidden');
+                    } else {
+                        if (bpLoadingState) { bpLoadingState.textContent = 'Nenhum dado encontrado para o balanço.'; bpLoadingState.classList.remove('hidden'); }
+                        if (bpReportContent) bpReportContent.classList.add('hidden');
+                    }
+                    
+                    renderDRE(dreAResult);
+                    renderDFC(dfcResult);
+                    renderIndicadores(processedBPData || [], currentYearBP, previousYearBP);
+                    renderResultadosAbrangentes(dreAResult);
+                    
+                    let currentYear = new Date().getFullYear().toString();
+                    if (dateString && dateString.includes('/')) {
+                        const parts = dateString.split('/');
+                        if (parts.length === 2 && parts[1] && parts[1].length === 4) {
+                           currentYear = parts[1];
+                        }
+                    }
+                    
+                    renderPatrimonioLiquido(processedBPData || [], dreAResult, dfcResult, currentYear);
+                    
+                    renderNotasExplicativas(notasResult, contasResult, imagensResult, currentYear);
+                    updateReportMetadata(currentYear);
+
+                } catch (error) {
+                    console.error("Falha ao buscar ou processar dados do relatório:", error);
+                    const errorHtml = `<div class="text-center p-12 text-destructive bg-destructive/10">Ocorreu um erro ao carregar o relatório.</div>`;
+                    if (bpLoadingState) { bpLoadingState.innerHTML = 'Erro ao carregar o balanço patrimonial.'; bpLoadingState.classList.remove('hidden'); bpLoadingState.classList.add('text-destructive'); }
+                    if (bpReportContent) bpReportContent.classList.add('hidden');
+                    dreContainer.innerHTML = errorHtml;
+                    dfcContainer.innerHTML = errorHtml;
+                    indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-destructive bg-destructive/10">Erro ao carregar indicadores.</td></tr>`;
+                    if (resultadosAbrangentesContainer) resultadosAbrangentesContainer.innerHTML = errorHtml;
+                    if (plTbody) plTbody.innerHTML = `<tr><td colspan="9" class="text-center p-8 text-destructive bg-destructive/10">Erro ao carregar PL.</td></tr>`;
+                    if (notasDynamicContainer) notasDynamicContainer.innerHTML = buildNotasStatusPage('Erro ao carregar notas.', FIRST_NOTAS_PAGE_NUMBER, null, true);
+                }
+            }
+
+            const initializeComponent = () => {
+                document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, fetchAndRenderReports);
+                fetchAndRenderReports();
+            };
+
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                    const hasDFCQuery = window.componentData && (window.componentData.queryDFC || window.componentData.varDFC);
+                    const hasNotasQuery = window.componentData && window.componentData.queryNOTAdet;
+                    
+                    if (window.componentData && window.componentData.queryBP1 && window.componentData.queryDRE1 && window.componentData.queryDRE1 && window.componentData.varMes && hasDFCQuery && hasNotasQuery) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        const errorMsg = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente não foram carregadas da plataforma.</div>`;
+                        if (document.getElementById('report-container')) document.getElementById('report-container').innerHTML = errorMsg;
+                        if (dfcContainer) dfcContainer.innerHTML = errorMsg;
+                        if (indicadoresTbody) indicadoresTbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-destructive bg-destructive/10">Erro: componentData não carregou.</td></tr>`;
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>

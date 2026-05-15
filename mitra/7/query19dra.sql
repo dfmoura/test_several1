@@ -1,0 +1,27 @@
+SELECT
+    SUM(
+        CASE
+            WHEN REFERENCIA = DATE(:VAR_DATA_REF_DRE)
+            THEN VLRLANC
+            ELSE 0
+        END
+    ) / 1000 AS VALOR_ATUAL,
+    SUM(
+        CASE
+            WHEN REFERENCIA = DATE_SUB(DATE(:VAR_DATA_REF_DRE), INTERVAL 1 YEAR)
+            THEN VLRLANC
+            ELSE 0
+        END
+    ) / 1000 AS VALOR_ANTERIOR
+FROM IMP_BASE_BALANCETE
+WHERE
+    CODEMP = :VAR_EMPRESA_DRE
+    AND (
+        REFERENCIA = DATE(:VAR_DATA_REF_DRE)
+        OR REFERENCIA = DATE_SUB(DATE(:VAR_DATA_REF_DRE), INTERVAL 1 YEAR)
+    )
+    AND (
+        CTACTB LIKE '3%'
+        OR CTACTB LIKE '4%'
+        OR CTACTB LIKE '5%'
+    );

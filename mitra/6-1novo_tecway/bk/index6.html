@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Balanço Patrimonial</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        body {
+            background-color: hsl(var(--secondary));
+            color: hsl(var(--foreground));
+            font-family: 'Calibri', sans-serif;
+            font-size: 8pt;
+        }
+
+        /* Print-specific styles */
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
+
+        @media print {
+            body {
+                background-color: white !important;
+                font-family: 'Calibri', sans-serif;
+                font-size: 8pt;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .print-hidden {
+                display: none !important;
+            }
+
+            .print-container {
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+                height: auto !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .print-text-xs {
+                font-size: 7pt;
+            }
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="w-full h-full flex flex-col items-center">
+        <div class="print-hidden w-full max-w-[1123px] mb-4 flex justify-end">
+            <button id="print-button" class="bg-primary text-primary-foreground rounded-md px-4 py-2 text-[8pt] font-medium shadow-sm transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                Imprimir PDF
+            </button>
+        </div>
+        
+        <div id="report-container" class="print-container bg-white w-[1123px] min-h-[794px] p-8 shadow-lg text-[8pt] leading-snug">
+            <!-- Loading/Error State -->
+            <div id="status-message" class="flex items-center justify-center h-full text-muted-foreground">Carregando dados do relatório...</div>
+            
+            <!-- Report Content (to be populated by JS) -->
+            <div id="report-content" class="hidden">
+                <!-- Header -->
+                <header id="report-header">
+                     <div>
+                        <h1 class="font-bold text-[8pt]">TECWAY SERVIÇOS E LOCAÇÃO DE EQUIPAMENTOS LTDA</h1>
+                        <p>CNPJ: 13.392.705/0001-43</p>
+                        <p>NIRE: 13200556445</p>
+                        <p>Rua Helena Cardoso, nº 420, Santa Etelvina, CEP: 69.059-290, Manaus/AM.</p>
+                    </div>
+                    <div class="text-center my-4">
+                        <h2 class="font-bold">Balancete de verificação</h2>
+                        <p>Período: Janeiro a Dezembro de 2024</p>
+                    </div>
+                </header>
+
+                <!-- Main Grid -->
+                <main class="grid grid-cols-12 gap-x-2">
+                    <!-- ATIVO -->
+                    <div class="col-span-4">
+                        <div id="ativo-content"></div>
+                    </div>
+                    <!-- SPACER -->
+                    <div class="col-span-1"></div>
+                    <!-- PASSIVO / PL -->
+                    <div class="col-span-4">
+                         <div id="passivo-pl-content"></div>
+                    </div>
+                    <!-- SPACER -->
+                    <div class="col-span-1"></div>
+                    <!-- INDICADORES -->
+                    <div class="col-span-2">
+                         <div id="indicadores-content"></div>
+                    </div>
+                </main>
+
+                <!-- Footer -->
+                <footer class="mt-8 pt-8 flex justify-between items-end">
+                    <div>
+                        <p>Manaus/AM</p>
+                        <p>domingo, dezembro 28, 2025</p>
+                    </div>
+                    <div class="flex space-x-16 text-center text-[8pt]">
+                        <div class="w-64">
+                            <p class="border-t border-black pt-1">FÁBIO GUERRA GARCIA</p>
+                            <p>CPF 813.742.591-87</p>
+                            <p>Sócio Administrador</p>
+                        </div>
+                        <div class="w-64">
+                            <p class="border-t border-black pt-1">JEISE HELLEN PIRES FERREIRA</p>
+                            <p>CPF 003.483.222-08</p>
+                            <p>Contadora CRC/AM: 017791/O</p>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-balancete-report';
+
+        function updateMitra() {
+            console.log("Sinal de update para [Balanço Patrimonial] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const reportContentEl = document.getElementById('report-content');
+            const statusMessageEl = document.getElementById('status-message');
+            const printButton = document.getElementById('print-button');
+            
+            const ativoContainer = document.getElementById('ativo-content');
+            const passivoPlContainer = document.getElementById('passivo-pl-content');
+            const indicadoresContainer = document.getElementById('indicadores-content');
+
+            printButton.addEventListener('click', () => {
+                window.print();
+            });
+
+            function formatCurrency(value) {
+                if (value === null || value === undefined || isNaN(value)) {
+                    return '';
+                }
+                const num = parseFloat(value);
+                if (num === 0) return '0,00';
+                
+                const formatted = Math.abs(num).toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                return num < 0 ? `(${formatted})` : formatted;
+            }
+            
+            function getIndentClass(hierarquia) {
+                const level = (hierarquia.match(/\./g) || []).length;
+                if (level <= 1) return 'pl-0';
+                if (level === 2) return 'pl-2';
+                if (level === 3) return 'pl-4';
+                return 'pl-6';
+            }
+
+            function getRowClasses(formatacao) {
+                let classes = 'grid grid-cols-3 gap-x-2 items-center';
+                if (formatacao === 'NEGRITO') {
+                    classes += ' font-bold';
+                }
+                if (formatacao === 'TOTAL') {
+                   classes += ' font-bold bg-muted p-1 -mx-1';
+                }
+                return classes;
+            }
+            
+            function createRowHtml(item, colMap) {
+                const indent = getIndentClass(item[colMap.hierarquia]);
+                const rowClasses = getRowClasses(item[colMap.formatacao]);
+                const descricao = item[colMap.descricao] || '';
+                const valorAnterior = formatCurrency(item[colMap.valorAnterior]);
+                const valorAtual = formatCurrency(item[colMap.valorAtual]);
+
+                return `
+                    <div class="${rowClasses}">
+                        <span class="col-span-1 truncate ${indent}">${descricao}</span>
+                        <span class="col-span-1 text-right">${valorAnterior}</span>
+                        <span class="col-span-1 text-right">${valorAtual}</span>
+                    </div>`;
+            }
+
+            function renderReport(data, colMap) {
+                const sections = {
+                    ativo: [],
+                    passivo: [],
+                    patrimonio_liquido: [],
+                    total_ativo: null,
+                    total_passivo: null,
+                    total_passivo_pl: null,
+                    indicadores: []
+                };
+
+                // Group data
+                data.forEach(item => {
+                    const hierarquia = item[colMap.hierarquia] || '';
+                    const descricao = (item[colMap.descricao] || '').toUpperCase();
+                    
+                    if (descricao.startsWith('TOTAL DO ATIVO')) sections.total_ativo = item;
+                    else if (descricao.startsWith('TOTAL DO PASSIVO E PATRIMÔNIO LÍQUIDO')) sections.total_passivo_pl = item;
+                    else if (descricao.startsWith('TOTAL DO PASSIVO')) sections.total_passivo = item;
+                    else if (descricao.startsWith('TOTAL DO PATRIMÔNIO LÍQUIDO')) sections.patrimonio_liquido.push(item);
+                    else if (hierarquia.startsWith('1.') || hierarquia.startsWith('2.') || hierarquia.startsWith('3.')) sections.ativo.push(item);
+                    else if (hierarquia.startsWith('4.') || hierarquia.startsWith('5.') || hierarquia.startsWith('6.')) sections.passivo.push(item);
+                    else if (hierarquia.startsWith('7.') || hierarquia.startsWith('8.')) sections.patrimonio_liquido.push(item);
+                    else if (['14.', '15.', '16.', '17.'].some(p => hierarquia.startsWith(p))) sections.indicadores.push(item);
+                });
+
+                // Render Ativo
+                let ativoHtml = `<div class="font-bold bg-muted p-1 -mx-1 grid grid-cols-3 gap-x-2"><span>ATIVO</span><span class="text-right">2023</span><span class="text-right">2024</span></div>`;
+                ativoHtml += sections.ativo.map(item => createRowHtml(item, colMap)).join('');
+                if (sections.total_ativo) {
+                    ativoHtml += createRowHtml(sections.total_ativo, colMap);
+                }
+                ativoContainer.innerHTML = ativoHtml;
+
+                // Render Passivo & PL
+                let passivoPlHtml = `<div class="font-bold bg-muted p-1 -mx-1 grid grid-cols-3 gap-x-2"><span>PASSIVO</span><span class="text-right">2023</span><span class="text-right">2024</span></div>`;
+                passivoPlHtml += sections.passivo.map(item => createRowHtml(item, colMap)).join('');
+                if (sections.total_passivo) {
+                    passivoPlHtml += createRowHtml(sections.total_passivo, colMap);
+                }
+                passivoPlHtml += `<div class="font-bold bg-muted p-1 -mx-1 mt-2 grid grid-cols-3 gap-x-2"><span>PATRIMÔNIO LÍQUIDO</span><span></span><span></span></div>`;
+                passivoPlHtml += sections.patrimonio_liquido.map(item => createRowHtml(item, colMap)).join('');
+                if (sections.total_passivo_pl) {
+                    passivoPlHtml += createRowHtml(sections.total_passivo_pl, colMap);
+                }
+                passivoPlContainer.innerHTML = passivoPlHtml;
+
+                // Render Indicadores
+                let indicadoresHtml = `<div class="font-bold bg-muted p-1 -mx-1 text-center">INDICADORES FINANCEIROS</div>`;
+                const groupedIndicadores = sections.indicadores.reduce((acc, item) => {
+                    const mainHierarquia = (item[colMap.hierarquia] || '').split('.')[0];
+                    if (!acc[mainHierarquia]) acc[mainHierarquia] = [];
+                    acc[mainHierarquia].push(item);
+                    return acc;
+                }, {});
+
+                Object.values(groupedIndicadores).forEach(group => {
+                    const titleItem = group.find(item => (item[colMap.hierarquia] || '').endsWith('.'));
+                    const childItems = group.filter(item => !(item[colMap.hierarquia] || '').endsWith('.'));
+                    
+                    if (titleItem) {
+                        indicadoresHtml += `
+                            <div class="mt-2 border-b border-gray-300 pb-1">
+                                <div class="font-bold flex justify-between">
+                                    <span>${titleItem[colMap.descricao]}</span>
+                                    <span>${formatCurrency(titleItem[colMap.valorAtual])}</span>
+                                </div>
+                                <div class="flex">
+                                    <div class="flex-1">
+                                        ${childItems.map(child => `<div>${child[colMap.descricao]}</div>`).join('')}
+                                    </div>
+                                    <div class="text-right">
+                                        ${childItems.map(child => `<div>R$ ${formatCurrency(child[colMap.valorAtual])}</div>`).join('')}
+                                    </div>
+                                </div>
+                            </div>`;
+                    }
+                });
+                indicadoresContainer.innerHTML = indicadoresHtml;
+
+                statusMessageEl.classList.add('hidden');
+                reportContentEl.classList.remove('hidden');
+            }
+
+            async function loadAndRenderData() {
+                reportContentEl.classList.add('hidden');
+                statusMessageEl.classList.remove('hidden');
+                statusMessageEl.textContent = 'Carregando dados do relatório...';
+
+                try {
+                    if (!window.componentData || !window.componentData.queryDados) {
+                        throw new Error("A variável 'queryDados' não foi configurada no componente.");
+                    }
+                    
+                    const result = await queryMitra({ query: componentData.queryDados });
+
+                    if (!result || !result.data || !result.headers) {
+                        throw new Error("A consulta não retornou dados válidos.");
+                    }
+                    
+                    const headers = result.headers.map(h => h.name.toUpperCase());
+                    const colMap = {
+                      ordem: headers.indexOf('ORDEM'),
+                      descricao: headers.indexOf('DESCRICAO'),
+                      formatacao: headers.indexOf('FORMATACAO'),
+                      hierarquia: headers.indexOf('HIERARQUIA'),
+                      valorAtual: headers.indexOf('VALOR_ATUAL'),
+                      valorAnterior: headers.indexOf('VALOR_ANTERIOR'),
+                    };
+
+                    if (Object.values(colMap).some(index => index === -1)) {
+                        console.error('Colunas esperadas não encontradas na query. Esperado: ORDEM, DESCRICAO, FORMATACAO, HIERARQUIA, VALOR_ATUAL, VALOR_ANTERIOR. Recebido:', headers);
+                        throw new Error("A query não retornou as colunas esperadas. Verifique a configuração e o console para mais detalhes.");
+                    }
+
+                    renderReport(result.data, colMap);
+
+                } catch (error) {
+                    console.error("Falha ao carregar ou renderizar o balancete:", error);
+                    statusMessageEl.textContent = `Erro ao carregar o relatório: ${error.message}`;
+                    statusMessageEl.classList.add('text-destructive');
+                }
+            }
+
+            function initializeComponent() {
+                document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, loadAndRenderData);
+                loadAndRenderData();
+            }
+
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                    if (window.componentData && window.componentData.queryDados) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        const errorMsg = "Erro Crítico: As configurações do componente (componentData.queryDados) não foram carregadas da plataforma.";
+                        console.error(errorMsg);
+                        document.body.innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">${errorMsg}</div>`;
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>

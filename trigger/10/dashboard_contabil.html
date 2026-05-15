@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Contábil - Centro de Resultado</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-soft: #1f2937;
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --brand: #38bdf8;
+      --success: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --line: #334155;
+      --white: #ffffff;
+      --shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.08), transparent 30%),
+        radial-gradient(circle at 90% 10%, rgba(34, 197, 94, 0.08), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .header {
+      background: linear-gradient(145deg, #111827, #0b1220);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+      letter-spacing: 0.2px;
+    }
+
+    .title p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    select,
+    button {
+      border: 1px solid var(--line);
+      background: #0b1220;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.92rem;
+      cursor: pointer;
+    }
+
+    button {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      border: 0;
+      font-weight: 600;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
+
+    .grid-kpi {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+    }
+
+    .kpi {
+      background: linear-gradient(150deg, #111827, #0f172a);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      font-size: 0.84rem;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .kpi .value {
+      margin-top: 6px;
+      font-size: clamp(1.2rem, 2vw, 1.55rem);
+      font-weight: 700;
+    }
+
+    .kpi .delta {
+      margin-top: 8px;
+      font-size: 0.86rem;
+      font-weight: 600;
+    }
+
+    .up { color: var(--success); }
+    .down { color: var(--danger); }
+    .neutral { color: var(--warn); }
+
+    .grid-main {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      color: var(--white);
+      font-weight: 600;
+    }
+
+    .panel-subtitle {
+      margin: -4px 0 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 290px;
+      width: 100%;
+      background: linear-gradient(180deg, #0f172a, #111827);
+      border-radius: 10px;
+      border: 1px solid #1e293b;
+      padding: 10px;
+    }
+
+    .small-chart {
+      height: 180px;
+    }
+
+    .table-panel table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .table-panel th, .table-panel td {
+      border-bottom: 1px solid #1e293b;
+      padding: 10px 8px;
+      text-align: left;
+    }
+
+    .table-panel th {
+      color: #cbd5e1;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      background: #0b1220;
+      position: sticky;
+      top: 0;
+    }
+
+    .table-scroll {
+      max-height: 280px;
+      overflow-y: auto;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .footer-note {
+      color: #94a3b8;
+      font-size: 0.78rem;
+      text-align: right;
+      opacity: 0.92;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 980px) {
+      .grid-main {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="header">
+      <div class="title">
+        <h1>Dashboard Contábil Executivo</h1>
+        <p>Análise por Centro de Resultado (CR), com foco em receita e estoque</p>
+      </div>
+      <div class="controls">
+        <select id="crFilter" aria-label="Filtrar centro de resultado"></select>
+        <button id="refreshBtn">Atualizar dados simulados</button>
+      </div>
+    </section>
+
+    <section class="grid-kpi" id="kpiGrid"></section>
+
+    <section class="grid-main">
+      <article class="panel">
+        <h2>Receita Bruta x Líquida (12 meses)</h2>
+        <p class="panel-subtitle">Comparativo mensal para acompanhamento de margem e descontos</p>
+        <div class="chart-wrap">
+          <canvas id="lineChart"></canvas>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:#38bdf8"></i>Receita Bruta</span>
+          <span><i class="dot" style="background:#22c55e"></i>Receita Líquida</span>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>Distribuição por CR</h2>
+        <p class="panel-subtitle">Participação da receita líquida total</p>
+        <div class="chart-wrap small-chart">
+          <canvas id="donutChart"></canvas>
+        </div>
+        <div class="legend" id="donutLegend"></div>
+      </article>
+    </section>
+
+    <section class="grid-main">
+      <article class="panel">
+        <h2>Variação de Estoque (R$)</h2>
+        <p class="panel-subtitle">Saldo e variação mensal por centro de resultado selecionado</p>
+        <div class="chart-wrap small-chart">
+          <canvas id="barChart"></canvas>
+        </div>
+      </article>
+
+      <article class="panel table-panel">
+        <h2>Resumo por CR</h2>
+        <p class="panel-subtitle">Visão consolidada para decisão gerencial</p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>CR</th>
+                <th>Receita Bruta</th>
+                <th>Receita Líquida</th>
+                <th>Variação Estoque</th>
+                <th>Margem</th>
+              </tr>
+            </thead>
+            <tbody id="summaryTable"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <p class="footer-note">Dados fictícios para demonstração | versão de apresentação executiva</p>
+  </main>
+
+  <script>
+    const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    const crColors = {
+      "CR Varejo": "#38bdf8",
+      "CR Atacado": "#22c55e",
+      "CR E-commerce": "#a78bfa",
+      "CR Serviços": "#f59e0b"
+    };
+
+    function pseudoRandom(seed) {
+      let x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    }
+
+    function generateData(seedOffset = 0) {
+      const centers = ["CR Varejo", "CR Atacado", "CR E-commerce", "CR Serviços"];
+      const data = {};
+
+      centers.forEach((name, idx) => {
+        const base = 380000 + idx * 110000;
+        let gross = [];
+        let net = [];
+        let stock = [];
+        for (let i = 0; i < 12; i++) {
+          const season = 1 + 0.12 * Math.sin((i + idx) / 2);
+          const noise = 0.9 + pseudoRandom(i * 7 + idx * 13 + seedOffset) * 0.22;
+          const grossVal = Math.round(base * season * noise);
+          const discountRate = 0.09 + pseudoRandom(i * 11 + idx * 17 + seedOffset) * 0.08;
+          const netVal = Math.round(grossVal * (1 - discountRate));
+          const stockChange = Math.round((pseudoRandom(i * 5 + idx * 19 + seedOffset) - 0.48) * 220000);
+          gross.push(grossVal);
+          net.push(netVal);
+          stock.push(stockChange);
+        }
+        data[name] = { gross, net, stock };
+      });
+
+      return data;
+    }
+
+    function formatBRL(value) {
+      return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+    }
+
+    function sum(arr) {
+      return arr.reduce((acc, n) => acc + n, 0);
+    }
+
+    const state = {
+      selectedCR: "Todos",
+      seed: 0,
+      data: generateData(0)
+    };
+
+    function buildFilter() {
+      const select = document.getElementById("crFilter");
+      select.innerHTML = "";
+      ["Todos", ...Object.keys(state.data)].forEach(cr => {
+        const option = document.createElement("option");
+        option.value = cr;
+        option.textContent = cr;
+        select.appendChild(option);
+      });
+      select.value = state.selectedCR;
+    }
+
+    function getAggregatedSeries() {
+      const keys = Object.keys(state.data);
+      if (state.selectedCR !== "Todos") {
+        return state.data[state.selectedCR];
+      }
+
+      const gross = Array(12).fill(0);
+      const net = Array(12).fill(0);
+      const stock = Array(12).fill(0);
+      keys.forEach(k => {
+        state.data[k].gross.forEach((v, i) => gross[i] += v);
+        state.data[k].net.forEach((v, i) => net[i] += v);
+        state.data[k].stock.forEach((v, i) => stock[i] += v);
+      });
+      return { gross, net, stock };
+    }
+
+    function computeKPIs() {
+      const series = getAggregatedSeries();
+      const grossTotal = sum(series.gross);
+      const netTotal = sum(series.net);
+      const stockVar = sum(series.stock);
+      const margin = netTotal / grossTotal;
+
+      const q4Gross = sum(series.gross.slice(9));
+      const q3Gross = sum(series.gross.slice(6, 9));
+      const trend = ((q4Gross - q3Gross) / q3Gross) * 100;
+
+      return [
+        {
+          label: "Receita Bruta Total",
+          value: formatBRL(grossTotal),
+          delta: `${trend >= 0 ? "▲" : "▼"} ${Math.abs(trend).toFixed(1)}% vs trim anterior`,
+          cls: trend >= 0 ? "up" : "down"
+        },
+        {
+          label: "Receita Líquida Total",
+          value: formatBRL(netTotal),
+          delta: `${(margin * 100).toFixed(1)}% de conversão líquida`,
+          cls: margin >= 0.87 ? "up" : "neutral"
+        },
+        {
+          label: "Variação de Estoque",
+          value: formatBRL(stockVar),
+          delta: stockVar >= 0 ? "Estoque expandido" : "Consumo de estoque",
+          cls: stockVar >= 0 ? "neutral" : "down"
+        },
+        {
+          label: "Ticket Médio Mensal",
+          value: formatBRL(netTotal / 12),
+          delta: `Base: ${state.selectedCR === "Todos" ? "Consolidado" : state.selectedCR}`,
+          cls: "up"
+        }
+      ];
+    }
+
+    function renderKPIs() {
+      const kpiGrid = document.getElementById("kpiGrid");
+      kpiGrid.innerHTML = "";
+      computeKPIs().forEach(item => {
+        const card = document.createElement("div");
+        card.className = "kpi";
+        card.innerHTML = `
+          <div class="label">${item.label}</div>
+          <div class="value">${item.value}</div>
+          <div class="delta ${item.cls}">${item.delta}</div>
+        `;
+        kpiGrid.appendChild(card);
+      });
+    }
+
+    function drawAxes(ctx, width, height, maxY, labels) {
+      const pad = { top: 18, right: 22, bottom: 34, left: 54 };
+      const chartW = width - pad.left - pad.right;
+      const chartH = height - pad.top - pad.bottom;
+
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 1;
+
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.top + (chartH / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(width - pad.right, y);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "12px Inter";
+      for (let i = 0; i <= 4; i++) {
+        const val = maxY - (maxY / 4) * i;
+        const y = pad.top + (chartH / 4) * i + 4;
+        ctx.fillText((val / 1000000).toFixed(1) + "M", 8, y);
+      }
+
+      labels.forEach((m, i) => {
+        const x = pad.left + (chartW / (labels.length - 1)) * i;
+        ctx.fillText(m, x - 9, height - 12);
+      });
+
+      return { pad, chartW, chartH };
+    }
+
+    function drawLineChart() {
+      const canvas = document.getElementById("lineChart");
+      const ctx = canvas.getContext("2d");
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width - 20;
+      canvas.height = rect.height - 20;
+
+      const series = getAggregatedSeries();
+      const maxY = Math.max(...series.gross) * 1.12;
+      const { pad, chartW, chartH } = drawAxes(ctx, canvas.width, canvas.height, maxY, months);
+
+      function drawLine(values, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        values.forEach((v, i) => {
+          const x = pad.left + (chartW / (values.length - 1)) * i;
+          const y = pad.top + chartH - (v / maxY) * chartH;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        values.forEach((v, i) => {
+          const x = pad.left + (chartW / (values.length - 1)) * i;
+          const y = pad.top + chartH - (v / maxY) * chartH;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      drawLine(series.gross, "#38bdf8");
+      drawLine(series.net, "#22c55e");
+    }
+
+    function drawBarChart() {
+      const canvas = document.getElementById("barChart");
+      const ctx = canvas.getContext("2d");
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width - 20;
+      canvas.height = rect.height - 20;
+
+      const values = getAggregatedSeries().stock;
+      const width = canvas.width;
+      const height = canvas.height;
+      const pad = { top: 12, right: 10, bottom: 26, left: 32 };
+      const chartW = width - pad.left - pad.right;
+      const chartH = height - pad.top - pad.bottom;
+      const maxAbs = Math.max(...values.map(v => Math.abs(v))) * 1.15 || 1;
+      const zeroY = pad.top + chartH / 2;
+
+      ctx.strokeStyle = "#334155";
+      ctx.beginPath();
+      ctx.moveTo(pad.left, zeroY);
+      ctx.lineTo(width - pad.right, zeroY);
+      ctx.stroke();
+
+      const barW = chartW / values.length - 5;
+      values.forEach((v, i) => {
+        const h = Math.abs(v / maxAbs) * (chartH / 2 - 4);
+        const x = pad.left + i * (barW + 5);
+        const y = v >= 0 ? zeroY - h : zeroY;
+        ctx.fillStyle = v >= 0 ? "#22c55e" : "#ef4444";
+        ctx.fillRect(x, y, barW, h);
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "10px Inter";
+        ctx.fillText(months[i], x + 2, height - 8);
+      });
+    }
+
+    function drawDonutChart() {
+      const canvas = document.getElementById("donutChart");
+      const ctx = canvas.getContext("2d");
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width - 20;
+      canvas.height = rect.height - 20;
+
+      const keys = Object.keys(state.data);
+      const totals = keys.map(k => sum(state.data[k].net));
+      const grand = sum(totals);
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const radius = Math.min(canvas.width, canvas.height) * 0.37;
+      const inner = radius * 0.58;
+      let angle = -Math.PI / 2;
+
+      totals.forEach((total, idx) => {
+        const slice = (total / grand) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, angle, angle + slice);
+        ctx.closePath();
+        ctx.fillStyle = crColors[keys[idx]];
+        ctx.fill();
+        angle += slice;
+      });
+
+      ctx.fillStyle = "#0f172a";
+      ctx.beginPath();
+      ctx.arc(cx, cy, inner, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#e2e8f0";
+      ctx.font = "600 12px Inter";
+      ctx.textAlign = "center";
+      ctx.fillText("Receita Líquida", cx, cy - 5);
+      ctx.font = "700 14px Inter";
+      ctx.fillText(formatBRL(grand), cx, cy + 18);
+
+      const legend = document.getElementById("donutLegend");
+      legend.innerHTML = "";
+      keys.forEach((k, i) => {
+        const pct = ((totals[i] / grand) * 100).toFixed(1);
+        const item = document.createElement("span");
+        item.innerHTML = `<i class="dot" style="background:${crColors[k]}"></i>${k} ${pct}%`;
+        legend.appendChild(item);
+      });
+    }
+
+    function renderTable() {
+      const body = document.getElementById("summaryTable");
+      body.innerHTML = "";
+      Object.entries(state.data).forEach(([cr, series]) => {
+        const gross = sum(series.gross);
+        const net = sum(series.net);
+        const stock = sum(series.stock);
+        const margin = ((net / gross) * 100).toFixed(1) + "%";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${cr}</td>
+          <td>${formatBRL(gross)}</td>
+          <td>${formatBRL(net)}</td>
+          <td class="${stock >= 0 ? "up" : "down"}">${formatBRL(stock)}</td>
+          <td>${margin}</td>
+        `;
+        body.appendChild(row);
+      });
+    }
+
+    function renderAll() {
+      renderKPIs();
+      drawLineChart();
+      drawBarChart();
+      drawDonutChart();
+      renderTable();
+    }
+
+    document.getElementById("crFilter").addEventListener("change", (e) => {
+      state.selectedCR = e.target.value;
+      renderAll();
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", () => {
+      state.seed += 1;
+      state.data = generateData(state.seed);
+      renderAll();
+    });
+
+    window.addEventListener("resize", renderAll);
+
+    buildFilter();
+    renderAll();
+  </script>
+</body>
+</html>

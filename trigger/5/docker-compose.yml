@@ -1,0 +1,17 @@
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      LOG_LEVEL: info
+      # Sem credenciais reais: mock ativo por padrão
+      MOCK_OPEN_FINANCE: "${MOCK_OPEN_FINANCE:-true}"
+      OF_API_BASE_URL: "${OF_API_BASE_URL:-}"
+      OF_TOKEN_URL: "${OF_TOKEN_URL:-}"
+      OF_CLIENT_ID: "${OF_CLIENT_ID:-}"
+      OF_CLIENT_SECRET: "${OF_CLIENT_SECRET:-}"
+      OF_LOANS_RESOURCE_PATH: "${OF_LOANS_RESOURCE_PATH:-/open-banking/loans/v1/contracts}"
+      OF_HTTP_TIMEOUT_MS: "${OF_HTTP_TIMEOUT_MS:-30000}"

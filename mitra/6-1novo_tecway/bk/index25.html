@@ -1,0 +1,256 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório DRE</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="dre-container" class="h-full w-full flex flex-col p-4 sm:p-6 lg:p-8">
+        <header class="pb-4 border-b border-gray-300 mb-4 flex-shrink-0">
+            <h1 class="text-lg font-bold text-gray-800">Tecway Serviços e Locação de Equipamentos Ltda</h1>
+            <p id="report-title" class="text-sm text-gray-600">Demonstrações dos resultados dos exercícios findos em 31 de dezembro de ...</p>
+            <p class="text-sm text-gray-500 mt-2">Em milhares de reais (R$)</p>
+        </header>
+        <div class="flex-grow overflow-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-right">
+                        <th class="text-left font-normal text-gray-600 pb-2 w-1/2">Descrição</th>
+                        <th class="text-right font-normal text-gray-600 pb-2 px-2 w-[15%]">Notas</th>
+                        <th id="header-current-year" class="font-normal text-gray-600 pb-2 px-2 w-[17.5%]">...</th>
+                        <th id="header-previous-year" class="font-normal text-gray-600 pb-2 px-2 w-[17.5%]">...</th>
+                    </tr>
+                </thead>
+                <tbody id="dre-tbody">
+                    <tr>
+                        <td colspan="4" class="text-center py-10 text-gray-500">Carregando dados...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_DRE = 'mitra-update-dre-report';
+
+        function updateMitra() {
+            console.log("Sinal de update para [DRE Report] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_DRE));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const tbody = document.getElementById('dre-tbody');
+            const reportTitleEl = document.getElementById('report-title');
+            const headerCurrentYearEl = document.getElementById('header-current-year');
+            const headerPreviousYearEl = document.getElementById('header-previous-year');
+
+            function formatCurrency(value) {
+                const num = Number(value) || 0;
+                if (Math.abs(num) < 0.5) return '0'; // Display 0 instead of (0)
+                const roundedNum = Math.round(num);
+                const formatted = new Intl.NumberFormat('de-DE').format(Math.abs(roundedNum));
+                return num < 0 ? `(${formatted})` : formatted;
+            }
+
+            function createRow(item, isBold = false, isTopBorder = false, isDoubleBorder = false) {
+                const row = document.createElement('tr');
+                const boldClass = isBold ? 'font-bold' : '';
+                
+                let borderClass = '';
+                if(isDoubleBorder) {
+                    borderClass = 'border-t-2 border-b-2 border-gray-400';
+                } else if (isTopBorder) {
+                    borderClass = 'border-t border-gray-300';
+                }
+
+                row.innerHTML = `
+                    <td class="py-1 ${boldClass} ${borderClass}">${item.descricao || ''}</td>
+                    <td class="text-right px-2 ${borderClass}">${item.nota || ''}</td>
+                    <td class="text-right px-2 ${boldClass} ${borderClass}">${item.valor_atual !== undefined ? formatCurrency(item.valor_atual) : ''}</td>
+                    <td class="text-right px-2 ${boldClass} ${borderClass}">${item.valor_anterior !== undefined ? formatCurrency(item.valor_anterior) : ''}</td>
+                `;
+                return row;
+            }
+            
+            function createSpacerRow() {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="4" class="py-1"></td>`;
+                return row;
+            }
+
+
+            async function loadAndRenderDRE() {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-10 text-gray-500">Carregando dados...</td></tr>';
+
+                try {
+                    if (!window.componentData || !componentData.query || !componentData.varMes) {
+                        throw new Error("Variáveis de configuração (query, varMes) não encontradas.");
+                    }
+                    
+                    const varMesName = componentData.varMes;
+                    const mesResult = await queryMitra({ query: `SELECT ${varMesName} FROM DUAL` });
+                    if (!mesResult || !mesResult.data || !mesResult.data[0] || !mesResult.data[0][0]) {
+                         throw new Error(`Não foi possível obter o valor da variável: ${varMesName}`);
+                    }
+                    const mesValue = mesResult.data[0][0];
+                    const [_, currentYear] = mesValue.split('/');
+                    const previousYear = parseInt(currentYear, 10) - 1;
+
+                    reportTitleEl.textContent = `Demonstrações dos resultados dos exercícios findos em 31 de dezembro de ${currentYear}`;
+                    headerCurrentYearEl.textContent = currentYear;
+                    headerPreviousYearEl.textContent = previousYear;
+
+                    const result = await queryMitra({ query: componentData.query });
+                    
+                    const headers = result.headers.map(h => h.name.toUpperCase());
+                    const colMap = {
+                        hierarquia: headers.indexOf('HIERARQUIA'),
+                        descricao: headers.indexOf('DESCRICAO'),
+                        nota: headers.indexOf('NOTA'),
+                        valor_atual: headers.indexOf('VALOR_ANO_ATUAL'),
+                        valor_anterior: headers.indexOf('VALOR_ANO_ANTERIOR')
+                    };
+
+                    if (Object.values(colMap).some(index => index === -1)) {
+                        console.error('Mapeamento de colunas falhou. Headers recebidos:', headers);
+                        throw new Error("A query não retornou as colunas esperadas: HIERARQUIA, DESCRICAO, NOTA, VALOR_ANO_ATUAL, VALOR_ANO_ANTERIOR.");
+                    }
+
+                    const data = result.data.map(row => ({
+                        hierarquia: row[colMap.hierarquia],
+                        descricao: row[colMap.descricao],
+                        nota: row[colMap.nota],
+                        valor_atual: parseFloat(row[colMap.valor_atual]) || 0,
+                        valor_anterior: parseFloat(row[colMap.valor_anterior]) || 0
+                    }));
+
+                    const calculateSum = (prefix) => data
+                        .filter(item => item.hierarquia && item.hierarquia.startsWith(prefix))
+                        .reduce((acc, item) => ({
+                            atual: acc.atual + item.valor_atual,
+                            anterior: acc.anterior + item.valor_anterior
+                        }), { atual: 0, anterior: 0 });
+
+                    const receitas = calculateSum('1.');
+                    const despesasOp = calculateSum('2.');
+                    const resultadoFin = calculateSum('3.');
+                    const impostos = calculateSum('4.');
+                    
+                    const lucroBruto = receitas;
+                    const lucroAntesFin = { atual: lucroBruto.atual + despesasOp.atual, anterior: lucroBruto.anterior + despesasOp.anterior };
+                    const lucroAntesImp = { atual: lucroAntesFin.atual + resultadoFin.atual, anterior: lucroAntesFin.anterior + resultadoFin.anterior };
+                    const lucroExercicio = { atual: lucroAntesImp.atual + impostos.atual, anterior: lucroAntesImp.anterior + impostos.anterior };
+
+                    tbody.innerHTML = '';
+                    const fragment = document.createDocumentFragment();
+
+                    // 1. Receitas
+                    fragment.appendChild(createRow({ descricao: 'Receitas' }, true));
+                    data.filter(i => i.hierarquia.startsWith('1.')).forEach(item => fragment.appendChild(createRow(item)));
+                    fragment.appendChild(createRow({ descricao: 'Lucro bruto', valor_atual: lucroBruto.atual, valor_anterior: lucroBruto.anterior }, true, true));
+                    fragment.appendChild(createSpacerRow());
+
+                    // 2. Despesas Operacionais
+                    fragment.appendChild(createRow({ descricao: 'Despesas operacionais' }, true));
+                    data.filter(i => i.hierarquia.startsWith('2.')).forEach(item => fragment.appendChild(createRow(item)));
+                    fragment.appendChild(createRow({ descricao: '', valor_atual: despesasOp.atual, valor_anterior: despesasOp.anterior }, false, true));
+                    fragment.appendChild(createRow({ descricao: 'Lucro antes do resultado financeiro', valor_atual: lucroAntesFin.atual, valor_anterior: lucroAntesFin.anterior }, true));
+                    fragment.appendChild(createSpacerRow());
+
+                    // 3. Resultado Financeiro
+                    data.filter(i => i.hierarquia.startsWith('3.')).forEach(item => fragment.appendChild(createRow(item)));
+                    fragment.appendChild(createRow({ descricao: 'Resultado financeiro', valor_atual: resultadoFin.atual, valor_anterior: resultadoFin.anterior }, true, true));
+                    fragment.appendChild(createSpacerRow());
+                    
+                    // 4. Impostos e Lucro do Exercício
+                    fragment.appendChild(createRow({ descricao: 'Lucro antes dos impostos', valor_atual: lucroAntesImp.atual, valor_anterior: lucroAntesImp.anterior }, true));
+                    data.filter(i => i.hierarquia.startsWith('4.')).forEach(item => fragment.appendChild(createRow(item)));
+                    fragment.appendChild(createSpacerRow());
+                    fragment.appendChild(createRow({ descricao: 'Lucro do exercício', valor_atual: lucroExercicio.atual, valor_anterior: lucroExercicio.anterior }, true, false, true));
+
+                    tbody.appendChild(fragment);
+
+                } catch (error) {
+                    console.error("Erro ao carregar DRE:", error);
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-10 text-red-600">Falha ao carregar os dados. ${error.message}</td></tr>`;
+                }
+            }
+
+            document.body.addEventListener(MITRA_UPDATE_EVENT_DRE, loadAndRenderDRE);
+            
+            const initializeComponent = () => {
+                loadAndRenderDRE();
+            };
+
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                    if (window.componentData && window.componentData.query && window.componentData.varMes) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        document.getElementById('dre-container').innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente não foram carregadas da plataforma.</div>`;
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>

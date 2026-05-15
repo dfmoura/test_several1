@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="sub_estimativas" language="groovy" pageWidth="515" pageHeight="802" orientation="Portrait" columnWidth="515" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+    <property name="ireport.zoom" value="1.0"/>
+    <property name="ireport.x" value="0"/>
+    <property name="ireport.y" value="0"/>
+
+    <parameter name="P_NUATV" class="java.math.BigDecimal"/>
+
+    <queryString>
+        <![CDATA[
+SELECT
+    CAST(1 AS NUMBER) AS NUATV,
+    CAST(101 AS NUMBER) AS ID_ESTIMATIVA,
+    'I - Inicial' AS TIPO,
+    '08:00' AS QTD_HORAS,
+    'I - Estimativa Inicial' AS MOTIVO,
+    'Levantamento inicial de requisitos com cliente.' AS JUSTIFICATIVA
+FROM DUAL
+UNION ALL
+SELECT
+    CAST(1 AS NUMBER) AS NUATV,
+    CAST(102 AS NUMBER) AS ID_ESTIMATIVA,
+    'A - Aditivo' AS TIPO,
+    '03:30' AS QTD_HORAS,
+    'M - Mudança de Escopo' AS MOTIVO,
+    'Inclusao de novos fluxos apos reuniao de refinamento.' AS JUSTIFICATIVA
+FROM DUAL
+UNION ALL
+SELECT
+    CAST(2 AS NUMBER) AS NUATV,
+    CAST(201 AS NUMBER) AS ID_ESTIMATIVA,
+    'I - Inicial' AS TIPO,
+    '05:00' AS QTD_HORAS,
+    'I - Estimativa Inicial' AS MOTIVO,
+    'Analise tecnica inicial para impressao da capa.' AS JUSTIFICATIVA
+FROM DUAL
+        ]]>
+    </queryString>
+
+    <field name="NUATV" class="java.math.BigDecimal"/>
+    <field name="ID_ESTIMATIVA" class="java.math.BigDecimal"/>
+    <field name="TIPO" class="java.lang.String"/>
+    <field name="QTD_HORAS" class="java.lang.String"/>
+    <field name="MOTIVO" class="java.lang.String"/>
+    <field name="JUSTIFICATIVA" class="java.lang.String"/>
+
+    <filterExpression><![CDATA[$P{P_NUATV} == null || $F{NUATV}.compareTo($P{P_NUATV}) == 0]]></filterExpression>
+
+    <background>
+        <band splitType="Stretch"/>
+    </background>
+    <title>
+        <band splitType="Stretch"/>
+    </title>
+    <pageHeader>
+        <band splitType="Stretch"/>
+    </pageHeader>
+
+    <columnHeader>
+        <band height="20" splitType="Stretch">
+            <staticText>
+                <reportElement x="0" y="2" width="72" height="16"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[ID Estimativa]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="72" y="2" width="70" height="16"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[Tipo]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="142" y="2" width="64" height="16"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[Qtd. Horas]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="206" y="2" width="125" height="16"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[Motivo]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="331" y="2" width="184" height="16"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[Justificativa]]></text>
+            </staticText>
+            <line>
+                <reportElement x="0" y="19" width="515" height="1"/>
+            </line>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="18" splitType="Stretch">
+            <textField>
+                <reportElement x="0" y="2" width="72" height="14"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement>
+                <textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{ID_ESTIMATIVA}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="72" y="2" width="70" height="14"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle"><font size="8"/></textElement>
+                <textFieldExpression class="java.lang.String"><![CDATA[$F{TIPO}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="142" y="2" width="64" height="14"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement>
+                <textFieldExpression class="java.lang.String"><![CDATA[$F{QTD_HORAS}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="206" y="2" width="125" height="14"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle"><font size="8"/></textElement>
+                <textFieldExpression class="java.lang.String"><![CDATA[$F{MOTIVO}]]></textFieldExpression>
+            </textField>
+            <textField isStretchWithOverflow="true">
+                <reportElement x="331" y="2" width="184" height="14"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle"><font size="8"/></textElement>
+                <textFieldExpression class="java.lang.String"><![CDATA[$F{JUSTIFICATIVA}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+</jasperReport>

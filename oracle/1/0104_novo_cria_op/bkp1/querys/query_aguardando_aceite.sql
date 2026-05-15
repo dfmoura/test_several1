@@ -1,0 +1,221 @@
+SELECT 
+    IDIPROC,
+    DHINCLUSAO,
+    CODPRODPA,
+    DESCRPROD,
+    NROLOTE,
+    QTDPRODUZIR
+FROM(
+
+SELECT 
+    TPRIATV.IDIPROC AS IDIPROC,
+    TPRIPA.CODPRODPA,
+    TGFPRO.DESCRPROD,
+    TPRIPA.NROLOTE,
+    TPRIPA.QTDPRODUZIR,
+    TPRIATV.DHINCLUSAO AS DHINCLUSAO,
+
+    TPRIATV.AD_QUALIDADE AS AD_QUALIDADE,
+    TPRIATV.AD_REABERTA AS AD_REABERTA,
+    TPRIATV.CODEXEC AS CODEXEC,
+    TPRIATV.CODMTP AS CODMTP,
+    TPRIATV.CODPARCTERC AS CODPARCTERC,
+    TPRIATV.CODULTEXEC AS CODULTEXEC,
+    TPRIATV.CODUSU AS CODUSU,
+    TPRIATV.CODUSUFIN AS CODUSUFIN,
+    TPRIATV.CODWCP AS CODWCP,
+    TPRIATV.DHACEITE AS DHACEITE,
+    TPRIATV.DHFINAL AS DHFINAL,
+    TPRIATV.DHFINPREV AS DHFINPREV,
+    
+    TPRIATV.DHINICIO AS DHINICIO,
+    TPRIATV.DHINIPREV AS DHINIPREV,
+    TPRIATV.IDEFX AS IDEFX,
+    TPRIATV.IDEXECWFLOW AS IDEXECWFLOW,
+    TPRIATV.IDIATV AS IDIATV,
+    TPRIATV.TEMPOGASTOMIN AS TEMPOGASTOMIN,
+
+    Atividade.OPERCQ AS l0_OPERCQ,
+    Atividade.SUBAPOPORCONF AS l0_SUBAPOPORCONF,
+    Atividade.IDRPADEST AS l0_IDRPADEST,
+    Atividade.DATAHORAAPONTAMENTO AS l0_DATAHORAAPONTAMENTO,
+    Atividade.IDRPAOPER AS l0_IDRPAOPER,
+    Atividade.PERMITEPARCIAL AS l0_PERMITEPARCIAL,
+    Atividade.APONTAMP AS l0_APONTAMP,
+    Atividade.APONTAPA AS l0_APONTAPA,
+    Atividade.APONTASP AS l0_APONTASP,
+    Atividade.LIBERARWCFINAL AS l0_LIBERARWCFINAL,
+    Atividade.LIBERARWCMANUAL AS l0_LIBERARWCMANUAL,
+    Atividade.IDCCQ AS l0_IDCCQ,
+    Atividade.IDPROC AS l0_IDPROC,
+    Atividade.CONTCUMULATIVA AS l0_CONTCUMULATIVA,
+    Atividade.QTDCONFIGUAIS AS l0_QTDCONFIGUAIS,
+    Atividade.QTDRECONTAGENS AS l0_QTDRECONTAGENS,
+    Atividade.SEPSEQCODBAR AS l0_SEPSEQCODBAR,
+    Atividade.APONTARECWC AS l0_APONTARECWC,
+    Atividade.MULTITURNO AS l0_MULTITURNO,
+    Atividade.CODMTPFINTURNO AS l0_CODMTPFINTURNO,
+
+    AlocacaoWorkCenterProcesso1_1.TIPALOCACAO AS l1_TIPALOCACAO,
+    CategoriaWorkCenter2_2.CODWCPPADRAO AS l2_CODWCPPADRAO,
+    ElementoFluxo3_1.TIPO AS l3_TIPO,
+    ElementoFluxo3_1.DESCRICAO AS l3_DESCRICAO,
+    MotivosParada4_1.DESCRICAO AS l4_DESCRICAO,
+    RepositorioPADestino5_1.DESCRICAO AS l5_DESCRICAO,
+    RepositorioPAOrigem6_1.DESCRICAO AS l6_DESCRICAO,
+    ProcessoProdutivo7_1.IDPROC AS l7_IDPROC,
+    ProcessoProdutivo7_1.CODPRC AS l7_CODPRC,
+    ProcessoProdutivo7_1.DESCRABREV AS l7_DESCRABREV,
+    ProcessoProdutivo7_1.VERSAO AS l7_VERSAO,
+    ProcessoProdutivo7_1.CODPLP AS l7_CODPLP,
+    ProcessoProdutivo7_1.PROCDESMONTE AS l7_PROCDESMONTE,
+    ProcessoProdutivo7_1.USATERCEIRO AS l7_USATERCEIRO,
+    ProcessoProdutivo7_1.DEFTERCEIRO AS l7_DEFTERCEIRO,
+
+    Executante.NOMEUSU AS l8_NOMEUSU,
+    HistoricoWorkCenterAtividade.DHLIBALOC AS l9_DHLIBALOC,
+    MotivosParada.DESCRICAO AS l10_DESCRICAO,
+    Parceiro.NOMEPARC AS l11_NOMEPARC,
+    UltimoExecutante.NOMEUSU AS l12_NOMEUSU,
+    Usuario.NOMEUSU AS l13_NOMEUSU,
+    UsuarioFinal.NOMEUSU AS l14_NOMEUSU,
+    WorkCenter.NOME AS l15_NOME,
+    WorkCenter.CODCWC AS l15_CODCWC,
+    WorkCenter.CODPLP AS l15_CODPLP,
+    WorkCenter.OPERACAO AS l15_OPERACAO
+    
+
+FROM 
+    TPRIATV
+    left join TPRIPA ON TPRIATV.IDIPROC = TPRIPA.IDIPROC
+    left join TGFPRO ON TPRIPA.CODPRODPA = TGFPRO.CODPROD
+
+    LEFT JOIN (
+        SELECT 
+            IDRPADEST, SUBAPOPORCONF, QTDRECONTAGENS, IDPROC, DATAHORAAPONTAMENTO, OPERCQ,
+            SEPSEQCODBAR, APONTAPA, CONTCUMULATIVA, PERMITEPARCIAL, IDCCQ, CODMTPFINTURNO,
+            LIBERARWCMANUAL, IDAWC, MULTITURNO, IDEFX, APONTASP, APONTARECWC, IDRPAOPER,
+            LIBERARWCFINAL, APONTAMP, QTDCONFIGUAIS
+        FROM TPRATV
+    ) Atividade ON (TPRIATV.IDEFX = Atividade.IDEFX)
+
+    LEFT JOIN (
+        SELECT IDPROC, IDAWC, TIPALOCACAO, CODCWC FROM TPRAWC
+    ) AlocacaoWorkCenterProcesso1_1 
+        ON (Atividade.IDPROC = AlocacaoWorkCenterProcesso1_1.IDPROC 
+        AND Atividade.IDAWC = AlocacaoWorkCenterProcesso1_1.IDAWC)
+
+    LEFT JOIN (
+        SELECT CODWCPPADRAO, CODCWC FROM TPRCWC
+    ) CategoriaWorkCenter2_2 
+        ON (AlocacaoWorkCenterProcesso1_1.CODCWC = CategoriaWorkCenter2_2.CODCWC)
+
+    LEFT JOIN (
+        SELECT TIPO, DESCRICAO, IDEFX FROM TPREFX
+    ) ElementoFluxo3_1 
+        ON (Atividade.IDEFX = ElementoFluxo3_1.IDEFX)
+
+    LEFT JOIN (
+        SELECT DESCRICAO, CODMTP FROM TPRMTP
+    ) MotivosParada4_1 
+        ON (Atividade.CODMTPFINTURNO = MotivosParada4_1.CODMTP)
+
+    LEFT JOIN (
+        SELECT DESCRICAO, IDRPA FROM TPRRPA
+    ) RepositorioPADestino5_1 
+        ON (Atividade.IDRPADEST = RepositorioPADestino5_1.IDRPA)
+
+    LEFT JOIN (
+        SELECT DESCRICAO, IDRPA FROM TPRRPA
+    ) RepositorioPAOrigem6_1 
+        ON (Atividade.IDRPAOPER = RepositorioPAOrigem6_1.IDRPA)
+
+    LEFT JOIN (
+        SELECT IDPROC, IDIPROC FROM TPRIPROC
+    ) CabecalhoInstanciaProcesso 
+        ON (TPRIATV.IDIPROC = CabecalhoInstanciaProcesso.IDIPROC)
+
+    LEFT JOIN (
+        SELECT CODPLP, IDPROC, DESCRABREV, CODPRC, DEFTERCEIRO, PROCDESMONTE, USATERCEIRO, VERSAO
+        FROM TPRPRC
+    ) ProcessoProdutivo7_1 
+        ON (CabecalhoInstanciaProcesso.IDPROC = ProcessoProdutivo7_1.IDPROC)
+
+    LEFT JOIN (
+        SELECT CODUSU, NOMEUSU FROM TSIUSU
+    ) Executante 
+        ON (TPRIATV.CODEXEC = Executante.CODUSU)
+
+    LEFT JOIN (
+        SELECT 
+            X.CODWCP, X.IDIATV, X.DHALOC, X.IDIPROC, X.DHLIBALOC
+        FROM TPRHWXA X
+        WHERE X.DHALOC = (
+            SELECT MAX(Y.DHALOC)
+            FROM TPRHWXA Y
+            WHERE Y.CODWCP = X.CODWCP
+              AND Y.IDIPROC = X.IDIPROC
+              AND Y.IDIATV = X.IDIATV
+              AND (
+                  Y.DHALOC = (
+                      SELECT MAX(HWXA.DHALOC)
+                      FROM TPRHWXA HWXA
+                      WHERE HWXA.CODWCP = Y.CODWCP
+                        AND HWXA.IDIPROC = Y.IDIPROC
+                        AND HWXA.IDIATV = Y.IDIATV
+                  )
+              )
+        )
+    ) HistoricoWorkCenterAtividade 
+        ON (TPRIATV.IDIATV = HistoricoWorkCenterAtividade.IDIATV
+        AND TPRIATV.IDIPROC = HistoricoWorkCenterAtividade.IDIPROC
+        AND TPRIATV.CODWCP = HistoricoWorkCenterAtividade.CODWCP)
+
+    LEFT JOIN (
+        SELECT DESCRICAO, CODMTP FROM TPRMTP
+    ) MotivosParada 
+        ON (TPRIATV.CODMTP = MotivosParada.CODMTP)
+
+    LEFT JOIN (
+        SELECT NOMEPARC, CODPARC FROM TGFPAR
+    ) Parceiro 
+        ON (TPRIATV.CODPARCTERC = Parceiro.CODPARC)
+
+    LEFT JOIN (
+        SELECT CODUSU, NOMEUSU FROM TSIUSU
+    ) UltimoExecutante 
+        ON (TPRIATV.CODULTEXEC = UltimoExecutante.CODUSU)
+
+    LEFT JOIN (
+        SELECT CODUSU, NOMEUSU FROM TSIUSU
+    ) Usuario 
+        ON (TPRIATV.CODUSU = Usuario.CODUSU)
+
+    LEFT JOIN (
+        SELECT CODUSU, NOMEUSU FROM TSIUSU
+    ) UsuarioFinal 
+        ON (TPRIATV.CODUSUFIN = UsuarioFinal.CODUSU)
+
+    LEFT JOIN (
+        SELECT OPERACAO, CODWCP, CODPLP, CODCWC, NOME FROM TPRWCP
+    ) WorkCenter 
+        ON (TPRIATV.CODWCP = WorkCenter.CODWCP),
+
+    TPRATV R2_Atividade,
+    TPREFX R0_ElementoFluxo,
+    TPRIPROC R1_CabecalhoInstanciaProcesso
+
+WHERE 
+    (
+        (R2_Atividade.IDEFX = R0_ElementoFluxo.IDEFX)
+        AND (TPRIATV.IDIPROC = R1_CabecalhoInstanciaProcesso.IDIPROC)
+        AND (TPRIATV.IDEFX = R2_Atividade.IDEFX)
+    )
+    AND (
+        R0_ElementoFluxo.TIPO IN (1101, 1109, 1110)
+        AND R1_CabecalhoInstanciaProcesso.STATUSPROC NOT IN ('C', 'S', 'AP', 'P', 'P2')
+        AND (TPRIATV.CODEXEC IS NULL AND TPRIATV.DHACEITE IS NULL)
+    )
+)
+ORDER BY 
+    IDIPROC

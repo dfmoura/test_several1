@@ -1,0 +1,342 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório DFC</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: sans-serif;
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        html {
+             height: 100%;
+        }
+
+        /* Linhas de espaço na tabela (evita colapso de células “vazias” no HTML) */
+        tr.dfc-row-spacer td {
+            height: 1rem;
+            line-height: 1rem;
+            padding: 0.125rem 0;
+            font-size: 1px;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="report-container" class="w-full h-full overflow-auto">
+        <table class="w-full text-sm" style="border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th class="text-left font-semibold pb-2 w-2/3 md:w-3/5"></th>
+                    <th id="header-ano-atual" class="text-right font-bold pb-2 w-1/6 md:w-1/5 border-b-2 px-4" style="border-color: hsl(var(--foreground));"></th>
+                    <th id="header-ano-anterior" class="text-right font-bold pb-2 w-1/6 md:w-1/5 border-b-2 pl-4" style="border-color: hsl(var(--foreground));"></th>
+                </tr>
+            </thead>
+            <tbody id="report-body">
+                <tr>
+                    <td colspan="3" class="text-center py-10 text-slate-500">Carregando dados do relatório...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-dfc-report';
+
+        function updateMitra() {
+            console.log("Sinal de update para [Relatório DFC] recebido. Disparando evento.");
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+
+        function formatValue(value) {
+            const num = parseFloat(value);
+            if (value === null || value === undefined || isNaN(num) || num === 0) {
+                return '-';
+            }
+            const formatted = new Intl.NumberFormat('pt-BR').format(Math.abs(num));
+            return num < 0 ? `(${formatted})` : formatted;
+        }
+
+        function headerTokens(h) {
+            if (!h || typeof h !== 'object') return [];
+            return [h.name, h.label, h.field, h.column, h.key, h.title]
+                .filter(v => v != null && String(v).trim() !== '')
+                .map(v => String(v).trim().toUpperCase());
+        }
+
+        function findColumnIndex(headers, wantedUpper) {
+            const w = wantedUpper.toUpperCase();
+            return headers.findIndex(h => headerTokens(h).includes(w));
+        }
+
+        /** Linhas Mitra: array por índice ou objeto com nomes de coluna */
+        function getCell(row, colIndex, headers) {
+            if (colIndex < 0) return undefined;
+            if (Array.isArray(row)) return row[colIndex];
+            if (!row || typeof row !== 'object') return undefined;
+            const meta = headers[colIndex];
+            const aliases = meta ? headerTokens(meta) : [];
+            for (const alias of aliases) {
+                for (const k of Object.keys(row)) {
+                    if (k.toUpperCase() === alias) return row[k];
+                }
+            }
+            return undefined;
+        }
+
+        /** ORDEM raiz 1: "1", "01", "1.0", "1.00", mas não "1.1" */
+        function isOrdemRaizUm(raw) {
+            const s = String(raw ?? '')
+                .trim()
+                .replace(/\u00a0/g, ' ')
+                .replace(/\s+/g, '');
+            if (!s) return false;
+            const parts = s.split('.');
+            const head = (parts[0] || '').replace(/^0+/, '') || '0';
+            if (head !== '1') return false;
+            return parts.slice(1).every(p => {
+                const n = (p || '').replace(/^0+/, '') || '0';
+                return /^0*$/.test(n);
+            });
+        }
+
+        function isLinhaLucroPrejuizoExercicio(descricao) {
+            const d = String(descricao || '')
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+            return /(lucro|prejuizo)/.test(d) && /exercicio/.test(d);
+        }
+
+        function appendBlocoAjusteOperacional(fragment) {
+            function spacerTr() {
+                const r = document.createElement('tr');
+                r.className = 'dfc-row-spacer';
+                const c = document.createElement('td');
+                c.colSpan = 3;
+                c.innerHTML = '&nbsp;';
+                r.appendChild(c);
+                fragment.appendChild(r);
+            }
+            spacerTr();
+            const adjustmentTitleRow = document.createElement('tr');
+            const adjustmentTitleCell = document.createElement('td');
+            adjustmentTitleCell.colSpan = 3;
+            adjustmentTitleCell.className = 'py-1.5 pr-4';
+            adjustmentTitleCell.textContent =
+                'Ajuste para reconciliar o prejuízo do exercício com os recursos provenientes das atividades operacionais';
+            adjustmentTitleRow.appendChild(adjustmentTitleCell);
+            fragment.appendChild(adjustmentTitleRow);
+            spacerTr();
+        }
+
+        function renderReport(data, headers) {
+            const tbody = document.getElementById('report-body');
+            tbody.innerHTML = '';
+            
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-slate-500">Nenhum dado encontrado para os filtros selecionados.</td></tr>';
+                return;
+            }
+
+            const colMap = {
+                ordem: findColumnIndex(headers, 'ORDEM'),
+                descricao: findColumnIndex(headers, 'DESCRICAO'),
+                valorAtual: findColumnIndex(headers, 'VALOR_ANO_ATUAL'),
+                valorAnterior: findColumnIndex(headers, 'VALOR_ANO_ANTERIOR'),
+            };
+
+            if (Object.values(colMap).some(index => index === -1)) {
+                console.error(
+                    'Erro de mapeamento de colunas. A query deve retornar: ORDEM, DESCRICAO, VALOR_ANO_ATUAL, VALOR_ANO_ANTERIOR.',
+                    headers.map(h => headerTokens(h)[0] || h)
+                );
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-10 text-red-600">Erro: A query configurada não retorna as colunas esperadas.</td></tr>`;
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            const titleRow = document.createElement('tr');
+            const titleCell = document.createElement('td');
+            titleCell.colSpan = 3;
+            titleCell.className = 'py-1.5 pr-4 font-bold pt-5';
+            titleCell.textContent = 'Fluxo de caixa das atividades operacionais';
+            titleRow.appendChild(titleCell);
+            fragment.appendChild(titleRow);
+
+            let blocoAjusteInserido = false;
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+
+                const ordemRaw = getCell(row, colMap.ordem, headers);
+                const ordem = ordemRaw !== undefined && ordemRaw !== null ? String(ordemRaw).trim() : '';
+                const descricao = getCell(row, colMap.descricao, headers) || '';
+                const valorAtual = getCell(row, colMap.valorAtual, headers);
+                const valorAnterior = getCell(row, colMap.valorAnterior, headers);
+
+                const hasValues = (valorAtual !== null && valorAtual !== undefined) || (valorAnterior !== null && valorAnterior !== undefined);
+                const isTotal = descricao.toLowerCase().includes('caixa líquido') || 
+                                descricao.toLowerCase().includes('caixa gerado') || 
+                                descricao.toLowerCase().includes('aumento de caixa e equivalentes');
+
+                let tdDesc = document.createElement('td');
+                tdDesc.className = 'py-1.5 pr-4';
+
+                if (hasValues) {
+                    const indentLevel = (ordem.split('.').length - 1);
+                    if (indentLevel > 0) {
+                        tdDesc.style.paddingLeft = `${indentLevel * 2}rem`; // Aumenta o recuo
+                    }
+                } else {
+                    tr.className += ' h-4'; // Add space before section titles
+                    tdDesc.className += ' pt-5'; // Add more space
+                }
+                
+                if (isTotal || !hasValues) {
+                     tdDesc.classList.add('font-bold');
+                }
+
+                tdDesc.textContent = descricao;
+
+                let tdValAtual = document.createElement('td');
+                tdValAtual.className = 'py-1.5 px-4 text-right font-mono';
+                tdValAtual.textContent = hasValues ? formatValue(valorAtual) : '';
+                
+                let tdValAnterior = document.createElement('td');
+                tdValAnterior.className = 'py-1.5 pl-4 text-right font-mono';
+                tdValAnterior.textContent = hasValues ? formatValue(valorAnterior) : '';
+
+                if (isTotal) {
+                    tdDesc.classList.add('font-bold');
+                    tdValAtual.classList.add('font-bold', 'border-t');
+                    tdValAnterior.classList.add('font-bold', 'border-t');
+                    tdValAtual.style.borderColor = 'hsl(var(--foreground))';
+                    tdValAnterior.style.borderColor = 'hsl(var(--foreground))';
+                }
+
+                tr.appendChild(tdDesc);
+                tr.appendChild(tdValAtual);
+                tr.appendChild(tdValAnterior);
+                
+                fragment.appendChild(tr);
+
+                if (!blocoAjusteInserido) {
+                    const porOrdem = isOrdemRaizUm(ordemRaw);
+                    const porDescricao = isLinhaLucroPrejuizoExercicio(descricao);
+                    if (porOrdem || porDescricao) {
+                        blocoAjusteInserido = true;
+                        appendBlocoAjusteOperacional(fragment);
+                    }
+                }
+            });
+
+            tbody.appendChild(fragment);
+        }
+
+        async function loadDataAndRender() {
+            const container = document.getElementById('report-container');
+            container.querySelector('tbody').innerHTML = '<tr><td colspan="3" class="text-center py-10 text-slate-500">Carregando...</td></tr>';
+
+            try {
+                if (!componentData.varMes) {
+                    throw new Error("A variável 'varMes' não foi configurada no componentData.");
+                }
+                
+                const dateResult = await queryMitra({ query: `SELECT ${componentData.varMes} FROM DUAL` });
+                const dateString = dateResult.data && dateResult.data[0] ? dateResult.data[0][0] : new Date().toISOString();
+                const refDate = new Date(dateString.split(' ')[0]);
+                
+                const currentYear = refDate.getFullYear();
+                const previousYear = currentYear - 1;
+
+                document.getElementById('header-ano-atual').textContent = currentYear;
+                document.getElementById('header-ano-anterior').textContent = previousYear;
+
+                if (!componentData.queryDados) {
+                    throw new Error("A variável 'queryDados' não foi configurada no componentData.");
+                }
+
+                const result = await queryMitra({ query: componentData.queryDados });
+                renderReport(result.data, result.headers);
+
+            } catch (error) {
+                console.error("Falha ao carregar o relatório DFC:", error);
+                container.innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Ocorreu um erro ao carregar o relatório: ${error.message}</div>`;
+            }
+        }
+
+        function initializeComponent() {
+            document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, loadDataAndRender);
+            loadDataAndRender();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+
+                const checkInterval = setInterval(() => {
+                    if (window.componentData && window.componentData.queryDados && window.componentData.varMes) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        document.getElementById('report-container').innerHTML = `<div class="p-8 text-center text-red-700 bg-red-50 h-full flex items-center justify-center">Erro Crítico: As configurações do componente (queryDados, varMes) não foram carregadas da plataforma.</div>`;
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>

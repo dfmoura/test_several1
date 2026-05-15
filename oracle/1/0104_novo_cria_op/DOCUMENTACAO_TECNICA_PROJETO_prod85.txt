@@ -1,0 +1,340 @@
+================================================================================
+DOCUMENTACAO TECNICA DO PROJETO (BASE: prod85.jsp)
+Sistema de Controle de Producao - Modulo de Operacoes (OP's)
+================================================================================
+
+1) ESCOPO DESTE DOCUMENTO
+-------------------------
+Este documento descreve tecnicamente o modulo implementado em `prod85.jsp`.
+Ele cobre arquitetura, UI, integracoes, fluxos, consultas SQL, acoes Java,
+campos/tabelas, regras e pontos de manutencao.
+
+Observacao:
+- A base primaria analisada foi o arquivo `prod85.jsp`.
+- Existem componentes Java relacionados no projeto (ex.: classes BTFromParam),
+  mas este documento descreve o comportamento observado no frontend JSP.
+
+
+2) VISAO GERAL DA SOLUCAO
+-------------------------
+`prod85.jsp` e uma tela HTML5/JSP orientada a operacoes de producao (OP),
+com estilo mobile-first e interacoes dinamicas em JavaScript puro.
+
+Objetivo funcional:
+- Consultar OPs por situacao:
+  1. Producao nao iniciada
+  2. Iniciadas
+  3. Paradas
+  4. Finalizadas
+- Executar acoes de processo via botoes Java do Sankhya.
+- Exibir detalhes da OP em overlays.
+- Gerenciar apontamentos, materiais e balancas.
+- Gerar relatorios PDF (OP individual e lista de finalizadas).
+
+
+3) ARQUITETURA TECNICA
+----------------------
+3.1 Camadas
+- Camada de apresentacao: HTML + CSS + JS no proprio `prod85.jsp`.
+- Camada de integracao: biblioteca SankhyaJX (`JX.consultar`, `JX.acionarBotao`).
+- Camada de negocio backend: botoes Java cadastrados no Sankhya.
+- Camada de dados: consultas SQL diretas (principalmente Oracle).
+
+3.2 Dependencias externas
+- SankhyaJX (CDN):
+  `https://cdn.jsdelivr.net/gh/wansleynery/SankhyaJX@main/jx.min.js`
+- jsPDF (CDN):
+  `https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js`
+
+3.3 Estrategia de estado no frontend
+- Estado global:
+  - `filtroAtual`
+  - `operacoes`
+  - `limiteFinalizadas`
+  - `opOverlay`
+  - `filtroOverlay`
+  - `paradaObsReveladaOverlay`
+- O estado define:
+  - qual consulta carregar
+  - como renderizar tabela/cabecalho
+  - quais botoes do overlay ficam ativos
+  - qual fluxo de acao esta permitido
+
+
+4) MAPEAMENTO DOS BOTOES JAVA (SANKHYA)
+---------------------------------------
+IDs configurados no frontend:
+- `ID_BOTAO_CONTINUAR_PRODUCAO = 303`
+  - Classe alvo esperada: ContinuarProducaoBTFromParam
+  - Parametro principal: `IDIPROC`
+- `ID_BOTAO_PARAR_PRODUCAO = 302`
+  - Classe alvo esperada: PararProducaoBTFromParam
+  - Parametros: `IDIPROC`, opcional `OBSERVACAO`
+- `ID_BOTAO_GERAR_APONTAMENTO = 304`
+  - Classe alvo esperada: CadastrarCabecApontamentoBTFromParam
+  - Parametros: `IDIPROC`, opcional `IDIATV`
+- `ID_BOTAO_CONFIRMAR_APONTAMENTO = 305`
+  - Classe alvo esperada: ConfirmarApontamentoBTFromParam
+  - Parametro: `NUAPO`
+  - Nota: no fluxo atual, a confirmacao principal usa o botao 316.
+- `ID_BOTAO_CONFIRMAR_APONTAMENTO_E_FINALIZAR_OP = 316`
+  - Classe alvo esperada: ConfirmarApontamentoEFinalizarOPBTFromParam
+  - Parametros: `NUAPO` e `IDIPROC` (recomendado)
+- `ID_BOTAO_INICIAR_OP_INSTANCIA = 314`
+  - Classe alvo esperada: IniciarOPBTFromParam
+  - Parametro: `IDIPROC`
+
+
+5) ESTRUTURA DE UI E COMPONENTES
+--------------------------------
+5.1 Layout principal
+- Header fixo com filtros e botao de refresh.
+- Tabela central (`#tabelaOp`) com corpo dinamico (`#tbodyOp`).
+- Toolbar adicional da guia Finalizadas (`#finToolbar`):
+  - limite de registros (100/200/300/500)
+  - relatorio de finalizadas
+  - voltar para "Prod. Nao Iniciada"
+- Footer fixo.
+
+5.2 Overlays
+- `#overlayDetalhe`: detalhe principal da OP.
+- `#overlayDetTpramp`: detalhamento tecnico de materiais.
+- `#overlayBalancas`: cadastro/exclusao de balancas por atividade.
+
+5.3 Acessibilidade e UX
+- Uso de `role="dialog"`, `aria-modal`, `aria-labelledby`.
+- Fechamento por botao, clique fora e tecla ESC.
+- Estados visuais por classe CSS (ativo, hover, acao/parar etc.).
+
+
+6) FLUXOS FUNCIONAIS PRINCIPAIS
+-------------------------------
+6.1 Carregamento inicial
+- Ao abrir a tela, o filtro padrao e "Prod. Nao Iniciada".
+- Consulta SQL correspondente e renderizacao da tabela.
+
+6.2 Troca de filtro
+- Filtros no header alteram `filtroAtual`.
+- Cada filtro executa consulta dedicada:
+  - `carregarOperacoesProdNaoIniciada()`
+  - `carregarOperacoesIniciadas()`
+  - `carregarOperacoesParadas()`
+  - `carregarOperacoesFinalizadas()`
+- Render final sempre por `renderTabela()`.
+
+6.3 Abertura do detalhe da OP
+- Clique na linha da tabela chama `abrirOverlayDetalhe(op)`.
+- O conteudo varia por situacao:
+  - nao iniciada/parada: resumo padrao
+  - iniciada: detalhe expandido com abas e apontamentos
+  - finalizada: detalhe de encerramento
+
+6.4 Fluxo de iniciar producao (OP nao iniciada)
+- Acao em overlay: "Iniciar a Producao".
+- Chama `executarIniciarProducao()` (botao Java 306/314 conforme fluxo).
+- Recarrega lista apos sucesso.
+
+6.5 Fluxo de parar producao (OP iniciada)
+- Botao "Parar a producao" tem 2 etapas de UX:
+  1) revela campo opcional de observacao
+  2) confirma parada
+- Chama `executarAcaoOp(...)` com botao Java 302.
+- Envia `IDIPROC` e `OBSERVACAO` (se preenchida).
+
+6.6 Fluxo de continuar producao (OP parada)
+- Botao "Continuar producao" no overlay.
+- Chama `executarAcaoOp(...)` com botao Java 303.
+
+6.7 Fluxo de apontamentos (OP iniciada)
+- Guia "Apontamentos" no overlay da OP iniciada.
+- Se nao houver apontamento, mostra "Gerar Apontamento".
+- Ao gerar:
+  - `executarGerarApontamento()` -> botao Java 304.
+- Confirmacao/finalizacao:
+  - `executarConfirmarApontamento(nuapo, descSituacao)`
+  - validacao de margem de materiais antes do submit
+  - acao backend pelo botao Java 316 (confirmar + finalizar OP)
+
+6.8 Fluxo de balancas (OP iniciada)
+- Selecao/cadastro de balanca vinculada ao `IDIATV`.
+- Lista atualizada em tempo real no detalhe.
+- Permite exclusao por codigo da balanca.
+
+6.9 Relatorios PDF
+- Relatorio da OP em detalhe (botao "Relatorio").
+- Relatorio de lista finalizadas (toolbar da guia Fin.).
+- Implementado via jsPDF, incluindo tabelas e paginacao.
+
+
+7) CONSULTAS SQL E ENTIDADES (VISAO TECNICA)
+--------------------------------------------
+7.1 Entidades/tabelas mais relevantes observadas
+- Processo/producao:
+  - `TPRIPROC`, `TPRIPA`, `TPRIATV`, `TPREIATV`, `TPRAPO`, `TPRAPA`, `TPRAMP`
+- Produto/estrutura:
+  - `TGFPRO`, `TGFGRU`, `TGFITE`
+- Integracoes auxiliares:
+  - `TGFRAM`, `TPRMPS`, `TMEIMT`
+- Customizadas:
+  - `AD_DETBALANCAS`
+  - `AD_TPRAMPITE`
+  - `AD_DETAGUA`
+
+7.2 Padrao de acesso
+- Leitura: `JX.consultar(sql)` com SQL montado no frontend.
+- Escrita:
+  - preferencial por API (`JX.salvar`/`JX.executar`, quando disponivel)
+  - fallback por SQL DML via `JX.consultar` (insert/delete em custom tables)
+- Acoes transacionais de negocio:
+  - via `JX.acionarBotao(...)` (regras Java no backend Sankhya).
+
+7.3 Observacao de seguranca
+- Existem trechos com SQL montado por interpolacao de valores numericos/texto.
+- O codigo tenta normalizar tipo (`Number(...)`) e escapar texto em alguns
+  pontos (`escSqlTexto`), mas o padrao ideal e sempre parametrizacao server-side.
+
+
+8) REGRAS DE NEGOCIO IMPLEMENTADAS NO FRONTEND
+----------------------------------------------
+8.1 Regras de exibicao
+- Header da tabela altera coluna Data para "Data termino" em finalizadas.
+- Toolbar de finalizadas so aparece quando `filtroAtual === "Finalizadas"`.
+
+8.2 Regras de botao de confirmacao de apontamento
+- Botao "Confirmar" so aparece:
+  - overlay aberto
+  - filtro de origem "Iniciadas"
+  - existe apontamento nao confirmado
+
+8.3 Validacao de materiais antes de confirmar apontamento
+- Soma de quantidades de materiais x soma apontada.
+- Regra de tolerancia:
+  - aceita igualdade ou faixa de +/-2%
+  - tratamento especial quando qtd apontada total = 0
+- Em caso de violacao, bloqueia confirmacao e mostra mensagem.
+
+8.4 Tratamento de agua
+- Produto de materia-prima agua identificado por `CODPRODMP_AGUA = 10`.
+- Dados complementares consultados em `AD_DETAGUA`.
+
+
+9) ORGANIZACAO LOGICA DAS FUNCOES
+---------------------------------
+Blocos funcionais no script:
+- Configuracao e estado global.
+- Carregamento de listas por situacao.
+- Renderizacao da tabela principal.
+- Gerenciamento de overlays (abrir, fechar, trocar abas).
+- Dados de detalhe da OP (geral, apontamentos, execucoes, amostras).
+- CRUD de balancas vinculadas a atividade.
+- Validacoes e utilitarios de apontamento/material.
+- Acionamento de botoes Java (acoes de negocio).
+- Geracao de relatorios PDF (individual e lista finalizadas).
+
+
+10) TRATAMENTO DE ERROS E RESILIENCIA
+-------------------------------------
+10.1 Erros de dependencia
+- Se `JX` nao estiver disponivel, funcoes abortam e exibem alerta/erro amigavel.
+
+10.2 Erros de consulta/acao
+- `try/catch` com:
+  - `console.error(...)`
+  - feedback visual para usuario (`alert` ou mensagem na tela)
+
+10.3 Atualizacao de estado apos sucesso
+- Acoes bem-sucedidas chamam `atualizarTabela()`.
+- Em overlays, listas internas tambem sao atualizadas (ex.: apontamentos).
+
+
+11) PONTOS DE ATENCAO PARA MANUTENCAO
+-------------------------------------
+11.1 Acoplamento frontend-SQL
+- SQL extenso no JSP aumenta custo de manutencao e risco de regressao.
+- Recomendado: mover para camada backend (servico/API).
+
+11.2 Acoplamento por IDs de botoes
+- IDs de botoes Java estao hardcoded no frontend.
+- Mudancas no cadastro Sankhya exigem sincronizacao no JSP.
+
+11.3 Tamanho e complexidade do arquivo
+- `prod85.jsp` concentra UI, regras, SQL e relatorios.
+- Recomendado modularizar:
+  - `ui/`
+  - `services/consulta`
+  - `services/acao`
+  - `pdf/`
+
+11.4 Padrao de mensagens ao usuario
+- Uso intenso de `alert` e `confirm`.
+- Pode evoluir para componente de notificacao padronizado.
+
+
+12) OPERACAO E SUPORTE
+----------------------
+Checklist rapido para ambiente:
+- Validar acesso a CDNs (SankhyaJX e jsPDF).
+- Validar cadastro dos botoes Java no Sankhya com IDs corretos.
+- Validar permissoes SQL nas tabelas consultadas/customizadas.
+- Validar tabelas AD customizadas:
+  - `AD_DETBALANCAS`
+  - `AD_TPRAMPITE`
+  - `AD_DETAGUA`
+
+Checklist de troubleshooting:
+- "Nada carrega": verificar disponibilidade de `JX`.
+- "Acao nao executa": conferir ID do botao Java e parametros enviados.
+- "Confirmacao bloqueada": revisar validacao de margem de materiais.
+- "Relatorio nao gera": verificar carga de jsPDF e bloqueio de popup/download.
+
+
+13) MATRIZ RESUMIDA DE FLUXOS X TECNOLOGIA
+------------------------------------------
+- Consulta de OPs:
+  Frontend JS -> `JX.consultar` -> SQL Oracle -> render tabela
+
+- Acao de processo (iniciar/parar/continuar/confirmar):
+  Frontend JS -> `JX.acionarBotao` -> classe Java Sankhya -> update processo
+
+- Cadastro/exclusao de balancas:
+  Frontend JS -> API JX (ou fallback DML) -> tabela `AD_DETBALANCAS`
+
+- Relatorios:
+  Frontend JS -> jsPDF -> arquivo PDF no cliente
+
+
+14) RECOMENDACOES DE EVOLUCAO (ROADMAP TECNICO)
+-----------------------------------------------
+Prioridade alta:
+1. Extrair SQL para backend e usar endpoints tipados/parametrizados.
+2. Isolar IDs e constantes em configuracao unica.
+3. Quebrar `prod85.jsp` em modulos JS menores.
+
+Prioridade media:
+4. Padronizar logs/telemetria de erro (sem depender apenas de alert).
+5. Criar testes automatizados de regressao dos fluxos criticos.
+6. Revisar acessibilidade dos overlays e navegacao por teclado.
+
+Prioridade baixa:
+7. Evoluir UX de mensagens para toasts/modais customizados.
+8. Melhorar internacionalizacao e padrao de formatacao de data/hora.
+
+
+15) CONCLUSAO TECNICA
+---------------------
+O modulo de `prod85.jsp` implementa, em um unico artefato, um frontend completo
+de controle de OPs com integracao direta ao Sankhya via JX e suporte a:
+- monitoramento por situacao,
+- operacao de ciclo produtivo,
+- apontamentos e validacoes de materiais,
+- gestao de balancas,
+- emissao de relatorios PDF.
+
+A solucao e funcional e rica em recursos, mas possui forte acoplamento (UI +
+SQL + regras + integracao) e depende de IDs fixos de botoes Java. Para ganho
+de escalabilidade/manutencao, a principal evolucao recomendada e modularizar
+e transferir regras/consultas para backend dedicado.
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================

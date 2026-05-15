@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="sub_apont" language="groovy" pageWidth="515" pageHeight="802" orientation="Portrait" columnWidth="515" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+    <parameter name="P_NUATV" class="java.math.BigDecimal"/>
+
+    <queryString>
+        <![CDATA[
+SELECT
+    CAST(1 AS NUMBER) AS NUATV,
+    CAST(9001 AS NUMBER) AS ID_APONT,
+    TO_DATE('2026-04-16','YYYY-MM-DD') AS DATA_APONT,
+    '03:00' AS QTD_HORAS,
+    'Levantamento e consolidacao das informacoes da capa.' AS DESCRICAO
+FROM DUAL
+UNION ALL
+SELECT
+    CAST(2 AS NUMBER) AS NUATV,
+    CAST(9002 AS NUMBER) AS ID_APONT,
+    TO_DATE('2026-04-21','YYYY-MM-DD') AS DATA_APONT,
+    '01:30' AS QTD_HORAS,
+    'Ajustes finos no layout de apresentacao.' AS DESCRICAO
+FROM DUAL
+UNION ALL
+SELECT
+    CAST(3 AS NUMBER) AS NUATV,
+    CAST(9003 AS NUMBER) AS ID_APONT,
+    TO_DATE('2026-04-22','YYYY-MM-DD') AS DATA_APONT,
+    '01:00' AS QTD_HORAS,
+    'Validacao final com base no backlog pai.' AS DESCRICAO
+FROM DUAL
+        ]]>
+    </queryString>
+
+    <field name="NUATV" class="java.math.BigDecimal"/>
+    <field name="ID_APONT" class="java.math.BigDecimal"/>
+    <field name="DATA_APONT" class="java.util.Date"/>
+    <field name="QTD_HORAS" class="java.lang.String"/>
+    <field name="DESCRICAO" class="java.lang.String"/>
+    <filterExpression><![CDATA[$P{P_NUATV} != null && $F{NUATV}.compareTo($P{P_NUATV}) == 0]]></filterExpression>
+
+    <columnHeader>
+        <band height="20">
+            <staticText>
+                <reportElement x="0" y="2" width="72" height="16"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[ID Apont.]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="72" y="2" width="84" height="16"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[Data]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="156" y="2" width="64" height="16"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[Qtd. Horas]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="220" y="2" width="295" height="16"/>
+                <textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[Descrição]]></text>
+            </staticText>
+            <line><reportElement x="0" y="19" width="515" height="1"/></line>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="18">
+            <textField>
+                <reportElement x="0" y="2" width="72" height="14"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement>
+                <textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{ID_APONT}]]></textFieldExpression>
+            </textField>
+            <textField pattern="dd/MM/yyyy">
+                <reportElement x="72" y="2" width="84" height="14"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement>
+                <textFieldExpression class="java.util.Date"><![CDATA[$F{DATA_APONT}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="156" y="2" width="64" height="14"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement>
+                <textFieldExpression class="java.lang.String"><![CDATA[$F{QTD_HORAS}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="220" y="2" width="295" height="14"/>
+                <textElement verticalAlignment="Middle"><font size="8"/></textElement>
+                <textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+</jasperReport>

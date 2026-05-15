@@ -1,0 +1,272 @@
+-------------------------------------------------------------------------------------------------------
+##ID_1## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-4966
+  5 = dc777cbc4a928b7595492740a974e3257f43c597
+-------------------------------------------------------------------------------------------------------
+##ID_2## tempo: 0 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+uri: /mge/service.sbr
+*/
+SELECT TEXTO FROM TSIPAR WHERE CHAVE = ? 
+Params:
+  1 = VERSAOSKWBIN
+-------------------------------------------------------------------------------------------------------
+##ID_3## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-4966
+  5 = dc777cbc4a928b7595492740a974e3257f43c597
+-------------------------------------------------------------------------------------------------------
+##ID_4## tempo: 5 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+entity: CentroResultadoNatureza
+service-name: DatasetSP.removeRecord
+uri: /mge/service.sbr
+*/
+SELECT TSIUSU.ABREGAVETA AS ABREGAVETA,TSIUSU.ACCOUNTDHEXPIRA AS ACCOUNTDHEXPIRA,TSIUSU.ACCOUNTEMAIL AS ACCOUNTEMAIL,TSIUSU.ACCOUNTID AS ACCOUNTID,TSIUSU.ACCOUNTNOMEFOTO AS ACCOUNTNOMEFOTO,TSIUSU.ACCOUNTPARTNER AS ACCOUNTPARTNER,'$$CLOBFIELD(TSIUSU.ACCOUNTTOKEN)$$' AS ACCOUNTTOKEN,TSIUSU.ACESSAFORMULAREL AS ACESSAFORMULAREL,TSIUSU.ACESSOPDVCANCITENS AS ACESSOPDVCANCITENS,TSIUSU.ACESSOPDVSANG AS ACESSOPDVSANG,TSIUSU.ACESSOPDVSANGPDESP AS ACESSOPDVSANGPDESP,TSIUSU.ACESSOPDVSUPR AS ACESSOPDVSUPR,TSIUSU.ACESSOVISUALCAB AS ACESSOVISUALCAB,TSIUSU.AD_VISUALINDICADORES AS AD_VISUALINDICADORES,TSIUSU.ALTCTAFAT AS ALTCTAFAT,TSIUSU.ALTCTAIMPBOL AS ALTCTAIMPBOL,TSIUSU.ALTORDCFECH AS ALTORDCFECH,'$$CLOBFIELD(TSIUSU.ANALYTICS2_TOKEN)$$' AS ANALYTICS2_TOKEN,TSIUSU.APENASCOMPLIB AS APENASCOMPLIB,TSIUSU.APROVCOT AS APROVCOT,TSIUSU.ATUNUVERSAO AS ATUNUVERSAO,TSIUSU.AVISAVARPRECO AS AVISAVARPRECO,TSIUSU.BAIXADESP AS BAIXADESP,TSIUSU.BAIXAREC AS BAIXAREC,TSIUSU.CAIXA AS CAIXA,TSIUSU.CODCARGAACESSO AS CODCARGAACESSO,TSIUSU.CODCENCUSPAD AS CODCENCUSPAD,TSIUSU.CODCONTATOPERFIL AS CODCONTATOPERFIL,TSIUSU.CODCTABCOINT AS CODCTABCOINT,TSIUSU.CODCTABCOINT2 AS CODCTABCOINT2,TSIUSU.CODEMP AS CODEMP,TSIUSU.CODEQUIP AS CODEQUIP,TSIUSU.CODETAPA AS CODETAPA,TSIUSU.CODFUNC AS CODFUNC,TSIUSU.CODGRUPO AS CODGRUPO,TSIUSU.CODIDECONECT AS CODIDECONECT,TSIUSU.CODPARC AS CODPARC,TSIUSU.CODPARCPERFIL AS CODPARCPERFIL,TSIUSU.CODPERFIL AS CODPERFIL,TSIUSU.CODUSU AS CODUSU,TSIUSU.CODVEND AS CODVEND,TSIUSU.CONTACESSO AS CONTACESSO,TSIUSU.CONTAGOL AS CONTAGOL,TSIUSU.CORCODIGO AS CORCODIGO,TSIUSU.CPF AS CPF,TSIUSU.DESCTOTALNOTAPDV AS DESCTOTALNOTAPDV,TSIUSU.DTALTER AS DTALTER,TSIUSU.DTLIMACESSO AS DTLIMACESSO,TSIUSU.DTNASC AS DTNASC,TSIUSU.DTULTACESSO AS DTULTACESSO,TSIUSU.DTULTIMASENHA AS DTULTIMASENHA,TSIUSU.EMAIL AS EMAIL,TSIUSU.EMAILSOLLIB AS EMAILSOLLIB,TSIUSU.EXCLIBORC AS EXCLIBORC,TSIUSU.EXIBIRVALANALRENT AS EXIBIRVALANALRENT,1 AS FOTO,TSIUSU.GESTOR AS GESTOR,TSIUSU.GRUPOREDE AS GRUPOREDE,TSIUSU.IDPERFILECONECT AS IDPERFILECONECT,TSIUSU.IGNORAHORASCRUZ AS IGNORAHORASCRUZ,TSIUSU.IGNORALDAP AS IGNORALDAP,TSIUSU.IMP2SANSUPCAI AS IMP2SANSUPCAI,TSIUSU.IMPLANTADOR AS IMPLANTADOR,TSIUSU.IMPNFCENTRAL AS IMPNFCENTRAL,TSIUSU.INFRECSEN AS INFRECSEN,TSIUSU.INSTALAPACOTESS AS INSTALAPACOTESS,TSIUSU.INTEGRAECONECT AS INTEGRAECONECT,TSIUSU.INTERNO AS INTERNO,TSIUSU.LOCALE AS LOCALE,TSIUSU.MINUTOSFIN AS MINUTOSFIN,TSIUSU.NIVEL AS NIVEL,TSIUSU.NIVELACESSO AS NIVELACESSO,TSIUSU.NOMEFILA AS NOMEFILA,TSIUSU.NOMEUSU AS NOMEUSU,TSIUSU.NOMEUSUCPLT AS NOMEUSUCPLT,TSIUSU.NOTSLAFILA AS NOTSLAFILA,TSIUSU.NUVERSAO AS NUVERSAO,TSIUSU.OPERACIONAL AS OPERACIONAL,TSIUSU.PERMALTMOEDA AS PERMALTMOEDA,TSIUSU.PERMEXPREL AS PERMEXPREL,TSIUSU.PERMIMPRIMEREL AS PERMIMPRIMEREL,TSIUSU.PERMREPERRO AS PERMREPERRO,TSIUSU.PORTASMTP AS PORTASMTP,TSIUSU.PROPRIETARIO AS PROPRIETARIO,TSIUSU.RENDIASVALJUR AS RENDIASVALJUR,TSIUSU.RESTRINGECART AS RESTRINGECART,TSIUSU.RG AS RG,TSIUSU.SEGURANCASMTP AS SEGURANCASMTP,TSIUSU.SELECTWCAPO AS SELECTWCAPO,TSIUSU.SENHAECONECT AS SENHAECONECT,TSIUSU.SENHANUNCAEXPIRA AS SENHANUNCAEXPIRA,TSIUSU.SENHASMTP AS SENHASMTP,TSIUSU.SERVIDORSMTP AS SERVIDORSMTP,TSIUSU.TEMECF AS TEMECF,TSIUSU.TIMBAIXAWORD AS TIMBAIXAWORD,TSIUSU.TIMBAIXTITRECABE AS TIMBAIXTITRECABE,TSIUSU.TIMPATHSCANNER AS TIMPATHSCANNER,TSIUSU.TIMVERTODASFACS AS TIMVERTODASFACS,TSIUSU.TIPENVNOTSOL AS TIPENVNOTSOL,TSIUSU.TIPOSMTP AS TIPOSMTP,TSIUSU.TIPOUSU AS TIPOUSU,TSIUSU.TOKENCHECKOUT AS TOKENCHECKOUT,TSIUSU.TOLERANCIAACESSO AS TOLERANCIAACESSO,TSIUSU.TOPBAIXADESPESA AS TOPBAIXADESPESA,TSIUSU.TOPBAIXARECEITA AS TOPBAIXARECEITA,TSIUSU.USUARIOSMTP AS USUARIOSMTP,TSIUSU.USUREDE AS USUREDE,TSIUSU.VERCABPROPRIA AS VERCABPROPRIA,TSIUSU.VISACESOUTUSU AS VISACESOUTUSU,TSIUSU.VLRMAXAUT AS VLRMAXAUT FROM TSIUSU /*SQL_92_JOINED_TABLES*/  WHERE (TSIUSU.CODUSU = ?)
+Params:
+  1 = 0
+-------------------------------------------------------------------------------------------------------
+##ID_5## tempo: 1 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+entity: CentroResultadoNatureza
+service-name: DatasetSP.removeRecord
+uri: /mge/service.sbr
+*/
+SELECT TGFCRN.CODCENCUS AS CODCENCUS,TGFCRN.CODNAT AS CODNAT,TGFCRN.MULTCONSULTORES AS MULTCONSULTORES,TGFCRN.MULTDIAS AS MULTDIAS,TGFCRN.MULTHORAS AS MULTHORAS,TGFCRN.MULTHORASSALA AS MULTHORASSALA,TGFCRN.MULTPARTICIPANTES AS MULTPARTICIPANTES,TGFCRN.MULTPERIODOS AS MULTPERIODOS,TGFCRN.MULTTURMAS AS MULTTURMAS FROM TGFCRN /*SQL_92_JOINED_TABLES*/  WHERE (TGFCRN.CODCENCUS = ? AND TGFCRN.CODNAT = ?)
+Params:
+  1 = 170000
+  2 = 15031009
+-------------------------------------------------------------------------------------------------------
+##ID_6## tempo: 1 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+entity: CentroResultadoNatureza
+service-name: DatasetSP.removeRecord
+uri: /mge/service.sbr
+*/
+SELECT * FROM (SELECT TSIEVP.ATIVO AS ATIVO,'$$CLOBFIELD(TSIEVP.CONFIG)$$' AS CONFIG,TSIEVP.DESCRICAO AS DESCRICAO,TSIEVP.NOMEINSTANCIA AS NOMEINSTANCIA,TSIEVP.NUEVENTO AS NUEVENTO,TSIEVP.ORDEM AS ORDEM,TSIEVP.RESOURCEID AS RESOURCEID,TSIEVP.TIPO AS TIPO FROM TSIEVP /*SQL_92_JOINED_TABLES*/   WHERE (TSIEVP.NOMEINSTANCIA = ? and TSIEVP.ATIVO = 'S')  ORDER BY TSIEVP.ORDEM) WHERE ROWNUM <= 5001
+Params:
+  1 = CentroResultadoNatureza
+-------------------------------------------------------------------------------------------------------
+##ID_7## tempo: 5 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+entity: CentroResultadoNatureza
+service-name: DatasetSP.removeRecord
+uri: /mge/service.sbr
+*/
+SELECT
+ OPC.NUCAMPO,
+ NULL AS NOMECAMPO,
+ NULL AS DESCRCAMPO,
+ NULL AS LABEL,
+ NULL AS ADICIONAL,
+ VALOR AS CHAVE,
+ OPCAO AS VALOR,
+ OPC.ORDEM,
+ 'O' AS TIPO,
+ NULL AS CALCULADO,
+ NULL AS PERMITEPADRAO,
+ NULL AS APRESENTACAO,
+ NULL AS PERMITEPESQUISA,
+ NULL AS TIPCAMPO,
+ NULL AS VISIVELGRIDPESQUISA
+FROM
+ TDDOPC OPC
+WHERE
+ EXISTS(
+     SELECT 1 FROM TDDCAM CAM WHERE CAM.NUCAMPO = OPC.NUCAMPO AND CAM.NOMETAB = ?  
+ )
+UNION ALL
+SELECT
+ PCO.NUCAMPO,
+ NULL AS NOMECAMPO,
+ NULL AS DESCRCAMPO,
+ CASE
+    WHEN NOME = 'labelParam' THEN
+	   GET_TSIPAR_TIPO_CT(VALOR)
+ END AS LABEL,
+ NULL AS ADICIONAL,
+ NOME AS CHAVE,
+  VALOR, 
+ 
+ NULL AS ORDEM,
+ 'P' AS TIPO,
+ NULL AS CALCULADO,
+ NULL AS PERMITEPADRAO,
+ NULL AS APRESENTACAO,
+ NULL AS PERMITEPESQUISA,
+ NULL AS TIPCAMPO,
+ NULL AS VISIVELGRIDPESQUISA
+FROM
+ TDDPCO PCO
+WHERE
+ EXISTS(
+     SELECT 1 FROM TDDCAM CAM WHERE CAM.NUCAMPO = PCO.NUCAMPO AND CAM.NOMETAB = ?  
+ )
+UNION ALL
+SELECT
+ NUCAMPO,
+ NOMECAMPO,
+ DESCRCAMPO,
+ NULL AS LABEL,
+ ADICIONAL,
+ NULL AS CHAVE,
+ NULL AS VALOR,
+ CAM.ORDEM AS ORDEM,
+ 'C' AS TIPO,
+ CALCULADO,
+ PERMITEPADRAO,
+ APRESENTACAO,
+ PERMITEPESQUISA,
+ TIPCAMPO,
+ VISIVELGRIDPESQUISA
+FROM
+ TDDCAM CAM
+WHERE
+ NOMETAB = ?
+  
+ORDER BY 1,9,8
+Params:
+  1 = TGFCRN
+  2 = TGFCRN
+  3 = TGFCRN
+-------------------------------------------------------------------------------------------------------
+##ID_8## tempo: 2 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+entity: CentroResultadoNatureza
+service-name: DatasetSP.removeRecord
+uri: /mge/service.sbr
+*/
+SELECT TDDINS.ADICIONAL AS adicional,TDDINS.ATIVO AS ativo,TDDINS.CATEGORIA AS categoria,TDDINS.DEFINICAOINST AS definicaoInst,TDDINS.DESCRINSTANCIA AS descricao,TDDINS.EXPRESSAO AS expressao,TDDINS.ISLIB AS isLib,TDDINS.NOMEINSTANCIA AS nome,TDDINS.NOMETAB AS nomeTabela,TDDINS.NUINSTANCIA AS numero,TDDINS.NUINSTANCIAEXT AS numeroExtensao,TDDINS.NUINSTANCIAPAI AS numeroPai,TDDINS.RAIZ AS raiz,TDDINS.RESOURCEID AS resourceID,TDDINS.DESCRTELA AS telaDescription,TDDINS.TIPOFORM AS tipoForm,TDDINS.FILTRO AS usaCriterio FROM TDDINS /*SQL_92_JOINED_TABLES*/   WHERE (TDDINS.NOMEINSTANCIA = ?)  AND ROWNUM <= 501
+Params:
+  1 = Natureza
+-------------------------------------------------------------------------------------------------------
+##ID_9## tempo: 3 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+entity: CentroResultadoNatureza
+service-name: DatasetSP.removeRecord
+uri: /mge/service.sbr
+*/
+DELETE FROM TGFCRN WHERE (TGFCRN.CODCENCUS = ? AND TGFCRN.CODNAT = ?)
+Params:
+  1 = 170000
+  2 = 15031009
+-------------------------------------------------------------------------------------------------------
+##ID_10## tempo: 2 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+entity: CentroResultadoNatureza
+service-name: DatasetSP.removeRecord
+uri: /mge/service.sbr
+*/
+SELECT TSIANX.CHAVEARQUIVO AS CHAVEARQUIVO,TSIANX.CODUSU AS CODUSU,TSIANX.CODUSUALT AS CODUSUALT,TSIANX.DESCRICAO AS DESCRICAO,TSIANX.DHALTER AS DHALTER,TSIANX.DHCAD AS DHCAD,TSIANX.LINK AS LINK,TSIANX.NOMEARQUIVO AS NOMEARQUIVO,TSIANX.NOMEINSTANCIA AS NOMEINSTANCIA,TSIANX.NUATTACH AS NUATTACH,TSIANX.PKREGISTRO AS PKREGISTRO,TSIANX.RESOURCEID AS RESOURCEID,TSIANX.TIPOACESSO AS TIPOACESSO,TSIANX.TIPOAPRES AS TIPOAPRES FROM TSIANX /*SQL_92_JOINED_TABLES*/   WHERE ( ( TSIANX.NOMEINSTANCIA = ? AND  (TSIANX.PKREGISTRO IN (?))  ) )  AND ROWNUM <= 201
+Params:
+  1 = CentroResultadoNatureza
+  2 = 170000_15031009_CentroResultadoNatureza
+-------------------------------------------------------------------------------------------------------
+##ID_11## tempo: 1 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+entity: CentroResultadoNatureza
+service-name: DatasetSP.removeRecord
+uri: /mge/service.sbr
+*/
+ SELECT (CODCFG) AS COLUNA FROM TSIPSQ WHERE ATIVO = ?
+Params:
+  1 = S
+-------------------------------------------------------------------------------------------------------
+##ID_12## tempo: 1 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-4966
+  5 = dc777cbc4a928b7595492740a974e3257f43c597
+-------------------------------------------------------------------------------------------------------
+##ID_13## tempo: 1 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+uri: /mge/service.sbr
+*/
+SELECT TEXTO FROM TSIPAR WHERE CHAVE = ? 
+Params:
+  1 = VERSAOSKWBIN
+-------------------------------------------------------------------------------------------------------
+##ID_14## tempo: 0 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-4966
+  5 = dc777cbc4a928b7595492740a974e3257f43c597
+-------------------------------------------------------------------------------------------------------
+##ID_15## tempo: 0 (ms)
+/* Runtime-info
+Application: CentroResultado
+Referer: https://topnutri.sankhyacloud.com.br/mgefin/CentroResultado.xhtml5
+ResourceID: br.com.sankhya.fin.cad.centroResultado
+service-name: PesquisaSP.isFavorito
+uri: /mge/service.sbr
+*/
+SELECT TSIERF.CODUSU AS CODUSU,TSIERF.DHULTIMOACESSO AS DHULTIMOACESSO,TSIERF.FAVORITO AS FAVORITO,TSIERF.NOMEINSTANCIA AS NOMEINSTANCIA,TSIERF.PKREGISTRO AS PKREGISTRO FROM TSIERF /*SQL_92_JOINED_TABLES*/  WHERE (TSIERF.CODUSU = ? AND TSIERF.NOMEINSTANCIA = ? AND TSIERF.PKREGISTRO = ?)
+Params:
+  1 = 0
+  2 = CentroResultadoNatureza
+  3 = 170000:15031006
+-------------------------------------------------------------------------------------------------------
+##ID_16## tempo: 0 (ms)
+{call Stp_Set_Session2(?, ?, ?, ?, ?)}
+Params:
+  1 = 0
+  2 = -1
+  3 = -1
+  4 = u= 0, t_name= default task-4968
+  5 = dc777cbc4a928b7595492740a974e3257f43c597
+-------------------------------------------------------------------------------------------------------
+##ID_17## tempo: 1 (ms)
+/* Runtime-info
+Application: MonitorDeConsultas
+Referer: https://topnutri.sankhyacloud.com.br/mge/MonitorDeConsultas.xhtml5
+ResourceID: br.com.sankhya.cfg.MonitordeConsultas
+uri: /mge/service.sbr
+*/
+SELECT TEXTO FROM TSIPAR WHERE CHAVE = ? 
+Params:
+  1 = VERSAOSKWBIN

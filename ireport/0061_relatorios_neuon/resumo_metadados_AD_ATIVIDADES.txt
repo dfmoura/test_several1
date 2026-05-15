@@ -1,0 +1,735 @@
+RELATORIO DE METADADOS - AD_ATIVIDADES
+Origem: Metadados_AD_ATIVIDADES/metadata.xml
+================================================================================
+Total de instancias: 20
+
+--------------------------------------------------------------------------------
+[1] INSTANCIA: AD_ATIVIDADES
+TABELA: AD_ATIVIDADES
+SEQUENCIA: tipo=A campo=NUATV
+CAMPO APRESENTACAO: TITULO
+PRIMARY KEY: NUATV
+CAMPOS (38):
+  - NUATV | descricao="ID Atividade" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+      formato: size=10; filterType=default; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - TITULO | descricao="Título Atv." | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - DESCRICAO | descricao="Descrição" | tipo=C (Texto longo (CLOB)) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - TIPO | descricao="Tipo de Atividade" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - PROJETO | descricao="Projeto" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - SOLICITANTE | descricao="Solicitante" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - AREACLIENTE | descricao="Área do Cliente" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; filterType=default; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - DTSOL | descricao="Data Solicitação" | tipo=D (Data) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: filterType=period
+  - AUTORIZADO | descricao="Autorizado" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: filterType=default; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+      opcoes: S:Sim | N:Não [default]
+  - DTVAL | descricao="Data Validação" | tipo=D (Data) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: filterType=period; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - CODREC | descricao="+ Executante" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - STATUS | descricao="Status" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+      opcoes: NI:Não Iniciado | PE:Prog. Execução | EE:Em Execução | VI:Validação Interna | AV:Aguard. Validação | AO:Aguard. Outros | BQ:Bloqueado | C:Concluído [default]
+  - ANEXO | descricao="Anexo" | tipo=B (Binário/Anexo) | apresentacao=M (Mídia/Anexo) | allowNull=S | calculated=N
+  - NEGOCIO | descricao="Negócio" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+      opcoes: B:BRAION | N:NEUON | M:MITRA [default]
+  - CODPARC | descricao="Cliente" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - ESTIMATIVA | descricao="Estimativa" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - ESTIMATIVA_MINUTOS | descricao="Esforço Estimado (Minutos)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=N
+  - IDCLIENTE | descricao="ID Cliente" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - CODUSUINC | descricao="Usuário de Inclusão" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHINC | descricao="Data de Inclusão" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHALTER | descricao="Data de Alteração" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - CODUSUALTER | descricao="Usuário da Última Alteração" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - CODUSUAUT | descricao="Usuário Autorizador" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHAUT | descricao="Data de Autorização" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - EQUIPEEXEC | descricao="Equipe Executante" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - REALIZADO | descricao="Esforço Real" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - REALIZADO_MINUTOS | descricao="Esforço Real em Minutos" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=N
+  - PERCESFORCO | descricao="% Realizado" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - CODREC_REMOVE | descricao="- Executante" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - CODGERENTE | descricao="+ Ger. Projeto/Tech Lead" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - CODGERENTE_REMOVE | descricao="- Ger. Projeto/Tech Lead" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - EQUIPEPROJ | descricao="Equipe Projeto" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - EQUIPEPROJT | descricao="Equipe Tech Lead" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - OCORRENCIAS | descricao="Comentários" | tipo=S (String) | apresentacao=T (Nao mapeado (T)) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - SALDONEG | descricao="Saldo Negociação" | tipo=S (String) | apresentacao=T (Nao mapeado (T)) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - SUBPROJETO | descricao="Projeto Sankhya" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - CONTATO | descricao="Contato (nome/cargo/fone/email)" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - QTDETAPA | descricao="Qtd. Etapas" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+RELACIONAMENTOS (19):
+  - entity=Parceiro | tabelaDestino=TGFPAR | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODPARC->CODPARC
+      expressao: @form-filter[this.CODPARC IN (SELECT AD_CODPARC FROM TCSPRJ WHERE AD_NEGOCIO = form.NEGOCIO)]
+  - entity=Projeto | tabelaDestino=TCSPRJ | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: PROJETO->CODPROJ
+      expressao: @form-filter[this.AD_NEGOCIO = form.NEGOCIO and this.AD_CODPARC = form.CODPARC and this.ANALITICO = 'S']
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUINC->CODUSU
+      expressao: @ref-param[description=Usu. Inclusão]
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUALTER->CODUSU
+      expressao: @ref-param[description=Usu. Alteração]
+  - entity=AD_RECURSOS | tabelaDestino=AD_RECURSOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CODREC->CODREC
+      expressao: @form-filter[this.CODREC IN (SELECT RFU.CODREC FROM AD_RECFUNCOES RFU WHERE RFU.CODFUN = 1 AND RFU.ATIVO = 'S')]@ref-param[description=+ Executante]
+  - entity=AD_WORKLOG | tabelaDestino=AD_WORKLOG | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: NUATV->NUATV
+  - entity=AD_EQUIPEATV | tabelaDestino=AD_EQUIPEATV | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: NUATV->NUATV
+  - entity=AD_OCORRENCIAS | tabelaDestino=AD_OCORRENCIAS | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: NUATV->NUATV
+  - entity=AD_AREACLI | tabelaDestino=AD_AREACLI | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: AREACLIENTE->CODAREA, CODPARC->CODPARC
+  - entity=AD_NEGOCIOS | tabelaDestino=AD_NEGOCIOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: NEGOCIO->NEGOCIO
+  - entity=AD_TIPOATIVIDADES | tabelaDestino=AD_TIPOATIVIDADES | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: TIPO->CODTIPO, NEGOCIO->NEGOCIO
+  - entity=AD_SOLCLI | tabelaDestino=AD_SOLCLI | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CODPARC->CODPARC, SOLICITANTE->SOLICITANTE
+      expressao: @form-filter[this.CODPARC = form.CODPARC]
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUAUT->CODUSU
+      expressao: @ref-param[description=Usu. Autorização]
+  - entity=AD_RECURSOS | tabelaDestino=AD_RECURSOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CODREC_REMOVE->CODREC
+      expressao: @form-filter[this.CODREC IN (SELECT EQ.CODREC FROM AD_EQUIPEATV EQ WHERE EQ.CODFUN = 1 AND EQ.NUATV = form.NUATV)]@ref-param[description=- Executante]
+  - entity=AD_RECURSOS | tabelaDestino=AD_RECURSOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CODGERENTE->CODREC
+      expressao: @form-filter[this.CODREC IN (SELECT RFU.CODREC FROM AD_RECFUNCOES RFU WHERE RFU.CODFUN IN (2,3) AND RFU.ATIVO = 'S')]@ref-param[description=+ Ger. Projeto]
+  - entity=AD_RECURSOS | tabelaDestino=AD_RECURSOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CODGERENTE_REMOVE->CODREC
+      expressao: @form-filter[this.CODREC IN (SELECT EQ.CODREC FROM AD_EQUIPEATV EQ WHERE EQ.CODFUN IN (2,3) AND EQ.NUATV = form.NUATV)]@ref-param[description=- Ger. Proj.]
+  - entity=AD_ESTIMATIVAS | tabelaDestino=AD_ESTIMATIVAS | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: NUATV->NUATV
+  - entity=AD_SUBPROJETOS | tabelaDestino=AD_SUBPROJETOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: SUBPROJETO->CODSUBPROJ, NEGOCIO->NEGOCIO
+  - entity=AD_ETAPAS | tabelaDestino=AD_ETAPAS | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: NUATV->NUATV
+
+--------------------------------------------------------------------------------
+[2] INSTANCIA: AD_RECFUNCOES
+TABELA: AD_RECFUNCOES
+SEQUENCIA: tipo=M campo=-
+CAMPO APRESENTACAO: -
+PRIMARY KEY: CODREC, CODFUN
+CAMPOS (3):
+  - CODREC | descricao="Cód. Recurso" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - CODFUN | descricao="Cód. Função" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+      formato: size=10
+  - ATIVO | descricao="Função Ativa?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+      opcoes: S:Sim | N:Não [default]
+RELACIONAMENTOS (1):
+  - entity=AD_FUNCOES | tabelaDestino=AD_FUNCOES | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CODFUN->CODFUN
+
+--------------------------------------------------------------------------------
+[3] INSTANCIA: AD_WORKLOG
+TABELA: AD_WORKLOG
+SEQUENCIA: tipo=A campo=ID_WORKLOG
+CAMPO APRESENTACAO: -
+PRIMARY KEY: NUATV, ID_WORKLOG
+CAMPOS (37):
+  - NUATV | descricao="ID Atv." | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+      formato: size=10; filterType=default
+  - ID_WORKLOG | descricao="ID Apontamento" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DATA | descricao="Data" | tipo=D (Data) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: filterType=period; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - HORAINICIO | descricao="Hora Início" | tipo=T (Nao mapeado (T)) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - HORAFIM | descricao="Hora Fim" | tipo=T (Nao mapeado (T)) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - INTERVALO | descricao="Intervalo" | tipo=T (Nao mapeado (T)) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - DESCRAPONT | descricao="Descrição das Atividades" | tipo=C (Texto longo (CLOB)) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - CODUSUINC | descricao="Usuário Inclusão" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - CODUSUALTER | descricao="Usuário Alteração" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHALTER | descricao="Data Alteração" | tipo=D (Data) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHINC | descricao="Data Inclusão" | tipo=D (Data) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - CODREC | descricao="Executante" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; filterType=mult-list; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - TEMPOTOT | descricao="Tempo" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - TEMPOTOT_MINUTOS | descricao="Tempo Total em Minutos" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=N
+  - TEMPOTOTHR | descricao="Tempo-DEC" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - AUTORIZADO | descricao="Autorizado Atv." | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=N
+      opcoes: S:Sim | N:Não [default]
+  - STATUS | descricao="Status Atv." | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - ESTIMATIVA | descricao="Estimativa Atv." | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - REALIZADO | descricao="Realizado Atv." | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - PERCESFORCO | descricao="% Realizado Atv." | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DESCRICAO | descricao="Descrição Atv." | tipo=C (Texto longo (CLOB)) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - NEGOCIO | descricao="Negócio" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: filterType=mult-list; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+      opcoes: B:BRAION | N:NEUON | M:MITRA [default]
+  - CODPARC | descricao="Parceiro" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; filterType=mult-list; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - PROJETO | descricao="Projeto" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; filterType=mult-list; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - NEG_ID | descricao="ID Negociação" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - ACORDO_ID | descricao="Negociação de Pagamento" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - CLASSIF | descricao="Classificação" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - IDSALDO | descricao="ID Saldo (Neg. Pacote)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - REG_EXPERIENCE | descricao="Lançou Tarefa Experience?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      opcoes: S:Sim | N:Não [default]
+  - USER_EXPERIENCE | descricao="Usuário Experience" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10
+  - OBS | descricao="Observação INTERNA" | tipo=S (String) | apresentacao=T (Nao mapeado (T)) | allowNull=S | calculated=N
+  - ID_ETAPA | descricao="Etapa" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10
+  - SINCRONA | descricao="Agenda Síncrona" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      opcoes: S:Sim | N:Não [default]
+  - NOTA_AUTOAVALIACAO | descricao="NOTA-Autoavaliação (0~10)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - NOTA_COMPCLI | descricao="NOTA-Comportamento Cliente (0~10)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - NOTA_SATCLI | descricao="NOTA-Satisfação do cliente (0~10)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - NOTA_PLATAFORMA | descricao="NOTA-Plataforma (0~10)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+RELACIONAMENTOS (13):
+  - entity=Parceiro | tabelaDestino=TGFPAR | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODPARC->CODPARC
+  - entity=Projeto | tabelaDestino=TCSPRJ | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: PROJETO->CODPROJ
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUINC->CODUSU
+      expressao: @ref-param[description=Usuário Inclusão]
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUALTER->CODUSU
+      expressao: @ref-param[description=Usuário Alteração]
+  - entity=AD_RECURSOS | tabelaDestino=AD_RECURSOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CODREC->CODREC
+      expressao: @ref-param[description=Executante]
+  - entity=AD_ATIVIDADES | tabelaDestino=AD_ATIVIDADES | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: NUATV->NUATV
+  - entity=AD_NEGOCIOS | tabelaDestino=AD_NEGOCIOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: NEGOCIO->NEGOCIO
+  - entity=AD_RECURSOS | tabelaDestino=AD_RECURSOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: USER_EXPERIENCE->CODREC
+      expressao: @form-filter[this.HOMOLOGADOSNK = 'S']@ref-param[description=Usu. Experience]
+  - entity=AD_NEGOCIACOES | tabelaDestino=AD_NEGOCIACOES | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: NEG_ID->NEG_ID
+  - entity=AD_NEGOCIACOESPAY | tabelaDestino=AD_NEGOCIACOESPAY | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: ACORDO_ID->ACORDO_ID
+  - entity=AD_CLASSIFWORK | tabelaDestino=AD_CLASSIFWORK | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CLASSIF->CODCLASSIF
+      expressao: @form-filter[(SELECT DISTINCT 1 FROM TSIUSU USU INNER JOIN AD_RECURSOS R ON R.CODREC = USU.AD_CODREC WHERE USU.CODUSU = 0 AND ( -- Condição 1: Ter a função 2 ou 3 EXISTS (SELECT 1 FROM AD_RECFUNCOES F1 WHERE F1.CODREC = R.CODREC AND F1.CODFUN IN (2, 3)) OR -- Condição 2: NÃO ter a função 1 NOT EXISTS (SELECT 1 FROM AD_RECFUNCOES F2 WHERE F2.CODREC = R.CODREC AND F2.CODFUN = 1) )) = 1 OR NVL(this.FLAG_APOIO_TEC,'N') = 'N']
+  - entity=AD_NEGSALDO | tabelaDestino=AD_NEGSALDO | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: NEG_ID->NEG_ID, IDSALDO->IDSALDO
+  - entity=AD_ETAPAS | tabelaDestino=AD_ETAPAS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: ID_ETAPA->ID_ETAPA, NUATV->NUATV
+
+--------------------------------------------------------------------------------
+[4] INSTANCIA: AD_TIPOATIVIDADES
+TABELA: AD_TIPOATIVIDADES
+SEQUENCIA: tipo=A campo=CODTIPO
+CAMPO APRESENTACAO: DESCRICAO
+PRIMARY KEY: NEGOCIO, CODTIPO
+CAMPOS (3):
+  - CODTIPO | descricao="Cód. Tipo" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - NEGOCIO | descricao="Negócio" | tipo=S (String) | apresentacao=O (Opções) | allowNull=N | calculated=N
+      opcoes: B:BRAION | N:NEUON | M:MITRA [default]
+  - DESCRICAO | descricao="Descrição" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+RELACIONAMENTOS (0):
+  - (sem relacionamentos)
+
+--------------------------------------------------------------------------------
+[5] INSTANCIA: AD_SUBPROJETOS
+TABELA: AD_SUBPROJETOS
+SEQUENCIA: tipo=A campo=CODSUBPROJ
+CAMPO APRESENTACAO: DESCRSUBPROJ
+PRIMARY KEY: NEGOCIO, CODSUBPROJ
+CAMPOS (3):
+  - CODSUBPROJ | descricao="Cód. Subprojeto" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - NEGOCIO | descricao="Negócio" | tipo=S (String) | apresentacao=O (Opções) | allowNull=N | calculated=N
+      opcoes: B:BRAION | N:NEUON | M:MITRA [default]
+  - DESCRSUBPROJ | descricao="Subprojeto" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+RELACIONAMENTOS (0):
+  - (sem relacionamentos)
+
+--------------------------------------------------------------------------------
+[6] INSTANCIA: AD_NEGPROJ
+TABELA: AD_NEGPROJ
+SEQUENCIA: tipo=A campo=ID_NEG_PROJ
+CAMPO APRESENTACAO: -
+PRIMARY KEY: NEG_ID, ID_NEG_PROJ
+CAMPOS (3):
+  - ID_NEG_PROJ | descricao="ID Vinculo" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - NEG_ID | descricao="ID Negociação" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - CODPROJ | descricao="Projeto" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10
+RELACIONAMENTOS (1):
+  - entity=Projeto | tabelaDestino=TCSPRJ | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODPROJ->CODPROJ
+      expressao: @form-filter[this.AD_NEGOCIO = (select negocio from ad_negociacoes where neg_id = form.NEG_ID) AND this.AD_CODPARC = (select codparc from ad_negociacoes where neg_id = form.NEG_ID)]
+
+--------------------------------------------------------------------------------
+[7] INSTANCIA: AD_CLASSIFWORK
+TABELA: AD_CLASSIFWORK
+SEQUENCIA: tipo=A campo=CODCLASSIF
+CAMPO APRESENTACAO: DESCRICAO
+PRIMARY KEY: CODCLASSIF
+CAMPOS (5):
+  - CODCLASSIF | descricao="Cód. Classificação" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - DESCRICAO | descricao="Classificação" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - GERAREC | descricao="Gera Receita?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      opcoes: S:Sim | N:Não [default]
+  - GERAPAG | descricao="Gera Pagamento?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      opcoes: S:Sim | N:Não [default]
+  - FLAG_APOIO_TEC | descricao="Apoio Técnico?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      opcoes: S:Sim | N:Não [default]
+RELACIONAMENTOS (0):
+  - (sem relacionamentos)
+
+--------------------------------------------------------------------------------
+[8] INSTANCIA: AD_EQUIPEATV
+TABELA: AD_EQUIPEATV
+SEQUENCIA: tipo=M campo=-
+CAMPO APRESENTACAO: -
+PRIMARY KEY: NUATV, CODREC, CODFUN
+CAMPOS (3):
+  - CODREC | descricao="Cód. Recurso" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+      formato: size=10
+  - NUATV | descricao="N.Ú.Atividade" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - CODFUN | descricao="Função" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+      formato: size=10; nullable=N; readOnly=N; requerido=N; combobox=N; visivel=S
+RELACIONAMENTOS (2):
+  - entity=AD_RECURSOS | tabelaDestino=AD_RECURSOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CODREC->CODREC
+  - entity=AD_FUNCOES | tabelaDestino=AD_FUNCOES | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CODFUN->CODFUN
+      expressao: @form-filter[this.CODFUN IN (SELECT CODFUN FROM AD_RECFUNCOES WHERE CODREC = form.CODREC)]
+
+--------------------------------------------------------------------------------
+[9] INSTANCIA: AD_NEGOCIOS
+TABELA: AD_NEGOCIOS
+SEQUENCIA: tipo=M campo=-
+CAMPO APRESENTACAO: IDENTIFICACAO
+PRIMARY KEY: NEGOCIO
+CAMPOS (4):
+  - NEGOCIO | descricao="Negócio" | tipo=S (String) | apresentacao=O (Opções) | allowNull=N | calculated=N
+      opcoes: B:BRAION | N:NEUON | M:MITRA [default]
+  - IDENTIFICACAO | descricao="Identificação" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - GPPAD | descricao="Ger. Proj. Padrão" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - TLPAD | descricao="Tech Lead Padrão" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+RELACIONAMENTOS (4):
+  - entity=AD_RECURSOS | tabelaDestino=AD_RECURSOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: GPPAD->CODREC
+      expressao: @form-filter[this.CODREC in (select codrec from ad_recfuncoes where codfun = 2)]@ref-param[description=Ger. Projeto]
+  - entity=AD_TIPOATIVIDADES | tabelaDestino=AD_TIPOATIVIDADES | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: NEGOCIO->NEGOCIO
+  - entity=AD_RECURSOS | tabelaDestino=AD_RECURSOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: TLPAD->CODREC
+      expressao: @form-filter[this.CODREC in (select codrec from ad_recfuncoes where codfun = 3)]@ref-param[description=Tech Lead]
+  - entity=AD_SUBPROJETOS | tabelaDestino=AD_SUBPROJETOS | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: NEGOCIO->NEGOCIO
+
+--------------------------------------------------------------------------------
+[10] INSTANCIA: AD_AREACLI
+TABELA: AD_AREACLI
+SEQUENCIA: tipo=A campo=CODAREA
+CAMPO APRESENTACAO: DESCRICAO
+PRIMARY KEY: CODPARC, CODAREA
+CAMPOS (3):
+  - CODAREA | descricao="Cód. Área" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - CODPARC | descricao="Cód. Parceiro" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - DESCRICAO | descricao="Descrição" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+RELACIONAMENTOS (0):
+  - (sem relacionamentos)
+
+--------------------------------------------------------------------------------
+[11] INSTANCIA: AD_RECURSOS
+TABELA: AD_RECURSOS
+SEQUENCIA: tipo=A campo=CODREC
+CAMPO APRESENTACAO: NOME
+PRIMARY KEY: CODREC
+CAMPOS (15):
+  - CODREC | descricao="Cód. Recurso" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+      formato: size=10
+  - NOME | descricao="Nome" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - ATIVO | descricao="Ativo?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=N | calculated=N
+      formato: nullable=N; readOnly=N; requerido=N; combobox=N; visivel=S
+      opcoes: S:Sim | N:Não [default]
+  - NOMECOMPLETO | descricao="Nome Completo" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - CPF | descricao="CPF" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - RG | descricao="RG" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - DTNAS | descricao="Data Nascimento" | tipo=D (Data) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - EMAILBRAION | descricao="Email Braion" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - EMAILNEUON | descricao="Email Neuon" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - EMAIL | descricao="Email Pessoal/Comercial" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - TIPO | descricao="Tipo" | tipo=S (String) | apresentacao=O (Opções) | allowNull=N | calculated=N
+      formato: nullable=N; readOnly=N; requerido=S; combobox=N; visivel=S
+      opcoes: P:Próprio | T:Terceiros | F:FreeLancer [default]
+  - FUNCOES | descricao="Funções" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - CODPARC | descricao="Parceiro Faturamento" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10
+  - HOMOLOGADOSNK | descricao="Homologado Sankhya?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+      opcoes: S:Sim | N:Não [default]
+  - HOMOLOGADOMITRA | descricao="Certificado Mitra?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+      opcoes: S:Sim | N:Não [default]
+RELACIONAMENTOS (2):
+  - entity=Parceiro | tabelaDestino=TGFPAR | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODPARC->CODPARC
+  - entity=AD_RECFUNCOES | tabelaDestino=AD_RECFUNCOES | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: CODREC->CODREC
+
+--------------------------------------------------------------------------------
+[12] INSTANCIA: AD_NEGSALDO
+TABELA: AD_NEGSALDO
+SEQUENCIA: tipo=A campo=IDSALDO
+CAMPO APRESENTACAO: COMPETENCIA
+PRIMARY KEY: NEG_ID, IDSALDO
+CAMPOS (11):
+  - NEG_ID | descricao="ID Negociação" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - IDSALDO | descricao="ID Saldo" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - COMPETENCIA | descricao="Mês" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - HR_PREVISTAS | descricao="Horas Base" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - MIN_PREVISTAS | descricao="Horas Base (MINUTOS)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - HR_CONSUMIDAS | descricao="Consumidas" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - MIN_CONSUMIDAS | descricao="Consumidas (MINUTOS)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - HR_EXCEDENTE | descricao="Excedente" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - MIN_EXCEDENTE | descricao="Excedente (MINUTOS)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - HR_SALDO | descricao="Saldo" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - MIN_SALDO | descricao="Saldo (MINUTOS)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+RELACIONAMENTOS (0):
+  - (sem relacionamentos)
+
+--------------------------------------------------------------------------------
+[13] INSTANCIA: AD_FUNCOES
+TABELA: AD_FUNCOES
+SEQUENCIA: tipo=A campo=CODFUN
+CAMPO APRESENTACAO: DESCRFUN
+PRIMARY KEY: CODFUN
+CAMPOS (3):
+  - CODFUN | descricao="Cód. Funcão" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - DESCRFUN | descricao="Descr. Função" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - APONTATEMPO | descricao="Aponta Tempo?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      opcoes: S:Sim | N:Não [default]
+RELACIONAMENTOS (0):
+  - (sem relacionamentos)
+
+--------------------------------------------------------------------------------
+[14] INSTANCIA: AD_NEGFIN
+TABELA: AD_NEGFIN
+SEQUENCIA: tipo=A campo=SEQ
+CAMPO APRESENTACAO: -
+PRIMARY KEY: NEG_ID, SEQ
+CAMPOS (5):
+  - SEQ | descricao="Sequencia" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - NEG_ID | descricao="ID Negociação" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - DTVENC | descricao="Data Vencimento" | tipo=D (Data) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - VALOR | descricao="Valor Parcela" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - HISTORICO | descricao="Histórico Parcela" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+RELACIONAMENTOS (0):
+  - (sem relacionamentos)
+
+--------------------------------------------------------------------------------
+[15] INSTANCIA: AD_ETAPAS
+TABELA: AD_ETAPAS
+SEQUENCIA: tipo=A campo=ID_ETAPA
+CAMPO APRESENTACAO: ETAPA
+PRIMARY KEY: NUATV, ID_ETAPA
+CAMPOS (4):
+  - NUATV | descricao="ID Atividade" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - ID_ETAPA | descricao="ID Etapa" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - IDMITRA | descricao="ID Sistema Mitra" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - ETAPA | descricao="Etapa" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+RELACIONAMENTOS (0):
+  - (sem relacionamentos)
+
+--------------------------------------------------------------------------------
+[16] INSTANCIA: AD_SOLCLI
+TABELA: AD_SOLCLI
+SEQUENCIA: tipo=A campo=SOLICITANTE
+CAMPO APRESENTACAO: NOMESOL
+PRIMARY KEY: CODPARC, SOLICITANTE
+CAMPOS (5):
+  - SOLICITANTE | descricao="Solicitante" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - CODPARC | descricao="Cód. Parceiro" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - NOMESOL | descricao="Nome Solicitante" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - TELEFONE | descricao="Fone" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+  - EMAIL | descricao="E-mail" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+RELACIONAMENTOS (0):
+  - (sem relacionamentos)
+
+--------------------------------------------------------------------------------
+[17] INSTANCIA: AD_ESTIMATIVAS
+TABELA: AD_ESTIMATIVAS
+SEQUENCIA: tipo=A campo=ID_ESTIMATIVA
+CAMPO APRESENTACAO: -
+PRIMARY KEY: NUATV, ID_ESTIMATIVA
+CAMPOS (11):
+  - ID_ESTIMATIVA | descricao="ID Estimativa" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - NUATV | descricao="ID Atividade" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - TIPO_LANCAMENTO | descricao="Tipo" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+      opcoes: I:Inicial | A:Aditivo | R:Redução [default]
+  - HR_ESTIMATIVA | descricao="Qtd. Horas" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - MIN_ESTIMATIVA | descricao="Qtd. Horas (MIN)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - MOTIVO | descricao="Motivo" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+      opcoes: I:Estimativa Inicial | M:Mudança de Escopo | C:Complexidade Técnica | E:Erro de Estimativa | D:Dificuldade Técnica [default]
+  - JUSTIFICATIVA | descricao="Justificativa" | tipo=S (String) | apresentacao=T (Nao mapeado (T)) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - CODUSUINC | descricao="Usuário Inclusão" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHINC | descricao="Data Inclusão" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - CODUSUALT | descricao="Usuário Alteração" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHALTER | descricao="Data Alteração" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+RELACIONAMENTOS (2):
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUINC->CODUSU
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUALT->CODUSU
+
+--------------------------------------------------------------------------------
+[18] INSTANCIA: AD_NEGOCIACOES
+TABELA: AD_NEGOCIACOES
+SEQUENCIA: tipo=A campo=NEG_ID
+CAMPO APRESENTACAO: DESCRICAO
+PRIMARY KEY: NEG_ID
+CAMPOS (24):
+  - NEG_ID | descricao="ID Negociação" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+      formato: size=10; filterType=default
+  - CODPARC | descricao="Parceiro" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - NEGOCIO | descricao="Negócio" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+      opcoes: B:BRAION | N:NEUON | M:MITRA [default]
+  - TIPO | descricao="Tipo Negociação" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+      opcoes: MEDICAO:Medição | EMPREITADA:Empreito | PACOTE:Pacote de Horas [default]
+  - VALOR_HORA | descricao="Valor Hora da Medição" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - IMPOSTO_PERC | descricao="Cobrar Impostos? (%)" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - DT_CRIACAO | descricao="Data Inclusão" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - USUARIO_CRIACAO | descricao="Usuário Inclusão" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - HORAS_PREVISTAS | descricao="Limite de horas" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - ATIVO | descricao="Ativo?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: filterType=default
+      opcoes: S:Sim | N:Não [default]
+  - PROJVINC | descricao="Projetos Vinculados" | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - ANEXOS | descricao="Anexos" | tipo=B (Binário/Anexo) | apresentacao=M (Mídia/Anexo) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - OBSERVACAO | descricao="Observação" | tipo=C (Texto longo (CLOB)) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - DESCRICAO | descricao="Descr. Neg." | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - CODUSUALT | descricao="Usuário de Alteração" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHALTER | descricao="Data de Alteração" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - VLRFIN | descricao="Valor Finan. Empreito" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=S
+      formato: nuCasasDecimais=2; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DIAFECHFATURA | descricao="Dia Fechamento Fatura (Medição)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - DIAVENCPROV | descricao="Dia Vencimento Previsto (Medição)" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - CODEMP | descricao="Empresa Faturamento" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - RECORRENTE | descricao="Recorrente Mensal?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+      opcoes: N:Sem Recorrência | RC:Mensal Cumulativo | RN:Mensal não Cumulativo [default]
+  - FORMA_COB | descricao="Forma de Cobrança" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+      opcoes: E:Empreito | M:Horas do Pacote | C:Consumido [default]
+  - ACAO_EXCEDENTE | descricao="Ação ao exceder as horas do pacote" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+      opcoes: B:Bloquear | C:Cobrar por Medição [default]
+  - QTD_HR_CONTRATADA | descricao="Horas do Pacote" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+RELACIONAMENTOS (8):
+  - entity=Parceiro | tabelaDestino=TGFPAR | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODPARC->CODPARC
+  - entity=Empresa | tabelaDestino=TSIEMP | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODEMP->CODEMP
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: USUARIO_CRIACAO->CODUSU
+      expressao: @ref-param[description=Usuário Inclusão]
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUALT->CODUSU
+  - entity=AD_NEGOCIOS | tabelaDestino=AD_NEGOCIOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: NEGOCIO->NEGOCIO
+  - entity=AD_NEGPROJ | tabelaDestino=AD_NEGPROJ | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: NEG_ID->NEG_ID
+  - entity=AD_NEGFIN | tabelaDestino=AD_NEGFIN | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: NEG_ID->NEG_ID
+  - entity=AD_NEGSALDO | tabelaDestino=AD_NEGSALDO | type=I | insert=N update=N remove=S | systemInstance=N
+      mapeamento: NEG_ID->NEG_ID
+
+--------------------------------------------------------------------------------
+[19] INSTANCIA: AD_NEGOCIACOESPAY
+TABELA: AD_NEGOCIACOESPAY
+SEQUENCIA: tipo=A campo=ACORDO_ID
+CAMPO APRESENTACAO: DESCRICAO
+PRIMARY KEY: ACORDO_ID
+CAMPOS (20):
+  - ACORDO_ID | descricao="ID Acordo" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+      formato: filterType=default
+  - CODREC | descricao="Recurso" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - SCOPE | descricao="Escopo" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+      opcoes: GLOBAL:VLR. HORA GLOBAL | NEGOCIO:VLR. HORA POR NEGÓCIO | PROJETO:VLR. HORA POR PROJETO | WORKLOG:VLR. HORA POR APONTAMENTO | FIXO:FIXO (MENSAL) [default]
+  - NEGOCIO | descricao="Negócio" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+      opcoes: B:BRAION | N:NEUON | M:MITRA [default]
+  - CODPROJ | descricao="Projeto" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=10; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - TIPO_PAGAMENTO | descricao="Tipo de Pagamento" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: filterType=default; nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+      opcoes: F:Fixo (Mensal) | P:Produtividade | G:Produtividade c/ Horas Garantidas [default]
+  - VALOR_HORA | descricao="Valor Hora" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - HORAS_GARANTIDAS | descricao="Horas Garantidas (mês)" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - VALOR_FIXO_MENSAL | descricao="Vlr. Fixo Mensal" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - FLAG_APOIO_TEC | descricao="Recebe por Apoio Técnico?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+      opcoes: S:Sim | N:Não [default]
+  - VALOR_HORA_TECHLEAD | descricao="Valor Hora (Tech Lead)" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+  - ATIVO | descricao="Ativo?" | tipo=S (String) | apresentacao=O (Opções) | allowNull=S | calculated=N
+      formato: filterType=default
+      opcoes: S:Sim | N:Não [default]
+  - USUARIO_CRIACAO | descricao="Usuário de Criação" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DT_CRIACAO | descricao="Data de Criação" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DTVIGOR | descricao="Data de Vigor" | tipo=D (Data) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - CODUSUALT | descricao="Usuário de Alteração" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHALTER | descricao="Data de Alteração" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - OBSERVACAO | descricao="Observação" | tipo=S (String) | apresentacao=T (Nao mapeado (T)) | allowNull=S | calculated=N
+  - DESCRICAO | descricao="Descr. Neg." | tipo=S (String) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - LIMITEMES_TECHLEAD | descricao="Limite Horas Mês (Tech Lead)" | tipo=F (Decimal) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nuCasasDecimais=2; nullable=S; readOnly=N; requerido=N; combobox=N; visivel=S
+RELACIONAMENTOS (5):
+  - entity=Projeto | tabelaDestino=TCSPRJ | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODPROJ->CODPROJ
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: USUARIO_CRIACAO->CODUSU
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUALT->CODUSU
+  - entity=AD_RECURSOS | tabelaDestino=AD_RECURSOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: CODREC->CODREC
+  - entity=AD_NEGOCIOS | tabelaDestino=AD_NEGOCIOS | type=I | insert=N update=N remove=N | systemInstance=N
+      mapeamento: NEGOCIO->NEGOCIO
+
+--------------------------------------------------------------------------------
+[20] INSTANCIA: AD_OCORRENCIAS
+TABELA: AD_OCORRENCIAS
+SEQUENCIA: tipo=A campo=SEQ
+CAMPO APRESENTACAO: -
+PRIMARY KEY: NUATV, SEQ
+CAMPOS (9):
+  - SEQ | descricao="Sequência" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - NUATV | descricao="N.Ú.Atividade" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=N | calculated=N
+  - DATA | descricao="Data" | tipo=D (Data) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - DESCRICAO | descricao="Descrição" | tipo=C (Texto longo (CLOB)) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=N; requerido=S; combobox=N; visivel=S
+  - ANEXO | descricao="Anexo" | tipo=B (Binário/Anexo) | apresentacao=M (Mídia/Anexo) | allowNull=S | calculated=N
+  - CODUSUINC | descricao="Usuário Inclusão" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - CODUSUALTER | descricao="Usuário Alteração" | tipo=I (Inteiro) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: size=5; nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHINC | descricao="Data Inclusão" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+  - DHALTER | descricao="Data Alteração" | tipo=H (Data/Hora) | apresentacao=P (Padrão) | allowNull=S | calculated=N
+      formato: nullable=S; readOnly=S; requerido=N; combobox=N; visivel=S
+RELACIONAMENTOS (2):
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUINC->CODUSU
+      expressao: @ref-param[description=Usuário Inclusão]
+  - entity=Usuario | tabelaDestino=TSIUSU | type=I | insert=N update=N remove=N | systemInstance=S
+      mapeamento: CODUSUALTER->CODUSU
+      expressao: @ref-param[description=Usuário Alteração]

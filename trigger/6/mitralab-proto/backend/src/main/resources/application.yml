@@ -1,0 +1,42 @@
+# Primary app database (PostgreSQL). External Oracle/SQL Server use registered connections + env passwords.
+spring:
+  application:
+    name: mitralab-backend
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:mitralab}
+    username: ${DB_USER:mitralab}
+    password: ${DB_PASSWORD:mitralab}
+    hikari:
+      maximum-pool-size: 10
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  # JSON columns (dashboard widgets) map cleanly with Hibernate 6
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# AI: set provider to openai | ollama | mock
+mitralab:
+  ai:
+    provider: ${AI_PROVIDER:mock}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_MODEL:gpt-4o-mini}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://host.docker.internal:11434}
+      model: ${OLLAMA_MODEL:llama3.2}
+  # Optional: allow inline dev passwords when passwordEnvKey is empty (NOT for production)
+  allow-inline-connection-password: ${ALLOW_INLINE_DB_PASSWORD:false}
+
+logging:
+  level:
+    com.mitralab: INFO

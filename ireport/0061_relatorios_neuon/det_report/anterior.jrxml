@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="anterior" language="groovy" pageWidth="802" pageHeight="555" orientation="Landscape" columnWidth="802" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="DTINI" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Inicial]]></parameterDescription>
+	</parameter>
+	<parameter name="DTFIM" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Final]]></parameterDescription>
+	</parameter>
+	<parameter name="DT_ESCOLHA" class="java.sql.Timestamp">
+		<parameterDescription><![CDATA[Data Saldo até]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_EMPRESA" class="java.math.BigDecimal">
+		<property name="nomeTabela" value="TSIEMP"/>
+		<property name="PESQUISA" value="TRUE"/>
+		<parameterDescription><![CDATA[Cód. Empresa]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+    SUM(
+        CASE
+            WHEN FIN.RECDESP = 1 AND FIN.PROVISAO = 'S' THEN NVL(FIN.VLRDESDOB,0)
+            ELSE 0
+        END
+    ) AS A_RECEBER_PROV_S,
+
+    SUM(
+        CASE
+            WHEN FIN.RECDESP = 1 AND FIN.CODNAT <> 5010500
+                 AND NVL(FIN.PROVISAO, 'N') = 'N' THEN NVL(FIN.VLRDESDOB,0)
+            ELSE 0
+        END
+    ) AS A_RECEBER_PROV_N,
+
+    SUM(
+        CASE
+            WHEN FIN.RECDESP = 1 AND FIN.CODNAT = 5010500
+                 AND NVL(FIN.PROVISAO, 'N') = 'N' THEN NVL(FIN.VLRDESDOB,0)
+            ELSE 0
+        END
+    ) AS A_REC_VEIC_PROV_N,
+
+    SUM(
+        CASE
+            WHEN FIN.RECDESP = -1 AND FIN.PROVISAO = 'S' THEN -1 * NVL(FIN.VLRDESDOB,0)
+            ELSE 0
+        END
+    ) AS A_PAGAR_PROV_S,
+
+    SUM(
+        CASE
+            WHEN FIN.RECDESP = -1 AND NVL(FIN.PROVISAO, 'N') = 'N' THEN -1 * NVL(FIN.VLRDESDOB,0)
+            ELSE 0
+        END
+    ) AS A_PAGAR_PROV_N,
+
+    SUM(NVL(FIN.VLRDESDOB,0) * FIN.RECDESP) AS DIFERENCA_TOTAL,
+
+    /* === NOVOS CAMPOS === */
+    SUM(
+        CASE
+            WHEN FIN.RECDESP = 1 THEN NVL(FIN.VLRDESDOB,0)
+            ELSE 0
+        END
+    ) AS A_RECEBER_TOT,
+
+    SUM(
+        CASE
+            WHEN FIN.RECDESP = -1 THEN -1 * NVL(FIN.VLRDESDOB,0)
+            ELSE 0
+        END
+    ) AS A_PAGAR_TOT
+
+FROM TGFFIN FIN
+LEFT JOIN TGFPAR PAR ON FIN.CODPARC = PAR.CODPARC
+LEFT JOIN TSICTA CTA ON FIN.CODCTABCOINT = CTA.CODCTABCOINT
+LEFT JOIN TGFNAT NAT ON FIN.CODNAT = NAT.CODNAT
+LEFT JOIN TGFCAB CAB ON FIN.NUNOTA = CAB.NUNOTA
+WHERE
+   FIN.DTVENC < COALESCE($P{DT_ESCOLHA}, $P{DTINI})
+   AND ($P{P_EMPRESA} IS NULL OR FIN.CODEMP = $P{P_EMPRESA})
+   AND FIN.DHBAIXA IS NULL
+   AND FIN.RECDESP <> 0
+   AND (
+        (FIN.NUNOTA IS NULL)
+        OR (FIN.NUNOTA IS NOT NULL AND CAB.STATUSNOTA IN ('A','L','P'))
+        OR (FIN.PROVISAO = 'S')
+   )]]>
+	</queryString>
+	<field name="A_RECEBER_PROV_S" class="java.math.BigDecimal"/>
+	<field name="A_RECEBER_PROV_N" class="java.math.BigDecimal"/>
+	<field name="A_REC_VEIC_PROV_N" class="java.math.BigDecimal"/>
+	<field name="A_PAGAR_PROV_S" class="java.math.BigDecimal"/>
+	<field name="A_PAGAR_PROV_N" class="java.math.BigDecimal"/>
+	<field name="DIFERENCA_TOTAL" class="java.math.BigDecimal"/>
+	<field name="A_RECEBER_TOT" class="java.math.BigDecimal"/>
+	<field name="A_PAGAR_TOT" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="61" splitType="Stretch">
+			<line>
+				<reportElement x="0" y="0" width="802" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="0" y="0" width="802" height="55"/>
+				<textElement verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Saldo 'A Receber' em aberto até o dia " +
+    new java.text.SimpleDateFormat("dd/MM/yyyy").format(
+        new java.util.Date(
+            $P{DT_ESCOLHA} == null ? ($P{DTINI}.getTime() - (1000 * 60 * 60 * 24)) : $P{DT_ESCOLHA}.getTime()
+        )
+    ) +
+    " |  Provisão: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_RECEBER_PROV_S}) +
+    "  Real: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_RECEBER_PROV_N}) +
+    "  Real Vendas Veículos: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_REC_VEIC_PROV_N}) +
+    "  Total: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_RECEBER_TOT}) +
+    "\n" + "\n"+
+    "Saldo 'A Pagar' em aberto até o dia  " +
+    new java.text.SimpleDateFormat("dd/MM/yyyy").format(
+        new java.util.Date(
+            $P{DT_ESCOLHA} == null ? ($P{DTINI}.getTime() - (1000 * 60 * 60 * 24)) : $P{DT_ESCOLHA}.getTime()
+        )
+    ) +
+    " |  Provisão: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_PAGAR_PROV_S}) +
+    "  Real: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_PAGAR_PROV_N}) +
+    "  Total: " +
+    new java.text.DecimalFormat("#,##0.00").format($F{A_PAGAR_TOT})]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="55" width="802" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
+			<break>
+				<reportElement x="0" y="60" width="100" height="1"/>
+			</break>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

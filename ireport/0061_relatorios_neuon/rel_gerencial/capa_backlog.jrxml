@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="capa_backlog" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+    <property name="ireport.zoom" value="1.0"/>
+    <property name="ireport.x" value="0"/>
+    <property name="ireport.y" value="0"/>
+
+    <parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+        <defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+    </parameter>
+    <parameter name="P_APRES_APONT" class="java.lang.String">
+        <parameterDescription><![CDATA[Apresentar Apontamentos? (S/N)]]></parameterDescription>
+        <defaultValueExpression><![CDATA["N"]]></defaultValueExpression>
+    </parameter>
+    <parameter name="P_APRES_COMENT" class="java.lang.String">
+        <parameterDescription><![CDATA[Apresentar Comentários? (S/N)]]></parameterDescription>
+        <defaultValueExpression><![CDATA["N"]]></defaultValueExpression>
+    </parameter>
+    <parameter name="P_APRES_ESTIM" class="java.lang.String">
+        <parameterDescription><![CDATA[Apresentar Estimativa? (S/N)]]></parameterDescription>
+        <defaultValueExpression><![CDATA["N"]]></defaultValueExpression>
+    </parameter>
+    <parameter name="P_APRES_PAIFILHO" class="java.lang.String">
+        <parameterDescription><![CDATA[Apresentar ID Pai/Filho? (S/N)]]></parameterDescription>
+        <defaultValueExpression><![CDATA["N"]]></defaultValueExpression>
+    </parameter>
+
+    <queryString>
+        <![CDATA[
+SELECT
+    CAST(1 AS NUMBER) AS NUATV,
+    CAST(NULL AS NUMBER) AS NUATVORIG,
+    '1 - Impressao da Capa do Backlog Requisitos' AS TITULO_ATV,
+    '11:30' AS ESTIMATIVA,
+    TO_DATE('2026-04-15','YYYY-MM-DD') AS DTSOL,
+    'Estruturacao da impressao da capa com informacoes executivas do backlog.' AS DESCRICAO,
+    '1001 - ACME Industria' AS CLIENTE,
+    '3001 - Implantacao ERP Fase 2' AS PROJETO,
+    '10 - Evolucao de Requisitos' AS TIPO_ATIVIDADE,
+    'N - NEUON' AS NEGOCIO,
+    '501 - Maria Alves' AS SOLICITANTE,
+    '12 - Operacoes' AS AREA_CLIENTE
+FROM DUAL
+UNION ALL
+SELECT
+    CAST(2 AS NUMBER) AS NUATV,
+    CAST(1 AS NUMBER) AS NUATVORIG,
+    '2 - Revisao da Capa do Backlog Requisitos' AS TITULO_ATV,
+    '05:00' AS ESTIMATIVA,
+    TO_DATE('2026-04-20','YYYY-MM-DD') AS DTSOL,
+    'Ajustes finais de layout e padronizacao visual da capa para diretoria.' AS DESCRICAO,
+    '1002 - Beta Logistica' AS CLIENTE,
+    '3002 - Sustentacao Integracoes' AS PROJETO,
+    '20 - Melhoria Continua' AS TIPO_ATIVIDADE,
+    'M - MITRA' AS NEGOCIO,
+    '502 - Joao Pereira' AS SOLICITANTE,
+    '21 - TI Corporativa' AS AREA_CLIENTE
+FROM DUAL
+UNION ALL
+SELECT
+    CAST(3 AS NUMBER) AS NUATV,
+    CAST(1 AS NUMBER) AS NUATVORIG,
+    '3 - Ajuste Final da Capa do Backlog' AS TITULO_ATV,
+    '02:30' AS ESTIMATIVA,
+    TO_DATE('2026-04-22','YYYY-MM-DD') AS DTSOL,
+    'Ajustes de fechamento para o layout final da capa.' AS DESCRICAO,
+    '1002 - Beta Logistica' AS CLIENTE,
+    '3002 - Sustentacao Integracoes' AS PROJETO,
+    '20 - Melhoria Continua' AS TIPO_ATIVIDADE,
+    'M - MITRA' AS NEGOCIO,
+    '502 - Joao Pereira' AS SOLICITANTE,
+    '21 - TI Corporativa' AS AREA_CLIENTE
+FROM DUAL
+        ]]>
+    </queryString>
+
+    <field name="NUATV" class="java.math.BigDecimal"/>
+    <field name="NUATVORIG" class="java.math.BigDecimal"/>
+    <field name="TITULO_ATV" class="java.lang.String"/>
+    <field name="ESTIMATIVA" class="java.lang.String"/>
+    <field name="DTSOL" class="java.util.Date"/>
+    <field name="DESCRICAO" class="java.lang.String"/>
+    <field name="CLIENTE" class="java.lang.String"/>
+    <field name="PROJETO" class="java.lang.String"/>
+    <field name="TIPO_ATIVIDADE" class="java.lang.String"/>
+    <field name="NEGOCIO" class="java.lang.String"/>
+    <field name="SOLICITANTE" class="java.lang.String"/>
+    <field name="AREA_CLIENTE" class="java.lang.String"/>
+
+    <background>
+        <band splitType="Stretch"/>
+    </background>
+    <title>
+        <band splitType="Stretch"/>
+    </title>
+    <pageHeader>
+        <band splitType="Stretch"/>
+    </pageHeader>
+    <columnHeader>
+        <band splitType="Stretch"/>
+    </columnHeader>
+
+    <detail>
+        <band height="440" splitType="Stretch">
+            <staticText>
+                <reportElement x="0" y="0" width="802" height="24"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="14" isBold="true"/></textElement>
+                <text><![CDATA[Impressão da Capa do Backlog Requisitos]]></text>
+            </staticText>
+
+            <line><reportElement x="0" y="28" width="802" height="1"/></line>
+
+            <staticText><reportElement x="0" y="34" width="120" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[ID Atividade:]]></text></staticText>
+            <textField><reportElement x="120" y="34" width="150" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUATV}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="280" y="34" width="120" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Estimativa:]]></text></staticText>
+            <textField><reportElement x="400" y="34" width="100" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.lang.String"><![CDATA[$F{ESTIMATIVA}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="510" y="34" width="120" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Data Solicitação:]]></text></staticText>
+            <textField pattern="dd/MM/yyyy"><reportElement x="630" y="34" width="170" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.util.Date"><![CDATA[$F{DTSOL}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="50" width="120" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[NUATVORIG:]]></text></staticText>
+            <textField isBlankWhenNull="true"><reportElement x="120" y="50" width="150" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{NUATVORIG}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="66" width="120" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Titulo Atv.:]]></text></staticText>
+            <textField><reportElement x="120" y="66" width="680" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.lang.String"><![CDATA[$F{TITULO_ATV}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="82" width="120" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Descrição:]]></text></staticText>
+            <textField isStretchWithOverflow="true"><reportElement x="120" y="82" width="680" height="28"/><textElement><font size="8"/></textElement><textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRICAO}]]></textFieldExpression></textField>
+
+            <staticText>
+                <reportElement x="0" y="118" width="802" height="15"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Projeto]]></text>
+            </staticText>
+            <line><reportElement x="0" y="134" width="802" height="1"/></line>
+
+            <staticText><reportElement x="0" y="139" width="120" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Cliente:]]></text></staticText>
+            <textField><reportElement x="120" y="139" width="280" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.lang.String"><![CDATA[$F{CLIENTE}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="410" y="139" width="80" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Projeto:]]></text></staticText>
+            <textField><reportElement x="490" y="139" width="312" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.lang.String"><![CDATA[$F{PROJETO}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="155" width="120" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Tipo de Atividade:]]></text></staticText>
+            <textField><reportElement x="120" y="155" width="280" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.lang.String"><![CDATA[$F{TIPO_ATIVIDADE}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="410" y="155" width="80" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Negócio:]]></text></staticText>
+            <textField><reportElement x="490" y="155" width="312" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.lang.String"><![CDATA[$F{NEGOCIO}]]></textFieldExpression></textField>
+
+            <staticText>
+                <reportElement x="0" y="179" width="802" height="15"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Projeto]]></text>
+            </staticText>
+            <line><reportElement x="0" y="195" width="802" height="1"/></line>
+
+            <staticText><reportElement x="0" y="200" width="120" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Solicitante:]]></text></staticText>
+            <textField><reportElement x="120" y="200" width="280" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.lang.String"><![CDATA[$F{SOLICITANTE}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="410" y="200" width="120" height="14"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Área do Cliente:]]></text></staticText>
+            <textField><reportElement x="530" y="200" width="272" height="14"/><textElement><font size="8"/></textElement><textFieldExpression class="java.lang.String"><![CDATA[$F{AREA_CLIENTE}]]></textFieldExpression></textField>
+
+            <staticText>
+                <reportElement x="0" y="222" width="802" height="15">
+                    <printWhenExpression><![CDATA["S".equalsIgnoreCase($P{P_APRES_ESTIM})]]></printWhenExpression>
+                </reportElement>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Estimativas]]></text>
+            </staticText>
+            <subreport>
+                <reportElement key="sub_estimativas" x="0" y="238" width="802" height="52">
+                    <printWhenExpression><![CDATA["S".equalsIgnoreCase($P{P_APRES_ESTIM})]]></printWhenExpression>
+                </reportElement>
+                <subreportParameter name="P_NUATV">
+                    <subreportParameterExpression><![CDATA[$F{NUATV}]]></subreportParameterExpression>
+                </subreportParameter>
+                <connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+                <subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "sub_estimativas.jasper"]]></subreportExpression>
+            </subreport>
+
+            <staticText>
+                <reportElement x="0" y="294" width="802" height="15">
+                    <printWhenExpression><![CDATA["S".equalsIgnoreCase($P{P_APRES_COMENT})]]></printWhenExpression>
+                </reportElement>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Comentarios]]></text>
+            </staticText>
+            <subreport>
+                <reportElement key="sub_comentarios" x="0" y="310" width="802" height="58">
+                    <printWhenExpression><![CDATA["S".equalsIgnoreCase($P{P_APRES_COMENT})]]></printWhenExpression>
+                </reportElement>
+                <subreportParameter name="P_NUATV">
+                    <subreportParameterExpression><![CDATA[$F{NUATV}]]></subreportParameterExpression>
+                </subreportParameter>
+                <connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+                <subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "sub_comentarios.jasper"]]></subreportExpression>
+            </subreport>
+
+            <staticText>
+                <reportElement x="0" y="334" width="802" height="15">
+                    <printWhenExpression><![CDATA["S".equalsIgnoreCase($P{P_APRES_APONT})]]></printWhenExpression>
+                </reportElement>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Apontamentos]]></text>
+            </staticText>
+            <subreport>
+                <reportElement key="sub_apont" x="0" y="350" width="802" height="48">
+                    <printWhenExpression><![CDATA["S".equalsIgnoreCase($P{P_APRES_APONT})]]></printWhenExpression>
+                </reportElement>
+                <subreportParameter name="P_NUATV">
+                    <subreportParameterExpression><![CDATA[$F{NUATV}]]></subreportParameterExpression>
+                </subreportParameter>
+                <connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+                <subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "sub_apont.jasper"]]></subreportExpression>
+            </subreport>
+
+            <staticText>
+                <reportElement x="0" y="374" width="802" height="15">
+                    <printWhenExpression><![CDATA["S".equalsIgnoreCase($P{P_APRES_PAIFILHO}) && $F{NUATVORIG} == null]]></printWhenExpression>
+                </reportElement>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Backlog Filhos (ID pai identificado)]]></text>
+            </staticText>
+            <subreport>
+                <reportElement key="sub_filhos" x="0" y="390" width="802" height="48">
+                    <printWhenExpression><![CDATA["S".equalsIgnoreCase($P{P_APRES_PAIFILHO}) && $F{NUATVORIG} == null]]></printWhenExpression>
+                </reportElement>
+                <subreportParameter name="P_NUATV">
+                    <subreportParameterExpression><![CDATA[$F{NUATV}]]></subreportParameterExpression>
+                </subreportParameter>
+                <connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+                <subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "sub_filhos.jasper"]]></subreportExpression>
+            </subreport>
+
+            <staticText>
+                <reportElement x="0" y="374" width="802" height="15">
+                    <printWhenExpression><![CDATA["S".equalsIgnoreCase($P{P_APRES_PAIFILHO}) && $F{NUATVORIG} != null]]></printWhenExpression>
+                </reportElement>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Backlog Pai (ID filho identificado)]]></text>
+            </staticText>
+            <subreport>
+                <reportElement key="sub_pai" x="0" y="390" width="802" height="48">
+                    <printWhenExpression><![CDATA["S".equalsIgnoreCase($P{P_APRES_PAIFILHO}) && $F{NUATVORIG} != null]]></printWhenExpression>
+                </reportElement>
+                <subreportParameter name="P_NUATV">
+                    <subreportParameterExpression><![CDATA[$F{NUATV}]]></subreportParameterExpression>
+                </subreportParameter>
+                <connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+                <subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "sub_pai.jasper"]]></subreportExpression>
+            </subreport>
+        </band>
+    </detail>
+</jasperReport>
