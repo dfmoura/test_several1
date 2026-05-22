@@ -1,0 +1,31 @@
+Perguntas para o professor tutor – Disciplina Ética (ACQA)
+Aluno: Diôgo Ferreira Moura | RA 1030125-2 | Sistemas de Informação – UNIUBE
+Uso previsto: uma pergunta por semana, até a data de submissão do trabalho.
+
+────────────────────────────────────────────────────────────
+
+SEMANA 1
+
+Professor, boa tarde. Estou montando a ACQA e escolhi o Código de Ética da SBC, já que Sistemas de Informação não tem conselho federal como outras profissões da tabela do material. Queria confirmar se essa escolha atende ao que a atividade pede ou se o senhor(a) prefere que a gente procure outro referencial (por exemplo, código de conduta de uma empresa de TI). Obrigado.
+
+────────────────────────────────────────────────────────────
+
+SEMANA 2
+
+Professor, sobre o 2º passo da ACQA: no caso do vazamento de dados da XP (2025), envolvendo base em fornecedor externo, posso relacionar as falhas aos princípios do código da SBC (privacidade, segurança, evitar danos) mesmo sendo uma instituição financeira, ou devo focar só em profissionais de computação que atuaram na cadeia de TI? Fiquei na dúvida de como fazer essa ponte sem parecer forçado.
+
+────────────────────────────────────────────────────────────
+
+SEMANA 3
+
+Professor, no 3º passo pede fundamentação com argumentos científicos e ligação com Direitos Humanos e democracia. Posso usar principalmente a LGPD e o próprio código da SBC como base, ou o senhor(a) recomenda incluir algum autor de ética aplicada à tecnologia (livro ou artigo) que costuma ser bem visto na correção? Se tiver alguma sugestão simples de leitura, agradeço.
+
+────────────────────────────────────────────────────────────
+
+SEMANA 4
+
+Professor, última dúvida antes de enviar: a reportagem do caso real deve ir só como anexo citado no 2º passo ou precisa ser incorporada dentro do PDF único da entrega? E o texto do 3º passo tem tamanho mínimo definido? Quero revisar o arquivo final sem correr risco de perder ponto por formato. Obrigado pela orientação ao longo das semanas.
+
+────────────────────────────────────────────────────────────
+
+Dica: antes de enviar cada mensagem, ajuste "Professor" pelo nome do tutor, se souber, e confira a data limite da ACQA na plataforma.

@@ -1,0 +1,7 @@
+.venv/
+.install-mode
+__pycache__/
+*.pyc
+.pytest_cache/
+output/*.json
+.streamlit/secrets.toml

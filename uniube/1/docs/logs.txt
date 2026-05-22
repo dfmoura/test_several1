@@ -1,0 +1,260 @@
+fazer uma rota de execução do caminho que percorri ate agora em markdown para para apresentar no obsedian
+
+segue log's:
+********
+
+
+----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------
+
+Andamento Projeto
+SISTEMAS DE INFORMAÇÃO
+DIÔGO FERREIRA MOURA
+10/03/2026 10:26
+para Leandra
+
+Professora, bom dia!
+
+Proposta de treinamento rápido para empresários da CDL de Uberlândia: apesar de muitas pessoas já terem ouvido falar em Inteligência Artificial, ainda existe uma grande diferença entre conhecer o termo e saber aplicá-la de forma prática para melhorar resultados. O objetivo deste encontro é apresentar, de forma simples e direta, como o atual ecossistema de ferramentas de IA pode apoiar o dia a dia da gestão empresarial - desde produtividade, comunicação e atendimento até análise de dados e apoio à tomada de decisão. O treinamento busca reduzir essa lacuna entre “ouvir falar” e “saber usar”, mostrando exemplos práticos e acessíveis que permitam aos pequenos empresários entender como incorporar essas tecnologias ao seu fluxo de trabalho para ganhar eficiência, economizar tempo e potencializar suas entregas.
+
+--
+Diogo Moura
+
+ 
+SISTEMAS DE INFORMAÇÃO
+DIÔGO FERREIRA MOURA
+16/03/2026 09:13
+para Leandra
+
+Professora, boa tarde!
+
+Tive uma ideia que pode ajudar a avançar nessa aproximação. Vou conversar hoje às 14h com meu ex-professor Antonio Carlos, da época em que cursei Administração na ESAMC (2007). Ele tem bastante relacionamento no meio empresarial e pode ser que consiga me orientar ou até mesmo indicar um caminho de contato antes de eu continuar tentando uma abordagem direta.
+
+Caso surja alguma possibilidade de ponte ou direcionamento, eu lhe atualizo.
+
+Atenciosamente,
+ 
+Diogo Moura
+
+ 
+SISTEMAS DE INFORMAÇÃO
+DIÔGO FERREIRA MOURA
+16/03/2026 17:42
+para Leandra
+
+Professora,
+
+A conversa com meu ex-professor foi muito boa. A partir dela, terei que montar um briefing bem objetivo para apresentar a ideia com mais clareza.
+A proposta evoluiu para algo um pouco mais estruturado: um treinamento voltado aos associados da CDL, acompanhado de um aplicativo simples como apoio, cujo objetivo inicial seria interpretar de forma ágil os dados financeiros das empresas e traduzir essas informações em indicadores que auxiliem na tomada de decisão.
+Meu ex-professor, além de já ter atuado como docente, participa do conselho e da diretoria da CDL, e possui contato direto com outros diretores que trabalham justamente nas iniciativas voltadas aos associados. A ideia agora é eu preparar esse material e encaminhar para ele, para que possa avaliar e, se fizer sentido, fazer essa ponte institucional.
+Ele comentou também que, mesmo que a proposta não avance diretamente pela CDL, existe um plano alternativo: ele participa de uma fundação com foco social e mencionou a possibilidade de eu realizar um treinamento para os clientes atendidos pela fundação, o que também seria uma experiência interessante para validar o conteúdo.
+
+Neste momento, pretendo agir com bastante cuidado na condução das conversas, organizar melhor a proposta e estruturar o briefing antes de avançar.
+
+Vou mantendo a senhora atualizada sobre os próximos passos.
+
+
+Att,
+Diogo.
+ 
+
+ 
+LEANDRA MENDES DO VALE
+17/03/2026 18:30
+
+Olá Diogo,
+
+ 
+
+Essa é uma excelente notícia! Fico muito contente em saber que a conversa com seu ex-professor foi produtiva e estratégica.
+
+ 
+
+Aproximar-se da CDL através de um contato interno e com conhecimento institucional é o caminho mais promissor. A evolução da sua proposta, com a inclusão de um aplicativo para auxiliar na interpretação de dados financeiros, demonstra maturidade e agrega um valor significativo aos associados.
+
+ 
+
+Parabéns pela proatividade e pela estruturação dos planos (principal e alternativo). A experiência na fundação, caso necessária, também seria extremamente enriquecedora.
+
+ 
+
+Continue focado na preparação cuidadosa do briefing. Aguardo o seu feedback quando a ponte institucional for estabelecida.
+
+ 
+
+Atenciosamente,
+Leandra Mendes do Vale
+
+ 
+SISTEMAS DE INFORMAÇÃO
+DIÔGO FERREIRA MOURA
+27/04/2026 09:38
+para Leandra
+
+Professora, bom dia!
+
+Precisei ajustar a rota inicialmente planejada para conseguir avançar dentro do prazo da disciplina. Diante das dificuldades de articulação institucional, optei por buscar uma alternativa mais direta e viável no momento.
+
+Realizei uma aproximação com uma paróquia aqui próxima, onde conversei com um padre para compreender uma demanda real e, a partir disso, propus uma solução utilizando um aplicativo. Com isso, consegui estruturar e submeter o projeto dentro do prazo, resolvendo a pendência da disciplina.
+
+Seguem os links para visualização do projeto:
+
+    Demo do aplicativo: demo do app
+    Download do aplicativo: download app
+
+Em paralelo, o projeto junto à CDL continua em andamento. Por envolver diversos atores e uma estrutura mais complexa, o avanço acaba sendo naturalmente mais lento, mesmo com o caráter acadêmico da proposta. De toda forma, sigo trabalhando nessa frente e, assim que houver evolução ou definição, atualizarei a senhora.
+
+ 
+
+Agradeço pelo acompanhamento e orientação ao longo do processo.
+
+ 
+
+Atenciosamente,
+Diogo Moura
+
+ 
+LEANDRA MENDES DO VALE
+06/05/2026 07:41
+
+Olá Diogo, bom dia!
+
+Que notícia boa.
+
+Sigo confiante que dará tudo certo com seu projeto.
+
+Para envio de trabalhos, favor utilizar o espaço reservado nas ACQA´s.
+
+Obrigada e até breve.
+
+Leandra
+
+
+
+------------------------------------------------------------------------------
+Apr 23
+Diogo Moura sent the following message at 6:12 AM
+View Diogo’s profile Diogo Moura
+Diogo Moura (He/Him) 6:12 AM
+
+Olá, Lecia! Tudo bem?
+ 
+Sou Diogo, aluno de graduação em Sistemas de Informação da Uniube.
+ 
+Recebi seu contato por meio do professor Antonio Carlos, da Virtual Serviços. (https://www.linkedin.com/in/antonio-carlos-oliveira-95713a65/)
+ 
+Estou desenvolvendo um trabalho extensionista com foco tecnológico, voltado ao fortalecimento do corporativismo e à solução de demandas reais em instituições como a CDL.
+ 
+Pensei que poderia ser interessante trocar uma ideia rápida para entender os desafios atuais da CDL Uberlândia e verificar se conseguimos contribuir de forma prática.
+ 
+Se fizer sentido, fico à disposição para conversarmos no melhor horário para você.
+ 
+Obrigado pela atenção!
+
+Antonio Carlos Oliveira - Analista de Negócios | Consultoria e Gestão Empresarial | Prof Emérito | LinkedIn
+linkedin.com
+Apr 26
+Lecia Queiroz sent the following message at 6:42 PM
+View Lecia’s profile Lecia Queiroz
+Lecia Queiroz 6:42 PM
+
+Boa tarde, Diogo!
+
+Sim, conheço o prof Antõnio Carlos! 
+Podemos falar sim, só preciso de um tempo para disponibilizar uma agenda. 
+Entre em contato no whats para marcarmos. 
+34 999915476. 
+
+Obrigada.
+Apr 27
+Diogo Moura sent the following messages at 9:45 AM
+View Diogo’s profile Diogo Moura
+Diogo Moura (He/Him) 9:45 AM
+
+    👏
+    👍
+    😊
+
+Obrigado, combinado.
+----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------
+
+[09:47, 27/4/2026] Diogo Moura: Ola Lecia, bom dia!
+É o Diogo (Graduação em Sistemas de Informação da Uniube)
+Somente para lembrar que estarei disponivel quando puder...
+Obrigado
+Att,
+[17:46, 6/5/2026] Diogo Moura: Olá, boa tarde!
+Passando apenas para reforçar nossa conversa. Será algo rápido e objetivo, não tomarei muito do seu tempo e acredito que posso contribuir de forma positiva.
+
+Fico à disposição quando puder.
+Obrigado!
+
+Att.,
+Diogo Moura
+[17:51, 6/5/2026] Lecia Queiroz CDL: Diogo, boa tarde
+[17:51, 6/5/2026] Lecia Queiroz CDL: Estou te devendo uma agenda, mas está semana e a próxima estou em viagem a trabalho.
+[17:52, 6/5/2026] Diogo Moura: Tranquilo
+[17:52, 6/5/2026] Diogo Moura: O dia e horario que preferir...
+[17:52, 6/5/2026] Lecia Queiroz CDL: Na semana do dia 18/05 me chama aqui, que vou conseguir uma data.
+[17:52, 6/5/2026] Lecia Queiroz CDL: Obrigada
+[17:53, 6/5/2026] Diogo Moura: Combinado obrigado...
+[08:00, 18/5/2026] Diogo Moura: Ola bom dia só pra lembrar
+[09:54, 18/5/2026] Lecia Queiroz CDL: Bom dia Diogo!
+[09:55, 18/5/2026] Lecia Queiroz CDL: Tenho disponibilidade online hoje entre 10h e 11h30.
+[09:56, 18/5/2026] Lecia Queiroz CDL: 16h as 17h30 também
+[09:56, 18/5/2026] Lecia Queiroz CDL: Ou quarta e quinta no período da tarde
+[09:57, 18/5/2026] Lecia Queiroz CDL: Ou quarta e quinta no período da tarde
+Nestes dias pode ser presencial, caso vc prefira.
+[10:03, 18/5/2026] Diogo Moura: para o primeiro contato se for presencial eu prefiro... pode marcar na quarta 13 ?
+sera jogo rapido
+[10:04, 18/5/2026] Lecia Queiroz CDL: Consigo as 14h, pode ser?
+[10:04, 18/5/2026] Diogo Moura: com certeza
+[10:05, 18/5/2026] Diogo Moura: so chegar ai na recepção e pedir para te chamar...
+[10:05, 18/5/2026] Lecia Queiroz CDL: CDL av. Belo Horizonte 1290, bairro Oswaldo Rezende.
+[10:05, 18/5/2026] Diogo Moura: conheço ja fui muito...
+[10:05, 18/5/2026] Lecia Queiroz CDL: so chegar ai na recepção e pedir para te chamar...
+Sim, pode dizer que tem uma agenda de reunião.
+[10:05, 18/5/2026] Lecia Queiroz CDL: Qual seu e-mail?
+[10:06, 18/5/2026] Diogo Moura: Combinado obridado
+diogo.moura@triggerti.com
+[10:11, 18/5/2026] Lecia Queiroz CDL: Combinado obridado
+diogo.moura@triggerti.com
+ok, invite enviado!
+
+----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------
+
+20/05/26 as 14h
+tive a reuniao com a Lecia da CDL, 
+apresentei sobre minha necessidade em detalhes
+conversamos amplamente sobre diversos aspectos, 
+e ela comentou que diretamente para fazer algo na cdl seria um pouco 
+burocratico e invianvel, por se tratar de envolver muitas esferas 
+senciveis perante o trabalho da função, entretanto ela levantou uma
+hipotese para procurar o Observatorio social do brasil (Uberlandia/MG), que se trata de uma 
+entidade sem fins lucrativo, que cujo o objeto principal é vigiar as contas publicas da prefeituras e suas respectivas autarquias, e um trabalho de tabela de verificar o que tambem o legistativo da cidade tem feito levantando suas reais entregas... enfim
+
+nesta possibilidade ela visualizou que eu poderei contribuir mais...
+
+de imediato em nossa conversa, contatou o responsavel Marco Aurelio, comentou a situação e me passou o contato... finalizamos a reuniao.
+
+------------------------------
+Na sequencia entrei em contato com Marco Aurelio do Observatorio, 
+e agendamos um conversa 21/05/26 as 14:30 no local da entidade.
+
+
+----------------------------------
+em 21/05/26 as 14:30
+Fui na reuniao com o Marco Aurelio, ele apresentou a entidade, conversamos um pouco e ja conversamos os trabalho 
+
+
+
+
+
+
+
+
+
+
+
