@@ -73,7 +73,6 @@ Cada produto **não** compete com a home: a home lista; a landing vende.
 
 ```bash
 cd trigger/12/site
-npm install
 npx wrangler deploy
 ```
 
@@ -85,15 +84,17 @@ Na primeira execução, faça login com `npx wrangler login`.
 |-------|--------|
 | Root directory | `trigger/12/site` |
 | Build command | *(vazio)* |
-| Deploy command | `npm install && npm run deploy` |
+| Deploy command | `npx wrangler deploy` |
+
+**Importante:** não coloque `package.json` dentro de `site/`. O Cloudflare instala
+dependências na mesma pasta e o Wrangler tentaria publicar `node_modules/` como
+assets (limite 25 MiB por arquivo → build falha).
 
 Se o build falhar com erro de API/account, em **Settings → Build → Variables** adicione:
 
 | Variável | Valor |
 |----------|--------|
 | `CLOUDFLARE_ACCOUNT_ID` | ID da conta (Workers & Pages → Overview → Account details) |
-
-O token de build (`Workers Builds`) é criado automaticamente pelo Cloudflare.
 
 ### Domínio customizado www.triggerti.com
 

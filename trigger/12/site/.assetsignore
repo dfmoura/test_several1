@@ -1,0 +1,9 @@
+# Arquivos que NÃO devem ser publicados como assets estáticos
+node_modules/
+package.json
+package-lock.json
+bun.lock
+bun.lockb
+wrangler.toml
+README.md
+.git/

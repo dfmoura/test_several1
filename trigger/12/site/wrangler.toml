@@ -1,6 +1,8 @@
 # Cloudflare Workers — static assets (trigger-site)
 # Root directory no dashboard: trigger/12/site
-# Deploy command: npm install && npm run deploy
+# Deploy command: npx wrangler deploy
+# NÃO coloque package.json aqui — o Cloudflare instala node_modules
+# dentro desta pasta e o wrangler tentaria publicá-los como assets.
 
 name = "trigger-site"
 compatibility_date = "2025-06-08"
