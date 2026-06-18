@@ -24,7 +24,7 @@ trigger/12/
 │   ├── estoque-sankhya/index.html
 │   ├── gestao-condominial/index.html
 │   ├── privacidade*.html
-│   ├── _headers, _redirects, robots.txt, sitemap.xml
+│   ├── _headers, robots.txt, sitemap.xml
 │   └── assets/
 ├── scripts/               # ferramentas de build (não publicadas)
 │   └── build-favicons.py
@@ -100,7 +100,7 @@ Se o build falhar com erro de API/account, em **Settings → Build → Variables
 
 1. No projeto Pages → **Custom domains** → **Set up a custom domain**.
 2. Adicione `www.triggerti.com` como domínio **primário** e `triggerti.com` (apex) como secundário.
-3. O Cloudflare redireciona o apex para o primário; o arquivo `_redirects` reforça o 301 para `www`.
+3. O Cloudflare redireciona o apex para o primário quando `www.triggerti.com` é domínio **primário** em **Domains** (não use `_redirects` com URLs absolutas — Workers só aceita paths relativos).
 4. Se o domínio já está na mesma conta Cloudflare, os registros DNS são criados automaticamente.
 5. Aguarde a propagação (geralmente alguns minutos).
 
