@@ -5,7 +5,8 @@
 # Para forçar uma porta: PORT=3000 ./serve-local.sh
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+BASE="$(cd "$(dirname "$0")" && pwd)"
+ROOT="${BASE}/site"
 DEFAULT_PORT=8081
 PORT_EXPLICIT="${PORT:-}"
 
@@ -55,8 +56,9 @@ fi
 
 cd "$ROOT"
 echo "Site Trigger: http://localhost:${PORT}"
-echo "  Empresa:  http://localhost:${PORT}/"
-echo "  Estoque:  http://localhost:${PORT}/estoque-sankhya/"
-echo "  Produto:  http://localhost:${PORT}/gestao-condominial/"
+echo "  Empresa:     http://localhost:${PORT}/"
+echo "  Consultoria: http://localhost:${PORT}/consultoria/"
+echo "  Estoque:     http://localhost:${PORT}/estoque-sankhya/"
+echo "  Produto:     http://localhost:${PORT}/gestao-condominial/"
 echo "Ctrl+C para encerrar."
 exec python3 -m http.server "$PORT" --bind 127.0.0.1

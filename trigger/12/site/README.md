@@ -7,6 +7,7 @@ Site estático para **triggerti.com**, hospedado no **Cloudflare Pages**.
 | URL | Arquivo |
 |-----|---------|
 | `/` | Empresa Trigger: consultoria, portfólio de produtos, contato |
+| `/consultoria/` | Consultoria ERP sob demanda (customização, integrações, relatórios) |
 | `/estoque-sankhya/` | Landing do app Estoque ERP Sankhya Lite (Google Play) |
 | `/gestao-condominial/` | Landing do produto Gestão Condominial |
 | `/privacidade.html` | Política de privacidade do site triggerti.com |
@@ -16,17 +17,21 @@ Site estático para **triggerti.com**, hospedado no **Cloudflare Pages**.
 ## Estrutura
 
 ```
-site/
-├── index.html
-├── estoque-sankhya/index.html
-├── gestao-condominial/index.html
-├── privacidade.html
-├── privacidade-estoque-sankhya.html
-├── privacidade-gestao-condominial.html
-└── assets/
-    ├── css/styles.css
-    └── img/          # logos da pasta logos_trigger
+trigger/12/
+├── site/                  # ← só esta pasta vai para o Cloudflare Pages
+│   ├── index.html
+│   ├── consultoria/index.html
+│   ├── estoque-sankhya/index.html
+│   ├── gestao-condominial/index.html
+│   ├── privacidade*.html
+│   ├── _headers, _redirects, robots.txt, sitemap.xml
+│   └── assets/
+├── scripts/               # ferramentas de build (não publicadas)
+│   └── build-favicons.py
+└── serve-local.sh         # preview local (não publicado)
 ```
+
+**Deploy:** publique apenas o conteúdo de `site/`. Scripts e `serve-local.sh` ficam fora da raiz publicável.
 
 ## Modelo: empresa + portfólio de produtos
 
@@ -73,17 +78,20 @@ npx wrangler pages deploy . --project-name=triggerti
 
 Na primeira execução, faça login com `npx wrangler login`.
 
-### Domínio customizado triggerti.com
+### Domínio customizado www.triggerti.com
 
 1. No projeto Pages → **Custom domains** → **Set up a custom domain**.
-2. Digite `triggerti.com` e `www.triggerti.com`.
-3. Se o domínio já está na mesma conta Cloudflare, os registros DNS são criados automaticamente.
-4. Aguarde a propagação (geralmente alguns minutos).
+2. Adicione `www.triggerti.com` como domínio **primário** e `triggerti.com` (apex) como secundário.
+3. O Cloudflare redireciona o apex para o primário; o arquivo `_redirects` reforça o 301 para `www`.
+4. Se o domínio já está na mesma conta Cloudflare, os registros DNS são criados automaticamente.
+5. Aguarde a propagação (geralmente alguns minutos).
+
+**URLs canônicas:** todas as páginas usam `https://www.triggerti.com/...`. Links antigos sem `www` continuam funcionando via redirect.
 
 ### Verificação local
 
 ```bash
-cd trigger/12/site
+cd trigger/12
 chmod +x serve-local.sh   # uma vez
 ./serve-local.sh
 ```
@@ -94,17 +102,25 @@ Porta padrão **8081** (evita conflito com outros serviços em 8080). Para outra
 PORT=8082 ./serve-local.sh
 ```
 
-Ou, na mesma pasta:
+Ou, na pasta `site/`:
 
 ```bash
+cd trigger/12/site
 python3 -m http.server 8081 --bind 127.0.0.1
 ```
 
 Abrir:
 
 - Empresa: http://localhost:8081/
+- Consultoria: http://localhost:8081/consultoria/
 - Estoque Sankhya: http://localhost:8081/estoque-sankhya/
 - Gestão Condominial: http://localhost:8081/gestao-condominial/
+
+### Favicons (desenvolvimento)
+
+```bash
+python3 trigger/12/scripts/build-favicons.py
+```
 
 ## Próximos passos (futuro)
 

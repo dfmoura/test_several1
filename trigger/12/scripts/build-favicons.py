@@ -5,7 +5,8 @@ import subprocess
 
 from PIL import Image
 
-ROOT = Path(__file__).resolve().parents[1]
+# Raiz publicável = site/ (este script fica fora do deploy)
+ROOT = Path(__file__).resolve().parent.parent / "site"
 IMG = ROOT / "assets" / "img"
 DENSITY = "384"
 
