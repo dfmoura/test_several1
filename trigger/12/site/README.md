@@ -73,10 +73,27 @@ Cada produto **não** compete com a home: a home lista; a landing vende.
 
 ```bash
 cd trigger/12/site
-npx wrangler pages deploy . --project-name=triggerti
+npm install
+npx wrangler deploy
 ```
 
 Na primeira execução, faça login com `npx wrangler login`.
+
+### Cloudflare Workers Builds (Git) — trigger-site
+
+| Campo | Valor |
+|-------|--------|
+| Root directory | `trigger/12/site` |
+| Build command | *(vazio)* |
+| Deploy command | `npm install && npm run deploy` |
+
+Se o build falhar com erro de API/account, em **Settings → Build → Variables** adicione:
+
+| Variável | Valor |
+|----------|--------|
+| `CLOUDFLARE_ACCOUNT_ID` | ID da conta (Workers & Pages → Overview → Account details) |
+
+O token de build (`Workers Builds`) é criado automaticamente pelo Cloudflare.
 
 ### Domínio customizado www.triggerti.com
 

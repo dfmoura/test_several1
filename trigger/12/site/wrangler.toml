@@ -1,9 +1,11 @@
 # Cloudflare Workers — static assets (trigger-site)
 # Root directory no dashboard: trigger/12/site
-# Deploy command: npx wrangler deploy
+# Deploy command: npm install && npm run deploy
 
 name = "trigger-site"
 compatibility_date = "2025-06-08"
 
 [assets]
 directory = "."
+not_found_handling = "404-page"
+html_handling = "auto-trailing-slash"
