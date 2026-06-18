@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Consulta de estoque Sankhya ERP no Android. Implantação assistida e mensalidade B2B. OAuth2 Gateway, API ou View, multiempresa.">
+  <title>Estoque ERP Sankhya Lite | App Android</title>
+  <meta name="theme-color" content="#1a3568">
+  <link rel="canonical" href="https://www.triggerti.com/estoque-sankhya/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Estoque ERP Sankhya Lite | Consulta de estoque no celular">
+  <meta property="og:description" content="Estoque Sankhya no Android. Implantação rápida, mensalidade acessível. OAuth2 Gateway, API ou View, multiempresa.">
+  <meta property="og:url" content="https://www.triggerti.com/estoque-sankhya/">
+  <meta property="og:image" content="https://www.triggerti.com/assets/img/logo-estoque-sankhya.png">
+  <link rel="icon" type="image/png" href="/assets/img/favicon-estoque-sankhya-32.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="/assets/img/favicon-estoque-sankhya-16.png" sizes="16x16">
+  <link rel="icon" type="image/png" href="/assets/img/favicon-estoque-sankhya-48.png" sizes="48x48">
+  <link rel="icon" type="image/x-icon" href="/estoque-sankhya/favicon.ico">
+  <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon-estoque-sankhya.png" sizes="180x180">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body class="page-estoque">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/estoque-sankhya/" class="logo-link logo-link--product">
+        <img src="/assets/img/logo-estoque-sankhya.png" alt="" class="product-mark" width="40" height="40" aria-hidden="true">
+        <span class="logo-stack">
+          <span class="logo-text" style="display:inline;">Estoque Sankhya</span>
+          <span class="logo-byline">por Trigger Data Intelligence</span>
+        </span>
+      </a>
+      <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav').classList.toggle('open')">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <nav class="nav" aria-label="Navegação do produto">
+        <a href="#funcionalidades">Funcionalidades</a>
+        <a href="#planos">Como contratar</a>
+        <a href="#implantacao">Implantação</a>
+        <a href="#contato">Contato</a>
+        <a href="/" class="nav-link--corp">Trigger TI</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" style="padding-top: 3rem; padding-bottom: 3rem;">
+      <div class="container hero-with-mark">
+        <div>
+          <p style="font-size:0.85rem;color:var(--gray-600);margin:0 0 1rem;">
+            Produto da <a href="/">Trigger Data Intelligence</a> · <a href="/#produtos">portfólio</a>
+          </p>
+          <span class="hero-badge">Android · Sankhya ERP</span>
+          <h1 style="margin-top:1rem;">Estoque do Sankhya no <span>celular</span>, em tempo real</h1>
+          <p class="hero-lead" style="max-width: 42rem;">
+            Consulta rápida de estoque integrada ao ERP Sankhya, por produto, empresa e local de armazenagem.
+            Feito para equipes de logística, vendas e TI que precisam de resposta imediata fora do desktop.
+          </p>
+          <div class="hero-actions">
+            <a href="#contato" class="btn btn-primary">Solicitar implantação</a>
+            <a href="https://play.google.com/store/apps/details?id=br.com.estsankhya.est_sankhya" class="btn btn-secondary" rel="noopener noreferrer" target="_blank">Ver na Play Store</a>
+          </div>
+          <p style="margin-top:1.25rem;font-size:0.9rem;color:var(--gray-600);">
+            <strong>Estoque ERP Sankhya Lite</strong> · versão <strong>1.0.11</strong> (build 17) ·
+            implantação assistida · mensalidade B2B por aparelho
+          </p>
+        </div>
+        <img
+          src="/assets/img/logo-estoque-sankhya.png"
+          alt="Ícone do app Estoque ERP Sankhya Lite"
+          class="hero-app-mark"
+          width="120"
+          height="120"
+          loading="eager"
+        >
+      </div>
+    </section>
+
+    <div class="app-meta-bar">
+      <div class="container app-meta">
+        <span class="app-meta-badge">v1.0.11</span>
+        <span>OAuth2 · API ou View · modo demonstração</span>
+        <span class="app-meta-sep">·</span>
+        <span>Venda B2B · implantação e mensalidade</span>
+        <span class="app-meta-sep">·</span>
+        <a href="/privacidade-estoque-sankhya.html">Política de privacidade do app</a>
+      </div>
+    </div>
+
+    <section id="novidades">
+      <div class="container">
+        <div class="section-header">
+          <h2>Novidades da versão 1.0.11</h2>
+          <p>Atualização alinhada ao app publicado na Play Store (build 17).</p>
+        </div>
+        <div class="highlight-banner">
+          <div>
+            <span class="highlight-badge">Atualização recente</span>
+            <h3>Android 15, OAuth2 Gateway e modo demonstração</h3>
+            <p>
+              Login OAuth2 em <code>POST /authenticate</code> com X-Token do Gateway Sankhya Om
+              (Client ID/Secret do parceiro Trigger já no app). Consulta por API oficial de estoque ou View
+              <code>loadView</code>, com modo demonstração para testar sem credenciais reais.
+            </p>
+          </div>
+          <ul>
+            <li>Compatibilidade edge-to-edge com Android 15 (recomendações Play Console)</li>
+            <li>Sem APIs deprecadas de barra de status e navegação no Android 15+</li>
+            <li>Modo demonstração, estabilidade e conformidade Google Play</li>
+            <li>Licenciamento por chave (implantação assistida), quando habilitado na build</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="funcionalidades" class="section-alt">
+      <div class="container">
+        <div class="section-header">
+          <h2>Funcionalidades</h2>
+          <p>Experiência focada em consulta. Não substitui o ERP, mas acelera o dia a dia em campo e em suporte.</p>
+        </div>
+        <div class="cards-grid">
+          <article class="card">
+            <div class="card-icon">📦</div>
+            <h3>Estoque em tempo real</h3>
+            <p>Consulta por código via API oficial; se não houver retorno, o app tenta automaticamente a View configurada.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">🏢</div>
+            <h3>Multiempresa</h3>
+            <p>Saldos por empresa com totais agrupados na tela. Leitura rápida em operações com várias filiais.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">📍</div>
+            <h3>Por local de estoque</h3>
+            <p>Quantidades por armazém, filial ou local, conforme retorno da API e da View configurada.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">🔐</div>
+            <h3>OAuth2 Gateway</h3>
+            <p>Autenticação em <code>/authenticate</code> com X-Token do Sankhya Om; token salvo com cifragem local (AES + secure storage).</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">🧪</div>
+            <h3>Modo demonstração</h3>
+            <p>Dados fictícios para testar a interface sem credenciais reais. Útil em treinamento e revisão na loja.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">📊</div>
+            <h3>API ou View (loadView)</h3>
+            <p>Escolha a fonte na consulta: endpoint oficial de estoque ou View <code>VW_ESTOQUE_RESUMO</code> no banco.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">🎫</div>
+            <h3>Licença de uso (B2B)</h3>
+            <p>Na implantação assistida, ativação por chave vinculada ao aparelho. Fale conosco para regularização ou troca.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">⚡</div>
+            <h3>Interface objetiva</h3>
+            <p>Busca rápida, resultado agrupado e layout adaptado a Android 15 (edge-to-edge) para uso em campo.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="requisitos">
+      <div class="container">
+        <div class="section-header">
+          <h2>Requisitos</h2>
+        </div>
+        <div class="highlight-banner">
+          <div>
+            <h3>Ambiente Sankhya ativo</h3>
+            <p>
+              É necessário Sankhya Om com aplicação no Gateway, X-Token válido e acesso à API de estoque.
+              Na implantação assistida configuramos credenciais, licença e View. Sua equipe não precisa dominar a API.
+            </p>
+          </div>
+          <ul>
+            <li>API estoque: <a href="https://developer.sankhya.com.br/reference/getestoqueporproduto" rel="noopener noreferrer" target="_blank">getestoqueporproduto</a></li>
+            <li>View opcional: <a href="https://developer.sankhya.com.br/reference/get_loadview" rel="noopener noreferrer" target="_blank">loadView</a> · script <code>VW_ESTOQUE_RESUMO</code></li>
+            <li>Modo demonstração: não exige ERP. Útil para treinamento e avaliação</li>
+            <li>Licença: chave fornecida na implantação, quando a build exige validação online</li>
+            <li>Sem publicidade no app. <a href="/privacidade-estoque-sankhya.html">Política de privacidade</a></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="planos" class="section-alt">
+      <div class="container">
+        <div class="section-header">
+          <h2>Como contratar (sem surpresa)</h2>
+          <p>É um app de consulta: a implantação costuma ser rápida (remota, em geral no mesmo dia). Enviamos proposta conforme ambiente e quantidade de aparelhos.</p>
+        </div>
+        <div class="pricing-grid">
+          <div class="pricing-card featured">
+            <h3>Implantação assistida</h3>
+            <p>Configuração do Gateway, X-Token, licença e View (se necessário), mais orientação para a equipe. Remoto na maioria dos casos. App pronto para consulta real.</p>
+          </div>
+          <div class="pricing-card">
+            <h3>Mensalidade</h3>
+            <p>Por aparelho. Inclui licença de uso, suporte e atualizações no contrato B2B. A proposta varia conforme a quantidade de aparelhos.</p>
+          </div>
+        </div>
+        <p class="pricing-note">
+          <strong>Não é assinatura automática pela Play Store.</strong> O app na loja serve para avaliar (modo demonstração).
+          Fechamos implantação e mensalidade direto com a empresa. View customizada ou vários aparelhos entram na proposta.
+        </p>
+      </div>
+    </section>
+
+    <section id="implantacao">
+      <div class="container">
+        <div class="section-header">
+          <h2>Implantação assistida</h2>
+          <p>Na maioria dos casos configuramos tudo remotamente e a equipe já consulta estoque no mesmo dia.</p>
+        </div>
+        <div class="cards-grid">
+          <article class="card">
+            <div class="card-icon">🔐</div>
+            <h3>Gateway e credenciais</h3>
+            <p>X-Token, OAuth2 e parâmetros de autenticação alinhados ao seu Sankhya Om.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">📊</div>
+            <h3>API ou View</h3>
+            <p>Definição da fonte de dados (API oficial ou View customizada) conforme seu ambiente.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">🎫</div>
+            <h3>Licença e aparelhos</h3>
+            <p>Ativação por chave vinculada ao dispositivo, quando a build exige validação online.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">👥</div>
+            <h3>Treinamento</h3>
+            <p>Orientação prática para logística, vendas ou TI no uso em campo e suporte pós-implantação.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="contato" class="section-alt">
+      <div class="container">
+        <div class="contact-grid">
+          <div class="contact-info">
+            <h2>Quer implantar na sua empresa?</h2>
+            <p>
+              Informe quantos aparelhos, se usa Sankhya Om com Gateway e se precisa de API ou View.
+              Respondemos com proposta de implantação e mensalidade.
+            </p>
+            <ul class="contact-details">
+              <li><strong>E-mail</strong> <a href="mailto:diogo.moura@triggerti.com?subject=Estoque%20Sankhya%20-%20quero%20implantar">diogo.moura@triggerti.com</a></li>
+              <li><strong>Telefone</strong> <a href="tel:+5534999909660">+55 34 99990-9660</a></li>
+              <li><strong>Empresa</strong> TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA</li>
+              <li><strong>Produto</strong> Estoque Sankhya Lite · Android</li>
+            </ul>
+          </div>
+          <div class="contact-form-card">
+            <h3>Solicitar implantação</h3>
+            <p>Envie um e-mail com o escopo. Também é possível avaliar o app na Play Store (modo demonstração).</p>
+            <a href="mailto:diogo.moura@triggerti.com?subject=Estoque%20Sankhya%20-%20quero%20implantar&body=Olá!%20Gostaria%20de%20implantar%20o%20Estoque%20Sankhya%20na%20minha%20empresa.%0A%0AAparelhos%3A%20%0AEmpresas%20no%20Sankhya%3A%20%0AGateway%20ativo%3A%20" class="btn btn-navy" style="width:100%;margin-bottom:0.75rem;">Solicitar proposta</a>
+            <a href="https://play.google.com/store/apps/details?id=br.com.estsankhya.est_sankhya" style="display:block;text-align:center;font-size:0.85rem;margin-bottom:0.5rem;" rel="noopener noreferrer" target="_blank">Ver na Google Play</a>
+            <a href="/privacidade-estoque-sankhya.html" style="display:block;text-align:center;font-size:0.85rem;">Política de privacidade do app</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo-text footer-logo-text--product">
+            <img src="/assets/img/logo-estoque-sankhya.png" alt="" class="footer-product-mark" width="36" height="36" aria-hidden="true">
+            <div>
+              <strong>Estoque Sankhya</strong>
+              <span>por Trigger Data Intelligence</span>
+            </div>
+          </div>
+          <p>App Android de consulta de estoque para Sankhya ERP · versão 1.0.11.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Produto</h4>
+          <ul>
+            <li><a href="#funcionalidades">Funcionalidades</a></li>
+            <li><a href="#planos">Como contratar</a></li>
+            <li><a href="#implantacao">Implantação</a></li>
+            <li><a href="https://play.google.com/store/apps/details?id=br.com.estsankhya.est_sankhya" rel="noopener noreferrer" target="_blank">Google Play</a></li>
+            <li><a href="/privacidade-estoque-sankhya.html">Privacidade do app</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Trigger</h4>
+          <ul>
+            <li><a href="/">Site da empresa</a></li>
+            <li><a href="/consultoria/">Consultoria ERP</a></li>
+            <li><a href="/#contato">Contato</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        © 2024-2026 TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA · CNPJ 53.369.941/0001-63
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

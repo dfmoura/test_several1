@@ -1,0 +1,17 @@
+/favicon.ico
+  Content-Type: image/x-icon
+
+/favicon-dark.ico
+  Content-Type: image/x-icon
+
+/gestao-condominial/favicon.ico
+  Content-Type: image/x-icon
+
+/assets/img/favicon-gestao-condominial-*.png
+  Content-Type: image/png
+
+/assets/img/apple-touch-icon-gestao-condominial.png
+  Content-Type: image/png
+
+/assets/img/favicon-*.png
+  Content-Type: image/png

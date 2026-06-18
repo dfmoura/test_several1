@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Política de privacidade do aplicativo Estoque Sankhya (Estoque ERP Sankhya Lite). TRIGGER DATA INTELLIGENCE.">
+  <title>Política de Privacidade | Estoque Sankhya</title>
+  <meta name="theme-color" content="#1a3568">
+  <link rel="canonical" href="https://www.triggerti.com/privacidade-estoque-sankhya.html">
+  <link rel="icon" type="image/png" href="/assets/img/favicon-estoque-sankhya-32.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="/assets/img/favicon-estoque-sankhya-16.png" sizes="16x16">
+  <link rel="icon" type="image/x-icon" href="/estoque-sankhya/favicon.ico">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/estoque-sankhya/" class="logo-link logo-link--product">
+        <img src="/assets/img/logo-estoque-sankhya.png" alt="" class="product-mark" width="40" height="40" aria-hidden="true">
+        <span class="logo-stack">
+          <span class="logo-text" style="display:inline;font-size:0.95rem;">Estoque Sankhya</span>
+          <span class="logo-byline">por Trigger Data Intelligence</span>
+        </span>
+      </a>
+      <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav').classList.toggle('open')">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <nav class="nav">
+        <a href="/estoque-sankhya/#novidades">Novidades</a>
+        <a href="/estoque-sankhya/#funcionalidades">Funcionalidades</a>
+        <a href="/estoque-sankhya/#contato">Contato</a>
+        <a href="/">Trigger TI</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" style="padding: 2.5rem 0 1.5rem;">
+      <div class="container">
+        <div class="breadcrumb" style="font-size:0.85rem;color:var(--gray-600);margin-bottom:0.75rem;">
+          <a href="/estoque-sankhya/">Estoque Sankhya</a> / Política de privacidade do app
+        </div>
+        <h1>Política de Privacidade: <span style="color:var(--green);">Estoque Sankhya</span></h1>
+        <p class="hero-lead" style="margin-bottom:0;">Aplicativo Android (Google Play: Estoque ERP Sankhya Lite)</p>
+      </div>
+    </section>
+
+    <div class="container prose" style="padding-bottom: 3rem;">
+      <p><strong>Última atualização:</strong> 2 de junho de 2026 (versão do app 1.0.8)</p>
+
+      <h2>1. Quem é o responsável</h2>
+      <p>
+        Responsável: <strong>TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA</strong> (nome fantasia
+        <strong>TRIGGER DATA INTELLIGENCE</strong>, CNPJ 53.369.941/0001-63).<br>
+        Contato: <a href="mailto:diogo.moura@triggerti.com">diogo.moura@triggerti.com</a>
+      </p>
+
+      <h2>2. Objetivo desta política</h2>
+      <p>
+        Esta política descreve quais dados são utilizados no app <strong>Estoque Sankhya</strong>
+        (nome na loja: <em>Estoque ERP Sankhya Lite</em>) para autenticação e consulta de estoque via API Sankhya.
+        O texto reflete o comportamento implementado no aplicativo (chamadas de rede e armazenamento local de credenciais).
+      </p>
+      <p>
+        O app encaminha credenciais fornecidas pelo usuário e realiza consultas no servidor indicado na configuração.
+        A semântica das requisições e do endpoint de estoque está na
+        <a href="https://developer.sankhya.com.br/reference/getestoqueporproduto" rel="noopener noreferrer" target="_blank">documentação oficial do Sankhya</a>.
+      </p>
+
+      <h2>3. Como o app funciona</h2>
+      <p>Você informa um código de produto e configura o acesso ao Sankhya (ou ativa o modo demonstração). O app então:</p>
+      <ul>
+        <li>Autentica via <strong>OAuth2</strong> (POST na URL configurada, em geral <code>https://api.sankhya.com.br/authenticate</code>) com cabeçalho <code>X-Token</code> (token do Gateway Sankhya Om).</li>
+        <li>Usa o <code>access_token</code> retornado (Bearer) para consultar estoque via GET em <code>/v1/estoque/produtos/{codigoProduto}</code>.</li>
+        <li>Opcionalmente, consulta via View customizada (<code>loadView</code>), quando existir no ERP e você escolher essa fonte.</li>
+        <li>No <strong>modo demonstração</strong>, exibe dados fictícios locais, sem chamada à API do seu ambiente.</li>
+        <li>Quando a build exige licenciamento, valida uma <strong>chave de licença</strong> com servidor Trigger (ver seção 4.5).</li>
+      </ul>
+
+      <h2>4. Quais dados são utilizados</h2>
+      <h3>4.1 Credenciais informadas pelo usuário</h3>
+      <p>
+        URL de autenticação e <strong>X-Token</strong> (Gateway) podem ser salvos no dispositivo.
+        Client ID e Client Secret OAuth2 do parceiro Trigger vêm embutidos na build; não são digitados na tela.
+        O app não solicita nome, e-mail ou outros dados pessoais além do necessário para API e licença.
+      </p>
+      <h3>4.2 Dados enviados na autenticação</h3>
+      <p>
+        No POST OAuth2, o app envia <code>grant_type=client_credentials</code>, <code>client_id</code> e <code>client_secret</code>
+        no corpo, e o <strong>X-Token</strong> no cabeçalho HTTP. Não há envio de usuário/senha de operador nesse fluxo.
+      </p>
+      <h3>4.3 Consulta de estoque</h3>
+      <p>
+        A consulta usa <code>Authorization: Bearer {bearerToken}</code> no GET de estoque.
+        Conforme a documentação Sankhya, o endpoint considera estoque registrado no ERP (sem WMS), estoque próprio da empresa,
+        e produtos com movimentação. Detalhes em
+        <a href="https://developer.sankhya.com.br/reference/getestoqueporproduto" rel="noopener noreferrer" target="_blank">getestoqueporproduto</a>.
+      </p>
+      <h3>4.4 Dados retornados pela API</h3>
+      <p>Registros de estoque são exibidos na tela durante o uso; não há persistência local desses resultados como parte do fluxo de credenciais.</p>
+      <h3>4.5 Licenciamento (quando habilitado na build)</h3>
+      <p>
+        Para builds com validação ativa, o app envia ao servidor de licenças Trigger (funções hospedadas em infraestrutura Supabase):
+        a chave de licença informada, um identificador estável do aparelho (Android ID, quando disponível) e o identificador do produto (<code>estsankhya</code>).
+        A chave pode ficar armazenada localmente de forma mascarada. O objetivo é vincular a licença ao dispositivo na implantação assistida.
+      </p>
+
+      <h2>5. Armazenamento local e segurança</h2>
+      <p>
+        URL de autenticação e X-Token ficam em SQLite no dispositivo; dados sensíveis usam cifragem AES com chave no Flutter Secure Storage.
+        Preferências como modo demonstração ficam em tabela local de configurações. Ao salvar novamente, as credenciais anteriores são sobrescritas.
+      </p>
+
+      <h2>6. Compartilhamento</h2>
+      <p>
+        Dados de estoque e autenticação são enviados aos servidores Sankhya configurados (API oficial do parceiro).
+        Dados de licença, quando aplicável, vão apenas ao servidor de licenças Trigger para ativação e verificação de uso.
+        Não há compartilhamento com terceiros para publicidade.
+      </p>
+
+      <h2>7. Publicidade e analytics</h2>
+      <p>
+        Com base no projeto atual, não há integrações de anúncios nem analytics de marketing no app.
+        Se isso mudar, esta política será atualizada.
+      </p>
+
+      <h2>8. Retenção</h2>
+      <p>
+        Credenciais e chave de licença permanecem no dispositivo até serem substituídas, removidas no painel do app
+        ou até o usuário limpar os dados do aplicativo nas configurações do Android.
+      </p>
+
+      <h2>9. Seus direitos</h2>
+      <p>
+        Para informações sobre tratamento de dados, contate
+        <a href="mailto:diogo.moura@triggerti.com">diogo.moura@triggerti.com</a>.
+        Para remover credenciais localmente, use a opção de limpar dados do aplicativo no sistema.
+      </p>
+
+      <h2>10. Alterações</h2>
+      <p>Podemos atualizar esta política quando o app mudar. A data no topo indica a versão vigente.</p>
+
+      <p style="margin-top: 2rem;">
+        <a href="/estoque-sankhya/" class="btn btn-secondary">← Voltar ao Estoque Sankhya</a>
+      </p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-bottom" style="border:none;padding-top:1rem;">
+      © 2024-2026 TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA ·
+      <a href="/privacidade.html">Privacidade do site</a>
+    </div>
+  </footer>
+</body>
+</html>

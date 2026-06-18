@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+
+    
+    <h1>05 - UASG</h1>
+    <p>Consulta dados sobre Unidades Administrativas de Serviços Gerais (UASG).</p><br>
+    <h2><b></b>GET /modulo-uasg/1_consultarUasg - CONSULTAR UASG:</b></h2>
+    <br>
+    GET /modulo-uasg/1_consultarUasg - CONSULTAR UASG:<br>
+    curl -X 'GET' \<br>
+      'https://dadosabertos.compras.gov.br/modulo-uasg/1_consultarUasg?pagina=1&statusUasg=true' \<br>
+      -H 'accept: */*'<br>
+    
+        {
+          "codigoUasg": "string",<br>
+          "nomeUasg": "string",<br>
+          "usoSisg": true,<br>
+          "adesaoSiasg": true,<br>
+          "siglaUf": "string",<br>
+          "codigoMunicipio": 0,<br>
+          "codigoMunicipioIbge": 0,<br>
+          "nomeMunicipioIbge": "string",<br>
+          "codigoUnidadePolo": 0,<br>   
+          "nomeUnidadePolo": "string",<br>
+          "codigoUnidadeEspelho": 0,<br>
+          "nomeUnidadeEspelho": "string",<br>
+          "uasgCadastradora": true,<br>
+          "cnpjCpfUasg": "string", <br>
+          "codigoOrgao": 0,<br>
+          "cnpjCpfOrgao": "string",<br>
+          "cnpjCpfOrgaoVinculado": "string",<br>
+          "cnpjCpfOrgaoSuperior": "string",<br>
+          "codigoSiorg": "string",<br>
+          "statusUasg": true,<br>
+          "dataImplantacaoSidec": "2026-06-11T18:37:49.201Z",<br>
+          "dataHoraMovimento": "2024-01-15T10:30:00"<br>
+        }<br>
+    
+    exemplo preenchido:<br>
+        {<br>
+          "codigoUasg": "926922",<br>
+          "nomeUasg": "SECRETARIA M. ADMINISTRAÇÃO/PREF M.UBERLÂNDIA",<br>
+          "usoSisg": false,<br>
+          "adesaoSiasg": true,<br>
+          "siglaUf": "MG",<br>
+          "codigoMunicipio": 54038,<br>
+          "codigoMunicipioIbge": 3170206,<br>
+          "nomeMunicipioIbge": "UBERLÂNDIA",<br>
+          "codigoUnidadePolo": 0,<br>
+          "nomeUnidadePolo": null,<br>
+          "codigoUnidadeEspelho": 0,<br>
+          "nomeUnidadeEspelho": null,<br>
+          "uasgCadastradora": false,<br>
+          "cnpjCpfUasg": "",<br>
+          "codigoOrgao": 98800,<br>
+          "cnpjCpfOrgao": "18431312000620",<br>
+          "cnpjCpfOrgaoVinculado": "18715615000160",<br>
+          "cnpjCpfOrgaoSuperior": "0",<br>
+          "codigoSiorg": "",<br>
+          "statusUasg": true,<br>
+          "dataImplantacaoSidec": "2018-06-06T03:00:00.000+00:00",<br>
+          "dataHoraMovimento": "2025-07-29T17:12:00"<br>
+        }<br>   
+    
+    
+    
+
+
+</body>
+</html>

@@ -1,0 +1,435 @@
+================================================================================
+  TRIGGER TI — LICENÇAS & COBRANÇAS (trigger/14)
+  Explicação completa do sistema
+  Gerado em: 15/06/2026
+================================================================================
+
+
+1. O QUE É ESTE SISTEMA?
+--------------------------------------------------------------------------------
+
+Este projeto é um PAINEL WEB LOCAL usado pela Trigger TI para:
+
+  (a) Gerenciar licenças B2B dos apps myCondominio e EstSankhya no Supabase
+  (b) Emitir cobranças (boleto + Pix) via API Cobrança do Banco Inter
+  (c) Liberar/renovar licenças automaticamente quando o cliente paga
+
+Em resumo: a Trigger TI vende licenças de software para condomínios/empresas.
+O painel cuida do cadastro, da cobrança e da liberação. Os apps Android/Flutter
+NÃO falam com o Inter — eles só consultam o Supabase para saber se a licença
+está válida.
+
+
+2. VISÃO GERAL DA ARQUITETURA
+--------------------------------------------------------------------------------
+
+                         emitir cobrança
+    ┌─────────────────┐ ──────────────────────► ┌──────────────────┐
+    │  Painel (8091)  │                         │   Inter API      │
+    │  trigger/14     │ ◄──── webhook pagamento │   Trigger TI     │
+    │  FastAPI+HTML   │                         │   (conta PJ TI)  │
+    └────────┬────────┘                         └──────────────────┘
+             │
+             │  lê/escreve licenses + billing_charges
+             │  (via service_role key)
+             ▼
+    ┌─────────────────┐     license-status       ┌──────────────────┐
+    │    Supabase     │ ◄─────────────────────── │  Apps Android/   │
+    │  (PostgreSQL)   │     license-activate     │  Flutter         │
+    │  licenses       │                          │  myCondominio    │
+    │  billing_charges│                          │  EstSankhya      │
+    └─────────────────┘                          └──────────────────┘
+
+    ┌─────────────────┐
+    │  SQLite local   │  ← credenciais Supabase + Inter (NÃO vai pro git)
+    │  data/app.db    │
+    └─────────────────┘
+
+
+3. OS DOIS "MUNDOS" INTER (MUITO IMPORTANTE)
+--------------------------------------------------------------------------------
+
+Existem DUAS integrações Inter completamente separadas:
+
+  ┌────────────────────────────┬─────────────────────────────────────────┐
+  │ App condomínio (Android)   │ Este painel (Trigger TI)                │
+  ├────────────────────────────┼─────────────────────────────────────────┤
+  │ Conta PJ do CONDOMÍNIO     │ Conta PJ da TRIGGER TI                  │
+  │ Uma integração por cond.   │ Uma integração única (licenças B2B)     │
+  │ Credenciais no aparelho    │ Credenciais em data/inter_trigger_ti/   │
+  │ Moradores pagam taxas      │ Clientes B2B pagam licença/mensalidade  │
+  └────────────────────────────┴─────────────────────────────────────────┘
+
+NUNCA misture credenciais, certificados ou contas entre esses dois mundos.
+
+
+4. COMPONENTES DO PROJETO
+--------------------------------------------------------------------------------
+
+4.1 Backend (Python / FastAPI)
+    Arquivo principal: app/main.py
+    - Servidor HTTP na porta 8000 (Docker expõe como 8091)
+    - API REST para configuração, CRUD Supabase, cobranças e webhook
+    - Interface web estática em app/static/ (index.html, app.js, style.css)
+
+4.2 Serviço de cobrança
+    Arquivo: app/billing_service.py
+    - Emite cobranças iniciais e mensais no Inter
+    - Registra cobranças na tabela billing_charges (Supabase)
+    - Sincroniza status (Sync manual ou webhook)
+    - Atualiza licença quando pagamento confirmado
+
+4.3 Cliente Inter
+    Arquivo: app/inter_client.py
+    - OAuth 2.0 com mTLS (certificado .crt + chave .key)
+    - API Cobrança v3 do Inter (boleto + Pix)
+    - Cache de token OAuth em memória (evita limite 429)
+    - Header x-conta-corrente obrigatório para consultar/cancelar/PDF
+
+4.4 Banco local (SQLite)
+    Arquivo: app/database.py
+    - Armazena credenciais sensíveis FORA do Supabase
+    - Tabelas: supabase_config, inter_billing_config, registered_apps
+    - Persiste em data/app.db (volume Docker montado em ./data)
+
+4.5 Helpers de licença
+    Arquivo: app/license_helpers.py
+    - Gera chaves sequenciais: TRIG-2026-0001, TRIG-2026-0002...
+    - Preenche defaults ao criar licença
+    - Enriquece dados do pagador via CNPJ
+
+4.6 Consulta CNPJ
+    Arquivo: app/cnpj_lookup.py
+    - Tenta várias APIs públicas em sequência (BrasilAPI, MinhaReceita,
+      OpenCNPJ, CNPJa, CNPJ.ws) com fallback automático
+    - Preenche nome, endereço, cidade, UF e CEP do pagador
+
+
+5. ONDE FICAM OS DADOS
+--------------------------------------------------------------------------------
+
+5.1 Supabase (nuvem) — dados de negócio
+    Tabela: licenses
+      - license_key      → chave que o cliente digita no app (TRIG-2026-0001)
+      - app_id           → "mycondominio" ou "estsankhya"
+      - cnpj             → CPF/CNPJ do pagador (14 ou 11 dígitos)
+      - implantacao_paga → false até pagar cobrança inicial
+      - ativa            → licença habilitada no sistema
+      - valido_ate       → data limite de validade (renovada a cada pagamento)
+      - ativada_em       → quando o app vinculou o aparelho (Edge Function)
+      - device_id        → aparelho vinculado
+      - pagador_*        → nome, endereço, cidade, UF, CEP (para cobrança Inter)
+      - condominio_nome  → nome do condomínio/empresa
+      - plano            → padrão "mensal"
+      - notas            → anotações internas
+
+    Tabela: billing_charges
+      - license_key         → licença vinculada
+      - charge_type         → "INITIAL" (implantação+1ª mens.) ou "MONTHLY"
+      - seu_numero            → identificador único na Inter (máx. 15 chars)
+      - codigo_solicitacao    → ID da cobrança no Inter
+      - valor_nominal         → valor total
+      - valor_implantacao     → parte de implantação (só INITIAL)
+      - valor_mensalidade     → parte mensalidade
+      - data_vencimento       → vencimento do boleto/Pix
+      - status                → EMITIDA | PAGA | CANCELADA | EXPIRADA
+      - inter_situacao        → situação retornada pelo Inter
+      - pix_copia_cola        → código Pix copia e cola
+      - linha_digitavel       → linha digitável do boleto
+      - paid_at               → timestamp do pagamento
+      - license_updated       → true quando licença já foi renovada por esta cobrança
+      - inter_payload         → JSON completo da resposta Inter
+
+    Edge Functions (fora deste projeto, em myCondominio/license-server):
+      - license-status  → app consulta se pode usar (allowed: true/false)
+      - license-activate → app vincula device_id à licença na primeira ativação
+
+5.2 Máquina local — dados sensíveis de configuração
+
+    data/
+    ├── app.db                    ← SQLite com credenciais
+    └── inter_trigger_ti/
+        ├── trigger_ti.crt        ← certificado mTLS Inter
+        └── trigger_ti.key        ← chave privada Inter
+
+    docker compose down NÃO apaga esses dados.
+    Faça backup copiando a pasta data/.
+    NUNCA commite data/ no git.
+
+
+6. FLUXOS OPERACIONAIS DETALHADOS
+--------------------------------------------------------------------------------
+
+6.1 PRÉ-CADASTRO DE LICENÇA (ainda NÃO libera o app)
+
+    1. Operador abre painel → tabela licenses → Novo
+    2. Informa CNPJ → painel busca dados na Receita (BrasilAPI etc.)
+    3. Seleciona app_id (mycondominio ou estsankhya)
+    4. Painel define automaticamente:
+         - license_key = TRIG-ANO-NNNN (sequencial)
+         - implantacao_paga = false
+         - ativa = true
+         - valido_ate = hoje + 30 dias
+    5. Licença salva no Supabase
+    6. App AINDA BLOQUEADO: implantacao_paga=false impede uso
+
+6.2 COBRANÇA INICIAL (implantação + 1ª mensalidade)
+
+    1. Operador clica "Cobrança inicial" na licença
+    2. BillingService verifica:
+         - Licença existe
+         - implantacao_paga ainda é false
+         - Não há cobrança INITIAL com status EMITIDA em aberto
+         - CNPJ/endereço do pagador estão completos
+    3. Valor = valor_implantacao + valor_mensalidade (config Inter, ex: 500+99)
+    4. Vencimento = hoje + dias_vencimento (padrão 7 dias)
+    5. Emite cobrança na API Inter (boleto + Pix)
+    6. Salva registro em billing_charges com status EMITIDA
+    7. Operador envia PDF ou Pix copia e cola ao cliente
+
+6.3 CONFIRMAÇÃO DE PAGAMENTO
+
+    Caminho A — Webhook (automático):
+      1. Cliente paga no banco
+      2. Inter envia POST para URL pública do painel:
+         /api/inter/webhook?token=...
+      3. BillingService localiza cobrança por codigo_solicitacao ou seu_numero
+      4. Atualiza status para PAGA
+      5. Chama _renew_license():
+           - implantacao_paga = true (se cobrança INITIAL)
+           - valido_ate estendido +32 dias a partir do fim atual ou hoje
+           - ativa = true
+      6. Marca license_updated = true na cobrança
+
+    Caminho B — Sync manual:
+      1. Operador clica "Sync" na cobrança
+      2. Painel consulta GET /cobranca/v3/cobrancas/{codigo} no Inter
+      3. Mesma lógica de atualização do webhook
+
+6.4 ATIVAÇÃO NO APP (após pagamento confirmado)
+
+    1. Operador faz implantação assistida no condomínio
+    2. Cliente digita license_key no app
+    3. App chama Edge Function license-activate
+    4. Supabase vincula device_id e preenche ativada_em
+    5. App chama license-status periodicamente:
+         - Verifica implantacao_paga = true
+         - Verifica valido_ate não expirou (+ 7 dias de carência)
+         - Retorna allowed: true → app libera
+
+6.5 MENSALIDADE (renovação mensal)
+
+    1. Só pode emitir se implantacao_paga = true
+    2. Valor = valor_mensalidade (ex: R$ 99)
+    3. Mesmo fluxo de emissão → pagamento → webhook/sync
+    4. Ao pagar: valido_ate estendido +32 dias (não altera implantacao_paga)
+
+    NOTA: emissão mensal automática (job agendado) AINDA NÃO EXISTE.
+          Hoje é manual pelo painel, todo mês, por cliente.
+
+
+7. REGRAS DE NEGÓCIO IMPORTANTES
+--------------------------------------------------------------------------------
+
+  - Renovação: +32 dias (RENEWAL_DAYS) a cada pagamento confirmado
+  - Pré-cadastro: valido_ate inicial = +30 dias (só placeholder)
+  - Só 1 cobrança EMITIDA por tipo (INITIAL ou MONTHLY) por licença
+  - seu_numero: máximo 15 caracteres na Inter
+      INITIAL:  I + license_key sem hífens
+      MONTHLY:  M + AAMMDD + license_key compactada
+  - Pagamento detectado quando situacao Inter contém RECEBIDO, LIQUIDADO,
+    QUITADO, PAGO, ou valor_recebido >= valor_nominal
+  - Cancelamento: só cobrança EMITIDA; Inter retorna BAIXADO/CANCELADO
+  - Conta corrente: só dígitos, conta+dígito SEM hífen (ex: 538375221)
+  - Apps cadastrados: mycondominio e estsankhya (seed automático no SQLite)
+
+
+8. INTERFACE DO PAINEL (seções)
+--------------------------------------------------------------------------------
+
+  Credenciais  → URL Supabase + service_role key
+  Inter        → Client ID/Secret, certificados, conta corrente, valores,
+                 webhook, endereço fallback do pagador
+  Apps         → cadastro de app_id permitidos
+  Tabela licenses → CRUD genérico via OpenAPI do Supabase + formulário
+                    especial para nova licença (CNPJ, busca automática)
+  Cobranças    → emitir inicial/mensalidade, PDF, Pix, Sync, Cancelar
+
+
+9. API REST DO PAINEL (referência)
+--------------------------------------------------------------------------------
+
+  Configuração Supabase:
+    GET/POST  /api/config
+    POST      /api/config/test
+
+  Apps:
+    GET       /api/apps
+    POST      /api/apps
+    DELETE    /api/apps/{app_id}
+
+  CRUD Supabase (genérico, descobre schema via OpenAPI):
+    GET       /api/tables
+    GET       /api/tables/{table}
+    GET       /api/tables/{table}/schema
+    POST      /api/tables/{table}
+    PATCH     /api/tables/{table}/{row_id}
+    DELETE    /api/tables/{table}/{row_id}
+
+  Licenças:
+    GET       /api/licenses/next-key
+    GET       /api/cnpj/{cnpj}
+
+  Inter:
+    GET/POST  /api/inter/config
+    POST      /api/inter/config/upload-cert
+    POST      /api/inter/config/test
+    GET       /api/inter/webhook/info
+    POST      /api/inter/webhook/register
+    POST      /api/inter/webhook?token=...   ← callback do Inter
+
+  Cobranças:
+    GET       /api/billing/charges
+    POST      /api/billing/charges/initial
+    POST      /api/billing/charges/monthly
+    POST      /api/billing/charges/{id}/sync
+    POST      /api/billing/charges/{id}/cancel
+    GET       /api/billing/charges/{id}/pdf
+
+
+10. WEBHOOK — COMO FUNCIONA
+--------------------------------------------------------------------------------
+
+  Problema: o painel roda localmente; o Inter precisa de URL pública HTTPS.
+
+  Solução:
+    1. Expor painel via ngrok, Cloudflare Tunnel ou VPS com domínio
+    2. Configurar "URL pública" no painel (sem barra final)
+    3. Painel gera token secreto automático
+    4. URL completa: {url_publica}/api/inter/webhook?token={token}
+    5. Clicar "Registrar no Inter" → PUT na API Inter
+
+  Segurança: requisições sem token correto recebem HTTP 401.
+
+  Sem webhook: use botão Sync manualmente após cada pagamento.
+
+
+11. COMO SUBIR O SISTEMA
+--------------------------------------------------------------------------------
+
+  Pré-requisitos:
+    - Docker instalado
+    - Projeto Supabase com tabelas licenses e billing_charges
+    - Edge Functions license-status e license-activate publicadas
+    - Integração Inter Trigger TI (Client ID, Secret, .crt, .key)
+
+  Migrations Supabase (ordem):
+    1. myCondominio/license-server/.../20260601000000_licenses.sql
+    2. myCondominio/license-server/.../20260602000000_license_app_id.sql
+    3. trigger/14/migrations/20260609000000_billing_charges.sql
+    4. trigger/14/migrations/20260609100000_license_pagador.sql
+
+  Subir painel:
+    cd /home/dfmoura/Documents/test_several1/trigger/14
+    docker compose up --build
+
+  Acessar: http://localhost:8091
+  (README menciona 8090; docker-compose.yml atual mapeia 8091:8000)
+
+  Configurar no painel (ordem):
+    1. Credenciais → Testar → Salvar
+    2. Inter → upload certificados → Testar → Salvar
+    3. Webhook → URL pública → Registrar no Inter
+    4. Cadastrar licença → Cobrança inicial
+
+
+12. STACK TECNOLÓGICA
+--------------------------------------------------------------------------------
+
+  Backend:     Python 3.12, FastAPI, Uvicorn, SQLAlchemy, httpx, Pydantic
+  Frontend:    HTML/CSS/JavaScript vanilla (sem framework)
+  Local DB:    SQLite (WAL mode)
+  Cloud DB:    Supabase PostgreSQL (via REST API + service_role)
+  Pagamentos:  Banco Inter API Cobrança v3 (OAuth mTLS)
+  Container:   Docker (Dockerfile + docker-compose.yml)
+  CNPJ:        APIs públicas (BrasilAPI, MinhaReceita, OpenCNPJ, etc.)
+
+
+13. ESTRUTURA DE ARQUIVOS
+--------------------------------------------------------------------------------
+
+  trigger/14/
+  ├── app/
+  │   ├── main.py              ← rotas FastAPI
+  │   ├── billing_service.py   ← lógica de cobrança e renovação
+  │   ├── inter_client.py      ← cliente HTTP Inter
+  │   ├── inter_config.py      ← factory e config Inter
+  │   ├── license_helpers.py   ← geração de chaves e defaults
+  │   ├── cnpj_lookup.py       ← consulta CNPJ multi-provider
+  │   ├── supabase_client.py   ← cliente REST Supabase
+  │   ├── schema.py            ← validação dinâmica via OpenAPI
+  │   ├── database.py          ← SQLite local
+  │   └── static/              ← interface web
+  ├── migrations/              ← SQL para Supabase
+  ├── data/                    ← persistência local (gitignored)
+  ├── scripts/                 ← systemd/cloudflared helpers
+  ├── docker-compose.yml
+  ├── Dockerfile
+  ├── requirements.txt
+  └── README.md
+
+
+14. PROBLEMAS COMUNS E CAUSAS
+--------------------------------------------------------------------------------
+
+  App: "Implantação ainda não confirmada"
+    → implantacao_paga = false no Supabase
+    → Emitir cobrança inicial e confirmar pagamento (webhook ou Sync)
+
+  App: "Licença expirada"
+    → valido_ate venceu (+ 7 dias de carência no app)
+    → Emitir Mensalidade e confirmar pagamento
+
+  Cobrança emitida, licença não atualiza
+    → Webhook inacessível (ngrok caiu, URL mudou)
+    → Usar Sync manual
+
+  OAuth 429 no Inter
+    → Muitos cliques em Testar/Sync
+    → Aguardar ~1 minuto (painel reutiliza token em cache)
+
+  Cancelar cobrança falha
+    → Conta corrente vazia ou com hífen
+    → Usar só dígitos: conta+dígito (ex: 538375221)
+
+  Tabela billing_charges não existe
+    → Executar migration 20260609000000_billing_charges.sql
+
+  Erro pagador_cep / PGRST204
+    → Executar migration 20260609100000_license_pagador.sql
+
+
+15. O QUE O SISTEMA NÃO FAZ (limitações atuais)
+--------------------------------------------------------------------------------
+
+  - Não emite mensalidades automaticamente (sem cron/job)
+  - Não implementa Pix Automático (usa API Cobrança boleto+Pix)
+  - Não gerencia o Inter dos condomínios (só Trigger TI)
+  - Não substitui as Edge Functions dos apps
+  - Não tem autenticação de usuário no painel (uso interno/local)
+  - Apps não acessam billing_charges (RLS sem políticas públicas)
+
+
+16. RESUMO EM UMA FRASE
+--------------------------------------------------------------------------------
+
+  O painel trigger/14 é a central operacional da Trigger TI para vender
+  licenças B2B: cadastra clientes no Supabase, cobra via Inter da conta
+  PJ da TI, e libera os apps myCondominio/EstSankhya quando o pagamento
+  é confirmado — tudo separado da integração Inter que cada condomínio
+  usa internamente no app de gestão condominial.
+
+
+================================================================================
+  Fim do documento
+================================================================================

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Licitações — Uberlândia</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/dashboard.css" />
+</head>
+<body>
+  <header>
+    <div class="wrap header-inner">
+      <div>
+        <p class="tag">Observatório Social — Uberlândia</p>
+        <h1>Licitações Municipais</h1>
+      </div>
+      <nav>
+        <button class="nav-btn" data-page="dashboard">Guia gerencial</button>
+        <button class="nav-btn active" data-page="coletar">Coletar</button>
+        <button class="nav-btn" data-page="consultar">Consultar</button>
+        <button class="nav-btn" data-page="compras-coletar">Compras.gov</button>
+        <button class="nav-btn" data-page="compras-consultar">Compras — Consulta</button>
+        <button class="nav-btn" data-page="powerbi-coletar">Power BI — Coletar</button>
+        <button class="nav-btn" data-page="powerbi-consultar">Power BI — Consulta</button>
+        <button class="nav-btn" data-page="observadores">Observadores</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap" id="main">
+    <!-- GUIA GERENCIAL (removível) -->
+    <section id="page-dashboard" class="page dashboard-page">
+      <div id="dashboard-root"></div>
+    </section>
+
+    <!-- COLETAR -->
+    <section id="page-coletar" class="page active">
+      <div class="card">
+        <h2>Coletar do portal</h2>
+        <p class="muted">Acessa a tela de consulta da prefeitura, filtra por órgão e ano, e salva no banco local.</p>
+        <form id="form-coletar" class="form-row">
+          <label>
+            Empresa / Órgão
+            <select id="coleta-empresa" required></select>
+          </label>
+          <label>
+            Ano
+            <input type="number" id="coleta-ano" value="2026" min="2000" max="2100" required />
+          </label>
+          <button type="submit" class="btn primary" id="btn-coletar">Iniciar coleta</button>
+        </form>
+        <div id="coleta-log" class="log hidden"></div>
+        <div id="coleta-result" class="result hidden"></div>
+      </div>
+    </section>
+
+    <!-- CONSULTAR -->
+    <section id="page-consultar" class="page consult-page">
+      <div class="card filters-card">
+        <form id="form-filtros" class="filters-grid">
+          <label class="fg-ano">
+            Ano
+            <input type="number" id="filtro-ano" placeholder="Todos" />
+          </label>
+          <label class="fg-empresa">
+            Órgão
+            <select id="filtro-empresa"><option value="">Todos</option></select>
+          </label>
+          <label class="fg-modalidade">
+            Modalidade
+            <select id="filtro-modalidade"><option value="">Todas</option></select>
+          </label>
+          <label class="fg-situacao">
+            Situação
+            <select id="filtro-situacao"><option value="">Todas</option></select>
+          </label>
+          <label class="fg-processo">
+            Processo
+            <input type="text" id="filtro-processo" placeholder="Ex.: 123, PE 45/2025" autocomplete="off" />
+          </label>
+          <label class="fg-busca">
+            Busca
+            <input type="text" id="filtro-texto" placeholder="Modalidade ou descrição" />
+          </label>
+          <div class="fg-actions filter-actions">
+            <button type="submit" class="btn primary">Buscar</button>
+            <button type="button" class="btn ghost" id="btn-limpar">Limpar</button>
+          </div>
+        </form>
+        <p id="consulta-meta" class="meta-bar"></p>
+      </div>
+
+      <div class="table-panel">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-proc">Processo</th>
+              <th class="col-mod">Modalidade</th>
+              <th class="col-org">Órgão</th>
+              <th class="col-ano">Ano</th>
+              <th class="col-dt">Abertura</th>
+              <th class="col-sit">Situação</th>
+              <th class="col-val">Valor est.</th>
+              <th class="col-obs">Observador</th>
+              <th class="col-desc">Descrição</th>
+            </tr>
+          </thead>
+          <tbody id="tabela"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- COMPRAS.GOV — COLETAR (API PNCP Dados Abertos) -->
+    <section id="page-compras-coletar" class="page">
+      <div class="card">
+        <h2>Coletar — PNCP (Dados Abertos)</h2>
+        <p class="muted">
+          Fonte: <a href="https://dadosabertos.compras.gov.br/swagger-ui/index.html" target="_blank" rel="noopener">API Dados Abertos Compras.gov.br</a>
+          — contratações Lei 14.133. Sem navegador nem captcha.
+        </p>
+        <form id="form-compras-coletar" class="form-col">
+          <div class="form-row">
+            <label>
+              Ano (publicação PNCP)
+              <input type="number" id="compras-coleta-ano" placeholder="Ex.: 2025" min="2000" max="2100" />
+            </label>
+            <label>
+              Data inicial (opcional)
+              <input type="date" id="compras-coleta-data-inicial" />
+            </label>
+            <label>
+              Data final (opcional)
+              <input type="date" id="compras-coleta-data-final" />
+            </label>
+          </div>
+          <p class="muted small">Use o <strong>ano</strong> ou o par de datas (máx. 365 dias por requisição; períodos maiores são divididos automaticamente).</p>
+          <fieldset class="chk-fieldset">
+            <legend>Unidades compradoras</legend>
+            <div id="compras-coleta-unidades" class="chk-grid"></div>
+          </fieldset>
+          <fieldset class="chk-fieldset">
+            <legend>Modalidades (código 1–12)</legend>
+            <div id="compras-coleta-modalidades" class="chk-grid modalidades-grid"></div>
+          </fieldset>
+          <button type="submit" class="btn primary" id="btn-compras-coletar">Iniciar coleta</button>
+        </form>
+        <div id="compras-coleta-log" class="log hidden"></div>
+        <div id="compras-coleta-result" class="result hidden"></div>
+      </div>
+    </section>
+
+    <!-- COMPRAS.GOV — CONSULTAR -->
+    <section id="page-compras-consultar" class="page consult-page">
+      <div class="card filters-card">
+        <form id="form-compras-filtros" class="filters-grid compras-filters">
+          <label class="fg-ano">
+            Ano
+            <input type="number" id="compras-filtro-ano" placeholder="Todos" />
+          </label>
+          <label class="fg-empresa">
+            Unidade
+            <select id="compras-filtro-unidade"><option value="">Todas</option></select>
+          </label>
+          <label class="fg-situacao">
+            Situação
+            <select id="compras-filtro-situacao"><option value="">Todas</option></select>
+          </label>
+          <label class="fg-numero">
+            Nº compra
+            <input type="text" id="compras-filtro-numero" placeholder="Ex.: 90011, 567" autocomplete="off" />
+          </label>
+          <label class="fg-busca">
+            Busca
+            <input type="text" id="compras-filtro-texto" placeholder="Objeto, PNCP, processo ou chave" />
+          </label>
+          <div class="fg-actions filter-actions">
+            <button type="submit" class="btn primary">Buscar</button>
+            <button type="button" class="btn ghost" id="btn-compras-limpar">Limpar</button>
+          </div>
+        </form>
+        <p id="compras-consulta-meta" class="meta-bar"></p>
+      </div>
+
+      <div class="table-panel">
+        <table class="data-table compras-table">
+          <thead>
+            <tr>
+              <th class="col-num">Nº / Modalidade</th>
+              <th class="col-org">Unidade</th>
+              <th class="col-ano">Ano</th>
+              <th class="col-sit">Situação</th>
+              <th class="col-val">Valor est.</th>
+              <th class="col-val">Valor hom.</th>
+              <th class="col-pncp">PNCP</th>
+              <th class="col-obs">Observador</th>
+              <th class="col-desc">Objeto</th>
+            </tr>
+          </thead>
+          <tbody id="compras-tabela"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- POWER BI — COLETAR -->
+    <section id="page-powerbi-coletar" class="page">
+      <div class="card">
+        <h2>Coletar — Power BI (Dados Abertos PMU)</h2>
+        <p class="muted">
+          Baixa as bases CSV oficiais dos painéis
+          <a href="https://app.powerbi.com/view?r=eyJrIjoiMzk4ZWFhYmYtMjdjMC00Yzk4LTkxNTAtNzM2MzM0YTAwYWE0IiwidCI6IjdmNWY0YjY0LTcwZDAtNDMwZi1iMDc2LWE0ODg2MmI4NjUxOCJ9" target="_blank" rel="noopener">Power BI — Licitações</a>.
+          Encoding Windows (CP1252/Latin-1), separador <code>;</code>. Cada coleta <strong>substitui</strong> os dados do ano/base selecionados.
+        </p>
+        <form id="form-pbi-coletar" class="form-col">
+          <label>
+            Anos (licitações e contratos)
+            <input type="text" id="pbi-coleta-anos" placeholder="Ex.: 2025, 2026" value="2025, 2026" />
+          </label>
+          <fieldset class="chk-fieldset">
+            <legend>Bases CSV</legend>
+            <div id="pbi-coleta-datasets" class="chk-grid">
+              <label class="inline-chk"><input type="checkbox" name="dataset" value="licitacoes" checked /> Licitações</label>
+              <label class="inline-chk"><input type="checkbox" name="dataset" value="contratos" checked /> Contratos</label>
+              <label class="inline-chk"><input type="checkbox" name="dataset" value="gestores" checked /> Gestores e fiscais</label>
+            </div>
+          </fieldset>
+          <button type="submit" class="btn primary" id="btn-pbi-coletar">Iniciar coleta</button>
+        </form>
+        <div id="pbi-coleta-log" class="log hidden"></div>
+        <div id="pbi-coleta-result" class="result hidden"></div>
+      </div>
+    </section>
+
+    <!-- POWER BI — CONSULTAR -->
+    <section id="page-powerbi-consultar" class="page consult-page">
+      <div class="card filters-card">
+        <div class="pbi-tabs">
+          <button type="button" class="pbi-tab active" data-dataset="licitacoes">Licitações</button>
+          <button type="button" class="pbi-tab" data-dataset="contratos">Contratos</button>
+          <button type="button" class="pbi-tab" data-dataset="gestores">Gestores e fiscais</button>
+        </div>
+        <form id="form-pbi-filtros" class="filters-grid pbi-filters">
+          <div class="pbi-filtros-dataset" data-dataset="licitacoes">
+            <label class="fg-ano">Ano <input type="number" id="pbi-filtro-lic-ano" placeholder="Todos" /></label>
+            <label>Empresa <select id="pbi-filtro-lic-empresa"><option value="">Todas</option></select></label>
+            <label>Situação <select id="pbi-filtro-lic-situacao"><option value="">Todas</option></select></label>
+            <label>Modalidade <select id="pbi-filtro-lic-modalidade"><option value="">Todas</option></select></label>
+            <label class="fg-processo">Processo <input type="text" id="pbi-filtro-lic-processo" autocomplete="off" /></label>
+            <label class="fg-busca">Busca <input type="text" id="pbi-filtro-lic-texto" placeholder="Objeto, solicitante…" /></label>
+          </div>
+          <div class="pbi-filtros-dataset" data-dataset="contratos" hidden>
+            <label class="fg-ano">Ano contrato <input type="number" id="pbi-filtro-con-ano" placeholder="Todos" /></label>
+            <label>Empresa <select id="pbi-filtro-con-empresa"><option value="">Todas</option></select></label>
+            <label class="fg-numero">Nº contrato <input type="text" id="pbi-filtro-con-numero" autocomplete="off" /></label>
+            <label class="fg-processo">Processo <input type="text" id="pbi-filtro-con-processo" autocomplete="off" /></label>
+            <label class="fg-busca">Busca <input type="text" id="pbi-filtro-con-texto" placeholder="Objeto, fornecedor…" /></label>
+          </div>
+          <div class="pbi-filtros-dataset" data-dataset="gestores" hidden>
+            <label class="fg-ano">Ano contrato <input type="number" id="pbi-filtro-gest-ano" placeholder="Todos" /></label>
+            <label>Órgão <select id="pbi-filtro-gest-orgao"><option value="">Todos</option></select></label>
+            <label>Papel <select id="pbi-filtro-gest-papel"><option value="">Todos</option></select></label>
+            <label class="fg-numero">Nº contrato <input type="text" id="pbi-filtro-gest-numero" autocomplete="off" /></label>
+            <label class="fg-busca">Busca <input type="text" id="pbi-filtro-gest-texto" placeholder="Pessoa, objeto, fornecedor…" /></label>
+          </div>
+          <div class="fg-actions filter-actions">
+            <button type="submit" class="btn primary">Buscar</button>
+            <button type="button" class="btn ghost" id="btn-pbi-limpar">Limpar</button>
+          </div>
+        </form>
+        <p id="pbi-consulta-meta" class="meta-bar"></p>
+      </div>
+      <div class="table-panel">
+        <table class="data-table pbi-table">
+          <thead id="pbi-tabela-head"></thead>
+          <tbody id="pbi-tabela"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- OBSERVADORES -->
+    <section id="page-observadores" class="page">
+      <div class="card">
+        <h2>Cadastrar observador</h2>
+        <p class="muted">Pessoas que acompanham licitações. Depois vincule na consulta.</p>
+        <form id="form-observador" class="form-row">
+          <label>
+            Nome *
+            <input type="text" id="obs-nome" required maxlength="200" />
+          </label>
+          <label>
+            E-mail
+            <input type="email" id="obs-email" maxlength="200" />
+          </label>
+          <label>
+            Telefone
+            <input type="text" id="obs-telefone" maxlength="40" />
+          </label>
+          <button type="submit" class="btn primary">Cadastrar</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Observadores cadastrados</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Status</th></tr>
+            </thead>
+            <tbody id="tabela-observadores"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="modal-pbi" class="modal-compras-dialog">
+    <div class="modal-head">
+      <h3 id="modal-pbi-titulo"></h3>
+      <button class="btn ghost" id="modal-pbi-fechar">Fechar</button>
+    </div>
+    <div class="modal-body modal-compras-body">
+      <dl id="modal-pbi-info" class="detail-grid detail-grid-panel"></dl>
+      <section class="detail-panel detail-panel-wide">
+        <h4 class="detail-panel-title">Objeto</h4>
+        <p id="modal-pbi-objeto" class="compra-objeto-text muted-empty">—</p>
+      </section>
+      <form id="form-pbi-obs" class="edit-block compra-edit-block">
+        <h4 class="detail-panel-title">Acompanhamento interno</h4>
+        <div class="form-row">
+          <label>Observador <select id="edit-pbi-observador"><option value="">— Nenhum —</option></select></label>
+          <button type="submit" class="btn primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-compras" class="modal-compras-dialog">
+    <div class="modal-head">
+      <h3 id="modal-compras-titulo"></h3>
+      <button class="btn ghost" id="modal-compras-fechar">Fechar</button>
+    </div>
+    <div class="modal-body modal-compras-body">
+      <div id="modal-compras-resumo" class="compra-resumo"></div>
+      <div class="compra-detail-sections">
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Identificação</h4>
+          <dl id="modal-compras-ident" class="detail-grid detail-grid-panel"></dl>
+        </section>
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Prazos e valores</h4>
+          <dl id="modal-compras-prazos" class="detail-grid detail-grid-panel"></dl>
+        </section>
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Órgão e unidade</h4>
+          <dl id="modal-compras-orgao" class="detail-grid detail-grid-panel"></dl>
+        </section>
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Referências PNCP</h4>
+          <dl id="modal-compras-refs" class="detail-grid detail-grid-panel"></dl>
+        </section>
+      </div>
+      <section class="detail-panel detail-panel-wide">
+        <h4 class="detail-panel-title">Objeto</h4>
+        <p id="modal-compras-objeto" class="compra-objeto-text muted-empty">—</p>
+      </section>
+      <section class="detail-panel detail-panel-wide" id="modal-compras-info-wrap" hidden>
+        <h4 class="detail-panel-title">Informação complementar</h4>
+        <p id="modal-compras-info" class="compra-objeto-text"></p>
+      </section>
+      <section class="detail-panel detail-panel-wide detail-panel-muted" id="modal-compras-extra-wrap" hidden>
+        <h4 class="detail-panel-title">Dados PNCP complementares</h4>
+        <dl id="modal-compras-extra" class="detail-grid detail-grid-panel detail-grid-extra"></dl>
+      </section>
+      <form id="form-compra" class="edit-block compra-edit-block">
+        <h4 class="detail-panel-title">Acompanhamento interno</h4>
+        <div class="form-row">
+          <label>
+            Observador
+            <select id="edit-compra-observador">
+              <option value="">— Nenhum —</option>
+            </select>
+          </label>
+          <button type="submit" class="btn primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal">
+    <div class="modal-head">
+      <h3 id="modal-titulo"></h3>
+      <button class="btn ghost" id="modal-fechar">Fechar</button>
+    </div>
+    <div class="modal-body">
+      <dl id="modal-info" class="detail-grid"></dl>
+      <form id="form-licitacao" class="edit-block">
+        <h4>Acompanhamento interno</h4>
+        <div class="form-row">
+          <label>
+            Valor estimado
+            <input type="text" id="edit-valor" placeholder="Ex: R$ 50.000,00" maxlength="80" />
+          </label>
+          <label>
+            Observador
+            <select id="edit-observador">
+              <option value="">— Nenhum —</option>
+            </select>
+          </label>
+          <button type="submit" class="btn primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+  <script src="/static/compras.js"></script>
+  <script src="/static/dashboard.js"></script>
+  <script src="/static/powerbi.js"></script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Supabase CRUD Local</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <h1>Licenças & Cobranças</h1>
+        <p>Supabase + Inter (Trigger TI) — gestão B2B</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="btn-toggle-inter" class="ghost" aria-expanded="false">Inter</button>
+        <button type="button" id="btn-toggle-apps" class="ghost" aria-expanded="false">Apps</button>
+        <button type="button" id="btn-toggle-config" class="ghost" aria-expanded="true">Credenciais</button>
+      </div>
+    </header>
+
+    <div class="app-body" id="app-body">
+      <aside class="side-panel card" id="sidebar">
+        <section class="sidebar-section" id="inter-section" hidden>
+          <div class="section-head">
+            <h2>Inter Trigger TI</h2>
+          </div>
+          <p class="panel-hint">Credenciais separadas do Inter dos condomínios. Cobrança de licenças B2B.</p>
+          <div class="config-body">
+            <label>Client ID <input type="text" id="inter-client-id" /></label>
+            <label>Client Secret <input type="password" id="inter-client-secret" placeholder="deixe vazio para manter" /></label>
+            <label>Conta corrente <input type="text" id="inter-conta" placeholder="538375221 — só números, sem hífen" /></label>
+            <label class="checkbox-row"><input type="checkbox" id="inter-sandbox" /> Sandbox</label>
+            <label>Escopos <input type="text" id="inter-scopes" value="boleto-cobranca.read boleto-cobranca.write" /></label>
+            <label>URL pública (webhook) <input type="url" id="inter-webhook-url" placeholder="https://seu-dominio.com" /></label>
+            <label>Token webhook <input type="text" id="inter-webhook-token" placeholder="gerado automaticamente" readonly /></label>
+            <label>Dias p/ vencimento <input type="number" id="inter-dias-venc" min="1" max="60" value="7" /></label>
+            <label>Endereço fallback pagador <input type="text" id="inter-endereco" value="A informar" /></label>
+            <div class="grid-3">
+              <label>Cidade <input type="text" id="inter-cidade" value="Belo Horizonte" /></label>
+              <label>UF <input type="text" id="inter-uf" maxlength="2" value="MG" /></label>
+              <label>CEP <input type="text" id="inter-cep" value="30130000" /></label>
+            </div>
+            <div class="upload-row">
+              <label>Certificado .crt <input type="file" id="inter-cert-file" accept=".crt,.pem" /></label>
+              <label>Chave .key <input type="file" id="inter-key-file" accept=".key,.pem" /></label>
+            </div>
+            <div class="actions">
+              <button type="button" id="btn-inter-test">Testar</button>
+              <button type="button" id="btn-inter-save" class="primary">Salvar</button>
+            </div>
+            <div class="actions">
+              <button type="button" id="btn-inter-webhook-info">Ver webhook</button>
+              <button type="button" id="btn-inter-webhook-register">Registrar no Inter</button>
+            </div>
+            <p id="inter-status" class="status"></p>
+            <pre id="inter-webhook-info" class="code-block" hidden></pre>
+          </div>
+        </section>
+
+        <section class="sidebar-section" id="apps-section" hidden>
+          <div class="section-head">
+            <h2>Apps (app_id)</h2>
+          </div>
+          <p class="panel-hint">
+            Cada app tem preços próprios (implantação + mensalidade). A cobrança usa o app_id da licença.
+          </p>
+          <ul id="apps-list" class="apps-list"></ul>
+          <div class="add-app">
+            <input type="text" id="new-app-id" placeholder="ex: meuapp" />
+            <button type="button" id="btn-add-app" class="primary">Cadastrar</button>
+          </div>
+          <div class="grid-2 add-app-pricing">
+            <label>Implantação padrão (R$) <input type="number" id="new-app-valor-impl" step="0.01" min="0" value="500" /></label>
+            <label>Mensalidade padrão (R$) <input type="number" id="new-app-valor-mensal" step="0.01" min="0" value="99" /></label>
+          </div>
+          <p id="apps-status" class="status"></p>
+        </section>
+
+        <section class="sidebar-section" id="config-section">
+          <div class="section-head">
+            <h2>Credenciais</h2>
+          </div>
+          <div id="config-body" class="config-body">
+            <label>
+              URL do Supabase
+              <input type="url" id="supabase-url" placeholder="https://xxx.supabase.co" />
+            </label>
+            <label>
+              Service Role Key
+              <input type="password" id="service-role" placeholder="sua_service_role_key" />
+            </label>
+            <div class="actions">
+              <button type="button" id="btn-test">Testar</button>
+              <button type="button" id="btn-save-config" class="primary">Salvar</button>
+            </div>
+            <p id="config-status" class="status"></p>
+          </div>
+        </section>
+      </aside>
+
+      <main class="main-panel card" id="crud-section">
+        <div class="toolbar">
+          <label class="toolbar-field">
+            Tabela
+            <select id="table-select">
+              <option value="">Selecione…</option>
+            </select>
+          </label>
+          <label class="toolbar-field toolbar-grow">
+            Nome manual
+            <input type="text" id="table-name" placeholder="ex: produtos" />
+          </label>
+          <label class="toolbar-field" id="toolbar-app-field" hidden>
+            App para novo registro
+            <select id="default-app-select">
+              <option value="">Selecione o app…</option>
+            </select>
+          </label>
+          <div class="toolbar-actions">
+            <button type="button" id="btn-load" class="primary">Carregar</button>
+            <button type="button" id="btn-new" class="primary">Novo</button>
+          </div>
+        </div>
+
+        <div class="billing-schedule-panel card-inset" id="billing-schedule-panel" hidden>
+          <div class="schedule-head">
+            <div class="schedule-title-row">
+              <h3>Agenda de cobranças</h3>
+              <p class="panel-hint schedule-hint">
+                Prioriza o que emitir ou acompanhar. Renovação: +32 dias por pagamento · carência no app: +7 dias.
+              </p>
+            </div>
+            <div class="schedule-toolbar">
+              <div class="schedule-summary" id="schedule-summary" aria-live="polite"></div>
+              <label class="schedule-filter">
+                <input type="checkbox" id="schedule-show-ok" />
+                Mostrar em dia
+              </label>
+              <button type="button" id="btn-schedule-refresh" class="ghost">Atualizar agenda</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="schedule-table">
+              <thead>
+                <tr>
+                  <th>Prioridade</th>
+                  <th>Licença</th>
+                  <th>Cliente</th>
+                  <th>Válido até</th>
+                  <th>Emitir a partir de</th>
+                  <th>Recomendação</th>
+                  <th>Valor est.</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="billing-toolbar" id="billing-toolbar" hidden>
+          <span class="billing-label">Cobrança Inter:</span>
+          <input type="text" id="billing-license-key" placeholder="license_key da linha ou digite…" />
+          <button type="button" id="btn-billing-initial">Cobrança inicial</button>
+          <button type="button" id="btn-billing-monthly">Mensalidade</button>
+          <button type="button" id="btn-billing-refresh">Atualizar cobranças</button>
+        </div>
+
+        <div class="billing-panel card-inset" id="billing-panel" hidden>
+          <h3>Cobranças emitidas</h3>
+          <div class="table-wrap">
+            <table id="billing-table">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Valor</th>
+                  <th>Vencimento</th>
+                  <th>Status</th>
+                  <th>Inter</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <p id="crud-status" class="status toolbar-status"></p>
+
+        <div class="data-panel">
+          <div class="table-wrap" id="table-wrap" hidden>
+            <table id="data-table">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="empty-state">
+            <p>Selecione uma tabela e clique em <strong>Carregar</strong> para ver os dados.</p>
+          </div>
+        </div>
+
+        <footer class="pagination" id="pagination" hidden>
+          <button type="button" id="btn-prev">Anterior</button>
+          <span id="page-info"></span>
+          <button type="button" id="btn-next">Próxima</button>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="record-modal">
+    <form method="dialog" id="record-form" class="modal-form">
+      <div class="modal-head">
+        <h3 id="modal-title">Registro</h3>
+        <button type="button" id="btn-close-modal" class="ghost">Fechar</button>
+      </div>
+      <div id="form-fields" class="form-fields"></div>
+      <p id="form-status" class="status"></p>
+      <div class="actions modal-actions">
+        <button type="button" id="btn-delete-modal" class="danger" hidden>Excluir</button>
+        <button type="submit" id="btn-save-modal" class="primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/static/app.js?v=20260615b"></script>
+</body>
+</html>

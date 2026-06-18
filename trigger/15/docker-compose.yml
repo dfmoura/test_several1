@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8095:8095"
+    volumes:
+      - ./data:/app/data
+    environment:
+      # Akamai bloqueia Chromium headless; Xvfb + headed é obrigatório (ver entrypoint.sh)
+      - HEADLESS=false
+      - APP_PORT=8095
+    restart: unless-stopped

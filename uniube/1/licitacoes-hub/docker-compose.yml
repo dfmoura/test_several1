@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    # Linux: mesma rede do PC — permite conectar ao Chrome em 127.0.0.1:9222
+    network_mode: host
+    volumes:
+      - ./data:/app/data
+    environment:
+      - HEADLESS=false
+    restart: unless-stopped

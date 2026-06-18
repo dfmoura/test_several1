@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="App Android para gestão financeira de condomínios pequenos: cobrança, extrato bancário e prestação de contas em PDF. Veja o que faz, o que não faz e os requisitos antes de contratar.">
+  <title>Gestão Condominial | Solução financeira automatizada</title>
+  <meta name="theme-color" content="#0e0e0e">
+  <link rel="canonical" href="https://www.triggerti.com/gestao-condominial/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Gestão Condominial | Gestão financeira automatizada">
+  <meta property="og:description" content="Gestão financeira no Android para condomínios pequenos. Veja o que o app faz, o que não faz e os requisitos (Banco Inter, implantação assistida).">
+  <meta property="og:url" content="https://www.triggerti.com/gestao-condominial/">
+  <meta property="og:image" content="https://www.triggerti.com/assets/img/logo-gestao-condominial.png">
+  <!-- Favicon: ícone do app (PNG/ICO para Firefox) -->
+  <link rel="icon" type="image/png" href="/assets/img/favicon-gestao-condominial-32.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="/assets/img/favicon-gestao-condominial-16.png" sizes="16x16">
+  <link rel="icon" type="image/png" href="/assets/img/favicon-gestao-condominial-48.png" sizes="48x48">
+  <link rel="icon" type="image/x-icon" href="/gestao-condominial/favicon.ico">
+  <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon-gestao-condominial.png" sizes="180x180">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body class="page-app">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/gestao-condominial/" class="logo-link logo-link--product">
+        <img src="/assets/img/logo-gestao-condominial.png" alt="" class="product-mark" width="40" height="40" aria-hidden="true">
+        <span class="logo-stack">
+          <span class="logo-text">Gestão Condominial</span>
+          <span class="logo-byline">por Trigger Data Intelligence</span>
+        </span>
+      </a>
+      <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav').classList.toggle('open')">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <nav class="nav" aria-label="Navegação do produto">
+        <a href="#integracao-bancaria">Integração bancária</a>
+        <a href="#transparencia">O que é / limites</a>
+        <a href="#demo">Vídeo</a>
+        <a href="#funcionalidades">Funcionalidades</a>
+        <a href="#planos">Planos</a>
+        <a href="#implantacao">Implantação</a>
+        <a href="#contato">Contato</a>
+        <a href="/" class="nav-link--corp">Trigger TI</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <p class="corp-ribbon">Produto da <a href="/">Trigger Data Intelligence</a> · <a href="/#produtos">ver portfólio</a></p>
+        <h1>Gestão <span>financeira</span> do condomínio no celular</h1>
+        <p class="hero-lead-app">
+          App no Android para cobrança, extrato bancário e prestação de contas em PDF.
+        </p>
+        <p class="hero-lead-secondary">
+          O foco é só a parte financeira do condomínio. Não cobre portaria, reservas nem um ERP
+          administrativo completo. Na implantação assistida, configuramos a conta e os cadastros com você.
+        </p>
+        <div class="hero-actions-app">
+          <a href="#contato" class="btn btn-app-primary">Quero ver funcionando no meu condomínio</a>
+          <a href="#transparencia" class="btn btn-app-outline">O que faz e o que não faz</a>
+        </div>
+        <div class="hero-audience">
+          <span class="audience-tag">Condomínios pequenos (até ~50 unidades)</span>
+          <span class="audience-tag">Android · 1 condomínio por aparelho</span>
+          <a href="#integracao-bancaria" class="audience-tag audience-tag--link">Banco Inter com integração ativa</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="app-meta-bar">
+      <div class="container app-meta">
+        <span class="app-meta-badge">Android</span>
+        <span>Dados no aparelho (sem nuvem automática)</span>
+        <span class="app-meta-sep">·</span>
+        <span>Venda B2B: implantação + mensalidade</span>
+        <span class="app-meta-sep">·</span>
+        <a href="/privacidade-gestao-condominial.html">Política de privacidade do app</a>
+      </div>
+    </div>
+
+    <section id="integracao-bancaria" class="bank-connectors-section" aria-labelledby="bank-connectors-title">
+      <div class="container">
+        <div class="section-header">
+          <h2 id="bank-connectors-title">Integração bancária por conectores</h2>
+          <p>
+            Cobrança, extrato e relatórios funcionam da mesma forma no app; o que muda por banco é o
+            <strong>conector</strong> (ligação com a API da instituição). Assim, incluir outro banco é
+            ampliar o conector, sem reconstruir o produto.
+          </p>
+        </div>
+
+        <div class="bank-connectors-grid">
+          <article class="bank-connector-card bank-connector-card--active">
+            <div class="bank-connector-head">
+              <img
+                src="/assets/img/bank-inter.svg"
+                alt="Banco Inter"
+                class="bank-connector-logo"
+                width="120"
+                height="40"
+                loading="lazy"
+              >
+              <span class="bank-connector-status bank-connector-status--live">Integração disponível</span>
+            </div>
+            <p class="bank-connector-bank-name">Banco Inter</p>
+            <p class="bank-connector-tagline">Conector em produção, pronto para implantação assistida.</p>
+            <ul class="bank-connector-features">
+              <li>Extrato bancário sincronizado por mês</li>
+              <li>Emissão e acompanhamento de cobranças/boletos</li>
+              <li>Saldo da conta no aplicativo</li>
+            </ul>
+          </article>
+
+          <article class="bank-connector-card bank-connector-card--expandable">
+            <div class="bank-connector-head">
+              <img
+                src="/assets/img/bank-connector-more.svg"
+                alt=""
+                class="bank-connector-logo bank-connector-logo--muted"
+                width="120"
+                height="40"
+                loading="lazy"
+                aria-hidden="true"
+              >
+              <span class="bank-connector-status bank-connector-status--roadmap">Próximos conectores</span>
+            </div>
+            <p class="bank-connector-bank-name">Outra instituição financeira</p>
+            <p class="bank-connector-tagline">
+              Conta em outro banco? Priorizamos novos conectores conforme demanda dos condomínios e
+              requisitos da API do banco, sem prometer data fixa.
+            </p>
+            <p class="bank-connector-desc">
+              Na demonstração informamos se já há viabilidade para o seu banco ou qual o caminho
+              (aguardar conector ou operar com lançamentos manuais enquanto isso).
+            </p>
+            <a href="#contato" class="bank-connector-cta">Consultar integração do meu banco</a>
+          </article>
+        </div>
+
+        <p class="bank-connectors-footnote">
+          Logotipos são referência às marcas dos bancos. «Integração disponível» indica conector técnico
+          já implementado no app. Isso não significa endosso nem parceria comercial com a instituição.
+        </p>
+      </div>
+    </section>
+
+    <section id="transparencia" class="transparency-section">
+      <div class="container">
+        <div class="section-header">
+          <h2>Transparência: o que você está contratando</h2>
+          <p>Leia antes de pedir demonstração, para saber se o produto encaixa no seu condomínio, sem surpresas.</p>
+        </div>
+
+        <div class="transparency-summary">
+          <p class="transparency-lead">
+            O <strong>Gestão Condominial</strong> é um aplicativo Android para o síndico (ou administradora)
+            organizar <strong>dinheiro do condomínio</strong>: emitir cobranças, acompanhar extrato, classificar
+            entradas e saídas e gerar PDFs para assembleia. Não substitui um ERP de portaria, reservas ou
+            comunicação com moradores.
+          </p>
+        </div>
+
+        <div class="transparency-grid">
+          <article class="transparency-card transparency-card--yes">
+            <h3>O que o app faz</h3>
+            <ul>
+              <li>Emite cobranças (condomínio em lote ou só pendências; avulsa de mudança, multa ou fundo de reserva), aplica benefício do síndico conforme política do ciclo (proporcional, isenção, percentual fixo ou override por mandato) e sincroniza boletos com o banco configurado (status, importação do Internet Banking, cancelamento e PDF)</li>
+              <li>Sincroniza extrato bancário mensal e ajuda a classificar lançamentos (o app sugere; você confirma)</li>
+              <li>Contas a pagar, despesas fixas mensais e vínculo de pagamentos ao extrato</li>
+              <li>Relatórios em PDF: prestação de contas, demonstrativo, extrato do mês, certidão de débitos</li>
+              <li>Resumo de inadimplência para copiar e enviar (ex.: WhatsApp)</li>
+              <li>Cadastros: condomínio, unidades, moradores, síndicos (política de benefício na taxa e honorários recorrentes), categorias e ciclos de valores</li>
+              <li>Backup e restauração em JSON no próprio aparelho</li>
+            </ul>
+          </article>
+          <article class="transparency-card transparency-card--no">
+            <h3>O que o app não faz</h3>
+            <ul>
+              <li>Portaria, controle de acesso, reservas de área comum ou avisos aos moradores</li>
+              <li>Gestão jurídica, assembleia virtual ou votação online</li>
+              <li>Painel web ou versão para iPhone (somente Android)</li>
+              <li>Vários condomínios no mesmo aparelho (um condomínio por instalação)</li>
+              <li>Seus dados financeiros ficam no aparelho, não em servidor nosso</li>
+              <li>Integração automática com o banco só onde há conector. Hoje: <strong>Banco Inter</strong> (<a href="#integracao-bancaria">ver integrações</a>)</li>
+              <li>Configuração bancária sozinho, sem ajuda (credenciais do Internet Banking pedem implantação assistida)</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="transparency-requirements">
+          <h3>Requisitos práticos</h3>
+          <ul class="requirements-list">
+            <li><strong>Aparelho:</strong> smartphone ou tablet Android do síndico ou da administradora</li>
+            <li><strong>Conta:</strong> hoje, conta no <strong>Banco Inter</strong> com API habilitada (configuramos na implantação). Outro banco? Veja <a href="#integracao-bancaria">integração bancária</a></li>
+            <li><strong>Porte:</strong> pensado para condomínios pequenos (referência: até ~50 unidades)</li>
+            <li><strong>Contrato:</strong> implantação assistida (configuração + treinamento) e mensalidade B2B; a Play Store é vitrine, não o canal principal de venda</li>
+            <li><strong>Seu tempo:</strong> o app acelera cobrança e relatórios, mas classificação de extrato e conferências importantes continuam com supervisão humana</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="flow-section">
+      <div class="container">
+        <div class="section-header" style="margin-bottom: 2rem;">
+          <h2>Como funciona</h2>
+          <p>Fluxo financeiro mensal, com etapas que o síndico ainda revisa e confirma.</p>
+        </div>
+        <div class="flow-grid">
+          <div class="flow-step">
+            <div class="flow-number">1</div>
+            <h3>Cobrança e recebimentos</h3>
+            <p>Emite cobranças do mês (lote ou pendências) e avulsas, sincroniza boletos com o banco e registra baixas (boleto/Pix pelo sync ou manual).</p>
+          </div>
+          <div class="flow-step">
+            <div class="flow-number">2</div>
+            <h3>Extrato e classificação</h3>
+            <p>Sincroniza o extrato do mês. O app sugere unidade e categoria; você valida antes de confirmar.</p>
+          </div>
+          <div class="flow-step">
+            <div class="flow-number">3</div>
+            <h3>Relatórios para assembleia</h3>
+            <p>Exporta PDFs (prestação de contas, demonstrativo, extrato, certidão de débitos) a partir dos dados lançados no app.</p>
+          </div>
+        </div>
+        <p class="flow-honesty-note">
+          Não é “zero trabalho”: reduz planilha e retrabalho, mas a responsabilidade financeira e a conferência final continuam com o síndico.
+        </p>
+      </div>
+    </section>
+
+    <section id="demo" class="demo-section">
+      <div class="container">
+        <div class="section-header">
+          <h2>Veja funcionando</h2>
+          <p>Resumo rápido do app abaixo. Também fazemos demo ao vivo em cerca de 15 minutos, sem compromisso.</p>
+        </div>
+
+        <div class="video-showcase">
+          <article class="video-spotlight video-spotlight--short" aria-labelledby="video-short-title">
+            <div class="video-spotlight__body">
+              <div class="video-spotlight__copy">
+                <span class="video-spotlight__label">Visão rápida</span>
+                <h3 id="video-short-title">Resumo em 17 segundos</h3>
+                <p>Cobrança, extrato e relatórios em menos de meio minuto.</p>
+              </div>
+              <div class="video-spotlight__media">
+                <div class="video-player video-player--portrait">
+                  <iframe
+                    src="https://www.youtube.com/embed/qg5EqeHttQM"
+                    title="Gestão Condominial: resumo em 17 segundos"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                    loading="lazy"
+                  ></iframe>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <p class="video-detail-link">
+            <strong>Vídeo detalhado (5 min 38 s)</strong> no YouTube, com tour completo:
+            cobrança, extrato, classificação e PDF.
+            <a href="https://youtu.be/U3VBUxhdJZg" rel="noopener noreferrer" target="_blank">Assistir demonstração completa</a>
+          </p>
+        </div>
+
+        <p class="video-showcase-note">
+          Prefere ver no seu condomínio? <a href="#contato">Solicite uma demo ao vivo</a>. Mesmo fluxo, no contexto do seu prédio.
+        </p>
+      </div>
+    </section>
+
+    <section id="para-quem">
+      <div class="container">
+        <div class="section-header">
+          <h2>Para quem é</h2>
+          <p>Indicado se sua dor principal é financeira (cobrança, extrato, assembleia) e se você usa Android com Banco Inter hoje.</p>
+        </div>
+        <div class="cards-grid">
+          <article class="card">
+            <div class="card-icon">🏢</div>
+            <h3>Síndicos de condomínios pequenos</h3>
+            <p>Saldos, cobranças, inadimplência e PDFs no celular, sem ERP caro, com treinamento na implantação.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">📋</div>
+            <h3>Administradoras locais</h3>
+            <p>Um aparelho por condomínio atendido; fluxo financeiro padronizado e relatórios repetíveis.</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">💡</div>
+            <h3>Quem quer sair da planilha</h3>
+            <p>Substitui planilha de cobrança e extrato. Não substitui portaria, reservas ou sistemas administrativos amplos.</p>
+          </article>
+        </div>
+        <div class="value-banner">
+          <div>
+            <h3>Diferencial: extrato e cobrança no mesmo lugar</h3>
+            <p>
+              Sincroniza extrato e boletos com o banco, sugere classificação e gera a prestação de contas em PDF.
+              Menos cópia entre planilha, Internet Banking e Word, com revisão humana nas etapas críticas.
+            </p>
+          </div>
+          <div>
+            <p style="color: var(--app-muted); font-size: 0.925rem; line-height: 1.65; margin: 0;">
+              Veja quais bancos já têm conector e como incluímos outros em
+              <a href="#integracao-bancaria" style="color: var(--app-orange);">Integração bancária</a>.
+              Na implantação configuramos credenciais. Você não precisa dominar a API.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="funcionalidades" class="section-alt">
+      <div class="container">
+        <div class="section-header">
+          <h2>Módulos do app (gestão financeira)</h2>
+          <p>Lista alinhada ao aplicativo Android atual: escopo financeiro, dados no aparelho.</p>
+        </div>
+
+        <details class="feature-details">
+          <summary>Ver lista completa de funcionalidades</summary>
+
+        <div class="feature-group">
+          <h3>Início: visão do mês</h3>
+          <ul>
+            <li>Saldo bancário e saldo gerencial lado a lado</li>
+            <li>Resumo de cobranças do mês e contas a pagar em aberto</li>
+            <li>Lista de inadimplência com cópia de resumo para WhatsApp</li>
+          </ul>
+        </div>
+
+        <div class="feature-group">
+          <h3>Cobranças</h3>
+          <ul>
+            <li>Emissão em lote (condomínio do mês), só pendências (unidades sem boleto no mês) ou avulsa (mudança, multa, fundo de reserva), com desconto de síndico conforme política do ciclo vigente</li>
+            <li>Sincronização com boletos do banco (Inter): atualiza status e quitação, importa títulos do Internet Banking, cancelamento e PDF</li>
+            <li>Baixa pelo sync (boleto/Pix na cobrança) ou manual (Pix na conta, transferência, dinheiro), com vínculo ao extrato</li>
+            <li>Multa e mora estimadas; título substituto em atraso; lista de vencidas e arquivamento no mês</li>
+          </ul>
+        </div>
+
+        <div class="feature-group">
+          <h3>Banco: extrato e conciliação</h3>
+          <ul>
+            <li>Sincronização mensal do extrato bancário</li>
+            <li>Sugestão e confirmação de lançamento por unidade/pessoa e categoria (não é 100% automático)</li>
+            <li>Rateio de despesas e vínculo com cobranças recebidas e contas pagas</li>
+            <li>Documentos por lançamento; recibo de pagamento em PDF</li>
+          </ul>
+        </div>
+
+        <div class="feature-group">
+          <h3>Contas a pagar</h3>
+          <ul>
+            <li>Contas avulsas e despesas fixas (modelos recorrentes mensais)</li>
+            <li>Geração automática de contas pendentes e baixa por vínculo ao extrato</li>
+            <li>Documentos por conta (ao pagar, vão para o lançamento no extrato)</li>
+          </ul>
+        </div>
+
+        <div class="feature-group">
+          <h3>Relatórios em PDF</h3>
+          <ul>
+            <li>Prestação de contas (gerencial + extrato + cobranças + comprovantes)</li>
+            <li>Demonstrativo consolidado com projeção de 6 meses e gráfico IGP-M</li>
+            <li>Extrato bancário do mês e posição de cobranças</li>
+            <li>Certidão de débitos por unidade</li>
+          </ul>
+        </div>
+
+        <div class="feature-group">
+          <h3>Cadastros e operação</h3>
+          <ul>
+            <li>Condomínio, unidades (geração em lote), pessoas e vínculos com vigência</li>
+            <li>Síndicos com vigência, override de benefício por mandato e honorários mensais (despesa fixa sincronizada)</li>
+            <li>Ciclos de valores (condomínio, multa, mora, mudança, desconto) com política de remuneração do síndico: proporcional entre co-síndicos, isenção total, percentual fixo, sem desconto ou personalizada por mandato</li>
+            <li>Benefício proporcional aos dias de mandato no mês; escopo por pagador ou unidade do síndico; regras de fundo de reserva alinhadas à política</li>
+            <li>Categorias gerenciais, saldo inicial e onboarding guiado</li>
+            <li>Backup e restauração em JSON; reset seguro com backup automático</li>
+          </ul>
+        </div>
+
+        <div class="app-info-card">
+          <p>
+            Android · um condomínio por aparelho · dados financeiros no dispositivo · credenciais bancárias
+            não vão no backup JSON · documentos são links (URL), não upload de arquivo dentro do app.
+          </p>
+          <a href="/privacidade-gestao-condominial.html">Política de privacidade do app →</a>
+          <a href="#transparencia" style="display: block; margin-top: 0.5rem;">← Voltar a o que faz e o que não faz</a>
+        </div>
+        </details>
+      </div>
+    </section>
+
+    <section id="planos">
+      <div class="container">
+        <div class="section-header">
+          <h2>Como contratar (sem surpresa)</h2>
+          <p>A proposta depende do porte do condomínio e do escopo da implantação. Enviamos os detalhes na demonstração.</p>
+        </div>
+        <div class="pricing-grid">
+          <div class="pricing-card featured">
+            <h3>Implantação assistida</h3>
+            <p>Cadastros, integração com conta Inter, treinamento e entrega do app pronto para operar (remoto ou presencial). Sem isso, a configuração bancária é difícil para quem não é técnico.</p>
+          </div>
+          <div class="pricing-card">
+            <h3>Mensalidade</h3>
+            <p>Por condomínio. Inclui suporte, atualizações e licença de uso no modelo B2B acordado em contrato.</p>
+          </div>
+        </div>
+        <p class="pricing-note">
+          <strong>Não é assinatura automática pela Play Store.</strong> O app na loja é vitrine; fechamos implantação e mensalidade
+          diretamente (e-mail ou conversa comercial). Primeiros condomínios podem ter condição piloto; pergunte na demonstração.
+        </p>
+      </div>
+    </section>
+
+    <section id="implantacao" class="section-alt">
+      <div class="container">
+        <div class="section-header">
+          <h2>Implantação assistida</h2>
+          <p>Recomendado para a maioria dos síndicos: nossa equipe configura banco e cadastros; você aprende o dia a dia no app.</p>
+        </div>
+        <div class="expertise-list">
+          <div class="expertise-item">
+            <strong>Cadastros</strong>
+            <span>Condomínio, unidades, moradores, síndicos e ciclos conforme a realidade do prédio</span>
+          </div>
+          <div class="expertise-item">
+            <strong>Conta bancária</strong>
+            <span>Conta no Banco Inter com credenciais da API; extrato e cobranças prontos para sincronizar</span>
+          </div>
+          <div class="expertise-item">
+            <strong>Treinamento</strong>
+            <span>Orientação prática para o síndico no uso diário: cobrança, conciliação e relatórios</span>
+          </div>
+          <div class="expertise-item">
+            <strong>Suporte</strong>
+            <span>Acompanhamento pós-implantação para dúvidas e ajustes nos primeiros meses</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contato">
+      <div class="container">
+        <div class="contact-grid">
+          <div class="contact-info">
+            <h2>Quer implantar no seu condomínio?</h2>
+            <p>
+              Informe unidades, se a conta é no Banco Inter e se sua necessidade é só financeira.
+              Respondemos se o produto encaixa e marcamos uma demo de cerca de 15 minutos, sem compromisso.
+            </p>
+            <ul class="contact-details">
+              <li><strong>E-mail</strong> <a href="mailto:diogo.moura@triggerti.com?subject=Gest%C3%A3o%20Condominial%20-%20quero%20ver%20funcionando">diogo.moura@triggerti.com</a></li>
+              <li><strong>WhatsApp</strong> <a href="https://wa.me/553497081049?text=Ol%C3%A1!%20Gostaria%20de%20ver%20o%20Gest%C3%A3o%20Condominial%20funcionando%20no%20meu%20condom%C3%ADnio." rel="noopener noreferrer" target="_blank">(34) 97081-049</a></li>
+              <li><strong>Empresa</strong> TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA</li>
+              <li><strong>CNPJ</strong> 53.369.941/0001-63</li>
+              <li><strong>Produto</strong> Gestão Condominial · Android</li>
+            </ul>
+          </div>
+          <div class="contact-form-card">
+            <h3>Quero ver funcionando no meu condomínio</h3>
+            <p>Envie um e-mail, WhatsApp ou use os botões abaixo. Respondemos em breve com proposta de implantação e demo.</p>
+            <a href="https://wa.me/553497081049?text=Ol%C3%A1!%20Gostaria%20de%20ver%20o%20Gest%C3%A3o%20Condominial%20funcionando%20no%20meu%20condom%C3%ADnio." class="btn btn-whatsapp" style="width: 100%; margin-bottom: 0.75rem;" rel="noopener noreferrer" target="_blank">WhatsApp</a>
+            <a href="mailto:diogo.moura@triggerti.com?subject=Gest%C3%A3o%20Condominial%20-%20quero%20ver%20funcionando&body=Olá!%20Gostaria%20de%20ver%20o%20Gestão%20Condominial%20funcionando%20no%20meu%20condomínio.%0A%0AUnidades%3A%20%0ABanco%3A%20" class="btn btn-app-primary" style="width: 100%; margin-bottom: 0.75rem;">Solicitar demonstração</a>
+            <a href="/privacidade-gestao-condominial.html" style="display: block; text-align: center; font-size: 0.85rem; color: var(--app-muted);">Política de privacidade do app</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo-text footer-logo-text--product">
+            <img src="/assets/img/logo-gestao-condominial.png" alt="" class="footer-product-mark" width="36" height="36" aria-hidden="true">
+            <div>
+              <strong>Gestão Condominial</strong>
+              <span>por Trigger Data Intelligence</span>
+            </div>
+          </div>
+          <p>App Android de gestão financeira para condomínios pequenos. TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA · CNPJ 53.369.941/0001-63</p>
+        </div>
+        <div class="footer-col">
+          <h4>Produto</h4>
+          <ul>
+            <li><a href="#integracao-bancaria">Integração bancária</a></li>
+            <li><a href="#transparencia">O que faz / limites</a></li>
+            <li><a href="#funcionalidades">Funcionalidades</a></li>
+            <li><a href="#planos">Planos</a></li>
+            <li><a href="#demo">Vídeo</a></li>
+            <li><a href="/privacidade-gestao-condominial.html">Privacidade do app</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Trigger TI</h4>
+          <ul>
+            <li><a href="/">Site da empresa</a></li>
+            <li><a href="/consultoria/">Consultoria ERP</a></li>
+            <li><a href="/privacidade.html">Privacidade do site corporativo</a></li>
+            <li><a href="mailto:diogo.moura@triggerti.com">Contato</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        © 2024-2026 TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA · CNPJ 53.369.941/0001-63
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,16 @@
+[Unit]
+Description=Trigger TI Painel de Licencas (Docker Compose)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/dfmoura/Documents/test_several1/trigger/14
+ExecStartPre=/bin/sleep 10
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStop=/usr/bin/docker compose stop
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

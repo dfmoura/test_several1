@@ -1,0 +1,7 @@
+playwright>=1.40
+sqlalchemy>=2.0
+pandas>=2.0
+streamlit>=1.28
+rich>=13.0
+typer>=0.9
+python-dateutil>=2.8

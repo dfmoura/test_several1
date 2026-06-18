@@ -1,0 +1,6 @@
+data/*
+!data/.gitkeep
+data/inter_trigger_ti/*
+!data/inter_trigger_ti/.gitkeep
+.env
+.venv/

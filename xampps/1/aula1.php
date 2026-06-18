@@ -14,6 +14,11 @@
     echo "Hello World";
     echo "<br>";
     echo "Hello World"; 
+
+    $nome = "Diogo";
+    $inteiro = 10;
+    $booleano = true;
+    $float = 10.5;
 ?>
 
 </html>

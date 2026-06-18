@@ -1,0 +1,246 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indicadores Financeiros</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+        }
+    </style>
+</head>
+<body class="w-full h-full">
+    <div id="indicators-container" class="p-4 sm:p-6 md:p-8 w-full h-full overflow-y-auto">
+        <!-- Conteúdo será injetado pelo JavaScript -->
+    </div>
+
+    <script>
+        const MITRA_UPDATE_EVENT_NAME = 'mitra-update-financial-indicators';
+
+        function updateMitra() {
+            document.body.dispatchEvent(new CustomEvent(MITRA_UPDATE_EVENT_NAME));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('indicators-container');
+
+            const formatCurrency = (value) => {
+                if (typeof value !== 'number' || isNaN(value)) return '-';
+                // Arredonda para o inteiro mais próximo e formata sem casas decimais
+                return Math.round(value).toLocaleString('pt-BR', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                });
+            };
+
+            const formatRatio = (value) => {
+                if (typeof value !== 'number' || isNaN(value)) return '-';
+                return value.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            };
+
+            const safeDivide = (numerator, denominator) => {
+                const num = parseFloat(numerator);
+                const den = parseFloat(denominator);
+                if (isNaN(num) || isNaN(den) || den === 0) {
+                    return 0;
+                }
+                return num / den;
+            };
+            
+            const createIndicatorBlockHTML = (title, numLabel, denLabel, numAtu, denAtu, ratioAtu, numAnt, denAnt, ratioAnt) => {
+                return `
+                    <div class="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-x-8 gap-y-4 py-4 border-b border-border last:border-b-0">
+                        <!-- Col 1: Título e Fórmulas -->
+                        <div class="flex flex-col justify-between">
+                            <h3 class="text-base sm:text-lg font-semibold text-primary">${title}</h3>
+                            <div class="text-sm text-muted-foreground mt-4 space-y-2">
+                                <p>${numLabel}</p>
+                                <p>${denLabel}</p>
+                            </div>
+                        </div>
+
+                        <!-- Col 2: Ano Atual -->
+                        <div class="flex justify-center items-end text-right">
+                            <div class="text-sm text-foreground space-y-2">
+                                <p class="border-b border-current pb-1">${formatCurrency(numAtu)}</p>
+                                <p>${formatCurrency(denAtu)}</p>
+                            </div>
+                            <p class="font-semibold text-base sm:text-lg text-foreground ml-6">${formatRatio(ratioAtu)}</p>
+                        </div>
+
+                        <!-- Col 3: Ano Anterior -->
+                        <div class="flex justify-center items-end text-right">
+                            <div class="text-sm text-foreground space-y-2">
+                                <p class="border-b border-current pb-1">${formatCurrency(numAnt)}</p>
+                                <p>${formatCurrency(denAnt)}</p>
+                            </div>
+                            <p class="font-semibold text-base sm:text-lg text-foreground ml-6">${formatRatio(ratioAnt)}</p>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const renderError = (message) => {
+                container.innerHTML = `<div class="flex items-center justify-center h-full text-center p-8 bg-destructive/10 text-destructive rounded-lg">
+                    <p>${message}</p>
+                </div>`;
+            };
+
+            const renderLoading = () => {
+                container.innerHTML = `<div class="flex items-center justify-center h-full text-muted-foreground">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Carregando dados...
+                </div>`;
+            };
+
+            async function fetchAndRenderData() {
+                renderLoading();
+
+                try {
+                    if (!componentData.queryDados || !componentData.varMes) {
+                        throw new Error("Variáveis 'queryDados' e 'varMes' são obrigatórias.");
+                    }
+
+                    const dateQuery = `SELECT ${componentData.varMes} FROM DUAL`;
+                    const dateResult = await queryMitra({ query: dateQuery, jdbcId: 1 });
+                    
+                    if (!dateResult || !dateResult.data || dateResult.data.length === 0 || !dateResult.data[0][0]) {
+                        throw new Error("Não foi possível obter a data de referência da variável: " + componentData.varMes);
+                    }
+                    
+                    const dataRef = new Date(dateResult.data[0][0]);
+                    if (isNaN(dataRef.getTime())) {
+                       throw new Error("O valor da variável de data é inválido: " + dateResult.data[0][0]);
+                    }
+                    const anoAtual = dataRef.getFullYear();
+                    const anoAnterior = anoAtual - 1;
+
+                    const result = await queryMitra({ query: componentData.queryDados, jdbcId: 1 });
+
+                    if (!result || !result.data || result.data.length === 0) {
+                        renderError("Nenhum dado encontrado para os filtros selecionados.");
+                        return;
+                    }
+                    
+                    const headers = result.headers.map(h => h.name.toUpperCase());
+                    const values = result.data[0];
+                    const dataMap = headers.reduce((obj, header, index) => {
+                        // Converte para número e divide por 1000
+                        obj[header] = (parseFloat(values[index]) || 0) / 1000;
+                        return obj;
+                    }, {});
+
+                    // Cálculos Ano Atual
+                    const liqCorrenteAtu = safeDivide(dataMap.AC_ATU, dataMap.PC_ATU);
+                    const liqSecaAtu = safeDivide((dataMap.AC_ATU - dataMap.ESTOQUE_ATU), dataMap.PC_ATU);
+                    const liqGeralAtu = safeDivide((dataMap.AC_ATU + dataMap.RLP_ATU), (dataMap.PC_ATU + dataMap.PNC_ATU));
+                    const solvGeralAtu = safeDivide(dataMap.ATIVO_TOTAL_ATU, (dataMap.PC_ATU + dataMap.PNC_ATU));
+
+                    // Cálculos Ano Anterior
+                    const liqCorrenteAnt = safeDivide(dataMap.AC_ANT, dataMap.PC_ANT);
+                    const liqSecaAnt = safeDivide((dataMap.AC_ANT - dataMap.ESTOQUE_ANT), dataMap.PC_ANT);
+                    const liqGeralAnt = safeDivide((dataMap.AC_ANT + dataMap.RLP_ANT), (dataMap.PC_ANT + dataMap.PNC_ANT));
+                    const solvGeralAnt = safeDivide(dataMap.ATIVO_TOTAL_ANT, (dataMap.PC_ANT + dataMap.PNC_ANT));
+
+                    let html = `
+                        <div class="w-full mx-auto">
+                            <!-- Cabeçalho com Anos -->
+                            <div class="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-x-8 mb-2">
+                                <div></div>
+                                <div class="text-center">
+                                    <h2 class="text-lg font-bold text-foreground">${anoAtual}</h2>
+                                    <hr class="border-t-2 border-foreground mt-1">
+                                </div>
+                                <div class="text-center">
+                                    <h2 class="text-lg font-bold text-foreground">${anoAnterior}</h2>
+                                    <hr class="border-t-2 border-foreground mt-1">
+                                </div>
+                            </div>
+                            <!-- Blocos de Indicadores -->
+                            <div class="space-y-2">
+                    `;
+                    
+                    html += createIndicatorBlockHTML('Liquidez Corrente', 'AC', 'PC', dataMap.AC_ATU, dataMap.PC_ATU, liqCorrenteAtu, dataMap.AC_ANT, dataMap.PC_ANT, liqCorrenteAnt);
+                    html += createIndicatorBlockHTML('Liquidez Seca', 'AC - ESTOQUE', 'PC', (dataMap.AC_ATU - dataMap.ESTOQUE_ATU), dataMap.PC_ATU, liqSecaAtu, (dataMap.AC_ANT - dataMap.ESTOQUE_ANT), dataMap.PC_ANT, liqSecaAnt);
+                    html += createIndicatorBlockHTML('Liquidez Geral', 'AC + RLP', 'PC + PNC', (dataMap.AC_ATU + dataMap.RLP_ATU), (dataMap.PC_ATU + dataMap.PNC_ATU), liqGeralAtu, (dataMap.AC_ANT + dataMap.RLP_ANT), (dataMap.PC_ANT + dataMap.PNC_ANT), liqGeralAnt);
+                    html += createIndicatorBlockHTML('Solvência Geral', 'ATIVO TOTAL', 'PC + PNC', dataMap.ATIVO_TOTAL_ATU, (dataMap.PC_ATU + dataMap.PNC_ATU), solvGeralAtu, dataMap.ATIVO_TOTAL_ANT, (dataMap.PC_ANT + dataMap.PNC_ANT), solvGeralAnt);
+                    
+                    html += `</div></div>`;
+                    container.innerHTML = html;
+
+                } catch (error) {
+                    console.error("Erro ao carregar indicadores financeiros:", error);
+                    renderError(error.message || "Ocorreu um erro inesperado ao processar os dados.");
+                }
+            }
+
+            function initializeComponent() {
+                document.body.addEventListener(MITRA_UPDATE_EVENT_NAME, fetchAndRenderData);
+                fetchAndRenderData();
+            }
+            
+            const waitForMitraAndInit = () => {
+                const maxWaitTime = 5000;
+                const intervalTime = 100;
+                const startTime = Date.now();
+                const checkInterval = setInterval(() => {
+                    if (window.componentData && window.componentData.queryDados) {
+                        clearInterval(checkInterval);
+                        initializeComponent();
+                    } else if (Date.now() - startTime > maxWaitTime) {
+                        clearInterval(checkInterval);
+                        console.error("Erro: As configurações do componente (componentData) não foram carregadas a tempo.");
+                        renderError("Erro Crítico: As configurações do componente não foram carregadas da plataforma.");
+                    }
+                }, intervalTime);
+            };
+
+            waitForMitraAndInit();
+        });
+    </script>
+</body>
+</html>
