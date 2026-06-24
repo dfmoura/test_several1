@@ -21,7 +21,9 @@ fi
 "$VENV/bin/playwright" install chromium
 
 echo
-echo "Ambiente pronto. Ative com:"
+echo "Ambiente pronto. Na pasta trigger/15, para subir o app de licitações:"
+echo "  ./run.sh"
+echo
+echo "Ou manualmente:"
 echo "  source .venv/bin/activate"
-echo "Execute:"
-echo "  uvicorn app.main:app --reload --port 8095"
+echo "  uvicorn app.main:app --reload --host 0.0.0.0 --port 8095"

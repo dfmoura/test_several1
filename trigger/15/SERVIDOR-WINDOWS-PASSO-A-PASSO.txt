@@ -1,0 +1,722 @@
+================================================================================
+  SERVIDOR WINDOWS — PASSO A PASSO (SEM DOCKER)
+  Projeto: trigger/15 — Licitações Uberlândia
+  Objetivo: este PC Windows vira o servidor do sistema (rede local + internet)
+  Porta do app: 8095
+  Banco de dados: pasta data/ (SQLite)
+================================================================================
+
+COMO LER ESTE DOCUMENTO
+-----------------------
+  [ ] = checkbox — marque quando concluir
+  Comandos em blocos → copie e cole no PowerShell ou Prompt de Comando
+  Caminhos de exemplo usam C:\licitacoes — ajuste para onde você copiar o projeto
+  Tudo roda NO PC WINDOWS que será o servidor (salvo login Cloudflare no browser)
+
+RESUMO EM 4 BLOCOS
+------------------
+  BLOCO A — Preparar o Windows (Python, Git, firewall)
+  BLOCO B — Copiar o projeto e instalar dependências
+  BLOCO C — Subir o app e testar (local + Wi-Fi)
+  BLOCO D — Expor na internet (Cloudflare Tunnel) + iniciar com o Windows
+
+O QUE ESTE PC VAI FAZER
+-----------------------
+  - Rodar FastAPI (uvicorn) na porta 8095, ouvindo em todas as interfaces (0.0.0.0)
+  - Guardar dados em data\licitacoes.db
+  - Coletar licitações da Prefeitura via Playwright/Chromium (janela visível)
+  - (Opcional) Ficar acessível na internet via Cloudflare Tunnel — sem abrir porta no roteador
+
+IMPORTANTE ANTES DE COMEÇAR
+---------------------------
+  1. O PC precisa ficar LIGADO para o sistema funcionar como servidor.
+  2. Para a coleta da Prefeitura funcionar, mantenha HEADLESS=false (padrão).
+     O Chromium abre uma janela durante a sincronização — isso é normal e obrigatório.
+  3. Recomendado: Windows 10 ou 11 (64 bits), usuário com sessão ativa (logado).
+  4. Não é necessário Docker neste guia.
+  5. Conexão estável com a internet.
+
+
+================================================================================
+PARTE 0 — VISÃO GERAL DA ARQUITETURA
+================================================================================
+
+  [Usuários na internet]
+         │
+         ▼
+  https://licitacoes.SEUDOMINIO.com.br   ← Cloudflare (grátis, opcional)
+         │
+         ▼  Cloudflare Tunnel (saída do PC — NÃO precisa abrir porta 8095 no roteador)
+         │
+  PC Windows (servidor)
+         │
+         ▼  uvicorn :8095
+         │
+  FastAPI + SQLite (data\licitacoes.db) + Playwright/Chromium
+
+  [Usuários na mesma Wi-Fi / rede do escritório]
+         │
+         ▼
+  http://IP_DO_PC:8095
+
+
+================================================================================
+PARTE 1 — PREPARAR O WINDOWS (BLOCO A)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+1.1 VERIFICAR VERSÃO DO WINDOWS
+────────────────────────────────────────────────────────────────────────────
+
+  Tecla Windows → digite "winver" → Enter
+
+  [ ] Windows 10 ou 11, 64 bits
+
+────────────────────────────────────────────────────────────────────────────
+1.2 INSTALAR PYTHON 3.12 (64 bits)
+────────────────────────────────────────────────────────────────────────────
+
+  1. Abra no browser: https://www.python.org/downloads/windows/
+  2. Baixe "Python 3.12.x Windows installer (64-bit)"
+  3. Execute o instalador
+  4. NA PRIMEIRA TELA marque:
+       [x] Add python.exe to PATH
+  5. Clique "Install Now"
+  6. Aguarde e feche
+
+  Abra NOVO PowerShell (importante — fecha e abre de novo):
+
+    python --version
+
+  Esperado: Python 3.12.x
+
+  [ ] Python instalado e no PATH
+
+────────────────────────────────────────────────────────────────────────────
+1.3 INSTALAR GIT (recomendado — para clonar ou atualizar o projeto)
+────────────────────────────────────────────────────────────────────────────
+
+  1. https://git-scm.com/download/win
+  2. Instale com opções padrão
+  3. Teste:
+
+    git --version
+
+  [ ] Git instalado (ou pule se for copiar pasta por pendrive/OneDrive)
+
+────────────────────────────────────────────────────────────────────────────
+1.4 CRIAR PASTA DO PROJETO
+────────────────────────────────────────────────────────────────────────────
+
+  Escolha um caminho fixo e simples, por exemplo:
+
+    C:\licitacoes
+
+  No PowerShell:
+
+    mkdir C:\licitacoes
+
+  [ ] Pasta criada
+
+
+================================================================================
+PARTE 2 — COPIAR O PROJETO PARA ESTE PC (BLOCO B — início)
+================================================================================
+
+Você tem DUAS formas de trazer o projeto. Use UMA:
+
+────────────────────────────────────────────────────────────────────────────
+OPÇÃO A — COPIAR PASTA INTEIRA (pendrive, OneDrive, rede, etc.)
+────────────────────────────────────────────────────────────────────────────
+
+  No PC de origem, copie a pasta trigger\15 INTEIRA para C:\licitacoes
+
+  Pode INCLUIR:
+    app\              (código)
+    data\             (banco SQLite + CSVs — MUITO IMPORTANTE se já tem dados)
+    requirements.txt
+    README.md
+    (demais arquivos do projeto)
+
+  Pode EXCLUIR para economizar espaço (serão recriados):
+    .venv\            (ambiente virtual — recriar no Windows)
+    terraform\        (só se for usar Oracle Cloud; não necessário para servidor Windows)
+    __pycache__\
+
+  Estrutura final esperada:
+
+    C:\licitacoes\
+      app\
+      data\
+        licitacoes.db          ← se existir, traga junto
+        powerbi\               ← backups CSV, se existirem
+      requirements.txt
+      ...
+
+  [ ] Projeto copiado para C:\licitacoes
+
+────────────────────────────────────────────────────────────────────────────
+OPÇÃO B — CLONAR COM GIT (se o repositório estiver no GitHub/GitLab)
+────────────────────────────────────────────────────────────────────────────
+
+  cd C:\licitacoes
+  git clone URL_DO_REPOSITORIO .
+
+  Depois copie manualmente só a pasta data\ do PC antigo (banco de dados).
+
+  [ ] Repositório clonado + data\ copiada do PC antigo
+
+
+================================================================================
+PARTE 3 — INSTALAR DEPENDÊNCIAS DO PROJETO (BLOCO B — continuação)
+================================================================================
+
+Abra PowerShell como usuário normal (não precisa ser Administrador ainda).
+
+    cd C:\licitacoes
+
+────────────────────────────────────────────────────────────────────────────
+3.1 CRIAR AMBIENTE VIRTUAL PYTHON
+────────────────────────────────────────────────────────────────────────────
+
+    python -m venv .venv
+
+  Se der erro sobre venv:
+    - Reinstale Python marcando "Add to PATH"
+    - Ou: Settings → Apps → Python → Modify → marque "pip" e "venv"
+
+  [ ] Pasta .venv criada
+
+────────────────────────────────────────────────────────────────────────────
+3.2 ATIVAR AMBIENTE E INSTALAR PACOTES
+────────────────────────────────────────────────────────────────────────────
+
+    .\.venv\Scripts\Activate.ps1
+
+  Se aparecer erro de política de execução (ExecutionPolicy):
+
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+  Depois repita:
+
+    .\.venv\Scripts\Activate.ps1
+
+  O prompt deve mostrar (.venv) no início.
+
+  Instalar dependências:
+
+    pip install --upgrade pip
+    pip install -r requirements.txt
+
+  Aguarde terminar (pode levar alguns minutos).
+
+  [ ] requirements.txt instalado sem erro
+
+────────────────────────────────────────────────────────────────────────────
+3.3 INSTALAR NAVEGADOR DO PLAYWRIGHT (Chromium)
+────────────────────────────────────────────────────────────────────────────
+
+  Ainda com (.venv) ativo:
+
+    playwright install chromium
+
+  O Playwright baixa o Chromium (~150–200 MB). Aguarde.
+
+  [ ] playwright install chromium concluído
+
+
+================================================================================
+PARTE 4 — PRIMEIRO TESTE — SUBIR O APP (BLOCO C)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+4.1 SUBIR MANUALMENTE (teste)
+────────────────────────────────────────────────────────────────────────────
+
+  cd C:\licitacoes
+  .\.venv\Scripts\Activate.ps1
+
+  Definir variáveis (recomendado — coleta Prefeitura):
+
+    $env:HEADLESS = "false"
+    $env:APP_PORT = "8095"
+
+  Subir servidor:
+
+    python -m uvicorn app.main:app --host 0.0.0.0 --port 8095
+
+  Esperado no terminal:
+
+    Uvicorn running on http://0.0.0.0:8095
+
+  DEIXE ESTA JANELA ABERTA enquanto testa.
+
+  [ ] Servidor subiu sem erro
+
+────────────────────────────────────────────────────────────────────────────
+4.2 TESTAR NO PRÓPRIO PC
+────────────────────────────────────────────────────────────────────────────
+
+  Abra o browser neste PC:
+
+    http://localhost:8095/
+
+  Deve abrir a interface do sistema de licitações.
+
+  [ ] localhost:8095 abre a interface
+
+────────────────────────────────────────────────────────────────────────────
+4.3 TESTAR NA REDE LOCAL (Wi-Fi / cabo — outro celular ou notebook)
+────────────────────────────────────────────────────────────────────────────
+
+  Descobrir IP deste PC na rede:
+
+    ipconfig
+
+  Procure "Adaptador de Rede sem Fio Wi-Fi" ou "Ethernet" → IPv4, exemplo:
+
+    Endereço IPv4. . . . . . . . : 192.168.1.105
+
+  No celular (mesma Wi-Fi), abra:
+
+    http://192.168.1.105:8095/
+
+  Se NÃO abrir → vá para Parte 5 (firewall) e volte aqui.
+
+  [ ] Outro dispositivo na mesma rede acessa o app
+
+
+================================================================================
+PARTE 5 — LIBERAR PORTA NO FIREWALL DO WINDOWS (BLOCO C)
+================================================================================
+
+Necessário para outros PCs/celulares na rede acessarem.
+
+Abra PowerShell COMO ADMINISTRADOR (botão direito → Executar como administrador):
+
+    New-NetFirewallRule -DisplayName "Licitações Uberlandia 8095" -Direction Inbound -Protocol TCP -LocalPort 8095 -Action Allow
+
+  Alternativa (Prompt clássico como Admin):
+
+    netsh advfirewall firewall add rule name="Licitações Uberlandia 8095" dir=in action=allow protocol=TCP localport=8095
+
+  [ ] Regra de firewall criada
+
+  Teste de novo do celular: http://IP_DO_PC:8095/
+
+
+================================================================================
+PARTE 6 — SCRIPTS ÚTEIS NO WINDOWS (facilitar o dia a dia)
+================================================================================
+
+Crie estes arquivos na pasta C:\licitacoes para não digitar comandos sempre.
+
+────────────────────────────────────────────────────────────────────────────
+6.1 ARQUIVO: C:\licitacoes\iniciar-servidor.bat
+────────────────────────────────────────────────────────────────────────────
+
+  Conteúdo (copie exatamente):
+
+  ---
+  @echo off
+  cd /d C:\licitacoes
+  set HEADLESS=false
+  set APP_PORT=8095
+  call .venv\Scripts\activate.bat
+  echo.
+  echo Aplicativo de licitações:
+  echo   Local:  http://localhost:8095/
+  echo   Rede:   http://SEU_IP:8095/  (use ipconfig para ver o IP)
+  echo.
+  echo Para parar: feche esta janela ou Ctrl+C
+  echo.
+  python -m uvicorn app.main:app --host 0.0.0.0 --port 8095
+  ---
+
+  Para usar: duplo clique em iniciar-servidor.bat
+
+  [ ] iniciar-servidor.bat criado
+
+────────────────────────────────────────────────────────────────────────────
+6.2 ARQUIVO: C:\licitacoes\setup-windows.bat (só na primeira vez)
+────────────────────────────────────────────────────────────────────────────
+
+  Conteúdo:
+
+  ---
+  @echo off
+  cd /d C:\licitacoes
+  python -m venv .venv
+  call .venv\Scripts\activate.bat
+  pip install --upgrade pip
+  pip install -r requirements.txt
+  playwright install chromium
+  echo.
+  echo Pronto. Execute iniciar-servidor.bat
+  pause
+  ---
+
+  [ ] setup-windows.bat criado (opcional — já fez na Parte 3 pode pular)
+
+
+================================================================================
+PARTE 7 — EXPOR NA INTERNET COM CLOUDFLARE TUNNEL (BLOCO D)
+================================================================================
+
+Use esta parte se quiser que pessoas FORA da sua rede acessem o sistema
+(ex.: https://licitacoes.triggerti.com ou outro subdomínio seu).
+
+VANTAGENS:
+  - Grátis
+  - Não precisa configurar roteador (port forwarding)
+  - HTTPS automático
+  - Funciona mesmo com IP dinâmico
+
+PRÉ-REQUISITOS:
+  [ ] Domínio gerenciado no Cloudflare (ex.: triggerti.com)
+  [ ] App rodando em http://localhost:8095 neste PC
+  [ ] Conta Cloudflare (plano Free basta)
+
+────────────────────────────────────────────────────────────────────────────
+7.1 BAIXAR CLOUDFLARED PARA WINDOWS
+────────────────────────────────────────────────────────────────────────────
+
+  1. Abra: https://github.com/cloudflare/cloudflared/releases/latest
+  2. Baixe: cloudflared-windows-amd64.exe
+  3. Renomeie/copie para:
+
+       C:\licitacoes\cloudflared.exe
+
+  Teste no PowerShell:
+
+    cd C:\licitacoes
+    .\cloudflared.exe --version
+
+  [ ] cloudflared instalado
+
+────────────────────────────────────────────────────────────────────────────
+7.2 TESTE RÁPIDO (URL temporária — bom para validar antes do domínio fixo)
+────────────────────────────────────────────────────────────────────────────
+
+  Com o app rodando (iniciar-servidor.bat aberto):
+
+    cd C:\licitacoes
+    .\cloudflared.exe tunnel --url http://localhost:8095
+
+  O terminal mostra uma URL tipo:
+
+    https://xxxx-xx-xx.trycloudflare.com
+
+  Abra essa URL em outro celular (4G, fora do Wi-Fi) para confirmar.
+
+  Ctrl+C para encerrar o teste.
+
+  [ ] URL temporária funcionou (opcional mas recomendado)
+
+────────────────────────────────────────────────────────────────────────────
+7.3 TÚNEL PERMANENTE COM SEU DOMÍNIO
+────────────────────────────────────────────────────────────────────────────
+
+  Passo 1 — Login (abre o browser):
+
+    cd C:\licitacoes
+    .\cloudflared.exe tunnel login
+
+  → Escolha a zona do seu domínio (ex.: triggerti.com)
+  → Autorizar
+
+  Passo 2 — Criar túnel:
+
+    .\cloudflared.exe tunnel create licitacoes-tunnel
+
+  ANOTE o TUNNEL_ID (UUID), exemplo:
+    12345678-abcd-1234-abcd-123456789abc
+
+  Passo 3 — Criar pasta de config:
+
+    mkdir $env:USERPROFILE\.cloudflared
+
+  Passo 4 — Editar arquivo de configuração:
+
+  Abra o Bloco de Notas como Administrador e crie/edite:
+
+    C:\Users\SEU_USUARIO\.cloudflared\config.yml
+
+  Conteúdo (substitua TUNNEL_ID e SEU_USUARIO):
+
+  ---
+  tunnel: TUNNEL_ID
+  credentials-file: C:\Users\SEU_USUARIO\.cloudflared\TUNNEL_ID.json
+
+  ingress:
+    - hostname: licitacoes.triggerti.com
+      service: http://localhost:8095
+    - service: http_status:404
+  ---
+
+  Troque licitacoes.triggerti.com pelo subdomínio que você quiser.
+
+  Passo 5 — Registrar DNS no Cloudflare:
+
+    cd C:\licitacoes
+    .\cloudflared.exe tunnel route dns licitacoes-tunnel licitacoes.triggerti.com
+
+  Passo 6 — Teste manual:
+
+    .\cloudflared.exe tunnel run licitacoes-tunnel
+
+  No browser: https://licitacoes.triggerti.com
+
+  [ ] Domínio fixo abre a interface
+
+────────────────────────────────────────────────────────────────────────────
+7.4 INSTALAR CLOUDFLARED COMO SERVIÇO DO WINDOWS (sobe sozinho)
+────────────────────────────────────────────────────────────────────────────
+
+  PowerShell COMO ADMINISTRADOR:
+
+    cd C:\licitacoes
+    .\cloudflared.exe service install
+
+  Iniciar serviço:
+
+    Start-Service cloudflared
+
+  Verificar:
+
+    Get-Service cloudflared
+
+  Status esperado: Running
+
+  [ ] Serviço cloudflared instalado e Running
+
+
+================================================================================
+PARTE 8 — APP INICIAR AUTOMATICAMENTE COM O WINDOWS
+================================================================================
+
+O Cloudflare Tunnel pode subir como serviço (Parte 7.4).
+O app FastAPI também precisa subir sozinho. Duas opções:
+
+────────────────────────────────────────────────────────────────────────────
+OPÇÃO A — AGENDADOR DE TAREFAS (mais simples, sem programas extras)
+────────────────────────────────────────────────────────────────────────────
+
+  1. Tecla Windows → digite "Agendador de Tarefas" → abrir
+  2. Criar Tarefa Básica
+     Nome: Licitações Uberlandia Server
+     Disparador: Quando o computador iniciar
+     Ação: Iniciar um programa
+     Programa/script: C:\licitacoes\iniciar-servidor.bat
+     Iniciar em: C:\licitacoes
+  3. Propriedades avançadas da tarefa:
+     [x] Executar estando o usuário conectado ou não
+     [x] Executar com privilégios mais altos (se firewall exigir)
+     [x] Se a tarefa falhar, reiniciar a cada 1 minuto (até 3 vezes)
+
+  IMPORTANTE: deixe o PC configurado para NÃO hibernar quando for servidor:
+    Configurações → Sistema → Energia → Tela e suspensão → Nunca (em "ligado na tomada")
+
+  [ ] Tarefa agendada criada
+
+────────────────────────────────────────────────────────────────────────────
+OPÇÃO B — NSSM (serviço Windows profissional)
+────────────────────────────────────────────────────────────────────────────
+
+  1. Baixe NSSM: https://nssm.cc/download
+  2. Extraia nssm.exe (win64)
+  3. PowerShell Admin:
+
+       nssm install LicitaçõesUberlandia
+
+  Na janela NSSM:
+    Path:         C:\licitacoes\.venv\Scripts\python.exe
+    Startup dir:  C:\licitacoes
+    Arguments:    -m uvicorn app.main:app --host 0.0.0.0 --port 8095
+
+  Aba "Environment":
+    HEADLESS=false
+    APP_PORT=8095
+
+  Instalar e iniciar:
+
+       nssm start LicitaçõesUberlandia
+
+  [ ] Serviço NSSM instalado (opcional)
+
+
+================================================================================
+PARTE 9 — PROTEGER O ACESSO NA INTERNET (FORTEMENTE RECOMENDADO)
+================================================================================
+
+O sistema NÃO tem login próprio. Se expuser na internet sem proteção,
+qualquer pessoa com o link pode ver e usar a API.
+
+Use Cloudflare Access (grátis para poucos usuários):
+
+  1. dash.cloudflare.com → Zero Trust → Access → Applications → Add
+  2. Type: Self-hosted
+  3. Name: Licitações Uberlândia
+  4. Subdomain: licitacoes (ou o que você configurou)
+  5. Domain: triggerti.com (seu domínio)
+  6. Policy → Allow → Include → e-mails autorizados
+
+  Ao acessar o site → pede código por e-mail.
+
+  [ ] Cloudflare Access configurado (se expôs na internet)
+
+
+================================================================================
+PARTE 10 — VARIÁVEIS DE AMBIENTE (REFERÊNCIA)
+================================================================================
+
+  Variável              Padrão    Descrição
+  --------------------  --------  ------------------------------------------
+  APP_PORT              8095      Porta HTTP do app
+  HEADLESS              false     DEVE ser false — portal Akamai bloqueia headless
+  DETALHE_SCRAPE        false     Buscar campos extras na página de detalhes
+  COMPRAS_PNCP_PAGE_SIZE 500      Tamanho de página na API PNCP
+
+  No PowerShell (sessão atual):
+
+    $env:HEADLESS = "false"
+    $env:APP_PORT = "8095"
+
+  Permanente (usuário Windows):
+    Configurações → Sistema → Sobre → Configurações avançadas do sistema
+    → Variáveis de Ambiente → Novo (usuário)
+
+
+================================================================================
+PARTE 11 — BACKUP DOS DADOS
+================================================================================
+
+  Tudo importante está em:
+
+    C:\licitacoes\data\licitacoes.db
+    C:\licitacoes\data\powerbi\
+
+  Faça backup periódico (copiar para OneDrive, HD externo, etc.).
+
+  Para restaurar em outro PC: pare o app, substitua licitacoes.db, suba de novo.
+
+  Script simples de backup (PowerShell — salve como backup-dados.ps1):
+
+  ---
+  $origem = "C:\licitacoes\data"
+  $destino = "D:\Backups\licitacoes_" + (Get-Date -Format "yyyyMMdd_HHmm")
+  Copy-Item -Recurse $origem $destino
+  Write-Host "Backup em $destino"
+  ---
+
+  [ ] Rotina de backup definida
+
+
+================================================================================
+PARTE 12 — CHECKLIST FINAL
+================================================================================
+
+  INSTALAÇÃO
+  [ ] Python 3.12 instalado
+  [ ] Projeto em C:\licitacoes (ou caminho escolhido)
+  [ ] data\licitacoes.db copiado do PC antigo (se aplicável)
+  [ ] pip install -r requirements.txt OK
+  [ ] playwright install chromium OK
+
+  FUNCIONAMENTO LOCAL
+  [ ] iniciar-servidor.bat sobe sem erro
+  [ ] http://localhost:8095 abre
+  [ ] http://IP_LOCAL:8095 abre de outro dispositivo na rede
+  [ ] Firewall liberou porta 8095
+
+  INTERNET (se aplicável)
+  [ ] cloudflared tunnel testado
+  [ ] https://seu-subdominio abre de fora da rede
+  [ ] Cloudflare Access configurado
+  [ ] Serviço cloudflared Running
+
+  SERVIDOR 24/7
+  [ ] PC não hiberna quando na tomada
+  [ ] App inicia com Windows (Agendador ou NSSM)
+  [ ] Backup de data\ agendado
+
+
+================================================================================
+PARTE 13 — ERROS COMUNS E SOLUÇÕES (WINDOWS)
+================================================================================
+
+PYTHON NÃO RECONHECIDO
+  → Reinstale Python marcando "Add python.exe to PATH"
+  → Feche e abra novo PowerShell
+
+Activate.ps1 BLOQUEADO (ExecutionPolicy)
+  → Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+PORTA 8095 EM USO
+  → netstat -ano | findstr :8095
+  → Anote o PID → Gerenciador de Tarefas → Finalizar processo
+  → Ou mude a porta: $env:APP_PORT = "8096"
+
+OUTRO PC NA REDE NÃO ABRE
+  → Confirme mesmo Wi-Fi/rede
+  → ipconfig — IP correto?
+  → Firewall Parte 5
+  → Antivírus de terceiros pode bloquear — adicione exceção para porta 8095
+
+COLETA PREFEITURA FALHA / "Access Denied" / Akamai
+  → HEADLESS deve ser false
+  → Usuário precisa estar logado no Windows (Chromium abre janela visível)
+  → Teste abrir manualmente: https://weblicitacoes.uberlandia.mg.gov.br
+  → Reinicie o app após mudar variáveis
+
+502 BAD GATEWAY (Cloudflare)
+  → App está rodando? Teste http://localhost:8095
+  → Reinicie: Restart-Service cloudflared (PowerShell Admin)
+  → Verifique config.yml (hostname e localhost:8095)
+
+PLAYWRIGHT / CHROMIUM NÃO ENCONTRA NAVEGADOR
+  → .\.venv\Scripts\Activate.ps1
+  → playwright install chromium
+
+BANCO VAZIO APÓS MIGRAÇÃO
+  → Confirme que copiou data\licitacoes.db do PC antigo
+  → Pare o app antes de copiar o arquivo .db
+
+APP PARA QUANDO FECHA A JANELA
+  → Use Agendador de Tarefas ou NSSM (Parte 8)
+  → Não feche iniciar-servidor.bat se estiver usando duplo clique manual
+
+
+================================================================================
+PARTE 14 — ATUALIZAR O PROJETO NO FUTURO
+================================================================================
+
+  Se usa Git:
+
+    cd C:\licitacoes
+    git pull
+    .\.venv\Scripts\Activate.ps1
+    pip install -r requirements.txt
+    playwright install chromium
+
+  Reinicie o servidor (feche janela ou reinicie serviço/tarefa agendada).
+
+  Se copiou manualmente: substitua pasta app\ e requirements.txt, rode pip install.
+
+
+================================================================================
+PARTE 15 — RESUMO DOS ENDEREÇOS
+================================================================================
+
+  Neste PC:           http://localhost:8095/
+  Rede local:         http://IP_DO_PC:8095/     (ipconfig → IPv4)
+  Internet (túnel):   https://licitacoes.triggerti.com  (ou seu subdomínio)
+  Teste rápido CF:    https://xxxx.trycloudflare.com    (temporário)
+
+  Parar servidor manual: Ctrl+C na janela do uvicorn ou fechar iniciar-servidor.bat
+  Logs: aparecem na janela do uvicorn; Cloudflare → serviço Windows ou Event Viewer
+
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================

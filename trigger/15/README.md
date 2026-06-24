@@ -9,18 +9,26 @@ Sistema local para coleta, integridade e consulta de licitações a partir de tr
 ## Executar com Docker
 
 ```bash
-cd trigger/15
+# na pasta do projeto (trigger/15)
 docker compose up --build -d
 ```
 
-Acesse: **http://localhost:8095**
+Acesse: **http://localhost:8095/** — na mesma Wi-Fi: `http://SEU_IP:8095/` (`hostname -I`)
+
+## Servidor Windows (sem Docker)
+
+Guia completo para usar um PC Windows como servidor (rede local + internet via Cloudflare):
+
+**[SERVIDOR-WINDOWS-PASSO-A-PASSO.txt](./SERVIDOR-WINDOWS-PASSO-A-PASSO.txt)**
+
+Resumo: `setup-windows.bat` → `iniciar-servidor.bat` → liberar firewall → (opcional) Cloudflare Tunnel.
 
 ## Desenvolvimento local
 
 No Ubuntu/Debian o Python do sistema é protegido (PEP 668). **Não use `pip install` global** — use o ambiente virtual:
 
 ```bash
-cd trigger/15
+# na pasta do projeto (trigger/15)
 
 # opção 1: script automático
 chmod +x setup.sh && ./setup.sh
@@ -31,9 +39,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 playwright install chromium
 
-# subir API
-uvicorn app.main:app --reload --port 8095
+# subir app de licitações (localhost + Wi-Fi local)
+./run.sh
 ```
+
+Se a porta 8095 já estiver em uso (ex.: Docker), `./run.sh` só mostra os endereços — não tenta subir de novo.
 
 ## Variáveis de ambiente
 

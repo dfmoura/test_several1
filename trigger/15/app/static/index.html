@@ -15,6 +15,7 @@
       </div>
       <nav>
         <button class="nav-btn" data-page="dashboard">Dashboard</button>
+        <button class="nav-btn" data-page="consulta-processo">Consulta · Processo</button>
         <button class="nav-btn active" data-page="coletar">Coletar</button>
         <button class="nav-btn" data-page="consultar">Consultar</button>
         <button class="nav-btn" data-page="compras-coletar">Compras.gov</button>
@@ -72,6 +73,42 @@
           <p class="muted dash-loading">Carregando…</p>
         </article>
       </div>
+    </section>
+
+    <!-- CONSULTA UNIFICADA POR PROCESSO -->
+    <section id="page-consulta-processo" class="page">
+      <div class="card filters-card cp-header-card">
+        <h2>Consulta por processo</h2>
+        <p class="muted">
+          Visão unificada do mesmo processo licitatório nas três bases:
+          <strong>Portal Prefeitura</strong> (fonte oficial),
+          <strong>Compras.gov · PNCP</strong> e
+          <strong>Power BI · PMU</strong>.
+          O cruzamento usa órgão consolidado + ano + número do processo.
+        </p>
+        <form id="form-cp-filtros" class="filters-grid cp-filters">
+          <label class="fg-processo cp-fg-processo">
+            Processo *
+            <input type="text" id="cp-filtro-processo" placeholder="Ex.: 63, PE 63/2025, 5302023" autocomplete="off" required />
+          </label>
+          <label class="fg-ano">
+            Ano
+            <select id="cp-filtro-ano"><option value="">Todos</option></select>
+          </label>
+          <label class="fg-empresa">
+            Órgão consolidado
+            <select id="cp-filtro-orgao"><option value="">Todos</option></select>
+          </label>
+          <div class="fg-actions filter-actions">
+            <button type="submit" class="btn primary" id="btn-cp-buscar">Consultar</button>
+            <button type="button" class="btn ghost" id="btn-cp-limpar">Limpar</button>
+          </div>
+        </form>
+        <p id="cp-consulta-meta" class="meta-bar"></p>
+      </div>
+
+      <div id="cp-picker" class="hidden"></div>
+      <div id="cp-resultado" class="cp-resultado hidden"></div>
     </section>
 
     <!-- COLETAR -->
@@ -669,6 +706,7 @@
   </dialog>
 
   <script src="/static/app.js?v=2"></script>
+  <script src="/static/consulta_processo.js?v=2"></script>
   <script src="/static/dashboard.js"></script>
   <script src="/static/compras.js"></script>
   <script src="/static/powerbi.js"></script>

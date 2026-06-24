@@ -30,6 +30,7 @@ $$(".nav-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     setPagina(btn.dataset.page);
     if (btn.dataset.page === "dashboard" && typeof carregarDashboardPagina === "function") carregarDashboardPagina();
+    if (btn.dataset.page === "consulta-processo" && typeof carregarConsultaProcessoPagina === "function") carregarConsultaProcessoPagina();
     if (btn.dataset.page === "consultar") { carregarFiltros(); buscar(); }
     if (btn.dataset.page === "observadores") carregarObservadores();
     if (btn.dataset.page === "orgaos" && typeof carregarOrgaosPagina === "function") carregarOrgaosPagina();

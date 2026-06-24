@@ -1,0 +1,25 @@
+# Copie para terraform.tfvars e preencha com seus valores reais:
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# NUNCA commite terraform.tfvars (contem dados sensiveis).
+
+tenancy_ocid     = "ocid1.tenancy.oc1..AAAA..."
+compartment_ocid = "ocid1.tenancy.oc1..AAAA..."  # root = mesmo OCID da tenancy
+user_ocid        = "ocid1.user.oc1..AAAA..."
+fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+private_key_path     = "/home/SEU_USUARIO/.oci/oci_api_key.pem"
+private_key_password = ""   # senha da chave API se houver; vazio se nao tiver
+region               = "sa-saopaulo-1"
+
+ssh_public_key   = "ssh-ed25519 AAAA... oci-licitacoes"
+ssh_allowed_cidr = "SEU_IP_PUBLICO/32"
+
+# Se der "Out of host capacity", reduza e tente de novo:
+# instance_ocpus     = 1
+# instance_memory_gb = 4
+
+instance_ocpus       = 2
+instance_memory_gb   = 8
+boot_volume_size_gb  = 50
+instance_display_name = "licitacoes-app"
+vcn_display_name      = "vcn-licitacoes"

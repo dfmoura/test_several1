@@ -938,6 +938,75 @@ body.page-app .prose a:hover {
   color: var(--app-orange-dark);
 }
 
+body.page-app .prose h3 {
+  color: var(--app-on-surface);
+  font-size: 1.05rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+body.page-app .prose .prose-toc {
+  background: var(--app-surface-elevated);
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0 2rem;
+}
+
+body.page-app .prose .prose-toc h2 {
+  margin-top: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--app-muted);
+}
+
+body.page-app .prose .prose-toc ol {
+  columns: 2;
+  column-gap: 2rem;
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.92rem;
+}
+
+body.page-app .prose .prose-note {
+  background: rgba(255, 193, 7, 0.08);
+  border: 1px solid rgba(255, 193, 7, 0.25);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  font-size: 0.92rem;
+  margin: 0.75rem 0;
+}
+
+body.page-app .prose .table-wrap {
+  overflow-x: auto;
+  margin: 0.75rem 0 1rem;
+}
+
+body.page-app .prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+body.page-app .prose th,
+body.page-app .prose td {
+  border: 1px solid var(--app-border);
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+body.page-app .prose th {
+  background: rgba(255, 120, 40, 0.08);
+  color: var(--app-on-surface);
+}
+
+@media (max-width: 600px) {
+  body.page-app .prose .prose-toc ol {
+    columns: 1;
+  }
+}
+
 @media (max-width: 768px) {
   body.page-app .nav a.nav-link--corp {
     margin-left: 0;

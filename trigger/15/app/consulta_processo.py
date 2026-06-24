@@ -1,0 +1,678 @@
+"""Consulta unificada por processo — agrega Portal, API PNCP e Power BI."""
+
+from __future__ import annotations
+
+import json
+import re
+from collections import defaultdict
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session, selectinload
+
+from app.dashboard_gerencial import (
+    ChaveProcesso,
+    _chave_api,
+    _chave_portal,
+    _chave_powerbi,
+    _mapa_orgaos,
+    extrair_numero_processo_api,
+    extrair_numero_processo_portal,
+    normalizar_processo_powerbi,
+)
+from app.database import (
+    CompraContratacao,
+    CompraContratacaoItem,
+    Licitacao,
+    OrgaoConsolidado,
+    PbiOrgao,
+    PbiProcessoLicitatorio,
+    get_db,
+)
+from app.powerbi import (
+    ArvoreLicitacaoOut,
+    ContratoGrupoOut,
+    _ctr_out,
+    _proc_out,
+    _resp_out,
+)
+from app.powerbi_arvore import agrupar_eventos, eventos_do_processo, responsaveis_do_contrato
+
+router = APIRouter(tags=["consulta-processo"])
+
+_PROC_OPTS = (
+    selectinload(PbiProcessoLicitatorio.orgao),
+    selectinload(PbiProcessoLicitatorio.observador),
+)
+
+
+def _extrair_numero_busca(termo: str) -> int | None:
+    """Tenta interpretar o termo digitado como número de processo."""
+    t = termo.strip()
+    if not t:
+        return None
+    for fn in (extrair_numero_processo_portal, extrair_numero_processo_api, normalizar_processo_powerbi):
+        n = fn(t)
+        if n is not None:
+            return n
+    m = re.match(r"^(\d+)$", t)
+    return int(m.group(1)) if m else None
+
+
+def _filtro_processo_portal(termo: str, numero: int | None) -> list[Any]:
+    p = f"%{termo.strip()}%"
+    conds = [Licitacao.processo.ilike(p)]
+    if numero is not None:
+        conds.append(Licitacao.processo.ilike(f"%{numero}/%"))
+        conds.append(Licitacao.processo.ilike(f"% {numero}/%"))
+        conds.append(Licitacao.processo.ilike(f"%{numero}%"))
+    return [or_(*conds)]
+
+
+def _filtro_processo_api(termo: str, numero: int | None) -> list[Any]:
+    p = f"%{termo.strip()}%"
+    conds = [CompraContratacao.processo.ilike(p)]
+    if numero is not None:
+        conds.append(CompraContratacao.processo.ilike(f"%{numero}%"))
+    return [or_(*conds)]
+
+
+def _filtro_processo_pbi(termo: str, numero: int | None) -> list[Any]:
+    p = f"%{termo.strip()}%"
+    conds = [PbiProcessoLicitatorio.processo.ilike(p)]
+    if numero is not None:
+        conds.append(PbiProcessoLicitatorio.processo == str(numero))
+    return [or_(*conds)]
+
+
+def _chaves_orgao(db: Session, orgao_id: int | None) -> dict[str, set[str]]:
+    from app.dashboard_gerencial import _chaves_orgao as _co
+
+    return _co(db, orgao_id)
+
+
+def _portal_out(row: Licitacao) -> dict[str, Any]:
+    data = {
+        "id": row.id,
+        "empresa_codigo": row.empresa_codigo,
+        "empresa_nome": row.empresa_nome,
+        "ano": row.ano,
+        "processo": row.processo,
+        "modalidade": row.modalidade,
+        "descricao_edital": row.descricao_edital,
+        "data_abertura": row.data_abertura,
+        "habilitacao": row.habilitacao,
+        "julgamento": row.julgamento,
+        "homologacao": row.homologacao,
+        "situacao": row.situacao,
+        "local_abertura": row.local_abertura,
+        "data_visita_tecnica": row.data_visita_tecnica,
+        "responsavel_visita_tecnica": row.responsavel_visita_tecnica,
+        "local_saida_visita_tecnica": row.local_saida_visita_tecnica,
+        "detalhe_url": row.detalhe_url,
+        "valor_estimado": row.valor_estimado,
+        "observador_id": row.observador_id,
+        "observador_nome": row.observador.nome if row.observador else None,
+        "coletado_em": row.coletado_em.isoformat() if row.coletado_em else None,
+    }
+    return data
+
+
+def _compra_out(row: CompraContratacao) -> dict[str, Any]:
+    data: dict[str, Any] = {
+        "id": row.id,
+        "id_compra": row.id_compra or row.chave_compra,
+        "unidade_compradora": row.unidade_compradora,
+        "unidade_nome": row.unidade_nome,
+        "ano": row.ano,
+        "chave_compra": row.chave_compra,
+        "numero": row.numero,
+        "numero_controle_pncp": row.numero_controle_pncp,
+        "processo": row.processo,
+        "modalidade_codigo": row.modalidade_codigo,
+        "modalidade_descricao": row.modalidade_descricao,
+        "objeto": row.objeto,
+        "situacao_lista": row.situacao_lista,
+        "url_acompanhamento": row.url_acompanhamento,
+        "data_divulgacao_pncp": row.data_divulgacao_pncp,
+        "data_publicacao_pncp": row.data_publicacao_pncp,
+        "data_abertura_proposta_pncp": row.data_abertura_proposta_pncp,
+        "data_encerramento_proposta_pncp": row.data_encerramento_proposta_pncp,
+        "situacao_pncp": row.situacao_pncp,
+        "inicio_recebimento_propostas": row.inicio_recebimento_propostas,
+        "fim_recebimento_propostas": row.fim_recebimento_propostas,
+        "id_contratacao_pncp": row.id_contratacao_pncp,
+        "informacao_complementar": row.informacao_complementar,
+        "valor_total_estimado": row.valor_total_estimado,
+        "valor_total_homologado": row.valor_total_homologado,
+        "link_pncp": row.link_pncp,
+        "orgao_entidade_razao_social": row.orgao_entidade_razao_social,
+        "observador_id": row.observador_id,
+        "observador_nome": row.observador.nome if row.observador else None,
+        "coletado_em": row.coletado_em.isoformat() if row.coletado_em else None,
+    }
+    if row.dados_pncp_json:
+        try:
+            data["dados_pncp"] = json.loads(row.dados_pncp_json)
+        except json.JSONDecodeError:
+            data["dados_pncp"] = None
+    return data
+
+
+def _item_out(row: CompraContratacaoItem) -> dict[str, Any]:
+    data = {
+        "id": row.id,
+        "id_compra_item": row.id_compra_item,
+        "numero_item_pncp": row.numero_item_pncp,
+        "descricao_resumida": row.descricao_resumida,
+        "descricao_detalhada": row.descricao_detalhada,
+        "material_ou_servico_nome": row.material_ou_servico_nome,
+        "unidade_medida": row.unidade_medida,
+        "situacao_compra_item_nome": row.situacao_compra_item_nome,
+        "quantidade": row.quantidade,
+        "valor_unitario_estimado": row.valor_unitario_estimado,
+        "valor_total": row.valor_total,
+        "nome_fornecedor": row.nome_fornecedor,
+        "valor_total_resultado": row.valor_total_resultado,
+    }
+    return data
+
+
+def _itens_compra(db: Session, row: CompraContratacao) -> list[dict[str, Any]]:
+    filtro = or_(
+        CompraContratacaoItem.contratacao_id == row.id,
+        CompraContratacaoItem.id_compra == row.id_compra,
+    )
+    itens = db.scalars(
+        select(CompraContratacaoItem)
+        .where(filtro)
+        .order_by(CompraContratacaoItem.numero_item_pncp)
+        .limit(500)
+    ).all()
+    return [_item_out(i) for i in itens]
+
+
+def _arvore_powerbi(db: Session, proc: PbiProcessoLicitatorio) -> dict[str, Any]:
+    eventos = eventos_do_processo(db, proc)
+    grupos_raw = agrupar_eventos(eventos)
+    grupos: list[ContratoGrupoOut] = []
+    for g in grupos_raw:
+        ch = g["chave"]
+        resps = responsaveis_do_contrato(
+            db,
+            ano_contrato=ch["ano_contrato"],
+            nr_contrato=ch["nr_contrato"],
+            fornecedor_id=ch.get("fornecedor_id") or None,
+            objeto_contrato=g.get("ds_objeto_contrato"),
+        )
+        grupos.append(
+            ContratoGrupoOut(
+                orgao_id=ch["orgao_id"],
+                orgao_nome=g["orgao_nome"],
+                ano_contrato=ch["ano_contrato"],
+                nr_contrato=ch["nr_contrato"],
+                fornecedor_id=ch.get("fornecedor_id") or None,
+                fornecedor_nome=g["fornecedor_nome"],
+                processo=ch.get("processo"),
+                ano_processo=ch.get("ano_processo"),
+                processo_id=g.get("processo_id"),
+                ds_objeto_contrato=g["ds_objeto_contrato"],
+                qtd_eventos=g["qtd_eventos"],
+                valor_total=g["valor_total"],
+                eventos=[_ctr_out(ev) for ev in g["eventos"]],
+                responsaveis=[_resp_out(r) for r in resps],
+            )
+        )
+    arvore = ArvoreLicitacaoOut(
+        licitacao=_proc_out(proc, db),
+        contratos=grupos,
+        sem_contrato=len(grupos) == 0,
+    )
+    return arvore.model_dump(mode="json")
+
+
+def _rotulo_grupo(
+    portal: list[Licitacao],
+    api: list[CompraContratacao],
+    pbi: list[tuple[PbiProcessoLicitatorio, str]],
+) -> str:
+    for r in portal:
+        return r.processo
+    for r in api:
+        if r.processo:
+            return r.processo
+    for proc, _ in pbi:
+        return proc.processo
+    return "Processo"
+
+
+def _info_chave(
+    chave: ChaveProcesso | None,
+    mapa_org: dict,
+    portal: list[Licitacao],
+    api: list[CompraContratacao],
+    pbi: list[tuple[PbiProcessoLicitatorio, str]],
+) -> dict[str, Any] | None:
+    if not chave:
+        return None
+    oid, ano, num = chave
+    org = next((o for o in mapa_org.values() if o.id == oid), None)
+    return {
+        "orgao_id": oid,
+        "orgao_nome": (org.sigla or org.nome) if org else None,
+        "ano": ano,
+        "numero": num,
+        "rotulo": _rotulo_grupo(portal, api, pbi),
+    }
+
+
+def _comparativo(
+    portal: list[Licitacao],
+    api: list[CompraContratacao],
+    pbi: list[tuple[PbiProcessoLicitatorio, str]],
+) -> dict[str, Any]:
+    sit_portal = portal[0].situacao if portal else None
+    sit_api = api[0].situacao_lista or api[0].situacao_pncp if api else None
+    sit_pbi = pbi[0][0].situacao if pbi else None
+
+    val_portal = portal[0].valor_estimado if portal else None
+    val_api_est = api[0].valor_total_estimado if api else None
+    val_api_hom = api[0].valor_total_homologado if api else None
+    val_pbi = pbi[0][0].valor_licitacao if pbi else None
+
+    obj_portal = portal[0].descricao_edital if portal else None
+    obj_api = api[0].objeto if api else None
+    obj_pbi = pbi[0][0].objeto if pbi else None
+
+    mod_portal = portal[0].modalidade if portal else None
+    mod_api = api[0].modalidade_descricao if api else None
+    mod_pbi = pbi[0][0].modalidade if pbi else None
+
+    return {
+        "situacao": {"portal": sit_portal, "api": sit_api, "powerbi": sit_pbi},
+        "modalidade": {"portal": mod_portal, "api": mod_api, "powerbi": mod_pbi},
+        "valores": {
+            "portal_estimado": val_portal,
+            "api_estimado": val_api_est,
+            "api_homologado": val_api_hom,
+            "powerbi": val_pbi,
+        },
+        "objeto": {"portal": obj_portal, "api": obj_api, "powerbi": obj_pbi},
+        "datas": {
+            "portal_abertura": portal[0].data_abertura if portal else None,
+            "portal_habilitacao": portal[0].habilitacao if portal else None,
+            "portal_julgamento": portal[0].julgamento if portal else None,
+            "portal_homologacao": portal[0].homologacao if portal else None,
+            "api_publicacao": api[0].data_publicacao_pncp if api else None,
+            "api_abertura": api[0].data_abertura_proposta_pncp if api else None,
+            "powerbi_abertura": pbi[0][0].dt_abertura if pbi else None,
+            "powerbi_homologacao": pbi[0][0].dt_homologacao if pbi else None,
+        },
+    }
+
+
+def _buscar_registros(
+    db: Session,
+    termo: str,
+    ano: int | None,
+    orgao_id: int | None,
+) -> tuple[list[Licitacao], list[CompraContratacao], list[tuple[PbiProcessoLicitatorio, str]]]:
+    numero = _extrair_numero_busca(termo)
+    chaves_org = _chaves_orgao(db, orgao_id)
+    mapa_org = _mapa_orgaos(db)
+
+    crit_p: list[Any] = _filtro_processo_portal(termo, numero)
+    if ano:
+        crit_p.append(Licitacao.ano == ano)
+    portal_org = chaves_org.get("portal")
+    if portal_org:
+        crit_p.append(Licitacao.empresa_codigo.in_(portal_org))
+
+    crit_a: list[Any] = _filtro_processo_api(termo, numero)
+    if ano:
+        crit_a.append(CompraContratacao.ano == ano)
+    api_org = chaves_org.get("compras_api")
+    if api_org:
+        crit_a.append(CompraContratacao.unidade_compradora.in_(api_org))
+
+    crit_b: list[Any] = _filtro_processo_pbi(termo, numero)
+    if ano:
+        crit_b.append(PbiProcessoLicitatorio.ano_processo == ano)
+    pbi_org = chaves_org.get("powerbi")
+    if pbi_org:
+        crit_b.append(
+            PbiProcessoLicitatorio.orgao_id.in_(
+                select(PbiOrgao.id).where(PbiOrgao.nome.in_(pbi_org))
+            )
+        )
+
+    portal_rows = list(
+        db.scalars(
+            select(Licitacao)
+            .options(selectinload(Licitacao.observador))
+            .where(*crit_p)
+            .order_by(Licitacao.ano.desc(), Licitacao.processo)
+            .limit(200)
+        ).all()
+    )
+    api_rows = list(
+        db.scalars(
+            select(CompraContratacao)
+            .options(selectinload(CompraContratacao.observador))
+            .where(*crit_a)
+            .order_by(CompraContratacao.ano.desc(), CompraContratacao.numero)
+            .limit(200)
+        ).all()
+    )
+    pbi_rows = list(
+        db.execute(
+            select(PbiProcessoLicitatorio, PbiOrgao.nome)
+            .join(PbiOrgao, PbiProcessoLicitatorio.orgao_id == PbiOrgao.id)
+            .options(*_PROC_OPTS)
+            .where(*crit_b)
+            .order_by(PbiProcessoLicitatorio.ano_processo.desc(), PbiProcessoLicitatorio.processo)
+            .limit(200)
+        ).all()
+    )
+    return portal_rows, api_rows, pbi_rows
+
+
+def _agrupar_resultados(
+    portal_rows: list[Licitacao],
+    api_rows: list[CompraContratacao],
+    pbi_rows: list[tuple[PbiProcessoLicitatorio, str]],
+    mapa_org: dict,
+) -> list[dict[str, Any]]:
+    grupos: dict[str, dict[str, Any]] = {}
+
+    def _slot(chave: ChaveProcesso | None, origem: str, item: Any) -> None:
+        key = f"chave:{chave}" if chave else f"soltos:{origem}:{getattr(item, 'id', id(item))}"
+        if key not in grupos:
+            grupos[key] = {
+                "chave": None,
+                "sem_chave": chave is None,
+                "portal": [],
+                "api": [],
+                "pbi": [],
+            }
+        g = grupos[key]
+        if chave and not g["chave"]:
+            oid, ano, num = chave
+            org = next((o for o in mapa_org.values() if o.id == oid), None)
+            g["chave"] = {
+                "orgao_id": oid,
+                "orgao_nome": (org.sigla or org.nome) if org else None,
+                "ano": ano,
+                "numero": num,
+            }
+        if origem == "portal":
+            g["portal"].append(item)
+        elif origem == "api":
+            g["api"].append(item)
+        else:
+            g["pbi"].append(item)
+
+    for row in portal_rows:
+        _slot(_chave_portal(row, mapa_org), "portal", row)
+    for row in api_rows:
+        _slot(_chave_api(row, mapa_org), "api", row)
+    for proc, org_nome in pbi_rows:
+        _slot(_chave_powerbi(proc, org_nome, mapa_org), "pbi", (proc, org_nome))
+
+    resultado: list[dict[str, Any]] = []
+    for g in grupos.values():
+        portal = g["portal"]
+        api = g["api"]
+        pbi = g["pbi"]
+        chave_info = g["chave"]
+        rotulo = _rotulo_grupo(portal, api, pbi)
+        if chave_info:
+            chave_info = {**chave_info, "rotulo": rotulo}
+        resultado.append(
+            {
+                "chave": chave_info,
+                "sem_chave": g["sem_chave"],
+                "rotulo": rotulo,
+                "cobertura": {
+                    "portal": len(portal) > 0,
+                    "api": len(api) > 0,
+                    "powerbi": len(pbi) > 0,
+                },
+                "portal_count": len(portal),
+                "api_count": len(api),
+                "powerbi_count": len(pbi),
+                "ano": chave_info["ano"] if chave_info else (
+                    portal[0].ano if portal else api[0].ano if api else pbi[0][0].ano_processo if pbi else None
+                ),
+                "orgao": chave_info["orgao_nome"] if chave_info else (
+                    portal[0].empresa_nome if portal else api[0].unidade_nome if api else pbi[0][1] if pbi else None
+                ),
+            }
+        )
+
+    def _sort_key(item: dict[str, Any]) -> tuple:
+        bases = sum(item["cobertura"].values())
+        ano = item.get("ano") or 0
+        return (-bases, -ano, item.get("rotulo") or "")
+
+    return sorted(resultado, key=_sort_key)
+
+
+@router.get("/api/consulta-processo/filtros")
+def filtros_consulta(db: Session = Depends(get_db)):
+    anos_portal = db.scalars(select(Licitacao.ano).distinct()).all()
+    anos_api = db.scalars(select(CompraContratacao.ano).distinct()).all()
+    anos_pbi = db.scalars(select(PbiProcessoLicitatorio.ano_processo).distinct()).all()
+    anos = sorted(set(anos_portal) | set(anos_api) | set(anos_pbi), reverse=True)
+    orgaos = db.scalars(
+        select(OrgaoConsolidado)
+        .where(OrgaoConsolidado.ativo.is_(True))
+        .order_by(OrgaoConsolidado.nome)
+    ).all()
+    return {
+        "anos": anos,
+        "orgaos": [{"id": o.id, "nome": o.nome, "sigla": o.sigla} for o in orgaos],
+    }
+
+
+@router.get("/api/consulta-processo/buscar")
+def buscar_processo(
+    db: Session = Depends(get_db),
+    processo: str = Query(..., min_length=1),
+    ano: int | None = Query(None, ge=2000, le=2100),
+    orgao_id: int | None = Query(None),
+    limit: int = Query(30, ge=1, le=100),
+):
+    termo = processo.strip()
+    if not termo:
+        raise HTTPException(400, "Informe o número ou texto do processo")
+
+    mapa_org = _mapa_orgaos(db)
+    portal_rows, api_rows, pbi_rows = _buscar_registros(db, termo, ano, orgao_id)
+    grupos = _agrupar_resultados(portal_rows, api_rows, pbi_rows, mapa_org)[:limit]
+
+    return {
+        "termo": termo,
+        "numero_interpretado": _extrair_numero_busca(termo),
+        "total_grupos": len(grupos),
+        "total_registros": len(portal_rows) + len(api_rows) + len(pbi_rows),
+        "grupos": grupos,
+    }
+
+
+def _registros_por_chave(
+    db: Session,
+    chave_alvo: ChaveProcesso,
+    mapa_org: dict,
+) -> tuple[list[Licitacao], list[CompraContratacao], list[tuple[PbiProcessoLicitatorio, str]]]:
+    oid, ano, _ = chave_alvo
+    chaves_org = _chaves_orgao(db, oid)
+
+    crit_p: list[Any] = [Licitacao.ano == ano]
+    portal_org = chaves_org.get("portal")
+    if portal_org:
+        crit_p.append(Licitacao.empresa_codigo.in_(portal_org))
+
+    crit_a: list[Any] = [CompraContratacao.ano == ano]
+    api_org = chaves_org.get("compras_api")
+    if api_org:
+        crit_a.append(CompraContratacao.unidade_compradora.in_(api_org))
+
+    crit_b: list[Any] = [PbiProcessoLicitatorio.ano_processo == ano]
+    pbi_org = chaves_org.get("powerbi")
+    if pbi_org:
+        crit_b.append(
+            PbiProcessoLicitatorio.orgao_id.in_(
+                select(PbiOrgao.id).where(PbiOrgao.nome.in_(pbi_org))
+            )
+        )
+
+    portal_rows = [
+        r
+        for r in db.scalars(
+            select(Licitacao).options(selectinload(Licitacao.observador)).where(*crit_p)
+        ).all()
+        if _chave_portal(r, mapa_org) == chave_alvo
+    ]
+    api_rows = [
+        r
+        for r in db.scalars(
+            select(CompraContratacao)
+            .options(selectinload(CompraContratacao.observador))
+            .where(*crit_a)
+        ).all()
+        if _chave_api(r, mapa_org) == chave_alvo
+    ]
+    pbi_rows = [
+        (proc, org_nome)
+        for proc, org_nome in db.execute(
+            select(PbiProcessoLicitatorio, PbiOrgao.nome)
+            .join(PbiOrgao, PbiProcessoLicitatorio.orgao_id == PbiOrgao.id)
+            .options(*_PROC_OPTS)
+            .where(*crit_b)
+        ).all()
+        if _chave_powerbi(proc, org_nome, mapa_org) == chave_alvo
+    ]
+    return portal_rows, api_rows, pbi_rows
+
+
+def _agrupar_para_detalhe(
+    portal_rows: list[Licitacao],
+    api_rows: list[CompraContratacao],
+    pbi_rows: list[tuple[PbiProcessoLicitatorio, str]],
+    mapa_org: dict,
+) -> list[dict[str, Any]]:
+    """Agrupa registros mantendo objetos ORM para detalhe."""
+    buckets: dict[str, dict[str, Any]] = defaultdict(
+        lambda: {"portal": [], "api": [], "pbi": [], "chave": None}
+    )
+
+    def _bucket_key(chave: ChaveProcesso | None, origem: str, item_id: int) -> str:
+        return f"chave:{chave}" if chave else f"solo:{origem}:{item_id}"
+
+    for row in portal_rows:
+        ch = _chave_portal(row, mapa_org)
+        k = _bucket_key(ch, "portal", row.id)
+        buckets[k]["portal"].append(row)
+        if ch and not buckets[k]["chave"]:
+            buckets[k]["chave"] = ch
+    for row in api_rows:
+        ch = _chave_api(row, mapa_org)
+        k = _bucket_key(ch, "api", row.id)
+        buckets[k]["api"].append(row)
+        if ch and not buckets[k]["chave"]:
+            buckets[k]["chave"] = ch
+    for proc, org_nome in pbi_rows:
+        ch = _chave_powerbi(proc, org_nome, mapa_org)
+        k = _bucket_key(ch, "pbi", proc.id)
+        buckets[k]["pbi"].append((proc, org_nome))
+        if ch and not buckets[k]["chave"]:
+            buckets[k]["chave"] = ch
+
+    def _score(g: dict[str, Any]) -> tuple:
+        bases = (1 if g["portal"] else 0) + (1 if g["api"] else 0) + (1 if g["pbi"] else 0)
+        total = len(g["portal"]) + len(g["api"]) + len(g["pbi"])
+        return (-bases, -total)
+
+    return sorted(buckets.values(), key=_score)
+
+
+def _montar_resposta_detalhe(
+    db: Session,
+    mapa_org: dict,
+    portal_rows: list[Licitacao],
+    api_rows: list[CompraContratacao],
+    pbi_rows: list[tuple[PbiProcessoLicitatorio, str]],
+) -> dict[str, Any]:
+    chave_raw = None
+    if portal_rows:
+        chave_raw = _chave_portal(portal_rows[0], mapa_org)
+    elif api_rows:
+        chave_raw = _chave_api(api_rows[0], mapa_org)
+    elif pbi_rows:
+        chave_raw = _chave_powerbi(pbi_rows[0][0], pbi_rows[0][1], mapa_org)
+
+    chave_info = _info_chave(chave_raw, mapa_org, portal_rows, api_rows, pbi_rows)
+
+    api_detalhe = []
+    for row in api_rows:
+        item = _compra_out(row)
+        item["itens"] = _itens_compra(db, row)
+        api_detalhe.append(item)
+
+    pbi_detalhe = [_arvore_powerbi(db, proc) for proc, _ in pbi_rows]
+
+    return {
+        "multiplos": False,
+        "chave": chave_info,
+        "cobertura": {
+            "portal": len(portal_rows) > 0,
+            "api": len(api_rows) > 0,
+            "powerbi": len(pbi_rows) > 0,
+            "nas_tres": len(portal_rows) > 0 and len(api_rows) > 0 and len(pbi_rows) > 0,
+        },
+        "comparativo": _comparativo(portal_rows, api_rows, pbi_rows),
+        "portal": [_portal_out(r) for r in portal_rows],
+        "api": api_detalhe,
+        "powerbi": pbi_detalhe,
+    }
+
+
+@router.get("/api/consulta-processo/detalhe")
+def detalhe_processo(
+    db: Session = Depends(get_db),
+    processo: str | None = Query(None),
+    ano: int | None = Query(None, ge=2000, le=2100),
+    orgao_id: int | None = Query(None),
+    chave_orgao_id: int | None = Query(None),
+    chave_ano: int | None = Query(None, ge=2000, le=2100),
+    chave_numero: int | None = Query(None),
+):
+    mapa_org = _mapa_orgaos(db)
+
+    if chave_orgao_id is not None and chave_ano is not None and chave_numero is not None:
+        chave_alvo: ChaveProcesso = (chave_orgao_id, chave_ano, chave_numero)
+        portal_rows, api_rows, pbi_rows = _registros_por_chave(db, chave_alvo, mapa_org)
+        if not portal_rows and not api_rows and not pbi_rows:
+            raise HTTPException(404, "Nenhum registro encontrado para esta chave de cruzamento")
+        return _montar_resposta_detalhe(db, mapa_org, portal_rows, api_rows, pbi_rows)
+
+    if not processo or not processo.strip():
+        raise HTTPException(400, "Informe processo ou chave de cruzamento")
+
+    portal_rows, api_rows, pbi_rows = _buscar_registros(db, processo.strip(), ano, orgao_id)
+    if not portal_rows and not api_rows and not pbi_rows:
+        raise HTTPException(404, "Nenhum registro encontrado para este processo")
+
+    grupos = _agrupar_para_detalhe(portal_rows, api_rows, pbi_rows, mapa_org)
+    if len(grupos) > 1:
+        resumo = _agrupar_resultados(portal_rows, api_rows, pbi_rows, mapa_org)
+        return {
+            "multiplos": True,
+            "grupos": resumo,
+            "mensagem": "Encontrados vários processos. Selecione um ou refine com ano e órgão.",
+        }
+
+    g = grupos[0]
+    return _montar_resposta_detalhe(db, mapa_org, g["portal"], g["api"], g["pbi"])

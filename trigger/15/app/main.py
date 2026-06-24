@@ -27,6 +27,7 @@ from app.database import (
     get_db,
     init_db,
 )
+from app.consulta_processo import router as consulta_processo_router
 from app.dashboard_gerencial import router as dashboard_router
 from app.modalidades_vinculo import router as modalidades_router
 from app.orgaos_vinculo import router as orgaos_router
@@ -37,6 +38,7 @@ init_db()
 
 app = FastAPI(title="Verificação de Licitações — Uberlândia", version="1.0.0")
 app.include_router(dashboard_router)  # dashboard gerencial — removível
+app.include_router(consulta_processo_router)  # consulta unificada por processo — removível
 app.include_router(orgaos_router)  # vínculo órgãos entre bases — removível
 app.include_router(modalidades_router)  # vínculo modalidades entre bases — removível
 app.include_router(powerbi_router)  # power bi / dados abertos PMU — removível

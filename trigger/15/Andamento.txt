@@ -214,7 +214,5 @@ https://www.gov.br/pncp/pt-br/pncp/manuais
 
 base do projeto:
 
-dfmoura@dfmoura-Nitro-ANV15-52:~/Documents/test_several1/uniube/1/licitacoes-hub$
-subir projeto
 docker compose up --build -d
 

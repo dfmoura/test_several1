@@ -1,0 +1,130 @@
+================================================================================
+PARECER TÉCNICO — Node.js vs. Stack Atual (Python + FastAPI)
+Projeto: Verificação de Licitações — Observatório Social do Brasil (Uberlândia)
+Data: 19/06/2025
+================================================================================
+
+RESPOSTA DIRETA
+---------------
+
+Para este projeto, faz mais sentido continuar como está (Python + FastAPI), não
+reescrever em Node.js.
+
+A escolha atual está alinhada com o tipo de problema que se está resolvendo:
+coleta de dados, integração de fontes públicas, scraping e consolidação para a ONG.
+
+
+O QUE O PROJETO REALMENTE É
+---------------------------
+
+Pelo levantamento em Andamento.txt e pelo código em trigger/15, o sistema não é
+apenas um CRUD web. Ele é um hub de dados com três frentes principais:
+
+  Fonte                              | Tecnologia usada
+  -----------------------------------|----------------------------------
+  Portal da Prefeitura (Akamai)      | Playwright + navegador headed no Docker
+  API Compras.gov / PNCP             | httpx
+  CSVs Power BI / dados abertos PMU  | importação e persistência
+
+Esse perfil combina bem com Python, que é forte em scraping, ETL e integração
+de APIs governamentais.
+
+
+POR QUE PYTHON FAZ SENTIDO AQUI
+-------------------------------
+
+1. O ponto mais difícil já está resolvido em Python
+
+   O scraper do portal (app/scraper.py) lida com Akamai, paginação, subdivisão
+   de resultados e bloqueio em modo headless. Isso já funciona com Playwright +
+   Xvfb no Docker. Reescrever em Node (Playwright/Puppeteer) não elimina essa
+   complexidade — apenas troca a linguagem.
+
+2. O perfil do projeto é "dados + automação", não "app web em tempo real"
+
+   - Coletas em background
+   - SQLite local
+   - API REST simples
+   - Frontend estático (app/static/)
+
+   FastAPI + SQLAlchemy atendem isso bem. Node brilha mais quando o foco é SPA
+   complexa, muitos WebSockets ou ecossistema JavaScript de ponta a ponta — o
+   que ainda não é o caso deste projeto.
+
+3. Contexto da ONG e do trabalho extensionista
+
+   O Observatório Social precisa de algo que:
+
+   - rode local ou em servidor simples (docker compose up)
+   - una portal + Compras.gov + Power BI
+   - preserve campos manuais (valor_estimado, observador_id)
+
+   Isso é pipeline de dados + ferramenta operacional. Python é uma escolha
+   muito comum nesse tipo de projeto de transparência pública.
+
+4. Custo de trocar de stack
+
+   Já existem módulos funcionais: scraper.py, compras_pncp.py, powerbi_*,
+   dashboard gerencial, vínculos de órgãos/modalidades. Migrar para Node seria
+   reescrever sem ganho claro para o usuário final da ONG.
+
+
+QUANDO NODE FARIA MAIS SENTIDO
+------------------------------
+
+Node valeria considerar se o projeto evoluísse para algo como:
+
+  - interface rica em React/Next com muita interatividade
+  - vários colaboradores simultâneos em produção
+  - autenticação, permissões, notificações em tempo real
+  - equipe da ONG mais confortável mantendo JavaScript do que Python
+
+Mesmo nesses casos, a abordagem mais comum seria manter o backend em Python e
+evoluir apenas o frontend — não descartar o que já existe.
+
+
+RECOMENDAÇÕES PARA EVOLUÇÃO (SEM TROCAR DE STACK)
+--------------------------------------------------
+
+1. Manter Python/FastAPI como núcleo do sistema.
+
+2. Evoluir o frontend somente se a interface atual ficar limitada (React/Vue
+   consumindo a mesma API).
+
+3. Trocar SQLite por PostgreSQL se a ferramenta passar a ser compartilhada por
+   vários observadores simultaneamente.
+
+4. Adicionar coleta agendada (cron ou APScheduler) para reduzir o trabalho
+   manual da planilha "Cronograma".
+
+5. Para o Operacional 2 (monitoramento de vereadores/redes sociais), Python
+   também é adequado — bibliotecas de scraping e processamento de texto são
+   maduras nesse ecossistema.
+
+
+COMPARATIVO RESUMIDO
+--------------------
+
+  Critério                          | Python (atual) | Node.js
+  ----------------------------------|----------------|----------
+  Scraping com anti-bot             | Muito bom      | Equivalente
+  APIs governamentais + CSV         | Muito bom      | Bom
+  Ferramenta local para ONG         | Muito bom      | Bom
+  Código já implementado            | Sim            | Não
+  SPA complexa no futuro            | Backend ok;    | Vantagem
+                                    | frontend pode  | moderada
+                                    | evoluir        |
+
+CONCLUSÃO
+---------
+
+Continue do jeito que está. A stack atual (Python + FastAPI + Playwright +
+SQLAlchemy + SQLite) é adequada ao problema real do Observatório Social.
+
+O esforço deve ser direcionado para completar funcionalidades úteis à ONG —
+acompanhamento de licitações, relatórios quadrimestrais, operacional de
+vereadores — e não para reescrever o sistema em Node.js.
+
+================================================================================
+Fim do parecer
+================================================================================

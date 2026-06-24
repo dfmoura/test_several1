@@ -1,0 +1,415 @@
+================================================================================
+  DEPLOY ORACLE CLOUD (ALWAYS FREE) + CLOUDFLARE — SISTEMA DE LICITAÇÕES
+  Projeto: trigger/15 — Verificação de Licitações Uberlândia
+  Repositório: https://github.com/dfmoura/test_several1/tree/main/trigger/15
+  Domínio: licitacoes.triggerti.com (NÃO alterar www.triggerti.com)
+  Região OCI: Brazil East (São Paulo)
+  Tenancy: diogomou
+================================================================================
+
+OBJETIVO
+--------
+Implantar o sistema em produção leve (~4 usuários) na Oracle Cloud Always Free,
+com custo R$ 0, acessível via subdomínio Cloudflare, sem abrir portas HTTP na
+Oracle (Cloudflare Tunnel).
+
+ARQUITETURA
+-----------
+  [Usuários] → https://licitacoes.triggerti.com (Cloudflare)
+                    ↓ Cloudflare Tunnel (grátis, saída da VM)
+              VM ARM Always Free (São Paulo)
+                    ↓ Docker Compose
+              FastAPI :8095 + SQLite em /app/data
+              Playwright + Xvfb (HEADLESS=false — portal Akamai)
+
+LIMITES ALWAYS FREE (jun/2026 — conferir documentação Oracle)
+-------------------------------------------------------------
+  Compute ARM (A1.Flex):  2 OCPUs + 12 GB RAM (total na conta)
+  Boot + Block storage:   200 GB total
+  Egress:                 ~10 TB/mês
+  Micro AMD (E2.1.Micro): 2 inst × 1 GB — NÃO usar para Playwright
+
+  RECOMENDADO PARA ESTE PROJETO:
+    Shape: VM.Standard.A1.Flex
+    OCPUs: 2 (ou 1 na primeira tentativa se out of capacity)
+    RAM:   8 GB (ou 6 GB na primeira tentativa)
+    Boot:  50 GB, performance Balanced (VPU 10)
+
+O QUE NÃO CRIAR (evita cobrança)
+--------------------------------
+  - Autonomous Database, Load Balancer pago, GPU, instâncias x86 grandes
+  - Block volumes extras além do boot
+  - Boot volume > 50 GB sem necessidade
+  - Shape E3.Flex ou outros shapes pagos
+  - E2.1.Micro como solução definitiva (1 GB RAM — Playwright falha)
+
+
+================================================================================
+FASE 0 — PROTEÇÃO CONTRA COBRANÇA
+================================================================================
+
+0.1 BUDGET ALERT
+  Console → Billing & Cost Management → Budgets → Create Budget
+
+  Name:        alerta-custo-zero
+  Description: Alerta se houver qualquer cobrança — free tier only
+  Scope:       Compartment → diogomou (root)
+  Schedule:    Monthly
+  Amount:      USD 1
+
+  Alert Rule:
+    Threshold Metric:  Actual Spend
+    Threshold Type:    Percentage of Budget → 1%
+    (ou Absolute Amount → USD 0.01)
+    Email:             seu e-mail
+
+0.2 CONFIRMAR SUBSCRIPTION
+  Billing → Subscriptions
+  Deve mostrar:
+    - Universal Credits, Status Active
+    - Total commitment value: R$ 0,00
+    - Credit remaining: 100% (trial promocional)
+    - Credit used: R$ 0,00
+
+  Isso NÃO é plano pago. Após o trial, continuam recursos Always Free.
+
+0.3 REGRA DE OURO
+  Só criar recursos com etiqueta "Always Free eligible" no console.
+
+
+================================================================================
+FASE 1 — CHAVE SSH NO SEU PC (Linux)
+================================================================================
+
+1.1 Gerar chave (se ainda não tiver)
+  ssh-keygen -t ed25519 -C "oci-licitacoes" -f ~/.ssh/oci_licitacoes
+
+1.2 Copiar chave pública (colar na Oracle ao criar a VM)
+  cat ~/.ssh/oci_licitacoes.pub
+
+1.3 Descobrir seu IP público (para Security List SSH)
+  curl -4 ifconfig.me
+  Exemplo anotado: 191.54.7.183 → usar 191.54.7.183/32 na regra SSH
+
+
+================================================================================
+FASE 2 — REDE (VCN)
+================================================================================
+
+2.1 CRIAR VCN
+  Menu → Networking → Virtual cloud networks → Start VCN Wizard
+  Wizard: VCN with Internet Connectivity
+
+  VCN name:           vcn-licitacoes
+  Compartment:        diogomou (root)
+  VCN CIDR:           10.0.0.0/16
+  Public subnet:      10.0.0.0/24
+  Private subnet:     10.0.1.0/24
+  Enable IPv6:        DESMARCADO (não precisa)
+  Use DNS hostnames:  MARCADO (se disponível)
+
+  Next → Create
+
+2.2 RESTRINGIR SSH (Security List)
+  VCN vcn-licitacoes → Security Lists
+  → default security list for vcn-licitacoes → Ingress Rules
+
+  Editar regra TCP porta 22 (substituir 0.0.0.0/0):
+
+    Source Type:              CIDR
+    Source CIDR:              SEU_IP/32   (ex: 191.54.7.183/32)
+    IP Protocol:              TCP
+    Destination Port Range:   22
+    Description:              SSH apenas do meu PC
+
+  NÃO criar regras para portas 80, 443 ou 8095.
+  Cloudflare Tunnel conecta de dentro para fora — não precisa abrir HTTP.
+
+  Se seu IP de casa mudar: curl -4 ifconfig.me e atualize a regra.
+
+
+================================================================================
+FASE 3 — VM ALWAYS FREE (ARM)
+================================================================================
+
+3.1 CRIAR INSTÂNCIA
+  Menu → Compute → Instances → Create instance
+
+  Basic information:
+    Name:                   licitacoes-app
+    Compartment:            diogomou (root)
+    Availability domain:    AD-1 (único em SP)
+
+  Image and shape:
+    Image:  Change image → Canonical Ubuntu 22.04 (aarch64 / ARM)
+    Shape:  Change shape → aba AMPERE (não AMD!)
+            VM.Standard.A1.Flex — Always Free-eligible
+            No popup, role até o final e configure:
+              OCPUs:  2  (ou 1 se out of capacity persistir)
+              Memory: 8 GB (ou 6 GB se out of capacity persistir)
+
+  Networking:
+    VCN:                    vcn-licitacoes
+    Subnet:                 public subnet-vcn-licitacoes
+    Assign public IPv4:     SIM
+
+  SSH keys:
+    Paste public keys → colar conteúdo de ~/.ssh/oci_licitacoes.pub
+
+  Storage (Boot volume):
+    Custom boot volume size:  50 GB
+    Performance:              Balanced (VPU 10)
+    In-transit encryption:    opcional
+    Encrypt with own key:     NÃO
+    Block volumes extras:     NENHUM
+
+  Create
+
+3.2 CHECKLIST ANTES DE CREATE
+  [ ] Shape: VM.Standard.A1.Flex (NÃO E2.1.Micro)
+  [ ] Always Free-eligible visível
+  [ ] Ubuntu 22.04 aarch64
+  [ ] Subnet pública + IP público
+  [ ] Chave SSH colada
+  [ ] Boot 50 GB Balanced
+
+3.3 ERRO "OUT OF CAPACITY" (comum em São Paulo AD-1)
+  A VM NÃO foi criada. Não há cobrança.
+
+  O que fazer:
+    1. NÃO mudar para E2.1.Micro (1 GB — insuficiente)
+    2. Tentar A1.Flex com 1 OCPU / 6 GB (menor chance de bloqueio)
+    3. Melhores horários (horário Brasília):
+         - 03:00 – 07:00 (madrugada)
+         - Sábado/domingo de manhã
+    4. Evitar insistir 20× seguidas — tentar a cada 30–60 min ou no horário ideal
+    5. Após criar com 1/6 GB, pode tentar escalar (VM parada):
+         Stop → Edit → Change shape → 2 OCPU / 8 GB → Start
+
+3.4 STACK vs INSTANCE (não confundir)
+  Resource Manager → Stack "licitacoes-app" = template Terraform salvo
+  Compute → Instance "licitacoes-app" Running = servidor real
+
+  Se só existe Stack e não Instance → VM não foi criada.
+  Pode apagar o Stack em Resource Manager → Delete (opcional, evita confusão).
+
+3.5 APÓS RUNNING
+  Anotar Public IP address da instância.
+
+
+================================================================================
+FASE 4 — CONECTAR E INSTALAR O APP NA VM
+================================================================================
+
+4.1 SSH (no seu PC)
+  ssh -i ~/.ssh/oci_licitacoes ubuntu@IP_PUBLICO_DA_VM
+
+4.2 ATUALIZAR SISTEMA E INSTALAR DOCKER
+  sudo apt update && sudo apt upgrade -y
+  sudo apt install -y git curl
+  curl -fsSL https://get.docker.com | sudo sh
+  sudo usermod -aG docker ubuntu
+  exit
+
+  Reconectar SSH:
+  ssh -i ~/.ssh/oci_licitacoes ubuntu@IP_PUBLICO_DA_VM
+
+  Testar Docker:
+  docker --version
+  docker run hello-world
+
+4.3 FIREWALL LOCAL (recomendado)
+  sudo apt install -y ufw
+  sudo ufw default deny incoming
+  sudo ufw default allow outgoing
+  sudo ufw allow 22/tcp
+  sudo ufw enable
+  sudo ufw status
+
+4.4 CLONAR PROJETO E SUBIR APP
+  cd ~
+  git clone https://github.com/dfmoura/test_several1.git
+  cd test_several1/trigger/15
+  mkdir -p data
+  docker compose up --build -d
+
+  Acompanhar logs (primeira vez ~5–10 min):
+  docker compose logs -f
+
+  Esperar: "Uvicorn running on http://0.0.0.0:8095"
+  Ctrl+C para sair dos logs.
+
+4.5 TESTAR NA VM
+  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8095
+  Esperado: 200
+
+4.6 VARIÁVEIS IMPORTANTES (já no docker-compose.yml)
+  HEADLESS=false   — obrigatório (Akamai bloqueia headless)
+  APP_PORT=8095
+  Dados SQLite:    ./data/licitacoes.db
+
+
+================================================================================
+FASE 5 — CLOUDFLARE TUNNEL (subdomínio)
+================================================================================
+
+Subdomínio sugerido: licitacoes.triggerti.com
+NÃO alterar registros DNS de www.triggerti.com
+
+5.1 INSTALAR CLOUDFLARED NA VM (ARM64)
+  curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb -o /tmp/cloudflared.deb
+  sudo dpkg -i /tmp/cloudflared.deb
+  cloudflared --version
+
+5.2 LOGIN E CRIAR TUNNEL
+  cloudflared tunnel login
+  (abre browser — escolher zona triggerti.com)
+
+  cloudflared tunnel create licitacoes-tunnel
+  Anotar TUNNEL_ID (UUID retornado)
+
+5.3 CONFIGURAR config.yml
+  nano ~/.cloudflared/config.yml
+
+  Conteúdo (substituir TUNNEL_ID):
+  ---
+  tunnel: TUNNEL_ID
+  credentials-file: /home/ubuntu/.cloudflared/TUNNEL_ID.json
+
+  ingress:
+    - hostname: licitacoes.triggerti.com
+      service: http://localhost:8095
+    - service: http_status:404
+  ---
+
+5.4 DNS VIA TUNNEL
+  cloudflared tunnel route dns licitacoes-tunnel licitacoes.triggerti.com
+
+5.5 TESTAR MANUALMENTE
+  cloudflared tunnel run licitacoes-tunnel
+  Abrir https://licitacoes.triggerti.com no browser
+  Ctrl+C para parar teste
+
+5.6 INSTALAR COMO SERVIÇO (inicia automaticamente)
+  sudo cloudflared service install
+  sudo systemctl enable cloudflared
+  sudo systemctl start cloudflared
+  sudo systemctl status cloudflared
+
+5.7 CONFIRMAR NO CLOUDFLARE DASHBOARD
+  dash.cloudflare.com → triggerti.com → DNS
+  Deve existir CNAME:
+    licitacoes → xxxx.cfargotunnel.com (Proxied)
+  Registro www — intacto
+
+
+================================================================================
+FASE 6 — PROTEGER ACESSO (recomendado — app sem login)
+================================================================================
+
+Cloudflare Zero Trust → Access → Applications → Add application
+
+  Type:           Self-hosted
+  Name:           Licitações Uberlândia
+  Subdomain:      licitacoes
+  Domain:         triggerti.com
+
+  Policy:
+    Action:       Allow
+    Include:      Emails dos usuários autorizados (~4 pessoas)
+
+  Login via OTP por e-mail ao acessar o site.
+
+
+================================================================================
+FASE 7 — VERIFICAÇÃO FINAL
+================================================================================
+
+[ ] https://licitacoes.triggerti.com abre a interface
+[ ] www.triggerti.com continua normal
+[ ] Cloudflare Access pede login (se configurado)
+[ ] Billing → Cost Analysis → R$ 0,00 no mês
+[ ] Compute → licitacoes-app → Always Free-eligible
+[ ] Budget alert configurado
+[ ] docker compose ps → Up
+[ ] Backup de data/licitacoes.db agendado
+
+
+================================================================================
+OPERAÇÃO DO DIA A DIA
+================================================================================
+
+STATUS DOS CONTAINERS
+  cd ~/test_several1/trigger/15 && docker compose ps
+
+LOGS
+  docker compose logs -f --tail=50
+
+REINICIAR APP
+  docker compose restart
+
+ATUALIZAR CÓDIGO (após push no GitHub)
+  cd ~/test_several1
+  git pull
+  cd trigger/15
+  docker compose up --build -d
+
+BACKUP SQLITE (manual)
+  cp ~/test_several1/trigger/15/data/licitacoes.db \
+     ~/test_several1/trigger/15/data/backup_$(date +%Y%m%d).db
+
+BACKUP SEMANAL (cron — opcional)
+  crontab -e
+  Adicionar:
+  0 3 * * 0 cp /home/ubuntu/test_several1/trigger/15/data/licitacoes.db /home/ubuntu/test_several1/trigger/15/data/backup_$(date +\%Y\%m\%d).db
+
+
+================================================================================
+PROBLEMAS COMUNS
+================================================================================
+
+Out of host capacity (A1.Flex)
+  → Tentar 1 OCPU/6 GB na madrugada ou fim de semana. Não usar E2.Micro.
+
+SSH timeout
+  → Security List: IP atual/32 na porta 22. curl -4 ifconfig.me
+
+Permission denied (publickey)
+  → ssh -i ~/.ssh/oci_licitacoes ubuntu@IP
+
+docker: permission denied
+  → sudo usermod -aG docker ubuntu && logout/login
+
+502 Bad Gateway (Cloudflare)
+  → docker compose ps
+  → curl localhost:8095
+  → sudo systemctl restart cloudflared
+
+Coleta prefeitura falha
+  → HEADLESS=false no docker-compose
+  → docker compose logs -f
+
+IP de casa mudou
+  → Atualizar Security List com novo IP/32
+
+Stack Active mas sem Instance
+  → VM não criada; apagar Stack ou ignorar; criar Instance em Compute
+
+
+================================================================================
+REFERÊNCIA RÁPIDA — ORDEM DAS FASES
+================================================================================
+
+  Fase 0: Budget + confirmar subscription
+  Fase 1: Chave SSH no PC
+  Fase 2: VCN + restringir SSH
+  Fase 3: VM A1.Flex (retry se out of capacity)
+  Fase 4: SSH → Docker → git clone → docker compose up
+  Fase 5: Cloudflare Tunnel → licitacoes.triggerti.com
+  Fase 6: Cloudflare Access (proteção)
+  Fase 7: Verificação final + backup
+
+================================================================================
+Documento gerado em: jun/2026
+Conta OCI: diogomou | Região: sa-saopaulo-1
+================================================================================

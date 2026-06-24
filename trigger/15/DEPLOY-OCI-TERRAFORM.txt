@@ -1,0 +1,589 @@
+================================================================================
+  DEPLOY ORACLE CLOUD (ALWAYS FREE) VIA TERRAFORM + CLOUDFLARE
+  Projeto: trigger/15 — Verificação de Licitações Uberlândia
+  Repositório: https://github.com/dfmoura/test_several1/tree/main/trigger/15
+  Pasta Terraform: trigger/15/terraform/
+  Domínio: licitacoes.triggerti.com (NÃO alterar www.triggerti.com)
+  Região OCI: Brazil East (São Paulo) — sa-saopaulo-1
+  Tenancy: diogomou
+================================================================================
+
+OBJETIVO
+--------
+Criar a infraestrutura OCI (VCN + VM ARM Always Free) pelo Terraform no seu
+Linux, sem depender do console web (que pode ficar ocupado) e com controle
+total pelo terminal. Depois da VM pronta, seguir as fases manuais: Docker,
+app e Cloudflare Tunnel.
+
+POR QUE TERRAFORM EM VEZ DO CONSOLE?
+------------------------------------
+  - Console web pode travar ou ficar "ocupado" em horário de pico
+  - Resource Manager (Stack no site) às vezes cria Stack sem Instance
+  - Terraform local: repetível, versionável, retry fácil (script incluído)
+  - Mesmos recursos Always Free — sem cobrança se respeitar os limites
+
+O QUE O TERRAFORM CRIA (AUTOMÁTICO)
+-----------------------------------
+  [x] VCN vcn-licitacoes (10.0.0.0/16)
+  [x] Internet Gateway
+  [x] Subnet pública + privada
+  [x] Security List — SSH só do SEU IP/32 (porta 22)
+  [x] VM licitacoes-app — Ubuntu 22.04 ARM (A1.Flex)
+  [x] Boot volume 50 GB, Balanced (VPU 10)
+
+O QUE CONTINUA MANUAL (APÓS A VM)
+---------------------------------
+  [ ] Budget alert no console (Fase 0)
+  [ ] Docker + git clone + docker compose (Fase 4)
+  [ ] Cloudflare Tunnel (Fase 5)
+  [ ] Cloudflare Access opcional (Fase 6)
+
+ARQUITETURA (igual ao DEPLOY-OCI.txt)
+-------------------------------------
+  [Usuários] → https://licitacoes.triggerti.com (Cloudflare)
+                    ↓ Cloudflare Tunnel
+              VM ARM Always Free (São Paulo)
+                    ↓ Docker Compose
+              FastAPI :8095 + SQLite
+
+
+================================================================================
+FASE 0 — PROTEÇÃO CONTRA COBRANÇA (console — 5 min)
+================================================================================
+
+Igual ao guia anterior. Terraform NÃO cria budget.
+
+0.1 BUDGET ALERT
+  Console → Billing & Cost Management → Budgets → Create Budget
+  Name: alerta-custo-zero | Amount: USD 1 | Alert: 1% → seu e-mail
+
+0.2 CONFIRMAR SUBSCRIPTION
+  Billing → Subscriptions → Universal Credits Active, R$ 0,00
+
+0.3 REGRA DE OURO
+  Shape VM.Standard.A1.Flex only. Nunca E2.1.Micro para este projeto.
+
+
+================================================================================
+FASE 1 — INSTALAR FERRAMENTAS NO SEU LINUX
+================================================================================
+
+Execute no terminal do seu PC (Ubuntu/Debian). Ajuste se usar Fedora/Arch.
+
+────────────────────────────────────────────────────────────────────────────
+1.1 DEPENDÊNCIAS BÁSICAS
+────────────────────────────────────────────────────────────────────────────
+
+  sudo apt update
+  sudo apt install -y curl wget gnupg software-properties-common unzip git
+
+────────────────────────────────────────────────────────────────────────────
+1.2 INSTALAR TERRAFORM (HashiCorp — método oficial)
+────────────────────────────────────────────────────────────────────────────
+
+  wget -O- https://apt.releases.hashicorp.com/gpg | \
+    sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
+    https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
+    sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+  sudo apt update
+  sudo apt install -y terraform
+
+  Verificar:
+    terraform version
+  Esperado: Terraform v1.x.x (>= 1.5)
+
+  ALTERNATIVA (snap, se apt falhar):
+    sudo snap install terraform --classic
+
+────────────────────────────────────────────────────────────────────────────
+1.3 INSTALAR OCI CLI (recomendado — testa credenciais e busca OCIDs)
+────────────────────────────────────────────────────────────────────────────
+
+  RECOMENDADO no Ubuntu 24.04 (script oficial costuma falhar com pip/venv):
+
+    rm -rf ~/lib/oracle-cli ~/lib/oci-cli-venv
+    python3 -m venv ~/lib/oci-cli-venv
+    ~/lib/oci-cli-venv/bin/pip install --upgrade pip oci-cli
+
+    echo 'export PATH="$HOME/lib/oci-cli-venv/bin:$PATH"' >> ~/.bashrc
+    source ~/.bashrc
+    oci --version
+    oci iam region list --output table
+
+  ALTERNATIVA — script oficial Oracle (pode falhar no Noble 24.04):
+
+    bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
+    source ~/.bashrc
+    oci --version
+
+  Se der "command not found":
+    export PATH="$HOME/lib/oci-cli-venv/bin:$PATH"
+
+  Se der "Refusing to remove existing directory":
+    rm -rf ~/lib/oracle-cli && reinstalar pelo metodo venv acima.
+
+  Se der "FileNotFoundError ... pip" ou "externally-managed-environment":
+    NAO use pip install --user. Use o metodo venv acima.
+
+  NOTA: OCI CLI e opcional para Terraform (credenciais vao no terraform.tfvars).
+
+
+================================================================================
+FASE 2 — CHAVES: SSH (acesso à VM) E API (Terraform fala com a Oracle)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+2.1 CHAVE SSH (para entrar na VM depois)
+────────────────────────────────────────────────────────────────────────────
+
+  ssh-keygen -t ed25519 -C "oci-licitacoes" -f ~/.ssh/oci_licitacoes
+
+  Copiar conteúdo público (vai no terraform.tfvars):
+    cat ~/.ssh/oci_licitacoes.pub
+
+  Anotar em uma linha só, começando com ssh-ed25519 ...
+
+────────────────────────────────────────────────────────────────────────────
+2.2 SEU IP PÚBLICO (Security List — só SSH)
+────────────────────────────────────────────────────────────────────────────
+
+  curl -4 ifconfig.me
+  echo "/32"
+
+  Exemplo: se retornar 191.54.7.183 → usar 191.54.7.183/32 no terraform.tfvars
+
+────────────────────────────────────────────────────────────────────────────
+2.3 CHAVE API OCI (Terraform autentica com isso)
+────────────────────────────────────────────────────────────────────────────
+
+  mkdir -p ~/.oci
+  chmod 700 ~/.oci
+
+  Gerar par de chaves RSA para API:
+    openssl genrsa -out ~/.oci/oci_api_key.pem 2048
+    chmod 600 ~/.oci/oci_api_key.pem
+    openssl rsa -pubout -in ~/.oci/oci_api_key.pem -out ~/.oci/oci_api_key_public.pem
+
+  Fingerprint (anotar — vai no terraform.tfvars):
+    openssl rsa -pubout -outform DER -in ~/.oci/oci_api_key.pem | \
+      openssl md5 -c | awk '{print $2}'
+
+  Exemplo de fingerprint: aa:bb:cc:dd:ee:...
+
+────────────────────────────────────────────────────────────────────────────
+2.4 REGISTRAR CHAVE API NO CONSOLE OCI
+────────────────────────────────────────────────────────────────────────────
+
+  (Console pode estar lento — tente horário calmo ou mobile)
+
+  Profile (ícone canto superior direito) → User settings
+  → Resources → API Keys → Add API Key
+  → Paste public key
+  → Colar conteúdo de:
+      cat ~/.oci/oci_api_key_public.pem
+
+  Ao salvar, a Oracle mostra um bloco de configuração. ANOTE:
+    user=ocid1.user.oc1..aaaa...
+    tenancy=ocid1.tenancy.oc1..aaaa...
+    fingerprint=...
+    region=sa-saopaulo-1
+
+────────────────────────────────────────────────────────────────────────────
+2.5 ARQUIVO ~/.oci/config (CLI + referência)
+────────────────────────────────────────────────────────────────────────────
+
+  nano ~/.oci/config
+
+  Conteúdo (substituir pelos seus valores):
+
+  [DEFAULT]
+  user=ocid1.user.oc1..SEU_USER_OCID
+  fingerprint=SEU_FINGERPRINT
+  tenancy=ocid1.tenancy.oc1..SEU_TENANCY_OCID
+  region=sa-saopaulo-1
+  key_file=/home/SEU_USUARIO/.oci/oci_api_key.pem
+
+  Permissões:
+    chmod 600 ~/.oci/config
+
+  TESTAR autenticação (crítico antes do Terraform):
+    oci iam region list --output table
+
+  Se funcionar → credenciais OK.
+  Se falhar → ver seção "ERROS COMUNS" no final deste documento.
+
+
+================================================================================
+FASE 3 — PERMISSÕES IAM (se CLI/Terraform der 401 ou NotAuthorized)
+================================================================================
+
+O usuário precisa gerenciar rede e compute no compartment root.
+
+3.1 POLÍTICA MÍNIMA (console → Identity → Policies → Create)
+
+  Name: terraform-licitacoes-policy
+  Compartment: diogomou (root)
+
+  Statements (substituir SEU_GRUPO pelo grupo do seu usuário, ex: Administrators):
+
+  Allow group SEU_GRUPO to manage virtual-network-family in tenancy
+  Allow group SEU_GRUPO to manage instance-family in tenancy
+  Allow group SEU_GRUPO to read app-catalog-listing in tenancy
+  Allow group SEU_GRUPO to use volume-family in tenancy
+  Allow group SEU_GRUPO to inspect compartments in tenancy
+
+  Se você é o único admin da conta free tier, o grupo costuma ser "Administrators"
+  e já tem permissão total — pule se oci iam region list já funcionou.
+
+3.2 DESCOBRIR OCIDs PELO CLI (opcional)
+
+  Tenancy OCID:
+    oci iam compartment list --compartment-id-in-subtree true --all | head
+
+  Ou no console: Profile → Tenancy → Copy OCID
+
+  User OCID:
+    Profile → User settings → Copy OCID
+
+  Compartment root = mesmo OCID da tenancy (conta diogomou).
+
+
+================================================================================
+FASE 4 — CONFIGURAR TERRAFORM DO PROJETO
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+4.1 IR PARA A PASTA
+────────────────────────────────────────────────────────────────────────────
+
+  cd ~/Documents/test_several1/trigger/15/terraform
+
+  (Ajuste o caminho se clonou o repo em outro lugar.)
+
+  Listar arquivos:
+    ls -la
+
+  Deve ter: versions.tf provider.tf variables.tf network.tf compute.tf
+            data.tf outputs.tf terraform.tfvars.example retry-apply.sh
+
+────────────────────────────────────────────────────────────────────────────
+4.2 CRIAR terraform.tfvars (NÃO COMMITAR — está no .gitignore)
+────────────────────────────────────────────────────────────────────────────
+
+  cp terraform.tfvars.example terraform.tfvars
+  nano terraform.tfvars
+
+  Preencher TODOS os campos com seus valores reais:
+
+  tenancy_ocid     = "ocid1.tenancy.oc1....."     # tenancy diogomou
+  compartment_ocid = "ocid1.tenancy.oc1....."     # igual tenancy (root)
+  user_ocid        = "ocid1.user.oc1....."
+  fingerprint      = "aa:bb:cc:..."                 # Fase 2.3
+  private_key_path = "/home/dfmoura/.oci/oci_api_key.pem"  # caminho ABSOLUTO
+  region           = "sa-saopaulo-1"
+
+  ssh_public_key   = "ssh-ed25519 AAAA... oci-licitacoes"   # uma linha
+  ssh_allowed_cidr = "191.54.7.183/32"                      # seu IP/32
+
+  instance_ocpus       = 2
+  instance_memory_gb   = 8
+  boot_volume_size_gb  = 50
+  instance_display_name = "licitacoes-app"
+  vcn_display_name      = "vcn-licitacoes"
+
+  CHECKLIST terraform.tfvars:
+  [ ] private_key_path é caminho absoluto (começa com /home/...)
+  [ ] ssh_public_key é UMA linha, com aspas
+  [ ] ssh_allowed_cidr termina com /32
+  [ ] compartment_ocid = tenancy_ocid (conta root)
+
+────────────────────────────────────────────────────────────────────────────
+4.3 INICIALIZAR PROVIDER OCI
+────────────────────────────────────────────────────────────────────────────
+
+  terraform init
+
+  Esperado:
+    Terraform has been successfully initialized!
+    - Installing oracle/oci v6.x.x
+
+  Se der erro de rede → verificar internet / proxy.
+
+────────────────────────────────────────────────────────────────────────────
+4.4 PLANEJAR (dry-run — não cria nada ainda)
+────────────────────────────────────────────────────────────────────────────
+
+  terraform plan
+
+  Revise o plano:
+    + oci_core_vcn.licitacoes
+    + oci_core_internet_gateway.licitacoes
+    + oci_core_subnet.public
+    + oci_core_subnet.private
+    + oci_core_security_list.licitacoes
+    + oci_core_route_table.public
+    + oci_core_instance.licitacoes_app
+
+  Plan: 7 to add, 0 to change, 0 to destroy
+
+  Se aparecer erro de autenticação → Fase 2.5 e seção ERROS COMUNS.
+
+
+================================================================================
+FASE 5 — APLICAR (CRIAR INFRAESTRUTURA)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+5.1 PRIMEIRA TENTATIVA
+────────────────────────────────────────────────────────────────────────────
+
+  terraform apply
+
+  Digite yes quando pedir confirmação.
+
+  SUCESSO — anotar outputs:
+    instance_public_ip = "xxx.xxx.xxx.xxx"
+    ssh_command        = "ssh -i ~/.ssh/oci_licitacoes ubuntu@xxx..."
+
+  Ver outputs de novo a qualquer momento:
+    terraform output
+
+────────────────────────────────────────────────────────────────────────────
+5.2 ERRO "OUT OF HOST CAPACITY" (muito comum em São Paulo)
+────────────────────────────────────────────────────────────────────────────
+
+  A VM NÃO foi criada. Não há cobrança. Parte da rede pode ter sido criada
+  na primeira tentativa — o próximo apply só cria o que falta.
+
+  Opção A — Reduzir recursos e tentar de novo:
+    nano terraform.tfvars
+      instance_ocpus     = 1
+      instance_memory_gb = 6
+    terraform apply
+
+  Opção B — Script automático (retry a cada 30 min):
+    ./retry-apply.sh
+    # ou intervalo custom: ./retry-apply.sh 3600
+
+  Melhores horários (Brasília):
+    - 03:00 – 07:00
+    - Sábado/domingo de manhã
+
+  NÃO mudar shape para E2.1.Micro (1 GB — Playwright falha).
+
+  Após criar com 1 OCPU / 6 GB, pode escalar depois (console ou Terraform):
+    instance_ocpus = 2
+    instance_memory_gb = 8
+    terraform apply   # instância precisa estar STOPPED para mudar shape
+
+────────────────────────────────────────────────────────────────────────────
+5.3 CONFIRMAR NO CONSOLE (opcional)
+────────────────────────────────────────────────────────────────────────────
+
+  Compute → Instances → licitacoes-app → Running
+  Networking → VCN → vcn-licitacoes
+  Tag "Always Free eligible" na instância
+
+
+================================================================================
+FASE 6 — CONECTAR E INSTALAR O APP NA VM
+================================================================================
+
+(Igual ao DEPLOY-OCI.txt — Fase 4)
+
+6.1 SSH
+  ssh -i ~/.ssh/oci_licitacoes ubuntu@IP_PUBLICO
+  (IP = terraform output instance_public_ip)
+
+6.2 DOCKER
+  sudo apt update && sudo apt upgrade -y
+  sudo apt install -y git curl
+  curl -fsSL https://get.docker.com | sudo sh
+  sudo usermod -aG docker ubuntu
+  exit
+  ssh -i ~/.ssh/oci_licitacoes ubuntu@IP_PUBLICO
+  docker run hello-world
+
+6.3 FIREWALL UFW
+  sudo apt install -y ufw
+  sudo ufw default deny incoming
+  sudo ufw default allow outgoing
+  sudo ufw allow 22/tcp
+  sudo ufw enable
+
+6.4 APP
+  cd ~
+  git clone https://github.com/dfmoura/test_several1.git
+  cd test_several1/trigger/15
+  mkdir -p data
+  docker compose up --build -d
+  docker compose logs -f
+  # Esperar: Uvicorn running on http://0.0.0.0:8095
+
+6.5 TESTE LOCAL NA VM
+  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8095
+  Esperado: 200
+
+
+================================================================================
+FASE 7 — CLOUDFLARE TUNNEL
+================================================================================
+
+(Igual ao DEPLOY-OCI.txt — Fase 5)
+
+7.1 Instalar cloudflared ARM64 na VM
+7.2 cloudflared tunnel login
+7.3 cloudflared tunnel create licitacoes-tunnel
+7.4 ~/.cloudflared/config.yml → hostname licitacoes.triggerti.com → :8095
+7.5 cloudflared tunnel route dns licitacoes-tunnel licitacoes.triggerti.com
+7.6 sudo cloudflared service install && systemctl enable --now cloudflared
+
+Detalhes completos: ver DEPLOY-OCI.txt Fase 5.
+
+
+================================================================================
+FASE 8 — CLOUDFLARE ACCESS (opcional) + VERIFICAÇÃO FINAL
+================================================================================
+
+Ver DEPLOY-OCI.txt Fases 6 e 7.
+
+Checklist:
+  [ ] terraform output instance_public_ip responde SSH
+  [ ] https://licitacoes.triggerti.com abre
+  [ ] www.triggerti.com intacto
+  [ ] Billing R$ 0,00
+  [ ] docker compose ps → Up
+
+
+================================================================================
+OPERAÇÃO TERRAFORM NO DIA A DIA
+================================================================================
+
+VER ESTADO
+  cd ~/Documents/test_several1/trigger/15/terraform
+  terraform show
+  terraform output
+
+ATUALIZAR IP SSH NA SECURITY LIST (IP de casa mudou)
+  curl -4 ifconfig.me
+  nano terraform.tfvars   → ssh_allowed_cidr = "NOVO_IP/32"
+  terraform apply
+
+DESTRUIR TUDO (cuidado — apaga VM e rede)
+  terraform destroy
+  Confirme yes. Boot volume e dados na VM são perdidos.
+
+IMPORTAR RECURSOS EXISTENTES
+  Se criou VCN manualmente antes, não rode apply duplicado.
+  Ou apague recursos antigos no console, ou use terraform import (avançado).
+
+ATUALIZAR PROVIDER
+  terraform init -upgrade
+
+
+================================================================================
+ERROS COMUNS — CLI OCI E TERRAFORM
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+"NotAuthenticated" / 401 / Invalid credentials
+────────────────────────────────────────────────────────────────────────────
+  - fingerprint errado → recalcular com openssl (Fase 2.3)
+  - chave pública no console ≠ par da oci_api_key.pem local
+  - private_key_path errado no terraform.tfvars (use caminho absoluto)
+  - região errada → sa-saopaulo-1
+
+────────────────────────────────────────────────────────────────────────────
+"NotAuthorized" / 403 / Authorization failed
+────────────────────────────────────────────────────────────────────────────
+  - Fase 3 — adicionar policies IAM
+  - user_ocid de outro usuário sem permissão
+
+────────────────────────────────────────────────────────────────────────────
+"Out of host capacity" / OutOfHostCapacity
+────────────────────────────────────────────────────────────────────────────
+  - Normal em SP. Use retry-apply.sh ou horário madrugada
+  - Reduza para 1 OCPU / 6 GB
+  - NÃO use E2.1.Micro
+
+────────────────────────────────────────────────────────────────────────────
+"Service error:LimitExceeded"
+────────────────────────────────────────────────────────────────────────────
+  - Always Free ARM já usado em outra VM (2 OCPU + 12 GB total na conta)
+  - Ver Compute → Instances → parar/destruir VM antiga de teste
+
+────────────────────────────────────────────────────────────────────────────
+terraform: Error: can not create client, bad configuration
+────────────────────────────────────────────────────────────────────────────
+  - Variáveis tenancy_ocid / user_ocid vazias ou mal formatadas
+  - Arquivo .pem inexistente no private_key_path
+
+────────────────────────────────────────────────────────────────────────────
+oci: command not found
+────────────────────────────────────────────────────────────────────────────
+  - source ~/.bashrc ou export PATH="$HOME/bin:$PATH"
+
+────────────────────────────────────────────────────────────────────────────
+SSH timeout após apply OK
+────────────────────────────────────────────────────────────────────────────
+  - ssh_allowed_cidr desatualizado → curl -4 ifconfig.me && terraform apply
+  - Aguardar 1–2 min após create (cloud-init)
+
+────────────────────────────────────────────────────────────────────────────
+Permission denied (publickey)
+────────────────────────────────────────────────────────────────────────────
+  - ssh -i ~/.ssh/oci_licitacoes ubuntu@IP
+  - ssh_public_key no tfvars deve ser igual ao .pub gerado
+
+────────────────────────────────────────────────────────────────────────────
+Stack no Resource Manager mas sem Instance
+────────────────────────────────────────────────────────────────────────────
+  - Stack ≠ VM. Este guia usa Terraform LOCAL (pasta terraform/)
+  - Apague stacks órfãos no console se quiser: Resource Manager → Delete
+
+────────────────────────────────────────────────────────────────────────────
+Console "ocupado" / não carrega
+────────────────────────────────────────────────────────────────────────────
+  - Use SÓ Terraform + OCI CLI no terminal para Fases 1–5
+  - Console só para: API Key (Fase 2.4), Budget (Fase 0), conferência visual
+  - Tente browser anônimo, outro navegador, ou horário 03h–07h
+
+
+================================================================================
+ORDEM RESUMIDA — COPIAR E SEGUIR
+================================================================================
+
+  [ ] Fase 0: Budget no console
+  [ ] Fase 1: apt install terraform + oci cli
+  [ ] Fase 2: SSH key + API key + ~/.oci/config + oci iam region list OK
+  [ ] Fase 3: Policies IAM (se 403)
+  [ ] Fase 4: cp terraform.tfvars.example → terraform.tfvars → terraform init → plan
+  [ ] Fase 5: terraform apply (ou ./retry-apply.sh se capacity)
+  [ ] Fase 6: SSH → Docker → git clone → docker compose up
+  [ ] Fase 7: Cloudflare Tunnel
+  [ ] Fase 8: Access + checklist final
+
+
+================================================================================
+REFERÊNCIA — ARQUIVOS TERRAFORM
+================================================================================
+
+  trigger/15/terraform/
+    versions.tf          — versão Terraform + provider oracle/oci
+    provider.tf          — autenticação via tfvars
+    variables.tf         — todas as variáveis documentadas
+    data.tf              — AD + imagem Ubuntu 22.04 ARM
+    network.tf           — VCN, IGW, subnets, security list
+    compute.tf           — VM A1.Flex Always Free
+    outputs.tf           — IP público + comando SSH
+    terraform.tfvars.example — modelo (copiar para terraform.tfvars)
+    retry-apply.sh       — loop para out of capacity
+    .gitignore           — protege tfvars e state
+
+Documento gerado em: jun/2026
+Conta OCI: diogomou | Região: sa-saopaulo-1
+Guia console manual: DEPLOY-OCI.txt (mesmo diretório)
+================================================================================

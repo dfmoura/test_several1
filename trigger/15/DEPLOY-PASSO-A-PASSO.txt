@@ -1,0 +1,568 @@
+================================================================================
+  DEPLOY COMPLETO — PASSO A PASSO (DO ZERO AO SITE NO AR)
+  Projeto: trigger/15 — Licitações Uberlândia
+  Conta OCI: diogomou | Região: sa-saopaulo-1 (São Paulo)
+  Domínio final: https://licitacoes.triggerti.com
+  Pasta Terraform: trigger/15/terraform/
+================================================================================
+
+COMO LER ESTE DOCUMENTO
+-----------------------
+  [ ] = checkbox — marque quando concluir
+  Comandos entre aspas ou blocos → copie e cole no terminal
+  Tudo roda no SEU PC Linux, exceto onde diz "NA VM"
+
+RESUMO EM 3 BLOCOS
+------------------
+  BLOCO A — Seu PC: ferramentas + credenciais          (você já fez quase tudo)
+  BLOCO B — Terraform: cria VCN + VM na Oracle         (próximo passo)
+  BLOCO C — Na VM: Docker + app + Cloudflare Tunnel    (depois do apply)
+
+  Terraform NÃO instala o app nem o site. Só cria a máquina virtual.
+
+
+================================================================================
+PARTE 0 — ENTENDA O QUE VAI ACONTECER
+================================================================================
+
+  [Usuários]
+       │
+       ▼
+  https://licitacoes.triggerti.com  ← Cloudflare (grátis)
+       │
+       ▼ Cloudflare Tunnel (conexão de SAÍDA da VM — não abre porta 80/443)
+       │
+  VM ARM Always Free — São Paulo
+       │
+       ▼ Docker Compose
+       │
+  FastAPI porta 8095 + SQLite (./data/licitacoes.db)
+
+O QUE O TERRAFORM CRIA (automático)
+  - Rede virtual (VCN) vcn-licitacoes
+  - Subnet pública + privada
+  - Regra de firewall: SSH (22) SÓ do seu IP — nada de HTTP aberto
+  - VM licitacoes-app: Ubuntu 22.04 ARM, 2 OCPU, 8 GB RAM, disco 50 GB
+
+O QUE VOCÊ FAZ MANUALMENTE DEPOIS
+  - Instalar Docker na VM
+  - Clonar repo e subir docker compose
+  - Configurar Cloudflare Tunnel
+  - (Opcional) Cloudflare Access para proteger com e-mail
+
+CUSTO: R$ 0,00 se usar só recursos Always Free (A1.Flex, boot 50 GB)
+
+
+================================================================================
+PARTE 1 — PRÉ-REQUISITOS NO SEU PC (BLOCO A)
+================================================================================
+
+STATUS ATUAL (conta dfmoura — jun/2026):
+  [x] Terraform v1.15.6 instalado
+  [x] OCI CLI instalado (~/lib/oci-cli-venv)
+  [x] ~/.oci/config + oci_api_key.pem
+  [x] Chave SSH ~/.ssh/oci_licitacoes
+  [x] terraform.tfvars preenchido (falta só private_key_password)
+  [x] terraform init concluído
+  [ ] terraform plan + apply
+  [ ] App + Cloudflare na VM
+
+────────────────────────────────────────────────────────────────────────────
+1.1 GARANTIR QUE O TERMINAL ENXERGA AS FERRAMENTAS
+────────────────────────────────────────────────────────────────────────────
+
+  source ~/.bashrc
+  terraform version
+  oci --version
+
+  Esperado:
+    Terraform v1.15.x
+    3.87.x
+
+  Se oci não encontrado:
+    export PATH="$HOME/lib/oci-cli-venv/bin:$PATH"
+
+────────────────────────────────────────────────────────────────────────────
+1.2 TESTAR CREDENCIAIS OCI (importante antes do Terraform)
+────────────────────────────────────────────────────────────────────────────
+
+  oci iam region list --output table
+
+  - Se pedir "Private key passphrase" → digite a senha da chave API
+  - Se listar regiões (incluindo sa-saopaulo-1) → OK
+  - Se 401/403 → ver Parte 8 (Erros)
+
+  NOTA: Sua chave API TEM passphrase. Antes do terraform apply, edite:
+
+    nano ~/Documents/test_several1/trigger/15/terraform/terraform.tfvars
+
+  Troque esta linha pela senha real (a mesma que o oci pede):
+    private_key_password = "PREENCHA_A_SENHA_DA_CHAVE_API"
+
+  Alternativa: gerar nova API key SEM senha no console Oracle e deixar
+  private_key_password = ""
+
+────────────────────────────────────────────────────────────────────────────
+1.3 CONFIRMAR SEU IP (SSH na VM depende disso)
+────────────────────────────────────────────────────────────────────────────
+
+  curl -4 ifconfig.me
+
+  IP atual configurado no terraform.tfvars: 191.54.7.219/32
+
+  Se o comando retornar OUTRO IP (mudou de rede/Wi-Fi):
+    cd ~/Documents/test_several1/trigger/15/terraform
+    nano terraform.tfvars
+    → altere ssh_allowed_cidr = "NOVO_IP/32"
+    → depois: terraform apply
+
+────────────────────────────────────────────────────────────────────────────
+1.4 BUDGET ALERT NO CONSOLE (5 min — evita surpresa de cobrança)
+────────────────────────────────────────────────────────────────────────────
+
+  Console Oracle → Billing & Cost Management → Budgets → Create Budget
+    Name:   alerta-custo-zero
+    Amount: USD 1
+    Alert:  1% → seu e-mail
+
+  Billing → Subscriptions → deve mostrar R$ 0,00 / Always Free ativo
+
+
+================================================================================
+PARTE 2 — TERRAFORM: CRIAR A INFRAESTRUTURA (BLOCO B)
+================================================================================
+
+Arquivo terraform.tfvars JÁ ESTÁ PREENCHIDO com:
+  - OCIDs da conta diogomou
+  - Chave SSH pública
+  - IP 191.54.7.219/32
+  - VM: 2 OCPU / 8 GB / boot 50 GB / A1.Flex
+
+  FALTA VOCÊ: editar private_key_password (senha da chave API):
+    nano terraform.tfvars
+    private_key_password = "sua-senha-aqui"
+
+────────────────────────────────────────────────────────────────────────────
+2.1 IR PARA A PASTA TERRAFORM
+────────────────────────────────────────────────────────────────────────────
+
+  cd ~/Documents/test_several1/trigger/15/terraform
+
+────────────────────────────────────────────────────────────────────────────
+2.2 INICIALIZAR (baixa provider Oracle — só na 1ª vez)
+────────────────────────────────────────────────────────────────────────────
+
+  terraform init
+
+  Esperado:
+    Terraform has been successfully initialized!
+    - Installing oracle/oci v6.x.x
+
+────────────────────────────────────────────────────────────────────────────
+2.3 VER O PLANO (não cria nada — só mostra o que vai criar)
+────────────────────────────────────────────────────────────────────────────
+
+  terraform plan
+
+  Deve mostrar 7 recursos a CRIAR:
+    oci_core_vcn.licitacoes
+    oci_core_internet_gateway.licitacoes
+    oci_core_route_table.public
+    oci_core_security_list.licitacoes
+    oci_core_subnet.public
+    oci_core_subnet.private
+    oci_core_instance.licitacoes_app
+
+  Plan: 7 to add, 0 to change, 0 to destroy
+
+  Se der erro aqui → pare e veja Parte 8.
+
+────────────────────────────────────────────────────────────────────────────
+2.4 APLICAR (CRIA A VM DE VERDADE)
+────────────────────────────────────────────────────────────────────────────
+
+  terraform apply
+
+  Digite: yes
+
+  Pode pedir passphrase da chave API → digite se aparecer.
+
+  SUCESSO — anote os outputs:
+
+    terraform output instance_public_ip
+    terraform output ssh_command
+
+  Exemplo de saída:
+    instance_public_ip = "150.136.xxx.xxx"
+    ssh_command        = "ssh -i ~/.ssh/oci_licitacoes ubuntu@150.136.xxx.xxx"
+
+  [ ] VM criada
+  [ ] IP público anotado: ___________________
+
+────────────────────────────────────────────────────────────────────────────
+2.5 SE DER "OUT OF HOST CAPACITY" (comum em São Paulo)
+────────────────────────────────────────────────────────────────────────────
+
+  A VM NÃO foi criada. Sem cobrança.
+
+  Opção A — reduzir recursos:
+    nano terraform.tfvars
+      instance_ocpus     = 1
+      instance_memory_gb = 6
+    terraform apply
+
+  Opção B — tentar automaticamente a cada 30 min:
+    ./retry-apply.sh
+
+  Melhor horário (Brasília): 03h–07h ou sábado/domingo de manhã.
+
+  NUNCA use shape E2.1.Micro (1 GB RAM — Playwright quebra).
+
+────────────────────────────────────────────────────────────────────────────
+2.6 TESTAR SSH (primeira conexão com a VM)
+────────────────────────────────────────────────────────────────────────────
+
+  Aguarde 1–2 minutos após o apply (cloud-init).
+
+  ssh -i ~/.ssh/oci_licitacoes ubuntu@IP_DO_OUTPUT
+
+  Primeira vez pode perguntar "Are you sure..." → digite yes
+
+  Se conectar e aparecer prompt ubuntu@licitacoes-app → BLOCO B CONCLUÍDO
+
+  Se timeout → Parte 8 (SSH)
+
+
+================================================================================
+PARTE 3 — INSTALAR DOCKER NA VM (BLOCO C — início)
+================================================================================
+
+Todos os comandos abaixo rodam DENTRO da VM (após SSH).
+
+────────────────────────────────────────────────────────────────────────────
+3.1 ATUALIZAR SISTEMA
+────────────────────────────────────────────────────────────────────────────
+
+  sudo apt update && sudo apt upgrade -y
+  sudo apt install -y git curl
+
+────────────────────────────────────────────────────────────────────────────
+3.2 INSTALAR DOCKER
+────────────────────────────────────────────────────────────────────────────
+
+  curl -fsSL https://get.docker.com | sudo sh
+  sudo usermod -aG docker ubuntu
+
+  SAIR e RECONECTAR SSH (obrigatório para grupo docker):
+    exit
+    ssh -i ~/.ssh/oci_licitacoes ubuntu@IP_DA_VM
+
+  Testar:
+    docker --version
+    docker run hello-world
+
+  [ ] Docker OK
+
+────────────────────────────────────────────────────────────────────────────
+3.3 FIREWALL LOCAL (recomendado)
+────────────────────────────────────────────────────────────────────────────
+
+  sudo apt install -y ufw
+  sudo ufw default deny incoming
+  sudo ufw default allow outgoing
+  sudo ufw allow 22/tcp
+  sudo ufw enable
+  sudo ufw status
+
+
+================================================================================
+PARTE 4 — SUBIR O APP (DOCKER COMPOSE)
+================================================================================
+
+Ainda NA VM:
+
+────────────────────────────────────────────────────────────────────────────
+4.1 CLONAR REPOSITÓRIO
+────────────────────────────────────────────────────────────────────────────
+
+  cd ~
+  git clone https://github.com/dfmoura/test_several1.git
+  cd test_several1/trigger/15
+  mkdir -p data
+
+────────────────────────────────────────────────────────────────────────────
+4.2 BUILD E START (primeira vez: 5–10 min)
+────────────────────────────────────────────────────────────────────────────
+
+  docker compose up --build -d
+
+  Acompanhar logs:
+    docker compose logs -f
+
+  Esperar linha:
+    Uvicorn running on http://0.0.0.0:8095
+
+  Ctrl+C para sair dos logs (container continua rodando).
+
+────────────────────────────────────────────────────────────────────────────
+4.3 TESTAR NA VM
+────────────────────────────────────────────────────────────────────────────
+
+  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8095
+
+  Esperado: 200
+
+  docker compose ps
+  → serviço "app" com status Up
+
+  [ ] App respondendo na VM
+
+VARIÁVEIS IMPORTANTES (já no docker-compose.yml):
+  HEADLESS=false   — obrigatório (portal Akamai bloqueia headless)
+  APP_PORT=8095
+  Banco SQLite:    ./data/licitacoes.db
+
+
+================================================================================
+PARTE 5 — CLOUDFLARE TUNNEL (SITE PÚBLICO)
+================================================================================
+
+Subdomínio: licitacoes.triggerti.com
+NÃO alterar DNS de www.triggerti.com
+
+Ainda NA VM:
+
+────────────────────────────────────────────────────────────────────────────
+5.1 INSTALAR CLOUDFLARED (ARM64)
+────────────────────────────────────────────────────────────────────────────
+
+  curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb -o /tmp/cloudflared.deb
+  sudo dpkg -i /tmp/cloudflared.deb
+  cloudflared --version
+
+────────────────────────────────────────────────────────────────────────────
+5.2 LOGIN E CRIAR TUNNEL
+────────────────────────────────────────────────────────────────────────────
+
+  cloudflared tunnel login
+
+  → Abre browser no seu PC (pode copiar URL se estiver em SSH)
+  → Escolher zona: triggerti.com
+  → Autorizar
+
+  cloudflared tunnel create licitacoes-tunnel
+
+  ANOTAR o TUNNEL_ID (UUID), exemplo:
+    12345678-abcd-1234-abcd-123456789abc
+
+────────────────────────────────────────────────────────────────────────────
+5.3 ARQUIVO DE CONFIGURAÇÃO
+────────────────────────────────────────────────────────────────────────────
+
+  nano ~/.cloudflared/config.yml
+
+  Substituir TUNNEL_ID pelo UUID real:
+
+  ---
+  tunnel: TUNNEL_ID
+  credentials-file: /home/ubuntu/.cloudflared/TUNNEL_ID.json
+
+  ingress:
+    - hostname: licitacoes.triggerti.com
+      service: http://localhost:8095
+    - service: http_status:404
+  ---
+
+  Salvar: Ctrl+O Enter, Ctrl+X
+
+────────────────────────────────────────────────────────────────────────────
+5.4 REGISTRO DNS AUTOMÁTICO
+────────────────────────────────────────────────────────────────────────────
+
+  cloudflared tunnel route dns licitacoes-tunnel licitacoes.triggerti.com
+
+────────────────────────────────────────────────────────────────────────────
+5.5 TESTE MANUAL (opcional)
+────────────────────────────────────────────────────────────────────────────
+
+  cloudflared tunnel run licitacoes-tunnel
+
+  No browser do PC: https://licitacoes.triggerti.com
+  Ctrl+C na VM para parar o teste.
+
+────────────────────────────────────────────────────────────────────────────
+5.6 INSTALAR COMO SERVIÇO (sobe sozinho após reboot)
+────────────────────────────────────────────────────────────────────────────
+
+  sudo cloudflared service install
+  sudo systemctl enable cloudflared
+  sudo systemctl start cloudflared
+  sudo systemctl status cloudflared
+
+  Deve mostrar: active (running)
+
+────────────────────────────────────────────────────────────────────────────
+5.7 CONFIRMAR NO CLOUDFLARE
+────────────────────────────────────────────────────────────────────────────
+
+  dash.cloudflare.com → triggerti.com → DNS
+
+  Deve existir CNAME:
+    licitacoes → xxxx.cfargotunnel.com (Proxied)
+
+  www.triggerti.com → intacto
+
+  [ ] https://licitacoes.triggerti.com abre a interface
+
+
+================================================================================
+PARTE 6 — PROTEGER ACESSO (OPCIONAL MAS RECOMENDADO)
+================================================================================
+
+O app não tem login próprio. Proteja com Cloudflare Access:
+
+  dash.cloudflare.com → Zero Trust → Access → Applications → Add
+
+    Type:      Self-hosted
+    Name:      Licitações Uberlândia
+    Subdomain: licitacoes
+    Domain:    triggerti.com
+
+    Policy:
+      Action:  Allow
+      Include: E-mails dos ~4 usuários autorizados
+
+  Ao acessar o site → pede OTP por e-mail.
+
+
+================================================================================
+PARTE 7 — CHECKLIST FINAL
+================================================================================
+
+  [ ] terraform output mostra IP público
+  [ ] SSH funciona: ssh -i ~/.ssh/oci_licitacoes ubuntu@IP
+  [ ] docker compose ps → Up
+  [ ] curl localhost:8095 na VM → 200
+  [ ] https://licitacoes.triggerti.com abre
+  [ ] www.triggerti.com normal
+  [ ] Billing OCI → R$ 0,00
+  [ ] Budget alert configurado
+  [ ] Backup de data/licitacoes.db (ver Parte 9)
+
+
+================================================================================
+PARTE 8 — ERROS COMUNS E SOLUÇÕES
+================================================================================
+
+OUT OF HOST CAPACITY (terraform apply)
+  → Reduza para 1 OCPU / 6 GB no terraform.tfvars
+  → ./retry-apply.sh ou tentar madrugada/fim de semana
+  → NÃO use E2.1.Micro
+
+SSH TIMEOUT
+  → curl -4 ifconfig.me no PC
+  → Atualize ssh_allowed_cidr no terraform.tfvars
+  → terraform apply
+
+PERMISSION DENIED (publickey)
+  → ssh -i ~/.ssh/oci_licitacoes ubuntu@IP
+  → Confirme que terraform.tfvars tem a chave .pub correta
+
+401 / NotAuthenticated (oci ou terraform)
+  → fingerprint errado ou chave API não bate com o console
+  → Verifique ~/.oci/config e terraform.tfvars
+
+403 / NotAuthorized
+  → Usuário sem permissão IAM
+  → Console → Identity → Policies → grupo Administrators ou policies da Parte 3 do DEPLOY-OCI-TERRAFORM.txt
+
+PASSPHRASE DA CHAVE API
+  → Normal — digite quando oci/terraform pedir
+  → Ou gere nova API key sem passphrase no console
+
+502 BAD GATEWAY (Cloudflare)
+  → Na VM: docker compose ps
+  → curl localhost:8095
+  → sudo systemctl restart cloudflared
+
+COLETA PREFEITURA FALHA
+  → HEADLESS=false no docker-compose (já está)
+  → docker compose logs -f
+
+CONSOLE ORACLE OCUPADO
+  → Use só terminal para Bloco B (terraform)
+  → Console só para budget e API key se necessário
+
+STACK NO RESOURCE MANAGER SEM INSTANCE
+  → Stack ≠ VM criada
+  → Use terraform local (pasta trigger/15/terraform/)
+  → Pode apagar Stack órfão no console
+
+
+================================================================================
+PARTE 9 — OPERAÇÃO DO DIA A DIA
+================================================================================
+
+STATUS DO APP (na VM)
+  cd ~/test_several1/trigger/15 && docker compose ps
+
+LOGS
+  docker compose logs -f --tail=50
+
+REINICIAR APP
+  docker compose restart
+
+ATUALIZAR CÓDIGO (após push no GitHub)
+  cd ~/test_several1 && git pull
+  cd trigger/15 && docker compose up --build -d
+
+BACKUP SQLITE (manual)
+  cp ~/test_several1/trigger/15/data/licitacoes.db \
+     ~/test_several1/trigger/15/data/backup_$(date +%Y%m%d).db
+
+BACKUP SEMANAL (cron — na VM)
+  crontab -e
+  Adicionar:
+  0 3 * * 0 cp /home/ubuntu/test_several1/trigger/15/data/licitacoes.db /home/ubuntu/test_several1/trigger/15/data/backup_$(date +\%Y\%m\%d).db
+
+IP DE CASA MUDOU
+  curl -4 ifconfig.me
+  nano ~/Documents/test_several1/trigger/15/terraform/terraform.tfvars
+  terraform apply
+
+DESTRUIR TUDO NA ORACLE (cuidado!)
+  cd ~/Documents/test_several1/trigger/15/terraform
+  terraform destroy
+  → Apaga VM, rede e disco. Dados do app são perdidos.
+
+
+================================================================================
+PARTE 10 — SEU PRÓXIMO COMANDO (AGORA)
+================================================================================
+
+  # 1) Preencher senha da chave API no terraform.tfvars (private_key_password)
+  nano ~/Documents/test_several1/trigger/15/terraform/terraform.tfvars
+
+  # 2) Criar infraestrutura (init ja foi feito uma vez)
+  cd ~/Documents/test_several1/trigger/15/terraform
+  terraform plan
+  terraform apply
+
+  Depois:
+    ssh -i ~/.ssh/oci_licitacoes ubuntu@$(terraform output -raw instance_public_ip)
+
+  E siga da PARTE 3 deste documento.
+
+
+================================================================================
+REFERÊNCIA DE ARQUIVOS
+================================================================================
+
+  DEPLOY-PASSO-A-PASSO.txt     ← este documento (comece aqui)
+  DEPLOY-OCI-TERRAFORM.txt     ← detalhes Terraform + erros CLI
+  DEPLOY-OCI.txt               ← guia original via console web
+  terraform/terraform.tfvars   ← config preenchida (gitignore — não commitar)
+  terraform/retry-apply.sh     ← retry automático out of capacity
+
+Documento: jun/2026 | Conta: diogomou | IP SSH: 191.54.7.219/32
+================================================================================
