@@ -1,0 +1,511 @@
+MANUAL TÉCNICO
+APIS – ÁREA DO INVESTIDOR DA B3
+12/12/2024
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área do Investidor da B3
+HISTÓRICO DE VERSÕES
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Versão Item Modificado Motivo Data
+1 Versão Original N/A N/A
+2
+Tarifação Nova tarifação 12/12/2024
+3
+Tarifação Inclusão de novo
+modelo de tarifação
+10/06/2026
+4
+Manual Técnico APIs – Área Logada da B3
+SUMÁRIO
+HISTÓRICO DE VERSÕES ................................................................................. 2
+1 OBJETIVO .................................................................................................... 4
+2 O PRODUTO (API’S) ............................................................................................... 4
+3 DADOS DISPONIBILIZADOS ....................................................................... 6
+4 ASPECTOS TÉCNICOS COMPLEMENTARES .................................................. 7
+5 GESTÃO DO CONSENTIMENTO DO INVESTIDOR ...................................... 9
+6 ATENDIMENTO AOS LICENCIADOS E AOS INVESTIDORES......................11
+7 CONDIÇÕES DE ACESSO .............................................................................12
+8 TARIFAÇÃO E MODELOS DE OPT-OUT ......................................................13
+9 MARCA B3 E DIVULGAÇÃO ........................................................................15
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+1 OBJETIVO
+Por meio da plataforma denominada Área Logada do Investidor na B3
+(“Plataforma”), os investidores que realizam operações nos mercados de bolsa e
+balcão (“Investidores”), organizados e administrados pela B3, podem realizar a
+consulta de seus extratos de posições e movimentações de suas aplicações
+financeiras (“Extrato de Informações”)”;
+A B3 desenvolveu uma interface de programação de aplicações (“API”) para
+viabilizar a integração tecnológica entre sistemas que possibilitará o
+compartilhamento dos Extratos de Informações com as startups do sistema
+financeiro (Fintechs), instituições financeiras e não financeiras que contratarem
+referida API (“Licença”), mediante autorização do investidor.
+Este Manual tem por escopo detalhar tecnicamente a API.
+2 O PRODUTO (API’S)
+Todas as informações sobre as APIs e os requisitos técnicos estão disponíveis
+através do portal https://developers.b3.com.br/, na rota APIs -> Nova Área
+Logada. Cada API possui informações sobre a visão geral e a documentação
+técnica.
+As APIs existentes são:
+• Pacote de Acesso: A API Pacote de Acesso tem como objetivo gerar e
+enviar por e-mail o pacote de acesso necessário para consumir as APIs da
+Nova Área Logada, no ambiente de Certificação. No ambiente de
+Produção, esse pacote de acesso será enviado pela B3, após a contratação;
+• API Guia: API que tem o objetivo de racionalizar e orientar as chamadas
+das outras APIS;
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+• Eventos provisionados/ ProvisionedEvents: Dados até D-1 dos eventos
+corporativos de renda variável provisionados por investidor;
+Garantias/ Collateral: Dados até D-1 do total de garantias depositadas na
+conta do investidor e provisionamento do risco sem garantias;
+•
+Movimentação/ Movement: Dados até D-1 das transações ocorridas nas
+contas do investidor em um determinado período. As movimentações
+possuem os seguintes endpoints:
+•
+o Empréstimo de Ativos – SecuritiesLending
+o Tesouro Direto – TreasuryBonds
+o Renda Fixa – FixedIncome
+o Derivativos – Derivatives
+o Renda Variável – Equities
+Negociação de Ativos: Dados até D-1 de todas as compras e vendas do
+investidor;
+•
+Ofertas Públicas/ PublicOffers: Dados até D-1 sobre a participação do
+investidor em ofertas públicas;
+•
+Posição/ Position: Dados até D-1 do saldo de investimentos na conta do
+investidor. A posição possui os seguintes endpoints:
+•
+o Empréstimo de Ativos – SecuritiesLending
+o Tesouro Direto – TreasuryBonds
+o Renda Fixa – FixedIncome
+o Derivativos – Derivatives
+o Renda Variável - Equities
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+Figura 1 - APIs disponibilizadas
+3 DADOS DISPONIBILIZADOS
+Os dados a serem disponibilizados dependem da natureza de cada API. O quadro
+previsto no Anexo I, porém, reflete a abrangência dos produtos disponíveis, em
+termos das APIs de Movimentação e de Posição. As demais APIs refletem
+movimentações e informações dos ativos do segmento Listado B3.
+Importante ressaltar que, em termos de Produtos de Renda Fixa Balcão apenas a
+informação de quantidade, ISIN, data de aquisição e vencimento são informados.
+Inicialmente serão disponibilizadas informações relativas aos ativos de Renda Fixa
+Balcão no regime depositado e os ativos no regime registrado que possuam o
+Selo Certifica. Por meio do Certifica é possível comprovar o registro na B3 da
+aplicação do cliente. Para mais informações, basta acessar o link:
+https://www.b3.com.br/pt_br/b3/qualificacao-e-
+governanca/certificacoes/certifica/.
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+4 ASPECTOS TÉCNICOS COMPLEMENTARES
+• Os dados dos Investidores disponibilizados por meio das APIs da Área
+Logada do Investidor contemplam os dados constantes da base da B3 a
+partir de 01/11/2019;
+As informações de investimentos são atualizadas diariamente com
+referência no fechamento do dia anterior (D-1), respeitado o prazo de
+liquidação de cada ativo;
+•
+Devido ao prazo de consolidação dos dados de todos os investimentos, o
+objetivo inicial é que os dados do dia anterior estejam disponíveis a partir
+das 8 (oito) horas da manhã;
+•
+Após esse horário, os licenciados da API deverão fazer a chamada da API
+Guia (Produtos Atualizados), que irá disponibilizar as informações relativas
+aos CPF’s e/ou CNPJ’s referentes aos quais o licenciado possui
+consentimento, que tiveram atualização (movimentação) na data de
+referência. Assim, a API Guia permite a racionalização das chamadas,
+informando somente os CPF’s e/ou CNPJ’s que sofreram movimentações
+no período;
+•
+Por exemplo, licenciados que busquem as informações de posição, podem
+consultar quais CPF’s e/ou CNPJ’s tiveram movimentação da data indicada
+e buscar apenas a posição atualizada daqueles documentos, pois já
+possuem a última posição dos investidores que não tiveram
+movimentação na data de referência. Isso irá acelerar o processo de busca
+de cada licenciado, evitando sobrecarga do ambiente com milhares de
+retornos desnecessários, uma vez que a API de Posição retorna todas as
+posições de todos os investidores independente da movimentação;
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+• Dada a existência de uma API que racionaliza os dados, bem como diante
+da desnecessidade de consumo dos dados mais de uma vez ao dia,
+orienta-se que não sejam realizadas consultas às informações de um
+mesmo investidor mais de uma vez ao dia, evitando a necessidade de
+restrições;
+• As APIs da área logada foram modeladas e construídas de forma
+harmônica, sendo agnóstica a tecnologia dos licenciados que as
+consomem, possibilitando maior flexibilidade. As imagens abaixo trazem
+detalhes sobre a construção.
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+• A disponibilidade para o ambiente de produção é de 24h (vinte e quatro
+horas) por dia, durante os 7 (sete) dias da semana com SLA de
+disponibilidade da Plataforma de 97% (noventa e sete por cento),
+calculado mensalmente;
+Manual Técnico APIs – Área Logada da B3
+Figura 2 - Aspectos técnicos da construção das APIs
+5 GESTÃO DO CONSENTIMENTO DO INVESTIDOR
+Visando garantir o controle e gestão do investidor/usuário sobre seus dados, será
+possível, por meio da Area Logada do Investidor na B3, disponível no site
+www.investidor.b3.com.br, consultar todos os licenciados aos quais o
+investidor/usuário autorizou a consulta de seus dados. Essa consulta estará
+disponível no Menu Minha Conta –> Segurança –> Aplicativos e Sites. Nesse
+mesmo local, o usuário/ investidor poderá revogar o acesso ao
+interrompendo o compartilhamento de seus dados.
+licenciado,
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Figura 3 - Aspectos técnicos da construção das APIs (Convenções)
+Manual Técnico APIs – Área Logada da B3
+Figura 4 - Tela que demonstra os players que obtiveram o consentimento do investidor/ usuário
+O processo de autorização do envio dos dados de investimentos para o licenciado
+é feito pelo usuário/ investidor, mediante autorização da vinculação de sua conta
+B3 à aplicação (jornada) do licenciado, prosseguindo com o login na área logada
+mediante suas credenciais de acesso (login e senha).
+Figura 5 - Jornada do usuário/ investidor no momento da autorização do acesso
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+Figura 6 - Etapas da autenticação no momento do login
+6 ATENDIMENTO AOS LICENCIADOS E AOS INVESTIDORES
+Para os interessados na contratação das API’s, reforça-se que:
+(i) Por meio do portal https://developers.b3.com.br/apis-br estão
+disponíveis as APIs para autosserviço, permitindo testes de todas as
+API’s em ambiente de Certificação, de maneira gratuita. Assim, espera-
+se que os desenvolvedores e potenciais licenciados consigam cumprir
+essa etapa com bastante autonomia. Todas as informações necessárias
+para a realização do primeiro acesso, conexão e testes nas APIs
+existentes são possíveis, bastando consumir o conteúdo disponível. O
+Kit de Acesso é o primeiro passo para início dos testes das APIs
+existentes.
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+(ii) Após testes de conectividade e retorno das APIs com a massa de testes
+disponibilizada, se houver dúvidas, sugestões e ou interesse na
+contratação, procure seu RM ou envie um e-mail para sat@b3.com.br.
+O horário de atendimento do Suporte Avançado de Tecnologia (SAT) é
+Manual Técnico APIs – Área Logada da B3
+(iii) O canal de atendimento para os investidores/ usuários para dúvidas,
+críticas ou sugestões se dá por meio de nossa Central de Atendimento
+- telefone (11) 4200-0277.
+7 CONDIÇÕES DE ACESSO
+No ambiente de Certificação, a solicitação de acesso às API’s dar-se-á através do
+portal B3 For Developers, de maneira online e com disponibilidade “24/7”. O
+processo inicia-se sempre pela API Pacote de Acesso que tem como objetivo
+gerar e enviar por e-mail o pacote de acesso (.zip) necessário para realizar a
+autenticação e autorização para consumo das demais API’s da Nova Área Logada.
+Todos os detalhes técnicos para chamada da API Pacote de Acesso estão no menu
+“Documentação Técnica” do portal B3 for developers na rota: Home/ APIs/
+Novaárealogada/ Pacotedeacesso.
+No ambiente de produção, referido pacote de acesso será enviado pela B3, após
+a conclusão da contratação pelo licenciado. Apenas pessoas jurídicas poderão
+contratá-lo e, antes da assinatura do contrato, estarão sujeitas à análise prévia,
+intitulada self-assessment, realizada pela B3, cujo objetivo é apurar os
+mecanismos de governança e gestão relativos ao monitoramento e governança
+de proteção de dados pessoais e segurança da informação. No primeiro passo, o
+licenciado deverá responder um questionário que será enviado através de um
+link. Neste momento, será encaminhado conjuntamente com o questionário o
+manual de apoio para o seu preenchimento. Em paralelo, o time B3 avaliará a
+postura de segurança cibernética do licenciado por meio da plataforma Security
+Scorecard. Por fim, gera-se um relatório com as vulnerabilidades que precisarão
+ser endereçadas pelo licenciado, se aplicável, podendo, no limite, ser recusada
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+das 6hrs de segunda-feira às 6hrs de sábado. O telefone para contato
+direto é: (11) 2565-5120.
+Manual Técnico APIs – Área Logada da B3
+referida contratação, a exclusivo critério da B3, sem a aplicação de quaisquer
+penalidades, caso constatado risco à infraestrutura tecnológica e segurança da
+informação.
+Figura 7 - Etapas do Self-Assessment
+8 TARIFAÇÃO E MODELOS DE OPT-OUT
+• O modelo de cobrança será calculado de acordo com o número de
+autorizações concedidas pelos Investidores (“Autorizações”). A cobrança
+leva em consideração o número total de Autorizações concedidas para o
+licenciado ao final do mês de referência, sendo faturado no mês
+subsequente mais e/ou o valor da taxa de licenciamento.
+• Modelo Consulta de Informações: a cobrança ocorrerá com base nas
+faixas de Investidores autorizados da tabela abaixo:
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Política comercial
+Inferior Superior CPF/ANO*
+- 10.000 R$ -
+10.001 50.000 R$ 3,25
+50.001 100.000 R$ 3,00
+100.001 200.000 R$ 2,75
+200.001 500.000 R$ 2,50
+*Sujeito ao piso de R$ 500/MÊS (R$ 6000/ANO)
+Manual Técnico APIs – Área Logada da B3
+O piso de R$ 6.000/ano será o valor mínimo pago pelos licenciados
+das APIs. A cobrança ocorrerá mensalmente no valor de R$ 500. Assim,
+caso o valor cobrado com base na tarifa por Investidor autorizado não
+ultrapasse R$ 500/mês, o licenciado pagará o valor mínimo de R$
+500/mês.
+A cobrança passará a ser escalonada, favorecendo ganhos de escala
+para licenciados que possuem muitas autorizações.
+Exemplos:
+• Licenciado com 10.001 investidores consentidos pagará R$
+500,00/mês (10.001 – 10.000 = 1 usuário * 0,27/mês (faixa de R$
+3,25/ano) = R$ 0,27). Como o valor está abaixo dos R$ 500/mês, o
+Licenciado pagará o valor do piso (R$ 500/mês).
+• Licenciado com 11.852 investidores consentidos pagará R$
+500,00/mês (11.852 – 10.000 = 1.852 usuários * 0,27/mês (faixa de R$
+3,25/ano) = R$ 499,77). Como o valor está abaixo dos R$ 500/mês, o
+Licenciado pagará o valor do piso (R$ 500/mês).
+• As APIs fornecem informações sobre ativos de RV e RF. Para RF,
+será disponibilizado as informações de quantidade e características dos
+ativos depositados. As informações de ativos registrados e preços não
+estão disponibilizados.
+•
+•
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+A cobrança anual (CPF/ANO) ocorrerá mensalmente e os licenciados têm
+uma franquia de 10 mil usuários consentidos por mês.
+•
+Há 2 (duas) possibilidades de opt-out do consumo das APIs da Área do
+Investidor da B3: ou (i) o investidor revoga o consentimento de acesso do
+licenciado, através da área logada da B3; ou o (ii) licenciado solicitará à
+B3 a não
+renovação a subscrição de acesso do usuário/investidor;
+(i) Se o investidor revogar o envio de seus dados através da Área do
+Investidor, não haverá mais a cobrança a partir do mês seguinte. Por
+exemplo, investidor autorizou em Janeiro – independente do dia - o repasse
+de seus dados, porém, em março – independente do dia – revoga o
+consentimento dado. Nesse caso a B3 cobrará o valor referente a 3 (três)
+meses de uso, ou seja, a B3 deixará de cobrar o valor mensal equivalente
+nos meses
+seguintes a revogação do consentimento.
+(ii) Após 12 (doze) meses da Autorização fornecida pelo Investidor é
+possível o licenciado revogar o acesso através da API de revogação.
+• Licenciado com 190.000 usuários consentidos pagará R$ 43.100,00,
+conforme cálculo abaixo:
+• Importante: haverá isenção de cobrança para os modelos de Distribuidor de Dados
+e Profissional Especializado durante os meses de junho e julho de 2026.
+• As APIs fornecem informações sobre ativos de RV e RF. Para RF, será disponibilizado as
+informações de quantidade e características dos ativos depositados. As informações de
+ativos registrados e preços não estão disponibilizados.
+• Modelo Distribuidor de Dados e Profissional Especializado: a cobrança ocorrerá com
+base nas faixas de Investidores autorizados da tabela abaixo e de uma tarifa fixa:
+• Tarifa Fixa de R$ 3 mil/mês de Conectividade nos Dados;
+• Tabela por CPF:
+• Para o Modelo Distribuidor de Dados, a tabela acima será considerada
+individualmente para cada uma das empresas conectadas ao licenciado. Por exemplo,
+caso o distribuidor possua dois clientes com 100 conexões cada, deverá ser considerado
+o valor de R$ 7,00 para cada uma das instituições mensalmente (R$ 700,00 + R$ 700,00).
+O valor total que deverá ser pago à B3 é de (R$ 700,00 + R$ 700,00) + R$ 3.000,00 pela
+Conectidade de Dados no mês (R$ 4.400,00).
+Há 2 (duas) possibilidades de opt-out do consumo das APIs da Área do Investidor da B3:
+ou (i) o investidor revoga o consentimento de acesso do licenciado, através da B3; ou
+o (ii) licenciado solicitará à B3 a não renovação a subscrição de acesso do
+usuário/investidor após o período de 12 meses do início do consentimento.
+(i) Se o investidor revogar o envio de seus dados através da Área do Investidor, não
+haverá mais a cobrança a partir do mês seguinte. Por exemplo, investidor autorizou em
+Janeiro – independente do dia - o repasse de seus dados, porém, em março –
+independente do dia – revoga o consentimento dado. Nesse caso a B3 cobrará o valor
+referente a 3 (três) meses de uso, ou seja, a B3 deixará de cobrar o valor mensal
+equivalente nos mesescseguintes a revogação do consentimento. (ii) Após 12 (doze)
+meses da Autorização fornecida pelo Investidor é possível o licenciado revogar o
+acesso através da API de revogação.
+Manual Técnico APIs – Área Logada da B3
+9 MARCA B3 E DIVULGAÇÃO
+Não obstante as condições técnicas apresentadas anteriormente, é preciso que
+haja identificação das API’s para indicar a integração tecnológica entre os
+sistemas das Fintechs, instituições financeiras e não financeiras que contratarem
+a Licença.
+Para tanto, os licenciados das APIs deverão incluir em sua plataforma a marca
+“B3” (“Marca”), de propriedade e titularidade exclusiva da B3, cujas diretrizes e
+especificações técnicas particulares a respeito do seu
+Manual de Uso da Marca1, conforme se verifica abaixo:
+uso estão indicadas no
+Marca B3:
+Manual de Uso da Marca:
+1 Disponível no link https://zeroheight.com/8c0a84ef3/p/86cf0b-
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+É essencial que toda e qualquer menção à Marca seja limitada a assuntos
+relacionados diretamente à Licença e cumpra as diretrizes e orientações da B3,
+incluindo, mas não se limitando ao Manual de Uso da Marca indicado acima,
+sendo que do contrário, poderá haver responsabilização penal e civil por uso
+indevido, modificação, distorção ou alteração da Marca.
+Adicionalmente, a fim de complementar as orientações aqui incluídas e visando
+evitar a responsabilização penal e civil do licenciado por uso indevido da Marca,
+apresentamos abaixo alguns exemplos práticos, nos quais o uso da Marca, desde
+que de acordo com as especificidades e ao Manual de Uso da Marca, estão
+autorizadas (“DOs”):
+✓ O uso da Marca e o nome empresarial da B3 para especificar a conexão de
+dados com a B3 para os usuários;
+✓ Uso do nome empresarial da B3 para os fins previstos no contrato de
+licenciamento, desde que com a referência “B3”;
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+✓ Utilizar a Marca ou nome empresarial B3 em campanhas de marketing e
+comunicação da integração com as APIs, desde que tenha cunho
+informativo, educacional, de orientação e de engajamento do investidor;
+✓ Em divulgações para imprensa (press releases) será necessário a
+autorização prévia e expressa da B3 e sugerimos a inclusão do seguinte
+trecho:
+o “A B3 tem como um de seus papéis centrais prover um conjunto de
+produtos e serviços que aprimorem o ambiente de negócios no Brasil.
+Entre tantas iniciativas, uma delas é estar cada vez mais próxima do
+ecossistema de inovação, facilitando a jornada de investimento no
+país.
+A B3 disponibiliza APIs para que fintechs e instituições financeiras
+ofereçam, de maneira segura, soluções para facilitar a jornada do
+investidor pessoa física.”
+No que tange as restrições/vedações, elenca-se, porém não são exclusivos
+(DON’TS):
+Uso ou associação da marca/logo da B3 em comunicações que fujam do
+objeto do contrato - concessão de Licença de uso da API, pela B3 ao
+Licenciado;
+✓
+Não usar o nome CEI / Canal Eletrônico do Investidor para se referir as
+APIs, ou ainda qualquer outro sinal distintivo, marca e identidade visual de
+empresas do grupo econômico da B3 que não tiverem sido expressamente
+autorizadas. Deve-se sempre reforçar a conexão com a B3;
+✓
+A Marca e nome empresarial B3 não devem ser usados em telas que
+apresentem recomendações de investimentos;
+✓
+Também é vedado a associação da Marca ou nome empresarial da B3 em
+anúncios e/ou publicidades que caracterize alguma oferta de produtos de
+✓
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+investimentos ou indique que determinada plataforma é certificada e/ou
+recomendada pela B3;
+✓ Caráter excessivamente publicitário com promessas irreais ou
+fundamentadas pela proposta de valor a ser entregue ao investidor;
+não
+Como forma de ilustrar a utilização da Marca pelo licenciado em
+plataforma, segue abaixo a interface orientada e recomendada pela B3:
+sua
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+A análise ou a aprovação prévia e expressa não será exigida para divulgações
+rotineiras ou descrições de produtos, cuja forma tenha sido contemplada nos
+itens elencados anteriormente neste Manual Técnico (DOs and DON’Ts), exceto
+para publicações voltadas para imprensa (Press Releases), as quais deverão
+ser prévia e expressamente aprovadas pela B3 através de envio da
+solicitação para o e-mail imprensa@b3.com.br. Caso haja dúvidas do
+licenciado a respeito da autorização do uso da Marca na forma pretendida, bem
+como na hipótese do licenciado desejar utilizar a Marca ou nome empresarial da
+B3 em hipóteses distintas das previstas acima, recomenda-se autorização prévia
+e expressa da B3, cuja solicitação deverá ser direcionada para o e-
+mail marca@b3.com.br.
+É importante frisar que a ausência de exigência da análise ou a aprovação prévia
+e expressa da B3 não isenta o licenciado da responsabilização em todas as esferas
+aplicáveis pelo uso indevido, estando sujeito às penalidades cabíveis em todas as
+esferas legítimas.
+Havendo uso indevido da Marca ou do nome empresarial da B3 em desacordo
+com o previsto no contrato de licenciamento, ou de empresas do grupo
+econômico da B3, no Manual de Uso da Marca B3, ou ainda em desconformidade
+com as orientações e especificações fornecidas pela B3, a B3 notificará o
+licenciado para que cesse imediatamente o uso indevido, sem prejuízo da devida
+responsabilização aplicável.
+A autorização da Marca e do uso do nome empresarial da B3 cessarão
+imediatamente (i) após o término da Licença; ou (ii) caso o uso indevido da Marca
+e/ou do nome empresarial da B3 perdurem mesmo após o recebimento da
+notificação pela B3.
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Manual Técnico APIs – Área Logada da B3
+Anexo I – Dados dos produtos disponibilizados
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Produtos de Renda Fixa Balcão
+ADA - Alongamento da Dívida Agrícola(ASTN/CTN)
+CCB - Cédula de Crédito Bancário
+CCCB - Certificao de Cédula de Crédito Bancário
+CCE - Cedula de Crédito a Exportação
+CCI - Cédula de Créditos Imobiliarios
+CCT - Contrato de Crédito Contra Terceiros
+CDA / WA - Certificado de Depósito Agropecuário e Warrant
+CDB - Certificado de Depósito Bancário
+CDB-S - Certificado de Depósito Bancário Subordinado
+CDB-V - Certificado de Depósito Bancário Vinculado
+CDCA - Certificado de Direitos Creditórios do Agronegócio
+CDEB - Cédula de Debênture
+CDP - Certificado de Dívida Pública
+CFT - Certificado Financeiro do Tesouro
+CIAV - Certificado de Investimento Audiovisual
+Compromissada Dirigida
+Compromissada Específica
+Compromissada Genérica
+Compromissada Migração Bolsa/Selic
+Compromissada Migração Selic/Bolsa
+CPR - Cédula de Produro Rural
+CRA - Certificado de Recebíveis do Agronegócio
+CRH - Cédula Rural Hipotecaria
+CRI - Certificado de Recebíveis Imobiliários
+CRP - Cédula Rural Pignoratícia
+CSEC - Credito de Securitização
+CTEE - Certificado a Termo de Energia Elétrica
+DEB - Debêntures
+Direitos Creditórios
+DPGE - Depósito a Prazo com Garantia Especial
+ECTN - Certificado do Tesouro Nacional
+EXPN - EXPORT NOTES
+IECE - Instrumento Elegivel para compor PR - Exterior
+IECI - Instrumento Elegivel para compor PR - Brasil
+IECP - Instrumento Elegivel para compor PR - Capital Principal
+LAM - Letra de Arrendamento Mercantil
+LC - Letras de Câmbio
+Manual Técnico APIs – Área Logada da B3
+Ações (Tipo: ON / PN)
+Ações (Tipo: BDR)
+Ações (Tipo: CDA)
+Ações (Tipo: Bônus)
+Ações (Tipo: Direitos)
+Ações (Tipo: Recibos)
+Ações (Tipo: UNIT)
+Fundo de Investimento Imobiliário (Tipo: Cotas)
+Fundo de Investimento Imobiliário (Tipo: Bônus)
+Fundo de Investimento Imobiliário (Tipo: Recibos)
+Fundo de Índice de Ações (Tipo: ETF)
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+ETF - Fundo de Índice Internacional
+ETF - Fundo de Índice de Ações
+Fundo de Investimento Imobiliário
+Produtos de Renda Variável
+Ações
+LCA - Letra de Crédito do Agronegócio
+LCI - Letras de Crédito Imobíliario
+LCIV - Letra de Crédito Imobiliário Vinculado
+LF - Letra Financeira
+LFS - Letra Financeira Subordinada
+LFSC - Letra Financeira Elegivel para compor PR - C.Complementar
+LFSN - Letra Financeira Elegivel para compor PR - Nivel II
+LFV- Letra Financeira Vinculada
+LH - Letras Hipotecárias
+LIG - Letra Imobiliária Garantida
+NC - Nota Comercial
+NCA - Nota Comercial do Agronegócio
+NCE - Nota de Crédito a Exportação
+NCR - Nota de Crédito Rural
+NP - Nota Promissória
+RDB - Recibo de Deposito Bancário
+RPH - CÉDULA RURAL PIGNORATÍCIA E HIPOTECÁRIA
+TDA - Titulo da Dívida Agrária
+CFA - Cota de Fundo Aberto
+CFF - Cota de Fundo Fechado
+COE - Certificado de Operações Estruturadas
+Manual Técnico APIs – Área Logada da B3
+Fundo de Índice Internacional (Tipo: ETF)
+Fundo de Índice de Renda Fixa (Tipo: ETF)
+Fundo de Investimento Imobiliário (Tipo: Direitos)
+FDS - Cota de Fundo de Desenvolvimento Social
+Fundos de Índice de Renda Fixa
+Finam - Fundo de Investimentos da Amazônia
+Finor - Fundo de Investimentos do Nordeste
+Fiset - Fundo de Investimentos Setoriais
+Fundes - Fundo de Desenvolvimento Econômico do
+Espírito Santo
+FIP - Fundo de Investimento em Participações
+Outras Cotas de Fundos de Investimento
+ETF - Fundo de investimento de Renda Fixa
+INFORMAÇÃO PÚBLICA – PUBLIC INFORMATION
+Produtos de
+Produtos de Derivativos Ouro Produtos de Empréstimo de Ativos
+Opções Ouro Empréstimo de Ativos
+Swap
+Termo
+Futuro
+Box de Duas Pontas
+Fundos de Investimentos
+ETF - Fundo de Índice de Renda Fixa

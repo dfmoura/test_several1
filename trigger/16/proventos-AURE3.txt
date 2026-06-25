@@ -1,0 +1,12 @@
+PROVENTOS EM DINHEIRO — AURE3 (AUREN)
+Fonte: curl → GetListedCashDividends (B3 listedCompaniesProxy)
+Total API: 6 registros | Páginas: 1
+
+   #  DATA EX      APROVAÇÃO    TIPO AÇÃO EVENTO              VALOR/ AÇÃO    FECH. EX
+-------------------------------------------------------------------------------------
+  1  24/04/2025   24/04/2025   ON       DIVIDENDO      0,05703266433       8,58
+  2  01/03/2024   07/02/2024   ON       DIVIDENDO      0,4       12,85
+  3  08/12/2023   21/11/2023   ON       DIVIDENDO      1,5       14,93
+  4  04/05/2023   28/04/2023   ON       DIVIDENDO      1,5       15,75
+  5  03/05/2022   29/04/2022   ON       DIVIDENDO      0,013950572       14,49
+  6  03/05/2022   11/04/2022   ON       DIVIDENDO      0,086049428       14,49

@@ -1,0 +1,4498 @@
+====================================================================================================
+PROVENTOS EM DINHEIRO — PETROBRAS (PETR)
+Fonte: B3 — GetListedCashDividends (listedCompaniesProxy)
+Gerado em: 24/06/2026 11:58
+====================================================================================================
+
+RESUMO
+----------------------------------------------------------------------------------------------------
+Total retornado pela API (bruto)     : 333 registros
+Total após remoção de duplicados exatos: 319 registros
+Páginas consultadas                  : 4 (pageSize=100)
+Período (data ex)                    : 21/03/1996 a 22/04/2026
+
+LEGENDA corporateAction
+  DIVIDENDO       = distribuição de lucros
+  JRS CAP PROPRIO = Juros sobre Capital Próprio (JCP)
+  RENDIMENTO      = rendimento em dinheiro
+
+====================================================================================================
+LISTA COMPLETA (ordenada da data ex mais recente para a mais antiga)
+====================================================================================================
+
+   #  DATA EX      APROVAÇÃO    TIPO AÇÃO EVENTO              VALOR/ AÇÃO    FECH. EX
+-------------------------------------------------------------------------------------
+   1  22/04/2026   16/04/2026   ON       JRS CAP PROPRIO      0,31311454       52,70
+   2  22/04/2026   16/04/2026   ON       RENDIMENTO           0,01649003       52,70
+   3  22/04/2026   16/04/2026   PN       JRS CAP PROPRIO      0,31311454       47,67
+   4  22/04/2026   16/04/2026   PN       RENDIMENTO           0,01649003       47,67
+   5  22/12/2025   11/12/2025   ON       JRS CAP PROPRIO      0,17518233       32,84
+   6  22/12/2025   11/12/2025   ON       JRS CAP PROPRIO      0,47160378       32,84
+   7  22/12/2025   11/12/2025   ON       DIVIDENDO            0,29642144       32,84
+   8  22/12/2025   11/12/2025   PN       JRS CAP PROPRIO      0,17518233       31,10
+   9  22/12/2025   11/12/2025   PN       JRS CAP PROPRIO      0,47160378       31,10
+  10  22/12/2025   11/12/2025   PN       DIVIDENDO            0,29642144       31,10
+  11  21/08/2025   07/08/2025   ON       DIVIDENDO            0,20092175       32,65
+  12  21/08/2025   07/08/2025   ON       JRS CAP PROPRIO      0,33596205       32,65
+  13  21/08/2025   07/08/2025   ON       JRS CAP PROPRIO      0,13504029       32,65
+  14  21/08/2025   07/08/2025   PN       DIVIDENDO            0,20092175       30,29
+  15  21/08/2025   07/08/2025   PN       JRS CAP PROPRIO      0,33596205       30,29
+  16  21/08/2025   07/08/2025   PN       JRS CAP PROPRIO      0,13504029       30,29
+  17  02/06/2025   12/05/2025   ON       DIVIDENDO            0,30844749       33,01
+  18  02/06/2025   12/05/2025   ON       JRS CAP PROPRIO       0,4545831       33,01
+  19  02/06/2025   12/05/2025   ON       JRS CAP PROPRIO       0,1461356       33,01
+  20  02/06/2025   12/05/2025   PN       DIVIDENDO            0,30844749       31,08
+  21  02/06/2025   12/05/2025   PN       JRS CAP PROPRIO       0,4545831       31,08
+  22  02/06/2025   12/05/2025   PN       JRS CAP PROPRIO       0,1461356       31,08
+  23  16/04/2025   26/02/2025   ON       DIVIDENDO            0,35477261       33,07
+  24  16/04/2025   26/02/2025   ON       RENDIMENTO           0,01706013       33,07
+  25  16/04/2025   26/02/2025   ON       RENDIMENTO           0,02152467       33,07
+  26  16/04/2025   26/02/2025   PN       DIVIDENDO            0,35477261       31,00
+  27  16/04/2025   26/02/2025   PN       RENDIMENTO           0,01706013       31,00
+  28  16/04/2025   26/02/2025   PN       RENDIMENTO           0,02152467       31,00
+  29  23/12/2024   09/12/2024   ON       DIVIDENDO            0,65356508       40,02
+  30  23/12/2024   09/12/2024   ON       JRS CAP PROPRIO      0,66410331       40,02
+  31  23/12/2024   09/12/2024   ON       JRS CAP PROPRIO      0,01053822       40,02
+  32  23/12/2024   09/12/2024   PN       DIVIDENDO            0,65356508       36,86
+  33  23/12/2024   09/12/2024   PN       JRS CAP PROPRIO      0,66410331       36,86
+  34  23/12/2024   09/12/2024   PN       JRS CAP PROPRIO      0,01053822       36,86
+  35  11/12/2024   21/11/2024   ON       DIVIDENDO            1,55174293       43,90
+  36  11/12/2024   21/11/2024   PN       DIVIDENDO            1,55174293       40,59
+  37  21/08/2024   08/08/2024   ON       DIVIDENDO            0,11384838       40,73
+  38  21/08/2024   08/08/2024   ON       DIVIDENDO            0,52660008       40,73
+  39  21/08/2024   08/08/2024   ON       JRS CAP PROPRIO      0,41275171       40,73
+  40  21/08/2024   08/08/2024   PN       DIVIDENDO            0,11384838       38,06
+  41  21/08/2024   08/08/2024   PN       DIVIDENDO            0,52660008       38,06
+  42  21/08/2024   08/08/2024   PN       JRS CAP PROPRIO      0,41275171       38,06
+  43  11/06/2024   13/05/2024   ON       DIVIDENDO            0,44806667       39,27
+  44  11/06/2024   13/05/2024   ON       JRS CAP PROPRIO      0,52162113       39,27
+  45  11/06/2024   13/05/2024   ON       JRS CAP PROPRIO      0,07355446       39,27
+  46  11/06/2024   13/05/2024   PN       DIVIDENDO            0,44806667       37,66
+  47  11/06/2024   13/05/2024   PN       JRS CAP PROPRIO      0,52162113       37,66
+  48  11/06/2024   13/05/2024   PN       JRS CAP PROPRIO      0,07355446       37,66
+  49  02/05/2024   25/04/2024   ON       DIVIDENDO            0,84962838       44,43
+  50  02/05/2024   25/04/2024   ON       RENDIMENTO           0,03454767       44,43
+  51  02/05/2024   25/04/2024   ON       RENDIMENTO           0,04221792       44,43
+  52  02/05/2024   25/04/2024   PN       DIVIDENDO            0,84962838       42,18
+  53  02/05/2024   25/04/2024   PN       RENDIMENTO           0,03454767       42,18
+  54  02/05/2024   25/04/2024   PN       RENDIMENTO           0,04221792       42,18
+  55  25/04/2024   25/04/2024   ON       DIVIDENDO            0,55015787       44,25
+  56  25/04/2024   25/04/2024   ON       RENDIMENTO           0,02237057       44,25
+  57  25/04/2024   25/04/2024   ON       RENDIMENTO           0,02733727       44,25
+  58  25/04/2024   25/04/2024   PN       DIVIDENDO            0,55015787       42,22
+  59  25/04/2024   25/04/2024   PN       RENDIMENTO           0,02237057       42,22
+  60  25/04/2024   25/04/2024   PN       RENDIMENTO           0,02733727       42,22
+  61  21/11/2023   09/11/2023   ON       DIVIDENDO             0,2432872       39,00
+  62  21/11/2023   09/11/2023   ON       DIVIDENDO             0,6726735       39,00
+  63  21/11/2023   09/11/2023   ON       JRS CAP PROPRIO       0,4293868       39,00
+  64  21/11/2023   09/11/2023   PN       DIVIDENDO             0,2432872       36,50
+  65  21/11/2023   09/11/2023   PN       DIVIDENDO             0,6726735       36,50
+  66  21/11/2023   09/11/2023   PN       JRS CAP PROPRIO       0,4293868       36,50
+  67  21/08/2023   03/08/2023   ON       DIVIDENDO              0,209176       34,15
+  68  21/08/2023   03/08/2023   ON       DIVIDENDO              0,574652       34,15
+  69  21/08/2023   03/08/2023   ON       JRS CAP PROPRIO        0,365476       34,15
+  70  21/08/2023   03/08/2023   PN       DIVIDENDO              0,209176       31,30
+  71  21/08/2023   03/08/2023   PN       DIVIDENDO              0,574652       31,30
+  72  21/08/2023   03/08/2023   PN       JRS CAP PROPRIO        0,365476       31,30
+  73  12/06/2023   11/05/2023   ON       DIVIDENDO              0,278179       34,18
+  74  12/06/2023   11/05/2023   ON       DIVIDENDO              0,946789       34,18
+  75  12/06/2023   11/05/2023   ON       JRS CAP PROPRIO        0,668609       34,18
+  76  12/06/2023   11/05/2023   PN       DIVIDENDO              0,278179       30,81
+  77  12/06/2023   11/05/2023   PN       DIVIDENDO              0,946789       30,81
+  78  12/06/2023   11/05/2023   PN       JRS CAP PROPRIO        0,668609       30,81
+  79  27/04/2023   27/04/2023   ON       DIVIDENDO            1,37286685       28,90
+  80  27/04/2023   27/04/2023   ON       DIVIDENDO            0,87479857       28,90
+  81  27/04/2023   27/04/2023   ON       DIVIDENDO            0,49806827       28,90
+  82  27/04/2023   27/04/2023   ON       RENDIMENTO           0,06784528       28,90
+  83  27/04/2023   27/04/2023   ON       RENDIMENTO           0,05213075       28,90
+  84  27/04/2023   27/04/2023   ON       RENDIMENTO           0,06445329       28,90
+  85  27/04/2023   27/04/2023   PN       DIVIDENDO            1,37286685       26,10
+  86  27/04/2023   27/04/2023   PN       DIVIDENDO            0,87479857       26,10
+  87  27/04/2023   27/04/2023   PN       DIVIDENDO            0,49806827       26,10
+  88  27/04/2023   27/04/2023   PN       RENDIMENTO           0,06784528       26,10
+  89  27/04/2023   27/04/2023   PN       RENDIMENTO           0,05213075       26,10
+  90  27/04/2023   27/04/2023   PN       RENDIMENTO           0,06445329       26,10
+  91  21/11/2022   03/11/2022   ON       DIVIDENDO              1,155823       30,28
+  92  21/11/2022   03/11/2022   ON       DIVIDENDO              1,600192       30,28
+  93  21/11/2022   03/11/2022   ON       JRS CAP PROPRIO        0,518627       30,28
+  94  21/11/2022   03/11/2022   ON       JRS CAP PROPRIO        0,074258       30,28
+  95  21/11/2022   03/11/2022   PN       DIVIDENDO              1,155823       26,78
+  96  21/11/2022   03/11/2022   PN       DIVIDENDO              1,600192       26,78
+  97  21/11/2022   03/11/2022   PN       JRS CAP PROPRIO        0,518627       26,78
+  98  21/11/2022   03/11/2022   PN       JRS CAP PROPRIO        0,074258       26,78
+  99  11/08/2022   28/07/2022   ON       DIVIDENDO              2,938861       38,96
+ 100  11/08/2022   28/07/2022   ON       DIVIDENDO              3,366001       38,96
+ 101  11/08/2022   28/07/2022   ON       JRS CAP PROPRIO        0,427141       38,96
+ 102  11/08/2022   28/07/2022   PN       DIVIDENDO              2,938861       36,25
+ 103  11/08/2022   28/07/2022   PN       DIVIDENDO              3,366001       36,25
+ 104  11/08/2022   28/07/2022   PN       JRS CAP PROPRIO        0,427141       36,25
+ 105  23/05/2022   05/05/2022   ON       DIVIDENDO              1,427568       39,06
+ 106  23/05/2022   05/05/2022   ON       DIVIDENDO              1,857745       39,06
+ 107  23/05/2022   05/05/2022   ON       JRS CAP PROPRIO        0,430177       39,06
+ 108  23/05/2022   05/05/2022   PN       DIVIDENDO              1,427568       36,20
+ 109  23/05/2022   05/05/2022   PN       DIVIDENDO              1,857745       36,20
+ 110  23/05/2022   05/05/2022   PN       JRS CAP PROPRIO        0,430177       36,20
+ 111  13/04/2022   13/04/2022   ON       DIVIDENDO             2,8610762       37,54
+ 112  13/04/2022   13/04/2022   ON       RENDIMENTO            0,1091725       37,54
+ 113  13/04/2022   13/04/2022   PN       DIVIDENDO             2,8610762       34,57
+ 114  13/04/2022   13/04/2022   PN       RENDIMENTO            0,1091725       34,57
+ 115  01/12/2021   28/10/2021   ON       DIVIDENDO              2,195126       30,35
+ 116  01/12/2021   28/10/2021   ON       JRS CAP PROPRIO        1,055361       30,35
+ 117  01/12/2021   28/10/2021   PN       DIVIDENDO              2,195126       29,60
+ 118  01/12/2021   28/10/2021   PN       JRS CAP PROPRIO        1,055361       29,60
+ 119  16/08/2021   04/08/2021   ON       DIVIDENDO              1,609911       29,35
+ 120  16/08/2021   04/08/2021   PN       DIVIDENDO              1,609911       28,64
+ 121  14/04/2021   14/04/2021   ON       DIVIDENDO              0,787446       24,12
+ 122  14/04/2021   14/04/2021   ON       RENDIMENTO             0,005388       24,12
+ 123  14/04/2021   14/04/2021   PN       DIVIDENDO              0,787446       24,35
+ 124  14/04/2021   14/04/2021   PN       RENDIMENTO             0,005388       24,35
+ 125  22/07/2020   22/07/2020   ON       DIVIDENDO              0,233649       23,74
+ 126  22/07/2020   22/07/2020   ON       RENDIMENTO             0,006246       23,74
+ 127  22/07/2020   22/07/2020   PN       DIVIDENDO              0,000449       23,05
+ 128  22/07/2020   22/07/2020   PN       RENDIMENTO             0,000012       23,05
+ 129  26/12/2019   18/12/2019   PN       JRS CAP PROPRIO            0,42       30,91
+ 130  11/11/2019   24/10/2019   ON       JRS CAP PROPRIO             0,2       33,14
+ 131  11/11/2019   24/10/2019   PN       JRS CAP PROPRIO             0,2       30,45
+ 132  12/08/2019   01/08/2019   ON       JRS CAP PROPRIO             0,2       27,85
+ 133  12/08/2019   01/08/2019   PN       JRS CAP PROPRIO             0,2       25,65
+ 134  21/05/2019   07/05/2019   ON       JRS CAP PROPRIO             0,1       28,80
+ 135  21/05/2019   07/05/2019   PN       JRS CAP PROPRIO             0,1       26,49
+ 136  25/04/2019   27/02/2019   PN       DIVIDENDO              0,019043       27,80
+ 137  25/04/2019   27/02/2019   PN       RENDIMENTO             0,000451       27,80
+ 138  21/12/2018   18/12/2018   ON       JRS CAP PROPRIO            0,05       24,18
+ 139  21/12/2018   18/12/2018   PN       JRS CAP PROPRIO             0,7       21,55
+ 140  21/11/2018   05/11/2018   ON       JRS CAP PROPRIO             0,1       27,38
+ 141  21/11/2018   05/11/2018   PN       JRS CAP PROPRIO             0,1       25,17
+ 142  13/08/2018   02/08/2018   ON       JRS CAP PROPRIO            0,05       22,40
+ 143  13/08/2018   02/08/2018   PN       JRS CAP PROPRIO            0,05       20,04
+ 144  21/05/2018   07/05/2018   ON       JRS CAP PROPRIO            0,05       29,14
+ 145  21/05/2018   07/05/2018   PN       JRS CAP PROPRIO            0,05       25,05
+ 146  02/04/2014   02/04/2014   ON       JRS CAP PROPRIO          0,5217       15,66
+ 147  02/04/2014   02/04/2014   ON       RENDIMENTO              0,01638       15,66
+ 148  02/04/2014   02/04/2014   PN       JRS CAP PROPRIO          0,9672       16,56
+ 149  02/04/2014   02/04/2014   PN       RENDIMENTO              0,03037       16,56
+ 150  29/04/2013   29/04/2013   ON       JRS CAP PROPRIO           0,135       19,16
+ 151  29/04/2013   29/04/2013   ON       RENDIMENTO             0,003034       19,16
+ 152  29/04/2013   29/04/2013   ON       JRS CAP PROPRIO         0,13066       19,16
+ 153  29/04/2013   29/04/2013   ON       RENDIMENTO              0,00653       19,16
+ 154  29/04/2013   29/04/2013   PN       JRS CAP PROPRIO            0,38       20,35
+ 155  29/04/2013   29/04/2013   PN       RENDIMENTO              0,00854       20,35
+ 156  29/04/2013   29/04/2013   PN       JRS CAP PROPRIO         0,37566       20,35
+ 157  29/04/2013   29/04/2013   PN       RENDIMENTO              0,01877       20,35
+ 158  11/05/2012   27/04/2012   ON       JRS CAP PROPRIO             0,2       20,39
+ 159  11/05/2012   27/04/2012   PN       JRS CAP PROPRIO             0,2       19,53
+ 160  19/03/2012   19/03/2012   ON       DIVIDENDO                  0,12       25,25
+ 161  19/03/2012   19/03/2012   ON       RENDIMENTO              0,00267       25,25
+ 162  19/03/2012   19/03/2012   PN       DIVIDENDO                  0,12       24,51
+ 163  19/03/2012   19/03/2012   PN       RENDIMENTO              0,00267       24,51
+ 164  02/01/2012   22/12/2011   ON       JRS CAP PROPRIO             0,2       23,21
+ 165  02/01/2012   22/12/2011   PN       JRS CAP PROPRIO             0,2       21,73
+ 166  11/11/2011   28/10/2011   ON       JRS CAP PROPRIO             0,2       23,85
+ 167  11/11/2011   28/10/2011   PN       JRS CAP PROPRIO             0,2       21,96
+ 168  02/08/2011   22/07/2011   ON       JRS CAP PROPRIO             0,2       25,60
+ 169  02/08/2011   22/07/2011   PN       JRS CAP PROPRIO             0,2       23,17
+ 170  11/05/2011   29/04/2011   ON       JRS CAP PROPRIO             0,2       27,21
+ 171  11/05/2011   29/04/2011   PN       JRS CAP PROPRIO             0,2       24,01
+ 172  28/04/2011   28/04/2011   ON       DIVIDENDO                  0,12       28,75
+ 173  28/04/2011   28/04/2011   ON       RENDIMENTO               0,0042       28,75
+ 174  28/04/2011   28/04/2011   PN       DIVIDENDO                  0,12       25,45
+ 175  28/04/2011   28/04/2011   PN       RENDIMENTO               0,0042       25,45
+ 176  21/03/2011   21/03/2011   ON       JRS CAP PROPRIO          0,1493       32,25
+ 177  21/03/2011   21/03/2011   ON       RENDIMENTO              0,00342       32,25
+ 178  21/03/2011   21/03/2011   PN       JRS CAP PROPRIO          0,1493       28,13
+ 179  21/03/2011   21/03/2011   PN       RENDIMENTO              0,00342       28,13
+ 180  21/12/2010   10/12/2010   ON       JRS CAP PROPRIO             0,2       28,45
+ 181  21/12/2010   10/12/2010   PN       JRS CAP PROPRIO             0,2       25,77
+ 182  01/11/2010   22/10/2010   ON       JRS CAP PROPRIO            0,14       29,10
+ 183  01/11/2010   22/10/2010   PN       JRS CAP PROPRIO            0,14       26,49
+ 184  30/07/2010   16/07/2010   ON       JRS CAP PROPRIO             0,2       32,04
+ 185  30/07/2010   16/07/2010   PN       JRS CAP PROPRIO             0,2       27,85
+ 186  21/05/2010   14/05/2010   ON       JRS CAP PROPRIO             0,2       31,44
+ 187  21/05/2010   14/05/2010   PN       JRS CAP PROPRIO             0,2       27,58
+ 188  22/04/2010   22/04/2010   ON       DIVIDENDO                  0,13       38,10
+ 189  22/04/2010   22/04/2010   ON       RENDIMENTO               0,0032       38,10
+ 190  22/04/2010   22/04/2010   ON       JRS CAP PROPRIO          0,1172       38,10
+ 191  22/04/2010   22/04/2010   ON       RENDIMENTO               0,0029       38,10
+ 192  22/04/2010   22/04/2010   PN       DIVIDENDO                  0,13       33,86
+ 193  22/04/2010   22/04/2010   PN       RENDIMENTO               0,0032       33,86
+ 194  22/04/2010   22/04/2010   PN       JRS CAP PROPRIO          0,1172       33,86
+ 195  22/04/2010   22/04/2010   PN       RENDIMENTO               0,0029       33,86
+ 196  18/12/2009   17/12/2009   ON       JRS CAP PROPRIO             0,2       41,34
+ 197  18/12/2009   17/12/2009   PN       JRS CAP PROPRIO             0,2       36,58
+ 198  30/09/2009   21/09/2009   ON       JRS CAP PROPRIO             0,2       40,85
+ 199  30/09/2009   21/09/2009   PN       JRS CAP PROPRIO             0,2       35,00
+ 200  03/07/2009   24/06/2009   ON       JRS CAP PROPRIO             0,3       37,90
+ 201  03/07/2009   24/06/2009   PN       JRS CAP PROPRIO             0,3       31,01
+ 202  08/04/2009   08/04/2009   ON       DIVIDENDO                  0,33       37,60
+ 203  08/04/2009   08/04/2009   ON       RENDIMENTO               0,0104       37,60
+ 204  08/04/2009   08/04/2009   PN       DIVIDENDO                  0,33       29,88
+ 205  08/04/2009   08/04/2009   PN       RENDIMENTO               0,0104       29,88
+ 206  26/12/2008   19/12/2008   ON       JRS CAP PROPRIO             0,8       26,85
+ 207  26/12/2008   19/12/2008   PN       JRS CAP PROPRIO             0,8       22,80
+ 208  04/04/2008   04/04/2008   ON       JRS CAP PROPRIO            0,15       94,88
+ 209  04/04/2008   04/04/2008   ON       RENDIMENTO               0,0039       94,88
+ 210  04/04/2008   04/04/2008   ON       DIVIDENDO                  0,05       94,88
+ 211  04/04/2008   04/04/2008   ON       RENDIMENTO               0,0013       94,88
+ 212  04/04/2008   04/04/2008   PN       JRS CAP PROPRIO            0,15       79,00
+ 213  04/04/2008   04/04/2008   PN       RENDIMENTO               0,0039       79,00
+ 214  04/04/2008   04/04/2008   PN       DIVIDENDO                  0,05       79,00
+ 215  04/04/2008   04/04/2008   PN       RENDIMENTO               0,0013       79,00
+ 216  11/01/2008   27/12/2007   ON       JRS CAP PROPRIO             0,3       97,00
+ 217  11/01/2008   27/12/2007   ON       RENDIMENTO                0,001       97,00
+ 218  11/01/2008   27/12/2007   PN       JRS CAP PROPRIO             0,3       81,56
+ 219  11/01/2008   27/12/2007   PN       RENDIMENTO                0,001       81,56
+ 220  05/10/2007   21/09/2007   ON       JRS CAP PROPRIO             0,5       71,87
+ 221  05/10/2007   21/09/2007   PN       JRS CAP PROPRIO             0,5       61,65
+ 222  17/08/2007   25/07/2007   ON       JRS CAP PROPRIO             0,5       54,26
+ 223  17/08/2007   25/07/2007   PN       JRS CAP PROPRIO             0,5       46,40
+ 224  02/04/2007   02/04/2007   ON       DIVIDENDO                  0,35       51,45
+ 225  02/04/2007   02/04/2007   ON       RENDIMENTO               0,0106       51,45
+ 226  02/04/2007   02/04/2007   PN       DIVIDENDO                  0,35       46,02
+ 227  02/04/2007   02/04/2007   PN       RENDIMENTO               0,0106       46,02
+ 228  28/12/2006   15/12/2006   ON       JRS CAP PROPRIO            0,45       54,49
+ 229  28/12/2006   15/12/2006   ON       RENDIMENTO         0,0000000001       54,49
+ 230  28/12/2006   15/12/2006   PN       JRS CAP PROPRIO            0,45       49,80
+ 231  28/12/2006   15/12/2006   PN       RENDIMENTO         0,0000000001       49,80
+ 232  31/10/2006   20/10/2006   ON       JRS CAP PROPRIO            1,00       47,40
+ 233  31/10/2006   20/10/2006   PN       JRS CAP PROPRIO            1,00       43,00
+ 234  03/04/2006   03/04/2006   ON       JRS CAP PROPRIO            0,25       48,21
+ 235  03/04/2006   03/04/2006   ON       DIVIDENDO                  0,35       48,21
+ 236  03/04/2006   03/04/2006   ON       RENDIMENTO               0,0247       48,21
+ 237  03/04/2006   03/04/2006   PN       JRS CAP PROPRIO            0,25       44,25
+ 238  03/04/2006   03/04/2006   PN       DIVIDENDO                  0,35       44,25
+ 239  03/04/2006   03/04/2006   PN       RENDIMENTO               0,0247       44,25
+ 240  29/12/2005   16/12/2005   ON       JRS CAP PROPRIO    0,4999999999       41,30
+ 241  29/12/2005   16/12/2005   ON       RENDIMENTO         0,0000000001       41,30
+ 242  29/12/2005   16/12/2005   PN       JRS CAP PROPRIO    0,4999999999       37,21
+ 243  29/12/2005   16/12/2005   PN       RENDIMENTO         0,0000000001       37,21
+ 244  30/06/2005   17/06/2005   ON       JRS CAP PROPRIO            2,00      121,31
+ 245  30/06/2005   30/06/2005   ON       RENDIMENTO         0,0000000001      121,31
+ 246  30/06/2005   17/06/2005   PN       JRS CAP PROPRIO            2,00      107,30
+ 247  30/06/2005   30/06/2005   PN       RENDIMENTO         0,0000000001      107,30
+ 248  31/03/2005   31/03/2005   ON       DIVIDENDO                   0,6      117,50
+ 249  31/03/2005   31/03/2005   ON       JRS CAP PROPRIO            1,00      117,50
+ 250  31/03/2005   31/03/2005   ON       RENDIMENTO               0,0681      117,50
+ 251  31/03/2005   31/03/2005   PN       DIVIDENDO                   0,6      103,15
+ 252  31/03/2005   31/03/2005   PN       JRS CAP PROPRIO            1,00      103,15
+ 253  31/03/2005   31/03/2005   PN       RENDIMENTO               0,0681      103,15
+ 254  30/09/2004   17/09/2004   ON       JRS CAP PROPRIO            2,99      103,70
+ 255  30/09/2004   17/09/2004   ON       RENDIMENTO                 0,01      103,70
+ 256  30/09/2004   17/09/2004   PN       JRS CAP PROPRIO            2,99       93,84
+ 257  30/09/2004   17/09/2004   PN       RENDIMENTO                 0,01       93,84
+ 258  29/03/2004   29/03/2004   ON       JRS CAP PROPRIO            1,15       92,55
+ 259  29/03/2004   29/03/2004   ON       RENDIMENTO                 0,04       92,55
+ 260  29/03/2004   29/03/2004   ON       DIVIDENDO                  1,00       92,55
+ 261  29/03/2004   29/03/2004   PN       JRS CAP PROPRIO            1,15       82,65
+ 262  29/03/2004   29/03/2004   PN       RENDIMENTO                 0,04       82,65
+ 263  29/03/2004   29/03/2004   PN       DIVIDENDO                  1,00       82,65
+ 264  25/11/2003   13/11/2003   ON       JRS CAP PROPRIO            2,99       73,85
+ 265  25/11/2003   13/11/2003   ON       RENDIMENTO                 0,01       73,85
+ 266  25/11/2003   13/11/2003   PN       JRS CAP PROPRIO            2,99       69,52
+ 267  25/11/2003   13/11/2003   PN       RENDIMENTO                 0,01       69,52
+ 268  27/03/2003   27/03/2003   ON       JRS CAP PROPRIO            1,00       51,80
+ 269  27/03/2003   27/03/2003   ON       RENDIMENTO                 0,06       51,80
+ 270  27/03/2003   27/03/2003   ON       DIVIDENDO                  0,53       51,80
+ 271  27/03/2003   27/03/2003   ON       RENDIMENTO                 0,03       51,80
+ 272  27/03/2003   27/03/2003   PN       JRS CAP PROPRIO            1,00       47,40
+ 273  27/03/2003   27/03/2003   PN       RENDIMENTO                 0,06       47,40
+ 274  27/03/2003   27/03/2003   PN       DIVIDENDO                  0,53       47,40
+ 275  27/03/2003   27/03/2003   PN       RENDIMENTO                 0,03       47,40
+ 276  12/11/2002   31/10/2002   ON       JRS CAP PROPRIO            1,00       47,00
+ 277  12/11/2002   31/10/2002   PN       JRS CAP PROPRIO            1,00       43,12
+ 278  22/03/2002   22/03/2002   ON       JRS CAP PROPRIO            0,89       60,90
+ 279  22/03/2002   22/03/2002   ON       DIVIDENDO                   1,3       60,90
+ 280  22/03/2002   22/03/2002   ON       RENDIMENTO                 0,09       60,90
+ 281  22/03/2002   22/03/2002   PN       JRS CAP PROPRIO            0,89       58,40
+ 282  22/03/2002   22/03/2002   PN       DIVIDENDO                   1,3       58,40
+ 283  22/03/2002   22/03/2002   PN       RENDIMENTO                 0,09       58,40
+ 284  03/08/2001   03/08/2001   ON       DIVIDENDO                  0,03       58,00
+ 285  03/08/2001   03/08/2001   PN       DIVIDENDO                  0,03       52,92
+ 286  29/06/2001   29/06/2001   ON       JRS CAP PROPRIO            1,02       60,15
+ 287  29/06/2001   29/06/2001   PN       JRS CAP PROPRIO            1,02       53,99
+ 288  23/03/2001   23/03/2001   ON       JRS CAP PROPRIO            1,67       52,39
+ 289  23/03/2001   23/03/2001   ON       DIVIDENDO                  0,57       52,39
+ 290  23/03/2001   23/03/2001   ON       RENDIMENTO                 0,07       52,39
+ 291  23/03/2001   23/03/2001   PN       JRS CAP PROPRIO            1,67       48,49
+ 292  23/03/2001   23/03/2001   PN       DIVIDENDO                  0,57       48,49
+ 293  23/03/2001   23/03/2001   PN       RENDIMENTO                 0,07       48,49
+ 294  23/03/2000   23/03/2000   ON       DIVIDENDO                  3,58      430,00
+ 295  23/03/2000   23/03/2000   ON       RENDIMENTO                 0,14      430,00
+ 296  23/03/2000   23/03/2000   ON       JRS CAP PROPRIO            4,27      430,00
+ 297  23/03/2000   23/03/2000   ON       RENDIMENTO                 0,17      430,00
+ 298  23/03/2000   23/03/2000   PN       DIVIDENDO                  3,58      462,98
+ 299  23/03/2000   23/03/2000   PN       RENDIMENTO                 0,14      462,98
+ 300  23/03/2000   23/03/2000   PN       JRS CAP PROPRIO            4,27      462,98
+ 301  23/03/2000   23/03/2000   PN       RENDIMENTO                 0,17      462,98
+ 302  24/03/1999   24/03/1999   ON       DIVIDENDO                0,1073      155,00
+ 303  24/03/1999   24/03/1999   ON       JRS CAP PROPRIO          4,5515      155,00
+ 304  24/03/1999   24/03/1999   PN       DIVIDENDO                1,8893      205,49
+ 305  24/03/1999   24/03/1999   PN       JRS CAP PROPRIO          4,5515      205,49
+ 306  24/03/1998   24/03/1998   ON       DIVIDENDO             0,6003833      212,00
+ 307  24/03/1998   24/03/1998   ON       DIVIDENDO            0,93028188      212,00
+ 308  24/03/1998   24/03/1998   ON       DIVIDENDO            0,05941386      212,00
+ 309  24/03/1998   24/03/1998   ON       DIVIDENDO            0,19412096      212,00
+ 310  24/03/1998   24/03/1998   PN       DIVIDENDO            2,07024895      275,00
+ 311  24/03/1998   24/03/1998   PN       DIVIDENDO            3,20780922      275,00
+ 312  24/03/1998   24/03/1998   PN       DIVIDENDO            0,20487159      275,00
+ 313  24/03/1998   24/03/1998   PN       DIVIDENDO            0,66937024      275,00
+ 314  21/03/1997   21/03/1997   ON       DIVIDENDO                  0,47      169,00
+ 315  21/03/1997   21/03/1997   ON       DIVIDENDO                0,4996      169,00
+ 316  21/03/1997   21/03/1997   PN       DIVIDENDO                  2,00      221,00
+ 317  21/03/1997   21/03/1997   PN       DIVIDENDO                2,1263      221,00
+ 318  21/03/1996   21/03/1996   ON       DIVIDENDO                0,9882       54,00
+ 319  21/03/1996   21/03/1996   PN       DIVIDENDO                5,1471      114,99
+
+====================================================================================================
+DETALHAMENTO COMPLETO (todos os campos por registro)
+====================================================================================================
+
+--- Registro 1 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 16/04/2026
+  lastDatePriorEx               : 22/04/2026
+  lastDateTimePriorEx           : 2026-04-22T00:00:00
+  valueCash                     : 0,31311454
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 52,70
+  dateClosingPricePriorExDate   : 22/04/2026
+  corporateActionPrice          : 0,594145
+
+--- Registro 2 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 16/04/2026
+  lastDatePriorEx               : 22/04/2026
+  lastDateTimePriorEx           : 2026-04-22T00:00:00
+  valueCash                     : 0,01649003
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 52,70
+  dateClosingPricePriorExDate   : 22/04/2026
+  corporateActionPrice          : 0,031290
+
+--- Registro 3 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 16/04/2026
+  lastDatePriorEx               : 22/04/2026
+  lastDateTimePriorEx           : 2026-04-22T00:00:00
+  valueCash                     : 0,31311454
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 47,67
+  dateClosingPricePriorExDate   : 22/04/2026
+  corporateActionPrice          : 0,656838
+
+--- Registro 4 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 16/04/2026
+  lastDatePriorEx               : 22/04/2026
+  lastDateTimePriorEx           : 2026-04-22T00:00:00
+  valueCash                     : 0,01649003
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 47,67
+  dateClosingPricePriorExDate   : 22/04/2026
+  corporateActionPrice          : 0,034592
+
+--- Registro 5 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 11/12/2025
+  lastDatePriorEx               : 22/12/2025
+  lastDateTimePriorEx           : 2025-12-22T00:00:00
+  valueCash                     : 0,17518233
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 32,84
+  dateClosingPricePriorExDate   : 22/12/2025
+  corporateActionPrice          : 0,533442
+
+--- Registro 6 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 11/12/2025
+  lastDatePriorEx               : 22/12/2025
+  lastDateTimePriorEx           : 2025-12-22T00:00:00
+  valueCash                     : 0,47160378
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 32,84
+  dateClosingPricePriorExDate   : 22/12/2025
+  corporateActionPrice          : 1,436065
+
+--- Registro 7 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 11/12/2025
+  lastDatePriorEx               : 22/12/2025
+  lastDateTimePriorEx           : 2025-12-22T00:00:00
+  valueCash                     : 0,29642144
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 32,84
+  dateClosingPricePriorExDate   : 22/12/2025
+  corporateActionPrice          : 0,902623
+
+--- Registro 8 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 11/12/2025
+  lastDatePriorEx               : 22/12/2025
+  lastDateTimePriorEx           : 2025-12-22T00:00:00
+  valueCash                     : 0,17518233
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,10
+  dateClosingPricePriorExDate   : 22/12/2025
+  corporateActionPrice          : 0,563287
+
+--- Registro 9 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 11/12/2025
+  lastDatePriorEx               : 22/12/2025
+  lastDateTimePriorEx           : 2025-12-22T00:00:00
+  valueCash                     : 0,47160378
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,10
+  dateClosingPricePriorExDate   : 22/12/2025
+  corporateActionPrice          : 1,516411
+
+--- Registro 10 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 11/12/2025
+  lastDatePriorEx               : 22/12/2025
+  lastDateTimePriorEx           : 2025-12-22T00:00:00
+  valueCash                     : 0,29642144
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,10
+  dateClosingPricePriorExDate   : 22/12/2025
+  corporateActionPrice          : 0,953124
+
+--- Registro 11 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 07/08/2025
+  lastDatePriorEx               : 21/08/2025
+  lastDateTimePriorEx           : 2025-08-21T00:00:00
+  valueCash                     : 0,20092175
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 32,65
+  dateClosingPricePriorExDate   : 21/08/2025
+  corporateActionPrice          : 0,615381
+
+--- Registro 12 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 07/08/2025
+  lastDatePriorEx               : 21/08/2025
+  lastDateTimePriorEx           : 2025-08-21T00:00:00
+  valueCash                     : 0,33596205
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 32,65
+  dateClosingPricePriorExDate   : 21/08/2025
+  corporateActionPrice          : 1,028980
+
+--- Registro 13 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 07/08/2025
+  lastDatePriorEx               : 21/08/2025
+  lastDateTimePriorEx           : 2025-08-21T00:00:00
+  valueCash                     : 0,13504029
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 32,65
+  dateClosingPricePriorExDate   : 21/08/2025
+  corporateActionPrice          : 0,413600
+
+--- Registro 14 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 07/08/2025
+  lastDatePriorEx               : 21/08/2025
+  lastDateTimePriorEx           : 2025-08-21T00:00:00
+  valueCash                     : 0,20092175
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,29
+  dateClosingPricePriorExDate   : 21/08/2025
+  corporateActionPrice          : 0,663327
+
+--- Registro 15 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 07/08/2025
+  lastDatePriorEx               : 21/08/2025
+  lastDateTimePriorEx           : 2025-08-21T00:00:00
+  valueCash                     : 0,33596205
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,29
+  dateClosingPricePriorExDate   : 21/08/2025
+  corporateActionPrice          : 1,109152
+
+--- Registro 16 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 07/08/2025
+  lastDatePriorEx               : 21/08/2025
+  lastDateTimePriorEx           : 2025-08-21T00:00:00
+  valueCash                     : 0,13504029
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,29
+  dateClosingPricePriorExDate   : 21/08/2025
+  corporateActionPrice          : 0,445825
+
+--- Registro 17 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 12/05/2025
+  lastDatePriorEx               : 02/06/2025
+  lastDateTimePriorEx           : 2025-06-02T00:00:00
+  valueCash                     : 0,30844749
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,01
+  dateClosingPricePriorExDate   : 02/06/2025
+  corporateActionPrice          : 0,934406
+
+--- Registro 18 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 12/05/2025
+  lastDatePriorEx               : 02/06/2025
+  lastDateTimePriorEx           : 2025-06-02T00:00:00
+  valueCash                     : 0,4545831
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,01
+  dateClosingPricePriorExDate   : 02/06/2025
+  corporateActionPrice          : 1,377107
+
+--- Registro 19 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 12/05/2025
+  lastDatePriorEx               : 02/06/2025
+  lastDateTimePriorEx           : 2025-06-02T00:00:00
+  valueCash                     : 0,1461356
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,01
+  dateClosingPricePriorExDate   : 02/06/2025
+  corporateActionPrice          : 0,442701
+
+--- Registro 20 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 12/05/2025
+  lastDatePriorEx               : 02/06/2025
+  lastDateTimePriorEx           : 2025-06-02T00:00:00
+  valueCash                     : 0,30844749
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,08
+  dateClosingPricePriorExDate   : 02/06/2025
+  corporateActionPrice          : 0,992431
+
+--- Registro 21 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 12/05/2025
+  lastDatePriorEx               : 02/06/2025
+  lastDateTimePriorEx           : 2025-06-02T00:00:00
+  valueCash                     : 0,4545831
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,08
+  dateClosingPricePriorExDate   : 02/06/2025
+  corporateActionPrice          : 1,462623
+
+--- Registro 22 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 12/05/2025
+  lastDatePriorEx               : 02/06/2025
+  lastDateTimePriorEx           : 2025-06-02T00:00:00
+  valueCash                     : 0,1461356
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,08
+  dateClosingPricePriorExDate   : 02/06/2025
+  corporateActionPrice          : 0,470192
+
+--- Registro 23 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 26/02/2025
+  lastDatePriorEx               : 16/04/2025
+  lastDateTimePriorEx           : 2025-04-16T00:00:00
+  valueCash                     : 0,35477261
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,07
+  dateClosingPricePriorExDate   : 16/04/2025
+  corporateActionPrice          : 1,072793
+
+--- Registro 24 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 26/02/2025
+  lastDatePriorEx               : 16/04/2025
+  lastDateTimePriorEx           : 2025-04-16T00:00:00
+  valueCash                     : 0,01706013
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,07
+  dateClosingPricePriorExDate   : 16/04/2025
+  corporateActionPrice          : 0,051588
+
+--- Registro 25 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 26/02/2025
+  lastDatePriorEx               : 16/04/2025
+  lastDateTimePriorEx           : 2025-04-16T00:00:00
+  valueCash                     : 0,02152467
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,07
+  dateClosingPricePriorExDate   : 16/04/2025
+  corporateActionPrice          : 0,065088
+
+--- Registro 26 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 26/02/2025
+  lastDatePriorEx               : 16/04/2025
+  lastDateTimePriorEx           : 2025-04-16T00:00:00
+  valueCash                     : 0,35477261
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,00
+  dateClosingPricePriorExDate   : 16/04/2025
+  corporateActionPrice          : 1,144428
+
+--- Registro 27 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 26/02/2025
+  lastDatePriorEx               : 16/04/2025
+  lastDateTimePriorEx           : 2025-04-16T00:00:00
+  valueCash                     : 0,01706013
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,00
+  dateClosingPricePriorExDate   : 16/04/2025
+  corporateActionPrice          : 0,055033
+
+--- Registro 28 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 26/02/2025
+  lastDatePriorEx               : 16/04/2025
+  lastDateTimePriorEx           : 2025-04-16T00:00:00
+  valueCash                     : 0,02152467
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,00
+  dateClosingPricePriorExDate   : 16/04/2025
+  corporateActionPrice          : 0,069434
+
+--- Registro 29 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 09/12/2024
+  lastDatePriorEx               : 23/12/2024
+  lastDateTimePriorEx           : 2024-12-23T00:00:00
+  valueCash                     : 0,65356508
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 40,02
+  dateClosingPricePriorExDate   : 23/12/2024
+  corporateActionPrice          : 1,633096
+
+--- Registro 30 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 09/12/2024
+  lastDatePriorEx               : 23/12/2024
+  lastDateTimePriorEx           : 2024-12-23T00:00:00
+  valueCash                     : 0,66410331
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 40,02
+  dateClosingPricePriorExDate   : 23/12/2024
+  corporateActionPrice          : 1,659429
+
+--- Registro 31 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 09/12/2024
+  lastDatePriorEx               : 23/12/2024
+  lastDateTimePriorEx           : 2024-12-23T00:00:00
+  valueCash                     : 0,01053822
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 40,02
+  dateClosingPricePriorExDate   : 23/12/2024
+  corporateActionPrice          : 0,026332
+
+--- Registro 32 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 09/12/2024
+  lastDatePriorEx               : 23/12/2024
+  lastDateTimePriorEx           : 2024-12-23T00:00:00
+  valueCash                     : 0,65356508
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,86
+  dateClosingPricePriorExDate   : 23/12/2024
+  corporateActionPrice          : 1,773101
+
+--- Registro 33 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 09/12/2024
+  lastDatePriorEx               : 23/12/2024
+  lastDateTimePriorEx           : 2024-12-23T00:00:00
+  valueCash                     : 0,66410331
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,86
+  dateClosingPricePriorExDate   : 23/12/2024
+  corporateActionPrice          : 1,801691
+
+--- Registro 34 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 09/12/2024
+  lastDatePriorEx               : 23/12/2024
+  lastDateTimePriorEx           : 2024-12-23T00:00:00
+  valueCash                     : 0,01053822
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,86
+  dateClosingPricePriorExDate   : 23/12/2024
+  corporateActionPrice          : 0,028590
+
+--- Registro 35 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 21/11/2024
+  lastDatePriorEx               : 11/12/2024
+  lastDateTimePriorEx           : 2024-12-11T00:00:00
+  valueCash                     : 1,55174293
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 43,90
+  dateClosingPricePriorExDate   : 11/12/2024
+  corporateActionPrice          : 3,534722
+
+--- Registro 36 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 21/11/2024
+  lastDatePriorEx               : 11/12/2024
+  lastDateTimePriorEx           : 2024-12-11T00:00:00
+  valueCash                     : 1,55174293
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 40,59
+  dateClosingPricePriorExDate   : 11/12/2024
+  corporateActionPrice          : 3,822969
+
+--- Registro 37 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 08/08/2024
+  lastDatePriorEx               : 21/08/2024
+  lastDateTimePriorEx           : 2024-08-21T00:00:00
+  valueCash                     : 0,11384838
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 40,73
+  dateClosingPricePriorExDate   : 21/08/2024
+  corporateActionPrice          : 0,279520
+
+--- Registro 38 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 08/08/2024
+  lastDatePriorEx               : 21/08/2024
+  lastDateTimePriorEx           : 2024-08-21T00:00:00
+  valueCash                     : 0,52660008
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 40,73
+  dateClosingPricePriorExDate   : 21/08/2024
+  corporateActionPrice          : 1,292905
+
+--- Registro 39 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 08/08/2024
+  lastDatePriorEx               : 21/08/2024
+  lastDateTimePriorEx           : 2024-08-21T00:00:00
+  valueCash                     : 0,41275171
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 40,73
+  dateClosingPricePriorExDate   : 21/08/2024
+  corporateActionPrice          : 1,013385
+
+--- Registro 40 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 08/08/2024
+  lastDatePriorEx               : 21/08/2024
+  lastDateTimePriorEx           : 2024-08-21T00:00:00
+  valueCash                     : 0,11384838
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 38,06
+  dateClosingPricePriorExDate   : 21/08/2024
+  corporateActionPrice          : 0,299129
+
+--- Registro 41 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 08/08/2024
+  lastDatePriorEx               : 21/08/2024
+  lastDateTimePriorEx           : 2024-08-21T00:00:00
+  valueCash                     : 0,52660008
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 38,06
+  dateClosingPricePriorExDate   : 21/08/2024
+  corporateActionPrice          : 1,383605
+
+--- Registro 42 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 08/08/2024
+  lastDatePriorEx               : 21/08/2024
+  lastDateTimePriorEx           : 2024-08-21T00:00:00
+  valueCash                     : 0,41275171
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 38,06
+  dateClosingPricePriorExDate   : 21/08/2024
+  corporateActionPrice          : 1,084476
+
+--- Registro 43 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 13/05/2024
+  lastDatePriorEx               : 11/06/2024
+  lastDateTimePriorEx           : 2024-06-11T00:00:00
+  valueCash                     : 0,44806667
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 39,27
+  dateClosingPricePriorExDate   : 11/06/2024
+  corporateActionPrice          : 1,140990
+
+--- Registro 44 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 13/05/2024
+  lastDatePriorEx               : 11/06/2024
+  lastDateTimePriorEx           : 2024-06-11T00:00:00
+  valueCash                     : 0,52162113
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 39,27
+  dateClosingPricePriorExDate   : 11/06/2024
+  corporateActionPrice          : 1,328294
+
+--- Registro 45 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 13/05/2024
+  lastDatePriorEx               : 11/06/2024
+  lastDateTimePriorEx           : 2024-06-11T00:00:00
+  valueCash                     : 0,07355446
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 39,27
+  dateClosingPricePriorExDate   : 11/06/2024
+  corporateActionPrice          : 0,187304
+
+--- Registro 46 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 13/05/2024
+  lastDatePriorEx               : 11/06/2024
+  lastDateTimePriorEx           : 2024-06-11T00:00:00
+  valueCash                     : 0,44806667
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 37,66
+  dateClosingPricePriorExDate   : 11/06/2024
+  corporateActionPrice          : 1,189768
+
+--- Registro 47 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 13/05/2024
+  lastDatePriorEx               : 11/06/2024
+  lastDateTimePriorEx           : 2024-06-11T00:00:00
+  valueCash                     : 0,52162113
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 37,66
+  dateClosingPricePriorExDate   : 11/06/2024
+  corporateActionPrice          : 1,385080
+
+--- Registro 48 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 13/05/2024
+  lastDatePriorEx               : 11/06/2024
+  lastDateTimePriorEx           : 2024-06-11T00:00:00
+  valueCash                     : 0,07355446
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 37,66
+  dateClosingPricePriorExDate   : 11/06/2024
+  corporateActionPrice          : 0,195312
+
+--- Registro 49 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 02/05/2024
+  lastDateTimePriorEx           : 2024-05-02T00:00:00
+  valueCash                     : 0,84962838
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 44,43
+  dateClosingPricePriorExDate   : 02/05/2024
+  corporateActionPrice          : 1,912285
+
+--- Registro 50 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 02/05/2024
+  lastDateTimePriorEx           : 2024-05-02T00:00:00
+  valueCash                     : 0,03454767
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 44,43
+  dateClosingPricePriorExDate   : 02/05/2024
+  corporateActionPrice          : 0,077758
+
+--- Registro 51 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 02/05/2024
+  lastDateTimePriorEx           : 2024-05-02T00:00:00
+  valueCash                     : 0,04221792
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 44,43
+  dateClosingPricePriorExDate   : 02/05/2024
+  corporateActionPrice          : 0,095021
+
+--- Registro 52 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 02/05/2024
+  lastDateTimePriorEx           : 2024-05-02T00:00:00
+  valueCash                     : 0,84962838
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 42,18
+  dateClosingPricePriorExDate   : 02/05/2024
+  corporateActionPrice          : 2,014292
+
+--- Registro 53 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 02/05/2024
+  lastDateTimePriorEx           : 2024-05-02T00:00:00
+  valueCash                     : 0,03454767
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 42,18
+  dateClosingPricePriorExDate   : 02/05/2024
+  corporateActionPrice          : 0,081905
+
+--- Registro 54 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 02/05/2024
+  lastDateTimePriorEx           : 2024-05-02T00:00:00
+  valueCash                     : 0,04221792
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 42,18
+  dateClosingPricePriorExDate   : 02/05/2024
+  corporateActionPrice          : 0,100090
+
+--- Registro 55 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 25/04/2024
+  lastDateTimePriorEx           : 2024-04-25T00:00:00
+  valueCash                     : 0,55015787
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 44,25
+  dateClosingPricePriorExDate   : 25/04/2024
+  corporateActionPrice          : 1,243295
+
+--- Registro 56 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 25/04/2024
+  lastDateTimePriorEx           : 2024-04-25T00:00:00
+  valueCash                     : 0,02237057
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 44,25
+  dateClosingPricePriorExDate   : 25/04/2024
+  corporateActionPrice          : 0,050555
+
+--- Registro 57 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 25/04/2024
+  lastDateTimePriorEx           : 2024-04-25T00:00:00
+  valueCash                     : 0,02733727
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 44,25
+  dateClosingPricePriorExDate   : 25/04/2024
+  corporateActionPrice          : 0,061779
+
+--- Registro 58 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 25/04/2024
+  lastDateTimePriorEx           : 2024-04-25T00:00:00
+  valueCash                     : 0,55015787
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 42,22
+  dateClosingPricePriorExDate   : 25/04/2024
+  corporateActionPrice          : 1,303074
+
+--- Registro 59 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 25/04/2024
+  lastDateTimePriorEx           : 2024-04-25T00:00:00
+  valueCash                     : 0,02237057
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 42,22
+  dateClosingPricePriorExDate   : 25/04/2024
+  corporateActionPrice          : 0,052986
+
+--- Registro 60 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 25/04/2024
+  lastDatePriorEx               : 25/04/2024
+  lastDateTimePriorEx           : 2024-04-25T00:00:00
+  valueCash                     : 0,02733727
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 42,22
+  dateClosingPricePriorExDate   : 25/04/2024
+  corporateActionPrice          : 0,064750
+
+--- Registro 61 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 09/11/2023
+  lastDatePriorEx               : 21/11/2023
+  lastDateTimePriorEx           : 2023-11-21T00:00:00
+  valueCash                     : 0,2432872
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 39,00
+  dateClosingPricePriorExDate   : 21/11/2023
+  corporateActionPrice          : 0,623813
+
+--- Registro 62 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 09/11/2023
+  lastDatePriorEx               : 21/11/2023
+  lastDateTimePriorEx           : 2023-11-21T00:00:00
+  valueCash                     : 0,6726735
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 39,00
+  dateClosingPricePriorExDate   : 21/11/2023
+  corporateActionPrice          : 1,724804
+
+--- Registro 63 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 09/11/2023
+  lastDatePriorEx               : 21/11/2023
+  lastDateTimePriorEx           : 2023-11-21T00:00:00
+  valueCash                     : 0,4293868
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 39,00
+  dateClosingPricePriorExDate   : 21/11/2023
+  corporateActionPrice          : 1,100992
+
+--- Registro 64 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 09/11/2023
+  lastDatePriorEx               : 21/11/2023
+  lastDateTimePriorEx           : 2023-11-21T00:00:00
+  valueCash                     : 0,2432872
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,50
+  dateClosingPricePriorExDate   : 21/11/2023
+  corporateActionPrice          : 0,666540
+
+--- Registro 65 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 09/11/2023
+  lastDatePriorEx               : 21/11/2023
+  lastDateTimePriorEx           : 2023-11-21T00:00:00
+  valueCash                     : 0,6726735
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,50
+  dateClosingPricePriorExDate   : 21/11/2023
+  corporateActionPrice          : 1,842941
+
+--- Registro 66 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 09/11/2023
+  lastDatePriorEx               : 21/11/2023
+  lastDateTimePriorEx           : 2023-11-21T00:00:00
+  valueCash                     : 0,4293868
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,50
+  dateClosingPricePriorExDate   : 21/11/2023
+  corporateActionPrice          : 1,176402
+
+--- Registro 67 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/08/2023
+  lastDatePriorEx               : 21/08/2023
+  lastDateTimePriorEx           : 2023-08-21T00:00:00
+  valueCash                     : 0,209176
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 34,15
+  dateClosingPricePriorExDate   : 21/08/2023
+  corporateActionPrice          : 0,612521
+
+--- Registro 68 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/08/2023
+  lastDatePriorEx               : 21/08/2023
+  lastDateTimePriorEx           : 2023-08-21T00:00:00
+  valueCash                     : 0,574652
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 34,15
+  dateClosingPricePriorExDate   : 21/08/2023
+  corporateActionPrice          : 1,682729
+
+--- Registro 69 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 03/08/2023
+  lastDatePriorEx               : 21/08/2023
+  lastDateTimePriorEx           : 2023-08-21T00:00:00
+  valueCash                     : 0,365476
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 34,15
+  dateClosingPricePriorExDate   : 21/08/2023
+  corporateActionPrice          : 1,070208
+
+--- Registro 70 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/08/2023
+  lastDatePriorEx               : 21/08/2023
+  lastDateTimePriorEx           : 2023-08-21T00:00:00
+  valueCash                     : 0,209176
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,30
+  dateClosingPricePriorExDate   : 21/08/2023
+  corporateActionPrice          : 0,668294
+
+--- Registro 71 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/08/2023
+  lastDatePriorEx               : 21/08/2023
+  lastDateTimePriorEx           : 2023-08-21T00:00:00
+  valueCash                     : 0,574652
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,30
+  dateClosingPricePriorExDate   : 21/08/2023
+  corporateActionPrice          : 1,835949
+
+--- Registro 72 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 03/08/2023
+  lastDatePriorEx               : 21/08/2023
+  lastDateTimePriorEx           : 2023-08-21T00:00:00
+  valueCash                     : 0,365476
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,30
+  dateClosingPricePriorExDate   : 21/08/2023
+  corporateActionPrice          : 1,167655
+
+--- Registro 73 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 11/05/2023
+  lastDatePriorEx               : 12/06/2023
+  lastDateTimePriorEx           : 2023-06-12T00:00:00
+  valueCash                     : 0,278179
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 34,18
+  dateClosingPricePriorExDate   : 12/06/2023
+  corporateActionPrice          : 0,813865
+
+--- Registro 74 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 11/05/2023
+  lastDatePriorEx               : 12/06/2023
+  lastDateTimePriorEx           : 2023-06-12T00:00:00
+  valueCash                     : 0,946789
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 34,18
+  dateClosingPricePriorExDate   : 12/06/2023
+  corporateActionPrice          : 2,770009
+
+--- Registro 75 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 11/05/2023
+  lastDatePriorEx               : 12/06/2023
+  lastDateTimePriorEx           : 2023-06-12T00:00:00
+  valueCash                     : 0,668609
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 34,18
+  dateClosingPricePriorExDate   : 12/06/2023
+  corporateActionPrice          : 1,956141
+
+--- Registro 76 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 11/05/2023
+  lastDatePriorEx               : 12/06/2023
+  lastDateTimePriorEx           : 2023-06-12T00:00:00
+  valueCash                     : 0,278179
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,81
+  dateClosingPricePriorExDate   : 12/06/2023
+  corporateActionPrice          : 0,902885
+
+--- Registro 77 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 11/05/2023
+  lastDatePriorEx               : 12/06/2023
+  lastDateTimePriorEx           : 2023-06-12T00:00:00
+  valueCash                     : 0,946789
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,81
+  dateClosingPricePriorExDate   : 12/06/2023
+  corporateActionPrice          : 3,072993
+
+--- Registro 78 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 11/05/2023
+  lastDatePriorEx               : 12/06/2023
+  lastDateTimePriorEx           : 2023-06-12T00:00:00
+  valueCash                     : 0,668609
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,81
+  dateClosingPricePriorExDate   : 12/06/2023
+  corporateActionPrice          : 2,170104
+
+--- Registro 79 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 1,37286685
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,90
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 4,750404
+
+--- Registro 80 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 0,87479857
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,90
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 3,026985
+
+--- Registro 81 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 0,49806827
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,90
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 1,723420
+
+--- Registro 82 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 0,06784528
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,90
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 0,234759
+
+--- Registro 83 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 0,05213075
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,90
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 0,180383
+
+--- Registro 84 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 0,06445329
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,90
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 0,223022
+
+--- Registro 85 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 1,37286685
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,10
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 5,260026
+
+--- Registro 86 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 0,87479857
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,10
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 3,351719
+
+--- Registro 87 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 0,49806827
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,10
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 1,908308
+
+--- Registro 88 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 0,06784528
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,10
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 0,259944
+
+--- Registro 89 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 0,05213075
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,10
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 0,199735
+
+--- Registro 90 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/04/2023
+  lastDatePriorEx               : 27/04/2023
+  lastDateTimePriorEx           : 2023-04-27T00:00:00
+  valueCash                     : 0,06445329
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,10
+  dateClosingPricePriorExDate   : 27/04/2023
+  corporateActionPrice          : 0,246947
+
+--- Registro 91 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/11/2022
+  lastDatePriorEx               : 21/11/2022
+  lastDateTimePriorEx           : 2022-11-21T00:00:00
+  valueCash                     : 1,155823
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,28
+  dateClosingPricePriorExDate   : 21/11/2022
+  corporateActionPrice          : 3,817117
+
+--- Registro 92 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/11/2022
+  lastDatePriorEx               : 21/11/2022
+  lastDateTimePriorEx           : 2022-11-21T00:00:00
+  valueCash                     : 1,600192
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,28
+  dateClosingPricePriorExDate   : 21/11/2022
+  corporateActionPrice          : 5,284650
+
+--- Registro 93 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 03/11/2022
+  lastDatePriorEx               : 21/11/2022
+  lastDateTimePriorEx           : 2022-11-21T00:00:00
+  valueCash                     : 0,518627
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,28
+  dateClosingPricePriorExDate   : 21/11/2022
+  corporateActionPrice          : 1,712771
+
+--- Registro 94 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 03/11/2022
+  lastDatePriorEx               : 21/11/2022
+  lastDateTimePriorEx           : 2022-11-21T00:00:00
+  valueCash                     : 0,074258
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,28
+  dateClosingPricePriorExDate   : 21/11/2022
+  corporateActionPrice          : 0,245238
+
+--- Registro 95 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/11/2022
+  lastDatePriorEx               : 21/11/2022
+  lastDateTimePriorEx           : 2022-11-21T00:00:00
+  valueCash                     : 1,155823
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,78
+  dateClosingPricePriorExDate   : 21/11/2022
+  corporateActionPrice          : 4,315993
+
+--- Registro 96 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/11/2022
+  lastDatePriorEx               : 21/11/2022
+  lastDateTimePriorEx           : 2022-11-21T00:00:00
+  valueCash                     : 1,600192
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,78
+  dateClosingPricePriorExDate   : 21/11/2022
+  corporateActionPrice          : 5,975325
+
+--- Registro 97 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 03/11/2022
+  lastDatePriorEx               : 21/11/2022
+  lastDateTimePriorEx           : 2022-11-21T00:00:00
+  valueCash                     : 0,518627
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,78
+  dateClosingPricePriorExDate   : 21/11/2022
+  corporateActionPrice          : 1,936621
+
+--- Registro 98 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 03/11/2022
+  lastDatePriorEx               : 21/11/2022
+  lastDateTimePriorEx           : 2022-11-21T00:00:00
+  valueCash                     : 0,074258
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,78
+  dateClosingPricePriorExDate   : 21/11/2022
+  corporateActionPrice          : 0,277289
+
+--- Registro 99 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 28/07/2022
+  lastDatePriorEx               : 11/08/2022
+  lastDateTimePriorEx           : 2022-08-11T00:00:00
+  valueCash                     : 2,938861
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 38,96
+  dateClosingPricePriorExDate   : 11/08/2022
+  corporateActionPrice          : 7,543278
+
+--- Registro 100 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 28/07/2022
+  lastDatePriorEx               : 11/08/2022
+  lastDateTimePriorEx           : 2022-08-11T00:00:00
+  valueCash                     : 3,366001
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 38,96
+  dateClosingPricePriorExDate   : 11/08/2022
+  corporateActionPrice          : 8,639633
+
+--- Registro 101 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 28/07/2022
+  lastDatePriorEx               : 11/08/2022
+  lastDateTimePriorEx           : 2022-08-11T00:00:00
+  valueCash                     : 0,427141
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 38,96
+  dateClosingPricePriorExDate   : 11/08/2022
+  corporateActionPrice          : 1,096358
+
+--- Registro 102 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 28/07/2022
+  lastDatePriorEx               : 11/08/2022
+  lastDateTimePriorEx           : 2022-08-11T00:00:00
+  valueCash                     : 2,938861
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,25
+  dateClosingPricePriorExDate   : 11/08/2022
+  corporateActionPrice          : 8,107203
+
+--- Registro 103 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 28/07/2022
+  lastDatePriorEx               : 11/08/2022
+  lastDateTimePriorEx           : 2022-08-11T00:00:00
+  valueCash                     : 3,366001
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,25
+  dateClosingPricePriorExDate   : 11/08/2022
+  corporateActionPrice          : 9,285520
+
+--- Registro 104 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 28/07/2022
+  lastDatePriorEx               : 11/08/2022
+  lastDateTimePriorEx           : 2022-08-11T00:00:00
+  valueCash                     : 0,427141
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,25
+  dateClosingPricePriorExDate   : 11/08/2022
+  corporateActionPrice          : 1,178320
+
+--- Registro 105 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 05/05/2022
+  lastDatePriorEx               : 23/05/2022
+  lastDateTimePriorEx           : 2022-05-23T00:00:00
+  valueCash                     : 1,427568
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 39,06
+  dateClosingPricePriorExDate   : 23/05/2022
+  corporateActionPrice          : 3,654808
+
+--- Registro 106 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 05/05/2022
+  lastDatePriorEx               : 23/05/2022
+  lastDateTimePriorEx           : 2022-05-23T00:00:00
+  valueCash                     : 1,857745
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 39,06
+  dateClosingPricePriorExDate   : 23/05/2022
+  corporateActionPrice          : 4,756132
+
+--- Registro 107 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 05/05/2022
+  lastDatePriorEx               : 23/05/2022
+  lastDateTimePriorEx           : 2022-05-23T00:00:00
+  valueCash                     : 0,430177
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 39,06
+  dateClosingPricePriorExDate   : 23/05/2022
+  corporateActionPrice          : 1,101324
+
+--- Registro 108 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 05/05/2022
+  lastDatePriorEx               : 23/05/2022
+  lastDateTimePriorEx           : 2022-05-23T00:00:00
+  valueCash                     : 1,427568
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,20
+  dateClosingPricePriorExDate   : 23/05/2022
+  corporateActionPrice          : 3,943558
+
+--- Registro 109 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 05/05/2022
+  lastDatePriorEx               : 23/05/2022
+  lastDateTimePriorEx           : 2022-05-23T00:00:00
+  valueCash                     : 1,857745
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,20
+  dateClosingPricePriorExDate   : 23/05/2022
+  corporateActionPrice          : 5,131892
+
+--- Registro 110 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 05/05/2022
+  lastDatePriorEx               : 23/05/2022
+  lastDateTimePriorEx           : 2022-05-23T00:00:00
+  valueCash                     : 0,430177
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,20
+  dateClosingPricePriorExDate   : 23/05/2022
+  corporateActionPrice          : 1,188334
+
+--- Registro 111 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 13/04/2022
+  lastDatePriorEx               : 13/04/2022
+  lastDateTimePriorEx           : 2022-04-13T00:00:00
+  valueCash                     : 2,8610762
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 37,54
+  dateClosingPricePriorExDate   : 13/04/2022
+  corporateActionPrice          : 7,621407
+
+--- Registro 112 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 13/04/2022
+  lastDatePriorEx               : 13/04/2022
+  lastDateTimePriorEx           : 2022-04-13T00:00:00
+  valueCash                     : 0,1091725
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 37,54
+  dateClosingPricePriorExDate   : 13/04/2022
+  corporateActionPrice          : 0,290816
+
+--- Registro 113 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 13/04/2022
+  lastDatePriorEx               : 13/04/2022
+  lastDateTimePriorEx           : 2022-04-13T00:00:00
+  valueCash                     : 2,8610762
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 34,57
+  dateClosingPricePriorExDate   : 13/04/2022
+  corporateActionPrice          : 8,276182
+
+--- Registro 114 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 13/04/2022
+  lastDatePriorEx               : 13/04/2022
+  lastDateTimePriorEx           : 2022-04-13T00:00:00
+  valueCash                     : 0,1091725
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 34,57
+  dateClosingPricePriorExDate   : 13/04/2022
+  corporateActionPrice          : 0,315801
+
+--- Registro 115 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 28/10/2021
+  lastDatePriorEx               : 01/12/2021
+  lastDateTimePriorEx           : 2021-12-01T00:00:00
+  valueCash                     : 2,195126
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,35
+  dateClosingPricePriorExDate   : 01/12/2021
+  corporateActionPrice          : 7,232705
+
+--- Registro 116 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 28/10/2021
+  lastDatePriorEx               : 01/12/2021
+  lastDateTimePriorEx           : 2021-12-01T00:00:00
+  valueCash                     : 1,055361
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,35
+  dateClosingPricePriorExDate   : 01/12/2021
+  corporateActionPrice          : 3,477301
+
+--- Registro 117 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 28/10/2021
+  lastDatePriorEx               : 01/12/2021
+  lastDateTimePriorEx           : 2021-12-01T00:00:00
+  valueCash                     : 2,195126
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 29,60
+  dateClosingPricePriorExDate   : 01/12/2021
+  corporateActionPrice          : 7,415966
+
+--- Registro 118 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 28/10/2021
+  lastDatePriorEx               : 01/12/2021
+  lastDateTimePriorEx           : 2021-12-01T00:00:00
+  valueCash                     : 1,055361
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 29,60
+  dateClosingPricePriorExDate   : 01/12/2021
+  corporateActionPrice          : 3,565409
+
+--- Registro 119 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 04/08/2021
+  lastDatePriorEx               : 16/08/2021
+  lastDateTimePriorEx           : 2021-08-16T00:00:00
+  valueCash                     : 1,609911
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 29,35
+  dateClosingPricePriorExDate   : 16/08/2021
+  corporateActionPrice          : 5,485216
+
+--- Registro 120 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 04/08/2021
+  lastDatePriorEx               : 16/08/2021
+  lastDateTimePriorEx           : 2021-08-16T00:00:00
+  valueCash                     : 1,609911
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,64
+  dateClosingPricePriorExDate   : 16/08/2021
+  corporateActionPrice          : 5,621198
+
+--- Registro 121 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 14/04/2021
+  lastDatePriorEx               : 14/04/2021
+  lastDateTimePriorEx           : 2021-04-14T00:00:00
+  valueCash                     : 0,787446
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 24,12
+  dateClosingPricePriorExDate   : 14/04/2021
+  corporateActionPrice          : 3,264701
+
+--- Registro 122 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 14/04/2021
+  lastDatePriorEx               : 14/04/2021
+  lastDateTimePriorEx           : 2021-04-14T00:00:00
+  valueCash                     : 0,005388
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 24,12
+  dateClosingPricePriorExDate   : 14/04/2021
+  corporateActionPrice          : 0,022338
+
+--- Registro 123 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 14/04/2021
+  lastDatePriorEx               : 14/04/2021
+  lastDateTimePriorEx           : 2021-04-14T00:00:00
+  valueCash                     : 0,787446
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 24,35
+  dateClosingPricePriorExDate   : 14/04/2021
+  corporateActionPrice          : 3,233864
+
+--- Registro 124 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 14/04/2021
+  lastDatePriorEx               : 14/04/2021
+  lastDateTimePriorEx           : 2021-04-14T00:00:00
+  valueCash                     : 0,005388
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 24,35
+  dateClosingPricePriorExDate   : 14/04/2021
+  corporateActionPrice          : 0,022127
+
+--- Registro 125 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 22/07/2020
+  lastDatePriorEx               : 22/07/2020
+  lastDateTimePriorEx           : 2020-07-22T00:00:00
+  valueCash                     : 0,233649
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 23,74
+  dateClosingPricePriorExDate   : 22/07/2020
+  corporateActionPrice          : 0,984200
+
+--- Registro 126 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 22/07/2020
+  lastDatePriorEx               : 22/07/2020
+  lastDateTimePriorEx           : 2020-07-22T00:00:00
+  valueCash                     : 0,006246
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 23,74
+  dateClosingPricePriorExDate   : 22/07/2020
+  corporateActionPrice          : 0,026310
+
+--- Registro 127 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 22/07/2020
+  lastDatePriorEx               : 22/07/2020
+  lastDateTimePriorEx           : 2020-07-22T00:00:00
+  valueCash                     : 0,000449
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 23,05
+  dateClosingPricePriorExDate   : 22/07/2020
+  corporateActionPrice          : 0,001948
+
+--- Registro 128 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 22/07/2020
+  lastDatePriorEx               : 22/07/2020
+  lastDateTimePriorEx           : 2020-07-22T00:00:00
+  valueCash                     : 0,000012
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 23,05
+  dateClosingPricePriorExDate   : 22/07/2020
+  corporateActionPrice          : 0,000052
+
+--- Registro 129 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 18/12/2019
+  lastDatePriorEx               : 26/12/2019
+  lastDateTimePriorEx           : 2019-12-26T00:00:00
+  valueCash                     : 0,42
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,91
+  dateClosingPricePriorExDate   : 26/12/2019
+  corporateActionPrice          : 1,358784
+
+--- Registro 130 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 24/10/2019
+  lastDatePriorEx               : 11/11/2019
+  lastDateTimePriorEx           : 2019-11-11T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,14
+  dateClosingPricePriorExDate   : 11/11/2019
+  corporateActionPrice          : 0,603500
+
+--- Registro 131 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 24/10/2019
+  lastDatePriorEx               : 11/11/2019
+  lastDateTimePriorEx           : 2019-11-11T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 30,45
+  dateClosingPricePriorExDate   : 11/11/2019
+  corporateActionPrice          : 0,656814
+
+--- Registro 132 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 01/08/2019
+  lastDatePriorEx               : 12/08/2019
+  lastDateTimePriorEx           : 2019-08-12T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 27,85
+  dateClosingPricePriorExDate   : 12/08/2019
+  corporateActionPrice          : 0,718133
+
+--- Registro 133 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 01/08/2019
+  lastDatePriorEx               : 12/08/2019
+  lastDateTimePriorEx           : 2019-08-12T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 25,65
+  dateClosingPricePriorExDate   : 12/08/2019
+  corporateActionPrice          : 0,779727
+
+--- Registro 134 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 07/05/2019
+  lastDatePriorEx               : 21/05/2019
+  lastDateTimePriorEx           : 2019-05-21T00:00:00
+  valueCash                     : 0,1
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,80
+  dateClosingPricePriorExDate   : 21/05/2019
+  corporateActionPrice          : 0,347222
+
+--- Registro 135 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 07/05/2019
+  lastDatePriorEx               : 21/05/2019
+  lastDateTimePriorEx           : 2019-05-21T00:00:00
+  valueCash                     : 0,1
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,49
+  dateClosingPricePriorExDate   : 21/05/2019
+  corporateActionPrice          : 0,377501
+
+--- Registro 136 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 27/02/2019
+  lastDatePriorEx               : 25/04/2019
+  lastDateTimePriorEx           : 2019-04-25T00:00:00
+  valueCash                     : 0,019043
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 27,80
+  dateClosingPricePriorExDate   : 25/04/2019
+  corporateActionPrice          : 0,068500
+
+--- Registro 137 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/02/2019
+  lastDatePriorEx               : 25/04/2019
+  lastDateTimePriorEx           : 2019-04-25T00:00:00
+  valueCash                     : 0,000451
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 27,80
+  dateClosingPricePriorExDate   : 25/04/2019
+  corporateActionPrice          : 0,001622
+
+--- Registro 138 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 18/12/2018
+  lastDatePriorEx               : 21/12/2018
+  lastDateTimePriorEx           : 2018-12-21T00:00:00
+  valueCash                     : 0,05
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 24,18
+  dateClosingPricePriorExDate   : 21/12/2018
+  corporateActionPrice          : 0,206782
+
+--- Registro 139 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 18/12/2018
+  lastDatePriorEx               : 21/12/2018
+  lastDateTimePriorEx           : 2018-12-21T00:00:00
+  valueCash                     : 0,7
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 21,55
+  dateClosingPricePriorExDate   : 21/12/2018
+  corporateActionPrice          : 3,248260
+
+--- Registro 140 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 05/11/2018
+  lastDatePriorEx               : 21/11/2018
+  lastDateTimePriorEx           : 2018-11-21T00:00:00
+  valueCash                     : 0,1
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 27,38
+  dateClosingPricePriorExDate   : 21/11/2018
+  corporateActionPrice          : 0,365230
+
+--- Registro 141 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 05/11/2018
+  lastDatePriorEx               : 21/11/2018
+  lastDateTimePriorEx           : 2018-11-21T00:00:00
+  valueCash                     : 0,1
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 25,17
+  dateClosingPricePriorExDate   : 21/11/2018
+  corporateActionPrice          : 0,397298
+
+--- Registro 142 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 02/08/2018
+  lastDatePriorEx               : 13/08/2018
+  lastDateTimePriorEx           : 2018-08-13T00:00:00
+  valueCash                     : 0,05
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 22,40
+  dateClosingPricePriorExDate   : 13/08/2018
+  corporateActionPrice          : 0,223214
+
+--- Registro 143 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 02/08/2018
+  lastDatePriorEx               : 13/08/2018
+  lastDateTimePriorEx           : 2018-08-13T00:00:00
+  valueCash                     : 0,05
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 20,04
+  dateClosingPricePriorExDate   : 13/08/2018
+  corporateActionPrice          : 0,249501
+
+--- Registro 144 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 07/05/2018
+  lastDatePriorEx               : 21/05/2018
+  lastDateTimePriorEx           : 2018-05-21T00:00:00
+  valueCash                     : 0,05
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 29,14
+  dateClosingPricePriorExDate   : 21/05/2018
+  corporateActionPrice          : 0,171585
+
+--- Registro 145 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 07/05/2018
+  lastDatePriorEx               : 21/05/2018
+  lastDateTimePriorEx           : 2018-05-21T00:00:00
+  valueCash                     : 0,05
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 25,05
+  dateClosingPricePriorExDate   : 21/05/2018
+  corporateActionPrice          : 0,199601
+
+--- Registro 146 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 02/04/2014
+  lastDatePriorEx               : 02/04/2014
+  lastDateTimePriorEx           : 2014-04-02T00:00:00
+  valueCash                     : 0,5217
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 15,66
+  dateClosingPricePriorExDate   : 02/04/2014
+  corporateActionPrice          : 3,331418
+
+--- Registro 147 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 02/04/2014
+  lastDatePriorEx               : 02/04/2014
+  lastDateTimePriorEx           : 2014-04-02T00:00:00
+  valueCash                     : 0,01638
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 15,66
+  dateClosingPricePriorExDate   : 02/04/2014
+  corporateActionPrice          : 0,104598
+
+--- Registro 148 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 02/04/2014
+  lastDatePriorEx               : 02/04/2014
+  lastDateTimePriorEx           : 2014-04-02T00:00:00
+  valueCash                     : 0,9672
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 16,56
+  dateClosingPricePriorExDate   : 02/04/2014
+  corporateActionPrice          : 5,840580
+
+--- Registro 149 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 02/04/2014
+  lastDatePriorEx               : 02/04/2014
+  lastDateTimePriorEx           : 2014-04-02T00:00:00
+  valueCash                     : 0,03037
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 16,56
+  dateClosingPricePriorExDate   : 02/04/2014
+  corporateActionPrice          : 0,183394
+
+--- Registro 150 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 29/04/2013
+  lastDatePriorEx               : 29/04/2013
+  lastDateTimePriorEx           : 2013-04-29T00:00:00
+  valueCash                     : 0,135
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 19,16
+  dateClosingPricePriorExDate   : 29/04/2013
+  corporateActionPrice          : 0,704593
+
+--- Registro 151 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 29/04/2013
+  lastDatePriorEx               : 29/04/2013
+  lastDateTimePriorEx           : 2013-04-29T00:00:00
+  valueCash                     : 0,003034
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 19,16
+  dateClosingPricePriorExDate   : 29/04/2013
+  corporateActionPrice          : 0,015835
+
+--- Registro 152 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 29/04/2013
+  lastDatePriorEx               : 29/04/2013
+  lastDateTimePriorEx           : 2013-04-29T00:00:00
+  valueCash                     : 0,13066
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 19,16
+  dateClosingPricePriorExDate   : 29/04/2013
+  corporateActionPrice          : 0,681942
+
+--- Registro 153 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 29/04/2013
+  lastDatePriorEx               : 29/04/2013
+  lastDateTimePriorEx           : 2013-04-29T00:00:00
+  valueCash                     : 0,00653
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 19,16
+  dateClosingPricePriorExDate   : 29/04/2013
+  corporateActionPrice          : 0,034081
+
+--- Registro 154 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 29/04/2013
+  lastDatePriorEx               : 29/04/2013
+  lastDateTimePriorEx           : 2013-04-29T00:00:00
+  valueCash                     : 0,38
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 20,35
+  dateClosingPricePriorExDate   : 29/04/2013
+  corporateActionPrice          : 1,867322
+
+--- Registro 155 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 29/04/2013
+  lastDatePriorEx               : 29/04/2013
+  lastDateTimePriorEx           : 2013-04-29T00:00:00
+  valueCash                     : 0,00854
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 20,35
+  dateClosingPricePriorExDate   : 29/04/2013
+  corporateActionPrice          : 0,041966
+
+--- Registro 156 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 29/04/2013
+  lastDatePriorEx               : 29/04/2013
+  lastDateTimePriorEx           : 2013-04-29T00:00:00
+  valueCash                     : 0,37566
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 20,35
+  dateClosingPricePriorExDate   : 29/04/2013
+  corporateActionPrice          : 1,845995
+
+--- Registro 157 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 29/04/2013
+  lastDatePriorEx               : 29/04/2013
+  lastDateTimePriorEx           : 2013-04-29T00:00:00
+  valueCash                     : 0,01877
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 20,35
+  dateClosingPricePriorExDate   : 29/04/2013
+  corporateActionPrice          : 0,092236
+
+--- Registro 158 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 27/04/2012
+  lastDatePriorEx               : 11/05/2012
+  lastDateTimePriorEx           : 2012-05-11T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 20,39
+  dateClosingPricePriorExDate   : 11/05/2012
+  corporateActionPrice          : 0,980873
+
+--- Registro 159 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 27/04/2012
+  lastDatePriorEx               : 11/05/2012
+  lastDateTimePriorEx           : 2012-05-11T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 19,53
+  dateClosingPricePriorExDate   : 11/05/2012
+  corporateActionPrice          : 1,024066
+
+--- Registro 160 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 19/03/2012
+  lastDatePriorEx               : 19/03/2012
+  lastDateTimePriorEx           : 2012-03-19T00:00:00
+  valueCash                     : 0,12
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 25,25
+  dateClosingPricePriorExDate   : 19/03/2012
+  corporateActionPrice          : 0,475248
+
+--- Registro 161 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 19/03/2012
+  lastDatePriorEx               : 19/03/2012
+  lastDateTimePriorEx           : 2012-03-19T00:00:00
+  valueCash                     : 0,00267
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 25,25
+  dateClosingPricePriorExDate   : 19/03/2012
+  corporateActionPrice          : 0,010574
+
+--- Registro 162 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 19/03/2012
+  lastDatePriorEx               : 19/03/2012
+  lastDateTimePriorEx           : 2012-03-19T00:00:00
+  valueCash                     : 0,12
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 24,51
+  dateClosingPricePriorExDate   : 19/03/2012
+  corporateActionPrice          : 0,489596
+
+--- Registro 163 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 19/03/2012
+  lastDatePriorEx               : 19/03/2012
+  lastDateTimePriorEx           : 2012-03-19T00:00:00
+  valueCash                     : 0,00267
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 24,51
+  dateClosingPricePriorExDate   : 19/03/2012
+  corporateActionPrice          : 0,010894
+
+--- Registro 164 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 22/12/2011
+  lastDatePriorEx               : 02/01/2012
+  lastDateTimePriorEx           : 2012-01-02T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 23,21
+  dateClosingPricePriorExDate   : 02/01/2012
+  corporateActionPrice          : 0,861698
+
+--- Registro 165 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 22/12/2011
+  lastDatePriorEx               : 02/01/2012
+  lastDateTimePriorEx           : 2012-01-02T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 21,73
+  dateClosingPricePriorExDate   : 02/01/2012
+  corporateActionPrice          : 0,920387
+
+--- Registro 166 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 28/10/2011
+  lastDatePriorEx               : 11/11/2011
+  lastDateTimePriorEx           : 2011-11-11T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 23,85
+  dateClosingPricePriorExDate   : 11/11/2011
+  corporateActionPrice          : 0,838574
+
+--- Registro 167 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 28/10/2011
+  lastDatePriorEx               : 11/11/2011
+  lastDateTimePriorEx           : 2011-11-11T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 21,96
+  dateClosingPricePriorExDate   : 11/11/2011
+  corporateActionPrice          : 0,910747
+
+--- Registro 168 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 22/07/2011
+  lastDatePriorEx               : 02/08/2011
+  lastDateTimePriorEx           : 2011-08-02T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 25,60
+  dateClosingPricePriorExDate   : 02/08/2011
+  corporateActionPrice          : 0,781250
+
+--- Registro 169 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 22/07/2011
+  lastDatePriorEx               : 02/08/2011
+  lastDateTimePriorEx           : 2011-08-02T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 23,17
+  dateClosingPricePriorExDate   : 02/08/2011
+  corporateActionPrice          : 0,863185
+
+--- Registro 170 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 29/04/2011
+  lastDatePriorEx               : 11/05/2011
+  lastDateTimePriorEx           : 2011-05-11T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 27,21
+  dateClosingPricePriorExDate   : 11/05/2011
+  corporateActionPrice          : 0,735024
+
+--- Registro 171 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 29/04/2011
+  lastDatePriorEx               : 11/05/2011
+  lastDateTimePriorEx           : 2011-05-11T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 24,01
+  dateClosingPricePriorExDate   : 11/05/2011
+  corporateActionPrice          : 0,832986
+
+--- Registro 172 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 28/04/2011
+  lastDatePriorEx               : 28/04/2011
+  lastDateTimePriorEx           : 2011-04-28T00:00:00
+  valueCash                     : 0,12
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,75
+  dateClosingPricePriorExDate   : 28/04/2011
+  corporateActionPrice          : 0,417391
+
+--- Registro 173 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 28/04/2011
+  lastDatePriorEx               : 28/04/2011
+  lastDateTimePriorEx           : 2011-04-28T00:00:00
+  valueCash                     : 0,0042
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,75
+  dateClosingPricePriorExDate   : 28/04/2011
+  corporateActionPrice          : 0,014609
+
+--- Registro 174 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 28/04/2011
+  lastDatePriorEx               : 28/04/2011
+  lastDateTimePriorEx           : 2011-04-28T00:00:00
+  valueCash                     : 0,12
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 25,45
+  dateClosingPricePriorExDate   : 28/04/2011
+  corporateActionPrice          : 0,471513
+
+--- Registro 175 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 28/04/2011
+  lastDatePriorEx               : 28/04/2011
+  lastDateTimePriorEx           : 2011-04-28T00:00:00
+  valueCash                     : 0,0042
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 25,45
+  dateClosingPricePriorExDate   : 28/04/2011
+  corporateActionPrice          : 0,016503
+
+--- Registro 176 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 21/03/2011
+  lastDatePriorEx               : 21/03/2011
+  lastDateTimePriorEx           : 2011-03-21T00:00:00
+  valueCash                     : 0,1493
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 32,25
+  dateClosingPricePriorExDate   : 21/03/2011
+  corporateActionPrice          : 0,462946
+
+--- Registro 177 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 21/03/2011
+  lastDatePriorEx               : 21/03/2011
+  lastDateTimePriorEx           : 2011-03-21T00:00:00
+  valueCash                     : 0,00342
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 32,25
+  dateClosingPricePriorExDate   : 21/03/2011
+  corporateActionPrice          : 0,010605
+
+--- Registro 178 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 21/03/2011
+  lastDatePriorEx               : 21/03/2011
+  lastDateTimePriorEx           : 2011-03-21T00:00:00
+  valueCash                     : 0,1493
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,13
+  dateClosingPricePriorExDate   : 21/03/2011
+  corporateActionPrice          : 0,530750
+
+--- Registro 179 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 21/03/2011
+  lastDatePriorEx               : 21/03/2011
+  lastDateTimePriorEx           : 2011-03-21T00:00:00
+  valueCash                     : 0,00342
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,13
+  dateClosingPricePriorExDate   : 21/03/2011
+  corporateActionPrice          : 0,012158
+
+--- Registro 180 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 10/12/2010
+  lastDatePriorEx               : 21/12/2010
+  lastDateTimePriorEx           : 2010-12-21T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 28,45
+  dateClosingPricePriorExDate   : 21/12/2010
+  corporateActionPrice          : 0,702988
+
+--- Registro 181 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 10/12/2010
+  lastDatePriorEx               : 21/12/2010
+  lastDateTimePriorEx           : 2010-12-21T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 25,77
+  dateClosingPricePriorExDate   : 21/12/2010
+  corporateActionPrice          : 0,776096
+
+--- Registro 182 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 22/10/2010
+  lastDatePriorEx               : 01/11/2010
+  lastDateTimePriorEx           : 2010-11-01T00:00:00
+  valueCash                     : 0,14
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 29,10
+  dateClosingPricePriorExDate   : 01/11/2010
+  corporateActionPrice          : 0,481100
+
+--- Registro 183 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 22/10/2010
+  lastDatePriorEx               : 01/11/2010
+  lastDateTimePriorEx           : 2010-11-01T00:00:00
+  valueCash                     : 0,14
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,49
+  dateClosingPricePriorExDate   : 01/11/2010
+  corporateActionPrice          : 0,528501
+
+--- Registro 184 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 16/07/2010
+  lastDatePriorEx               : 30/07/2010
+  lastDateTimePriorEx           : 2010-07-30T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 32,04
+  dateClosingPricePriorExDate   : 30/07/2010
+  corporateActionPrice          : 0,624220
+
+--- Registro 185 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 16/07/2010
+  lastDatePriorEx               : 30/07/2010
+  lastDateTimePriorEx           : 2010-07-30T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 27,85
+  dateClosingPricePriorExDate   : 30/07/2010
+  corporateActionPrice          : 0,718133
+
+--- Registro 186 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 14/05/2010
+  lastDatePriorEx               : 21/05/2010
+  lastDateTimePriorEx           : 2010-05-21T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,44
+  dateClosingPricePriorExDate   : 21/05/2010
+  corporateActionPrice          : 0,636132
+
+--- Registro 187 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 14/05/2010
+  lastDatePriorEx               : 21/05/2010
+  lastDateTimePriorEx           : 2010-05-21T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 27,58
+  dateClosingPricePriorExDate   : 21/05/2010
+  corporateActionPrice          : 0,725163
+
+--- Registro 188 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 22/04/2010
+  lastDatePriorEx               : 22/04/2010
+  lastDateTimePriorEx           : 2010-04-22T00:00:00
+  valueCash                     : 0,13
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 38,10
+  dateClosingPricePriorExDate   : 22/04/2010
+  corporateActionPrice          : 0,341207
+
+--- Registro 189 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 22/04/2010
+  lastDatePriorEx               : 22/04/2010
+  lastDateTimePriorEx           : 2010-04-22T00:00:00
+  valueCash                     : 0,0032
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 38,10
+  dateClosingPricePriorExDate   : 22/04/2010
+  corporateActionPrice          : 0,008399
+
+--- Registro 190 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 22/04/2010
+  lastDatePriorEx               : 22/04/2010
+  lastDateTimePriorEx           : 2010-04-22T00:00:00
+  valueCash                     : 0,1172
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 38,10
+  dateClosingPricePriorExDate   : 22/04/2010
+  corporateActionPrice          : 0,307612
+
+--- Registro 191 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 22/04/2010
+  lastDatePriorEx               : 22/04/2010
+  lastDateTimePriorEx           : 2010-04-22T00:00:00
+  valueCash                     : 0,0029
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 38,10
+  dateClosingPricePriorExDate   : 22/04/2010
+  corporateActionPrice          : 0,007612
+
+--- Registro 192 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 22/04/2010
+  lastDatePriorEx               : 22/04/2010
+  lastDateTimePriorEx           : 2010-04-22T00:00:00
+  valueCash                     : 0,13
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,86
+  dateClosingPricePriorExDate   : 22/04/2010
+  corporateActionPrice          : 0,383934
+
+--- Registro 193 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 22/04/2010
+  lastDatePriorEx               : 22/04/2010
+  lastDateTimePriorEx           : 2010-04-22T00:00:00
+  valueCash                     : 0,0032
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,86
+  dateClosingPricePriorExDate   : 22/04/2010
+  corporateActionPrice          : 0,009451
+
+--- Registro 194 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 22/04/2010
+  lastDatePriorEx               : 22/04/2010
+  lastDateTimePriorEx           : 2010-04-22T00:00:00
+  valueCash                     : 0,1172
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,86
+  dateClosingPricePriorExDate   : 22/04/2010
+  corporateActionPrice          : 0,346131
+
+--- Registro 195 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 22/04/2010
+  lastDatePriorEx               : 22/04/2010
+  lastDateTimePriorEx           : 2010-04-22T00:00:00
+  valueCash                     : 0,0029
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 33,86
+  dateClosingPricePriorExDate   : 22/04/2010
+  corporateActionPrice          : 0,008565
+
+--- Registro 196 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 17/12/2009
+  lastDatePriorEx               : 18/12/2009
+  lastDateTimePriorEx           : 2009-12-18T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 41,34
+  dateClosingPricePriorExDate   : 18/12/2009
+  corporateActionPrice          : 0,483793
+
+--- Registro 197 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 17/12/2009
+  lastDatePriorEx               : 18/12/2009
+  lastDateTimePriorEx           : 2009-12-18T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 36,58
+  dateClosingPricePriorExDate   : 18/12/2009
+  corporateActionPrice          : 0,546747
+
+--- Registro 198 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 21/09/2009
+  lastDatePriorEx               : 30/09/2009
+  lastDateTimePriorEx           : 2009-09-30T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 40,85
+  dateClosingPricePriorExDate   : 30/09/2009
+  corporateActionPrice          : 0,489596
+
+--- Registro 199 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 21/09/2009
+  lastDatePriorEx               : 30/09/2009
+  lastDateTimePriorEx           : 2009-09-30T00:00:00
+  valueCash                     : 0,2
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 35,00
+  dateClosingPricePriorExDate   : 30/09/2009
+  corporateActionPrice          : 0,571429
+
+--- Registro 200 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 24/06/2009
+  lastDatePriorEx               : 03/07/2009
+  lastDateTimePriorEx           : 2009-07-03T00:00:00
+  valueCash                     : 0,3
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 37,90
+  dateClosingPricePriorExDate   : 03/07/2009
+  corporateActionPrice          : 0,791557
+
+--- Registro 201 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 24/06/2009
+  lastDatePriorEx               : 03/07/2009
+  lastDateTimePriorEx           : 2009-07-03T00:00:00
+  valueCash                     : 0,3
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 31,01
+  dateClosingPricePriorExDate   : 03/07/2009
+  corporateActionPrice          : 0,967430
+
+--- Registro 202 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 08/04/2009
+  lastDatePriorEx               : 08/04/2009
+  lastDateTimePriorEx           : 2009-04-08T00:00:00
+  valueCash                     : 0,33
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 37,60
+  dateClosingPricePriorExDate   : 08/04/2009
+  corporateActionPrice          : 0,877660
+
+--- Registro 203 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 08/04/2009
+  lastDatePriorEx               : 08/04/2009
+  lastDateTimePriorEx           : 2009-04-08T00:00:00
+  valueCash                     : 0,0104
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 37,60
+  dateClosingPricePriorExDate   : 08/04/2009
+  corporateActionPrice          : 0,027660
+
+--- Registro 204 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 08/04/2009
+  lastDatePriorEx               : 08/04/2009
+  lastDateTimePriorEx           : 2009-04-08T00:00:00
+  valueCash                     : 0,33
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 29,88
+  dateClosingPricePriorExDate   : 08/04/2009
+  corporateActionPrice          : 1,104418
+
+--- Registro 205 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 08/04/2009
+  lastDatePriorEx               : 08/04/2009
+  lastDateTimePriorEx           : 2009-04-08T00:00:00
+  valueCash                     : 0,0104
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 29,88
+  dateClosingPricePriorExDate   : 08/04/2009
+  corporateActionPrice          : 0,034806
+
+--- Registro 206 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 19/12/2008
+  lastDatePriorEx               : 26/12/2008
+  lastDateTimePriorEx           : 2008-12-26T00:00:00
+  valueCash                     : 0,8
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 26,85
+  dateClosingPricePriorExDate   : 26/12/2008
+  corporateActionPrice          : 2,979516
+
+--- Registro 207 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 19/12/2008
+  lastDatePriorEx               : 26/12/2008
+  lastDateTimePriorEx           : 2008-12-26T00:00:00
+  valueCash                     : 0,8
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 22,80
+  dateClosingPricePriorExDate   : 26/12/2008
+  corporateActionPrice          : 3,508772
+
+--- Registro 208 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 04/04/2008
+  lastDatePriorEx               : 04/04/2008
+  lastDateTimePriorEx           : 2008-04-04T00:00:00
+  valueCash                     : 0,15
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 94,88
+  dateClosingPricePriorExDate   : 04/04/2008
+  corporateActionPrice          : 0,158094
+
+--- Registro 209 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 04/04/2008
+  lastDatePriorEx               : 04/04/2008
+  lastDateTimePriorEx           : 2008-04-04T00:00:00
+  valueCash                     : 0,0039
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 94,88
+  dateClosingPricePriorExDate   : 04/04/2008
+  corporateActionPrice          : 0,004110
+
+--- Registro 210 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 04/04/2008
+  lastDatePriorEx               : 04/04/2008
+  lastDateTimePriorEx           : 2008-04-04T00:00:00
+  valueCash                     : 0,05
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 94,88
+  dateClosingPricePriorExDate   : 04/04/2008
+  corporateActionPrice          : 0,052698
+
+--- Registro 211 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 04/04/2008
+  lastDatePriorEx               : 04/04/2008
+  lastDateTimePriorEx           : 2008-04-04T00:00:00
+  valueCash                     : 0,0013
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 94,88
+  dateClosingPricePriorExDate   : 04/04/2008
+  corporateActionPrice          : 0,001370
+
+--- Registro 212 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 04/04/2008
+  lastDatePriorEx               : 04/04/2008
+  lastDateTimePriorEx           : 2008-04-04T00:00:00
+  valueCash                     : 0,15
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 79,00
+  dateClosingPricePriorExDate   : 04/04/2008
+  corporateActionPrice          : 0,189873
+
+--- Registro 213 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 04/04/2008
+  lastDatePriorEx               : 04/04/2008
+  lastDateTimePriorEx           : 2008-04-04T00:00:00
+  valueCash                     : 0,0039
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 79,00
+  dateClosingPricePriorExDate   : 04/04/2008
+  corporateActionPrice          : 0,004937
+
+--- Registro 214 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 04/04/2008
+  lastDatePriorEx               : 04/04/2008
+  lastDateTimePriorEx           : 2008-04-04T00:00:00
+  valueCash                     : 0,05
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 79,00
+  dateClosingPricePriorExDate   : 04/04/2008
+  corporateActionPrice          : 0,063291
+
+--- Registro 215 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 04/04/2008
+  lastDatePriorEx               : 04/04/2008
+  lastDateTimePriorEx           : 2008-04-04T00:00:00
+  valueCash                     : 0,0013
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 79,00
+  dateClosingPricePriorExDate   : 04/04/2008
+  corporateActionPrice          : 0,001646
+
+--- Registro 216 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 27/12/2007
+  lastDatePriorEx               : 11/01/2008
+  lastDateTimePriorEx           : 2008-01-11T00:00:00
+  valueCash                     : 0,3
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 97,00
+  dateClosingPricePriorExDate   : 11/01/2008
+  corporateActionPrice          : 0,309278
+
+--- Registro 217 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/12/2007
+  lastDatePriorEx               : 11/01/2008
+  lastDateTimePriorEx           : 2008-01-11T00:00:00
+  valueCash                     : 0,001
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 97,00
+  dateClosingPricePriorExDate   : 11/01/2008
+  corporateActionPrice          : 0,001031
+
+--- Registro 218 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 27/12/2007
+  lastDatePriorEx               : 11/01/2008
+  lastDateTimePriorEx           : 2008-01-11T00:00:00
+  valueCash                     : 0,3
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 81,56
+  dateClosingPricePriorExDate   : 11/01/2008
+  corporateActionPrice          : 0,367827
+
+--- Registro 219 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/12/2007
+  lastDatePriorEx               : 11/01/2008
+  lastDateTimePriorEx           : 2008-01-11T00:00:00
+  valueCash                     : 0,001
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 81,56
+  dateClosingPricePriorExDate   : 11/01/2008
+  corporateActionPrice          : 0,001226
+
+--- Registro 220 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 21/09/2007
+  lastDatePriorEx               : 05/10/2007
+  lastDateTimePriorEx           : 2007-10-05T00:00:00
+  valueCash                     : 0,5
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 71,87
+  dateClosingPricePriorExDate   : 05/10/2007
+  corporateActionPrice          : 0,695701
+
+--- Registro 221 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 21/09/2007
+  lastDatePriorEx               : 05/10/2007
+  lastDateTimePriorEx           : 2007-10-05T00:00:00
+  valueCash                     : 0,5
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 61,65
+  dateClosingPricePriorExDate   : 05/10/2007
+  corporateActionPrice          : 0,811030
+
+--- Registro 222 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 25/07/2007
+  lastDatePriorEx               : 17/08/2007
+  lastDateTimePriorEx           : 2007-08-17T00:00:00
+  valueCash                     : 0,5
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 54,26
+  dateClosingPricePriorExDate   : 17/08/2007
+  corporateActionPrice          : 0,921489
+
+--- Registro 223 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 25/07/2007
+  lastDatePriorEx               : 17/08/2007
+  lastDateTimePriorEx           : 2007-08-17T00:00:00
+  valueCash                     : 0,5
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 46,40
+  dateClosingPricePriorExDate   : 17/08/2007
+  corporateActionPrice          : 1,077586
+
+--- Registro 224 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 02/04/2007
+  lastDatePriorEx               : 02/04/2007
+  lastDateTimePriorEx           : 2007-04-02T00:00:00
+  valueCash                     : 0,35
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 51,45
+  dateClosingPricePriorExDate   : 02/04/2007
+  corporateActionPrice          : 0,680272
+
+--- Registro 225 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 02/04/2007
+  lastDatePriorEx               : 02/04/2007
+  lastDateTimePriorEx           : 2007-04-02T00:00:00
+  valueCash                     : 0,0106
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 51,45
+  dateClosingPricePriorExDate   : 02/04/2007
+  corporateActionPrice          : 0,020603
+
+--- Registro 226 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 02/04/2007
+  lastDatePriorEx               : 02/04/2007
+  lastDateTimePriorEx           : 2007-04-02T00:00:00
+  valueCash                     : 0,35
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 46,02
+  dateClosingPricePriorExDate   : 02/04/2007
+  corporateActionPrice          : 0,760539
+
+--- Registro 227 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 02/04/2007
+  lastDatePriorEx               : 02/04/2007
+  lastDateTimePriorEx           : 2007-04-02T00:00:00
+  valueCash                     : 0,0106
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 46,02
+  dateClosingPricePriorExDate   : 02/04/2007
+  corporateActionPrice          : 0,023033
+
+--- Registro 228 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 15/12/2006
+  lastDatePriorEx               : 28/12/2006
+  lastDateTimePriorEx           : 2006-12-28T00:00:00
+  valueCash                     : 0,45
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 54,49
+  dateClosingPricePriorExDate   : 28/12/2006
+  corporateActionPrice          : 0,825840
+
+--- Registro 229 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 15/12/2006
+  lastDatePriorEx               : 28/12/2006
+  lastDateTimePriorEx           : 2006-12-28T00:00:00
+  valueCash                     : 0,0000000001
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 54,49
+  dateClosingPricePriorExDate   : 28/12/2006
+  corporateActionPrice          : None
+
+--- Registro 230 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 15/12/2006
+  lastDatePriorEx               : 28/12/2006
+  lastDateTimePriorEx           : 2006-12-28T00:00:00
+  valueCash                     : 0,45
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 49,80
+  dateClosingPricePriorExDate   : 28/12/2006
+  corporateActionPrice          : 0,903614
+
+--- Registro 231 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 15/12/2006
+  lastDatePriorEx               : 28/12/2006
+  lastDateTimePriorEx           : 2006-12-28T00:00:00
+  valueCash                     : 0,0000000001
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 49,80
+  dateClosingPricePriorExDate   : 28/12/2006
+  corporateActionPrice          : None
+
+--- Registro 232 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 20/10/2006
+  lastDatePriorEx               : 31/10/2006
+  lastDateTimePriorEx           : 2006-10-31T00:00:00
+  valueCash                     : 1,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 47,40
+  dateClosingPricePriorExDate   : 31/10/2006
+  corporateActionPrice          : 2,109705
+
+--- Registro 233 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 20/10/2006
+  lastDatePriorEx               : 31/10/2006
+  lastDateTimePriorEx           : 2006-10-31T00:00:00
+  valueCash                     : 1,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 43,00
+  dateClosingPricePriorExDate   : 31/10/2006
+  corporateActionPrice          : 2,325581
+
+--- Registro 234 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 03/04/2006
+  lastDatePriorEx               : 03/04/2006
+  lastDateTimePriorEx           : 2006-04-03T00:00:00
+  valueCash                     : 0,25
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 48,21
+  dateClosingPricePriorExDate   : 03/04/2006
+  corporateActionPrice          : 0,518565
+
+--- Registro 235 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/04/2006
+  lastDatePriorEx               : 03/04/2006
+  lastDateTimePriorEx           : 2006-04-03T00:00:00
+  valueCash                     : 0,35
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 48,21
+  dateClosingPricePriorExDate   : 03/04/2006
+  corporateActionPrice          : 0,725990
+
+--- Registro 236 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 03/04/2006
+  lastDatePriorEx               : 03/04/2006
+  lastDateTimePriorEx           : 2006-04-03T00:00:00
+  valueCash                     : 0,0247
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 48,21
+  dateClosingPricePriorExDate   : 03/04/2006
+  corporateActionPrice          : 0,051234
+
+--- Registro 237 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 03/04/2006
+  lastDatePriorEx               : 03/04/2006
+  lastDateTimePriorEx           : 2006-04-03T00:00:00
+  valueCash                     : 0,25
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 44,25
+  dateClosingPricePriorExDate   : 03/04/2006
+  corporateActionPrice          : 0,564972
+
+--- Registro 238 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/04/2006
+  lastDatePriorEx               : 03/04/2006
+  lastDateTimePriorEx           : 2006-04-03T00:00:00
+  valueCash                     : 0,35
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 44,25
+  dateClosingPricePriorExDate   : 03/04/2006
+  corporateActionPrice          : 0,790960
+
+--- Registro 239 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 03/04/2006
+  lastDatePriorEx               : 03/04/2006
+  lastDateTimePriorEx           : 2006-04-03T00:00:00
+  valueCash                     : 0,0247
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 44,25
+  dateClosingPricePriorExDate   : 03/04/2006
+  corporateActionPrice          : 0,055819
+
+--- Registro 240 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 16/12/2005
+  lastDatePriorEx               : 29/12/2005
+  lastDateTimePriorEx           : 2005-12-29T00:00:00
+  valueCash                     : 0,4999999999
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 41,30
+  dateClosingPricePriorExDate   : 29/12/2005
+  corporateActionPrice          : 1,210654
+
+--- Registro 241 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 16/12/2005
+  lastDatePriorEx               : 29/12/2005
+  lastDateTimePriorEx           : 2005-12-29T00:00:00
+  valueCash                     : 0,0000000001
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 41,30
+  dateClosingPricePriorExDate   : 29/12/2005
+  corporateActionPrice          : None
+
+--- Registro 242 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 16/12/2005
+  lastDatePriorEx               : 29/12/2005
+  lastDateTimePriorEx           : 2005-12-29T00:00:00
+  valueCash                     : 0,4999999999
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 37,21
+  dateClosingPricePriorExDate   : 29/12/2005
+  corporateActionPrice          : 1,343725
+
+--- Registro 243 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 16/12/2005
+  lastDatePriorEx               : 29/12/2005
+  lastDateTimePriorEx           : 2005-12-29T00:00:00
+  valueCash                     : 0,0000000001
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 37,21
+  dateClosingPricePriorExDate   : 29/12/2005
+  corporateActionPrice          : None
+
+--- Registro 244 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 17/06/2005
+  lastDatePriorEx               : 30/06/2005
+  lastDateTimePriorEx           : 2005-06-30T00:00:00
+  valueCash                     : 2,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 121,31
+  dateClosingPricePriorExDate   : 30/06/2005
+  corporateActionPrice          : 1,648669
+
+--- Registro 245 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 30/06/2005
+  lastDatePriorEx               : 30/06/2005
+  lastDateTimePriorEx           : 2005-06-30T00:00:00
+  valueCash                     : 0,0000000001
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 121,31
+  dateClosingPricePriorExDate   : 30/06/2005
+  corporateActionPrice          : None
+
+--- Registro 246 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 17/06/2005
+  lastDatePriorEx               : 30/06/2005
+  lastDateTimePriorEx           : 2005-06-30T00:00:00
+  valueCash                     : 2,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 107,30
+  dateClosingPricePriorExDate   : 30/06/2005
+  corporateActionPrice          : 1,863933
+
+--- Registro 247 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 30/06/2005
+  lastDatePriorEx               : 30/06/2005
+  lastDateTimePriorEx           : 2005-06-30T00:00:00
+  valueCash                     : 0,0000000001
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 107,30
+  dateClosingPricePriorExDate   : 30/06/2005
+  corporateActionPrice          : None
+
+--- Registro 248 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 31/03/2005
+  lastDatePriorEx               : 31/03/2005
+  lastDateTimePriorEx           : 2005-03-31T00:00:00
+  valueCash                     : 0,6
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 117,50
+  dateClosingPricePriorExDate   : 31/03/2005
+  corporateActionPrice          : 0,510638
+
+--- Registro 249 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 31/03/2005
+  lastDatePriorEx               : 31/03/2005
+  lastDateTimePriorEx           : 2005-03-31T00:00:00
+  valueCash                     : 1,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 117,50
+  dateClosingPricePriorExDate   : 31/03/2005
+  corporateActionPrice          : 0,851064
+
+--- Registro 250 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 31/03/2005
+  lastDatePriorEx               : 31/03/2005
+  lastDateTimePriorEx           : 2005-03-31T00:00:00
+  valueCash                     : 0,0681
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 117,50
+  dateClosingPricePriorExDate   : 31/03/2005
+  corporateActionPrice          : 0,057957
+
+--- Registro 251 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 31/03/2005
+  lastDatePriorEx               : 31/03/2005
+  lastDateTimePriorEx           : 2005-03-31T00:00:00
+  valueCash                     : 0,6
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 103,15
+  dateClosingPricePriorExDate   : 31/03/2005
+  corporateActionPrice          : 0,581677
+
+--- Registro 252 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 31/03/2005
+  lastDatePriorEx               : 31/03/2005
+  lastDateTimePriorEx           : 2005-03-31T00:00:00
+  valueCash                     : 1,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 103,15
+  dateClosingPricePriorExDate   : 31/03/2005
+  corporateActionPrice          : 0,969462
+
+--- Registro 253 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 31/03/2005
+  lastDatePriorEx               : 31/03/2005
+  lastDateTimePriorEx           : 2005-03-31T00:00:00
+  valueCash                     : 0,0681
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 103,15
+  dateClosingPricePriorExDate   : 31/03/2005
+  corporateActionPrice          : 0,066020
+
+--- Registro 254 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 17/09/2004
+  lastDatePriorEx               : 30/09/2004
+  lastDateTimePriorEx           : 2004-09-30T00:00:00
+  valueCash                     : 2,99
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 103,70
+  dateClosingPricePriorExDate   : 30/09/2004
+  corporateActionPrice          : 2,883317
+
+--- Registro 255 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 17/09/2004
+  lastDatePriorEx               : 30/09/2004
+  lastDateTimePriorEx           : 2004-09-30T00:00:00
+  valueCash                     : 0,01
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 103,70
+  dateClosingPricePriorExDate   : 30/09/2004
+  corporateActionPrice          : 0,009643
+
+--- Registro 256 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 17/09/2004
+  lastDatePriorEx               : 30/09/2004
+  lastDateTimePriorEx           : 2004-09-30T00:00:00
+  valueCash                     : 2,99
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 93,84
+  dateClosingPricePriorExDate   : 30/09/2004
+  corporateActionPrice          : 3,186275
+
+--- Registro 257 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 17/09/2004
+  lastDatePriorEx               : 30/09/2004
+  lastDateTimePriorEx           : 2004-09-30T00:00:00
+  valueCash                     : 0,01
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 93,84
+  dateClosingPricePriorExDate   : 30/09/2004
+  corporateActionPrice          : 0,010656
+
+--- Registro 258 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 29/03/2004
+  lastDatePriorEx               : 29/03/2004
+  lastDateTimePriorEx           : 2004-03-29T00:00:00
+  valueCash                     : 1,15
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 92,55
+  dateClosingPricePriorExDate   : 29/03/2004
+  corporateActionPrice          : 1,242572
+
+--- Registro 259 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 29/03/2004
+  lastDatePriorEx               : 29/03/2004
+  lastDateTimePriorEx           : 2004-03-29T00:00:00
+  valueCash                     : 0,04
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 92,55
+  dateClosingPricePriorExDate   : 29/03/2004
+  corporateActionPrice          : 0,043220
+
+--- Registro 260 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 29/03/2004
+  lastDatePriorEx               : 29/03/2004
+  lastDateTimePriorEx           : 2004-03-29T00:00:00
+  valueCash                     : 1,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 92,55
+  dateClosingPricePriorExDate   : 29/03/2004
+  corporateActionPrice          : 1,080497
+
+--- Registro 261 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 29/03/2004
+  lastDatePriorEx               : 29/03/2004
+  lastDateTimePriorEx           : 2004-03-29T00:00:00
+  valueCash                     : 1,15
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 82,65
+  dateClosingPricePriorExDate   : 29/03/2004
+  corporateActionPrice          : 1,391410
+
+--- Registro 262 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 29/03/2004
+  lastDatePriorEx               : 29/03/2004
+  lastDateTimePriorEx           : 2004-03-29T00:00:00
+  valueCash                     : 0,04
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 82,65
+  dateClosingPricePriorExDate   : 29/03/2004
+  corporateActionPrice          : 0,048397
+
+--- Registro 263 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 29/03/2004
+  lastDatePriorEx               : 29/03/2004
+  lastDateTimePriorEx           : 2004-03-29T00:00:00
+  valueCash                     : 1,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 82,65
+  dateClosingPricePriorExDate   : 29/03/2004
+  corporateActionPrice          : 1,209921
+
+--- Registro 264 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 13/11/2003
+  lastDatePriorEx               : 25/11/2003
+  lastDateTimePriorEx           : 2003-11-25T00:00:00
+  valueCash                     : 2,99
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 73,85
+  dateClosingPricePriorExDate   : 25/11/2003
+  corporateActionPrice          : 4,048747
+
+--- Registro 265 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 13/11/2003
+  lastDatePriorEx               : 25/11/2003
+  lastDateTimePriorEx           : 2003-11-25T00:00:00
+  valueCash                     : 0,01
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 73,85
+  dateClosingPricePriorExDate   : 25/11/2003
+  corporateActionPrice          : 0,013541
+
+--- Registro 266 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 13/11/2003
+  lastDatePriorEx               : 25/11/2003
+  lastDateTimePriorEx           : 2003-11-25T00:00:00
+  valueCash                     : 2,99
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 69,52
+  dateClosingPricePriorExDate   : 25/11/2003
+  corporateActionPrice          : 4,300921
+
+--- Registro 267 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 13/11/2003
+  lastDatePriorEx               : 25/11/2003
+  lastDateTimePriorEx           : 2003-11-25T00:00:00
+  valueCash                     : 0,01
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 69,52
+  dateClosingPricePriorExDate   : 25/11/2003
+  corporateActionPrice          : 0,014384
+
+--- Registro 268 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 27/03/2003
+  lastDatePriorEx               : 27/03/2003
+  lastDateTimePriorEx           : 2003-03-27T00:00:00
+  valueCash                     : 1,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 51,80
+  dateClosingPricePriorExDate   : 27/03/2003
+  corporateActionPrice          : 1,930502
+
+--- Registro 269 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/03/2003
+  lastDatePriorEx               : 27/03/2003
+  lastDateTimePriorEx           : 2003-03-27T00:00:00
+  valueCash                     : 0,06
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 51,80
+  dateClosingPricePriorExDate   : 27/03/2003
+  corporateActionPrice          : 0,115830
+
+--- Registro 270 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 27/03/2003
+  lastDatePriorEx               : 27/03/2003
+  lastDateTimePriorEx           : 2003-03-27T00:00:00
+  valueCash                     : 0,53
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 51,80
+  dateClosingPricePriorExDate   : 27/03/2003
+  corporateActionPrice          : 1,023166
+
+--- Registro 271 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/03/2003
+  lastDatePriorEx               : 27/03/2003
+  lastDateTimePriorEx           : 2003-03-27T00:00:00
+  valueCash                     : 0,03
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 51,80
+  dateClosingPricePriorExDate   : 27/03/2003
+  corporateActionPrice          : 0,057915
+
+--- Registro 272 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 27/03/2003
+  lastDatePriorEx               : 27/03/2003
+  lastDateTimePriorEx           : 2003-03-27T00:00:00
+  valueCash                     : 1,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 47,40
+  dateClosingPricePriorExDate   : 27/03/2003
+  corporateActionPrice          : 2,109705
+
+--- Registro 273 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/03/2003
+  lastDatePriorEx               : 27/03/2003
+  lastDateTimePriorEx           : 2003-03-27T00:00:00
+  valueCash                     : 0,06
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 47,40
+  dateClosingPricePriorExDate   : 27/03/2003
+  corporateActionPrice          : 0,126582
+
+--- Registro 274 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 27/03/2003
+  lastDatePriorEx               : 27/03/2003
+  lastDateTimePriorEx           : 2003-03-27T00:00:00
+  valueCash                     : 0,53
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 47,40
+  dateClosingPricePriorExDate   : 27/03/2003
+  corporateActionPrice          : 1,118143
+
+--- Registro 275 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 27/03/2003
+  lastDatePriorEx               : 27/03/2003
+  lastDateTimePriorEx           : 2003-03-27T00:00:00
+  valueCash                     : 0,03
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 47,40
+  dateClosingPricePriorExDate   : 27/03/2003
+  corporateActionPrice          : 0,063291
+
+--- Registro 276 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 31/10/2002
+  lastDatePriorEx               : 12/11/2002
+  lastDateTimePriorEx           : 2002-11-12T00:00:00
+  valueCash                     : 1,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 47,00
+  dateClosingPricePriorExDate   : 12/11/2002
+  corporateActionPrice          : 2,127660
+
+--- Registro 277 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 31/10/2002
+  lastDatePriorEx               : 12/11/2002
+  lastDateTimePriorEx           : 2002-11-12T00:00:00
+  valueCash                     : 1,00
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 43,12
+  dateClosingPricePriorExDate   : 12/11/2002
+  corporateActionPrice          : 2,319109
+
+--- Registro 278 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 22/03/2002
+  lastDatePriorEx               : 22/03/2002
+  lastDateTimePriorEx           : 2002-03-22T00:00:00
+  valueCash                     : 0,89
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 60,90
+  dateClosingPricePriorExDate   : 22/03/2002
+  corporateActionPrice          : 1,461412
+
+--- Registro 279 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 22/03/2002
+  lastDatePriorEx               : 22/03/2002
+  lastDateTimePriorEx           : 2002-03-22T00:00:00
+  valueCash                     : 1,3
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 60,90
+  dateClosingPricePriorExDate   : 22/03/2002
+  corporateActionPrice          : 2,134647
+
+--- Registro 280 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 22/03/2002
+  lastDatePriorEx               : 22/03/2002
+  lastDateTimePriorEx           : 2002-03-22T00:00:00
+  valueCash                     : 0,09
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 60,90
+  dateClosingPricePriorExDate   : 22/03/2002
+  corporateActionPrice          : 0,147783
+
+--- Registro 281 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 22/03/2002
+  lastDatePriorEx               : 22/03/2002
+  lastDateTimePriorEx           : 2002-03-22T00:00:00
+  valueCash                     : 0,89
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 58,40
+  dateClosingPricePriorExDate   : 22/03/2002
+  corporateActionPrice          : 1,523973
+
+--- Registro 282 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 22/03/2002
+  lastDatePriorEx               : 22/03/2002
+  lastDateTimePriorEx           : 2002-03-22T00:00:00
+  valueCash                     : 1,3
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 58,40
+  dateClosingPricePriorExDate   : 22/03/2002
+  corporateActionPrice          : 2,226027
+
+--- Registro 283 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 22/03/2002
+  lastDatePriorEx               : 22/03/2002
+  lastDateTimePriorEx           : 2002-03-22T00:00:00
+  valueCash                     : 0,09
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 58,40
+  dateClosingPricePriorExDate   : 22/03/2002
+  corporateActionPrice          : 0,154110
+
+--- Registro 284 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/08/2001
+  lastDatePriorEx               : 03/08/2001
+  lastDateTimePriorEx           : 2001-08-03T00:00:00
+  valueCash                     : 0,03
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 58,00
+  dateClosingPricePriorExDate   : 03/08/2001
+  corporateActionPrice          : 0,051724
+
+--- Registro 285 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 03/08/2001
+  lastDatePriorEx               : 03/08/2001
+  lastDateTimePriorEx           : 2001-08-03T00:00:00
+  valueCash                     : 0,03
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 52,92
+  dateClosingPricePriorExDate   : 03/08/2001
+  corporateActionPrice          : 0,056689
+
+--- Registro 286 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 29/06/2001
+  lastDatePriorEx               : 29/06/2001
+  lastDateTimePriorEx           : 2001-06-29T00:00:00
+  valueCash                     : 1,02
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 60,15
+  dateClosingPricePriorExDate   : 29/06/2001
+  corporateActionPrice          : 1,695761
+
+--- Registro 287 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 29/06/2001
+  lastDatePriorEx               : 29/06/2001
+  lastDateTimePriorEx           : 2001-06-29T00:00:00
+  valueCash                     : 1,02
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 53,99
+  dateClosingPricePriorExDate   : 29/06/2001
+  corporateActionPrice          : 1,889239
+
+--- Registro 288 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 23/03/2001
+  lastDatePriorEx               : 23/03/2001
+  lastDateTimePriorEx           : 2001-03-23T00:00:00
+  valueCash                     : 1,67
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 52,39
+  dateClosingPricePriorExDate   : 23/03/2001
+  corporateActionPrice          : 3,187631
+
+--- Registro 289 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 23/03/2001
+  lastDatePriorEx               : 23/03/2001
+  lastDateTimePriorEx           : 2001-03-23T00:00:00
+  valueCash                     : 0,57
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 52,39
+  dateClosingPricePriorExDate   : 23/03/2001
+  corporateActionPrice          : 1,087994
+
+--- Registro 290 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 23/03/2001
+  lastDatePriorEx               : 23/03/2001
+  lastDateTimePriorEx           : 2001-03-23T00:00:00
+  valueCash                     : 0,07
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 52,39
+  dateClosingPricePriorExDate   : 23/03/2001
+  corporateActionPrice          : 0,133613
+
+--- Registro 291 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 23/03/2001
+  lastDatePriorEx               : 23/03/2001
+  lastDateTimePriorEx           : 2001-03-23T00:00:00
+  valueCash                     : 1,67
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 48,49
+  dateClosingPricePriorExDate   : 23/03/2001
+  corporateActionPrice          : 3,444009
+
+--- Registro 292 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 23/03/2001
+  lastDatePriorEx               : 23/03/2001
+  lastDateTimePriorEx           : 2001-03-23T00:00:00
+  valueCash                     : 0,57
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 48,49
+  dateClosingPricePriorExDate   : 23/03/2001
+  corporateActionPrice          : 1,175500
+
+--- Registro 293 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 23/03/2001
+  lastDatePriorEx               : 23/03/2001
+  lastDateTimePriorEx           : 2001-03-23T00:00:00
+  valueCash                     : 0,07
+  ratio                         : 1
+  quotedPerShares               : 1
+  closingPricePriorExDate       : 48,49
+  dateClosingPricePriorExDate   : 23/03/2001
+  corporateActionPrice          : 0,144360
+
+--- Registro 294 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 23/03/2000
+  lastDatePriorEx               : 23/03/2000
+  lastDateTimePriorEx           : 2000-03-23T00:00:00
+  valueCash                     : 3,58
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 430,00
+  dateClosingPricePriorExDate   : 23/03/2000
+  corporateActionPrice          : 0,832558
+
+--- Registro 295 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 23/03/2000
+  lastDatePriorEx               : 23/03/2000
+  lastDateTimePriorEx           : 2000-03-23T00:00:00
+  valueCash                     : 0,14
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 430,00
+  dateClosingPricePriorExDate   : 23/03/2000
+  corporateActionPrice          : 0,032558
+
+--- Registro 296 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 23/03/2000
+  lastDatePriorEx               : 23/03/2000
+  lastDateTimePriorEx           : 2000-03-23T00:00:00
+  valueCash                     : 4,27
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 430,00
+  dateClosingPricePriorExDate   : 23/03/2000
+  corporateActionPrice          : 0,993023
+
+--- Registro 297 ---
+  typeStock                     : ON
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 23/03/2000
+  lastDatePriorEx               : 23/03/2000
+  lastDateTimePriorEx           : 2000-03-23T00:00:00
+  valueCash                     : 0,17
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 430,00
+  dateClosingPricePriorExDate   : 23/03/2000
+  corporateActionPrice          : 0,039535
+
+--- Registro 298 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 23/03/2000
+  lastDatePriorEx               : 23/03/2000
+  lastDateTimePriorEx           : 2000-03-23T00:00:00
+  valueCash                     : 3,58
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 462,98
+  dateClosingPricePriorExDate   : 23/03/2000
+  corporateActionPrice          : 0,773252
+
+--- Registro 299 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 23/03/2000
+  lastDatePriorEx               : 23/03/2000
+  lastDateTimePriorEx           : 2000-03-23T00:00:00
+  valueCash                     : 0,14
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 462,98
+  dateClosingPricePriorExDate   : 23/03/2000
+  corporateActionPrice          : 0,030239
+
+--- Registro 300 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 23/03/2000
+  lastDatePriorEx               : 23/03/2000
+  lastDateTimePriorEx           : 2000-03-23T00:00:00
+  valueCash                     : 4,27
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 462,98
+  dateClosingPricePriorExDate   : 23/03/2000
+  corporateActionPrice          : 0,922286
+
+--- Registro 301 ---
+  typeStock                     : PN
+  corporateAction               : RENDIMENTO
+  dateApproval                  : 23/03/2000
+  lastDatePriorEx               : 23/03/2000
+  lastDateTimePriorEx           : 2000-03-23T00:00:00
+  valueCash                     : 0,17
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 462,98
+  dateClosingPricePriorExDate   : 23/03/2000
+  corporateActionPrice          : 0,036719
+
+--- Registro 302 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 24/03/1999
+  lastDatePriorEx               : 24/03/1999
+  lastDateTimePriorEx           : 1999-03-24T00:00:00
+  valueCash                     : 0,1073
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 155,00
+  dateClosingPricePriorExDate   : 24/03/1999
+  corporateActionPrice          : 0,069226
+
+--- Registro 303 ---
+  typeStock                     : ON
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 24/03/1999
+  lastDatePriorEx               : 24/03/1999
+  lastDateTimePriorEx           : 1999-03-24T00:00:00
+  valueCash                     : 4,5515
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 155,00
+  dateClosingPricePriorExDate   : 24/03/1999
+  corporateActionPrice          : 2,936452
+
+--- Registro 304 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 24/03/1999
+  lastDatePriorEx               : 24/03/1999
+  lastDateTimePriorEx           : 1999-03-24T00:00:00
+  valueCash                     : 1,8893
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 205,49
+  dateClosingPricePriorExDate   : 24/03/1999
+  corporateActionPrice          : 0,919412
+
+--- Registro 305 ---
+  typeStock                     : PN
+  corporateAction               : JRS CAP PROPRIO
+  dateApproval                  : 24/03/1999
+  lastDatePriorEx               : 24/03/1999
+  lastDateTimePriorEx           : 1999-03-24T00:00:00
+  valueCash                     : 4,5515
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 205,49
+  dateClosingPricePriorExDate   : 24/03/1999
+  corporateActionPrice          : 2,214950
+
+--- Registro 306 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 24/03/1998
+  lastDatePriorEx               : 24/03/1998
+  lastDateTimePriorEx           : 1998-03-24T00:00:00
+  valueCash                     : 0,6003833
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 212,00
+  dateClosingPricePriorExDate   : 24/03/1998
+  corporateActionPrice          : 0,283200
+
+--- Registro 307 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 24/03/1998
+  lastDatePriorEx               : 24/03/1998
+  lastDateTimePriorEx           : 1998-03-24T00:00:00
+  valueCash                     : 0,93028188
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 212,00
+  dateClosingPricePriorExDate   : 24/03/1998
+  corporateActionPrice          : 0,438812
+
+--- Registro 308 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 24/03/1998
+  lastDatePriorEx               : 24/03/1998
+  lastDateTimePriorEx           : 1998-03-24T00:00:00
+  valueCash                     : 0,05941386
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 212,00
+  dateClosingPricePriorExDate   : 24/03/1998
+  corporateActionPrice          : 0,028025
+
+--- Registro 309 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 24/03/1998
+  lastDatePriorEx               : 24/03/1998
+  lastDateTimePriorEx           : 1998-03-24T00:00:00
+  valueCash                     : 0,19412096
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 212,00
+  dateClosingPricePriorExDate   : 24/03/1998
+  corporateActionPrice          : 0,091566
+
+--- Registro 310 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 24/03/1998
+  lastDatePriorEx               : 24/03/1998
+  lastDateTimePriorEx           : 1998-03-24T00:00:00
+  valueCash                     : 2,07024895
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 275,00
+  dateClosingPricePriorExDate   : 24/03/1998
+  corporateActionPrice          : 0,752818
+
+--- Registro 311 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 24/03/1998
+  lastDatePriorEx               : 24/03/1998
+  lastDateTimePriorEx           : 1998-03-24T00:00:00
+  valueCash                     : 3,20780922
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 275,00
+  dateClosingPricePriorExDate   : 24/03/1998
+  corporateActionPrice          : 1,166476
+
+--- Registro 312 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 24/03/1998
+  lastDatePriorEx               : 24/03/1998
+  lastDateTimePriorEx           : 1998-03-24T00:00:00
+  valueCash                     : 0,20487159
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 275,00
+  dateClosingPricePriorExDate   : 24/03/1998
+  corporateActionPrice          : 0,074499
+
+--- Registro 313 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 24/03/1998
+  lastDatePriorEx               : 24/03/1998
+  lastDateTimePriorEx           : 1998-03-24T00:00:00
+  valueCash                     : 0,66937024
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 275,00
+  dateClosingPricePriorExDate   : 24/03/1998
+  corporateActionPrice          : 0,243407
+
+--- Registro 314 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 21/03/1997
+  lastDatePriorEx               : 21/03/1997
+  lastDateTimePriorEx           : 1997-03-21T00:00:00
+  valueCash                     : 0,47
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 169,00
+  dateClosingPricePriorExDate   : 20/03/1997
+  corporateActionPrice          : 0,278107
+
+--- Registro 315 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 21/03/1997
+  lastDatePriorEx               : 21/03/1997
+  lastDateTimePriorEx           : 1997-03-21T00:00:00
+  valueCash                     : 0,4996
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 169,00
+  dateClosingPricePriorExDate   : 20/03/1997
+  corporateActionPrice          : 0,295621
+
+--- Registro 316 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 21/03/1997
+  lastDatePriorEx               : 21/03/1997
+  lastDateTimePriorEx           : 1997-03-21T00:00:00
+  valueCash                     : 2,00
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 221,00
+  dateClosingPricePriorExDate   : 20/03/1997
+  corporateActionPrice          : 0,904977
+
+--- Registro 317 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 21/03/1997
+  lastDatePriorEx               : 21/03/1997
+  lastDateTimePriorEx           : 1997-03-21T00:00:00
+  valueCash                     : 2,1263
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 221,00
+  dateClosingPricePriorExDate   : 20/03/1997
+  corporateActionPrice          : 0,962127
+
+--- Registro 318 ---
+  typeStock                     : ON
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 21/03/1996
+  lastDatePriorEx               : 21/03/1996
+  lastDateTimePriorEx           : 1996-03-21T00:00:00
+  valueCash                     : 0,9882
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 54,00
+  dateClosingPricePriorExDate   : 20/03/1996
+  corporateActionPrice          : 1,830000
+
+--- Registro 319 ---
+  typeStock                     : PN
+  corporateAction               : DIVIDENDO
+  dateApproval                  : 21/03/1996
+  lastDatePriorEx               : 21/03/1996
+  lastDateTimePriorEx           : 1996-03-21T00:00:00
+  valueCash                     : 5,1471
+  ratio                         : 1000
+  quotedPerShares               : 1000
+  closingPricePriorExDate       : 114,99
+  dateClosingPricePriorExDate   : 20/03/1996
+  corporateActionPrice          : 4,476128
+
+====================================================================================================
+FIM DO ARQUIVO
+====================================================================================================

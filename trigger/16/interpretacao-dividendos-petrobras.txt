@@ -1,0 +1,219 @@
+================================================================================
+INTERPRETAÇÃO DA RESPOSTA — API B3 (GetListedCashDividends)
+================================================================================
+
+COMANDO EXECUTADO
+-----------------
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetListedCashDividends/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjUsInRyYWRpbmdOYW1lIjoiUEVUUk9CUkFTIn0="
+
+Parâmetros decodificados (Base64):
+  {
+    "language": "pt-br",
+    "pageNumber": 1,
+    "pageSize": 5,
+    "tradingName": "PETROBRAS"
+  }
+
+Empresa consultada: PETROBRAS (Petrobras — PETR3, PETR4 etc.)
+Tipo de consulta: proventos em dinheiro (dividendos, JCP, rendimentos)
+
+
+================================================================================
+1. RESUMO EXECUTIVO
+================================================================================
+
+A API retornou a PÁGINA 1 de um histórico de 333 eventos de proventos em
+dinheiro da Petrobras. Nesta página vieram 5 registros.
+
+  Total de registros : 333
+  Tamanho da página  : 5
+  Página atual       : 1 de 67
+  Registros nesta pág: 5
+
+Para obter todo o histórico, é necessário repetir a chamada alterando
+pageNumber de 1 até 67 (ou aumentar pageSize, ex.: 100 → 4 páginas).
+
+
+================================================================================
+2. ESTRUTURA DA RESPOSTA
+================================================================================
+
+A resposta tem duas partes:
+
+  "page"    → metadados de paginação
+  "results" → array com os proventos da página atual
+
+
+--- BLOCO "page" ---
+
+  pageNumber    : 1        → página retornada agora
+  pageSize      : 5        → quantos itens por página você pediu
+  totalRecords  : 333      → total de proventos no histórico da empresa
+  totalPages    : 67       → total de páginas (333 ÷ 5 = 66,6 → 67)
+
+
+--- BLOCO "results" ---
+
+Cada item do array é UM evento corporativo em dinheiro (não é cotação,
+não é negociação — é provento aprovado/registrado pela empresa).
+
+
+================================================================================
+3. GLOSSÁRIO DOS CAMPOS (cada registro)
+================================================================================
+
+Campo                      | Significado
+---------------------------|--------------------------------------------------
+typeStock                  | Tipo de ação: "ON" = ordinária (PETR3/PETR4 ON)
+dateApproval               | Data em que o provento foi aprovado (deliberação)
+valueCash                  | Valor bruto do provento por ação (R$), formato BR
+ratio                      | Proporção / fator de distribuição (geralmente "1")
+corporateAction            | Tipo do evento (ver tabela abaixo)
+lastDatePriorEx            | Data EX — último dia para comprar e ter direito
+dateClosingPricePriorExDate| Data de referência do preço de fechamento
+closingPricePriorExDate    | Preço de fechamento na véspera do ex (R$)
+quotedPerShares            | Base de cálculo: provento "por X ações" (normalmente 1)
+corporateActionPrice       | Preço/valor de referência do evento corporativo
+lastDateTimePriorEx        | Data ex em formato ISO (YYYY-MM-DDTHH:MM:SS)
+
+
+--- TIPOS DE corporateAction nesta resposta ---
+
+  DIVIDENDO       → distribuição de lucros aos acionistas
+  JRS CAP PROPRIO → Juros sobre Capital Próprio (JCP), tributação diferente
+  RENDIMENTO      → outro tipo de provento em dinheiro (comum em FIIs; aqui
+                    aparece no contexto Petrobras conforme classificação B3)
+
+
+================================================================================
+4. INTERPRETAÇÃO REGISTRO A REGISTRO (página 1)
+================================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+REGISTRO 1 e 2 (duplicados na resposta — mesmos dados)
+──────────────────────────────────────────────────────────────────────────────
+  Tipo de ação     : ON (ordinária)
+  Evento           : JRS CAP PROPRIO (JCP)
+  Aprovado em      : 16/04/2026
+  Data EX          : 22/04/2026
+  Valor por ação   : R$ 0,31311454
+  Preço ref. ex    : R$ 52,70 (fechamento em 22/04/2026)
+  Preço do evento  : R$ 0,594145
+
+  Leitura prática:
+  Quem possuía PETR3/PETR4 ON até o fechamento do dia 22/04/2026 tem direito
+  a receber R$ 0,31311454 por ação a título de JCP aprovado em 16/04/2026.
+
+  Nota: os registros 1 e 2 são idênticos — pode ser duplicidade da API
+  (ex.: classes/tipos internos) ou representação duplicada no sistema B3.
+
+
+──────────────────────────────────────────────────────────────────────────────
+REGISTRO 3 e 4 (duplicados — mesmos dados)
+──────────────────────────────────────────────────────────────────────────────
+  Tipo de ação     : ON (ordinária)
+  Evento           : RENDIMENTO
+  Aprovado em      : 16/04/2026
+  Data EX          : 22/04/2026
+  Valor por ação   : R$ 0,01649003
+  Preço ref. ex    : R$ 52,70
+  Preço do evento  : R$ 0,031290
+
+  Leitura prática:
+  No mesmo evento corporativo de abril/2026, além do JCP, há um rendimento
+  de R$ 0,01649003 por ação ON na mesma data ex (22/04/2026).
+
+
+──────────────────────────────────────────────────────────────────────────────
+REGISTRO 5
+──────────────────────────────────────────────────────────────────────────────
+  Tipo de ação     : ON (ordinária)
+  Evento           : JRS CAP PROPRIO (JCP)
+  Aprovado em      : 11/12/2025
+  Data EX          : 22/12/2025
+  Valor por ação   : R$ 0,17518233
+  Preço ref. ex    : R$ 32,84 (fechamento em 22/12/2025)
+  Preço do evento  : R$ 0,533442
+
+  Leitura prática:
+  Provento de fim de 2025: JCP de ~R$ 0,18 por ação, com data ex em
+  22/12/2025, quando a ação fechou a R$ 32,84.
+
+
+================================================================================
+5. O QUE ESTA API NÃO DIZ (limitações)
+================================================================================
+
+  [ ] Não informa o ticker exato (PETR3 vs PETR4) — só typeStock "ON"
+  [ ] Não traz data de PAGAMENTO nestes campos (só aprovação e data ex)
+  [ ] Não filtra por intervalo de datas — você pediu página 1 de 67
+  [ ] Valores usam vírgula decimal (padrão BR) — converter para ponto em código
+  [ ] Não está documentada no portal developers.b3.com.br
+  [ ] Registros duplicados podem aparecer — tratar em pós-processamento
+
+
+================================================================================
+6. COMO BUSCAR MAIS PÁGINAS OU FILTRAR POR PERÍODO
+================================================================================
+
+Para página 2 (próximos 5 registros), altere o JSON e recodifique em Base64:
+
+  {"language":"pt-br","pageNumber":2,"pageSize":5,"tradingName":"PETROBRAS"}
+
+Para trazer mais por chamada (ex.: 100 por página):
+
+  {"language":"pt-br","pageNumber":1,"pageSize":100,"tradingName":"PETROBRAS"}
+
+Filtro por intervalo (ex.: só 2024): a API NÃO aceita dataInicio/dataFim.
+Você precisa baixar as páginas e filtrar localmente pelo campo lastDatePriorEx
+ou lastDateTimePriorEx.
+
+
+================================================================================
+7. EXEMPLO DE CÁLCULO (registro 5)
+================================================================================
+
+  Se você tinha 1.000 ações PETR4 ON na data ex (22/12/2025):
+
+    1.000 × R$ 0,17518233 = R$ 175,18 (bruto, antes de IR)
+
+  Dividend yield aproximado na data ex (só este evento):
+
+    0,17518233 ÷ 32,84 ≈ 0,53% (yield pontual deste JCP, não anualizado)
+
+
+================================================================================
+8. LINHA DO TEMPO DOS 5 REGISTROS (ordenados por data ex)
+================================================================================
+
+  Data EX      | Tipo            | Valor/ação (R$) | Aprovação
+  -------------|-----------------|-----------------|------------
+  22/12/2025   | JRS CAP PROPRIO | 0,17518233      | 11/12/2025
+  22/04/2026   | JRS CAP PROPRIO | 0,31311454      | 16/04/2026  (×2)
+  22/04/2026   | RENDIMENTO      | 0,01649003      | 16/04/2026  (×2)
+
+  Observação: a API parece ordenar do mais recente para o mais antigo
+  dentro da página (abril/2026 antes de dezembro/2025 nos registros 1–4 vs 5).
+
+
+================================================================================
+9. CONCLUSÃO
+================================================================================
+
+Sua chamada funcionou corretamente. A B3 confirmou que a Petrobras possui
+333 eventos de proventos em dinheiro cadastrados. Os 5 retornados mostram
+principalmente JCP e rendimentos sobre ações ON, com valores por ação,
+datas de aprovação, data ex e preço de referência na véspera do ex.
+
+Para montar um histórico completo de dividendos de uma ação em um intervalo:
+
+  1. Resolver ticker → tradingName (GetInitialCompanies)
+  2. Paginar GetListedCashDividends até totalPages
+  3. Filtrar por lastDatePriorEx no seu código
+  4. Opcional: deduplicar registros idênticos
+  5. Opcional: separar por corporateAction (DIVIDENDO / JCP / RENDIMENTO)
+
+================================================================================
+Gerado em: 24/06/2026
+Fonte: resposta JSON da API listedCompaniesProxy / GetListedCashDividends
+================================================================================

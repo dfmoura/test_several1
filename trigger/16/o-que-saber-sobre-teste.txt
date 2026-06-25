@@ -1,0 +1,173 @@
+================================================================================
+O QUE VOCÊ PRECISA SABER SOBRE teste.txt
+Manual Técnico APIs – Área do Investidor da B3
+================================================================================
+
+DOCUMENTO ORIGINAL
+------------------
+- Título: Manual Técnico APIs – Área do Investidor / Área Logada da B3
+- Data de referência: 12/12/2024 (com atualização de tarifação em 10/06/2026)
+- Classificação: Informação Pública
+- Objetivo: Detalhar tecnicamente as APIs que permitem compartilhar extratos de
+  posições e movimentações do investidor com licenciados (fintechs, bancos etc.),
+  sempre com consentimento do investidor.
+
+
+1. CONTEXTO E PROPÓSITO
+-----------------------
+- A B3 oferece a "Área Logada do Investidor" (Plataforma) para consulta de extratos.
+- As APIs permitem integração tecnológica entre sistemas de licenciados e a B3.
+- O compartilhamento de dados ("Extrato de Informações") exige autorização do investidor.
+- Documentação técnica completa: https://developers.b3.com.br/ → APIs → Nova Área Logada
+
+
+2. APIs DISPONÍVEIS (O QUE CADA UMA FAZ)
+-----------------------------------------
+| API                    | Função principal                                              |
+|------------------------|---------------------------------------------------------------|
+| Pacote de Acesso       | Gera e envia por e-mail o pacote de acesso (.zip) para auth  |
+| API Guia               | Orienta/racionaliza chamadas às outras APIs                   |
+| Eventos provisionados  | Eventos corporativos de RV provisionados (até D-1)           |
+| Garantias (Collateral) | Garantias depositadas e risco sem garantias (até D-1)        |
+| Movimentação (Movement)| Transações por período (até D-1)                             |
+| Negociação de Ativos   | Compras e vendas do investidor (até D-1)                     |
+| Ofertas Públicas       | Participação em ofertas públicas (até D-1)                   |
+| Posição (Position)     | Saldo de investimentos na conta (até D-1)                      |
+
+Endpoints de Movimentação e Posição (mesmos segmentos):
+  - Empréstimo de Ativos (SecuritiesLending)
+  - Tesouro Direto (TreasuryBonds)
+  - Renda Fixa (FixedIncome)
+  - Derivativos (Derivatives)
+  - Renda Variável (Equities)
+
+
+3. DADOS DISPONIBILIZADOS — PONTOS CRÍTICOS
+-------------------------------------------
+- Dados históricos a partir de 01/11/2019.
+- Atualização diária com referência D-1 (fechamento do dia anterior).
+- Meta: dados do dia anterior disponíveis a partir das 8h da manhã.
+- Renda Fixa Balcão: apenas quantidade, ISIN, data de aquisição e vencimento.
+- RF Balcão inicial: regime depositado + regime registrado com Selo Certifica.
+- Demais APIs: ativos do segmento Listado B3.
+- Anexo I lista produtos cobertos (ações, FIIs, ETFs, CDB, debêntures, derivativos etc.).
+
+
+4. ASPECTOS TÉCNICOS IMPORTANTES
+----------------------------------
+- API Guia (Produtos Atualizados): após 8h, informa CPFs/CNPJs com movimentação
+  na data de referência → evita consultar todos os investidores desnecessariamente.
+- Recomendação: NÃO consultar o mesmo investidor mais de uma vez por dia.
+- APIs agnósticas à tecnologia do licenciado.
+- Produção: disponibilidade 24/7, SLA de 97% mensal.
+
+
+5. CONSENTIMENTO DO INVESTIDOR
+------------------------------
+- Investidor consulta/revoga autorizações em:
+  www.investidor.b3.com.br → Minha Conta → Segurança → Aplicativos e Sites
+- Fluxo de autorização: vinculação da conta B3 à aplicação do licenciado + login
+  na área logada (credenciais do investidor).
+- Revogação pelo investidor interrompe o compartilhamento imediatamente.
+
+
+6. AMBIENTES E ACESSO
+---------------------
+CERTIFICAÇÃO (testes):
+  - Portal: https://developers.b3.com.br/apis-br
+  - Autosserviço gratuito, 24/7
+  - Primeiro passo: API Pacote de Acesso (recebe .zip por e-mail)
+  - Documentação: Home / APIs / Novaárealogada / Pacotedeacesso
+
+PRODUÇÃO:
+  - Pacote de acesso enviado pela B3 após contratação
+  - Apenas pessoas jurídicas podem contratar
+  - Self-assessment obrigatório antes do contrato:
+    1. Questionário de governança e proteção de dados
+    2. Avaliação via Security Scorecard
+    3. Relatório de vulnerabilidades (pode levar à recusa da contratação)
+
+CONTATOS:
+  - Licenciados (dúvidas/contratação): sat@b3.com.br
+  - SAT: seg a sáb, 6h–6h — (11) 2565-5120
+  - Investidores: Central (11) 4200-0277
+
+
+7. TARIFAÇÃO — O QUE MEMORIZAR
+------------------------------
+Base: número de Autorizações (consentimentos) ao final do mês → faturado no mês seguinte.
+
+MODELO "CONSULTA DE INFORMAÇÕES":
+  - Franquia: 10.000 usuários consentidos/mês (sem cobrança por CPF nessa faixa)
+  - Piso mínimo: R$ 500/mês (R$ 6.000/ano), mesmo se o cálculo for menor
+  - Tarifa escalonada por CPF/ano (acima de 10.000):
+      10.001 –  50.000 → R$ 3,25/CPF/ano
+      50.001 – 100.000 → R$ 3,00/CPF/ano
+     100.001 – 200.000 → R$ 2,75/CPF/ano
+     200.001 – 500.000 → R$ 2,50/CPF/ano
+
+MODELO "DISTRIBUIDOR DE DADOS" e "PROFISSIONAL ESPECIALIZADO":
+  - Tarifa fixa de conectividade: R$ 3.000/mês
+  - Tabela por CPF aplicada individualmente a cada empresa conectada
+  - Isenção em junho e julho de 2026 para esses modelos
+
+OPT-OUT (duas formas):
+  (i) Investidor revoga na Área Logada → cobrança cessa no mês seguinte
+      (mas cobra o mês da revogação; ex.: autorizou jan, revogou mar = 3 meses cobrados)
+  (ii) Licenciado pode revogar após 12 meses da autorização via API de revogação
+
+
+8. MARCA B3 — REGRAS DE USO
+---------------------------
+- Licenciados devem exibir a marca B3 indicando integração com as APIs.
+- Manual de Uso da Marca: https://zeroheight.com/8c0a84ef3/p/86cf0b-
+
+PERMITIDO (DOs):
+  - Indicar conexão de dados com a B3
+  - Marketing informativo/educacional sobre a integração
+  - Press releases: exigem aprovação prévia (imprensa@b3.com.br)
+
+VEDADO (DON'Ts):
+  - Usar nome "CEI / Canal Eletrônico do Investidor" para as APIs
+  - Marca B3 em telas de recomendação de investimentos
+  - Sugerir que a plataforma é certificada/recomendada pela B3
+  - Publicidade com promessas irreais
+  - Uso fora do escopo do contrato de licença
+
+E-mails para dúvidas de marca:
+  - Uso geral: marca@b3.com.br
+  - Imprensa: imprensa@b3.com.br
+
+A autorização da marca cessa ao término da licença ou por uso indevido.
+
+
+9. ESTRUTURA DO MANUAL (SUMÁRIO)
+--------------------------------
+1. Objetivo
+2. O Produto (APIs)
+3. Dados Disponibilizados
+4. Aspectos Técnicos Complementares
+5. Gestão do Consentimento do Investidor
+6. Atendimento aos Licenciados e Investidores
+7. Condições de Acesso
+8. Tarifação e Modelos de Opt-Out
+9. Marca B3 e Divulgação
++ Anexo I: Lista de produtos (RF Balcão, RV, Derivativos, Empréstimo, Fundos)
+
+
+10. CHECKLIST RÁPIDO PARA ESTUDO
+--------------------------------
+[ ] Saber quais são as 8 APIs e seus endpoints principais
+[ ] Entender o fluxo D-1 e a API Guia para otimização
+[ ] Conhecer limitações de Renda Fixa Balcão (campos disponíveis)
+[ ] Saber o processo de consentimento e revogação
+[ ] Diferenciar ambiente Certificação vs Produção
+[ ] Conhecer o self-assessment para contratação em produção
+[ ] Calcular tarifação (franquia 10k, piso R$ 500, faixas por CPF)
+[ ] Entender opt-out: investidor vs licenciado (12 meses)
+[ ] Conhecer regras de uso da marca B3 (DOs e DON'Ts)
+[ ] Ter os links: developers.b3.com.br, investidor.b3.com.br, sat@b3.com.br
+
+================================================================================
+Fim do resumo — gerado a partir de teste.txt
+================================================================================
