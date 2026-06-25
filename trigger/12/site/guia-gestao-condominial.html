@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Guia passo a passo do app Gestão Condominial para síndicos: como usar cobranças, extrato bancário, contas a pagar e relatórios em PDF no Android.">
+  <title>Como usar o app | Gestão Condominial</title>
+  <meta name="theme-color" content="#0e0e0e">
+  <link rel="canonical" href="https://www.triggerti.com/guia-gestao-condominial.html">
+  <link rel="icon" type="image/png" href="/assets/img/favicon-gestao-condominial-32.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="/assets/img/favicon-gestao-condominial-16.png" sizes="16x16">
+  <link rel="icon" type="image/png" href="/assets/img/favicon-gestao-condominial-48.png" sizes="48x48">
+  <link rel="icon" type="image/x-icon" href="/gestao-condominial/favicon.ico">
+  <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon-gestao-condominial.png" sizes="180x180">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body class="page-app page-guide">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/gestao-condominial/" class="logo-link logo-link--product">
+        <img src="/assets/img/logo-gestao-condominial.png" alt="" class="product-mark" width="40" height="40" aria-hidden="true">
+        <span class="logo-stack">
+          <span class="logo-text">Gestão Condominial</span>
+          <span class="logo-byline">por Trigger Data Intelligence</span>
+        </span>
+      </a>
+      <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav').classList.toggle('open')">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <nav class="nav" aria-label="Navegação do produto">
+        <a href="/gestao-condominial/#funcionalidades">Funcionalidades</a>
+        <a href="/gestao-condominial/#contato">Contato</a>
+        <a href="/" class="nav-link--corp">Trigger TI</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="breadcrumb"><a href="/gestao-condominial/">Gestão Condominial</a> / Como usar o app</div>
+        <h1>Guia do <span>aplicativo</span></h1>
+        <p class="hero-lead-app">Passo a passo para síndicos e administradoras operarem o dia a dia financeiro no celular, sem jargão técnico.</p>
+      </div>
+    </section>
+
+    <div class="app-meta-bar">
+      <div class="container app-meta">
+        <span class="app-meta-badge">Guia</span>
+        <span>Android · um condomínio por aparelho</span>
+        <span class="app-meta-sep">·</span>
+        <a href="/gestao-condominial/#demo">Ver vídeo demonstrativo</a>
+      </div>
+    </div>
+
+    <div class="container prose">
+      <div class="guide-intro">
+        <p>
+          Este guia explica <strong>como mexer no app</strong> depois da implantação assistida.
+          A configuração inicial (conta bancária, cadastros e integração com o Banco Inter) é feita com nossa equipe;
+          aqui você aprende a <strong>rotina mensal</strong>: emitir cobranças, conferir o extrato, pagar contas e gerar PDFs para a assembleia.
+        </p>
+      </div>
+
+      <nav class="prose-toc" aria-label="Índice do guia">
+        <h2>Índice</h2>
+        <ol>
+          <li><a href="#tela-inicial">Conhecendo a tela</a></li>
+          <li><a href="#rotina-mensal">Rotina do mês (resumo)</a></li>
+          <li><a href="#inicio">Início — painel do mês</a></li>
+          <li><a href="#cobrancas">Cobranças</a></li>
+          <li><a href="#banco">Banco — extrato e classificação</a></li>
+          <li><a href="#a-pagar">Contas a pagar</a></li>
+          <li><a href="#cadastros">Cadastros</a></li>
+          <li><a href="#relatorios">Relatórios em PDF</a></li>
+          <li><a href="#ajustes">Ajustes, backup e segurança</a></li>
+          <li><a href="#duvidas">Dúvidas frequentes</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="tela-inicial">1. Conhecendo a tela</h2>
+      <p>
+        Ao abrir o app, você verá o nome do condomínio no topo e, na parte de baixo, cinco abas fixas.
+        No canto superior direito há ícones para <strong>Relatórios</strong> e <strong>Ajustes</strong>.
+      </p>
+
+      <div class="guide-nav-map" role="img" aria-label="Mapa de navegação do aplicativo">
+        <div class="guide-nav-map__top">
+          <span class="guide-nav-pill guide-nav-pill--top">Relatórios</span>
+          <span class="guide-nav-pill guide-nav-pill--top">Ajustes</span>
+        </div>
+        <div class="guide-nav-map__screen">
+          <span class="guide-nav-map__label">Conteúdo da aba selecionada</span>
+        </div>
+        <div class="guide-nav-map__bottom">
+          <span class="guide-nav-pill guide-nav-pill--active">Início</span>
+          <span class="guide-nav-pill">Banco</span>
+          <span class="guide-nav-pill">Cobranças</span>
+          <span class="guide-nav-pill">A pagar</span>
+          <span class="guide-nav-pill">Cadastros</span>
+        </div>
+      </div>
+
+      <div class="guide-modules-grid">
+        <article class="guide-module-card">
+          <span class="guide-module-icon" aria-hidden="true">🏠</span>
+          <h3>Início</h3>
+          <p>Resumo do mês: saldos, cobranças, contas em aberto e pendências de classificação.</p>
+        </article>
+        <article class="guide-module-card">
+          <span class="guide-module-icon" aria-hidden="true">🏦</span>
+          <h3>Banco</h3>
+          <p>Extrato sincronizado, classificação de entradas e saídas, documentos e recibos.</p>
+        </article>
+        <article class="guide-module-card">
+          <span class="guide-module-icon" aria-hidden="true">🧾</span>
+          <h3>Cobranças</h3>
+          <p>Emitir boletos do mês, acompanhar pagamentos e tratar inadimplência.</p>
+        </article>
+        <article class="guide-module-card">
+          <span class="guide-module-icon" aria-hidden="true">💳</span>
+          <h3>A pagar</h3>
+          <p>Contas do condomínio: avulsas e despesas fixas mensais (água, luz, honorários).</p>
+        </article>
+        <article class="guide-module-card">
+          <span class="guide-module-icon" aria-hidden="true">📁</span>
+          <h3>Cadastros</h3>
+          <p>Unidades, moradores, síndicos, valores do ciclo e categorias de despesa.</p>
+        </article>
+      </div>
+
+      <p class="guide-tip">
+        <strong>Dica:</strong> use o <strong>Início</strong> como “painel de controle”. Ele mostra o que precisa de atenção antes de mergulhar nas outras abas.
+      </p>
+
+      <h2 id="rotina-mensal">2. Rotina do mês (visão geral)</h2>
+      <p>
+        Todo mês financeiro segue basicamente a mesma ordem. Você não precisa decorar tudo de uma vez —
+        volte a esta seção quando estiver organizando o fechamento.
+      </p>
+
+      <ol class="guide-steps">
+        <li class="guide-step">
+          <span class="guide-step-num">1</span>
+          <div>
+            <strong>Emitir cobranças do mês</strong>
+            <p>Na aba <em>Cobranças</em>, gere os boletos de condomínio (todas as unidades ou só as que ainda não têm boleto). O app sincroniza com o banco.</p>
+          </div>
+        </li>
+        <li class="guide-step">
+          <span class="guide-step-num">2</span>
+          <div>
+            <strong>Acompanhar recebimentos</strong>
+            <p>Quando moradores pagam, o status atualiza pela sincronização (boleto ou Pix). Pagamentos fora do boleto podem ser registrados manualmente.</p>
+          </div>
+        </li>
+        <li class="guide-step">
+          <span class="guide-step-num">3</span>
+          <div>
+            <strong>Sincronizar o extrato bancário</strong>
+            <p>Na aba <em>Banco</em>, busque os lançamentos do mês na conta do condomínio.</p>
+          </div>
+        </li>
+        <li class="guide-step">
+          <span class="guide-step-num">4</span>
+          <div>
+            <strong>Classificar lançamentos</strong>
+            <p>O app <em>sugere</em> unidade e categoria — você confere e confirma. Não é automático de propósito: a conferência humana evita erros.</p>
+          </div>
+        </li>
+        <li class="guide-step">
+          <span class="guide-step-num">5</span>
+          <div>
+            <strong>Registrar contas pagas</strong>
+            <p>Em <em>A pagar</em>, marque despesas quitadas e vincule ao extrato quando aplicável.</p>
+          </div>
+        </li>
+        <li class="guide-step">
+          <span class="guide-step-num">6</span>
+          <div>
+            <strong>Gerar PDFs para a assembleia</strong>
+            <p>Em <em>Relatórios</em> (ícone no topo), exporte prestação de contas, demonstrativo ou certidão de débitos.</p>
+          </div>
+        </li>
+      </ol>
+
+      <h2 id="inicio">3. Início — painel do mês</h2>
+      <p>É a primeira tela ao abrir o app. Mostra, de forma resumida, a saúde financeira do condomínio no mês corrente.</p>
+
+      <div class="feature-group">
+        <h3>O que você vê no Início</h3>
+        <ul>
+          <li><strong>Saldo gerencial</strong> — soma calculada pelo app com base nos lançamentos classificados.</li>
+          <li><strong>Saldo bancário</strong> — valor real na conta (atualize com o botão «Atualizar saldo»).</li>
+          <li><strong>Ciclo vigente</strong> — mês de referência e valores de condomínio em vigor.</li>
+          <li><strong>Cobranças do mês</strong> — quantas foram emitidas, pagas e em aberto.</li>
+          <li><strong>Contas a pagar</strong> — resumo do que ainda falta pagar (toque no card para ir à aba).</li>
+          <li><strong>Classificação pendente</strong> — lançamentos do extrato que ainda precisam ser conferidos.</li>
+        </ul>
+      </div>
+
+      <p>
+        Se os dois saldos (gerencial e bancário) estiverem muito diferentes, normalmente faltam lançamentos
+        classificados ou há pagamentos ainda não vinculados. Comece pela aba <strong>Banco</strong>.
+      </p>
+
+      <h2 id="cobrancas">4. Cobranças</h2>
+      <p>
+        Aqui você emite e acompanha os boletos das unidades. O app conversa com o Banco Inter
+        (configurado na implantação) para criar, atualizar e cancelar cobranças.
+      </p>
+
+      <h3>Emitir cobranças do mês</h3>
+      <ol class="guide-steps guide-steps--compact">
+        <li class="guide-step">
+          <span class="guide-step-num">1</span>
+          <div>
+            <p>Abra a aba <strong>Cobranças</strong>.</p>
+          </div>
+        </li>
+        <li class="guide-step">
+          <span class="guide-step-num">2</span>
+          <div>
+            <p>Toque em emitir cobranças do mês (condomínio em lote) ou só pendências, se algumas unidades já têm boleto.</p>
+          </div>
+        </li>
+        <li class="guide-step">
+          <span class="guide-step-num">3</span>
+          <div>
+            <p>Confira valores, vencimento e desconto de síndico (se houver política configurada no ciclo).</p>
+          </div>
+        </li>
+        <li class="guide-step">
+          <span class="guide-step-num">4</span>
+          <div>
+            <p>Confirme. O app envia ao banco e passa a acompanhar o status de cada boleto.</p>
+          </div>
+        </li>
+      </ol>
+
+      <h3>Outras ações úteis</h3>
+      <ul>
+        <li><strong>Cobrança avulsa</strong> — para mudança, multa ou fundo de reserva de uma unidade específica.</li>
+        <li><strong>Sincronizar com o banco</strong> — atualiza status (pago, vencido, cancelado) e importa títulos criados no Internet Banking.</li>
+        <li><strong>Baixa manual</strong> — quando o morador pagou por Pix na conta, transferência ou dinheiro, sem passar pelo boleto.</li>
+        <li><strong>PDF do boleto</strong> — abra ou compartilhe o boleto de uma unidade.</li>
+        <li><strong>Inadimplência</strong> — no Início, copie um resumo formatado para enviar por WhatsApp.</li>
+      </ul>
+
+      <p class="guide-tip">
+        <strong>Importante:</strong> o desconto do síndico na taxa de condomínio segue a política do ciclo vigente
+        (proporcional, isenção, percentual fixo ou regra personalizada por mandato). Isso é configurado em Cadastros, normalmente na implantação.
+      </p>
+
+      <h2 id="banco">5. Banco — extrato e classificação</h2>
+      <p>
+        Esta aba traz o extrato da conta do condomínio, mês a mês. É onde você organiza
+        <strong>para onde foi cada entrada e saída</strong> de dinheiro.
+      </p>
+
+      <h3>Sincronizar o extrato</h3>
+      <ol class="guide-steps guide-steps--compact">
+        <li class="guide-step">
+          <span class="guide-step-num">1</span>
+          <div><p>Abra <strong>Banco</strong> e selecione o mês de referência (se necessário).</p></div>
+        </li>
+        <li class="guide-step">
+          <span class="guide-step-num">2</span>
+          <div><p>Toque em <strong>Sincronizar mês</strong> para buscar os lançamentos na conta bancária.</p></div>
+        </li>
+        <li class="guide-step">
+          <span class="guide-step-num">3</span>
+          <div><p>Aguarde a lista carregar. Cada linha é um movimento (entrada ou saída).</p></div>
+        </li>
+      </ol>
+
+      <h3>Classificar um lançamento</h3>
+      <p>
+        Toque em um lançamento ainda não classificado. O app pode sugerir unidade, pessoa e categoria —
+        <strong>leia a sugestão e confirme só se estiver correta</strong>.
+      </p>
+      <ul>
+        <li><strong>Recebimento de condomínio</strong> — vincule à unidade que pagou.</li>
+        <li><strong>Despesa</strong> — escolha a categoria (ex.: limpeza, elevador, honorários).</li>
+        <li><strong>Rateio</strong> — para dividir uma despesa entre várias unidades.</li>
+        <li><strong>Documentos</strong> — adicione links (URL) de nota fiscal ou comprovante.</li>
+        <li><strong>Recibo</strong> — gere PDF de recibo de pagamento quando precisar.</li>
+      </ul>
+
+      <p class="guide-tip">
+        <strong>Lembrete:</strong> a classificação não é 100% automática de propósito. O síndico revisa
+        cada lançamento — isso protege a prestação de contas.
+      </p>
+
+      <h2 id="a-pagar">6. Contas a pagar</h2>
+      <p>
+        Controle as despesas do condomínio: contas avulsas (ex.: reparo pontual) e
+        <strong>despesas fixas</strong> que se repetem todo mês (água, luz, portaria, honorários do síndico).
+      </p>
+
+      <h3>Como usar</h3>
+      <ul>
+        <li><strong>Nova conta</strong> — cadastre fornecedor, valor, vencimento e categoria.</li>
+        <li><strong>Despesas fixas</strong> — crie um modelo mensal; o app gera as contas pendentes automaticamente.</li>
+        <li><strong>Marcar como paga</strong> — ao pagar, registre a baixa e, se possível, vincule ao lançamento do extrato.</li>
+        <li><strong>Documentos</strong> — anexe links de boletos ou notas fiscais à conta.</li>
+      </ul>
+
+      <p>
+        O card de contas a pagar no <strong>Início</strong> mostra quanto ainda falta pagar no mês.
+        Toque nele para ir direto à lista completa.
+      </p>
+
+      <h2 id="cadastros">7. Cadastros</h2>
+      <p>
+        A aba <strong>Cadastros</strong> reúne tudo que define como o condomínio funciona no app.
+        Na implantação assistida preenchemos a maior parte; depois você ajusta quando há mudança de morador, síndico ou valores.
+      </p>
+
+      <div class="guide-modules-grid guide-modules-grid--cadastros">
+        <article class="guide-module-card guide-module-card--small">
+          <h3>Condomínio</h3>
+          <p>Nome, CNPJ, endereço e estrutura de blocos/andares.</p>
+        </article>
+        <article class="guide-module-card guide-module-card--small">
+          <h3>Unidades</h3>
+          <p>Apartamentos, salas e vagas — pode gerar em lote por bloco.</p>
+        </article>
+        <article class="guide-module-card guide-module-card--small">
+          <h3>Pessoas</h3>
+          <p>Moradores, proprietários, inquilinos e fornecedores.</p>
+        </article>
+        <article class="guide-module-card guide-module-card--small">
+          <h3>Síndicos</h3>
+          <p>Mandato, benefício na taxa e honorários mensais.</p>
+        </article>
+        <article class="guide-module-card guide-module-card--small">
+          <h3>Ciclos de valores</h3>
+          <p>Valor do condomínio, multa, mora, mudança e política de desconto do síndico.</p>
+        </article>
+        <article class="guide-module-card guide-module-card--small">
+          <h3>Categorias</h3>
+          <p>Tipos de despesa para relatórios (limpeza, manutenção, etc.).</p>
+        </article>
+        <article class="guide-module-card guide-module-card--small">
+          <h3>Saldo inicial</h3>
+          <p>Saldo de abertura quando o condomínio começa a usar o app.</p>
+        </article>
+      </div>
+
+      <p class="guide-tip">
+        <strong>Quando mexer:</strong> troca de morador → atualize pessoas e vínculos com a unidade.
+        Nova assembleia com síndico diferente → atualize síndicos e vigência do mandato.
+        Reajuste de taxa → crie um novo ciclo de valores com data de início.
+      </p>
+
+      <h2 id="relatorios">8. Relatórios em PDF</h2>
+      <p>
+        Toque no ícone <strong>Relatórios</strong> no topo da tela (gráfico). Aqui você gera os documentos
+        para assembleia, moradores ou arquivo do condomínio.
+      </p>
+
+      <div class="feature-group">
+        <h3>Principais relatórios</h3>
+        <ul>
+          <li><strong>Prestação de contas (PDF)</strong> — documento completo: gerencial, extrato, cobranças, comprovantes e demonstrativo.</li>
+          <li><strong>Demonstrativo consolidado</strong> — entradas e saídas por categoria, projeção de 6 meses e gráfico IGP-M.</li>
+          <li><strong>Extrato bancário do mês</strong> — PDF do extrato do período selecionado.</li>
+          <li><strong>Certidão de débitos</strong> — posição de uma unidade específica (útil para compra e venda).</li>
+          <li><strong>Copiar texto para WhatsApp</strong> — resumo em texto para enviar junto com o PDF.</li>
+        </ul>
+      </div>
+
+      <p>
+        Antes de exportar, você pode preencher <strong>«Ações realizadas no mês»</strong> e
+        <strong>«Próximas ações»</strong> — textos que aparecem no PDF, um item por linha.
+        Salve por mês de referência.
+      </p>
+
+      <h2 id="ajustes">9. Ajustes, backup e segurança</h2>
+      <p>
+        O ícone de engrenagem (<strong>Ajustes</strong>) fica no topo, ao lado de Relatórios.
+      </p>
+
+      <ul>
+        <li><strong>Conta bancária</strong> — status da integração. Alterações de credenciais pedem suporte ou implantação.</li>
+        <li><strong>Backup</strong> — exporte todos os dados do condomínio em arquivo JSON no aparelho. Faça backup antes de trocar de celular ou após mudanças importantes.</li>
+        <li><strong>Restaurar</strong> — importe um backup JSON para recuperar dados.</li>
+        <li><strong>Licença</strong> — ativação e validação do uso do app (gerenciado na contratação B2B).</li>
+        <li><strong>Política de privacidade</strong> — link para esta documentação no site.</li>
+      </ul>
+
+      <p class="prose-note">
+        Os dados financeiros ficam <strong>no seu aparelho</strong>, não em servidor nosso.
+        Por isso o backup regular é essencial — guarde o arquivo JSON em local seguro (nuvem pessoal, e-mail para si mesmo, etc.).
+        Credenciais bancárias <strong>não</strong> vão no arquivo de backup.
+      </p>
+
+      <h2 id="duvidas">10. Dúvidas frequentes</h2>
+
+      <details class="guide-faq">
+        <summary>O app funciona sem internet?</summary>
+        <p>
+          Para consultar dados já salvos, sim. Para sincronizar extrato, emitir cobranças ou validar licença,
+          é preciso conexão. Os dados continuam no aparelho offline.
+        </p>
+      </details>
+
+      <details class="guide-faq">
+        <summary>Posso usar em mais de um condomínio no mesmo celular?</summary>
+        <p>
+          Não. O app é <strong>um condomínio por aparelho</strong>. Administradoras costumam usar um aparelho (ou instalação) por condomínio atendido.
+        </p>
+      </details>
+
+      <details class="guide-faq">
+        <summary>Preciso classificar todos os lançamentos do extrato?</summary>
+        <p>
+          Sim, para relatórios confiáveis. O Início mostra quantos ainda faltam. Priorize os do mês corrente antes da assembleia.
+        </p>
+      </details>
+
+      <details class="guide-faq">
+        <summary>O morador pagou por Pix direto na conta. E agora?</summary>
+        <p>
+          Em <strong>Cobranças</strong>, localize a unidade e registre <strong>baixa manual</strong>, informando a forma de pagamento.
+          Depois, em <strong>Banco</strong>, classifique o lançamento do Pix vinculando à mesma unidade.
+        </p>
+      </details>
+
+      <details class="guide-faq">
+        <summary>Troquei de celular. Como levo os dados?</summary>
+        <p>
+          No aparelho antigo: <strong>Ajustes → Backup</strong> e salve o arquivo JSON.
+          No novo: instale o app, ative a licença e use <strong>Restaurar</strong> com esse arquivo.
+        </p>
+      </details>
+
+      <details class="guide-faq">
+        <summary>Onde peço ajuda?</summary>
+        <p>
+          Pelo suporte da implantação (e-mail ou WhatsApp acordados no contrato) ou
+          <a href="mailto:diogo.moura@triggerti.com">diogo.moura@triggerti.com</a>.
+          Para contratar ou ver demo:
+          <a href="/gestao-condominial/#contato">página de contato do produto</a>.
+        </p>
+      </details>
+
+      <div class="guide-cta-footer">
+        <div>
+          <h3>Quer ver antes de usar?</h3>
+          <p>Assista ao vídeo de 5 minutos com tour completo do app ou solicite uma demonstração ao vivo.</p>
+        </div>
+        <div class="guide-cta-footer__actions">
+          <a href="/gestao-condominial/#demo" class="btn btn-app-outline">Ver vídeos</a>
+          <a href="/gestao-condominial/#contato" class="btn btn-app-primary">Falar com a equipe</a>
+        </div>
+      </div>
+
+      <p style="margin-top: 2rem;">
+        <a href="/gestao-condominial/" class="btn btn-app-outline">← Voltar ao Gestão Condominial</a>
+      </p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo-text footer-logo-text--product">
+            <img src="/assets/img/logo-gestao-condominial.png" alt="" class="footer-product-mark" width="36" height="36" aria-hidden="true">
+            <div>
+              <strong>Gestão Condominial</strong>
+              <span>por Trigger Data Intelligence</span>
+            </div>
+          </div>
+          <p>Guia de uso do aplicativo Android · CNPJ 53.369.941/0001-63</p>
+        </div>
+        <div class="footer-col">
+          <h4>Produto</h4>
+          <ul>
+            <li><a href="/gestao-condominial/">Página do produto</a></li>
+            <li><a href="/gestao-condominial/#funcionalidades">Funcionalidades</a></li>
+            <li><a href="/gestao-condominial/#contato">Contato</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Trigger</h4>
+          <ul>
+            <li><a href="/consultoria/">Consultoria ERP</a></li>
+            <li><a href="/privacidade-gestao-condominial.html">Privacidade do app</a></li>
+            <li><a href="mailto:diogo.moura@triggerti.com">Contato</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        © 2024-2026 TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA · CNPJ 53.369.941/0001-63
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
