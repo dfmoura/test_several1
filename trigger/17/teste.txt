@@ -1,0 +1,49 @@
+
+tenho que gerar o melhor a melhor estrutura logica sem
+desenvolver e codar nada para construir um app kotlin 
+colocar a melhor estrutra e padrao de projeto com a melhor engenharia de software
+com um layout clean e profissional e inteligente para o usuario
+
+sera um app para gerenciar minha carteira de ações da b3 
+
+uma caracteristica deste app é o buy and hold de carteira tambem conhecido como
+carteira previdenciaria focada sempre em cada vez mais obter mais proventos
+
+
+saber quais sao os maiores pagadores de proventos por ano com um yeld acima de 
+6% ao ano mas nao so fazendo a media de preço por ação somente e pronto.... 
+tem que possibilitar uma analise inteligente, e com a base historica e
+conhemento profundo da empresa 
+
+
+************************************************************
+*observação*
+eu nao tenho possibilidade de conectar diretamente na minha conta da b3 por api
+mas posso gerar uma movimentação e carregar os dados de tudo que movimentei, 
+so que nao pode duplicar os dados
+************************************************************
+
+
+*alem disso tem codigo em curl que proporcionam
+historico de todos proventos pagos por empresa e por ticket e por data
+historico de cotações por ticket
+listagem dos tickets de empresas litadas na b3
+
+
+
+*** os curls da b3 utilizado para formar as bases do sistema antes vao olhar no
+banco se ja possuem os dados se nao ele vai consultar e fazer o append no
+banco, estas informações nao sao atualizadas somente incrementadas....
+
+
+
+
+ja comecei a desenvolver algo mas nao ficou bom na pasta: /home/dfmoura/StudioProjects/b3Proventos/
+
+
+e tambem tenho todos os historicos e documentação de curl's para auxiliar na pasta: /home/dfmoura/Documents/test_several1/trigger/
+16
+
+
+
+

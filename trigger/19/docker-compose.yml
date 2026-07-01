@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: b3carteira
+      POSTGRES_USER: b3carteira
+      POSTGRES_PASSWORD: b3carteira
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U b3carteira -d b3carteira"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://b3carteira:b3carteira@db:5432/b3carteira
+      UPLOAD_DIR: /data/uploads
+      CORS_ORIGINS: http://localhost:4819,http://127.0.0.1:4819
+    volumes:
+      - uploads:/data/uploads
+      - ./base13.xlsx:/seed/base13.xlsx:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: ./frontend
+    ports:
+      - "4819:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:

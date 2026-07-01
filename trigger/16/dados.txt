@@ -1,0 +1,13 @@
+Tenho a base do preço da ação realizados.
+tenho a base de proventos por ticker pagos.
+
+talvez um do melhores cenarios seria um ticker bom pagador de proventos.
+com menor preço para que eu possa comprar mais ticker e obter mais proventos
+
+
+eu monto minha carteira
+com os tickers na data tal, quantidade tal e valor unitario tal
+
+
+tambem ver o preço atual spot...
+

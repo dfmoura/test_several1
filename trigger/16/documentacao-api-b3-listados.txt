@@ -1,0 +1,419 @@
+================================================================================
+DOCUMENTAÇÃO — API B3 listedCompaniesProxy (curl)
+Empresas, tickers e proventos via sistemaswebb3-listados.b3.com.br
+================================================================================
+
+Gerado em: 25/06/2026
+Pasta do projeto: trigger/16
+Classificação: API pública não documentada no portal developers.b3.com.br
+              (usada pelo site de empresas listadas da B3)
+
+
+================================================================================
+1. VISÃO GERAL
+================================================================================
+
+A B3 expõe uma API REST interna usada pelo portal de empresas listadas. Todas
+as chamadas seguem o mesmo padrão:
+
+  BASE_URL = https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall
+
+  GET {BASE_URL}/{Endpoint}/{token}
+
+O {token} é um JSON codificado em Base64 (sem quebra de linha), equivalente
+ao btoa(JSON.stringify(params)) do JavaScript do site da B3.
+
+Exemplo de codificação no shell:
+
+  printf '%s' '{"language":"pt-br","pageNumber":1,"pageSize":100}' | base64 -w0
+
+Requisitos locais para os scripts desta pasta:
+  - curl
+  - jq
+  - base64
+
+
+================================================================================
+2. ENDPOINTS DISPONÍVEIS (RESUMO)
+================================================================================
+
+Endpoint                  | Função principal
+--------------------------|----------------------------------------------------
+GetInitialCompanies       | Listar emissores / buscar empresa por ticker
+GetDetail                 | Detalhes da empresa + tickers (otherCodes)
+GetListedCashDividends    | Histórico de proventos em dinheiro (dividendos, JCP)
+GetIndustryClassification | Classificação setorial (setores e segmentos B3)
+
+
+================================================================================
+3. GetInitialCompanies — LISTAR EMPRESAS (EMISSORES)
+================================================================================
+
+O que retorna
+-------------
+Lista de emissores listados na B3 (~3.456 registros em jun/2026). Cada item
+representa a EMPRESA/EMISSOR (ex.: PETR / PETROBRAS), não cada ticker
+(PETR3, PETR4 são obtidos via GetDetail).
+
+Curl — primeira página (100 empresas)
+--------------------------------------
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetInitialCompanies/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjEwMH0="
+
+Parâmetros decodificados (Base64):
+  {
+    "language": "pt-br",
+    "pageNumber": 1,
+    "pageSize": 100
+  }
+
+Curl — montar para qualquer página
+-----------------------------------
+printf '%s' '{"language":"pt-br","pageNumber":1,"pageSize":100}' | base64 -w0
+printf '%s' '{"language":"pt-br","pageNumber":2,"pageSize":100}' | base64 -w0
+
+Paginação
+---------
+  totalRecords : ~3.456 emissores
+  pageSize máx : 100 (acima disso a API retorna vazio)
+  totalPages   : ~35 (com pageSize 100)
+
+Curl — buscar emissor a partir de um ticker
+--------------------------------------------
+printf '%s' '{"language":"pt-br","pageNumber":1,"pageSize":20,"company":"PETR4"}' | base64 -w0
+
+  curl -sS "{BASE_URL}/GetInitialCompanies/{token}"
+
+O campo "company" aceita ticker (PETR4), código do emissor (PETR) ou nome.
+
+Campos principais de cada registro (results[])
+-----------------------------------------------
+Campo            | Significado
+-----------------|------------------------------------------------------------
+codeCVM          | Código CVM da empresa (usado no GetDetail)
+issuingCompany   | Código do emissor (ex.: PETR, BBAS, VALE)
+companyName      | Razão social completa
+tradingName      | Nome de negociação (usado no GetListedCashDividends)
+cnpj             | CNPJ
+market           | Mercado (N2, NM, etc.) — pode vir vazio
+segment          | Segmento de atuação
+status           | Status do registro (A = ativo)
+dateListing      | Data de listagem
+type             | Tipo de instrumento/empresa
+typeBDR          | Tipo BDR, se aplicável
+
+Estrutura da resposta
+---------------------
+  "page"    → metadados (pageNumber, pageSize, totalRecords, totalPages)
+  "results" → array de emissores da página atual
+
+Script do projeto
+-----------------
+  ./empresas-b3.sh          → gera empresas-b3.txt (todas as empresas paginadas)
+
+Saída gerada
+------------
+  empresas-b3.txt           → 3.456 emissores com emissor, razão social,
+                              nome de negociação, CNPJ, mercado e segmento
+
+
+================================================================================
+4. GetDetail — TICKERS DE UMA EMPRESA
+================================================================================
+
+O que retorna
+-------------
+Detalhes cadastrais da empresa e, principalmente, a lista de códigos
+negociáveis (tickers) no campo otherCodes.
+
+Não existe endpoint único nesta API que retorne TODOS os tickers da B3 de
+uma vez. Para obter tickers de todas as empresas, é necessário chamar
+GetDetail para cada codeCVM obtido via GetInitialCompanies (~3.456 chamadas).
+
+Curl — tickers da Petrobras (codeCVM 9512)
+-------------------------------------------
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetDetail/eyJjb2RlQ1ZNIjoiOTUxMiIsImxhbmd1YWdlIjoicHQtYnIifQ=="
+
+Parâmetros decodificados (Base64):
+  {
+    "codeCVM": "9512",
+    "language": "pt-br"
+  }
+
+Exemplo de resposta (trecho):
+  {
+    "issuingCompany": "PETR",
+    "companyName": "PETROLEO BRASILEIRO S.A. PETROBRAS",
+    "tradingName": "PETROBRAS",
+    "code": "PETR4",
+    "codeCVM": "9512",
+    "hasQuotation": "S",
+    "status": "A",
+    "market": "BOVESPA NIVEL 2",
+    "otherCodes": [
+      { "code": "PETR3", "isin": "BRPETRACNOR9" },
+      { "code": "PETR4", "isin": "BRPETRACNPR6" },
+      { "code": "PETR-DEB62", "isin": "BRPETRDBS092" }
+    ]
+  }
+
+Campos principais
+-----------------
+Campo            | Significado
+-----------------|------------------------------------------------------------
+code             | Ticker principal / mais representativo
+otherCodes       | Array com todos os códigos negociáveis + ISIN
+otherCodes[].code| Ticker (PETR3, PETR4, BBAS11, debêntures, etc.)
+otherCodes[].isin| Código ISIN internacional
+hasQuotation     | "S" = possui cotação
+activity         | Descrição da atividade econômica
+industryClassification | Setor/subsetor B3
+website          | Site da empresa
+dateQuotation    | Início das cotações
+
+Fluxo completo: ticker → lista de tickers da empresa
+-----------------------------------------------------
+  TICKER="BBAS3"
+
+  # 1) Resolver codeCVM
+  B1=$(printf '%s' "{\"language\":\"pt-br\",\"pageNumber\":1,\"pageSize\":5,\"company\":\"${TICKER}\"}" | base64 -w0)
+  CVM=$(curl -sS "{BASE_URL}/GetInitialCompanies/${B1}" | jq -r '.results[0].codeCVM')
+
+  # 2) Buscar tickers
+  B2=$(printf '%s' "{\"codeCVM\":\"${CVM}\",\"language\":\"pt-br\"}" | base64 -w0)
+  curl -sS "{BASE_URL}/GetDetail/${B2}" | jq '{empresa: .tradingName, tickers: [.otherCodes[].code]}'
+
+Observação
+----------
+Nem todo emissor retorna otherCodes. Empresas sem papéis cotados ou com
+cadastro incometo podem retornar campos nulos no GetDetail.
+
+
+================================================================================
+5. GetListedCashDividends — PROVENTOS EM DINHEIRO
+================================================================================
+
+O que retorna
+-------------
+Histórico de proventos em dinheiro da empresa: dividendos, JCP (Juros sobre
+Capital Próprio), rendimentos etc. A consulta usa tradingName (não ticker).
+
+Curl — Petrobras, página 1 (5 registros)
+-----------------------------------------
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetListedCashDividends/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjUsInRyYWRpbmdOYW1lIjoiUEVUUk9CUkFTIn0="
+
+Parâmetros decodificados (Base64):
+  {
+    "language": "pt-br",
+    "pageNumber": 1,
+    "pageSize": 5,
+    "tradingName": "PETROBRAS"
+  }
+
+Paginação
+---------
+  pageSize recomendado : 100
+  totalRecords         : varia por empresa (ex.: Petrobras ~333 eventos)
+  Filtro por data      : NÃO suportado pela API — filtrar localmente
+
+Campos principais de cada registro (results[])
+-----------------------------------------------
+Campo                      | Significado
+---------------------------|--------------------------------------------------
+typeStock                  | Tipo de ação: ON, PN, etc.
+corporateAction            | DIVIDENDO, JRS CAP PROPRIO, RENDIMENTO, etc.
+dateApproval               | Data de aprovação do provento
+lastDatePriorEx            | Data EX (último dia para ter direito)
+valueCash                  | Valor bruto por ação (R$, formato BR com vírgula)
+closingPricePriorExDate    | Preço de fechamento na véspera do ex
+lastDateTimePriorEx        | Data ex em ISO (YYYY-MM-DDTHH:MM:SS)
+
+Limitações conhecidas
+---------------------
+  [ ] Não informa ticker exato (PETR3 vs PETR4) — só typeStock
+  [ ] Não traz data de PAGAMENTO — apenas aprovação e data ex
+  [ ] Não filtra por intervalo de datas na requisição
+  [ ] Valores com vírgula decimal (padrão BR)
+  [ ] Registros duplicados podem aparecer — deduplicar no pós-processamento
+
+Script do projeto
+-----------------
+  ./proventos-por-ticker.sh PETR4    → gera proventos-PETR4.txt
+  ./proventos-por-ticker.sh VALE3    → gera proventos-VALE3.txt
+  ./proventos-por-ticker.sh BRSR6    → gera proventos-BRSR6.txt
+
+Saídas geradas (exemplos)
+-------------------------
+  proventos-PETR4.txt
+  proventos-AURE3.txt
+  proventos-BRSR6.txt
+  proventos-petrobras-completo.txt
+  interpretacao-dividendos-petrobras.txt   → análise detalhada da resposta
+
+
+================================================================================
+6. GetIndustryClassification — SETORES E SEGMENTOS
+================================================================================
+
+Retorna a árvore de classificação setorial da B3 (setores, subsetores,
+segmentos). Não requer filtro de empresa.
+
+Curl
+----
+  B=$(printf '%s' '{"language":"pt-br","pageNumber":1,"pageSize":5}' | base64 -w0)
+  curl -sS "{BASE_URL}/GetIndustryClassification/${B}"
+
+
+================================================================================
+7. FLUXOS DE TRABALHO
+================================================================================
+
+7.1 Listar todas as empresas (emissores)
+-----------------------------------------
+  1. Chamar GetInitialCompanies com pageNumber 1..35 e pageSize 100
+  2. Concatenar results[] de todas as páginas
+  3. Ou executar: ./empresas-b3.sh
+
+7.2 Obter tickers de uma empresa específica
+--------------------------------------------
+  1. GetInitialCompanies com company="TICKER" → obter codeCVM
+  2. GetDetail com codeCVM → extrair otherCodes[].code
+  3. Ou montar os dois curls manualmente (ver seção 4)
+
+7.3 Obter tickers de TODAS as empresas (via API B3)
+----------------------------------------------------
+  1. GetInitialCompanies (todas as páginas) → lista de codeCVM
+  2. Para cada codeCVM: GetDetail → otherCodes
+  3. ~3.456+ requisições HTTP — lento; usar com rate limiting
+
+7.4 Histórico de proventos de um ticker
+----------------------------------------
+  1. GetInitialCompanies com company="TICKER" → tradingName
+  2. Remover "/" e "." do tradingName se necessário
+  3. GetListedCashDividends paginado com tradingName
+  4. Filtrar/deduplicar localmente
+  5. Ou executar: ./proventos-por-ticker.sh TICKER
+
+7.5 Resolver ticker → emissor → proventos (pipeline completo)
+--------------------------------------------------------------
+  PETR4
+    → GetInitialCompanies(company=PETR4)  → tradingName=PETROBRAS, codeCVM=9512
+    → GetDetail(codeCVM=9512)           → tickers: PETR3, PETR4, PETR-DEB62
+    → GetListedCashDividends(PETROBRAS) → histórico de proventos
+
+
+================================================================================
+8. ALTERNATIVA — LISTA COMPLETA DE TICKERS EM UM ÚNICO CURL
+================================================================================
+
+A API listedCompaniesProxy da B3 NÃO oferece um endpoint bulk de tickers.
+Para obter todos os tickers do mercado à vista em uma única requisição,
+existe uma fonte comunitária derivada de dados públicos da B3:
+
+curl -sS "https://cvscarlos.github.io/b3-api-dados-historicos/api/v1/tickers-cash-market.json" \
+  | jq '.data | keys'
+
+Retorna milhares de tickers (ações, FIIs, ETFs, BDRs etc.) com metadados:
+
+  {
+    "PETR4": {
+      "codNeg": "PETR4",
+      "nomeCurto": "PETROBRAS",
+      "especPapel": "ON",
+      "dataMin": 20100104,
+      "dataMax": 20260624
+    },
+    ...
+  }
+
+Vantagens : uma requisição, inclui FIIs/ETFs/BDRs
+Desvantagens: não é API oficial B3; atualização depende do mantenedor
+
+
+================================================================================
+9. ARQUIVOS DESTA PASTA (trigger/16)
+================================================================================
+
+Scripts
+-------
+  empresas-b3.sh              Lista todos os emissores → empresas-b3.txt
+  proventos-por-ticker.sh     Proventos por ticker → proventos-{TICKER}.txt
+
+Dados gerados
+-------------
+  empresas-b3.txt             3.456 emissores listados na B3
+  proventos-PETR4.txt         Proventos Petrobras
+  proventos-AURE3.txt         Proventos Auren Energia
+  proventos-BRSR6.txt         Proventos Banrisul
+  proventos-petrobras-completo.txt
+
+Documentação
+------------
+  documentacao-api-b3-listados.txt   ← este arquivo
+  interpretacao-dividendos-petrobras.txt  Análise da API de proventos
+  o-que-saber-sobre-teste.txt        Resumo do manual APIs Área Logada B3
+  teste.txt                          Manual técnico original (PDF extraído)
+
+
+================================================================================
+10. DIFERENÇA: API LISTADOS vs API ÁREA LOGADA DO INVESTIDOR
+================================================================================
+
+Este projeto usa a API PÚBLICA de empresas listadas (listedCompaniesProxy),
+acessível via curl sem autenticação.
+
+A API da Área Logada do Investidor (documentada em teste.txt e
+developers.b3.com.br) é outra coisa:
+  - Exige consentimento do investidor (CPF)
+  - Contratação B2B (pessoa jurídica)
+  - Retorna posição, movimentação, eventos provisionados por CPF
+  - Inclui tickerSymbol nos eventos do investidor
+  - Tarifada (franquia 10k CPFs, piso R$ 500/mês)
+
+Para consultas públicas por empresa/ticker (proventos, cadastro), use
+listedCompaniesProxy. Para extrato do investidor, use a API Área Logada.
+
+
+================================================================================
+11. REFERÊNCIA RÁPIDA DE CURLS
+================================================================================
+
+# Todas as empresas — página 1
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetInitialCompanies/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjEwMH0="
+
+# Buscar emissor por ticker
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetInitialCompanies/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjIwLCJjb21wYW55IjoiUEVUUjQifQ=="
+
+# Tickers da Petrobras (GetDetail)
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetDetail/eyJjb2RlQ1ZNIjoiOTUxMiIsImxhbmd1YWdlIjoicHQtYnIifQ=="
+
+# Tickers do Banco do Brasil (GetDetail, codeCVM 1023)
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetDetail/eyJjb2RlQ1ZNIjoiMTAyMyIsImxhbmd1YWdlIjoicHQtYnIifQ=="
+
+# Proventos Petrobras — página 1
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetListedCashDividends/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjUsInRyYWRpbmdOYW1lIjoiUEVUUk9CUkFTIn0="
+
+# Proventos Petrobras — 100 por página
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetListedCashDividends/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjEwMCwidHJhZGluZ05hbWUiOiJQRVRST0JSQVMifQ=="
+
+# Todos os tickers mercado à vista (fonte comunitária)
+curl -sS "https://cvscarlos.github.io/b3-api-dados-historicos/api/v1/tickers-cash-market.json" | jq '.data | keys'
+
+
+================================================================================
+12. CHECKLIST RÁPIDO
+================================================================================
+
+[ ] Saber codificar parâmetros JSON em Base64 (-w0 no Linux)
+[ ] GetInitialCompanies → emissores (~3.456), pageSize máx 100
+[ ] GetDetail(codeCVM) → tickers em otherCodes[].code
+[ ] GetListedCashDividends(tradingName) → proventos em dinheiro
+[ ] Ticker → emissor: GetInitialCompanies com company=TICKER
+[ ] Ticker → proventos: resolver tradingName, depois paginar proventos
+[ ] Não há endpoint bulk de tickers na API B3 listados
+[ ] Alternativa bulk: tickers-cash-market.json (comunitário)
+[ ] Scripts prontos: empresas-b3.sh e proventos-por-ticker.sh
+[ ] API Área Logada (teste.txt) é separada — exige CPF e contrato B2B
+
+================================================================================
+Fim da documentação — trigger/16/documentacao-api-b3-listados.txt
+================================================================================

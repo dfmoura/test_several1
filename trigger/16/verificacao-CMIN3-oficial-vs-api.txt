@@ -1,0 +1,526 @@
+================================================================================
+VERIFICAÇÃO DE CONFRONTO — CMIN3
+Dados oficiais do investidor (empresa/corretora) × API B3 (GetListedCashDividends)
+================================================================================
+
+Data da verificação : 29/06/2026
+Ticker              : CMIN3
+Empresa (API B3)    : CSNMINERACAO
+Arquivos comparados :
+  - CMIN3_DADOS.TXT          (11 linhas de proventos recebidos — fonte oficial)
+  - proventos-CMIN3.txt      (24 registros históricos — fonte API B3 pública)
+
+Objetivo deste documento:
+  Servir de especificação para ajustar um aplicativo que reconcilia proventos
+  do extrato do investidor com o histórico corporativo publicado pela B3.
+
+
+================================================================================
+1. RESUMO EXECUTIVO
+================================================================================
+
+RESULTADO: CONFERÊNCIA OK — 11/11 linhas oficiais possuem correspondência na API.
+
+  Linhas no arquivo oficial .............. 11
+  Registros na API B3 .................... 24
+  Pareamentos encontrados ................ 11
+  Divergências de valor .................. 0 (considerando arredondamento 3 casas)
+  Divergências de evento ................. 0
+  Diferença total em R$ (arredondamento) . R$ 1,19 sobre R$ 2.455,68 (~0,05%)
+
+Conclusão para o aplicativo:
+  Os dados BATEM quando a reconciliação usa VALOR POR AÇÃO + TIPO DE EVENTO
+  como chave primária, e NÃO usa a data literal do extrato como data ex.
+  O extrato traz DATA DE PAGAMENTO/CRÉDITO; a API traz DATA EX.
+
+
+================================================================================
+2. DESCRIÇÃO DOS ARQUIVOS DE ENTRADA
+================================================================================
+
+--- 2.1 CMIN3_DADOS.TXT (formato oficial / extrato) ---
+
+Separador : ponto e vírgula (;)
+Encoding  : texto plano, decimal brasileiro (vírgula)
+
+Cabeçalho:
+  tipo;ticker;data;quantidade;preco_unitario;observacao
+
+Significado inferido dos campos (com base no confronto):
+
+  Campo           | Tipo     | Descrição
+  ----------------|----------|--------------------------------------------------
+  tipo            | string   | "Compra" no extrato — classificação interna do
+                  |          | sistema de origem; NÃO indica compra de ações.
+                  |          | Os valores correspondem a CRÉDITOS de proventos.
+  ticker          | string   | Código de negociação: CMIN3
+  data            | date     | Data do CRÉDITO/PAGAMENTO na conta do investidor
+                  |          | Formato: DD/MM/YYYY
+  quantidade      | integer  | Quantidade de ações titular na DATA EX do evento
+                  |          | (não necessariamente na data de pagamento)
+  preco_unitario  | decimal  | Valor do provento POR AÇÃO, arredondado em
+                  |          | 3 casas decimais (vírgula como separador)
+  observacao      | string   | Vazio neste arquivo
+
+Exemplo de linha:
+  Compra;CMIN3;19/11/2025;2658;0,078;
+
+Leitura:
+  Em 19/11/2025 o investidor recebeu crédito referente a dividendo de
+  R$ 0,078/ação × 2658 ações = R$ 207,32 (valor bruto arredondado).
+
+
+--- 2.2 proventos-CMIN3.txt (formato API B3) ---
+
+Gerado por: proventos-por-ticker.sh CMIN3
+Endpoint  : GetListedCashDividends (listedCompaniesProxy)
+URL base  : https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall
+
+Colunas do TXT gerado:
+
+  #           → índice sequencial (ordem decrescente por data ex)
+  DATA EX     → lastDatePriorEx — último dia com direito ao provento
+  APROVAÇÃO   → dateApproval — data da deliberação/assembleia
+  TIPO AÇÃO   → typeStock (ON, PN, PNA, PNB...)
+  EVENTO      → corporateAction (DIVIDENDO, JRS CAP PROPRIO, RENDIMENTO...)
+  VALOR/ AÇÃO → valueCash — valor bruto por ação (precisão alta, vírgula BR)
+  FECH. EX    → closingPricePriorExDate — preço de fechamento na véspera do ex
+
+Campos JSON brutos da API (não todos exportados no TXT):
+
+  {
+    "typeStock": "ON",
+    "dateApproval": "16/04/2026",
+    "valueCash": "0,14149297572",
+    "ratio": "1",
+    "corporateAction": "DIVIDENDO",
+    "lastDatePriorEx": "16/04/2026",
+    "dateClosingPricePriorExDate": "16/04/2026",
+    "closingPricePriorExDate": "4,96",
+    "quotedPerShares": "1",
+    "corporateActionPrice": "2,852681",
+    "lastDateTimePriorEx": "2026-04-16T00:00:00"
+  }
+
+LIMITAÇÃO CRÍTICA DA API:
+  A API NÃO fornece data de pagamento. Só data ex, aprovação e valor/ação.
+  O aplicativo NÃO deve comparar data do extrato com data ex diretamente.
+
+
+================================================================================
+3. MAPEAMENTO DE CAMPOS (PARA O APLICATIVO)
+================================================================================
+
+  Campo oficial          → Campo API JSON       → Campo TXT gerado
+  -----------------------|----------------------|------------------
+  ticker                 → (não vem na API;     → CMIN3 (parâmetro)
+                         →  resolver via        |
+                         →  GetInitialCompanies)|
+  data                   → (NÃO EXISTE)         → usar só como dica de
+                         →                      → pagamento, não como chave
+  quantidade             → (NÃO EXISTE)         → calcular da posição do
+                         →                      → investidor na data ex
+  preco_unitario         → valueCash            → VALOR/ AÇÃO
+  tipo ("Compra")        → corporateAction      → EVENTO
+  observacao             → —                    → —
+
+Chave de reconciliação recomendada (ordem de prioridade):
+
+  1. ticker (filtro inicial)
+  2. corporateAction normalizado (DIVIDENDO / JCP)
+  3. valueCash arredondado a 3 casas OU diferença absoluta < 0,0005
+  4. quantidade coerente com posição na data ex (validação secundária)
+  5. data de pagamento dentro de janela esperada após data ex (validação)
+
+NÃO usar como chave única:
+  - data do extrato = data ex (falso na maioria dos casos)
+  - preco_unitario com precisão total (extrato tem 3 casas; API tem 11+)
+
+
+================================================================================
+4. NORMALIZAÇÃO DE VALORES (REGRAS DE CÓDIGO)
+================================================================================
+
+--- 4.1 Conversão decimal BR → número ---
+
+  Entrada API/extrato: "0,07809319874" ou "0,078"
+  Algoritmo:
+    1. Remover separador de milhar (ponto), se houver
+    2. Substituir vírgula por ponto
+    3. Parsear como decimal de alta precisão (não usar float direto)
+
+  Python (exemplo):
+    from decimal import Decimal
+  def parse_br(s: str) -> Decimal:
+      return Decimal(s.replace('.', '').replace(',', '.'))
+
+--- 4.2 Arredondamento para confronto ---
+
+  O extrato oficial usa 3 casas decimais no valor por ação.
+  A API retorna até 11 casas.
+
+  Regra de match:
+    round_half_up(api_value, 3) == round_half_up(official_value, 3)
+
+  Alternativa (mais tolerante):
+    abs(api_value - official_value) < 0.0005
+
+  Neste caso CMIN3, TODAS as 11 linhas passam em ambas as regras.
+
+--- 4.3 Normalização de tipo de evento ---
+
+  API corporateAction     | Sigla comum | No extrato oficial
+  ------------------------|-------------|--------------------
+  DIVIDENDO               | DIV         | "Compra" (sem distinção)
+  JRS CAP PROPRIO         | JCP         | "Compra" (sem distinção)
+
+  O campo "tipo" do extrato NÃO distingue DIV de JCP.
+  A distinção vem exclusivamente do valor/ação casado com a API.
+
+--- 4.4 Normalização de datas ---
+
+  Formato extrato/API TXT : DD/MM/YYYY
+  Formato API ISO         : YYYY-MM-DDTHH:MM:SS (lastDateTimePriorEx)
+
+  Para ordenação e busca de posição, preferir lastDateTimePriorEx ou
+  lastDatePriorEx convertido para Date (sem hora).
+
+
+================================================================================
+5. PAREAMENTO COMPLETO — 11 LINHAS OFICIAIS × 11 EVENTOS API
+================================================================================
+
+Legenda das colunas:
+  Of#     = número da linha no CMIN3_DADOS.TXT (1-based, após cabeçalho)
+  Pagto   = data de crédito no extrato oficial
+  Qtd     = ações na data ex (conforme extrato)
+  Of/ação = valor por ação no extrato (3 casas)
+  API#    = número do registro em proventos-CMIN3.txt
+  Data EX = lastDatePriorEx
+  Aprov   = dateApproval
+  Evento  = corporateAction
+  API/ação= valueCash exato da API
+  Tot.Of  = Qtd × Of/ação (usando valor arredondado do extrato)
+  Tot.API = Qtd × API/ação (usando valor exato da API)
+  Δ linha = diferença Tot.Of − Tot.API
+
+----+------------+------+--------+------+------------+------------+------------------+-------------+---------+---------+-------
+ Of# | Pagto      | Qtd  | Of/ação| API# | Data EX    | Aprov      | Evento           | API/ação    | Tot.Of  | Tot.API | Δ
+----+------------+------+--------+------+------------+------------+------------------+-------------+---------+---------+-------
+  1  | 19/11/2025 | 2658 | 0,078  |  5   | 07/11/2025 | 04/11/2025 | DIVIDENDO        | 0,07809320  |  207,32 |  207,57 | -0,25
+  2  | 19/11/2025 | 2658 | 0,088  |  4   | 07/11/2025 | 04/11/2025 | JRS CAP PROPRIO  | 0,08818043  |  233,90 |  234,38 | -0,48
+  3  | 15/07/2025 | 2058 | 0,039  |  8   | 06/01/2025 | 27/12/2024 | JRS CAP PROPRIO  | 0,03895596  |   80,26 |   80,17 | +0,09
+  4  | 15/07/2025 | 2258 | 0,039  |  6   | 13/05/2025 | 08/05/2025 | JRS CAP PROPRIO  | 0,03865948  |   88,06 |   87,29 | +0,77
+  5  | 15/07/2025 | 2258 | 0,201  |  7   | 13/05/2025 | 08/05/2025 | DIVIDENDO        | 0,20066109  |  453,86 |  453,09 | +0,77
+  6  | 30/12/2024 | 1757 | 0,437  | 10   | 03/10/2024 | 30/09/2024 | DIVIDENDO        | 0,43689118  |  767,81 |  767,62 | +0,19
+  7  | 30/12/2024 | 1757 | 0,029  | 11   | 03/10/2024 | 30/09/2024 | DIVIDENDO        | 0,02943267  |   50,95 |   51,71 | -0,76
+  8  | 30/12/2024 | 1757 | 0,086  |  9   | 03/10/2024 | 30/09/2024 | JRS CAP PROPRIO  | 0,08553870  |  151,10 |  150,29 | +0,81
+  9  | 28/05/2024 |  590 | 0,079  | 13   | 28/12/2023 | 22/12/2023 | JRS CAP PROPRIO  | 0,07934719  |   46,61 |   46,81 | -0,20
+ 10  | 28/05/2024 | 1224 | 0,187  | 12   | 14/05/2024 | 09/05/2024 | DIVIDENDO        | 0,18686917  |  228,89 |  228,73 | +0,16
+ 11  | 28/11/2023 |  590 | 0,249  | 14   | 20/11/2023 | 14/11/2023 | DIVIDENDO        | 0,24884185  |  146,91 |  146,82 | +0,09
+----+------------+------+--------+------+------------+------------+------------------+-------------+---------+---------+-------
+                                                          SOMA | 2455,68 | 2454,49 | +1,19
+
+
+================================================================================
+6. ANÁLISE DAS DATAS — PAGAMENTO vs DATA EX
+================================================================================
+
+A API não informa pagamento. A tabela abaixo mostra o deslocamento observado
+entre data ex (API) e data de crédito (extrato oficial):
+
+  Of# | Data EX (API) | Pagamento (extrato) | Dias após o ex | Observação
+  ----|---------------|---------------------|----------------|----------------------------------
+   1  | 07/11/2025    | 19/11/2025          | 12 dias        | Mesmo evento (#4 JCP no ex)
+   2  | 07/11/2025    | 19/11/2025          | 12 dias        | Dois créditos no mesmo pagto
+   3  | 06/01/2025    | 15/07/2025          | 190 dias       | JCP dez/2024 pago em jul/2025
+   4  | 13/05/2025    | 15/07/2025          | 63 dias        | Dois JCP ~0,039 no mesmo dia
+   5  | 13/05/2025    | 15/07/2025          | 63 dias        | DIV + JCP do mesmo ex em 13/05
+   6  | 03/10/2024    | 30/12/2024          | 88 dias        | Três créditos no mesmo pagto
+   7  | 03/10/2024    | 30/12/2024          | 88 dias        | (DIV 0,437 + DIV 0,029 + JCP)
+   8  | 03/10/2024    | 30/12/2024          | 88 dias        |
+   9  | 28/12/2023    | 28/05/2024          | 152 dias       | JCP pago meses depois
+  10  | 14/05/2024    | 28/05/2024          | 14 dias        | Dois créditos no mesmo pagto
+  11  | 20/11/2023    | 28/11/2023          | 8 dias         | Primeiro provento do investidor
+
+Implicação para o aplicativo:
+  - Não exigir igualdade de datas
+  - Aceitar janela de pagamento flexível (ex.: 5 a 200 dias após data ex)
+  - Agrupar múltiplos eventos com mesma data de pagamento no extrato
+  - Usar data ex + valor/ação como identificador do evento corporativo
+
+
+================================================================================
+7. CASOS ESPECIAIS (ARMADILHAS PARA O APLICATIVO)
+================================================================================
+
+--- 7.1 Dois eventos com MESMO valor arredondado (0,039) ---
+
+  Of#3 e Of#4: ambos preco_unitario = 0,039, mesma data de pagamento 15/07/2025,
+  mas quantidades DIFERENTES (2058 vs 2258).
+
+  São DOIS eventos corporativos distintos na API:
+    - API #8: JCP, ex 06/01/2025, R$ 0,03895596/ação
+    - API #6: JCP, ex 13/05/2025, R$ 0,03865948/ação
+
+  Ambos arredondam para 0,039 no extrato.
+
+  REGRA: quando houver colisão de valor arredondado, desambiguar por:
+    (a) quantidade de ações (posição na data ex de cada evento), e/ou
+    (b) consumir cada evento API apenas uma vez (matching bipartido)
+
+  ERRO COMUM: atribuir ambas as linhas 0,039 ao mesmo evento API.
+
+
+--- 7.2 Múltiplos créditos na MESMA data de pagamento ---
+
+  Cenário A — 19/11/2025 (Of#1 + Of#2):
+    Mesma qtd (2658), mesma data ex (07/11/2025), eventos diferentes:
+    DIV 0,078 + JCP 0,088
+
+  Cenário B — 30/12/2024 (Of#6 + Of#7 + Of#8):
+    Mesma qtd (1757), mesma data ex (03/10/2024), TRÊS eventos:
+    DIV 0,437 + DIV 0,029 + JCP 0,086
+
+  Cenário C — 15/07/2025 (Of#3 + Of#4 + Of#5):
+  Cenário D — 28/05/2024 (Of#9 + Of#10):
+    Eventos de data ex DIFERENTES agrupados no mesmo dia de crédito.
+
+  REGRA: agrupar por data de pagamento apenas para exibição; o match é 1:1
+  entre linha do extrato e registro API.
+
+
+--- 7.3 Mesma data ex, múltiplos dividendos (API #10 e #11) ---
+
+  Ex 03/10/2024 tem DOIS registros DIVIDENDO com valores diferentes:
+    0,43689118448 e 0,02943266927
+
+  Isso é normal — empresa pode distribuir parcelas distintas aprovadas
+  na mesma assembleia. O aplicativo deve tratar cada valueCash como evento
+  único, mesmo com mesma data ex e mesmo corporateAction.
+
+
+--- 7.4 Campo "tipo = Compra" no extrato ---
+
+  NÃO interpretar como compra de ações.
+  Neste arquivo, 100% das linhas "Compra" são créditos de proventos.
+  O aplicativo deve ter mapeamento configurável de tipos de movimentação
+  por corretora/sistema de origem.
+
+
+--- 7.5 Quantidade variável ao longo do tempo ---
+
+  Evolução da posição inferida pelas linhas oficiais:
+
+  Data ex aprox.  | Qtd ações | Evento
+  ----------------|-----------|----------------------------------
+  20/11/2023      | 590       | Primeiro dividendo recebido
+  28/12/2023      | 590       | JCP (pago em 28/05/2024)
+  14/05/2024      | 1224      | Dividendo (posição aumentou)
+  03/10/2024      | 1757      | Três proventos do mesmo ex
+  06/01/2025      | 2058      | JCP (pago em 15/07/2025)
+  13/05/2025      | 2258      | JCP + DIV (pago em 15/07/2025)
+  07/11/2025      | 2658      | JCP + DIV (pago em 19/11/2025)
+
+  REGRA: quantidade no extrato = posição do investidor NA DATA EX do evento
+  casado, não na data de pagamento.
+
+
+================================================================================
+8. REGISTROS API SEM CORRESPONDENTE NO OFICIAL
+================================================================================
+
+--- 8.1 Proventos futuros (ainda não pagos) — API #1 a #3 ---
+
+  API# | Data EX    | Evento          | Valor/ação   | Motivo
+  -----|------------|-----------------|--------------|-----------------------------
+   1   | 16/04/2026 | DIVIDENDO       | 0,14149298   | Ex futuro; extrato até nov/2025
+   2   | 02/01/2026 | JRS CAP PROPRIO | 0,03019082   | Idem
+   3   | 02/01/2026 | DIVIDENDO       | 0,04781110   | Idem
+
+  Comportamento esperado do app: exibir como "provisionado" ou "a receber"
+  se o investidor tinha posição na data ex.
+
+
+--- 8.2 Proventos anteriores à posição do investidor — API #15 a #24 ---
+
+  Período API: 30/04/2021 a 08/05/2023
+  Primeiro crédito oficial: 28/11/2023 (ex 20/11/2023)
+
+  O investidor NÃO tinha ações (ou não tinha direito) nesses eventos.
+  O app deve filtrar eventos API pela posição do investidor na data ex.
+
+  API# | Data EX    | Evento          | Valor/ação
+  -----|------------|-----------------|-------------
+   15  | 08/05/2023 | JRS CAP PROPRIO | 0,05094189
+   16  | 08/05/2023 | DIVIDENDO       | 0,28257142
+   17  | 28/04/2023 | DIVIDENDO       | 0,11520024
+   18  | 28/12/2022 | JRS CAP PROPRIO | 0,01599251
+   19  | 10/11/2022 | JRS CAP PROPRIO | 0,12428670
+   20  | 10/11/2022 | DIVIDENDO       | 0,32140221
+   21  | 29/04/2022 | DIVIDENDO       | 0,45943808
+   22  | 29/12/2021 | JRS CAP PROPRIO | 0,08630892
+   23  | 30/07/2021 | DIVIDENDO       | 0,33052636
+   24  | 30/04/2021 | DIVIDENDO       | 0,05158158
+
+
+================================================================================
+9. ALGORITMO DE RECONCILIAÇÃO (PSEUDOCÓDIGO)
+================================================================================
+
+  ENTRADA:
+    extrato[]     — linhas do investidor (tipo, ticker, data, qtd, valor/ação)
+    apiEvents[]   — resultados de GetListedCashDividends para o ticker
+    posicoes[]    — histórico de posição do investidor (opcional, para validação)
+
+  PRÉ-PROCESSAMENTO API:
+    para cada evento em apiEvents:
+      evento.valorNumerico = parse_br(evento.valueCash)
+      evento.valorArred3   = round_half_up(evento.valorNumerico, 3)
+      evento.dataEx        = parse_date(evento.lastDatePriorEx)
+      evento.usado         = false
+
+  PRÉ-PROCESSAMENTO EXTRATO:
+  filtrar linhas onde ticker == "CMIN3" e valor/ação > 0
+    para cada linha em extrato:
+      linha.valorNumerico = parse_br(linha.preco_unitario)
+      linha.valorArred3   = round_half_up(linha.valorNumerico, 3)
+
+  MATCHING (para cada linha do extrato, ordem por data de pagamento desc):
+
+    candidatos = apiEvents onde:
+      NOT evento.usado
+      AND evento.valorArred3 == linha.valorArred3
+      -- OU abs(evento.valorNumerico - linha.valorNumerico) < 0.0005
+
+    se candidatos vazio:
+      marcar linha como NÃO ENCONTRADO
+      continuar
+
+    se len(candidatos) == 1:
+      associar linha ↔ candidatos[0]
+      marcar candidatos[0].usado = true
+      continuar
+
+    se len(candidatos) > 1:
+      -- desambiguação por quantidade (posição na data ex)
+      filtrar candidatos onde posicao_investidor(evento.dataEx) == linha.quantidade
+      se len == 1: associar e marcar usado
+      senão: marcar AMBÍGUO para revisão manual
+
+  VALIDAÇÃO PÓS-MATCH:
+    para cada par (linha, evento):
+      totalExtrato = linha.quantidade * linha.valorNumerico
+      totalAPI     = linha.quantidade * evento.valorNumerico
+      se abs(totalExtrato - totalAPI) > 1.00:  -- tolerância R$ 1 por linha
+        flag DIVERGÊNCIA DE TOTAL
+
+  SAÍDA:
+    pares[]           — linha extrato ↔ evento API
+    naoEncontrados[]  — linhas sem match
+    naoRecebidos[]    — eventos API com posição > 0 na data ex mas sem crédito
+    ambiguos[]        — colisões não resolvidas
+
+
+================================================================================
+10. CASOS DE TESTE (UNITÁRIOS SUGERIDOS)
+================================================================================
+
+  ID    | Descrição                              | Entrada               | Esperado
+  ------|----------------------------------------|-----------------------|------------------
+  T01   | Match simples DIV                        | 0,078 / pag 19/11/25  | API#5 ex 07/11/25
+  T02   | Match simples JCP                        | 0,088 / pag 19/11/25  | API#4 ex 07/11/25
+  T03   | Colisão 0,039 qtd 2058                   | 0,039 / qtd 2058      | API#8 ex 06/01/25
+  T04   | Colisão 0,039 qtd 2258                   | 0,039 / qtd 2258      | API#6 ex 13/05/25
+  T05   | Mesmo ex, DIV após JCP                   | 0,201 / qtd 2258      | API#7 ex 13/05/25
+  T06   | Três eventos mesma data pag              | 30/12/2024 × 3 linhas | API#9,#10,#11
+  T07   | Data pag ≠ data ex                       | pag 28/05, ex 28/12   | Não rejeitar
+  T08   | Evento futuro sem extrato                | API#1 ex 16/04/2026   | status "a receber"
+  T09   | Evento API sem posição                   | API#24 ex 30/04/2021  | ignorar
+  T10   | Arredondamento 3 casas                   | 0,249 vs 0,24884185   | MATCH OK
+  T11   | Total geral                              | 11 linhas             | Δ < R$ 2,00
+
+
+================================================================================
+11. FLUXO DE INTEGRAÇÃO COM A API B3
+================================================================================
+
+  Passo 1 — Resolver tradingName a partir do ticker
+    GET GetInitialCompanies
+    JSON: {"language":"pt-br","pageNumber":1,"pageSize":20,"company":"CMIN3"}
+    → tradingName = "CSNMINERACAO"
+
+  Passo 2 — Buscar proventos (paginar se totalPages > 1)
+    GET GetListedCashDividends
+    JSON: {"language":"pt-br","pageNumber":1,"pageSize":100,
+           "tradingName":"CSNMINERACAO"}
+
+  Passo 3 — Deduplicar (script atual usa unique_by)
+    Chave: [typeStock, corporateAction, dateApproval,
+            lastDatePriorEx, valueCash]
+
+  Passo 4 — Ordenar por data ex decrescente
+    Campo: lastDateTimePriorEx // lastDatePriorEx
+
+  Passo 5 — Cruzar com extrato conforme seção 9
+
+  Script de referência no repositório:
+    proventos-por-ticker.sh
+
+
+================================================================================
+12. TOTAIS E TOLERÂNCIAS RECOMENDADAS
+================================================================================
+
+  Métrica                          | Valor
+  ---------------------------------|-------------
+  Total bruto extrato (11 linhas)   | R$ 2.455,68
+  Total bruto API (valores exatos)  | R$ 2.454,49
+  Diferença absoluta               | R$ 1,19
+  Diferença percentual             | 0,05%
+
+  Tolerâncias sugeridas para o app:
+    Valor por ação  : igualdade no 3º decimal OU diff < R$ 0,0005
+    Total por linha : diff < R$ 1,00 (por causa do arredondamento × qtd)
+    Total geral     : diff < R$ 2,00 ou 0,1% do total, o que for maior
+
+  Nota sobre impostos:
+    Este confronto usa valores BRUTOS (valueCash).
+    Se o extrato líquido descontar IR retido na fonte (especialmente JCP),
+    os totais NÃO baterão — será necessário campo separado para valor líquido.
+
+
+================================================================================
+13. CHECKLIST DE IMPLEMENTAÇÃO NO APLICATIVO
+================================================================================
+
+  [ ] Parser CSV com separador ; e decimal BR (vírgula)
+  [ ] Cliente API B3 com paginação automática (pageSize 100)
+  [ ] Resolver ticker → tradingName antes de buscar proventos
+  [ ] Usar Decimal (não float) para valores monetários
+  [ ] Chave de match: valor/ação (3 casas) + tipo evento + qtd na data ex
+  [ ] NÃO comparar data extrato com data ex literalmente
+  [ ] Tratar colisão de valores arredondados iguais (ex.: 0,039)
+  [ ] Suportar N eventos API no mesmo dia de pagamento do extrato
+  [ ] Marcar eventos API futuros como provisionados
+  [ ] Filtrar eventos API anteriores à primeira posição do investidor
+  [ ] Deduplicar resposta API antes do match
+  [ ] Log de ambiguidades para revisão manual
+  [ ] Exibir diff por linha e diff total na tela de reconciliação
+
+
+================================================================================
+14. REFERÊNCIAS NO REPOSITÓRIO
+================================================================================
+
+  CMIN3_DADOS.TXT                    — dados oficiais do investidor (entrada)
+  proventos-CMIN3.txt                — saída da API B3 para CMIN3
+  proventos-por-ticker.sh            — script gerador do TXT
+  interpretacao-dividendos-petrobras.txt — glossário dos campos da API
+  guia-completo-b3-curl-codigos.txt  — documentação geral da API listedCompaniesProxy
+  documentacao-api-b3-listados.txt   — referência adicional de endpoints
+
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================

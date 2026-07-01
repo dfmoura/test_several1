@@ -1,0 +1,636 @@
+================================================================================
+GUIA COMPLETO — PROJETO B3 (trigger/16)
+Tudo feito anteriormente: curls, scripts, interpretações e arquivos gerados
+================================================================================
+
+Gerado em: 25/06/2026
+Pasta: /home/dfmoura/Documents/test_several1/trigger/16
+
+
+================================================================================
+ÍNDICE
+================================================================================
+
+  1.  Visão geral do projeto
+  2.  Duas APIs diferentes (não confundir)
+  3.  API listedCompaniesProxy — como funciona
+  4.  Todos os curls prontos (copiar e colar)
+  5.  Codificar parâmetros em Base64
+  6.  Script empresas-b3.sh (código completo)
+  7.  Script proventos-por-ticker.sh (código completo)
+  8.  Fluxos passo a passo
+  9.  Campos da resposta de proventos
+ 10.  Limitações conhecidas
+ 11.  Exemplos executados: PETR4, AURE3, BRSR6
+ 12.  Resumo manual Área Logada (teste.txt)
+ 13.  Interpretação da resposta JSON (Petrobras)
+ 14.  Snippets Python auxiliares
+ 15.  Inventário de arquivos da pasta
+ 16.  Checklist rápido
+
+
+================================================================================
+1. VISÃO GERAL DO PROJETO
+================================================================================
+
+Este projeto explora dados públicos da B3 via curl, sem autenticação, usando
+a API interna do site de empresas listadas (listedCompaniesProxy).
+
+O que foi feito:
+  - Leitura e resumo do Manual Técnico APIs Área do Investidor (teste.txt)
+  - Pesquisa no portal developers.b3.com.br (sem API de dividendos por ticker)
+  - Descoberta e uso da API listedCompaniesProxy via curl
+  - Geração de listagens de empresas (empresas-b3.txt)
+  - Geração de proventos por ticker (PETR4, AURE3, BRSR6)
+  - Documentação e interpretação das respostas JSON
+
+Requisitos no computador:
+  curl, jq, base64 (GNU coreutils)
+
+
+================================================================================
+2. DUAS APIs DIFERENTES (NÃO CONFUNDIR)
+================================================================================
+
+┌─────────────────────────────┬──────────────────────────────────────────────┐
+│ listedCompaniesProxy        │ Área Logada do Investidor (teste.txt)        │
+├─────────────────────────────┼──────────────────────────────────────────────┤
+│ Pública, sem login          │ B2B, contrato, pessoa jurídica               │
+│ Por empresa/ticker          │ Por CPF/CNPJ do investidor + consentimento   │
+│ Proventos históricos empresa│ Posição, movimentação, extrato do investidor │
+│ curl direto                 │ developers.b3.com.br + pacote de acesso      │
+│ SEM data de pagamento       │ Eventos provisionados por investidor (D-1)   │
+│ NÃO é dividendos por ticker │ no portal oficial para mercado aberto        │
+│   no sentido Área Logada    │                                              │
+└─────────────────────────────┴──────────────────────────────────────────────┘
+
+Para proventos públicos por empresa → listedCompaniesProxy (este guia).
+Para carteira do investidor → API Área Logada (manual teste.txt).
+
+
+================================================================================
+3. API listedCompaniesProxy — COMO FUNCIONA
+================================================================================
+
+BASE_URL:
+  https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall
+
+Padrão de chamada:
+  GET {BASE_URL}/{Endpoint}/{token_base64}
+
+O token é um JSON codificado em Base64, sem quebra de linha:
+
+  echo -n '{"language":"pt-br","pageNumber":1,"pageSize":100}' | base64 -w0
+
+Endpoints usados neste projeto:
+
+  GetInitialCompanies       → listar/buscar emissores (~3.456)
+  GetDetail                 → detalhes + tickers (otherCodes)
+  GetListedCashDividends    → proventos em dinheiro (dividendos, JCP)
+  GetIndustryClassification → setores e segmentos B3
+
+Resposta padrão:
+  {
+    "page": { "pageNumber", "pageSize", "totalRecords", "totalPages" },
+    "results": [ ... ]
+  }
+
+
+================================================================================
+4. TODOS OS CURLS PRONTOS (COPIAR E COLAR)
+================================================================================
+
+─── 4.1 EMPRESAS (GetInitialCompanies) ───
+
+# Página 1 — 100 empresas
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetInitialCompanies/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjEwMH0="
+
+# Parâmetros: {"language":"pt-br","pageNumber":1,"pageSize":100}
+
+# Página 2
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetInitialCompanies/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MiwicGFnZVNpemUiOjEwMH0="
+
+# Buscar emissor por ticker PETR4
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetInitialCompanies/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjIwLCJjb21wYW55IjoiUEVUUjQifQ=="
+
+# Buscar emissor por ticker AURE3
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetInitialCompanies/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjIwLCJjb21wYW55IjoiQVVSRTMifQ=="
+
+# Buscar emissor por ticker BRSR6
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetInitialCompanies/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjIwLCJjb21wYW55IjoiQlJTUjYifQ=="
+
+# Buscar emissor por ticker BBAS3
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetInitialCompanies/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjIwLCJjb21wYW55IjoiQkJBUzMifQ=="
+
+
+─── 4.2 TICKERS DE UMA EMPRESA (GetDetail) ───
+
+# Petrobras (codeCVM 9512)
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetDetail/eyJjb2RlQ1ZNIjoiOTUxMiIsImxhbmd1YWdlIjoicHQtYnIifQ=="
+
+# Parâmetros: {"codeCVM":"9512","language":"pt-br"}
+
+# Banco do Brasil (codeCVM 1023)
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetDetail/eyJjb2RlQ1ZNIjoiMTAyMyIsImxhbmd1YWdlIjoicHQtYnIifQ=="
+
+# Formatar só os tickers (requer jq):
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetDetail/eyJjb2RlQ1ZNIjoiOTUxMiIsImxhbmd1YWdlIjoicHQtYnIifQ==" \
+  | jq '{empresa: .tradingName, tickers: [.otherCodes[].code]}'
+
+
+─── 4.3 PROVENTOS EM DINHEIRO (GetListedCashDividends) ───
+
+# PETROBRAS — 5 registros (página 1) — curl original do projeto
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetListedCashDividends/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjUsInRyYWRpbmdOYW1lIjoiUEVUUk9CUkFTIn0="
+
+# Parâmetros: {"language":"pt-br","pageNumber":1,"pageSize":5,"tradingName":"PETROBRAS"}
+
+# PETROBRAS — 100 por página
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetListedCashDividends/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjEwMCwidHJhZGluZ05hbWUiOiJQRVRST0JSQVMifQ=="
+
+# PETROBRAS — página 2 (100 registros)
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetListedCashDividends/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MiwicGFnZVNpemUiOjEwMCwidHJhZGluZ05hbWUiOiJQRVRST0JSQVMifQ=="
+
+# AUREN — 5 registros
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetListedCashDividends/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjUsInRyYWRpbmdOYW1lIjoiQVVSRU4ifQ=="
+
+# BANRISUL — 5 registros
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetListedCashDividends/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjUsInRyYWRpbmdOYW1lIjoiQkFOUklTVUwifQ=="
+
+
+─── 4.4 SETORES B3 (GetIndustryClassification) ───
+
+curl -sS "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall/GetIndustryClassification/eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjUifQ=="
+
+
+─── 4.5 ALTERNATIVA — TODOS OS TICKERS EM UM CURL (fonte comunitária) ───
+
+# NÃO é API oficial B3 — mas retorna milhares de tickers em uma requisição
+curl -sS "https://cvscarlos.github.io/b3-api-dados-historicos/api/v1/tickers-cash-market.json" \
+  | jq '.data | keys'
+
+curl -sS "https://cvscarlos.github.io/b3-api-dados-historicos/api/v1/tickers-cash-market.json" \
+  | jq '.data.PETR4'
+
+
+─── 4.6 PIPELINE COMPLETO EM SHELL (ticker → proventos) ───
+
+TICKER="PETR4"
+BASE="https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall"
+
+B1=$(printf '%s' "{\"language\":\"pt-br\",\"pageNumber\":1,\"pageSize\":20,\"company\":\"${TICKER}\"}" | base64 -w0)
+TRADING=$(curl -sS "${BASE}/GetInitialCompanies/${B1}" | jq -r '.results[0].tradingName' | tr -d '/.')
+echo "tradingName: ${TRADING}"
+
+B2=$(printf '%s' "{\"language\":\"pt-br\",\"pageNumber\":1,\"pageSize\":5,\"tradingName\":\"${TRADING}\"}" | base64 -w0)
+curl -sS "${BASE}/GetListedCashDividends/${B2}" | jq .
+
+
+================================================================================
+5. CODIFICAR PARÂMETROS EM BASE64
+================================================================================
+
+Linux (sem quebra de linha — obrigatório):
+  printf '%s' '{"language":"pt-br","pageNumber":1,"pageSize":100}' | base64 -w0
+
+Decodificar (conferir):
+  echo "eyJsYW5ndWFnZSI6InB0LWJyIiwicGFnZU51bWJlciI6MSwicGFnZVNpemUiOjEwMH0=" | base64 -d
+
+Tabela de tokens usados neste projeto:
+
+  Finalidade                          | JSON decodificado
+  ------------------------------------|------------------------------------------
+  Empresas pág.1 (100)                | {"language":"pt-br","pageNumber":1,"pageSize":100}
+  Buscar PETR4                        | {"language":"pt-br","pageNumber":1,"pageSize":20,"company":"PETR4"}
+  Buscar AURE3                        | {"language":"pt-br","pageNumber":1,"pageSize":20,"company":"AURE3"}
+  Buscar BRSR6                        | {"language":"pt-br","pageNumber":1,"pageSize":20,"company":"BRSR6"}
+  GetDetail Petrobras                 | {"codeCVM":"9512","language":"pt-br"}
+  Proventos PETROBRAS (5)             | {"language":"pt-br","pageNumber":1,"pageSize":5,"tradingName":"PETROBRAS"}
+  Proventos PETROBRAS (100)           | {"language":"pt-br","pageNumber":1,"pageSize":100,"tradingName":"PETROBRAS"}
+  Proventos AUREN (5)                 | {"language":"pt-br","pageNumber":1,"pageSize":5,"tradingName":"AUREN"}
+  Proventos BANRISUL (5)              | {"language":"pt-br","pageNumber":1,"pageSize":5,"tradingName":"BANRISUL"}
+
+
+================================================================================
+6. SCRIPT empresas-b3.sh (CÓDIGO COMPLETO)
+================================================================================
+
+Arquivo: empresas-b3.sh
+Uso:     ./empresas-b3.sh
+Saída:   empresas-b3.txt (~3.456 emissores)
+
+────────────────────────────────────────────────────────────────────────────────
+#!/usr/bin/env bash
+# Lista todas as empresas listadas na B3 via curl (API listedCompaniesProxy)
+# Uso: ./empresas-b3.sh
+
+set -euo pipefail
+
+BASE_URL="https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall"
+OUT_DIR="$(cd "$(dirname "$0")" && pwd)"
+OUT_FILE="${OUT_DIR}/empresas-b3.txt"
+PAGE_SIZE=100
+
+b64params() {
+  printf '%s' "$1" | base64 -w0
+}
+
+curl_json() {
+  curl -sS "${BASE_URL}/${1}/${2}"
+}
+
+# 1) Primeira página (metadados)
+P1=$(printf '{"language":"pt-br","pageNumber":1,"pageSize":%s}' "$PAGE_SIZE")
+B1=$(b64params "$P1")
+PAGE1=$(curl_json "GetInitialCompanies" "$B1")
+
+TOTAL_PAGES=$(echo "$PAGE1" | jq -r '.page.totalPages')
+TOTAL_RECORDS=$(echo "$PAGE1" | jq -r '.page.totalRecords')
+
+ALL_JSON="$PAGE1"
+
+# 2) Demais páginas
+for (( page=2; page<=TOTAL_PAGES; page++ )); do
+  PN=$(printf '{"language":"pt-br","pageNumber":%s,"pageSize":%s}' "$page" "$PAGE_SIZE")
+  BN=$(b64params "$PN")
+  curl_json "GetInitialCompanies" "$BN" > "/tmp/empresas-b3-page-${page}.json"
+  ALL_JSON=$(jq -s '.[0] as $a | .[1] as $b | $a | .results += $b.results' \
+    <(echo "$ALL_JSON") "/tmp/empresas-b3-page-${page}.json")
+done
+
+# 3) Montar TXT
+{
+  echo "EMPRESAS LISTADAS NA B3"
+  echo "Fonte: curl → GetInitialCompanies (B3 listedCompaniesProxy)"
+  echo "Total API: ${TOTAL_RECORDS} registros | Páginas: ${TOTAL_PAGES}"
+  echo ""
+  printf "   #  EMISSOR    RAZÃO SOCIAL                              NEGOCIAÇÃO       CNPJ            MERCADO   SEGMENTO\n"
+  printf "%s\n" "------------------------------------------------------------------------------------------------------------------------"
+
+  echo "$ALL_JSON" | jq -r '
+    .results
+    | sort_by(.tradingName)
+    | to_entries[]
+    | "\((.key+1)|tonumber|if .<10 then "  "+(.|tostring) elif .<100 then " "+(.|tostring) elif .<1000 then (.|tostring) else (.|tostring) end)  \(.value.issuingCompany)       \(.value.companyName[0:40])  \(.value.tradingName[0:16])  \(.value.cnpj)  \(.value.market // "-")        \(.value.segment[0:30])"
+  '
+} > "$OUT_FILE"
+
+echo "Arquivo gerado: ${OUT_FILE}"
+wc -l < "$OUT_FILE" | xargs echo "Linhas:"
+────────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+7. SCRIPT proventos-por-ticker.sh (CÓDIGO COMPLETO)
+================================================================================
+
+Arquivo: proventos-por-ticker.sh
+Uso:     ./proventos-por-ticker.sh PETR4
+         ./proventos-por-ticker.sh AURE3
+         ./proventos-por-ticker.sh BRSR6
+Saída:   proventos-{TICKER}.txt
+
+────────────────────────────────────────────────────────────────────────────────
+#!/usr/bin/env bash
+# Gera TXT com proventos pagos via curl (API B3 listedCompaniesProxy)
+# Uso: ./proventos-por-ticker.sh PETR4
+#      ./proventos-por-ticker.sh VALE3
+
+set -euo pipefail
+
+TICKER="${1:-PETR4}"
+BASE_URL="https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall"
+OUT_DIR="$(cd "$(dirname "$0")" && pwd)"
+OUT_FILE="${OUT_DIR}/proventos-${TICKER}.txt"
+PAGE_SIZE=100
+
+b64params() {
+  printf '%s' "$1" | base64 -w0
+}
+
+curl_json() {
+  curl -sS "${BASE_URL}/${1}/${2}"
+}
+
+echo "Ticker: ${TICKER}"
+
+# 1) Resolver tradingName
+P1=$(printf '{"language":"pt-br","pageNumber":1,"pageSize":20,"company":"%s"}' "$TICKER")
+B1=$(b64params "$P1")
+COMPANY_JSON=$(curl_json "GetInitialCompanies" "$B1")
+
+TRADING=$(echo "$COMPANY_JSON" | jq -r '.results[0].tradingName // empty' | tr -d '/.')
+if [[ -z "$TRADING" ]]; then
+  echo "Erro: ticker '${TICKER}' não encontrado." >&2
+  exit 1
+fi
+
+echo "Empresa: ${TRADING}"
+
+# 2) Primeira página de proventos (metadados)
+P2=$(printf '{"language":"pt-br","pageNumber":1,"pageSize":%s,"tradingName":"%s"}' "$PAGE_SIZE" "$TRADING")
+B2=$(b64params "$P2")
+PAGE1=$(curl_json "GetListedCashDividends" "$B2")
+
+TOTAL_PAGES=$(echo "$PAGE1" | jq -r '.page.totalPages')
+TOTAL_RECORDS=$(echo "$PAGE1" | jq -r '.page.totalRecords')
+
+ALL_JSON="$PAGE1"
+
+# 3) Demais páginas
+for (( page=2; page<=TOTAL_PAGES; page++ )); do
+  PN=$(printf '{"language":"pt-br","pageNumber":%s,"pageSize":%s,"tradingName":"%s"}' "$page" "$PAGE_SIZE" "$TRADING")
+  BN=$(b64params "$PN")
+  curl_json "GetListedCashDividends" "$BN" > "/tmp/proventos-page-${page}.json"
+  ALL_JSON=$(jq -s '.[0] as $a | .[1] as $b | $a | .results += $b.results' \
+    <(echo "$ALL_JSON") "/tmp/proventos-page-${page}.json")
+done
+
+# 4) Montar TXT
+{
+  echo "PROVENTOS EM DINHEIRO — ${TICKER} (${TRADING})"
+  echo "Fonte: curl → GetListedCashDividends (B3 listedCompaniesProxy)"
+  echo "Total API: ${TOTAL_RECORDS} registros | Páginas: ${TOTAL_PAGES}"
+  echo ""
+  printf "   #  DATA EX      APROVAÇÃO    TIPO AÇÃO EVENTO              VALOR/ AÇÃO    FECH. EX\n"
+  printf "%s\n" "-------------------------------------------------------------------------------------"
+
+  echo "$ALL_JSON" | jq -r '
+    .results
+    | unique_by([.typeStock, .corporateAction, .dateApproval, .lastDatePriorEx, .valueCash])
+    | sort_by(.lastDateTimePriorEx // .lastDatePriorEx) | reverse
+    | to_entries[]
+    | "\((.key+1)|tonumber|if .<10 then "  "+(.|tostring) elif .<100 then " "+(.|tostring) else (.|tostring) end)  \(.value.lastDatePriorEx)   \(.value.dateApproval)   \(.value.typeStock)       \(.value.corporateAction)      \(.value.valueCash)       \(.value.closingPricePriorExDate)"
+  '
+} > "$OUT_FILE"
+
+echo "Arquivo gerado: ${OUT_FILE}"
+wc -l < "$OUT_FILE" | xargs echo "Linhas:"
+────────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+8. FLUXOS PASSO A PASSO
+================================================================================
+
+8.1 Ticker → tradingName → proventos
+-------------------------------------
+  PETR4
+    curl GetInitialCompanies(company=PETR4)
+    → issuingCompany=PETR, tradingName=PETROBRAS, codeCVM=9512
+    curl GetListedCashDividends(tradingName=PETROBRAS) paginado
+    → proventos-PETR4.txt
+
+8.2 Ticker → todos os tickers da empresa
+-----------------------------------------
+  PETR4 → codeCVM=9512 → GetDetail → PETR3, PETR4, PETR-DEB62
+
+8.3 Listar todas as empresas
+-----------------------------
+  ./empresas-b3.sh → empresas-b3.txt (35 páginas × 100)
+
+8.4 Filtrar proventos por intervalo de datas
+---------------------------------------------
+  A API NÃO aceita dataInicio/dataFim.
+  Baixar todas as páginas e filtrar pelo campo lastDatePriorEx no código.
+
+
+================================================================================
+9. CAMPOS DA RESPOSTA DE PROVENTOS (GetListedCashDividends)
+================================================================================
+
+Campo                      | Significado
+---------------------------|--------------------------------------------------
+typeStock                  | ON, PN, PNA, PNB (classe da ação)
+corporateAction            | DIVIDENDO | JRS CAP PROPRIO | RENDIMENTO
+dateApproval               | Data de aprovação / deliberação
+lastDatePriorEx            | Data EX (último dia para ter direito)
+lastDateTimePriorEx        | Data ex em ISO (2026-04-22T00:00:00)
+valueCash                  | Valor bruto por ação (vírgula decimal BR)
+closingPricePriorExDate    | Preço de fechamento na véspera do ex
+dateClosingPricePriorExDate| Data do fechamento de referência
+ratio                      | Proporção (ex.: 1000 ações base)
+quotedPerShares            | Base "por X ações"
+corporateActionPrice       | Preço/valor de referência do evento
+
+Exemplo JSON (1 registro):
+{
+  "typeStock": "ON",
+  "dateApproval": "16/04/2026",
+  "valueCash": "0,31311454",
+  "ratio": "1",
+  "corporateAction": "JRS CAP PROPRIO",
+  "lastDatePriorEx": "22/04/2026",
+  "dateClosingPricePriorExDate": "22/04/2026",
+  "closingPricePriorExDate": "52,70",
+  "quotedPerShares": "1",
+  "corporateActionPrice": "0,594145",
+  "lastDateTimePriorEx": "2026-04-22T00:00:00"
+}
+
+
+================================================================================
+10. LIMITAÇÕES CONHECIDAS
+================================================================================
+
+  [X] NÃO traz data de PAGAMENTO (só aprovação + data ex)
+  [X] NÃO filtra por intervalo de datas na requisição
+  [X] NÃO informa ticker exato (PETR3 vs PETR4) — só typeStock ON/PN/PNB
+  [X] NÃO está documentada em developers.b3.com.br
+  [X] pageSize > 100 em GetInitialCompanies retorna vazio
+  [X] Registros duplicados podem aparecer — deduplicar no pós-processamento
+  [X] Histórico varia por empresa (não é "últimos N meses" fixo)
+  [X] Pode haver lacunas entre último provento e data atual
+
+Mapeamento typeStock → ticker (Banrisul):
+  ON  → BRSR3
+  PNA → BRSR5
+  PNB → BRSR6  ← preferencial sem voto série B
+
+
+================================================================================
+11. EXEMPLOS EXECUTADOS
+================================================================================
+
+─── PETR4 / PETROBRAS ───
+  Arquivo: proventos-PETR4.txt
+  Registros API: 333 | Únicos: ~319
+  Período data ex: 21/03/1996 → 22/04/2026
+  Mais recente: 22/04/2026 (JCP + RENDIMENTO ON/PN)
+  Amplitude: ~30 anos
+
+  Trecho da tabela:
+     #  DATA EX      APROVAÇÃO    TIPO AÇÃO EVENTO              VALOR/ AÇÃO    FECH. EX
+  -------------------------------------------------------------------------------------
+    1  22/04/2026   16/04/2026   ON       JRS CAP PROPRIO      0,31311454       52,70
+    2  22/04/2026   16/04/2026   ON       RENDIMENTO           0,01649003       52,70
+    ...
+
+─── AURE3 / AUREN ───
+  Arquivo: proventos-AURE3.txt
+  Registros: 6 (empresa mais nova)
+  Período: 03/05/2022 → 24/04/2025
+  Mais recente: 24/04/2025 — DIVIDENDO R$ 0,057/ação
+  Todos DIVIDENDO, classe ON
+
+─── BRSR6 / BANRISUL ───
+  Arquivo: proventos-BRSR6.txt
+  Registros: 352 únicos
+  Período: 14/02/1996 → 04/05/2026
+  Mais recente: 04/05/2026 — DIVIDENDO
+  Inclui ON, PNA, PNB — filtrar PNB para BRSR6
+
+  Trecho:
+    1  04/05/2026   28/04/2026   PNB       DIVIDENDO      0,07085547       15,36
+    4  13/03/2026   10/03/2026   PNB       JRS CAP PROPRIO      0,22006263       16,92
+
+
+================================================================================
+12. RESUMO MANUAL ÁREA LOGADA (teste.txt)
+================================================================================
+
+Fonte: Manual Técnico APIs – Área do Investidor da B3 (12/12/2024)
+Portal: https://developers.b3.com.br/ → APIs → Nova Área Logada
+
+APIs principais:
+  Pacote de Acesso, API Guia, Eventos Provisionados, Garantias,
+  Movimentação, Negociação, Ofertas Públicas, Posição
+
+Características:
+  - Dados do investidor com CONSENTIMENTO (CPF/CNPJ)
+  - Atualização D-1 (a partir das ~8h)
+  - Histórico desde 01/11/2019
+  - Contratação: só PJ, self-assessment, sat@b3.com.br
+  - Tarifa: franquia 10k CPFs, piso R$ 500/mês
+
+Eventos Provisionados:
+  - Proventos do INVESTIDOR (não consulta ação aleatória por ticker)
+  - Dividendos, JCP, rendimentos em RV
+  - NÃO serve para: GET dividendos de PETR4 entre duas datas sem investidor
+
+Conclusão da pesquisa no developers.b3.com.br:
+  Não existe API de mercado documentada para dividendos por ticker + intervalo.
+  Para isso use listedCompaniesProxy (este guia) ou agregadores (brapi, Fintz).
+
+
+================================================================================
+13. INTERPRETAÇÃO DA RESPOSTA JSON (PETROBRAS)
+================================================================================
+
+Curl testado:
+  curl -sS ".../GetListedCashDividends/eyJ...PETROBRAS..."
+
+Resposta resumida:
+  "page": { "pageNumber":1, "pageSize":5, "totalRecords":333, "totalPages":67 }
+  "results": [ 5 proventos ]
+
+Linha do tempo dos 5 registros retornados:
+  22/04/2026 — JRS CAP PROPRIO  R$ 0,31311454  (ON, aprov. 16/04/2026)
+  22/04/2026 — RENDIMENTO       R$ 0,01649003  (ON)
+  22/12/2025 — JRS CAP PROPRIO  R$ 0,17518233  (ON)
+  22/12/2025 — JRS CAP PROPRIO  R$ 0,47160378  (ON)
+  22/12/2025 — DIVIDENDO        R$ 0,29642144  (ON)
+
+Pergunta: "22/04/2026 é a posição mais recente?"
+  → No contexto de PROVENTOS desta API: SIM, é a data ex mais recente.
+  → Hoje (24/06/2026): não há proventos cadastrados após 22/04/2026.
+  → Não confundir com POSIÇÃO de carteira (outra API).
+
+Cálculo exemplo (registro JCP 22/12/2025):
+  1.000 ações × R$ 0,17518233 = R$ 175,18 bruto (antes de IR)
+
+
+================================================================================
+14. SNIPPETS PYTHON AUXILIARES
+================================================================================
+
+─── Codificar parâmetros e buscar proventos ───
+
+import json, base64, urllib.request, ssl
+
+BASE = "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall"
+ctx = ssl.create_default_context()
+
+def b3_get(endpoint, params: dict):
+    token = base64.b64encode(str(params).encode()).decode()
+    url = f"{BASE}/{endpoint}/{token}"
+    with urllib.request.urlopen(url, context=ctx, timeout=30) as r:
+        return json.loads(r.read().decode())
+
+# 1) Resolver ticker
+info = b3_get("GetInitialCompanies", {
+    "language": "pt-br", "pageNumber": 1, "pageSize": 20, "company": "PETR4"
+})
+trading = info["results"][0]["tradingName"].replace("/", "").replace(".", "")
+
+# 2) Buscar proventos (página 1)
+divs = b3_get("GetListedCashDividends", {
+    "language": "pt-br", "pageNumber": 1, "pageSize": 100, "tradingName": trading
+})
+print(divs["page"])
+print(divs["results"][0])
+
+─── Paginar todos os proventos ───
+
+all_rows = []
+page = 1
+while True:
+    d = b3_get("GetListedCashDividends", {
+        "language": "pt-br", "pageNumber": page, "pageSize": 100,
+        "tradingName": trading
+    })
+    rows = d.get("results", [])
+    if not rows:
+        break
+    all_rows.extend(rows)
+    if page >= d["page"]["totalPages"]:
+        break
+    page += 1
+print(f"Total: {len(all_rows)}")
+
+─── Filtrar por ano (ex.: 2024) ───
+
+filtrados = [r for r in all_rows if "/2024" in r.get("lastDatePriorEx", "")]
+
+
+================================================================================
+15. INVENTÁRIO DE ARQUIVOS DA PASTA
+================================================================================
+
+SCRIPTS (executáveis)
+  empresas-b3.sh                  → gera empresas-b3.txt
+  proventos-por-ticker.sh         → gera proventos-{TICKER}.txt
+
+DADOS GERADOS
+  empresas-b3.txt                 → 3.456 emissores B3
+  proventos-PETR4.txt             → proventos Petrobras (tabela)
+  proventos-AURE3.txt             → proventos Auren (6 registros)
+  proventos-BRSR6.txt             → proventos Banrisul (352 registros)
+  proventos-petrobras-completo.txt→ detalhamento completo + todos os campos
+
+DOCUMENTAÇÃO
+  guia-completo-b3-curl-codigos.txt  ← ESTE ARQUIVO (mestre)
+  documentacao-api-b3-listados.txt   → doc focada na API listados
+  interpretacao-dividendos-petrobras.txt → análise do JSON Petrobras
+  o-que-saber-sobre-teste.txt        → resumo manual Área Logada
+  teste.txt                          → manual técnico original B3
+
+
+================================================================================
+16. CHECKLIST RÁPIDO
+================================================================================
+
+[ ] Base64 sem quebra de linha: base64 -w0
+[ ] Ticker → tradingName: GetInitialCompanies(company=TICKER)
+[ ] Proventos: GetListedCashDividends(tradingName=...) paginado
+[ ] Tickers da empresa: GetDetail(codeCVM=...)
+[ ] pageSize máx 100 para empresas
+[ ] Sem data de pagamento nesta API
+[ ] Sem filtro de datas — filtrar localmente
+[ ] ./proventos-por-ticker.sh TICKER para gerar TXT
+[ ] ./empresas-b3.sh para listar todas as empresas
+[ ] API Área Logada = outro produto (teste.txt)
+
+================================================================================
+FIM — guia-completo-b3-curl-codigos.txt
+================================================================================
