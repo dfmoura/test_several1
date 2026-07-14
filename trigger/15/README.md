@@ -53,6 +53,24 @@ Se a porta 8095 já estiver em uso (ex.: Docker), `./run.sh` só mostra os ender
 | `HEADLESS` | `false` | Deve permanecer `false` — o portal Akamai bloqueia headless |
 | `DETALHE_SCRAPE` | `false` | Buscar campos extras na página de detalhes |
 | `COMPRAS_PNCP_PAGE_SIZE` | `500` | Tamanho de página na API PNCP |
+| `COMPRAS_GOV_BASE_URL` | `https://dadosabertos.compras.gov.br` | Base da API federal |
+| `COMPRAS_IBGE_MUNICIPIO` | `3170206` | Filtro IBGE (Uberlândia) |
+| `COMPRAS_UF_FILTRO` | `MG` | UF padrão na coleta UASG |
+| `COMPRAS_ENRICH_FORNECEDOR` | `true` | Enriquecer fornecedores (mód. 10) |
+| `COMPRAS_ENRICH_CATALOGO` | `true` | Cache CATMAT/CATSER on-demand |
+| `COMPRAS_COLETAR_PGC` | `false` | Coleta PGC em massa (opt-in) |
+| `COMPRAS_COLETAR_PRECO` | `false` | Coleta pesquisa de preço em massa |
+
+## Compras.gov — fases de coleta
+
+| Endpoint | Fases | Descrição |
+|----------|-------|-----------|
+| `POST /api/compras/coletar` | 07 + itens + **resultados** | Coleta padrão (contratações PNCP) |
+| `POST /api/compras/coletar-completo` | `07,07-resultados,05,10,01,02` (+ `04`,`03` opc.) | Orquestrador completo |
+
+Query/body `fases`: `07`, `07-resultados`, `05` (UASG/órgão), `10` (fornecedor), `04` (PGC), `03` (preço), `01`/`02` (catálogo).
+
+**Limitação:** a API federal expõe apenas resultados classificados/homologados — não a lista completa de proponentes.
 
 ## Dados
 

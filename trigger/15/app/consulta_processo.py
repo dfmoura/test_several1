@@ -16,6 +16,8 @@ from app.dashboard_gerencial import (
     _chave_api,
     _chave_portal,
     _chave_powerbi,
+    _chaves_modalidade,
+    _mapa_modalidades,
     _mapa_orgaos,
     extrair_numero_processo_api,
     extrair_numero_processo_portal,
@@ -24,7 +26,11 @@ from app.dashboard_gerencial import (
 from app.database import (
     CompraContratacao,
     CompraContratacaoItem,
+    ComprasContratacaoResultado,
+    ComprasPgcItem,
     Licitacao,
+    ModalidadeConsolidada,
+    ModalidadeVinculo,
     OrgaoConsolidado,
     PbiOrgao,
     PbiProcessoLicitatorio,
@@ -84,6 +90,177 @@ def _filtro_processo_pbi(termo: str, numero: int | None) -> list[Any]:
     if numero is not None:
         conds.append(PbiProcessoLicitatorio.processo == str(numero))
     return [or_(*conds)]
+
+
+def _norm_modalidade_texto(valor: str | None) -> str:
+    """Normaliza rótulos de modalidade para comparação entre bases."""
+    if not valor:
+        return ""
+    texto = valor.strip().lower().replace("–", "-").replace("—", "-")
+    return re.sub(r"\s+", " ", texto)
+
+
+def _mapa_modalidades_por_nome(
+    db: Session,
+) -> tuple[dict[str, ModalidadeConsolidada], dict[str, ModalidadeConsolidada]]:
+    """Nomes consolidados e rótulos PNCP (Compras.gov) normalizados → entidade."""
+    por_nome: dict[str, ModalidadeConsolidada] = {}
+    por_rotulo: dict[str, ModalidadeConsolidada] = {}
+    mods = db.scalars(
+        select(ModalidadeConsolidada).where(ModalidadeConsolidada.ativo.is_(True))
+    ).all()
+    for mod in mods:
+        chave = _norm_modalidade_texto(mod.nome)
+        if chave:
+            por_nome[chave] = mod
+    for vinculo in db.scalars(
+        select(ModalidadeVinculo)
+        .options(selectinload(ModalidadeVinculo.modalidade_consolidada))
+        .where(ModalidadeVinculo.fonte == "compras_api")
+    ).all():
+        if not vinculo.rotulo or not vinculo.modalidade_consolidada.ativo:
+            continue
+        chave = _norm_modalidade_texto(vinculo.rotulo)
+        if chave:
+            por_rotulo[chave] = vinculo.modalidade_consolidada
+    return por_nome, por_rotulo
+
+
+def _crit_modalidade_fonte(
+    modalidade_id: int | None,
+    chaves_mod: dict[str, set[str]],
+    fonte: str,
+    col: Any,
+) -> list[Any]:
+    """Restringe SQL às chaves vinculadas; sem vínculo na fonte, filtra depois em memória."""
+    if modalidade_id is None:
+        return []
+    mods = chaves_mod.get(fonte) or set()
+    if mods:
+        return [col.in_(mods)]
+    return []
+
+
+def _crit_modalidade_compras_api(
+    db: Session,
+    modalidade_id: int | None,
+    chaves_mod: dict[str, set[str]],
+) -> list[Any]:
+    """Filtro SQL da API PNCP — código vinculado e/ou descrição alinhada ao nome consolidado."""
+    if modalidade_id is None:
+        return []
+    conds: list[Any] = []
+    codigos = chaves_mod.get("compras_api") or set()
+    if codigos:
+        conds.append(CompraContratacao.modalidade_codigo.in_(codigos))
+
+    mod = db.get(ModalidadeConsolidada, modalidade_id)
+    if mod and mod.ativo:
+        rotulos = {
+            v.rotulo.strip()
+            for v in db.scalars(
+                select(ModalidadeVinculo).where(
+                    ModalidadeVinculo.modalidade_consolidada_id == modalidade_id,
+                    ModalidadeVinculo.fonte == "compras_api",
+                    ModalidadeVinculo.rotulo.isnot(None),
+                )
+            ).all()
+            if v.rotulo and v.rotulo.strip()
+        }
+        if rotulos:
+            conds.append(CompraContratacao.modalidade_descricao.in_(rotulos))
+        tokens = [
+            t
+            for t in re.split(r"[\s\-–—]+", mod.nome)
+            if len(t) >= 4
+        ]
+        if tokens:
+            conds.append(
+                or_(*[
+                    CompraContratacao.modalidade_descricao.ilike(f"%{tok}%")
+                    for tok in tokens[:3]
+                ])
+            )
+    if not conds:
+        return []
+    return [or_(*conds)]
+
+
+def _modalidade_por_descricao(
+    descricao: str,
+    mapa_nome: dict[str, ModalidadeConsolidada],
+    mapa_rotulo: dict[str, ModalidadeConsolidada] | None = None,
+) -> ModalidadeConsolidada | None:
+    """Associa descrição da API ao nome consolidado (exato ou por prefixo)."""
+    if not descricao:
+        return None
+    mod = mapa_nome.get(descricao)
+    if mod:
+        return mod
+    for nome_norm, candidato in mapa_nome.items():
+        if nome_norm.startswith(descricao + " ") or descricao.startswith(nome_norm + " "):
+            return candidato
+    if mapa_rotulo:
+        mod = mapa_rotulo.get(descricao)
+        if mod:
+            return mod
+    return None
+
+
+def _modalidade_registro_id(
+    fonte: str,
+    registro: Any,
+    mapa_mod: dict[tuple[str, str], ModalidadeConsolidada],
+    mapa_nome: dict[str, ModalidadeConsolidada] | None = None,
+    mapa_rotulo: dict[str, ModalidadeConsolidada] | None = None,
+) -> int | None:
+    if fonte == "compras_api":
+        descricao = _norm_modalidade_texto(registro.modalidade_descricao)
+        mod = _modalidade_por_descricao(descricao, mapa_nome or {}, mapa_rotulo)
+        if mod:
+            return mod.id
+        codigo = (registro.modalidade_codigo or "").strip()
+        if codigo:
+            mod = mapa_mod.get((fonte, codigo))
+            if mod:
+                return mod.id
+        return None
+
+    if fonte == "portal":
+        chave = (registro.modalidade or "").strip()
+    else:
+        chave = (registro.modalidade or "").strip()
+    if not chave:
+        return None
+    mod = mapa_mod.get((fonte, chave))
+    return mod.id if mod else None
+
+
+def _filtrar_registros_modalidade(
+    portal_rows: list[Licitacao],
+    api_rows: list[CompraContratacao],
+    pbi_rows: list[tuple[PbiProcessoLicitatorio, str]],
+    modalidade_id: int | None,
+    mapa_mod: dict[tuple[str, str], ModalidadeConsolidada],
+    mapa_nome: dict[str, ModalidadeConsolidada] | None = None,
+    mapa_rotulo: dict[str, ModalidadeConsolidada] | None = None,
+) -> tuple[list[Licitacao], list[CompraContratacao], list[tuple[PbiProcessoLicitatorio, str]]]:
+    """Garante que cada registro pertence à modalidade consolidada selecionada."""
+    if modalidade_id is None:
+        return portal_rows, api_rows, pbi_rows
+    portal_rows = [
+        r for r in portal_rows
+        if _modalidade_registro_id("portal", r, mapa_mod, mapa_nome, mapa_rotulo) == modalidade_id
+    ]
+    api_rows = [
+        r for r in api_rows
+        if _modalidade_registro_id("compras_api", r, mapa_mod, mapa_nome, mapa_rotulo) == modalidade_id
+    ]
+    pbi_rows = [
+        (proc, org_nome) for proc, org_nome in pbi_rows
+        if _modalidade_registro_id("powerbi", proc, mapa_mod, mapa_nome, mapa_rotulo) == modalidade_id
+    ]
+    return portal_rows, api_rows, pbi_rows
 
 
 def _chaves_orgao(db: Session, orgao_id: int | None) -> dict[str, set[str]]:
@@ -160,7 +337,22 @@ def _compra_out(row: CompraContratacao) -> dict[str, Any]:
     return data
 
 
-def _item_out(row: CompraContratacaoItem) -> dict[str, Any]:
+def _item_out(row: CompraContratacaoItem, resultados: list[ComprasContratacaoResultado] | None = None) -> dict[str, Any]:
+    vencedores = []
+    if resultados:
+        for res in resultados:
+            vencedores.append({
+                "nome": res.nome_razao_social_fornecedor,
+                "ni": res.ni_fornecedor,
+                "valor_homologado": res.valor_total_homologado,
+                "classificacao_srp": res.ordem_classificacao_srp,
+                "situacao": res.situacao_compra_item_resultado_nome,
+            })
+    nome_forn = row.nome_fornecedor
+    valor_hom = row.valor_total_resultado
+    if vencedores and not nome_forn:
+        nome_forn = vencedores[0].get("nome")
+        valor_hom = vencedores[0].get("valor_homologado")
     data = {
         "id": row.id,
         "id_compra_item": row.id_compra_item,
@@ -173,8 +365,9 @@ def _item_out(row: CompraContratacaoItem) -> dict[str, Any]:
         "quantidade": row.quantidade,
         "valor_unitario_estimado": row.valor_unitario_estimado,
         "valor_total": row.valor_total,
-        "nome_fornecedor": row.nome_fornecedor,
-        "valor_total_resultado": row.valor_total_resultado,
+        "nome_fornecedor": nome_forn,
+        "valor_total_resultado": valor_hom,
+        "resultados_homologados": vencedores,
     }
     return data
 
@@ -190,7 +383,41 @@ def _itens_compra(db: Session, row: CompraContratacao) -> list[dict[str, Any]]:
         .order_by(CompraContratacaoItem.numero_item_pncp)
         .limit(500)
     ).all()
-    return [_item_out(i) for i in itens]
+    if not itens:
+        return []
+    ids = [i.id_compra_item for i in itens]
+    res_map: dict[str, list[ComprasContratacaoResultado]] = defaultdict(list)
+    for res in db.scalars(
+        select(ComprasContratacaoResultado).where(
+            ComprasContratacaoResultado.id_compra_item.in_(ids)
+        )
+    ):
+        res_map[res.id_compra_item].append(res)
+    return [_item_out(i, res_map.get(i.id_compra_item)) for i in itens]
+
+
+def _pgc_vinculo(db: Session, row: CompraContratacao) -> list[dict[str, Any]]:
+    cnpj = (row.orgao_entidade_cnpj or "").replace(".", "").replace("/", "").replace("-", "")
+    if not cnpj:
+        return []
+    itens = db.scalars(
+        select(ComprasPgcItem)
+        .where(
+            ComprasPgcItem.orgao.contains(cnpj[-8:]),
+            ComprasPgcItem.ano_pca_projeto_compra == row.ano,
+            ComprasPgcItem.codigo_uasg == row.unidade_compradora,
+        )
+        .limit(20)
+    ).all()
+    return [
+        {
+            "codigo_item_catalogo": p.codigo_item_catalogo,
+            "descricao": p.descricao_item_catalogo,
+            "valor_planejado": p.valor_total_item,
+            "status": p.status_contratacao_execucao,
+        }
+        for p in itens
+    ]
 
 
 def _arvore_powerbi(db: Session, proc: PbiProcessoLicitatorio) -> dict[str, Any]:
@@ -317,10 +544,14 @@ def _buscar_registros(
     termo: str,
     ano: int | None,
     orgao_id: int | None,
+    modalidade_id: int | None = None,
 ) -> tuple[list[Licitacao], list[CompraContratacao], list[tuple[PbiProcessoLicitatorio, str]]]:
     numero = _extrair_numero_busca(termo)
     chaves_org = _chaves_orgao(db, orgao_id)
+    chaves_mod = _chaves_modalidade(db, modalidade_id)
     mapa_org = _mapa_orgaos(db)
+    mapa_mod = _mapa_modalidades(db)
+    mapa_nome, mapa_rotulo = _mapa_modalidades_por_nome(db)
 
     crit_p: list[Any] = _filtro_processo_portal(termo, numero)
     if ano:
@@ -328,6 +559,7 @@ def _buscar_registros(
     portal_org = chaves_org.get("portal")
     if portal_org:
         crit_p.append(Licitacao.empresa_codigo.in_(portal_org))
+    crit_p.extend(_crit_modalidade_fonte(modalidade_id, chaves_mod, "portal", Licitacao.modalidade))
 
     crit_a: list[Any] = _filtro_processo_api(termo, numero)
     if ano:
@@ -335,6 +567,7 @@ def _buscar_registros(
     api_org = chaves_org.get("compras_api")
     if api_org:
         crit_a.append(CompraContratacao.unidade_compradora.in_(api_org))
+    crit_a.extend(_crit_modalidade_compras_api(db, modalidade_id, chaves_mod))
 
     crit_b: list[Any] = _filtro_processo_pbi(termo, numero)
     if ano:
@@ -346,6 +579,9 @@ def _buscar_registros(
                 select(PbiOrgao.id).where(PbiOrgao.nome.in_(pbi_org))
             )
         )
+    crit_b.extend(
+        _crit_modalidade_fonte(modalidade_id, chaves_mod, "powerbi", PbiProcessoLicitatorio.modalidade)
+    )
 
     portal_rows = list(
         db.scalars(
@@ -375,7 +611,9 @@ def _buscar_registros(
             .limit(200)
         ).all()
     )
-    return portal_rows, api_rows, pbi_rows
+    return _filtrar_registros_modalidade(
+        portal_rows, api_rows, pbi_rows, modalidade_id, mapa_mod, mapa_nome, mapa_rotulo
+    )
 
 
 def _agrupar_resultados(
@@ -470,9 +708,15 @@ def filtros_consulta(db: Session = Depends(get_db)):
         .where(OrgaoConsolidado.ativo.is_(True))
         .order_by(OrgaoConsolidado.nome)
     ).all()
+    modalidades = db.scalars(
+        select(ModalidadeConsolidada)
+        .where(ModalidadeConsolidada.ativo.is_(True))
+        .order_by(ModalidadeConsolidada.nome)
+    ).all()
     return {
         "anos": anos,
         "orgaos": [{"id": o.id, "nome": o.nome, "sigla": o.sigla} for o in orgaos],
+        "modalidades": [{"id": m.id, "nome": m.nome} for m in modalidades],
     }
 
 
@@ -482,6 +726,7 @@ def buscar_processo(
     processo: str = Query(..., min_length=1),
     ano: int | None = Query(None, ge=2000, le=2100),
     orgao_id: int | None = Query(None),
+    modalidade_id: int | None = Query(None),
     limit: int = Query(30, ge=1, le=100),
 ):
     termo = processo.strip()
@@ -489,7 +734,7 @@ def buscar_processo(
         raise HTTPException(400, "Informe o número ou texto do processo")
 
     mapa_org = _mapa_orgaos(db)
-    portal_rows, api_rows, pbi_rows = _buscar_registros(db, termo, ano, orgao_id)
+    portal_rows, api_rows, pbi_rows = _buscar_registros(db, termo, ano, orgao_id, modalidade_id)
     grupos = _agrupar_resultados(portal_rows, api_rows, pbi_rows, mapa_org)[:limit]
 
     return {
@@ -505,19 +750,25 @@ def _registros_por_chave(
     db: Session,
     chave_alvo: ChaveProcesso,
     mapa_org: dict,
+    modalidade_id: int | None = None,
 ) -> tuple[list[Licitacao], list[CompraContratacao], list[tuple[PbiProcessoLicitatorio, str]]]:
     oid, ano, _ = chave_alvo
     chaves_org = _chaves_orgao(db, oid)
+    chaves_mod = _chaves_modalidade(db, modalidade_id)
+    mapa_mod = _mapa_modalidades(db)
+    mapa_nome, mapa_rotulo = _mapa_modalidades_por_nome(db)
 
     crit_p: list[Any] = [Licitacao.ano == ano]
     portal_org = chaves_org.get("portal")
     if portal_org:
         crit_p.append(Licitacao.empresa_codigo.in_(portal_org))
+    crit_p.extend(_crit_modalidade_fonte(modalidade_id, chaves_mod, "portal", Licitacao.modalidade))
 
     crit_a: list[Any] = [CompraContratacao.ano == ano]
     api_org = chaves_org.get("compras_api")
     if api_org:
         crit_a.append(CompraContratacao.unidade_compradora.in_(api_org))
+    crit_a.extend(_crit_modalidade_compras_api(db, modalidade_id, chaves_mod))
 
     crit_b: list[Any] = [PbiProcessoLicitatorio.ano_processo == ano]
     pbi_org = chaves_org.get("powerbi")
@@ -527,6 +778,9 @@ def _registros_por_chave(
                 select(PbiOrgao.id).where(PbiOrgao.nome.in_(pbi_org))
             )
         )
+    crit_b.extend(
+        _crit_modalidade_fonte(modalidade_id, chaves_mod, "powerbi", PbiProcessoLicitatorio.modalidade)
+    )
 
     portal_rows = [
         r
@@ -554,7 +808,9 @@ def _registros_por_chave(
         ).all()
         if _chave_powerbi(proc, org_nome, mapa_org) == chave_alvo
     ]
-    return portal_rows, api_rows, pbi_rows
+    return _filtrar_registros_modalidade(
+        portal_rows, api_rows, pbi_rows, modalidade_id, mapa_mod, mapa_nome, mapa_rotulo
+    )
 
 
 def _agrupar_para_detalhe(
@@ -619,6 +875,7 @@ def _montar_resposta_detalhe(
     for row in api_rows:
         item = _compra_out(row)
         item["itens"] = _itens_compra(db, row)
+        item["pgc_planejamento"] = _pgc_vinculo(db, row)
         api_detalhe.append(item)
 
     pbi_detalhe = [_arvore_powerbi(db, proc) for proc, _ in pbi_rows]
@@ -645,6 +902,7 @@ def detalhe_processo(
     processo: str | None = Query(None),
     ano: int | None = Query(None, ge=2000, le=2100),
     orgao_id: int | None = Query(None),
+    modalidade_id: int | None = Query(None),
     chave_orgao_id: int | None = Query(None),
     chave_ano: int | None = Query(None, ge=2000, le=2100),
     chave_numero: int | None = Query(None),
@@ -653,7 +911,9 @@ def detalhe_processo(
 
     if chave_orgao_id is not None and chave_ano is not None and chave_numero is not None:
         chave_alvo: ChaveProcesso = (chave_orgao_id, chave_ano, chave_numero)
-        portal_rows, api_rows, pbi_rows = _registros_por_chave(db, chave_alvo, mapa_org)
+        portal_rows, api_rows, pbi_rows = _registros_por_chave(
+            db, chave_alvo, mapa_org, modalidade_id
+        )
         if not portal_rows and not api_rows and not pbi_rows:
             raise HTTPException(404, "Nenhum registro encontrado para esta chave de cruzamento")
         return _montar_resposta_detalhe(db, mapa_org, portal_rows, api_rows, pbi_rows)
@@ -661,7 +921,9 @@ def detalhe_processo(
     if not processo or not processo.strip():
         raise HTTPException(400, "Informe processo ou chave de cruzamento")
 
-    portal_rows, api_rows, pbi_rows = _buscar_registros(db, processo.strip(), ano, orgao_id)
+    portal_rows, api_rows, pbi_rows = _buscar_registros(
+        db, processo.strip(), ano, orgao_id, modalidade_id
+    )
     if not portal_rows and not api_rows and not pbi_rows:
         raise HTTPException(404, "Nenhum registro encontrado para este processo")
 
@@ -671,7 +933,7 @@ def detalhe_processo(
         return {
             "multiplos": True,
             "grupos": resumo,
-            "mensagem": "Encontrados vários processos. Selecione um ou refine com ano e órgão.",
+            "mensagem": "Encontrados vários processos. Selecione um ou refine com ano, órgão e modalidade.",
         }
 
     g = grupos[0]

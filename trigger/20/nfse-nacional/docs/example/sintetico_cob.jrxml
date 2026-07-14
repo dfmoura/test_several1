@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="sintetico_cob" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.9487171000000805"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.definition"/>
+	<parameter name="PDIR_MODELO" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="PK_NUNOTAORIG" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+   UNIDADE,
+   CLIENTE,
+   IE,
+   NUNOTA,
+   CODPROD,
+   CODPARC,
+   SUM(SACAS) AS SACAS,
+   TO_CHAR(ROUND(SUM(VLRTOT) / SUM(SACAS), 9), 'FM9999999990.000000000') AS VLRUNIT,
+   SUM(VLRTOT) AS VLRTOT,
+   PER_REF,
+   TIPO_CLIENTE,
+   AD_TIPOSERV,
+   DESCRPROD,
+   SUM(VLR_TT_PROD) AS VLR_TT_PROD,
+   AD_IDPROCAFE
+FROM
+(
+   SELECT
+      PRO.AD_IDPROCAFE,
+      CAB.CODPARC,
+      PAR.NOMEPARC AS UNIDADE,
+      PAR.RAZAOSOCIAL AS CLIENTE,
+      PAR.IDENTINSCESTAD AS IE,
+      ITE.AD_DATA,
+      CAB.NUNOTA,
+      ITE.CODPROD,
+      PRO.DESCRPROD AS DESCRPROD,
+      ITE.AD_DIAS,
+      ITE.QTDNEG / 60 AS SACAS_BKP,
+      (ITE.VLRUNIT * 60) / CASE WHEN NVL(ITE.AD_DIAS,1) = 0 THEN 1 END AS VLRUNIT_BKP,
+      ITE.QTDNEG AS SACAS,
+      (ITE.VLRUNIT) AS VLRUNIT,
+      ITE.VLRTOT,
+      CAB.AD_PERIODOFECHINI || ' até: ' || CAB.AD_PERIODOFECHFIN AS PER_REF,
+      CASE WHEN PAR.AD_COOPERADO = 1 THEN 'COOPERADO'
+           ELSE 'NÃO COOPERADO'
+      END AS TIPO_CLIENTE,
+      TOP.AD_TIPOSERV,
+      ITE.OBSERVACAO,
+      CASE WHEN ITE.USOPROD <> 'S' THEN ITE.VLRTOT
+           ELSE 0 END AS VLR_TT_PROD
+   FROM TGFCAB CAB
+   LEFT JOIN TGFITE ITE ON CAB.NUNOTA = ITE.NUNOTA
+   LEFT JOIN TGFPAR PAR ON CAB.CODPARC = PAR.CODPARC
+   LEFT JOIN TGFTOP TOP ON CAB.CODTIPOPER = TOP.CODTIPOPER AND TOP.DHALTER = (SELECT MAX(DHALTER) FROM TGFTOP WHERE CODTIPOPER = TOP.CODTIPOPER)
+   LEFT JOIN TGFPRO PRO ON ITE.CODPROD = PRO.CODPROD
+   WHERE ((CAB.NUNOTA = $P{PK_NUNOTAORIG} AND CAB.TIPMOV = 'P')
+      OR (CAB.NUNOTA IN (SELECT NUNOTAORIG FROM TGFVAR WHERE NUNOTA = $P{PK_NUNOTAORIG}) AND CAB.TIPMOV = 'P'))
+)
+GROUP BY
+   AD_IDPROCAFE,
+   UNIDADE,
+   CLIENTE,
+   IE,
+   NUNOTA,
+   CODPROD,
+   CODPARC,
+   PER_REF,
+   TIPO_CLIENTE,
+   AD_TIPOSERV,
+   DESCRPROD
+ORDER BY AD_IDPROCAFE]]>
+	</queryString>
+	<field name="UNIDADE" class="java.lang.String"/>
+	<field name="CLIENTE" class="java.lang.String">
+		<fieldDescription><![CDATA[CLIENTE]]></fieldDescription>
+	</field>
+	<field name="IE" class="java.lang.String">
+		<fieldDescription><![CDATA[INSCRICAO]]></fieldDescription>
+	</field>
+	<field name="NUNOTA" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[NUNOTA]]></fieldDescription>
+	</field>
+	<field name="CODPROD" class="java.math.BigDecimal"/>
+	<field name="CODPARC" class="java.lang.Number">
+		<fieldDescription><![CDATA[Cód Cliente]]></fieldDescription>
+	</field>
+	<field name="SACAS" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[QTDSACAS]]></fieldDescription>
+	</field>
+	<field name="VLRUNIT" class="java.lang.String">
+		<fieldDescription><![CDATA[VLRUNITSACAS]]></fieldDescription>
+	</field>
+	<field name="VLRTOT" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[VLRTOTAL]]></fieldDescription>
+	</field>
+	<field name="PER_REF" class="java.lang.String">
+		<fieldDescription><![CDATA[Peridodo de Referencia]]></fieldDescription>
+	</field>
+	<field name="TIPO_CLIENTE" class="java.lang.String">
+		<fieldDescription><![CDATA[Tipo Cliente]]></fieldDescription>
+	</field>
+	<field name="AD_TIPOSERV" class="java.lang.String">
+		<fieldDescription><![CDATA[Tipo de Serviço]]></fieldDescription>
+	</field>
+	<field name="DESCRPROD" class="java.lang.String">
+		<fieldDescription><![CDATA[NOME PRODUTO]]></fieldDescription>
+	</field>
+	<field name="VLR_TT_PROD" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[VLRPROD]]></fieldDescription>
+	</field>
+	<field name="AD_IDPROCAFE" class="java.math.BigDecimal"/>
+	<variable name="VLRTOT_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLRTOT}]]></variableExpression>
+	</variable>
+	<variable name="VLR_TT_PROD_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{VLR_TT_PROD}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="39" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="0" width="555" height="39"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<image hAlign="Center" isUsingCache="true">
+				<reportElement key="image-1" x="1" y="0" width="109" height="39"/>
+				<imageExpression class="java.lang.String"><![CDATA[$P{PDIR_MODELO} + "logo" + ".png"]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="109" y="23" width="329" height="16"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[RELATÓRIO DE COBRANÇA SINTETICO]]></text>
+			</staticText>
+			<textField pattern="EEE, d MMM yyyy HH:mm">
+				<reportElement x="438" y="0" width="117" height="13"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="110" y="0" width="329" height="23"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[COOP.CAFEIC.CERRADO MONTE CARMELO ]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="52" splitType="Stretch">
+			<rectangle>
+				<reportElement x="0" y="0" width="555" height="20"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement mode="Transparent" x="0" y="0" width="79" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Periodo Ref.:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="230" y="0" width="72" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Tipo Cliente :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="401" y="0" width="49" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Serviço:]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="0" y="20" width="555" height="32"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement mode="Transparent" x="1" y="20" width="79" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Cliente :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="1" y="35" width="79" height="16" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Unidade :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="283" y="35" width="19" height="16"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[IE:]]></text>
+			</staticText>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="48" y="35" width="207" height="16" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{UNIDADE}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="43" y="20" width="212" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{CLIENTE}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="296" y="35" width="100" height="16" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{IE}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="65" y="0" width="156" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{PER_REF}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="296" y="0" width="100" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{TIPO_CLIENTE}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="445" y="0" width="100" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{AD_TIPOSERV}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="12" splitType="Stretch">
+			<staticText>
+				<reportElement x="1" y="0" width="64" height="12"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Cód]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="66" y="0" width="258" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Descrição :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="492" y="0" width="58" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Valor Total.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="432" y="0" width="58" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Qtde. Scs.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="357" y="0" width="73" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Valor Unit.]]></text>
+			</staticText>
+			<line>
+				<reportElement x="65" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="356" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="432" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="491" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="554" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="0" y="11" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement mode="Transparent" x="326" y="0" width="29" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Tipo]]></text>
+			</staticText>
+			<line>
+				<reportElement x="324" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="13" splitType="Stretch">
+			<textField pattern="#,##0.00000000" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="357" y="0" width="73" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{VLRUNIT}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="12" width="555" height="1"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<textField pattern="" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="433" y="0" width="57" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{SACAS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="66" y="0" width="258" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{DESCRPROD}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.000" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="492" y="0" width="58" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{VLRTOT}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="65" y="0" width="1" height="13"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="356" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="432" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="491" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="554" y="0" width="1" height="13"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="0" y="0" width="1" height="13"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="1" y="0" width="64" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="Calibri" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{AD_IDPROCAFE}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="324" y="0" width="1" height="12"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="55" splitType="Stretch">
+			<rectangle>
+				<reportElement x="99" y="0" width="345" height="54"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</rectangle>
+			<staticText>
+				<reportElement x="102" y="0" width="173" height="18"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total Geral Cobrança:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="102" y="18" width="173" height="18"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total Cobrança: Simples:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="102" y="36" width="173" height="18"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total Cobrança: Industrialização:]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="255" y="0" width="100" height="18" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLRTOT_1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="255" y="18" width="100" height="18" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLRTOT_1}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="444" y="0" width="111" height="54" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[RESUMO TOTAIS COBRANÇA]]></text>
+			</staticText>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement mode="Transparent" x="265" y="35" width="90" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" lineSpacing="Single" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$V{VLR_TT_PROD_1}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

@@ -1,0 +1,29 @@
+{
+  "name": "@nfse/danfse",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "preview": "tsx src/render-preview.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nfse/domain": "workspace:*",
+    "@nfse/application": "workspace:*",
+    "@nfse/gov-client": "workspace:*",
+    "@nfse/shared": "workspace:*",
+    "@nfse/xml": "workspace:*",
+    "fastify": "^5.2.0",
+    "pdfkit": "^0.15.2",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/pdfkit": "^0.13.8",
+    "@types/qrcode": "^1.5.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

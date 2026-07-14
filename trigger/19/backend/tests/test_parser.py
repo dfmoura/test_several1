@@ -105,6 +105,12 @@ def test_sapr11_timeline_includes_quantity_details(official_movements):
     assert income_month.income_quantity > 0
     assert income_month.income_unit_price is not None
     assert income_month.position_quantity > 0
+    assert income_month.avg_purchase_unit_price is not None
+    assert income_month.income_avg_purchase_unit_price is not None
+    assert income_month.income_avg_purchase_unit_price > 0
+    assert income_month.income_unit_price is not None
+    expected_yield = income_month.income_unit_price / income_month.income_avg_purchase_unit_price
+    assert expected_yield > 0
 
 
 def test_transfer_resolution_is_idempotent(official_movements):

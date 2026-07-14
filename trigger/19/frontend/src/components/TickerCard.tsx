@@ -1,6 +1,6 @@
 import { TrendingUp, Coins, Layers, ArrowUpRight } from "lucide-react";
 import { TickerCard as TickerCardType } from "../api";
-import { formatCurrency, formatNumber } from "../utils";
+import { formatCurrency, formatNumber, formatPercent } from "../utils";
 
 interface Props {
   data: TickerCardType;
@@ -8,11 +8,6 @@ interface Props {
 }
 
 export function TickerCard({ data, onClick }: Props) {
-  const yieldOnCost =
-    data.total_invested > 0
-      ? (data.total_income / data.total_invested) * 100
-      : null;
-
   return (
     <button
       type="button"
@@ -59,11 +54,16 @@ export function TickerCard({ data, onClick }: Props) {
         />
       </div>
 
-      <div className="relative mt-5 flex items-center justify-between border-t border-white/5 pt-4 text-xs text-slate-500">
-        <span>Investido: {formatCurrency(data.total_invested)}</span>
-        {yieldOnCost !== null && (
-          <span className="rounded-full bg-accent/10 px-2 py-1 font-medium text-accent-glow">
-            Yield {yieldOnCost.toFixed(1)}%
+      <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-white/5 pt-4 text-xs text-slate-500">
+        <span className="min-w-0 truncate">
+          Investido: {formatCurrency(data.total_invested)}
+        </span>
+        {data.yield_ratio != null && (
+          <span
+            className="shrink-0 rounded-full bg-accent/10 px-2 py-1 font-medium text-accent-glow"
+            title={`Proventos 12m: ${formatCurrency(data.dividends_12m)} ÷ preço atual`}
+          >
+            Yield 12m {formatPercent(data.yield_ratio)}
           </span>
         )}
       </div>

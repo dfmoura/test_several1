@@ -20,6 +20,12 @@ fi
 "$VENV/bin/pip" install -r "$ROOT/requirements.txt"
 "$VENV/bin/playwright" install chromium
 
+if ! command -v Xvfb >/dev/null 2>&1; then
+  echo
+  echo "Dica (Linux sem interface gráfica): para coletar da Prefeitura, instale Xvfb:"
+  echo "  sudo apt install xvfb"
+fi
+
 echo
 echo "Ambiente pronto. Na pasta trigger/15, para subir o app de licitações:"
 echo "  ./run.sh"

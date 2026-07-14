@@ -6,11 +6,13 @@
   --muted: #6b7280;
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
+  --primary-soft: #eff6ff;
   --danger: #dc2626;
   --radius: 10px;
-  --header-h: 4.5rem;
   --gap: 0.75rem;
-  --config-w: 22rem;
+  --sidebar-w: min(22rem, 38vw);
+  --panel-scroll-h: clamp(9rem, 22vh, 16rem);
+  --data-min-h: clamp(12rem, 32vh, 24rem);
 }
 
 *,
@@ -19,13 +21,14 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+html {
   height: 100%;
-  margin: 0;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
+  height: 100%;
+  margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   background: var(--bg);
   color: var(--text);
@@ -39,6 +42,9 @@ body {
   height: 100dvh;
   min-height: 0;
   padding: var(--gap);
+  padding-left: max(var(--gap), env(safe-area-inset-left));
+  padding-right: max(var(--gap), env(safe-area-inset-right));
+  padding-bottom: max(var(--gap), env(safe-area-inset-bottom));
   gap: var(--gap);
 }
 
@@ -52,6 +58,10 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+.brand {
+  min-width: 0;
 }
 
 .brand h1 {
@@ -68,14 +78,14 @@ body {
 
 .app-body {
   display: grid;
-  grid-template-columns: var(--config-w) 1fr;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   gap: var(--gap);
   flex: 1;
   min-height: 0;
 }
 
 .app-body.sidebar-hidden {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .app-body.sidebar-hidden .side-panel {
@@ -84,8 +94,10 @@ body {
 
 .header-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   flex-shrink: 0;
+  justify-content: flex-end;
 }
 
 .card {
@@ -98,21 +110,27 @@ body {
 .side-panel {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-  overflow: auto;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
   min-width: 0;
 }
 
-.sidebar-section + .sidebar-section {
-  padding-top: 1rem;
-  border-top: 1px solid #eef2f6;
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 1rem;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .panel-hint {
   margin: 0 0 0.65rem;
   font-size: 0.8rem;
   color: var(--muted);
+  line-height: 1.4;
 }
 
 .apps-list {
@@ -122,7 +140,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 16rem;
+  max-height: min(16rem, 35vh);
   overflow: auto;
 }
 
@@ -186,7 +204,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  flex: 1;
 }
 
 .main-panel {
@@ -195,6 +212,22 @@ body {
   padding: 1rem;
   min-width: 0;
   overflow: hidden;
+}
+
+.main-head {
+  flex-shrink: 0;
+  margin-bottom: 0.65rem;
+}
+
+.main-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .section-head,
@@ -217,7 +250,6 @@ body {
   flex-wrap: wrap;
   align-items: end;
   gap: 0.65rem;
-  flex-shrink: 0;
 }
 
 .toolbar-field {
@@ -226,7 +258,7 @@ body {
   gap: 0.3rem;
   font-size: 0.82rem;
   font-weight: 600;
-  min-width: 10rem;
+  min-width: 9rem;
 }
 
 .toolbar-grow {
@@ -236,13 +268,13 @@ body {
 
 .toolbar-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   flex-shrink: 0;
 }
 
 .toolbar-status {
   margin: 0.5rem 0 0;
-  flex-shrink: 0;
 }
 
 label {
@@ -321,6 +353,12 @@ button.ghost {
   color: var(--primary);
 }
 
+button.ghost[aria-expanded="true"] {
+  background: var(--primary-soft);
+  border-color: #93c5fd;
+  color: var(--primary-hover);
+}
+
 .status {
   font-size: 0.85rem;
   min-height: 1.2rem;
@@ -336,21 +374,31 @@ button.ghost {
 }
 
 .data-panel {
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 0;
+  min-height: 10rem;
   display: flex;
   flex-direction: column;
-  margin-top: 0.65rem;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #fafbfc;
   overflow: hidden;
 }
 
+.main-content:not(:has(#billing-schedule-panel:not([hidden]))) .data-panel {
+  min-height: var(--data-min-h);
+}
+
 .table-wrap {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.billing-schedule-panel > .table-wrap,
+.billing-panel > .table-wrap {
+  flex: none;
+  max-height: var(--panel-scroll-h);
 }
 
 table {
@@ -366,7 +414,7 @@ td {
   border-bottom: 1px solid #eef2f6;
   text-align: left;
   vertical-align: top;
-  max-width: 20rem;
+  max-width: 18rem;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -392,7 +440,7 @@ tbody tr:hover {
   flex: 1;
   display: grid;
   place-items: center;
-  padding: 2rem;
+  padding: 2rem 1rem;
   color: var(--muted);
   text-align: center;
 }
@@ -406,11 +454,10 @@ tbody tr:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 0.75rem;
   flex-shrink: 0;
-  margin-top: 0.65rem;
-  padding-top: 0.65rem;
-  border-top: 1px solid #eef2f6;
+  padding-top: 0.25rem;
 }
 
 #record-modal {
@@ -487,65 +534,6 @@ tbody tr:hover {
   flex-shrink: 0;
 }
 
-@media (max-width: 900px) {
-  :root {
-    --config-w: 100%;
-  }
-
-  .app-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-
-  .app-body.sidebar-hidden {
-    grid-template-rows: none;
-  }
-
-  .app-body.sidebar-hidden .side-panel {
-    display: none;
-  }
-
-  .side-panel {
-    max-height: 45vh;
-  }
-}
-
-@media (max-width: 560px) {
-  .app-shell {
-    padding: 0.5rem;
-    gap: 0.5rem;
-  }
-
-  .app-header {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-  }
-
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .toolbar-field,
-  .toolbar-grow {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .toolbar-actions {
-    width: 100%;
-  }
-
-  .toolbar-actions button {
-    flex: 1;
-  }
-
-  .form-fields {
-    grid-template-columns: 1fr;
-  }
-}
-
 .grid-2,
 .grid-3 {
   display: grid;
@@ -579,7 +567,7 @@ tbody tr:hover {
   border-radius: 6px;
   font-size: 0.75rem;
   overflow: auto;
-  max-height: 10rem;
+  max-height: min(10rem, 25vh);
 }
 
 .billing-toolbar {
@@ -588,10 +576,10 @@ tbody tr:hover {
   align-items: center;
   gap: 0.5rem;
   padding: 0.65rem 0.75rem;
-  margin-bottom: 0.5rem;
   background: #f8fafc;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  flex-shrink: 0;
 }
 
 .billing-label {
@@ -601,16 +589,16 @@ tbody tr:hover {
 }
 
 .billing-toolbar input[type="text"] {
-  flex: 1;
-  min-width: 10rem;
+  flex: 1 1 10rem;
+  min-width: 0;
 }
 
 .billing-panel {
-  margin-bottom: 0.75rem;
   padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #fafbfc;
+  flex-shrink: 0;
 }
 
 .billing-panel h3 {
@@ -623,11 +611,11 @@ tbody tr:hover {
 }
 
 .billing-schedule-panel {
-  margin-bottom: 0.75rem;
   padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #fafbfc;
+  flex-shrink: 0;
 }
 
 .billing-schedule-panel h3 {
@@ -657,8 +645,8 @@ tbody tr:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  flex: 1;
-  min-width: 12rem;
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 .schedule-chip {
@@ -720,6 +708,7 @@ tbody tr:hover {
   font-size: 0.8rem;
   color: var(--muted);
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .urgency-badge {
@@ -773,7 +762,118 @@ tbody tr:hover {
   padding: 0.25rem 0.45rem;
 }
 
-#schedule-table td:nth-child(9),
-#schedule-table th:nth-child(9) {
+#schedule-table th:last-child,
+#schedule-table td:last-child {
   white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --sidebar-w: min(20rem, 42vw);
+    --panel-scroll-h: clamp(8rem, 20vh, 14rem);
+  }
+}
+
+@media (max-width: 900px) {
+  :root {
+    --sidebar-w: 100%;
+    --data-min-h: clamp(14rem, 38vh, 22rem);
+  }
+
+  .app-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr);
+    position: relative;
+  }
+
+  .app-body:not(.sidebar-hidden) .side-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    max-height: min(72dvh, calc(100dvh - 7rem));
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+  }
+
+  .app-body.sidebar-hidden .side-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+  }
+
+  .header-actions {
+    justify-content: stretch;
+  }
+
+  .header-actions button {
+    flex: 1 1 calc(33% - 0.35rem);
+    min-width: 0;
+    font-size: 0.82rem;
+    padding-inline: 0.5rem;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-field,
+  .toolbar-grow {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+  }
+
+  .toolbar-actions button {
+    flex: 1;
+  }
+
+  .billing-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .billing-toolbar input[type="text"] {
+    width: 100%;
+  }
+
+  .billing-toolbar button {
+    width: 100%;
+  }
+
+  .grid-2,
+  .grid-3,
+  .app-row-pricing {
+    grid-template-columns: 1fr;
+  }
+
+  .form-fields {
+    grid-template-columns: 1fr;
+  }
+
+  th,
+  td {
+    max-width: 14rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .header-actions button {
+    flex: 1 1 100%;
+  }
 }

@@ -852,3 +852,11 @@ def coletar_itens_contratacao(
     finally:
         client.close()
     return resultado
+
+
+# Reexportações do módulo evoluído (compatibilidade)
+from app.compras.coletor_resultados import (  # noqa: E402
+    coletar_resultados,
+    resultado_da_api as resultado_da_api_v2,
+    resultado_para_db,
+)

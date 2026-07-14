@@ -15,15 +15,15 @@ export interface PatrimonyPoint {
   label: string;
   asset_patrimony: number;
   savings_patrimony: number;
-  cdi_patrimony: number;
+  selic_patrimony: number;
 }
 
 interface Props {
   data: PatrimonyPoint[];
   savingsAdvantage: number;
-  cdiAdvantage: number;
+  selicAdvantage: number;
   savingsRate: number;
-  cdiRate: number;
+  selicRate: number;
   title?: string;
   subtitle?: string;
 }
@@ -35,15 +35,15 @@ function formatRate(value: number): string {
 export function PatrimonyComparisonChart({
   data,
   savingsAdvantage,
-  cdiAdvantage,
+  selicAdvantage,
   savingsRate,
-  cdiRate,
+  selicRate,
   title = "Ativo vs benchmarks",
   subtitle,
 }: Props) {
   const resolvedSubtitle =
     subtitle ??
-    `Mesmos aportes e resgates — poupança ${formatRate(savingsRate)}% a.m. · CDI ${formatRate(cdiRate)}% a.m.`;
+    `Mesmos aportes e resgates — taxas BCB: poupança ${formatRate(savingsRate)}% · Selic ${formatRate(selicRate)}% a.m.`;
 
   if (!data.length) return null;
 
@@ -55,7 +55,7 @@ export function PatrimonyComparisonChart({
           <p className="mt-0.5 text-sm text-slate-500">{resolvedSubtitle}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <AdvantageBadge value={cdiAdvantage} label="CDI" />
+          <AdvantageBadge value={selicAdvantage} label="Selic" />
           <AdvantageBadge value={savingsAdvantage} label="poupança" muted />
         </div>
       </div>
@@ -82,11 +82,11 @@ export function PatrimonyComparisonChart({
           />
           <Line
             type="monotone"
-            dataKey="cdi_patrimony"
-            name="CDI"
-            stroke="#3b82f6"
+            dataKey="selic_patrimony"
+            name="Selic"
+            stroke="#a855f7"
             strokeWidth={2}
-            strokeDasharray="4 3"
+            strokeDasharray="2 3"
             dot={false}
             activeDot={{ r: 4 }}
           />
@@ -136,7 +136,7 @@ function PatrimonyTooltip({ active, payload, label }: TooltipProps<number, strin
   if (!active || !payload?.length) return null;
 
   const point = payload[0].payload as PatrimonyPoint;
-  const diffCdi = point.asset_patrimony - point.cdi_patrimony;
+  const diffSelic = point.asset_patrimony - point.selic_patrimony;
   const diffSavings = point.asset_patrimony - point.savings_patrimony;
 
   return (
@@ -149,9 +149,9 @@ function PatrimonyTooltip({ active, payload, label }: TooltipProps<number, strin
           color="#22c55e"
         />
         <TooltipRow
-          label="Patrimônio no CDI"
-          value={formatCurrency(point.cdi_patrimony)}
-          color="#3b82f6"
+          label="Patrimônio na Selic"
+          value={formatCurrency(point.selic_patrimony)}
+          color="#a855f7"
         />
         <TooltipRow
           label="Patrimônio na poupança"
@@ -159,8 +159,8 @@ function PatrimonyTooltip({ active, payload, label }: TooltipProps<number, strin
           color="#64748b"
         />
         <TooltipRow
-          label="Diferença vs CDI"
-          value={`${diffCdi >= 0 ? "+" : ""}${formatCurrency(diffCdi)}`}
+          label="Diferença vs Selic"
+          value={`${diffSelic >= 0 ? "+" : ""}${formatCurrency(diffSelic)}`}
         />
         <TooltipRow
           label="Diferença vs poupança"

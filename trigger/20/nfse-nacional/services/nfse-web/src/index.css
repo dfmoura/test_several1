@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50;
+  }
+  .input {
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-slate-700;
+  }
+
+  .page-container {
+    @apply w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8;
+  }
+
+  .filter-toolbar {
+    @apply mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center;
+  }
+
+  .dl-row {
+    @apply flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4;
+  }
+
+  .dl-row dt {
+    @apply shrink-0 text-slate-500;
+  }
+
+  .dl-row dd {
+    @apply text-slate-700 sm:text-right;
+  }
+}

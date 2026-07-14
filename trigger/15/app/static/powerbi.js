@@ -197,13 +197,15 @@ function setPbiDataset(ds) {
 }
 
 async function carregarPbiFiltros() {
-  const [empLic, sitLic, modLic, empCon, orgGest, papGest] = await Promise.all([
+  const [empLic, sitLic, modLic, empCon, orgGest, papGest, anosLic, anosCon] = await Promise.all([
     api("/api/powerbi/licitacoes/empresas").catch(() => []),
     api("/api/powerbi/licitacoes/situacoes").catch(() => []),
     api("/api/powerbi/licitacoes/modalidades").catch(() => []),
     api("/api/powerbi/contratos/empresas").catch(() => []),
     api("/api/powerbi/gestores/orgaos").catch(() => []),
     api("/api/powerbi/gestores/papeis").catch(() => []),
+    api("/api/powerbi/licitacoes/anos").catch(() => []),
+    api("/api/powerbi/contratos/anos").catch(() => []),
   ]);
   const fill = (sel, items, allLabel) => {
     if (!sel) return;
@@ -215,11 +217,15 @@ async function carregarPbiFiltros() {
       sel.appendChild(o);
     });
   };
+  fill($("#pbi-filtro-lic-ano"), anosLic.map(String), "Todos");
   fill($("#pbi-filtro-lic-empresa"), empLic, "Todas");
   fill($("#pbi-filtro-lic-situacao"), sitLic, "Todas");
   fill($("#pbi-filtro-lic-modalidade"), modLic, "Todas");
+  fill($("#pbi-filtro-con-ano"), anosCon.map(String), "Todos");
   fill($("#pbi-filtro-con-empresa"), empCon, "Todas");
+  fill($("#pbi-filtro-ev-ano"), anosCon.map(String), "Todos");
   fill($("#pbi-filtro-ev-empresa"), empCon, "Todas");
+  fill($("#pbi-filtro-gest-ano"), anosCon.map(String), "Todos");
   fill($("#pbi-filtro-gest-orgao"), orgGest, "Todos");
   fill($("#pbi-filtro-gest-papel"), papGest, "Todos");
 }

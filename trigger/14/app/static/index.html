@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Supabase CRUD Local</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=20260709" />
 </head>
 <body>
   <div class="app-shell">
@@ -101,29 +101,33 @@
       </aside>
 
       <main class="main-panel card" id="crud-section">
-        <div class="toolbar">
-          <label class="toolbar-field">
-            Tabela
-            <select id="table-select">
-              <option value="">Selecione…</option>
-            </select>
-          </label>
-          <label class="toolbar-field toolbar-grow">
-            Nome manual
-            <input type="text" id="table-name" placeholder="ex: produtos" />
-          </label>
-          <label class="toolbar-field" id="toolbar-app-field" hidden>
-            App para novo registro
-            <select id="default-app-select">
-              <option value="">Selecione o app…</option>
-            </select>
-          </label>
-          <div class="toolbar-actions">
-            <button type="button" id="btn-load" class="primary">Carregar</button>
-            <button type="button" id="btn-new" class="primary">Novo</button>
+        <div class="main-head">
+          <div class="toolbar">
+            <label class="toolbar-field">
+              Tabela
+              <select id="table-select">
+                <option value="">Selecione…</option>
+              </select>
+            </label>
+            <label class="toolbar-field toolbar-grow">
+              Nome manual
+              <input type="text" id="table-name" placeholder="ex: produtos" />
+            </label>
+            <label class="toolbar-field" id="toolbar-app-field" hidden>
+              App para novo registro
+              <select id="default-app-select">
+                <option value="">Selecione o app…</option>
+              </select>
+            </label>
+            <div class="toolbar-actions">
+              <button type="button" id="btn-load" class="primary">Carregar</button>
+              <button type="button" id="btn-new" class="primary">Novo</button>
+            </div>
           </div>
+          <p id="crud-status" class="status toolbar-status"></p>
         </div>
 
+        <div class="main-content">
         <div class="billing-schedule-panel card-inset" id="billing-schedule-panel" hidden>
           <div class="schedule-head">
             <div class="schedule-title-row">
@@ -187,8 +191,6 @@
           </div>
         </div>
 
-        <p id="crud-status" class="status toolbar-status"></p>
-
         <div class="data-panel">
           <div class="table-wrap" id="table-wrap" hidden>
             <table id="data-table">
@@ -206,6 +208,7 @@
           <span id="page-info"></span>
           <button type="button" id="btn-next">Próxima</button>
         </footer>
+        </div>
       </main>
     </div>
   </div>

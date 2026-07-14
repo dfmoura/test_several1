@@ -1,0 +1,17 @@
+http:
+  middlewares:
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+  routers:
+    nfse-api:
+      rule: "PathPrefix(`/`)"
+      service: nfse-api
+      middlewares:
+        - rate-limit
+  services:
+    nfse-api:
+      loadBalancer:
+        servers:
+          - url: "http://nfse-api:3000"

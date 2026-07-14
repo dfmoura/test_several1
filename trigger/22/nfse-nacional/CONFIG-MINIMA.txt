@@ -1,0 +1,178 @@
+================================================================================
+  CONFIGURACAO MINIMA - NFS-e NACIONAL
+  Versao: julho/2026
+================================================================================
+
+Este arquivo resume o minimo necessario para rodar o sistema (hardware,
+software, arquivos e variaveis de ambiente).
+
+
+================================================================================
+1. HARDWARE MINIMO
+================================================================================
+
+  CPU     : 2 nucleos (recomendado: 4 nucleos)
+  RAM     : 4 GB  (recomendado: 8 GB)
+  Disco   : 10 GB livres (SSD recomendado)
+  Rede    : Internet estavel (obrigatorio para gov.br em homolog/prod)
+
+  Sistema operacional:
+    - Linux (Ubuntu/Debian) — recomendado
+    - Windows com WSL2
+    - macOS com Docker Desktop
+
+
+================================================================================
+2. SOFTWARE OBRIGATORIO
+================================================================================
+
+  [ ] Docker (versao recente)
+  [ ] Docker Compose v2
+
+  Teste rapido:
+
+    docker --version
+    docker compose version
+
+
+================================================================================
+3. ARQUIVOS OBRIGATORIOS NO PROJETO
+================================================================================
+
+  nfse-nacional/
+  ├── .env                          (criar a partir do .env.example)
+  └── secrets/
+      ├── certificado.pfx             (certificado A1 e-CNPJ — homolog/prod)
+      └── certificado.senha           (senha do .pfx, uma linha)
+
+  Criar o .env:
+
+    cp .env.example .env
+
+  Em desenvolvimento (sem gov.br real), o certificado e opcional se
+  NFSE_GOV_MOCK=true e NFSE_CERT_REQUIRED=false.
+
+
+================================================================================
+4. VARIAVEIS MINIMAS DO .env
+================================================================================
+
+----------------------------------------------------------------------
+CENARIO A — DESENVOLVIMENTO LOCAL (testes sem gov.br)
+----------------------------------------------------------------------
+
+  NFSE_AMBIENTE=dev
+  NFSE_GOV_MOCK=true
+  NFSE_CERT_REQUIRED=false
+
+  NFSE_CNPJ=12345678000199
+  NFSE_C_MUN_EMISSOR=3550308
+  NFSE_DPS_SERIE=00001
+  NFSE_RAZAO_SOCIAL=Empresa Exemplo LTDA
+
+  NFSE_API_KEY=dev-api-key-change-in-production
+  NFSE_JWT_SECRET=dev-jwt-secret-change-in-production
+  NFSE_WEB_PASSWORD=admin
+  NFSE_WEB_SESSION_SECRET=dev-session-secret-change-in-production
+
+  (Demais variaveis: usar valores padrao do .env.example — banco, redis,
+   rabbitmq, minio e portas ja vem preenchidos.)
+
+  Comando:
+
+    docker compose --profile dev up -d --build
+
+  Acesso:
+    API:        http://localhost:18100
+    Painel web: http://localhost:18102  (senha: admin)
+
+
+----------------------------------------------------------------------
+CENARIO B — HOMOLOGACAO / PRODUCAO (gov.br real)
+----------------------------------------------------------------------
+
+  Variaveis que VOCE DEVE alterar (substitua pelos seus dados):
+
+  NFSE_AMBIENTE=homolog          # ou prod
+  NFSE_GOV_MOCK=false
+  NFSE_CERT_REQUIRED=true
+
+  NFSE_CNPJ=SEU_CNPJ_14_DIGITOS
+  NFSE_C_MUN_EMISSOR=CODIGO_IBGE_7_DIGITOS
+  NFSE_INSCRICAO_MUNICIPAL=SUA_IM
+  NFSE_DPS_SERIE=00001
+
+  NFSE_API_KEY=SUA_CHAVE_API_FORTE
+  NFSE_JWT_SECRET=SECRETO_JWT_MIN_16_CHARS
+  NFSE_WEB_PASSWORD=SENHA_DO_PAINEL
+  NFSE_WEB_SESSION_SECRET=SECRETO_SESSAO_MIN_16_CHARS
+
+  Certificado (arquivos, nao no .env):
+    secrets/certificado.pfx
+    secrets/certificado.senha
+
+  Regras obrigatorias:
+    - CNPJ no .env = CNPJ do certificado A1
+    - Certificado valido (nao vencido)
+    - IM e municipio IBGE: informar manualmente (nao vem no certificado)
+
+  Comando homologacao:
+
+    docker compose --profile homolog up -d --build
+
+  Comando producao:
+
+    docker compose --profile prod up -d --build
+
+
+================================================================================
+5. PORTAS PADRAO (HOST)
+================================================================================
+
+  Servico              Variavel                      Porta
+  -------------------  ----------------------------  -----
+  API REST             NFSE_HOST_PORT_API            18100
+  Painel web           NFSE_HOST_PORT_WEB            18102
+  DANFSe (PDF)         NFSE_HOST_PORT_DANFSE         18101
+  Traefik              NFSE_HOST_PORT_TRAEFIK        18180
+  PostgreSQL           NFSE_HOST_PORT_POSTGRES       15432
+  Redis                NFSE_HOST_PORT_REDIS          16379
+  RabbitMQ (UI)        NFSE_HOST_PORT_RABBITMQ_UI    18672
+  MinIO (console)      NFSE_HOST_PORT_MINIO_CONSOLE  19001
+
+  Se alguma porta estiver ocupada, altere a variavel correspondente no .env.
+
+
+================================================================================
+6. VERIFICACAO RAPIDA
+================================================================================
+
+  Ver containers:
+
+    docker compose --profile dev ps
+    # ou: --profile homolog / --profile prod
+
+  Testar API:
+
+    curl -H "X-API-Key: SUA_API_KEY" http://localhost:18100/health/ready
+
+  Resposta esperada: JSON com "status": "ok"
+
+  Logs em caso de erro:
+
+    docker compose --profile dev logs -f nfse-api
+
+
+================================================================================
+7. CHECKLIST MINIMO ANTES DE USAR
+================================================================================
+
+  [ ] Docker instalado e funcionando
+  [ ] Arquivo .env criado e editado
+  [ ] Certificado em secrets/ (homolog/prod)
+  [ ] CNPJ do .env igual ao do certificado (homolog/prod)
+  [ ] Senhas padrao trocadas (homolog/prod)
+  [ ] Containers com status running/healthy
+  [ ] /health/ready retorna ok
+
+================================================================================

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
+from datetime import date, timedelta
 from decimal import Decimal
 
 from app.domain.b3_schema import AVG_COST_QUANTIZE, DIRECTION_CREDIT
@@ -13,10 +14,11 @@ from app.domain.models import (
     TimelinePoint,
 )
 from app.domain.savings_comparator import (
-    DEFAULT_CDI_MONTHLY_RATE,
     DEFAULT_SAVINGS_MONTHLY_RATE,
-    simulate_cdi_balance,
+    DEFAULT_SELIC_MONTHLY_RATE,
+    MonthlyRateInput,
     simulate_savings_balance,
+    simulate_selic_balance,
 )
 from app.domain.value_objects import MovementKind
 
@@ -81,8 +83,8 @@ class PositionCalculator:
         ticker: str,
         *,
         current_price: Decimal | None = None,
-        savings_monthly_rate: Decimal = DEFAULT_SAVINGS_MONTHLY_RATE,
-        cdi_monthly_rate: Decimal = DEFAULT_CDI_MONTHLY_RATE,
+        savings_monthly_rate: MonthlyRateInput = DEFAULT_SAVINGS_MONTHLY_RATE,
+        selic_monthly_rate: MonthlyRateInput = DEFAULT_SELIC_MONTHLY_RATE,
     ) -> list[TimelinePoint]:
         filtered = [m for m in movements if m.ticker == ticker and m.kind != MovementKind.IGNORE]
         filtered.sort(key=lambda m: (m.trade_date, m.external_key))
@@ -95,6 +97,8 @@ class PositionCalculator:
                 "invested_quantity": Decimal("0"),
                 "liquidated_quantity": Decimal("0"),
                 "income_quantity": Decimal("0"),
+                "income_avg_cost_weighted": Decimal("0"),
+                "income_for_avg_cost": Decimal("0"),
             }
         )
         period_end_position: dict[str, Decimal] = {}
@@ -113,6 +117,10 @@ class PositionCalculator:
                 bucket["income"] += value
                 if qty > 0:
                     bucket["income_quantity"] = max(bucket["income_quantity"], qty)
+                if value > 0 and position_qty > 0 and cost_basis > 0:
+                    event_avg = (cost_basis / position_qty).quantize(Decimal(AVG_COST_QUANTIZE))
+                    bucket["income_avg_cost_weighted"] += event_avg * value
+                    bucket["income_for_avg_cost"] += value
             elif movement.kind == MovementKind.BUY:
                 value = movement.total_value or Decimal("0")
                 bucket["invested"] += value
@@ -158,7 +166,7 @@ class PositionCalculator:
             for period in sorted(monthly.keys())
         ]
         savings_balances = simulate_savings_balance(monthly_flows, savings_monthly_rate)
-        cdi_balances = simulate_cdi_balance(monthly_flows, cdi_monthly_rate)
+        selic_balances = simulate_selic_balance(monthly_flows, selic_monthly_rate)
 
         cumulative_invested = Decimal("0")
         cumulative_liquidated = Decimal("0")
@@ -181,6 +189,12 @@ class PositionCalculator:
             position_qty = period_end_position.get(period, Decimal("0"))
             avg_cost = period_end_avg_cost.get(period)
 
+            income_avg_purchase_unit_price = None
+            if bucket["income_for_avg_cost"] > 0:
+                income_avg_purchase_unit_price = (
+                    bucket["income_avg_cost_weighted"] / bucket["income_for_avg_cost"]
+                ).quantize(Decimal(AVG_COST_QUANTIZE))
+
             is_last = index == len(sorted_periods) - 1
             if is_last and current_price is not None and position_qty > 0:
                 position_value = position_qty * current_price
@@ -193,7 +207,7 @@ class PositionCalculator:
                 cumulative_income + cumulative_liquidated + position_value
             ).quantize(Decimal("0.01"))
             savings_patrimony = savings_balances.get(period, Decimal("0"))
-            cdi_patrimony = cdi_balances.get(period, Decimal("0"))
+            selic_patrimony = selic_balances.get(period, Decimal("0"))
 
             points.append(
                 TimelinePoint(
@@ -211,9 +225,11 @@ class PositionCalculator:
                     invested_unit_price=self._weighted_unit_price(invested, invested_qty),
                     liquidated_unit_price=self._weighted_unit_price(liquidated, liquidated_qty),
                     income_unit_price=self._weighted_unit_price(income, income_qty),
+                    avg_purchase_unit_price=avg_cost,
+                    income_avg_purchase_unit_price=income_avg_purchase_unit_price,
                     asset_patrimony=asset_patrimony,
                     savings_patrimony=savings_patrimony,
-                    cdi_patrimony=cdi_patrimony,
+                    selic_patrimony=selic_patrimony,
                 )
             )
 
@@ -224,8 +240,8 @@ class PositionCalculator:
         movements: list[Movement],
         *,
         current_prices: dict[str, Decimal] | None = None,
-        savings_monthly_rate: Decimal = DEFAULT_SAVINGS_MONTHLY_RATE,
-        cdi_monthly_rate: Decimal = DEFAULT_CDI_MONTHLY_RATE,
+        savings_monthly_rate: MonthlyRateInput = DEFAULT_SAVINGS_MONTHLY_RATE,
+        selic_monthly_rate: MonthlyRateInput = DEFAULT_SELIC_MONTHLY_RATE,
     ) -> list[PortfolioComparisonPoint]:
         filtered = [m for m in movements if m.kind != MovementKind.IGNORE]
         filtered.sort(key=lambda m: (m.trade_date, m.external_key))
@@ -289,7 +305,7 @@ class PositionCalculator:
             for period in sorted(monthly.keys())
         ]
         savings_balances = simulate_savings_balance(monthly_flows, savings_monthly_rate)
-        cdi_balances = simulate_cdi_balance(monthly_flows, cdi_monthly_rate)
+        selic_balances = simulate_selic_balance(monthly_flows, selic_monthly_rate)
         prices = current_prices or {}
 
         cumulative_liquidated = Decimal("0")
@@ -321,11 +337,27 @@ class PositionCalculator:
                     period=period,
                     asset_patrimony=asset_patrimony,
                     savings_patrimony=savings_balances.get(period, Decimal("0")),
-                    cdi_patrimony=cdi_balances.get(period, Decimal("0")),
+                    selic_patrimony=selic_balances.get(period, Decimal("0")),
                 )
             )
 
         return points
+
+    @staticmethod
+    def dividends_12m_per_share(movements: list[Movement], ticker: str) -> Decimal:
+        cutoff = date.today() - timedelta(days=365)
+        total = Decimal("0")
+        for movement in movements:
+            if movement.ticker != ticker or movement.kind != MovementKind.INCOME:
+                continue
+            if movement.trade_date < cutoff:
+                continue
+            unit = movement.unit_price
+            if unit is None and movement.total_value and movement.quantity > 0:
+                unit = movement.total_value / movement.quantity
+            if unit is not None:
+                total += unit
+        return total
 
     @staticmethod
     def _weighted_unit_price(total: Decimal, quantity: Decimal) -> Decimal | None:

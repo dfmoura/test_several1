@@ -1,0 +1,287 @@
+name: nfse-nacional
+
+x-app-env: &app-env
+  NFSE_AMBIENTE: ${NFSE_AMBIENTE:-dev}
+  NFSE_CNPJ: ${NFSE_CNPJ:-12345678000199}
+  NFSE_C_MUN_EMISSOR: ${NFSE_C_MUN_EMISSOR:-3550308}
+  NFSE_DPS_SERIE: ${NFSE_DPS_SERIE:-00001}
+  NFSE_RAZAO_SOCIAL: ${NFSE_RAZAO_SOCIAL:-Empresa Exemplo LTDA}
+  NFSE_INSCRICAO_MUNICIPAL: ${NFSE_INSCRICAO_MUNICIPAL:-}
+  NFSE_CERT_PATH: ${NFSE_CERT_PATH:-/run/secrets/certificado.pfx}
+  NFSE_CERT_PASSWORD: ${NFSE_CERT_PASSWORD:-}
+  NFSE_CERT_PASSWORD_FILE: ${NFSE_CERT_PASSWORD_FILE:-/run/secrets/certificado.senha}
+  NFSE_CERT_REQUIRED: ${NFSE_CERT_REQUIRED:-false}
+  NFSE_API_KEY: ${NFSE_API_KEY:-dev-api-key-change-in-production}
+  NFSE_JWT_SECRET: ${NFSE_JWT_SECRET:-dev-jwt-secret-change-in-production}
+  DATABASE_URL: postgresql://nfse:nfse@postgres:5432/nfse
+  REDIS_URL: redis://redis:6379
+  RABBITMQ_URL: amqp://nfse:nfse@rabbitmq:5672
+  MINIO_ENDPOINT: minio
+  MINIO_PORT: 9000
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-nfse}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-nfse-secret-key}
+  MINIO_BUCKET: nfse-xml
+  MINIO_USE_SSL: "false"
+  NFSE_SYNC_INTERVAL_SEC: ${NFSE_SYNC_INTERVAL_SEC:-300}
+  NFSE_GOV_MOCK: ${NFSE_GOV_MOCK:-true}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  NFSE_DANFSE_URL: http://nfse-danfse:3001
+
+services:
+  traefik:
+    image: traefik:v3.2
+    profiles: ["dev", "homolog", "prod"]
+    ports:
+      - "${NFSE_HOST_PORT_TRAEFIK:-18180}:80"
+      - "${NFSE_HOST_PORT_TRAEFIK_DASHBOARD:-18181}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./infra/traefik/dynamic:/etc/traefik/dynamic:ro
+    networks:
+      - nfse-public
+      - nfse-app
+
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      POSTGRES_USER: nfse
+      POSTGRES_PASSWORD: nfse
+      POSTGRES_DB: nfse
+    ports:
+      - "${NFSE_HOST_PORT_POSTGRES:-15432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - nfse-data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nfse"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    profiles: ["dev", "homolog", "prod"]
+    ports:
+      - "${NFSE_HOST_PORT_REDIS:-16379}:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - nfse-data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      RABBITMQ_DEFAULT_USER: nfse
+      RABBITMQ_DEFAULT_PASS: nfse
+    ports:
+      - "${NFSE_HOST_PORT_RABBITMQ_UI:-18672}:15672"
+    volumes:
+      - mqdata:/var/lib/rabbitmq
+    networks:
+      - nfse-data
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    profiles: ["dev", "homolog", "prod"]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-nfse}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-nfse-secret-key}
+    ports:
+      - "${NFSE_HOST_PORT_MINIO_CONSOLE:-19001}:9001"
+    volumes:
+      - miniodata:/data
+    networks:
+      - nfse-data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  migrate:
+    image: node:22-alpine
+    profiles: ["dev", "homolog", "prod"]
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: postgresql://nfse:nfse@postgres:5432/nfse
+    command: sh -c "npm install --prefix /opt/migrate pg@8.13.1 && NODE_PATH=/opt/migrate/node_modules node scripts/migrate.js"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nfse-data
+
+  nfse-api:
+    build:
+      context: .
+      dockerfile: infra/docker/nfse-api/Dockerfile
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      <<: *app-env
+      NFSE_API_PORT: 3000
+    volumes:
+      - ./secrets:/run/secrets:ro
+    ports:
+      - "${NFSE_HOST_PORT_API:-18100}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - nfse-app
+      - nfse-data
+      - nfse-egress
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nfse-api.rule=PathPrefix(`/`)"
+      - "traefik.http.services.nfse-api.loadbalancer.server.port=3000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nfse-worker:
+    build:
+      context: .
+      dockerfile: infra/docker/nfse-worker/Dockerfile
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      <<: *app-env
+    volumes:
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - nfse-app
+      - nfse-data
+
+  nfse-sync:
+    build:
+      context: .
+      dockerfile: infra/docker/nfse-sync/Dockerfile
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      <<: *app-env
+    volumes:
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - nfse-app
+      - nfse-data
+      - nfse-egress
+
+  nfse-danfse:
+    build:
+      context: .
+      dockerfile: infra/docker/nfse-danfse/Dockerfile
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      <<: *app-env
+    volumes:
+      - ./secrets:/run/secrets:ro
+    ports:
+      - "${NFSE_HOST_PORT_DANFSE:-18101}:3001"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+    networks:
+      - nfse-app
+      - nfse-data
+
+  nfse-web:
+    build:
+      context: .
+      dockerfile: infra/docker/nfse-web/Dockerfile
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      NFSE_API_URL: http://nfse-api:3000
+      NFSE_API_KEY: ${NFSE_API_KEY:-dev-api-key-change-in-production}
+      NFSE_WEB_PORT: 3002
+      NFSE_WEB_PASSWORD: ${NFSE_WEB_PASSWORD:-admin}
+      NFSE_WEB_SESSION_SECRET: ${NFSE_WEB_SESSION_SECRET:-dev-session-secret}
+      NODE_ENV: production
+    ports:
+      - "${NFSE_HOST_PORT_WEB:-18102}:3002"
+    depends_on:
+      nfse-api:
+        condition: service_healthy
+    networks:
+      - nfse-app
+      - nfse-public
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    profiles: ["homolog", "prod"]
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports:
+      - "${NFSE_HOST_PORT_PROMETHEUS:-19090}:9090"
+    networks:
+      - nfse-obs
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    profiles: ["homolog", "prod"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafanadata:/var/lib/grafana
+    ports:
+      - "${NFSE_HOST_PORT_GRAFANA:-18200}:3000"
+    networks:
+      - nfse-obs
+
+networks:
+  nfse-public:
+    driver: bridge
+  nfse-app:
+    driver: bridge
+  nfse-data:
+    driver: bridge
+  nfse-obs:
+    driver: bridge
+  nfse-egress:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:
+  mqdata:
+  miniodata:
+  promdata:
+  grafanadata:

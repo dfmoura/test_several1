@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: nfse-api
+    static_configs:
+      - targets: ["nfse-api:3000"]
+    metrics_path: /health/live

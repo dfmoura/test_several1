@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Callable
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -11,6 +11,9 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.compras.orquestrador import executar_pipeline
+from app.compras.repository import upsert_resultado
+from app.compras.coletor_resultados import coletar_resultados, resultado_para_db
 from app.compras_pncp import coletar as coletar_compras
 from app.compras_pncp import coletar_itens
 from app.compras_pncp import item_itens_para_db
@@ -21,6 +24,13 @@ from app.database import (
     COMPRAS_CAMPOS_PRESERVADOS_SYNC,
     CompraContratacao,
     CompraContratacaoItem,
+    ComprasContratacaoResultado,
+    ComprasFornecedor,
+    ComprasItemCatalogo,
+    ComprasOrgao,
+    ComprasPgcItem,
+    ComprasPrecoPraticado,
+    ComprasUasg,
     Licitacao,
     Observador,
     SessionLocal,
@@ -33,10 +43,12 @@ from app.modalidades_vinculo import router as modalidades_router
 from app.orgaos_vinculo import router as orgaos_router
 from app.powerbi import router as powerbi_router
 from app.scraper import coletar
+from app.sistema import router as sistema_router
 
 init_db()
 
 app = FastAPI(title="Verificação de Licitações — Uberlândia", version="1.0.0")
+app.include_router(sistema_router)  # setup, config e limpeza segura
 app.include_router(dashboard_router)  # dashboard gerencial — removível
 app.include_router(consulta_processo_router)  # consulta unificada por processo — removível
 app.include_router(orgaos_router)  # vínculo órgãos entre bases — removível
@@ -51,6 +63,7 @@ _compras_coleta_status: dict[str, Any] = {
     "fase": "idle",
     "log": [],
     "resultado": None,
+    "contadores": {},
 }
 
 
@@ -73,6 +86,14 @@ class ComprasColetaRequest(BaseModel):
     unidades: list[str] | None = None
     modalidades: list[int] | None = Field(default=None)
     ano_filtro: int | None = Field(default=None, ge=2000, le=2100)
+
+
+class ComprasColetaCompletaRequest(ComprasColetaRequest):
+    fases: list[str] | None = Field(
+        default=None,
+        description="Ex.: 07,07-resultados,05,10,04,03",
+    )
+    ano_pgc: int | None = Field(default=None, ge=2000, le=2100)
 
 
 class ObservadorOut(BaseModel):
@@ -196,7 +217,29 @@ class CompraItemOut(BaseModel):
     valor_unitario_resultado: str | None = None
     valor_total_resultado: str | None = None
     data_resultado: str | None = None
+    resultados: list[dict[str, Any]] | None = None
     dados_pncp: dict[str, Any] | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class CompraResultadoOut(BaseModel):
+    id: int
+    id_compra_item: str
+    id_compra: str
+    sequencial_resultado: int | None = None
+    ni_fornecedor: str | None = None
+    nome_razao_social_fornecedor: str | None = None
+    ordem_classificacao_srp: int | None = None
+    quantidade_homologada: str | None = None
+    valor_unitario_homologado: str | None = None
+    valor_total_homologado: str | None = None
+    situacao_compra_item_resultado_nome: str | None = None
+    porte_fornecedor_nome: str | None = None
+    data_resultado_pncp: str | None = None
+    percentual_desconto: str | None = None
+    fornecedor_porte: str | None = None
+    fornecedor_cnae: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -227,11 +270,26 @@ def _compra_to_out(row: CompraContratacao) -> CompraContratacaoOut:
     return CompraContratacaoOut(**data)
 
 
-def _item_to_out(row: CompraContratacaoItem) -> CompraItemOut:
+def _resultado_to_out(row: ComprasContratacaoResultado) -> CompraResultadoOut:
+    data = {c: getattr(row, c, None) for c in CompraResultadoOut.model_fields if c not in (
+        "fornecedor_porte",
+        "fornecedor_cnae",
+    )}
+    if row.fornecedor:
+        data["fornecedor_porte"] = row.fornecedor.porte_empresa_nome
+        data["fornecedor_cnae"] = row.fornecedor.nome_cnae
+    return CompraResultadoOut(**data)
+
+
+def _item_to_out(
+    row: CompraContratacaoItem,
+    *,
+    resultados: list[ComprasContratacaoResultado] | None = None,
+) -> CompraItemOut:
     data = {
         c: getattr(row, c, None)
         for c in CompraItemOut.model_fields
-        if c != "dados_pncp"
+        if c not in ("dados_pncp", "resultados")
     }
     if row.dados_pncp_json:
         try:
@@ -240,6 +298,8 @@ def _item_to_out(row: CompraContratacaoItem) -> CompraItemOut:
             data["dados_pncp"] = None
     else:
         data["dados_pncp"] = None
+    if resultados is not None:
+        data["resultados"] = [_resultado_to_out(r).model_dump() for r in resultados]
     return CompraItemOut(**data)
 
 
@@ -346,6 +406,45 @@ def _resolver_periodo_coleta(req: ComprasColetaRequest) -> tuple[date, date]:
     return date(ano_atual, 1, 1), date(ano_atual, 12, 31)
 
 
+def _persistir_resultados(
+    db: Session,
+    *,
+    data_inicial: date,
+    data_final: date,
+    unidades: list[str] | None,
+    on_log: Callable[[str], None],
+    on_fase: Callable[[str], None],
+) -> tuple[int, int]:
+    mapa_itens = {
+        row.id_compra_item: row.id
+        for row in db.scalars(select(CompraContratacaoItem)).all()
+    }
+    mapa_forn = {
+        row.ni_fornecedor: row.id
+        for row in db.scalars(select(ComprasFornecedor)).all()
+    }
+    resultados = coletar_resultados(
+        data_inicial=data_inicial,
+        data_final=data_final,
+        unidades=unidades,
+        on_log=on_log,
+        on_fase=on_fase,
+    )
+    novos = atualizados = 0
+    for res in resultados:
+        data = resultado_para_db(
+            res,
+            contratacao_item_id=mapa_itens.get(res.id_compra_item),
+            fornecedor_id=mapa_forn.get(res.ni_fornecedor or ""),
+        )
+        _, criado = upsert_resultado(db, data)
+        if criado:
+            novos += 1
+        else:
+            atualizados += 1
+    return novos, atualizados
+
+
 def _run_compras_coleta(req: ComprasColetaRequest) -> None:
     global _compras_coleta_status
     logs: list[str] = []
@@ -383,6 +482,7 @@ def _run_compras_coleta(req: ComprasColetaRequest) -> None:
         novos = atualizados = 0
         itens_novos = itens_atualizados = 0
         itens: list = []
+        res_novos = res_atualizados = 0
         mapa_contratacoes: dict[str, int] = {}
         try:
             for item in items:
@@ -435,6 +535,18 @@ def _run_compras_coleta(req: ComprasColetaRequest) -> None:
                     db, itens, mapa_contratacoes=mapa_contratacoes
                 )
                 db.commit()
+
+            res_novos = res_atualizados = 0
+            on_fase("coletando_resultados")
+            res_novos, res_atualizados = _persistir_resultados(
+                db,
+                data_inicial=data_inicial,
+                data_final=data_final,
+                unidades=unidades,
+                on_log=on_log,
+                on_fase=on_fase,
+            )
+            db.commit()
         finally:
             db.close()
 
@@ -446,7 +558,49 @@ def _run_compras_coleta(req: ComprasColetaRequest) -> None:
             "itens_total": len(itens) if itens else 0,
             "itens_novos": itens_novos if itens else 0,
             "itens_atualizados": itens_atualizados if itens else 0,
+            "resultados_novos": res_novos,
+            "resultados_atualizados": res_atualizados,
         }
+    except Exception as exc:
+        logs.append(f"Erro: {exc}")
+        _compras_coleta_status["log"] = logs
+        _compras_coleta_status["resultado"] = {"ok": False, "erro": str(exc)}
+    finally:
+        _compras_coleta_status["running"] = False
+        _compras_coleta_status["fase"] = "idle"
+
+
+def _run_compras_coleta_completa(req: ComprasColetaCompletaRequest) -> None:
+    global _compras_coleta_status
+    logs: list[str] = []
+
+    def on_log(msg: str) -> None:
+        logs.append(msg)
+        _compras_coleta_status["log"] = logs.copy()
+
+    def on_fase(fase: str) -> None:
+        _compras_coleta_status["fase"] = fase
+
+    try:
+        data_inicial, data_final = _resolver_periodo_coleta(req)
+        if req.unidades:
+            for u in req.unidades:
+                if u not in UNIDADES_COMPRADORAS:
+                    raise ValueError(f"Unidade inválida: {u}")
+        fases = req.fases or ["07", "07-resultados", "05", "10", "01", "02"]
+        result = executar_pipeline(
+            fases=fases,
+            data_inicial=data_inicial,
+            data_final=data_final,
+            unidades=req.unidades,
+            modalidades=req.modalidades,
+            ano=req.ano_filtro or req.ano,
+            ano_pgc=req.ano_pgc,
+            on_log=on_log,
+            on_fase=on_fase,
+        )
+        _compras_coleta_status["contadores"] = result.contadores
+        _compras_coleta_status["resultado"] = {"ok": True, **result.contadores}
     except Exception as exc:
         logs.append(f"Erro: {exc}")
         _compras_coleta_status["log"] = logs
@@ -651,6 +805,27 @@ def iniciar_compras_coleta(req: ComprasColetaRequest, bg: BackgroundTasks):
     }
 
 
+@app.post("/api/compras/coletar-completo")
+def iniciar_compras_coleta_completa(req: ComprasColetaCompletaRequest, bg: BackgroundTasks):
+    if _compras_coleta_status["running"]:
+        raise HTTPException(409, "Já existe uma coleta Compras.gov em andamento")
+    try:
+        data_inicial, data_final = _resolver_periodo_coleta(req)
+    except Exception as exc:
+        raise HTTPException(400, str(exc)) from exc
+    _compras_coleta_status.update(
+        running=True, fase="iniciando", log=[], resultado=None, contadores={}
+    )
+    bg.add_task(_run_compras_coleta_completa, req)
+    return {
+        "status": "iniciada",
+        "modo": "orquestrador",
+        "fases": req.fases or ["07", "07-resultados", "05", "10", "01", "02"],
+        "data_inicial": data_inicial.isoformat(),
+        "data_final": data_final.isoformat(),
+    }
+
+
 @app.get("/api/compras/coletar/status")
 def status_compras_coleta():
     return _compras_coleta_status
@@ -755,11 +930,27 @@ def itens_compra(
     rows = db.scalars(
         stmt.order_by(CompraContratacaoItem.numero_item_pncp).offset(offset).limit(limit)
     ).all()
+    resultados_por_item: dict[str, list[ComprasContratacaoResultado]] = {}
+    if rows:
+        ids = [r.id_compra_item for r in rows]
+        for res in db.scalars(
+            select(ComprasContratacaoResultado)
+            .options(selectinload(ComprasContratacaoResultado.fornecedor))
+            .where(ComprasContratacaoResultado.id_compra_item.in_(ids))
+        ):
+            resultados_por_item.setdefault(res.id_compra_item, []).append(res)
     return {
-        "items": [_item_to_out(r) for r in rows],
+        "items": [
+            _item_to_out(r, resultados=resultados_por_item.get(r.id_compra_item, []))
+            for r in rows
+        ],
         "total": total,
         "limit": limit,
         "offset": offset,
+        "aviso_api": (
+            "A API federal lista apenas resultados classificados/homologados, "
+            "não todos os proponentes."
+        ),
     }
 
 
@@ -797,6 +988,175 @@ def atualizar_compra(cid: int, payload: CompraContratacaoUpdate, db: Session = D
     db.commit()
     db.refresh(row)
     return _compra_to_out(row)
+
+
+@app.get("/api/compras/contratacoes/{cid}/resultados")
+def resultados_contratacao(cid: int, db: Session = Depends(get_db)):
+    contratacao = db.scalar(select(CompraContratacao).where(CompraContratacao.id == cid))
+    if not contratacao:
+        raise HTTPException(404, "Não encontrada")
+    rows = db.scalars(
+        select(ComprasContratacaoResultado)
+        .options(selectinload(ComprasContratacaoResultado.fornecedor))
+        .where(ComprasContratacaoResultado.id_compra == contratacao.id_compra)
+        .order_by(
+            ComprasContratacaoResultado.id_compra_item,
+            ComprasContratacaoResultado.sequencial_resultado,
+        )
+    ).all()
+    return {"items": [_resultado_to_out(r) for r in rows], "total": len(rows)}
+
+
+@app.get("/api/compras/itens/{id_compra_item}/resultados")
+def resultados_item(id_compra_item: str, db: Session = Depends(get_db)):
+    rows = db.scalars(
+        select(ComprasContratacaoResultado)
+        .options(selectinload(ComprasContratacaoResultado.fornecedor))
+        .where(ComprasContratacaoResultado.id_compra_item == id_compra_item)
+        .order_by(ComprasContratacaoResultado.sequencial_resultado)
+    ).all()
+    return {"items": [_resultado_to_out(r) for r in rows], "total": len(rows)}
+
+
+@app.get("/api/compras/itens/{id_compra_item}/precos")
+def precos_item(
+    id_compra_item: str,
+    db: Session = Depends(get_db),
+    limit: int = Query(100, ge=1, le=500),
+):
+    rows = db.scalars(
+        select(ComprasPrecoPraticado)
+        .where(ComprasPrecoPraticado.id_item_compra == id_compra_item)
+        .order_by(ComprasPrecoPraticado.data_compra.desc())
+        .limit(limit)
+    ).all()
+    return {
+        "items": [
+            {
+                "id": r.id,
+                "tipo_item": r.tipo_item,
+                "preco_unitario": r.preco_unitario,
+                "quantidade": r.quantidade,
+                "data_compra": r.data_compra,
+                "nome_fornecedor": r.nome_fornecedor,
+                "municipio": r.municipio,
+                "estado": r.estado,
+            }
+            for r in rows
+        ],
+        "total": len(rows),
+    }
+
+
+@app.get("/api/compras/fornecedores")
+def listar_fornecedores(
+    db: Session = Depends(get_db),
+    ni: str | None = None,
+    q: str | None = None,
+    limit: int = Query(50, ge=1, le=200),
+):
+    stmt = select(ComprasFornecedor)
+    if ni:
+        ni_d = ni.replace(".", "").replace("/", "").replace("-", "")
+        stmt = stmt.where(ComprasFornecedor.ni_fornecedor.contains(ni_d))
+    if q:
+        stmt = stmt.where(ComprasFornecedor.nome_razao_social_fornecedor.ilike(f"%{q}%"))
+    rows = db.scalars(stmt.order_by(ComprasFornecedor.nome_razao_social_fornecedor).limit(limit)).all()
+    return {
+        "items": [
+            {
+                "id": r.id,
+                "ni_fornecedor": r.ni_fornecedor,
+                "nome": r.nome_razao_social_fornecedor,
+                "porte": r.porte_empresa_nome,
+                "cnae": r.nome_cnae,
+                "uf": r.uf_sigla,
+            }
+            for r in rows
+        ],
+        "total": len(rows),
+    }
+
+
+@app.get("/api/compras/uasgs")
+def listar_uasgs(db: Session = Depends(get_db)):
+    rows = db.scalars(
+        select(ComprasUasg).options(selectinload(ComprasUasg.orgao)).order_by(ComprasUasg.codigo_uasg)
+    ).all()
+    return {
+        "items": [
+            {
+                "id": r.id,
+                "codigo_uasg": r.codigo_uasg,
+                "nome_uasg": r.nome_uasg,
+                "municipio": r.nome_municipio_ibge,
+                "orgao": r.orgao.nome_orgao if r.orgao else None,
+            }
+            for r in rows
+        ],
+        "total": len(rows),
+    }
+
+
+@app.get("/api/compras/pgc")
+def listar_pgc(
+    db: Session = Depends(get_db),
+    orgao: str | None = None,
+    ano: int | None = None,
+    uasg: str | None = None,
+    limit: int = Query(200, ge=1, le=1000),
+):
+    stmt = select(ComprasPgcItem)
+    if orgao:
+        stmt = stmt.where(ComprasPgcItem.orgao.contains(orgao.replace(".", "").replace("/", "").replace("-", "")))
+    if ano:
+        stmt = stmt.where(ComprasPgcItem.ano_pca_projeto_compra == ano)
+    if uasg:
+        stmt = stmt.where(ComprasPgcItem.codigo_uasg == uasg)
+    rows = db.scalars(stmt.order_by(ComprasPgcItem.id.desc()).limit(limit)).all()
+    return {
+        "items": [
+            {
+                "id": r.id,
+                "orgao": r.orgao,
+                "ano": r.ano_pca_projeto_compra,
+                "codigo_uasg": r.codigo_uasg,
+                "codigo_item_catalogo": r.codigo_item_catalogo,
+                "descricao": r.descricao_item_catalogo,
+                "valor_total_item": r.valor_total_item,
+                "status": r.status_contratacao_execucao,
+            }
+            for r in rows
+        ],
+        "total": len(rows),
+    }
+
+
+@app.get("/api/compras/catalogo/{tipo}/{codigo}")
+def detalhe_catalogo(tipo: str, codigo: int, db: Session = Depends(get_db)):
+    tipo_norm = "Servico" if tipo.lower().startswith("serv") else "Material"
+    row = db.scalar(
+        select(ComprasItemCatalogo).where(
+            ComprasItemCatalogo.tipo_item == tipo_norm,
+            ComprasItemCatalogo.codigo_item_catalogo == codigo,
+        )
+    )
+    if not row:
+        raise HTTPException(404, "Item de catálogo não encontrado no cache local")
+    dados = None
+    if row.dados_json:
+        try:
+            dados = json.loads(row.dados_json)
+        except json.JSONDecodeError:
+            dados = None
+    return {
+        "tipo_item": row.tipo_item,
+        "codigo_item_catalogo": row.codigo_item_catalogo,
+        "descricao": row.descricao,
+        "codigo_grupo": row.codigo_grupo,
+        "codigo_classe": row.codigo_classe,
+        "dados": dados,
+    }
 
 
 @app.patch("/api/licitacoes/{lid}", response_model=LicitacaoOut)

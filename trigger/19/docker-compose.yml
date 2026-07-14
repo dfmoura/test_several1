@@ -18,9 +18,11 @@ services:
     environment:
       DATABASE_URL: postgresql://b3carteira:b3carteira@db:5432/b3carteira
       UPLOAD_DIR: /data/uploads
+      COTAHIST_CACHE_DIR: /data/cotahist
       CORS_ORIGINS: http://localhost:4819,http://127.0.0.1:4819
     volumes:
       - uploads:/data/uploads
+      - cotahist:/data/cotahist
       - ./base13.xlsx:/seed/base13.xlsx:ro
     depends_on:
       db:
@@ -42,3 +44,4 @@ services:
 volumes:
   pgdata:
   uploads:
+  cotahist:

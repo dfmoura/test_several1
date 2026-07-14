@@ -27,7 +27,7 @@ export function PortfolioComparisonSection() {
     label: formatPeriod(point.period),
     asset_patrimony: point.asset_patrimony,
     savings_patrimony: point.savings_patrimony,
-    cdi_patrimony: point.cdi_patrimony,
+    selic_patrimony: point.selic_patrimony,
   }));
 
   return (
@@ -35,11 +35,11 @@ export function PortfolioComparisonSection() {
       <PatrimonyComparisonChart
         data={chartData}
         savingsAdvantage={data.comparison_advantage}
-        cdiAdvantage={data.cdi_advantage}
+        selicAdvantage={data.selic_advantage}
         savingsRate={data.savings_monthly_rate_pct}
-        cdiRate={data.cdi_monthly_rate_pct}
+        selicRate={data.selic_monthly_rate_pct}
         title="Carteira vs benchmarks"
-        subtitle={`Consolidado de todos os tickers — poupança ${formatRate(data.savings_monthly_rate_pct)}% a.m. · CDI ${formatRate(data.cdi_monthly_rate_pct)}% a.m.`}
+        subtitle={`Consolidado de todos os tickers — taxas BCB: poupança ${formatRate(data.savings_monthly_rate_pct)}% · Selic ${formatRate(data.selic_monthly_rate_pct)}% a.m.`}
       />
     </section>
   );

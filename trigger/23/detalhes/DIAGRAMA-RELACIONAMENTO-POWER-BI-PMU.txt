@@ -1,0 +1,574 @@
+================================================================================
+  MODELO DE RELACIONAMENTO — POWER BI / DADOS ABERTOS PMU
+  Prefeitura Municipal de Uberlândia (MG)
+================================================================================
+
+Painel público  : https://app.powerbi.com/view?r=eyJrIjoiMzk4ZWFhYmYtMjdjMC00Yzk4LTkxNTAt
+                  NzM2MzM0YTAwYWE0IiwidCI6IjdmNWY0YjY0LTcwZDAtNDMwZi1iMDc2LWE0ODg2MmI4NjUxOCJ9
+Fonte CSV       : https://dadosabertospmu.uberlandia.mg.gov.br
+Contexto        : Observatório Social — acompanhamento de licitações, contratos,
+                  gestores e fiscais de contratos municipais e autarquias locais
+Implementação   : trigger/15 — módulo app/powerbi*.py + tabelas pbi_* (SQLite)
+
+Datasets exportados pelo portal PMU:
+  01 — LICITAÇÕES          (/exportalicitacoes/{ano})
+  02 — CONTRATOS           (/exportacontratos/{ano})
+  03 — GESTORES E FISCAIS  (/retornagestorescontratos)
+
+
+================================================================================
+1. VISÃO ARQUITETURAL — CAMADAS LÓGICAS
+================================================================================
+
+O modelo segue três camadas: fontes CSV brutas, normalização relacional (ER)
+e consumo analítico (Power BI Desktop / API interna).
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ CAMADA 1 — FONTES CSV (Dados Abertos PMU)                               │
+  │                                                                         │
+  │   Licitacoes{ano}.csv      — 14 colunas · separador ; · encoding CP1252 │
+  │   Contratos{ano}.csv       — 11 colunas · eventos por aditivo/parcela │
+  │   GestoresContratos.csv    — 10 colunas · gestores e fiscais            │
+  └─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ ETL (powerbi_coletor.py → powerbi_repo.py)
+                                    ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ CAMADA 2 — MODELO RELACIONAL NORMALIZADO (SQLite pbi_*)                   │
+  │                                                                         │
+  │   DIMENSÕES (catálogos mestres)                                         │
+  │     pbi_orgaos · pbi_fornecedores · pbi_pessoas · pbi_papeis           │
+  │                                                                         │
+  │   FATOS (transações)                                                    │
+  │     pbi_processos_licitatorios · pbi_contratos · pbi_contrato_responsaveis │
+  │                                                                         │
+  │   EXTENSÃO LOCAL                                                        │
+  │     observadores (FK opcional em processos, contratos e responsáveis)   │
+  └─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ importação / DirectQuery / API REST
+                                    ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ CAMADA 3 — CONSUMO ANALÍTICO                                            │
+  │                                                                         │
+  │   Power BI Desktop (star schema recomendado)                            │
+  │   Painel publicado PMU (visualização oficial)                           │
+  │   API /api/powerbi/* (consultas, árvore licitação→contrato→gestor)      │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+2. DIAGRAMA ENTIDADE-RELACIONAMENTO (ER) — MODELO NORMALIZADO
+================================================================================
+
+Legenda:
+  PK  = Chave primária
+  FK  = Chave estrangeira
+  UK  = Chave única composta (índice)
+  (1) = cardinalidade um
+  (N) = cardinalidade muitos
+  ──► = relacionamento direcional
+
+
+                    ┌──────────────────────┐
+                    │   OBSERVADOR         │
+                    │   (observadores)     │
+                    │──────────────────────│
+                    │ PK id                │
+                    │    nome · email      │
+                    │    ativo             │
+                    └──────────┬───────────┘
+                               │ (1) opcional
+              ┌────────────────┼────────────────┐
+              │                │                │
+              ▼                ▼                ▼
+   ┌────────────────┐  ┌───────────────┐  ┌─────────────────────┐
+   │ PROCESSO       │  │ CONTRATO      │  │ CONTRATO_         │
+   │ LICITATÓRIO    │  │ (evento)      │  │ RESPONSÁVEL       │
+   │ (pbi_processos)│  │ (pbi_contratos)│ │ (pbi_contrato_    │
+   └───────┬────────┘  └───────┬───────┘  │  responsaveis)    │
+           │                   │          └──────────┬──────────┘
+           │                   │                     │
+           └─────────┬─────────┴──────────┬──────────┘
+                     │                    │
+                     ▼                    ▼
+          ┌──────────────────────────────────────────────┐
+          │              ÓRGÃO (pbi_orgaos)            │
+          │──────────────────────────────────────────────│
+          │ PK id                                        │
+          │ UK nome  (EMPRESA / DSORGAO nos CSVs)        │
+          └──────────────────────────────────────────────┘
+
+
+  Diagrama completo com todas as entidades e cardinalidades:
+
+                    ┌──────────────────────┐
+                    │   PBI_ORGAO          │
+                    │──────────────────────│
+                    │ PK id                │
+                    │ UK nome              │
+                    └──────────┬───────────┘
+                               │ (1)
+              ┌────────────────┼────────────────┐
+              │                │                │
+              ▼ (N)            ▼ (N)            ▼ (N)
+   ┌────────────────┐  ┌───────────────┐  ┌─────────────────────┐
+   │ PBI_PROCESSO   │  │ PBI_CONTRATO  │  │ PBI_CONTRATO_       │
+   │ LICITATÓRIO    │  │               │  │ RESPONSÁVEL         │
+   │────────────────│  │───────────────│  │─────────────────────│
+   │ PK id          │  │ PK id         │  │ PK id               │
+   │ FK orgao_id    │  │ FK orgao_id   │  │ FK contrato_id (?)  │
+   │ UK ano+orgao+  │  │ FK fornecedor │  │ FK pessoa_id        │
+   │    processo+   │  │    _id (?)    │  │ FK papel_id (?)     │
+   │    modalidade  │  │ FK processo_id│  │ FK orgao_id (?)     │
+   │    ano_processo│  │    (?)        │  │ FK fornecedor_id(?) │
+   │    processo    │  │ UK ano+orgao+ │  │ UK ano+nr_contrato+ │
+   │    modalidade  │  │    nr_contrato│  │    orgao+papel+     │
+   │    objeto      │  │    +aditivo+  │  │    pessoa+inicio+   │
+   │    situacao    │  │    parcela+   │  │    fornecedor       │
+   │    datas...    │  │    processo   │  │    nr_contrato      │
+   │    valor_lic.  │  │    ano_contrato│ │    dt_inicio/fim    │
+   │ FK observador  │  │    vr_inicial │  │ FK observador_id    │
+   │ fonte_ano_coleta│ │ FK observador │  └──────────┬──────────┘
+   └───────┬────────┘  └───────┬───────┘             │
+           │                   │                     │
+           │ (1)               │ (N)                 │
+           │ origina           │                     │
+           └──────────────────►│                     │
+                               │                     │
+              ┌────────────────┘                     │
+              │                                      │
+              ▼                                      ▼
+   ┌──────────────────────┐              ┌──────────────────────┐
+   │ PBI_FORNECEDOR       │◄─────────────│ PBI_PESSOA           │
+   │──────────────────────│   (N)        │──────────────────────│
+   │ PK id                │              │ PK id                │
+   │ UK razao_social      │              │ UK nome              │
+   │ (NMPESSOA contratos  │              │ (NMPESSOAPAPEL       │
+   │  ou FORNECEDOR       │              │  gestores)           │
+   │  gestores)           │              └──────────────────────┘
+   └──────────────────────┘
+              ▲
+              │ (N)
+   ┌──────────┴───────────┐
+   │ PBI_PAPEL            │
+   │──────────────────────│
+   │ PK id                │
+   │ UK descricao         │
+   │ (DSPAPEIS gestores)  │
+   └──────────────────────┘
+
+
+================================================================================
+3. ÁRVORE DE NEGÓCIO — LICITAÇÃO → CONTRATO → EVENTO → RESPONSÁVEL
+================================================================================
+
+Hierarquia lógica exposta pela API /api/powerbi/licitacoes/{id}/arvore:
+
+  PROCESSO LICITATÓRIO (1)
+    │
+    ├── possui 0..N CONTRATOS LÓGICOS (agrupados por chave de negócio)
+    │     │
+    │     │  Chave do contrato lógico:
+    │     │    orgao_id + ano_contrato + nr_contrato + fornecedor_id
+    │     │    + processo + ano_processo
+    │     │
+    │     ├── possui 1..N EVENTOS DE CONTRATO (linhas do CSV contratos)
+    │     │     │  Cada evento = aditivo (nr_aditivo) ou parcela (nr_parcela)
+    │     │     │  UK: ano_contrato + orgao_id + nr_contrato + nr_aditivo
+    │     │     │       + nr_parcela + processo
+    │     │     │
+    │     │     └── valor agregado: soma(vr_inicial) dos eventos do grupo
+    │     │
+    │     └── possui 0..N RESPONSÁVEIS (gestores / fiscais)
+    │           Vínculo por: ano_contrato + nr_contrato + fornecedor_id
+    │           (+ objeto_contrato quando disponível)
+    │
+    └── sem_contrato = true quando nenhum evento de contrato é encontrado
+
+
+  Fluxo temporal típico:
+
+    [Licitação aberta] ──► [Homologação] ──► [Assinatura contrato]
+           │                      │                    │
+           │                      │                    ├──► [Aditivos]
+           │                      │                    └──► [Gestores/Fiscais]
+           └── modalidade, objeto, valor estimado
+
+
+================================================================================
+4. MAPEAMENTO CSV → TABELAS DO BANCO
+================================================================================
+
+4.1 LICITAÇÕES (Licitacoes{ano}.csv → pbi_processos_licitatorios)
+──────────────────────────────────────────────────────────────────
+
+┌─────────────────────┬──────────────────────────┬─────────────────────────────┐
+│ Coluna CSV          │ Campo BD                 │ Observação                  │
+├─────────────────────┼──────────────────────────┼─────────────────────────────┤
+│ ANOPROCESSO         │ ano_processo             │ fallback: ano da coleta     │
+│ CHAVE               │ chave                    │ identificador auxiliar      │
+│ DSHABILITACAO       │ ds_habilitacao           │ texto livre                 │
+│ DTABERTURA          │ dt_abertura              │ string (formato PMU)        │
+│ DTHABILITACAO       │ dt_habilitacao           │                             │
+│ DTHOMOLOGACAO       │ dt_homologacao           │                             │
+│ DTJULGAMENTO        │ dt_julgamento            │                             │
+│ EMPRESA             │ → pbi_orgaos.nome        │ FK orgao_id                 │
+│ MODALIDADE          │ modalidade               │ parte da UK                 │
+│ OBJETO              │ objeto                   │                             │
+│ PROCESSO            │ processo                 │ parte da UK                 │
+│ SITUACAO            │ situacao                 │ ex.: Concluído, Em andamento│
+│ SOLICITANTE         │ solicitante              │                             │
+│ VALORLICITACAO      │ valor_licitacao          │ formato R$ brasileiro       │
+│ (metadado)          │ fonte_ano_coleta         │ ano solicitado na coleta    │
+│ (metadado)          │ dados_csv_json           │ linha original preservada   │
+└─────────────────────┴──────────────────────────┴─────────────────────────────┘
+
+UK: (ano_processo, orgao_id, processo, modalidade)
+
+
+4.2 CONTRATOS (Contratos{ano}.csv → pbi_contratos)
+──────────────────────────────────────────────────
+
+┌─────────────────────┬──────────────────────────┬─────────────────────────────┐
+│ Coluna CSV          │ Campo BD                 │ Observação                  │
+├─────────────────────┼──────────────────────────┼─────────────────────────────┤
+│ ANOCONTRATO         │ ano_contrato             │                             │
+│ ANOPROCESSO         │ ano_processo             │ usado no match com licitação│
+│ DSOBJETOCONTRATO    │ ds_objeto_contrato       │                             │
+│ DTASSINATURA        │ dt_assinatura            │                             │
+│ EMPRESA             │ → pbi_orgaos.nome        │ FK orgao_id                 │
+│ NMPESSOA            │ → pbi_fornecedores       │ FK fornecedor_id            │
+│                     │   .razao_social          │ (empresa contratada)        │
+│ NRADITIVO           │ nr_aditivo               │ default "0"                 │
+│ NRCONTRATO          │ nr_contrato              │                             │
+│ NRPARCELA           │ nr_parcela               │ default "1"                 │
+│ PROCESSO            │ processo                 │ match → processo_id         │
+│ VRINICIAL           │ vr_inicial               │ valor do evento             │
+│ (derivado)          │ processo_id              │ FK opcional (find_processo) │
+│ (metadado)          │ fonte_ano_coleta         │                             │
+└─────────────────────┴──────────────────────────┴─────────────────────────────┘
+
+UK: (ano_contrato, orgao_id, nr_contrato, nr_aditivo, nr_parcela, processo)
+
+Nota semântica:
+  No CSV de contratos, NMPESSOA representa a empresa contratada (fornecedor),
+  não uma pessoa física. No CSV de gestores, FORNECEDOR é o mesmo conceito.
+
+
+4.3 GESTORES E FISCAIS (GestoresContratos.csv → pbi_contrato_responsaveis)
+──────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────┬──────────────────────────┬─────────────────────────────┐
+│ Coluna CSV          │ Campo BD                 │ Observação                  │
+├─────────────────────┼──────────────────────────┼─────────────────────────────┤
+│ ANOCONTRATO         │ ano_contrato             │                             │
+│ DSORGAO             │ → pbi_orgaos.nome        │ FK orgao_id (opcional)      │
+│ DSPAPEIS            │ → pbi_papeis.descricao   │ FK papel_id                 │
+│ DTASSINATURA        │ dt_assinatura            │                             │
+│ DTFIM               │ dt_fim                   │                             │
+│ DTINICIO            │ dt_inicio                │ parte da UK                 │
+│ FORNECEDOR          │ → pbi_fornecedores       │ FK fornecedor_id            │
+│ NMPESSOAPAPEL       │ → pbi_pessoas.nome       │ FK pessoa_id (gestor/fiscal)│
+│ NRCONTRATO          │ nr_contrato              │                             │
+│ OBJETOCONTRATO      │ objeto_contrato          │ refinamento do vínculo      │
+│ (derivado)          │ contrato_id              │ FK opcional (find_contrato) │
+└─────────────────────┴──────────────────────────┴─────────────────────────────┘
+
+UK: (ano_contrato, nr_contrato, orgao_id, papel_id, pessoa_id, dt_inicio,
+     fornecedor_id)
+
+Papéis típicos no dataset:
+  • Gestor de Contratos
+  • Gestor de Contratos (Suplente)
+  • Fiscal de Contratos
+  • Fiscal de Contratos (Suplente)
+
+
+================================================================================
+5. MATRIZ DE RELACIONAMENTOS (CARDINALIDADE E DIREÇÃO)
+================================================================================
+
+┌────────────────────────────┬──────────┬──────────┬────────────────────────────┐
+│ De (tabela origem)         │ Para     │ Card.    │ Coluna de junção           │
+├────────────────────────────┼──────────┼──────────┼────────────────────────────┤
+│ pbi_orgaos                 │ processos│ 1 : N    │ pbi_processos.orgao_id     │
+│ pbi_orgaos                 │ contratos│ 1 : N    │ pbi_contratos.orgao_id     │
+│ pbi_orgaos                 │ respons. │ 1 : N    │ pbi_contrato_responsaveis  │
+│                            │          │          │   .orgao_id                │
+│ pbi_fornecedores           │ contratos│ 1 : N    │ pbi_contratos.fornecedor_id│
+│ pbi_fornecedores           │ respons. │ 1 : N    │ ...fornecedor_id           │
+│ pbi_processos_licitatorios │ contratos│ 1 : N    │ pbi_contratos.processo_id  │
+│                            │          │          │ (ou match processo+ano)    │
+│ pbi_contratos              │ respons. │ 1 : N    │ pbi_contrato_responsaveis  │
+│                            │          │          │   .contrato_id (parcial)   │
+│ pbi_pessoas                │ respons. │ 1 : N    │ ...pessoa_id               │
+│ pbi_papeis                 │ respons. │ 1 : N    │ ...papel_id                │
+│ observadores               │ processos│ 1 : N    │ observador_id (opcional)   │
+│ observadores               │ contratos│ 1 : N    │ observador_id (opcional)   │
+│ observadores               │ respons. │ 1 : N    │ observador_id (opcional)   │
+└────────────────────────────┴──────────┴──────────┴────────────────────────────┘
+
+Relacionamentos ativos no Power BI Desktop (recomendados):
+
+  Dim_Orgao      [id] ──────1:N──────► Fact_Processos     [orgao_id]
+  Dim_Orgao      [id] ──────1:N──────► Fact_Contratos     [orgao_id]
+  Dim_Fornecedor [id] ──────1:N──────► Fact_Contratos     [fornecedor_id]
+  Dim_Processo   [id] ──────1:N──────► Fact_Contratos     [processo_id]
+  Dim_Contrato   [id] ──────1:N──────► Fact_Responsaveis  [contrato_id]
+  Dim_Pessoa     [id] ──────1:N──────► Fact_Responsaveis  [pessoa_id]
+  Dim_Papel      [id] ──────1:N──────► Fact_Responsaveis  [papel_id]
+  Dim_Observador [id] ──────1:N──────► (todas as facts)   [observador_id]
+
+Direção do filtro: sempre das dimensões para os fatos (single direction).
+Cross-filter: Dim_Orgao pode filtrar Fact_Contratos e Fact_Responsaveis.
+
+
+================================================================================
+6. CHAVES DE INTEGRAÇÃO (JOIN KEYS) — CSV, BD E POWER BI
+================================================================================
+
+┌────────────────────────────┬──────────────┬────────────────────────────────────┐
+│ Campo de integração        │ Tipo         │ Onde aparece                       │
+├────────────────────────────┼──────────────┼────────────────────────────────────┤
+│ EMPRESA / DSORGAO          │ STRING       │ Licitações · Contratos · Gestores  │
+│                            │              │ → normalizado em pbi_orgaos.nome   │
+│ PROCESSO                   │ STRING       │ Licitações ↔ Contratos             │
+│ ANOPROCESSO                │ INTEGER      │ Licitações ↔ Contratos             │
+│ MODALIDADE                 │ STRING       │ Licitações (parte da UK)           │
+│ NRCONTRATO                 │ STRING       │ Contratos ↔ Gestores               │
+│ ANOCONTRATO                │ INTEGER      │ Contratos ↔ Gestores               │
+│ NMPESSOA / FORNECEDOR      │ STRING       │ Contratos ↔ Gestores               │
+│                            │              │ → pbi_fornecedores.razao_social    │
+│ NMPESSOAPAPEL              │ STRING       │ Gestores → pbi_pessoas.nome        │
+│ DSPAPEIS                   │ STRING       │ Gestores → pbi_papeis.descricao    │
+│ NRADITIVO + NRPARCELA      │ STRING       │ Granularidade do evento contratual │
+│ OBJETOCONTRATO             │ TEXT         │ Refinamento gestor↔contrato        │
+└────────────────────────────┴──────────────┴────────────────────────────────────┘
+
+Regras de match implementadas no ETL (powerbi_repo.py / powerbi_arvore.py):
+
+  1. Contrato → Processo:
+       processo_id direto OU (orgao_id + processo + ano_processo)
+
+  2. Responsável → Contrato:
+       contrato_id direto OU (ano_contrato + nr_contrato + fornecedor_id)
+       com fallback sem orgao_id quando grafia do órgão diverge entre CSVs
+
+  3. Agrupamento de eventos em contrato lógico:
+       (orgao_id, ano_contrato, nr_contrato, fornecedor_id, processo, ano_processo)
+
+
+================================================================================
+7. MODELO STAR SCHEMA RECOMENDADO PARA POWER BI DESKTOP
+================================================================================
+
+Para importar os CSVs ou conectar à API/banco local, use o arranjo dimensional:
+
+
+  DIMENSÕES (lookup tables — filtram, não somam)
+  ──────────────────────────────────────────────
+  Dim_Orgao          ◄── EMPRESA (licitações/contratos) · DSORGAO (gestores)
+  Dim_Fornecedor     ◄── NMPESSOA (contratos) · FORNECEDOR (gestores)
+  Dim_Pessoa         ◄── NMPESSOAPAPEL (gestores)
+  Dim_Papel          ◄── DSPAPEIS (gestores)
+  Dim_Modalidade     ◄── MODALIDADE (licitações) — pode ser coluna calculada
+  Dim_Situacao       ◄── SITUACAO (licitações)
+  Dim_AnoProcesso    ◄── ANOPROCESSO
+  Dim_AnoContrato    ◄── ANOCONTRATO
+  Dim_Observador     ◄── tabela local observadores (extensão do projeto)
+  Dim_Data           ◄── calendário (derivado de dt_abertura, dt_assinatura…)
+
+
+  FATOS (measure tables — recebem agregações)
+  ───────────────────────────────────────────
+  Fact_Licitacoes    ◄── pbi_processos_licitatorios / Licitacoes{ano}.csv
+  Fact_Contratos     ◄── pbi_contratos / Contratos{ano}.csv
+  Fact_Responsaveis  ◄── pbi_contrato_responsaveis / GestoresContratos.csv
+
+
+  Medidas DAX sugeridas:
+  ─────────────────────
+  Qtd Processos        = DISTINCTCOUNT(Fact_Licitacoes[id])
+  Qtd Contratos Logic. = DISTINCTCOUNT(
+                         Fact_Contratos[orgao_id] & Fact_Contratos[nr_contrato] &
+                         Fact_Contratos[ano_contrato] & Fact_Contratos[fornecedor_id])
+  Valor Contratado     = SUMX(Fact_Contratos, VALUE(REPLACE([vr_inicial],",",".")))
+  Valor Licitado       = SUMX(Fact_Licitacoes, /* parse VALORLICITACAO */)
+  Qtd Gestores         = DISTINCTCOUNT(Fact_Responsaveis[pessoa_id])
+  Processos c/ Contrato= CALCULATE([Qtd Processos], Fact_Contratos[processo_id])
+
+
+  Diagrama star schema (visão Power BI):
+
+                        Dim_Orgao
+                            │
+            ┌───────────────┼───────────────┐
+            │               │               │
+            ▼               ▼               ▼
+     Fact_Licitacoes  Fact_Contratos  Fact_Responsaveis
+            │               │               │
+            │         Dim_Fornecedor        │
+            │               │         Dim_Pessoa
+            └───────► Dim_Processo ◄────────┘
+                            │
+                      Dim_Papel
+
+
+================================================================================
+8. IMPORTAÇÃO DIRETA DOS CSVs NO POWER BI (SEM BANCO LOCAL)
+================================================================================
+
+Se importar os três CSVs diretamente no Power BI Desktop (sem passar pelo ETL
+do projeto), crie relacionamentos manuais com as ressalvas abaixo:
+
+  Relacionamento                          Tipo        Observação
+  ─────────────────────────────────────────────────────────────────────────
+  Licitacoes[EMPRESA] → Contratos[EMPRESA]  M:N ⚠     Mesmo órgão, mas M:N
+  Licitacoes[PROCESSO] → Contratos[PROCESSO] 1:N     + ANOPROCESSO recomendado
+  Contratos[NRCONTRATO] → Gestores[NRCONTRATO] 1:N   + ANOCONTRATO obrigatório
+  Contratos[NMPESSOA] → Gestores[FORNECEDOR]  1:N     Nomes podem divergir
+
+  ⚠ Problema: EMPRESA não é única por processo — prefira modelo normalizado
+    (tabelas pbi_* exportadas) ou tabela ponte Dim_Orgao com chave surrogate.
+
+  Passos recomendados no Power Query:
+    1. Promover cabeçalhos e definir tipo de dados
+    2. Criar Dim_Orgao = DISTINCT(UNION(EMPRESA, DSORGAO))
+    3. Substituir texto por orgao_id (merge)
+    4. Normalizar datas (múltiplos formatos: ISO e DD/MM/YYYY)
+    5. Parsear VRINICIAL e VALORLICITACAO como decimal
+    6. Criar coluna ChaveContrato = ANOCONTRATO & "|" & NRCONTRATO & "|" & FORNECEDOR
+
+
+================================================================================
+9. FLUXO DE COLETA E SINCRONIZAÇÃO (PROJETO trigger/15)
+================================================================================
+
+  Ordem de carga recomendada:
+  ───────────────────────────
+  Nível 0 — Gestores (dataset único, sem ano)
+      └── extrai catálogos: órgãos, fornecedores, pessoas, papéis
+
+  Nível 1 — Licitações (por ano solicitado)
+      └── cria/atualiza órgãos + processos licitatórios
+      └── remove registros anteriores do mesmo fonte_ano_coleta
+
+  Nível 2 — Contratos (por ano solicitado)
+      └── vincula processo_id quando processo+ano+órgão coincidem
+      └── remove registros anteriores do mesmo fonte_ano_coleta
+
+  Endpoint de disparo : POST /api/powerbi/coletar
+  Body exemplo        : {"anos": [2025, 2026], "datasets": ["licitacoes","contratos","gestores"]}
+  Backups CSV         : data/powerbi/{dataset}_{ano}_latest.csv
+
+  Campos preservados na reimportação:
+      observador_id (atribuição manual do Observatório Social)
+
+
+================================================================================
+10. ÓRGÃOS RECORRENTES NO DATASET (UBERLÂNDIA)
+================================================================================
+
+Entidades frequentes nos CSVs coletados (campo EMPRESA / DSORGAO):
+
+  • Prefeitura Municipal de Uberlândia
+  • Departamento Municipal de Água e Esgoto (DMAE)
+  • Ag. Reg. dos Serv. Saneamento Básico de Uberlândia (ARESAN)
+  • Instituto de Previdência dos Serv. Mun. de Uberlândia (IPREMU)
+  • Câmara Municipal de Uberlândia
+  • Empresa Municipal de Urbanização (EMURB)
+  • Fundação Universidade de Uberlândia (UNIUBE — convênios)
+  • Outras autarquias e fundações municipais
+
+Atenção: grafias variam entre datasets (ex.: "Uberlândia" vs "Uberlandia",
+abreviações, acentuação corrompida em CP1252). O ETL normaliza espaços
+mas não unifica aliases — revisar manualmente em Dim_Orgao se necessário.
+
+
+================================================================================
+11. REGRAS DE QUALIDADE E GOVERNANÇA
+================================================================================
+
+  • Unicidade de processo: (ano_processo, orgao_id, processo, modalidade)
+    — o mesmo número de processo pode existir em modalidades diferentes.
+
+  • Granularidade de contrato: cada linha do CSV é um EVENTO (aditivo/parcela),
+    não um contrato único. Agrupar antes de contar contratos.
+
+  • Fornecedor vs Pessoa: NMPESSOA em contratos ≠ pessoa física; é a empresa
+    contratada. NMPESSOAPAPEL em gestores é o servidor/agente público.
+
+  • FK contrato_id em responsáveis pode ser NULL quando o match falha — usar
+    chaves de negócio (ano + nr_contrato + fornecedor) para análise.
+
+  • Datas: armazenadas como string; padronizar no Power Query antes de criar
+    Dim_Data (formatos mistos ISO 8601 e DD/MM/YYYY).
+
+  • Valores: VRINICIAL numérico no CSV; VALORLICITACAO com prefixo "R$" e
+    separador brasileiro — converter antes de agregar.
+
+  • Encoding: CSVs PMU em CP1252/Windows-1252; caracteres especiais podem
+    aparecer corrompidos se importados como UTF-8 puro.
+
+  • Coleta incremental: licitações e contratos substituem o ano coletado;
+    gestores substituem o dataset inteiro a cada importação.
+
+
+================================================================================
+12. ENDPOINTS DA API INTERNA (REFERÊNCIA)
+================================================================================
+
+Catálogos ER:
+  GET /api/powerbi/orgaos
+  GET /api/powerbi/fornecedores
+  GET /api/powerbi/pessoas
+  GET /api/powerbi/papeis
+
+Consultas principais:
+  GET /api/powerbi/licitacoes
+  GET /api/powerbi/licitacoes/{id}
+  GET /api/powerbi/licitacoes/{id}/arvore     ◄── árvore completa
+  GET /api/powerbi/contratos
+  GET /api/powerbi/contratos-agrupados        ◄── contratos lógicos
+  GET /api/powerbi/gestores
+
+Operação:
+  POST /api/powerbi/coletar
+  GET  /api/powerbi/coletar/status
+  GET  /api/powerbi/stats
+  GET  /api/powerbi/fontes
+
+
+================================================================================
+13. RESUMO EXECUTIVO
+================================================================================
+
+O modelo Power BI / Dados Abertos PMU organiza o ciclo de contratação municipal
+em três fatos principais ligados por dimensões compartilhadas:
+
+    ÓRGÃO (quem licita / contrata)
+      → PROCESSO LICITATÓRIO (como licitou — modalidade, objeto, situação)
+        → CONTRATO / EVENTO (o que foi contratado — valor, aditivos, parcelas)
+          → FORNECEDOR (empresa contratada)
+            ↔ RESPONSÁVEL (gestor / fiscal — pessoa + papel)
+
+Os catálogos pbi_orgaos, pbi_fornecedores, pbi_pessoas e pbi_papeis são
+extraídos automaticamente dos três CSVs e servem como dimensões no star schema.
+
+A chave de negócio mais estável entre contratos e gestores é:
+    ANOCONTRATO + NRCONTRATO + FORNECEDOR
+
+A chave entre licitações e contratos é:
+    EMPRESA (órgão) + PROCESSO + ANOPROCESSO
+
+Para análise no Power BI Desktop, prefira o modelo normalizado (tabelas pbi_*)
+exportado do banco local ou importe os CSVs com normalização em Power Query
+para evitar relacionamentos M:N e duplicação de linhas.
+
+================================================================================
+Documento gerado em: 2026-07-09
+Baseado em         : app/powerbi*.py · app/database.py (tabelas pbi_*)
+                     · CSVs em data/powerbi/*_latest.csv
+                     · Portal Dados Abertos PMU Uberlândia
+================================================================================

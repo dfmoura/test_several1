@@ -51,8 +51,29 @@ if [[ ! -x "$VENV/bin/uvicorn" ]]; then
   exit 1
 fi
 
+start_xvfb_if_needed() {
+  if [ "${HEADLESS:-false}" = "true" ]; then
+    return 0
+  fi
+  if [ -n "${DISPLAY:-}" ]; then
+    return 0
+  fi
+  if ! command -v Xvfb >/dev/null 2>&1; then
+    echo "Aviso: sem DISPLAY e sem Xvfb — a coleta da Prefeitura vai falhar." >&2
+    echo "  Instale: sudo apt install xvfb" >&2
+    echo "  Ou use Docker: docker compose up --build -d" >&2
+    return 0
+  fi
+  echo "Iniciando Xvfb (sem monitor gráfico)…"
+  Xvfb :99 -ac -screen 0 1400x900x24 -nolisten tcp &
+  export DISPLAY=:99
+  sleep 1
+}
+
 show_urls
 echo
+
+start_xvfb_if_needed
 
 cd "$ROOT"
 exec "$VENV/bin/uvicorn" app.main:app --reload --host 0.0.0.0 --port "$PORT"

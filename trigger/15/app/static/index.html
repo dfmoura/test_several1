@@ -14,6 +14,7 @@
         <h1>Verificação de Licitações</h1>
       </div>
       <nav>
+        <button class="nav-btn" data-page="setup">Setup</button>
         <button class="nav-btn" data-page="dashboard">Dashboard</button>
         <button class="nav-btn" data-page="consulta-processo">Consulta · Processo</button>
         <button class="nav-btn active" data-page="coletar">Coletar</button>
@@ -25,11 +26,62 @@
         <button class="nav-btn" data-page="orgaos">Órgãos · Vínculos</button>
         <button class="nav-btn" data-page="modalidades">Modalidades · Vínculos</button>
         <button class="nav-btn" data-page="observadores">Observadores</button>
+        <span id="setup-badge-nav" class="setup-badge hidden"></span>
       </nav>
     </div>
   </header>
 
   <main class="wrap" id="main">
+    <!-- SETUP / CONFIGURAÇÃO -->
+    <section id="page-setup" class="page">
+      <div class="card setup-intro-card">
+        <h2>Configuração do sistema</h2>
+        <p class="muted">
+          Defina o <strong>ano inicial de coleta</strong>. Todas as fontes (Portal, Compras.gov e Power BI)
+          usarão esse ano como ponto de partida até o ano corrente.
+          Observadores, vínculos de órgãos e modalidades <strong>não são alterados</strong> por esta tela.
+        </p>
+        <div id="setup-status-grid" class="setup-status-grid">
+          <p class="muted">Carregando status…</p>
+        </div>
+      </div>
+
+      <div class="setup-grid">
+        <article class="card setup-panel">
+          <h3>Ano de coleta</h3>
+          <p class="muted small">
+            Selecione a partir de qual ano os dados serão coletados. O intervalo vai até o ano corrente.
+          </p>
+          <form id="form-setup-config" class="form-col">
+            <label>
+              Ano inicial
+              <select id="setup-ano-inicial" required></select>
+            </label>
+            <p id="setup-anos-preview" class="setup-preview muted small"></p>
+            <button type="submit" class="btn primary" id="btn-setup-salvar">Salvar configuração</button>
+          </form>
+          <p id="setup-msg" class="meta-bar"></p>
+        </article>
+
+        <article class="card setup-panel setup-panel-danger">
+          <h3>Limpar base de dados</h3>
+          <p class="muted small">
+            Remove <strong>apenas dados coletados</strong> (Portal, Compras.gov, Power BI).
+            Preserva observadores, órgãos consolidados, modalidades e vínculos manuais.
+            Operação irreversível — faça backup do arquivo <code>data/licitacoes.db</code> se necessário.
+          </p>
+          <form id="form-setup-limpar" class="form-col">
+            <label>
+              Confirmação (digite <strong>LIMPAR</strong>)
+              <input type="text" id="setup-limpar-confirm" placeholder="LIMPAR" autocomplete="off" required />
+            </label>
+            <button type="submit" class="btn danger" id="btn-setup-limpar">Limpar dados coletados</button>
+          </form>
+          <p id="setup-limpar-msg" class="meta-bar"></p>
+        </article>
+      </div>
+    </section>
+
     <!-- DASHBOARD GERENCIAL -->
     <section id="page-dashboard" class="page">
       <div class="card filters-card dash-header-card">
@@ -99,6 +151,10 @@
             Órgão consolidado
             <select id="cp-filtro-orgao"><option value="">Todos</option></select>
           </label>
+          <label class="fg-modalidade">
+            Modalidade
+            <select id="cp-filtro-modalidade"><option value="">Todas</option></select>
+          </label>
           <div class="fg-actions filter-actions">
             <button type="submit" class="btn primary" id="btn-cp-buscar">Consultar</button>
             <button type="button" class="btn ghost" id="btn-cp-limpar">Limpar</button>
@@ -149,7 +205,7 @@
         <form id="form-filtros" class="filters-grid">
           <label class="fg-ano">
             Ano
-            <input type="number" id="filtro-ano" placeholder="Todos" />
+            <select id="filtro-ano"><option value="">Todos</option></select>
           </label>
           <label class="fg-empresa">
             Órgão
@@ -231,8 +287,12 @@
             <legend>Modalidades (código 1–12)</legend>
             <div id="compras-coleta-modalidades" class="chk-grid modalidades-grid"></div>
           </fieldset>
-          <button type="submit" class="btn primary" id="btn-compras-coletar">Iniciar coleta</button>
+          <button type="submit" class="btn primary" id="btn-compras-coletar">Iniciar coleta (07)</button>
+          <button type="button" class="btn ghost" id="btn-compras-coletar-completo">Coleta completa (07+resultados+05+10)</button>
         </form>
+        <p class="muted small section-hint">
+          A API lista apenas vencedores/classificados homologados — não todos os proponentes.
+        </p>
         <div id="compras-coleta-log" class="log hidden"></div>
         <div id="compras-coleta-result" class="result hidden"></div>
       </div>
@@ -244,7 +304,7 @@
         <form id="form-compras-filtros" class="filters-grid compras-filters">
           <label class="fg-ano">
             Ano
-            <input type="number" id="compras-filtro-ano" placeholder="Todos" />
+            <select id="compras-filtro-ano"><option value="">Todos</option></select>
           </label>
           <label class="fg-empresa">
             Unidade
@@ -336,7 +396,7 @@
         </div>
         <form id="form-pbi-filtros" class="filters-grid pbi-filters">
           <div class="pbi-filtros-dataset" data-dataset="licitacoes">
-            <label class="fg-ano">Ano <input type="number" id="pbi-filtro-lic-ano" placeholder="Todos" /></label>
+            <label class="fg-ano">Ano <select id="pbi-filtro-lic-ano"><option value="">Todos</option></select></label>
             <label>Empresa <select id="pbi-filtro-lic-empresa"><option value="">Todas</option></select></label>
             <label>Situação <select id="pbi-filtro-lic-situacao"><option value="">Todas</option></select></label>
             <label>Modalidade <select id="pbi-filtro-lic-modalidade"><option value="">Todas</option></select></label>
@@ -344,21 +404,21 @@
             <label class="fg-busca">Busca <input type="text" id="pbi-filtro-lic-texto" placeholder="Objeto, solicitante, empresa, processo…" /></label>
           </div>
           <div class="pbi-filtros-dataset" data-dataset="contratos" hidden>
-            <label class="fg-ano">Ano contrato <input type="number" id="pbi-filtro-con-ano" placeholder="Todos" /></label>
+            <label class="fg-ano">Ano contrato <select id="pbi-filtro-con-ano"><option value="">Todos</option></select></label>
             <label>Empresa <select id="pbi-filtro-con-empresa"><option value="">Todas</option></select></label>
             <label class="fg-numero">Nº contrato <input type="text" id="pbi-filtro-con-numero" autocomplete="off" /></label>
             <label class="fg-processo">Processo <input type="text" id="pbi-filtro-con-processo" autocomplete="off" /></label>
             <label class="fg-busca">Busca <input type="text" id="pbi-filtro-con-texto" placeholder="Objeto, fornecedor, empresa, processo…" /></label>
           </div>
           <div class="pbi-filtros-dataset" data-dataset="eventos" hidden>
-            <label class="fg-ano">Ano contrato <input type="number" id="pbi-filtro-ev-ano" placeholder="Todos" /></label>
+            <label class="fg-ano">Ano contrato <select id="pbi-filtro-ev-ano"><option value="">Todos</option></select></label>
             <label>Empresa <select id="pbi-filtro-ev-empresa"><option value="">Todas</option></select></label>
             <label class="fg-numero">Nº contrato <input type="text" id="pbi-filtro-ev-numero" autocomplete="off" /></label>
             <label class="fg-processo">Processo <input type="text" id="pbi-filtro-ev-processo" autocomplete="off" /></label>
             <label class="fg-busca">Busca <input type="text" id="pbi-filtro-ev-texto" placeholder="Objeto, fornecedor, empresa, processo…" /></label>
           </div>
           <div class="pbi-filtros-dataset" data-dataset="gestores" hidden>
-            <label class="fg-ano">Ano contrato <input type="number" id="pbi-filtro-gest-ano" placeholder="Todos" /></label>
+            <label class="fg-ano">Ano contrato <select id="pbi-filtro-gest-ano"><option value="">Todos</option></select></label>
             <label>Órgão <select id="pbi-filtro-gest-orgao"><option value="">Todos</option></select></label>
             <label>Papel <select id="pbi-filtro-gest-papel"><option value="">Todos</option></select></label>
             <label class="fg-numero">Nº contrato <input type="text" id="pbi-filtro-gest-numero" autocomplete="off" /></label>
@@ -607,23 +667,70 @@
         <dl id="modal-compras-extra" class="detail-grid detail-grid-panel detail-grid-extra"></dl>
       </section>
       <section class="detail-panel detail-panel-wide" id="modal-compras-itens-wrap">
-        <h4 class="detail-panel-title">Itens da contratação</h4>
-        <p id="modal-compras-itens-meta" class="meta-bar section-hint">-</p>
-        <div class="table-scroll compras-itens-scroll">
-          <table class="data-table compras-itens-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Descrição</th>
-                <th>Catálogo</th>
-                <th>Qtd.</th>
-                <th>V. unit.</th>
-                <th>V. total</th>
-                <th>Situação</th>
-              </tr>
-            </thead>
-            <tbody id="modal-compras-itens-tabela"></tbody>
-          </table>
+        <div class="compras-tabs" role="tablist">
+          <button type="button" class="compras-tab active" data-tab="execucao">Contratação</button>
+          <button type="button" class="compras-tab" data-tab="itens">Itens e resultados</button>
+          <button type="button" class="compras-tab" data-tab="pgc">Planejamento (PGC)</button>
+          <button type="button" class="compras-tab" data-tab="precos">Preços de mercado</button>
+        </div>
+        <div id="compras-tab-execucao" class="compras-tab-panel active">
+          <p class="meta-bar section-hint">Resumo da contratação acima.</p>
+        </div>
+        <div id="compras-tab-itens" class="compras-tab-panel">
+          <h4 class="detail-panel-title">Itens e resultados homologados</h4>
+          <p id="modal-compras-itens-meta" class="meta-bar section-hint">-</p>
+          <p class="muted small">Somente classificados/homologados na API federal (SRP pode ter múltiplos).</p>
+          <div class="table-scroll compras-itens-scroll">
+            <table class="data-table compras-itens-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Descrição</th>
+                  <th>Catálogo</th>
+                  <th>Qtd.</th>
+                  <th>Estimado</th>
+                  <th>Homologado</th>
+                  <th>Vencedor(es)</th>
+                </tr>
+              </thead>
+              <tbody id="modal-compras-itens-tabela"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="compras-tab-pgc" class="compras-tab-panel">
+          <h4 class="detail-panel-title">Planejamento (PGC)</h4>
+          <p id="modal-compras-pgc-meta" class="meta-bar section-hint">-</p>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Item cat.</th>
+                  <th>Descrição</th>
+                  <th>Valor planejado</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="modal-compras-pgc-tabela"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="compras-tab-precos" class="compras-tab-panel">
+          <h4 class="detail-panel-title">Pesquisa de preço (sob demanda)</h4>
+          <p id="modal-compras-precos-meta" class="meta-bar section-hint">Selecione um item na aba anterior.</p>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Preço unit.</th>
+                  <th>Qtd.</th>
+                  <th>Data</th>
+                  <th>Fornecedor</th>
+                  <th>Local</th>
+                </tr>
+              </thead>
+              <tbody id="modal-compras-precos-tabela"></tbody>
+            </table>
+          </div>
         </div>
       </section>
       <form id="form-compra" class="edit-block compra-edit-block">
@@ -705,12 +812,33 @@
     </div>
   </dialog>
 
-  <script src="/static/app.js?v=2"></script>
-  <script src="/static/consulta_processo.js?v=2"></script>
+  <dialog id="dialog-setup-wizard" class="setup-wizard-dialog">
+    <div class="modal-head">
+      <h3>Configuração inicial</h3>
+    </div>
+    <div class="modal-body">
+      <p class="muted">
+        Bem-vindo ao sistema. Escolha o <strong>ano inicial</strong> para as coletas de dados.
+        A partir desse ano, o sistema preparará Portal, Compras.gov e Power BI até o ano corrente.
+      </p>
+      <form id="form-setup-wizard" class="form-col">
+        <label>
+          Ano inicial de coleta
+          <select id="wizard-ano-inicial" required></select>
+        </label>
+        <p id="wizard-anos-preview" class="setup-preview muted small"></p>
+        <button type="submit" class="btn primary" id="btn-wizard-concluir">Concluir setup</button>
+      </form>
+    </div>
+  </dialog>
+
+  <script src="/static/app.js?v=3"></script>
+  <script src="/static/consulta_processo.js?v=4"></script>
   <script src="/static/dashboard.js"></script>
   <script src="/static/compras.js"></script>
   <script src="/static/powerbi.js"></script>
   <script src="/static/orgaos.js"></script>
   <script src="/static/modalidades.js"></script>
+  <script src="/static/setup.js?v=1"></script>
 </body>
 </html>

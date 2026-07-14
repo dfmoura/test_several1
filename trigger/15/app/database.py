@@ -66,6 +66,161 @@ class Licitacao(Base):
     )
 
 
+class ComprasOrgao(Base):
+    """Dimensão órgão — módulo 05."""
+
+    __tablename__ = "compras_orgaos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    codigo_orgao: Mapped[int] = mapped_column(Integer, nullable=False)
+    cnpj_cpf_orgao: Mapped[str | None] = mapped_column(String(20))
+    nome_orgao: Mapped[str | None] = mapped_column(String(200))
+    esfera: Mapped[str | None] = mapped_column(String(20))
+    poder: Mapped[str | None] = mapped_column(String(20))
+    status_orgao: Mapped[bool | None] = mapped_column(Boolean)
+    codigo_orgao_superior: Mapped[int | None] = mapped_column(Integer)
+    nome_orgao_superior: Mapped[str | None] = mapped_column(String(200))
+    coletado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    data_hora_movimento: Mapped[str | None] = mapped_column(String(40))
+
+    uasgs: Mapped[list["ComprasUasg"]] = relationship(back_populates="orgao")
+
+    __table_args__ = (Index("uq_compras_orgao_codigo", "codigo_orgao", unique=True),)
+
+
+class ComprasUasg(Base):
+    """Dimensão UASG — módulo 05."""
+
+    __tablename__ = "compras_uasgs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    codigo_uasg: Mapped[str] = mapped_column(String(10), nullable=False)
+    orgao_id: Mapped[int | None] = mapped_column(ForeignKey("compras_orgaos.id"), index=True)
+    nome_uasg: Mapped[str | None] = mapped_column(String(200))
+    sigla_uf: Mapped[str | None] = mapped_column(String(2))
+    codigo_municipio_ibge: Mapped[int | None] = mapped_column(Integer)
+    nome_municipio_ibge: Mapped[str | None] = mapped_column(String(120))
+    cnpj_cpf_orgao: Mapped[str | None] = mapped_column(String(20))
+    status_uasg: Mapped[bool | None] = mapped_column(Boolean)
+    uso_sisg: Mapped[bool | None] = mapped_column(Boolean)
+    coletado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    data_hora_movimento: Mapped[str | None] = mapped_column(String(40))
+
+    orgao: Mapped[ComprasOrgao | None] = relationship(back_populates="uasgs")
+    contratacoes: Mapped[list["CompraContratacao"]] = relationship(back_populates="uasg")
+
+    __table_args__ = (Index("uq_compras_uasg_codigo", "codigo_uasg", unique=True),)
+
+
+class ComprasFornecedor(Base):
+    """Dimensão fornecedor — módulo 10."""
+
+    __tablename__ = "compras_fornecedores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ni_fornecedor: Mapped[str] = mapped_column(String(14), nullable=False)
+    cnpj: Mapped[str | None] = mapped_column(String(14))
+    cpf: Mapped[str | None] = mapped_column(String(11))
+    nome_razao_social_fornecedor: Mapped[str | None] = mapped_column(String(200))
+    porte_empresa_id: Mapped[int | None] = mapped_column(Integer)
+    porte_empresa_nome: Mapped[str | None] = mapped_column(String(80))
+    natureza_juridica_id: Mapped[int | None] = mapped_column(Integer)
+    natureza_juridica_nome: Mapped[str | None] = mapped_column(String(120))
+    codigo_cnae: Mapped[int | None] = mapped_column(Integer)
+    nome_cnae: Mapped[str | None] = mapped_column(String(200))
+    uf_sigla: Mapped[str | None] = mapped_column(String(2))
+    nome_municipio: Mapped[str | None] = mapped_column(String(120))
+    ativo: Mapped[bool | None] = mapped_column(Boolean)
+    habilitado_licitar: Mapped[bool | None] = mapped_column(Boolean)
+    coletado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (Index("uq_compras_fornecedor_ni", "ni_fornecedor", unique=True),)
+
+
+class ComprasItemCatalogo(Base):
+    """Cache on-demand CATMAT/CATSER — módulos 01/02."""
+
+    __tablename__ = "compras_itens_catalogo"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tipo_item: Mapped[str] = mapped_column(String(10), nullable=False)
+    codigo_item_catalogo: Mapped[int] = mapped_column(Integer, nullable=False)
+    descricao: Mapped[str | None] = mapped_column(Text)
+    codigo_grupo: Mapped[int | None] = mapped_column(Integer)
+    codigo_classe: Mapped[int | None] = mapped_column(Integer)
+    codigo_pdm: Mapped[int | None] = mapped_column(Integer)
+    secao_servico: Mapped[int | None] = mapped_column(Integer)
+    divisao_servico: Mapped[int | None] = mapped_column(Integer)
+    subclasse_servico: Mapped[int | None] = mapped_column(Integer)
+    status: Mapped[str | None] = mapped_column(String(40))
+    dados_json: Mapped[str | None] = mapped_column(Text)
+    coletado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index(
+            "uq_compras_catalogo_tipo_cod",
+            "tipo_item",
+            "codigo_item_catalogo",
+            unique=True,
+        ),
+    )
+
+
+class ComprasPgcItem(Base):
+    """Planejamento PGC — módulo 04."""
+
+    __tablename__ = "compras_pgc_itens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    orgao: Mapped[str] = mapped_column(String(20), nullable=False)
+    ano_pca_projeto_compra: Mapped[int] = mapped_column(Integer, nullable=False)
+    codigo_uasg: Mapped[str | None] = mapped_column(String(10))
+    uasg_id: Mapped[int | None] = mapped_column(ForeignKey("compras_uasgs.id"), index=True)
+    tipo_item: Mapped[str | None] = mapped_column(String(10))
+    codigo_item_catalogo: Mapped[int | None] = mapped_column(Integer)
+    item_catalogo_id: Mapped[int | None] = mapped_column(
+        ForeignKey("compras_itens_catalogo.id"), index=True
+    )
+    numero_item_pncp: Mapped[int | None] = mapped_column(Integer)
+    ordem_dfd: Mapped[int | None] = mapped_column(Integer)
+    descricao_item_catalogo: Mapped[str | None] = mapped_column(Text)
+    quantidade_item: Mapped[str | None] = mapped_column(String(40))
+    valor_unitario_item: Mapped[str | None] = mapped_column(String(80))
+    valor_total_item: Mapped[str | None] = mapped_column(String(80))
+    titulo_projeto_compra: Mapped[str | None] = mapped_column(Text)
+    descricao_objeto_dfd: Mapped[str | None] = mapped_column(Text)
+    data_hora_publicacao_pncp: Mapped[str | None] = mapped_column(String(40))
+    status_contratacao_execucao: Mapped[str | None] = mapped_column(String(80))
+    dados_pgc_json: Mapped[str | None] = mapped_column(Text)
+    coletado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index(
+            "uq_compras_pgc_chave",
+            "orgao",
+            "ano_pca_projeto_compra",
+            "codigo_uasg",
+            "codigo_item_catalogo",
+            "numero_item_pncp",
+            "ordem_dfd",
+            unique=True,
+        ),
+    )
+
+
+class ComprasSyncMeta(Base):
+    """Última sincronização por módulo."""
+
+    __tablename__ = "compras_sync_meta"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    modulo: Mapped[str] = mapped_column(String(40), nullable=False)
+    ultima_sync_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    contadores_json: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (Index("uq_compras_sync_modulo", "modulo", unique=True),)
+
+
 class CompraContratacao(Base):
     """Contratações PNCP (Lei 14.133) — API Dados Abertos Compras.gov.br."""
 
@@ -75,6 +230,7 @@ class CompraContratacao(Base):
 
     # Chaves e identificação
     id_compra: Mapped[str | None] = mapped_column(String(40), index=True)
+    uasg_id: Mapped[int | None] = mapped_column(ForeignKey("compras_uasgs.id"), index=True)
     chave_compra: Mapped[str] = mapped_column(String(40), nullable=False)
     numero_controle_pncp: Mapped[str | None] = mapped_column(String(80))
     ano_compra_pncp: Mapped[int | None] = mapped_column(Integer)
@@ -157,6 +313,7 @@ class CompraContratacao(Base):
     coletado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     observador: Mapped[Observador | None] = relationship()
+    uasg: Mapped[ComprasUasg | None] = relationship(back_populates="contratacoes")
     itens: Mapped[list["CompraContratacaoItem"]] = relationship(
         back_populates="contratacao",
         cascade="all, delete-orphan",
@@ -164,6 +321,7 @@ class CompraContratacao(Base):
 
     __table_args__ = (
         Index("uq_compra_id_compra", "id_compra", unique=True),
+        Index("ix_compra_numero_controle_pncp", "numero_controle_pncp"),
     )
 
 
@@ -193,6 +351,9 @@ class CompraContratacaoItem(Base):
     codigo_classe: Mapped[int | None] = mapped_column(Integer)
     codigo_grupo: Mapped[int | None] = mapped_column(Integer)
     cod_item_catalogo: Mapped[int | None] = mapped_column(Integer)
+    item_catalogo_id: Mapped[int | None] = mapped_column(
+        ForeignKey("compras_itens_catalogo.id"), index=True
+    )
 
     unidade_medida: Mapped[str | None] = mapped_column(String(40))
     orcamento_sigiloso: Mapped[bool | None] = mapped_column(Boolean)
@@ -218,9 +379,100 @@ class CompraContratacaoItem(Base):
     coletado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     contratacao: Mapped[CompraContratacao | None] = relationship(back_populates="itens")
+    item_catalogo: Mapped[ComprasItemCatalogo | None] = relationship()
+    resultados: Mapped[list["ComprasContratacaoResultado"]] = relationship(
+        back_populates="contratacao_item",
+        cascade="all, delete-orphan",
+    )
 
     __table_args__ = (
         Index("uq_compra_item_id", "id_compra_item", unique=True),
+    )
+
+
+class ComprasContratacaoResultado(Base):
+    """Resultados homologados por item — módulo 07.3."""
+
+    __tablename__ = "compras_contratacao_resultados"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id_compra: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    id_compra_item: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    contratacao_item_id: Mapped[int | None] = mapped_column(
+        ForeignKey("compras_contratacao_itens.id"), index=True
+    )
+    fornecedor_id: Mapped[int | None] = mapped_column(
+        ForeignKey("compras_fornecedores.id"), index=True
+    )
+    sequencial_resultado: Mapped[int | None] = mapped_column(Integer)
+    ni_fornecedor: Mapped[str | None] = mapped_column(String(14))
+    nome_razao_social_fornecedor: Mapped[str | None] = mapped_column(String(200))
+    ordem_classificacao_srp: Mapped[int | None] = mapped_column(Integer)
+    quantidade_homologada: Mapped[str | None] = mapped_column(String(40))
+    valor_unitario_homologado: Mapped[str | None] = mapped_column(String(80))
+    valor_total_homologado: Mapped[str | None] = mapped_column(String(80))
+    situacao_compra_item_resultado_nome: Mapped[str | None] = mapped_column(String(80))
+    porte_fornecedor_nome: Mapped[str | None] = mapped_column(String(80))
+    data_resultado_pncp: Mapped[str | None] = mapped_column(String(40))
+    percentual_desconto: Mapped[str | None] = mapped_column(String(40))
+    dados_resultado_json: Mapped[str | None] = mapped_column(Text)
+    coletado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    contratacao_item: Mapped[CompraContratacaoItem | None] = relationship(
+        back_populates="resultados"
+    )
+    fornecedor: Mapped[ComprasFornecedor | None] = relationship()
+
+    __table_args__ = (
+        Index(
+            "uq_compra_resultado_item_seq",
+            "id_compra_item",
+            "sequencial_resultado",
+            unique=True,
+        ),
+    )
+
+
+class ComprasPrecoPraticado(Base):
+    """Pesquisa de preço — módulo 03."""
+
+    __tablename__ = "compras_precos_praticados"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tipo_item: Mapped[str] = mapped_column(String(10), nullable=False)
+    id_item_compra: Mapped[str] = mapped_column(String(50), nullable=False)
+    id_compra: Mapped[str | None] = mapped_column(String(40))
+    codigo_item_catalogo: Mapped[int | None] = mapped_column(Integer)
+    codigo_uasg: Mapped[str | None] = mapped_column(String(10))
+    item_catalogo_id: Mapped[int | None] = mapped_column(
+        ForeignKey("compras_itens_catalogo.id"), index=True
+    )
+    uasg_id: Mapped[int | None] = mapped_column(ForeignKey("compras_uasgs.id"), index=True)
+    fornecedor_id: Mapped[int | None] = mapped_column(
+        ForeignKey("compras_fornecedores.id"), index=True
+    )
+    preco_unitario: Mapped[str | None] = mapped_column(String(80))
+    quantidade: Mapped[str | None] = mapped_column(String(40))
+    data_compra: Mapped[str | None] = mapped_column(String(40))
+    data_resultado: Mapped[str | None] = mapped_column(String(40))
+    modalidade: Mapped[str | None] = mapped_column(String(40))
+    municipio: Mapped[str | None] = mapped_column(String(120))
+    estado: Mapped[str | None] = mapped_column(String(2))
+    nome_fornecedor: Mapped[str | None] = mapped_column(String(200))
+    ni_fornecedor: Mapped[str | None] = mapped_column(String(14))
+    dados_preco_json: Mapped[str | None] = mapped_column(Text)
+    coletado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index(
+            "uq_compras_preco_tipo_item",
+            "tipo_item",
+            "id_item_compra",
+            "id_compra",
+            "ni_fornecedor",
+            "data_compra",
+            unique=True,
+        ),
     )
 
 
@@ -476,6 +728,22 @@ class PbiContratoResponsavel(Base):
     )
 
 
+# --- Configuração do sistema (setup inicial, ano de coleta) ---
+
+
+class SistemaConfig(Base):
+    """Configuração global — linha única (id=1)."""
+
+    __tablename__ = "sistema_config"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    ano_inicial_coleta: Mapped[int | None] = mapped_column(Integer)
+    setup_concluido: Mapped[bool] = mapped_column(Boolean, default=False)
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
 # --- Órgãos consolidados — vínculo manual entre bases (reversível; não altera dados coletados) ---
 
 FONTES_ORGAO_VINCULO = frozenset({"portal", "compras_api", "powerbi"})
@@ -726,6 +994,8 @@ def _migrate_columns() -> None:
             for nome, tipo in _COMPRAS_COLUNAS_NOVAS:
                 if nome not in compras_cols:
                     conn.execute(text(f"ALTER TABLE compras_contratacoes ADD COLUMN {nome} {tipo}"))
+            if "uasg_id" not in compras_cols:
+                conn.execute(text("ALTER TABLE compras_contratacoes ADD COLUMN uasg_id INTEGER"))
             if "id_compra" not in compras_cols:
                 conn.execute(
                     text(
@@ -733,6 +1003,14 @@ def _migrate_columns() -> None:
                         "WHERE id_compra IS NULL"
                     )
                 )
+
+        itens_cols = {
+            row[1] for row in conn.execute(text("PRAGMA table_info(compras_contratacao_itens)")).fetchall()
+        }
+        if itens_cols and "item_catalogo_id" not in itens_cols:
+            conn.execute(
+                text("ALTER TABLE compras_contratacao_itens ADD COLUMN item_catalogo_id INTEGER")
+            )
         conn.commit()
 
 

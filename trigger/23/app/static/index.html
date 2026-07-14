@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OSB Uberlândia · Licitações</title>
+  <link rel="icon" type="image/png" href="/static/logo_oficial_udi.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/static/style.css?v=osb20" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+</head>
+<body>
+  <!-- ================= AUTH GATE ================= -->
+  <div id="auth-gate" class="auth-gate" hidden>
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-logo-wrap">
+          <picture>
+            <source srcset="/static/logo_oficial_udi.avif" type="image/avif" />
+            <img
+              class="brand-logo"
+              src="/static/logo_oficial_udi.png"
+              alt="Observatório Social do Brasil — Uberlândia"
+              width="197"
+              height="70"
+              decoding="async"
+            />
+          </picture>
+        </div>
+      </div>
+
+      <div id="auth-login-panel">
+        <p class="muted auth-lead">Acesse com seu usuário para continuar.</p>
+        <form id="form-auth-login" class="form-col">
+          <label class="field"><span>Usuário</span><input type="text" id="auth-login-user" required autocomplete="username" maxlength="80" /></label>
+          <label class="field"><span>Senha</span><input type="password" id="auth-login-pass" required autocomplete="current-password" maxlength="200" /></label>
+          <button type="submit" class="btn primary" id="btn-auth-login">Entrar</button>
+        </form>
+      </div>
+
+      <div id="auth-bootstrap-panel" hidden>
+        <p class="muted auth-lead">
+          Nenhum usuário cadastrado. Crie o <strong>primeiro administrador</strong> para proteger o sistema.
+        </p>
+        <form id="form-auth-bootstrap" class="form-col">
+          <label class="field"><span>Usuário admin</span><input type="text" id="auth-boot-user" required autocomplete="username" minlength="3" maxlength="80" /></label>
+          <label class="field"><span>Senha</span><input type="password" id="auth-boot-pass" required autocomplete="new-password" minlength="6" maxlength="200" /></label>
+          <label class="field"><span>Confirmar senha</span><input type="password" id="auth-boot-pass2" required autocomplete="new-password" minlength="6" maxlength="200" /></label>
+          <button type="submit" class="btn primary" id="btn-auth-bootstrap">Criar administrador</button>
+        </form>
+      </div>
+
+      <p id="auth-gate-msg" class="meta-line" role="status"></p>
+    </div>
+    <a
+      class="vendor-credit vendor-credit--auth"
+      href="https://www.triggerti.com"
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Trigger Data Intelligence"
+    >
+      <img class="vendor-mark" src="/static/trigger-mark.png?v=2" width="18" height="18" alt="" decoding="async" />
+      <span>Desenvolvido pela <strong>Trigger</strong></span>
+    </a>
+  </div>
+
+  <div class="app-shell" id="app-shell" hidden>
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <picture>
+            <source srcset="/static/logo_oficial_udi.avif" type="image/avif" />
+            <img
+              class="brand-logo"
+              src="/static/logo_oficial_udi.png"
+              alt="Observatório Social do Brasil — Uberlândia"
+              width="197"
+              height="70"
+              decoding="async"
+            />
+          </picture>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Navegação principal">
+        <p class="nav-group-label">Análise</p>
+        <button class="nav-btn" data-page="dashboard" data-roles="admin,consulta">
+          <span class="nav-ico" aria-hidden="true">▚</span> Painel
+        </button>
+        <button class="nav-btn" data-page="localidade" data-roles="admin,consulta">
+          <span class="nav-ico" aria-hidden="true">⌖</span> Mapa · Localidade
+        </button>
+        <button class="nav-btn" data-page="consulta" data-roles="admin,consulta">
+          <span class="nav-ico" aria-hidden="true">⌕</span> Consulta · Processo
+        </button>
+        <button class="nav-btn" data-page="vencedores" data-roles="admin">
+          <span class="nav-ico" aria-hidden="true">◇</span> CNPJs vencedores
+        </button>
+        <button class="nav-btn" data-page="propostas" data-roles="admin,consulta">
+          <span class="nav-ico" aria-hidden="true">◎</span> Propostas abertas
+        </button>
+
+        <p class="nav-group-label" data-nav-group="dados">Dados</p>
+        <button class="nav-btn" data-page="coleta" data-roles="admin">
+          <span class="nav-ico" aria-hidden="true">↧</span> Coleta
+        </button>
+        <button class="nav-btn" data-page="compras" data-roles="admin,consulta">
+          <span class="nav-ico" aria-hidden="true">◆</span> Compras.gov
+        </button>
+        <button class="nav-btn" data-page="powerbi" data-roles="admin,consulta">
+          <span class="nav-ico" aria-hidden="true">◉</span> Power BI
+        </button>
+
+        <p class="nav-group-label" data-nav-group="cadastros">Cadastros</p>
+        <button class="nav-btn" data-page="vinculos" data-roles="admin,consulta">
+          <span class="nav-ico" aria-hidden="true">⇄</span> Vínculos
+        </button>
+        <button class="nav-btn" data-page="observadores" data-roles="admin,consulta">
+          <span class="nav-ico" aria-hidden="true">☰</span> Observadores
+        </button>
+        <button class="nav-btn" data-page="setup" data-roles="admin">
+          <span class="nav-ico" aria-hidden="true">⚙</span> Setup
+        </button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div id="auth-user-box" class="auth-user-box" hidden>
+          <p class="sidebar-foot-title">Sessão</p>
+          <p class="auth-user-name" id="auth-user-name">—</p>
+          <p class="auth-user-papel" id="auth-user-papel">—</p>
+          <button type="button" class="btn btn-sm auth-logout-btn" id="btn-auth-logout">Sair</button>
+        </div>
+        <p class="sidebar-foot-title">Fontes de dados</p>
+        <p class="sidebar-foot-item"><span class="dot dot-compras"></span> Compras.gov · PNCP</p>
+        <p class="sidebar-foot-item"><span class="dot dot-powerbi"></span> Power BI · Dados Abertos PMU</p>
+
+        <div class="sidebar-vendor">
+          <a
+            class="vendor-credit"
+            href="https://www.triggerti.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Trigger Data Intelligence"
+          >
+            <img class="vendor-mark" src="/static/trigger-mark.png?v=2" width="18" height="18" alt="" decoding="async" />
+            <span>Desenvolvido pela <strong>Trigger</strong></span>
+          </a>
+          <details class="vendor-arch">
+            <summary>Arquitetura</summary>
+            <p>
+              Stack enxuta de propósito: API, health check, coleta orquestrada, SQLite e agendador —
+              adequada ao Free Tier da AWS (pouca RAM, um nó). RabbitMQ, MinIO, Traefik e métricas
+              entram quando carga, orçamento ou requisito justificar, de preferência gerenciados na AWS.
+            </p>
+          </details>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ================= CONTENT ================= -->
+    <div class="content">
+      <header class="topbar">
+        <div class="topbar-title-wrap">
+          <h2 id="topbar-title" class="topbar-title">Painel</h2>
+          <p id="topbar-sub" class="topbar-sub">Visão consolidada das bases</p>
+        </div>
+        <div class="topbar-status" id="topbar-status" data-state="idle">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="topbar-status-text">Sistema operacional</span>
+        </div>
+      </header>
+
+      <main class="main" id="main">
+        <!-- ============ DASHBOARD ============ -->
+        <section id="page-dashboard" class="page">
+          <div class="panel filters-panel">
+            <form id="form-dash-filtros" class="filters-grid">
+              <label class="field">
+                <span>Ano</span>
+                <select id="dash-filtro-ano"><option value="">Todos</option></select>
+              </label>
+              <label class="field">
+                <span>Órgão consolidado</span>
+                <select id="dash-filtro-orgao"><option value="">Todos</option></select>
+              </label>
+              <label class="field">
+                <span>Modalidade consolidada</span>
+                <div id="dash-filtro-modalidade" class="ms" data-placeholder="Todas"></div>
+              </label>
+              <div class="field-actions">
+                <button type="submit" class="btn primary" id="btn-dash-atualizar">Atualizar</button>
+                <button type="button" class="btn ghost" id="btn-dash-limpar">Limpar</button>
+              </div>
+            </form>
+            <p id="dash-filtros-resumo" class="meta-line"></p>
+          </div>
+
+          <div class="dash-bases">
+            <article id="dash-panel-api" class="panel dash-base">
+              <p class="muted loading-line">Carregando…</p>
+            </article>
+            <article id="dash-panel-powerbi" class="panel dash-base">
+              <p class="muted loading-line">Carregando…</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- ============ MAPA · LOCALIDADE ============ -->
+        <section id="page-localidade" class="page">
+          <div class="panel filters-panel">
+            <form id="form-loc-filtros" class="filters-grid loc-filters">
+              <label class="field">
+                <span>Ano</span>
+                <select id="loc-filtro-ano"><option value="">Todos</option></select>
+              </label>
+              <label class="field">
+                <span>Órgão consolidado</span>
+                <select id="loc-filtro-orgao"><option value="">Todos</option></select>
+              </label>
+              <label class="field">
+                <span>Modalidade consolidada</span>
+                <div id="loc-filtro-modalidade" class="ms" data-placeholder="Todas"></div>
+              </label>
+              <label class="field">
+                <span>UF do vencedor</span>
+                <select id="loc-filtro-uf"><option value="">Todas</option></select>
+              </label>
+              <label class="field">
+                <span>Escopo</span>
+                <select id="loc-filtro-escopo">
+                  <option value="todos">Todos</option>
+                  <option value="uberlandia">Só Uberlândia</option>
+                  <option value="fora">Fora de Uberlândia</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Métrica do mapa</span>
+                <select id="loc-filtro-metrica">
+                  <option value="quantidade">Quantidade de resultados</option>
+                  <option value="valor">Valor homologado</option>
+                </select>
+              </label>
+              <div class="field-actions">
+                <button type="submit" class="btn primary" id="btn-loc-atualizar">Atualizar</button>
+                <button type="button" class="btn ghost" id="btn-loc-limpar">Limpar</button>
+              </div>
+            </form>
+            <p id="loc-filtros-resumo" class="meta-line"></p>
+          </div>
+
+          <div id="loc-kpis" class="loc-kpis" aria-live="polite"></div>
+
+          <div class="loc-workspace">
+            <article class="panel loc-map-panel">
+              <header class="loc-map-toolbar">
+                <div class="loc-map-title-wrap">
+                  <h3 class="loc-map-title">Distribuição geográfica</h3>
+                  <p class="loc-map-hint">Sede cadastral do fornecedor vencedor · PNCP 07.3</p>
+                </div>
+                <div class="loc-mode-toggle" role="group" aria-label="Modo do mapa">
+                  <button type="button" class="loc-mode-btn active" data-mode="estados" id="loc-mode-estados">Estados</button>
+                  <button type="button" class="loc-mode-btn" data-mode="calor" id="loc-mode-calor">Calor · municípios</button>
+                </div>
+              </header>
+              <div id="loc-map" class="loc-map" role="img" aria-label="Mapa de distribuição por localidade"></div>
+              <div id="loc-legend" class="loc-legend"></div>
+              <p id="loc-map-footer" class="loc-map-footer muted small"></p>
+            </article>
+
+            <aside class="panel loc-side">
+              <div class="loc-side-head">
+                <h3 id="loc-rank-titulo">Ranking por UF</h3>
+                <button type="button" class="btn ghost tiny" id="btn-loc-brasil" hidden>Ver Brasil</button>
+              </div>
+              <div id="loc-udi-split" class="loc-udi-split"></div>
+              <div id="loc-ranking" class="loc-ranking">
+                <p class="muted loading-line">Carregando…</p>
+              </div>
+            </aside>
+          </div>
+
+          <div class="panel loc-table-panel">
+            <header class="loc-table-head">
+              <h3 class="panel-title">Municípios</h3>
+              <p id="loc-table-meta" class="meta-line"></p>
+            </header>
+            <div class="table-scroll">
+              <table class="data-table" id="loc-table">
+                <thead id="loc-table-thead">
+                  <tr>
+                    <th data-sort="municipio">Município</th>
+                    <th data-sort="uf">UF</th>
+                    <th data-sort="quantidade">Resultados</th>
+                    <th data-sort="valor">Valor homologado</th>
+                    <th data-sort="contratacoes">Contratações</th>
+                    <th data-sort="fornecedores">Fornecedores</th>
+                    <th data-sort="de_uberlandia">Origem</th>
+                  </tr>
+                </thead>
+                <tbody id="loc-table-body">
+                  <tr><td colspan="7" class="muted">Carregando…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ COLETA (ambiente único) ============ -->
+        <section id="page-coleta" class="page">
+          <div class="panel intro-panel">
+            <h3 class="panel-title">Ambiente de coleta unificado</h3>
+            <p class="muted">
+              Colete das duas fontes oficiais em um só lugar. Selecione o período e as bases desejadas —
+              por padrão as duas ficam ativas. O progresso de cada fonte aparece no painel de status.
+            </p>
+          </div>
+
+          <form id="form-coleta">
+            <div class="panel coleta-config">
+              <h4 class="sub-title">Período</h4>
+              <div class="filters-grid">
+                <label class="field">
+                  <span>Ano de referência</span>
+                  <input type="number" id="coleta-ano" min="2000" max="2100" value="2026" required />
+                </label>
+                <label class="field">
+                  <span>Data inicial <em class="hint-inline">(opcional · Compras.gov)</em></span>
+                  <input type="date" id="coleta-data-inicial" />
+                </label>
+                <label class="field">
+                  <span>Data final <em class="hint-inline">(opcional · Compras.gov)</em></span>
+                  <input type="date" id="coleta-data-final" />
+                </label>
+              </div>
+              <p class="muted small">
+                Use o ano ou um par de datas (janelas de até 365 dias são divididas automaticamente).
+              </p>
+            </div>
+
+            <div class="coleta-sources">
+              <!-- COMPRAS -->
+              <article class="panel source-card">
+                <header class="source-head">
+                  <span class="source-tag tag-compras">Compras.gov</span>
+                  <label class="switch">
+                    <input type="checkbox" id="coleta-compras-ativo" checked />
+                    <span class="switch-track" aria-hidden="true"></span>
+                    <span class="switch-label">Incluir na coleta</span>
+                  </label>
+                </header>
+                <p class="muted small">API Dados Abertos · PNCP (Lei 14.133). Contratações, itens e resultados.</p>
+
+                <fieldset class="chk-fieldset">
+                  <legend>Unidades compradoras (UASG)</legend>
+                  <div class="chk-toolbar">
+                    <button type="button" class="btn ghost tiny" id="coleta-compras-todos">Marcar todas</button>
+                    <button type="button" class="btn ghost tiny" id="coleta-compras-nenhum">Desmarcar</button>
+                  </div>
+                  <div id="coleta-compras-unidades" class="chk-grid">
+                    <p class="muted small chk-loading">Carregando unidades…</p>
+                  </div>
+                </fieldset>
+
+                <fieldset class="chk-fieldset">
+                  <legend>Modalidades (código 1–14)</legend>
+                  <div id="coleta-compras-modalidades" class="chk-grid chk-grid-compact">
+                    <p class="muted small chk-loading">Carregando…</p>
+                  </div>
+                </fieldset>
+
+                <fieldset class="radio-fieldset">
+                  <legend>Fases</legend>
+                  <label class="radio-opt">
+                    <input type="radio" name="coleta-compras-modo" value="padrao" checked />
+                    <span><strong>Padrão</strong> — contratações + resultados (07)</span>
+                  </label>
+                  <label class="radio-opt">
+                    <input type="radio" name="coleta-compras-modo" value="completo" />
+                    <span><strong>Completo</strong> — 07 + resultados + 05 + 10 + 01 + 02</span>
+                  </label>
+                </fieldset>
+              </article>
+
+              <!-- POWER BI -->
+              <article class="panel source-card">
+                <header class="source-head">
+                  <span class="source-tag tag-powerbi">Power BI</span>
+                  <label class="switch">
+                    <input type="checkbox" id="coleta-pbi-ativo" checked />
+                    <span class="switch-track" aria-hidden="true"></span>
+                    <span class="switch-label">Incluir na coleta</span>
+                  </label>
+                </header>
+                <p class="muted small">Dados Abertos PMU · CSVs oficiais dos painéis Power BI (encoding Windows/CP1252).</p>
+
+                <label class="field field-block">
+                  <span>Anos (licitações e contratos)</span>
+                  <input type="text" id="coleta-pbi-anos" placeholder="Ex.: 2025, 2026" value="2026" />
+                </label>
+
+                <fieldset class="chk-fieldset">
+                  <legend>Bases (datasets)</legend>
+                  <div id="coleta-pbi-datasets" class="chk-grid">
+                    <label class="chk-label"><input type="checkbox" name="coleta-dataset" value="licitacoes" checked /> Licitações</label>
+                    <label class="chk-label"><input type="checkbox" name="coleta-dataset" value="contratos" checked /> Contratos</label>
+                    <label class="chk-label"><input type="checkbox" name="coleta-dataset" value="gestores" checked /> Gestores e fiscais</label>
+                  </div>
+                </fieldset>
+                <p class="muted small source-note">
+                  Cada coleta <strong>substitui</strong> os dados do ano/base selecionados.
+                </p>
+              </article>
+            </div>
+
+            <div class="coleta-actions">
+              <button type="submit" class="btn primary btn-lg" id="btn-coleta-iniciar">Iniciar coleta</button>
+              <button type="button" class="btn ghost" id="btn-coleta-liberar" hidden>
+                Liberar trava
+              </button>
+            </div>
+          </form>
+
+          <!-- STATUS PANEL -->
+          <div class="panel coleta-status-panel" id="coleta-status-panel">
+            <div class="coleta-status-head">
+              <h4 class="sub-title">Status da coleta</h4>
+              <div class="coleta-src-chips">
+                <span class="src-chip" id="coleta-src-compras" data-state="idle">
+                  <span class="status-dot"></span> Compras.gov
+                </span>
+                <span class="src-chip" id="coleta-src-powerbi" data-state="idle">
+                  <span class="status-dot"></span> Power BI
+                </span>
+              </div>
+            </div>
+            <p id="coleta-fase-meta" class="meta-bar muted small" hidden></p>
+            <pre id="coleta-log" class="log">Aguardando início da coleta…</pre>
+            <div id="coleta-result" class="result hidden"></div>
+          </div>
+        </section>
+
+        <!-- ============ CONSULTA · PROCESSO ============ -->
+        <section id="page-consulta" class="page">
+          <div class="panel filters-panel">
+            <p class="muted">
+              Visão unificada do mesmo processo licitatório nas duas bases:
+              <strong>Compras.gov · PNCP</strong> e <strong>Power BI · PMU</strong>.
+              O cruzamento usa órgão consolidado + ano + número do processo.
+            </p>
+            <form id="form-cp-filtros" class="filters-grid">
+              <label class="field field-wide">
+                <span>Processo *</span>
+                <input type="text" id="cp-filtro-processo" placeholder="Ex.: 63, PE 63/2025, 5302023" autocomplete="off" required />
+              </label>
+              <label class="field">
+                <span>Ano</span>
+                <select id="cp-filtro-ano"><option value="">Todos</option></select>
+              </label>
+              <label class="field">
+                <span>Órgão consolidado</span>
+                <select id="cp-filtro-orgao"><option value="">Todos</option></select>
+              </label>
+              <label class="field">
+                <span>Modalidade</span>
+                <div id="cp-filtro-modalidade" class="ms" data-placeholder="Todas"></div>
+              </label>
+              <div class="field-actions">
+                <button type="submit" class="btn primary" id="btn-cp-buscar">Consultar</button>
+                <button type="button" class="btn ghost" id="btn-cp-limpar">Limpar</button>
+              </div>
+            </form>
+            <p id="cp-consulta-meta" class="meta-line"></p>
+          </div>
+
+          <div id="cp-picker" class="hidden"></div>
+          <div id="cp-resultado" class="cp-resultado hidden"></div>
+        </section>
+
+        <!-- ============ CNPJs VENCEDORES ============ -->
+        <section id="page-vencedores" class="page">
+          <div class="panel filters-panel">
+            <p class="muted">
+              Fornecedores homologados a partir de <strong>compras_contratacao_resultados</strong>
+              (módulo 07.3), com fallback seguro aos itens quando o resultado ainda não foi coletado.
+              Atualize cada CNPJ individualmente via API pública (BrasilAPI / Minha Receita);
+              o módulo 10 (Compras.gov) enriquece porte/CNAE/<code>habilitadoLicitar</code> na coleta.
+            </p>
+            <form id="form-vencedores-filtros" class="filters-grid">
+              <label class="field field-wide">
+                <span>Busca</span>
+                <input type="text" id="vencedores-filtro-q" placeholder="Nome ou CNPJ/CPF" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Status do cache</span>
+                <select id="vencedores-filtro-status">
+                  <option value="">Todos</option>
+                  <option value="vencido">Cache vencido</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="atualizado">Atualizado</option>
+                  <option value="cpf">CPF (sem QSA)</option>
+                </select>
+              </label>
+              <div class="field-actions">
+                <button type="submit" class="btn primary">Buscar</button>
+                <button type="button" class="btn ghost" id="btn-vencedores-limpar">Limpar</button>
+                <button
+                  type="button"
+                  class="btn primary"
+                  id="btn-vencedores-pendentes"
+                  title="Atualiza todos os CNPJs pendentes com intervalo seguro entre requisições"
+                >Atualizar pendentes</button>
+                <button type="button" class="btn ghost" id="btn-vencedores-pendentes-cancelar" hidden>
+                  Cancelar lote
+                </button>
+              </div>
+            </form>
+            <p id="vencedores-meta" class="meta-line"></p>
+            <div id="vencedores-lote-status" class="vencedores-lote-status" hidden></div>
+            <div id="vencedores-resumo" class="vencedores-resumo" hidden></div>
+          </div>
+
+          <div class="panel table-panel">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead id="vencedores-tabela-head">
+                  <tr>
+                    <th class="sortable" data-sort="nome_fornecedor">Fornecedor</th>
+                    <th class="sortable" data-sort="cod_fornecedor">CNPJ / CPF</th>
+                    <th class="sortable" data-sort="qtd_itens">Itens</th>
+                    <th class="sortable" data-sort="qtd_compras">Compras</th>
+                    <th class="sortable" data-sort="municipio">Município</th>
+                    <th class="sortable" data-sort="status_cache">Cache CNPJ</th>
+                    <th class="sortable" data-sort="cnpj_enriquecido_em">Última atualização</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody id="vencedores-tabela"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ PROPOSTAS ABERTAS ============ -->
+        <section id="page-propostas" class="page">
+          <div class="panel filters-panel">
+            <p class="muted">
+              Itens de contratações cujo prazo de proposta ainda não encerrou
+              (<code>data_encerramento_proposta_pncp</code>).
+              Use o horizonte e a referência de catálogo para priorizar a análise de preços antes do fechamento.
+            </p>
+            <form id="form-prop-filtros" class="filters-grid">
+              <label class="field">
+                <span>Horizonte</span>
+                <select id="prop-filtro-horizonte">
+                  <option value="todos" selected>Todos abertos</option>
+                  <option value="24h">Até 24 horas</option>
+                  <option value="72h">Até 72 horas</option>
+                  <option value="7d">Até 7 dias</option>
+                  <option value="30d">Até 30 dias</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Ano</span>
+                <select id="prop-filtro-ano"><option value="">Todos</option></select>
+              </label>
+              <label class="field">
+                <span>Unidade</span>
+                <select id="prop-filtro-unidade"><option value="">Todas</option></select>
+              </label>
+              <label class="field">
+                <span>Modalidade</span>
+                <div id="prop-filtro-modalidade" class="ms" data-placeholder="Todas"></div>
+              </label>
+              <label class="field">
+                <span>Tipo</span>
+                <select id="prop-filtro-tipo">
+                  <option value="">Material e serviço</option>
+                  <option value="M">Material</option>
+                  <option value="S">Serviço</option>
+                </select>
+              </label>
+              <label class="field field-wide">
+                <span>Busca</span>
+                <input type="text" id="prop-filtro-texto" placeholder="Objeto, processo, nº compra ou PNCP" autocomplete="off" />
+              </label>
+              <div class="field-actions">
+                <button type="submit" class="btn primary">Buscar</button>
+                <button type="button" class="btn ghost" id="btn-prop-limpar">Limpar</button>
+              </div>
+            </form>
+            <p id="prop-consulta-meta" class="meta-line"></p>
+            <div id="prop-resumo" class="prop-resumo" hidden></div>
+          </div>
+
+          <div class="panel table-panel">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead id="prop-tabela-head">
+                  <tr>
+                    <th class="sortable" data-sort="horas_restantes">Prazo</th>
+                    <th class="sortable" data-sort="numero_compra">Compra</th>
+                    <th class="sortable" data-sort="processo">Processo</th>
+                    <th class="sortable" data-sort="numero_item">Item</th>
+                    <th class="sortable" data-sort="descricao_resumida">Descrição</th>
+                    <th class="sortable" data-sort="codigo_ncm">NCM</th>
+                    <th class="sortable" data-sort="quantidade">Qtd</th>
+                    <th class="sortable" data-sort="valor_unitario_estimado_num">Unitário</th>
+                    <th class="sortable" data-sort="valor_total_num">Total est.</th>
+                    <th class="sortable" data-sort="desvio_pct">vs mediana</th>
+                    <th class="sortable" data-sort="unidade_nome">Unidade</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody id="prop-tabela">
+                  <tr><td colspan="12">Abra esta página e clique em Buscar para listar os itens com proposta aberta.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ COMPRAS.GOV ============ -->
+        <section id="page-compras" class="page">
+          <div class="panel filters-panel">
+            <p class="muted">
+              Contratações coletadas da <strong>API Dados Abertos Compras.gov / PNCP</strong>.
+              Clique em uma linha para ver itens, resultados homologados, planejamento e preços.
+            </p>
+            <form id="form-compras-filtros" class="filters-grid">
+              <label class="field">
+                <span>Ano</span>
+                <select id="compras-filtro-ano"><option value="">Todos</option></select>
+              </label>
+              <label class="field">
+                <span>Unidade</span>
+                <select id="compras-filtro-unidade"><option value="">Todas</option></select>
+              </label>
+              <label class="field">
+                <span>Situação</span>
+                <select id="compras-filtro-situacao"><option value="">Todas</option></select>
+              </label>
+              <label class="field">
+                <span>Modalidade</span>
+                <div id="compras-filtro-modalidade" class="ms" data-placeholder="Todas"></div>
+              </label>
+              <label class="field">
+                <span>Processo</span>
+                <input type="text" id="compras-filtro-processo" placeholder="Ex.: 123, PE 45/2025" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Nº compra</span>
+                <input type="text" id="compras-filtro-numero" placeholder="Ex.: 90011" autocomplete="off" />
+              </label>
+              <label class="field field-wide">
+                <span>Busca</span>
+                <input type="text" id="compras-filtro-texto" placeholder="Objeto, PNCP ou chave" />
+              </label>
+              <div class="field-actions">
+                <button type="submit" class="btn primary">Buscar</button>
+                <button type="button" class="btn ghost" id="btn-compras-limpar">Limpar</button>
+              </div>
+            </form>
+            <p id="compras-consulta-meta" class="meta-line"></p>
+          </div>
+
+          <div class="panel table-panel">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead id="compras-tabela-head">
+                  <tr>
+                    <th class="sortable" data-sort="numero">Nº / Modalidade</th>
+                    <th class="sortable" data-sort="processo">Processo</th>
+                    <th class="sortable" data-sort="unidade_nome">Unidade</th>
+                    <th class="sortable" data-sort="ano">Ano</th>
+                    <th class="sortable" data-sort="situacao_lista">Situação</th>
+                    <th class="sortable" data-sort="valor_total_estimado">Valor est.</th>
+                    <th class="sortable" data-sort="valor_total_homologado">Valor hom.</th>
+                    <th class="sortable" data-sort="numero_controle_pncp">PNCP</th>
+                    <th class="sortable" data-sort="observador_nome">Observador</th>
+                    <th class="sortable" data-sort="objeto">Objeto</th>
+                  </tr>
+                </thead>
+                <tbody id="compras-tabela"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ POWER BI ============ -->
+        <section id="page-powerbi" class="page">
+          <div class="panel filters-panel">
+            <p class="muted pbi-modelo-hint">
+              Modelo: <strong>Licitação</strong> → <strong>Contrato</strong> → <strong>Evento</strong> → <strong>Responsável</strong>.
+              Nem toda licitação possui contrato.
+            </p>
+            <div class="tabs" id="pbi-tabs">
+              <button type="button" class="tab active" data-dataset="licitacoes">Licitações</button>
+              <button type="button" class="tab" data-dataset="contratos">Contratos</button>
+              <button type="button" class="tab" data-dataset="eventos">Eventos</button>
+              <button type="button" class="tab" data-dataset="gestores">Responsáveis</button>
+            </div>
+            <form id="form-pbi-filtros" class="filters-grid">
+              <div class="pbi-filtros-dataset" data-dataset="licitacoes">
+                <label class="field"><span>Ano</span><select id="pbi-filtro-lic-ano"><option value="">Todos</option></select></label>
+                <label class="field"><span>Empresa</span><select id="pbi-filtro-lic-empresa"><option value="">Todas</option></select></label>
+                <label class="field"><span>Situação</span><select id="pbi-filtro-lic-situacao"><option value="">Todas</option></select></label>
+                <label class="field"><span>Modalidade</span><div id="pbi-filtro-lic-modalidade" class="ms" data-placeholder="Todas"></div></label>
+                <label class="field"><span>Processo</span><input type="text" id="pbi-filtro-lic-processo" autocomplete="off" /></label>
+                <label class="field field-wide"><span>Busca</span><input type="text" id="pbi-filtro-lic-texto" placeholder="Objeto, solicitante, empresa…" /></label>
+              </div>
+              <div class="pbi-filtros-dataset" data-dataset="contratos" hidden>
+                <label class="field"><span>Ano contrato</span><select id="pbi-filtro-con-ano"><option value="">Todos</option></select></label>
+                <label class="field"><span>Empresa</span><select id="pbi-filtro-con-empresa"><option value="">Todas</option></select></label>
+                <label class="field"><span>Nº contrato</span><input type="text" id="pbi-filtro-con-numero" autocomplete="off" /></label>
+                <label class="field"><span>Processo</span><input type="text" id="pbi-filtro-con-processo" autocomplete="off" /></label>
+                <label class="field field-wide"><span>Busca</span><input type="text" id="pbi-filtro-con-texto" placeholder="Objeto, fornecedor, empresa…" /></label>
+              </div>
+              <div class="pbi-filtros-dataset" data-dataset="eventos" hidden>
+                <label class="field"><span>Ano contrato</span><select id="pbi-filtro-ev-ano"><option value="">Todos</option></select></label>
+                <label class="field"><span>Empresa</span><select id="pbi-filtro-ev-empresa"><option value="">Todas</option></select></label>
+                <label class="field"><span>Nº contrato</span><input type="text" id="pbi-filtro-ev-numero" autocomplete="off" /></label>
+                <label class="field"><span>Processo</span><input type="text" id="pbi-filtro-ev-processo" autocomplete="off" /></label>
+                <label class="field field-wide"><span>Busca</span><input type="text" id="pbi-filtro-ev-texto" placeholder="Objeto, fornecedor, empresa…" /></label>
+              </div>
+              <div class="pbi-filtros-dataset" data-dataset="gestores" hidden>
+                <label class="field"><span>Ano contrato</span><select id="pbi-filtro-gest-ano"><option value="">Todos</option></select></label>
+                <label class="field"><span>Órgão</span><select id="pbi-filtro-gest-orgao"><option value="">Todos</option></select></label>
+                <label class="field"><span>Papel</span><select id="pbi-filtro-gest-papel"><option value="">Todos</option></select></label>
+                <label class="field"><span>Nº contrato</span><input type="text" id="pbi-filtro-gest-numero" autocomplete="off" /></label>
+                <label class="field field-wide"><span>Busca</span><input type="text" id="pbi-filtro-gest-texto" placeholder="Pessoa, objeto, fornecedor, órgão…" /></label>
+              </div>
+              <div class="field-actions">
+                <button type="submit" class="btn primary">Buscar</button>
+                <button type="button" class="btn ghost" id="btn-pbi-limpar">Limpar</button>
+              </div>
+            </form>
+            <p id="pbi-consulta-meta" class="meta-line"></p>
+          </div>
+
+          <div class="panel table-panel">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead id="pbi-tabela-head"></thead>
+                <tbody id="pbi-tabela"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ VÍNCULOS ============ -->
+        <section id="page-vinculos" class="page">
+          <div class="panel">
+            <div class="tabs" id="vinculos-tabs">
+              <button type="button" class="tab active" data-vinc="orgaos">Órgãos</button>
+              <button type="button" class="tab" data-vinc="modalidades">Modalidades</button>
+            </div>
+            <p class="muted small vinc-hint">
+              Unificam manualmente órgãos e modalidades entre <strong>Compras.gov</strong> e <strong>Power BI</strong>.
+              Os vínculos ficam em tabelas próprias — excluir ou alterar não afeta os dados já coletados.
+            </p>
+          </div>
+
+          <!-- ÓRGÃOS -->
+          <div class="vinc-pane" data-vinc="orgaos">
+            <div class="panel">
+              <div class="stats-bar" id="orgaos-stats"></div>
+              <button type="button" class="btn ghost tiny" id="btn-orgaos-recarregar">Atualizar</button>
+            </div>
+            <div class="panel">
+              <h4 class="sub-title">Novo órgão consolidado</h4>
+              <form id="form-orgao-novo" class="inline-form">
+                <label class="field"><span>Nome canônico *</span><input type="text" id="org-novo-nome" required maxlength="200" placeholder="Prefeitura Municipal de Uberlândia" /></label>
+                <label class="field"><span>Sigla</span><input type="text" id="org-novo-sigla" maxlength="40" placeholder="PMU" /></label>
+                <label class="field"><span>Observações</span><input type="text" id="org-novo-obs" placeholder="Opcional" /></label>
+                <button type="submit" class="btn primary">Criar</button>
+              </form>
+            </div>
+            <div class="panel table-panel">
+              <h4 class="sub-title">Órgãos consolidados</h4>
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Órgão consolidado</th>
+                      <th>Compras.gov · UASG</th>
+                      <th>Power BI · Empresa</th>
+                      <th>Vínc.</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="orgaos-tabela"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="panel table-panel">
+              <h4 class="sub-title">Valores pendentes de vínculo</h4>
+              <label class="field field-inline">
+                <span>Fonte</span>
+                <select id="org-pend-fonte">
+                  <option value="">Todas</option>
+                  <option value="compras_api">Compras.gov (UASG)</option>
+                  <option value="powerbi">Power BI</option>
+                </select>
+              </label>
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead><tr><th>Fonte</th><th>Chave</th><th>Descrição</th><th>Vincular a</th></tr></thead>
+                  <tbody id="orgaos-pendentes"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- MODALIDADES -->
+          <div class="vinc-pane hidden" data-vinc="modalidades">
+            <div class="panel">
+              <div class="stats-bar" id="modalidades-stats"></div>
+              <button type="button" class="btn ghost tiny" id="btn-modalidades-recarregar">Atualizar</button>
+            </div>
+            <div class="panel">
+              <h4 class="sub-title">Nova modalidade consolidada</h4>
+              <form id="form-mod-novo" class="inline-form">
+                <label class="field"><span>Nome canônico *</span><input type="text" id="mod-novo-nome" required maxlength="200" placeholder="Pregão - Eletrônico" /></label>
+                <label class="field"><span>Cód. PNCP</span><select id="mod-novo-pncp"><option value="">Opcional</option></select></label>
+                <label class="field"><span>Observações</span><input type="text" id="mod-novo-obs" placeholder="Opcional" /></label>
+                <button type="submit" class="btn primary">Criar</button>
+              </form>
+            </div>
+            <div class="panel table-panel">
+              <h4 class="sub-title">Modalidades consolidadas</h4>
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Modalidade consolidada</th>
+                      <th>Compras.gov · código</th>
+                      <th>Power BI · MODALIDADE</th>
+                      <th>Vínc.</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="modalidades-tabela"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="panel table-panel">
+              <h4 class="sub-title">Valores pendentes de vínculo</h4>
+              <label class="field field-inline">
+                <span>Fonte</span>
+                <select id="mod-pend-fonte">
+                  <option value="">Todas</option>
+                  <option value="compras_api">Compras.gov (API)</option>
+                  <option value="powerbi">Power BI</option>
+                </select>
+              </label>
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead><tr><th>Fonte</th><th>Chave</th><th>Descrição</th><th>Vincular a</th></tr></thead>
+                  <tbody id="modalidades-pendentes"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ OBSERVADORES ============ -->
+        <section id="page-observadores" class="page">
+          <div class="panel">
+            <h3 class="panel-title">Cadastrar observador</h3>
+            <p class="muted">Pessoas que acompanham licitações. Depois vincule na consulta de cada base.</p>
+            <form id="form-observador" class="inline-form">
+              <label class="field"><span>Nome *</span><input type="text" id="obs-nome" required maxlength="200" /></label>
+              <label class="field"><span>E-mail</span><input type="email" id="obs-email" maxlength="200" /></label>
+              <label class="field"><span>Telefone</span><input type="text" id="obs-telefone" maxlength="40" /></label>
+              <button type="submit" class="btn primary">Cadastrar</button>
+            </form>
+          </div>
+          <div class="panel table-panel">
+            <h4 class="sub-title">Observadores cadastrados</h4>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Status</th></tr></thead>
+                <tbody id="tabela-observadores"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ SETUP ============ -->
+        <section id="page-setup" class="page">
+          <div class="panel intro-panel">
+            <h3 class="panel-title">Configuração do sistema</h3>
+            <p class="muted">
+              Defina o <strong>ano inicial de coleta</strong> e as <strong>UASGs</strong> do Compras.gov.
+              Observadores, vínculos e unidades compradoras <strong>não são removidos</strong> ao limpar a base.
+            </p>
+            <div id="setup-status-grid" class="setup-status-grid">
+              <p class="muted">Carregando status…</p>
+            </div>
+          </div>
+
+          <div class="setup-grid">
+            <article class="panel">
+              <h4 class="sub-title">Ano de coleta</h4>
+              <p class="muted small">A partir de qual ano os dados serão coletados. O intervalo vai até o ano corrente.</p>
+              <form id="form-setup-config" class="form-col">
+                <label class="field"><span>Ano inicial</span><select id="setup-ano-inicial" required></select></label>
+                <p id="setup-anos-preview" class="muted small"></p>
+                <button type="submit" class="btn primary" id="btn-setup-salvar">Salvar configuração</button>
+              </form>
+              <p id="setup-msg" class="meta-line"></p>
+            </article>
+
+            <article class="panel panel-danger">
+              <h4 class="sub-title">Limpar base de dados</h4>
+              <p class="muted small">
+                Remove <strong>apenas dados coletados</strong> (Compras.gov e Power BI).
+                Preserva observadores, órgãos, modalidades, vínculos, UASGs, agendamento e tokens de IA.
+                Operação irreversível.
+              </p>
+              <form id="form-setup-limpar" class="form-col">
+                <label class="field"><span>Confirmação (digite <strong>LIMPAR</strong>)</span><input type="text" id="setup-limpar-confirm" placeholder="LIMPAR" autocomplete="off" required /></label>
+                <button type="submit" class="btn danger" id="btn-setup-limpar">Limpar dados coletados</button>
+              </form>
+              <p id="setup-limpar-msg" class="meta-line"></p>
+            </article>
+          </div>
+
+          <div class="panel" style="margin-top:18px" id="setup-agendamento-panel">
+            <h4 class="sub-title">Agendamento</h4>
+            <p class="muted small">
+              Dispara a <strong>coleta unificada</strong> no horário configurado (fuso America/Sao_Paulo)
+              e, se a coleta concluir com sucesso, enriquece automaticamente os <strong>CNPJs pendentes</strong>.
+              Se a coleta falhar, os CNPJs <strong>não</strong> são executados.
+            </p>
+            <form id="form-setup-agendamento" class="form-col" style="max-width:520px">
+              <label class="chk-label">
+                <input type="checkbox" id="setup-ag-ativo" />
+                Agendamento ligado
+              </label>
+              <div class="inline-form" style="margin:0">
+                <label class="field"><span>Horário diário</span>
+                  <input type="time" id="setup-ag-horario" value="02:00" required />
+                </label>
+                <label class="field"><span>Fuso</span>
+                  <input type="text" id="setup-ag-fuso" value="America/Sao_Paulo" maxlength="64" readonly />
+                </label>
+              </div>
+              <label class="chk-label">
+                <input type="checkbox" id="setup-ag-coleta" checked />
+                Coleta unificada (parâmetros padrão da tela Coleta: fontes, ano, UASGs, fases, datasets)
+              </label>
+              <label class="chk-label">
+                <input type="checkbox" id="setup-ag-cnpjs" checked />
+                Após sucesso da coleta → job CNPJs pendentes
+              </label>
+              <div class="field-actions" style="padding-bottom:0">
+                <button type="submit" class="btn primary" id="btn-setup-ag-salvar">Salvar agendamento</button>
+                <button type="button" class="btn" id="btn-setup-ag-rodar">Rodar agora (cadeia)</button>
+              </div>
+            </form>
+            <p id="setup-ag-msg" class="meta-line"></p>
+            <div id="setup-ag-status" class="setup-ag-status" aria-live="polite">
+              <p class="muted small">Carregando status do agendamento…</p>
+            </div>
+            <pre id="setup-ag-log" class="setup-ag-log" hidden></pre>
+          </div>
+
+          <div class="panel" style="margin-top:18px" id="setup-ia-panel">
+            <h4 class="sub-title">Provedores de IA</h4>
+            <p class="muted small">
+              Cadastre um ou mais tokens/provedores. O sistema escolhe pela <strong>prioridade</strong>
+              (menor número = primeiro) e <strong>alterna automaticamente</strong> se o atual falhar
+              (cota, autenticação, timeout). Usado por features como análise de preço em Propostas abertas.
+            </p>
+            <p class="muted small setup-ia-aviso" id="setup-ia-aviso-custo">
+              O uso consome crédito do provedor externo. AWS Free Tier não cobre APIs de IA.
+            </p>
+            <form id="form-setup-ia" class="form-col setup-ia-form">
+              <input type="hidden" id="setup-ia-id" value="" />
+              <div class="inline-form" style="margin:0">
+                <label class="field"><span>Nome amigável *</span>
+                  <input type="text" id="setup-ia-nome" required maxlength="120" placeholder="Ex.: OpenAI principal" />
+                </label>
+                <label class="field"><span>Provedor *</span>
+                  <select id="setup-ia-provedor" required>
+                    <option value="openai">OpenAI</option>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="gemini">Google Gemini</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                    <option value="mistral">Mistral</option>
+                    <option value="xai">xAI (Grok)</option>
+                    <option value="openrouter">OpenRouter</option>
+                    <option value="together">Together AI</option>
+                    <option value="perplexity">Perplexity</option>
+                    <option value="openai_compatible">OpenAI-compatible (genérico)</option>
+                  </select>
+                </label>
+              </div>
+              <div class="inline-form" style="margin:0">
+                <label class="field"><span>Modelo padrão</span>
+                  <input type="text" id="setup-ia-modelo" maxlength="120" placeholder="Ex.: gpt-4o-mini" />
+                </label>
+                <label class="field"><span>Prioridade</span>
+                  <input type="number" id="setup-ia-prioridade" min="1" max="9999" value="100" />
+                </label>
+              </div>
+              <label class="field"><span>Base URL <span class="muted">(opcional)</span></span>
+                <input type="url" id="setup-ia-base-url" maxlength="500" placeholder="Ex.: https://api.openai.com/v1" />
+              </label>
+              <label class="field"><span id="setup-ia-key-label">API key / token *</span>
+                <input type="password" id="setup-ia-api-key" maxlength="500" autocomplete="new-password" placeholder="Cole a chave do provedor" />
+              </label>
+              <label class="chk-label">
+                <input type="checkbox" id="setup-ia-ativo" checked />
+                Provedor ativo
+              </label>
+              <div class="field-actions" style="padding-bottom:0">
+                <button type="submit" class="btn primary" id="btn-setup-ia-salvar">Adicionar provedor</button>
+                <button type="button" class="btn" id="btn-setup-ia-cancelar" hidden>Cancelar edição</button>
+              </div>
+            </form>
+            <p id="setup-ia-msg" class="meta-line"></p>
+            <div class="table-scroll setup-ia-table-wrap" style="margin-top:12px">
+              <table class="data-table setup-ia-table">
+                <thead>
+                  <tr>
+                    <th class="setup-ia-col-prio" scope="col" title="Prioridade (menor = primeiro)">Prio.</th>
+                    <th class="setup-ia-col-nome" scope="col">Nome</th>
+                    <th class="setup-ia-col-prov" scope="col">Provedor</th>
+                    <th class="setup-ia-col-modelo" scope="col">Modelo</th>
+                    <th class="setup-ia-col-key" scope="col">Key</th>
+                    <th class="setup-ia-col-status" scope="col">Status</th>
+                    <th class="setup-ia-col-teste" scope="col">Último teste</th>
+                    <th class="setup-ia-col-acoes" scope="col">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-setup-ia">
+                  <tr><td colspan="8">Carregando…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:18px">
+            <h4 class="sub-title">UASGs — Compras.gov</h4>
+            <p class="muted small">
+              Unidades compradoras usadas na coleta federal. Cadastre uma ou mais UASGs;
+              somente as <strong>ativas</strong> entram na coleta e nos filtros.
+            </p>
+            <form id="form-setup-unidade" class="inline-form">
+              <label class="field"><span>Código UASG *</span><input type="text" id="setup-uasg-codigo" required maxlength="10" placeholder="Ex.: 926922" pattern="[0-9]+" inputmode="numeric" /></label>
+              <label class="field"><span>Nome *</span><input type="text" id="setup-uasg-nome" required maxlength="200" placeholder="Ex.: PMU — Prefeitura Municipal" /></label>
+              <button type="submit" class="btn primary" id="btn-setup-unidade-add">Adicionar</button>
+              <button type="button" class="btn" id="btn-setup-unidade-padroes" title="Inclui UASGs padrão que ainda não estão cadastradas">Restaurar padrões</button>
+            </form>
+            <p id="setup-unidade-msg" class="meta-line"></p>
+            <div class="table-scroll" style="margin-top:12px">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Nome</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-setup-unidades">
+                  <tr><td colspan="4">Carregando…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:18px" id="setup-usuarios-panel">
+            <h4 class="sub-title">Usuários e acesso</h4>
+            <p class="muted small">
+              Teto do sistema: <strong>1 administrador</strong> e até <strong>3 usuários de consulta</strong>
+              (total 4 contas ativas). Somente o admin gerencia contas.
+            </p>
+            <p id="setup-usuarios-limites" class="meta-line"></p>
+            <form id="form-setup-usuario" class="inline-form">
+              <label class="field"><span>Usuário *</span><input type="text" id="setup-user-nome" required minlength="3" maxlength="80" autocomplete="off" /></label>
+              <label class="field"><span>Senha *</span><input type="password" id="setup-user-senha" required minlength="6" maxlength="200" autocomplete="new-password" /></label>
+              <label class="field">
+                <span>Papel *</span>
+                <select id="setup-user-papel">
+                  <option value="consulta">Consulta</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </label>
+              <button type="submit" class="btn primary" id="btn-setup-usuario-add">Criar usuário</button>
+            </form>
+            <p id="setup-usuario-msg" class="meta-line"></p>
+            <div class="table-scroll" style="margin-top:12px">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Usuário</th>
+                    <th>Papel</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-setup-usuarios">
+                  <tr><td colspan="4">Carregando…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <details class="panel setup-arch-panel">
+            <summary class="setup-arch-summary">
+              <img class="vendor-mark" src="/static/trigger-mark.png?v=2" width="18" height="18" alt="" decoding="async" />
+              <span>Arquitetura · Trigger</span>
+            </summary>
+            <p class="muted small setup-arch-body">
+              O desenho é deliberado: no Free Tier da AWS (pouca RAM, um nó), uma stack “robusta” com
+              RabbitMQ, MinIO, Traefik, Grafana e Prometheus consome mais do que entrega agora e aumenta
+              risco de OOM e custo operacional. Priorizamos um monólito com API, health check, coleta
+              orquestrada, SQLite e agendador — adequado ao volume atual e fácil de evoluir. Quando houver
+              carga, orçamento ou requisito claro de fila, object storage e observabilidade, esses
+              componentes entram (de preferência gerenciados na AWS), sem reescrever o que já resolve.
+            </p>
+            <p class="muted small setup-arch-credit">
+              Desenvolvimento:
+              <a href="https://www.triggerti.com" target="_blank" rel="noopener noreferrer">Trigger · triggerti.com</a>
+            </p>
+          </details>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ================= MODAIS ================= -->
+  <dialog id="modal-compras" class="modal">
+    <div class="modal-head">
+      <h3 id="modal-compras-titulo"></h3>
+      <button class="btn ghost" id="modal-compras-fechar">Fechar</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-compras-resumo" class="compra-resumo"></div>
+      <div class="detail-sections">
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Identificação</h4>
+          <dl id="modal-compras-ident" class="detail-grid"></dl>
+        </section>
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Prazos e valores</h4>
+          <dl id="modal-compras-prazos" class="detail-grid"></dl>
+        </section>
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Órgão e unidade</h4>
+          <dl id="modal-compras-orgao" class="detail-grid"></dl>
+        </section>
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Referências PNCP</h4>
+          <dl id="modal-compras-refs" class="detail-grid"></dl>
+        </section>
+      </div>
+      <section class="detail-panel detail-panel-wide">
+        <h4 class="detail-panel-title">Objeto</h4>
+        <p id="modal-compras-objeto" class="objeto-text muted-empty">-</p>
+      </section>
+      <section class="detail-panel detail-panel-wide" id="modal-compras-info-wrap" hidden>
+        <h4 class="detail-panel-title">Informação complementar</h4>
+        <p id="modal-compras-info" class="objeto-text"></p>
+      </section>
+      <section class="detail-panel detail-panel-wide detail-panel-muted" id="modal-compras-extra-wrap" hidden>
+        <h4 class="detail-panel-title">Dados PNCP complementares</h4>
+        <dl id="modal-compras-extra" class="detail-grid detail-grid-extra"></dl>
+      </section>
+      <section class="detail-panel detail-panel-wide">
+        <h4 class="detail-panel-title">Itens e resultados</h4>
+        <p id="modal-compras-itens-meta" class="meta-line">-</p>
+        <p class="muted small">Somente classificados/homologados na API federal (SRP pode ter múltiplos). Clique no vencedor para ver o CNPJ e o QSA.</p>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr><th>Item</th><th>Descrição</th><th>Catálogo</th><th>Qtd.</th><th>Estimado</th><th>Homologado</th><th>Vencedor(es)</th></tr>
+            </thead>
+            <tbody id="modal-compras-itens-tabela"></tbody>
+          </table>
+        </div>
+      </section>
+      <form id="form-compra" class="edit-block">
+        <h4 class="detail-panel-title">Acompanhamento interno</h4>
+        <div class="inline-form">
+          <label class="field"><span>Observador</span><select id="edit-compra-observador"><option value="">Nenhum</option></select></label>
+          <button type="submit" class="btn primary">Salvar</button>
+          <button type="button" class="btn ghost" id="btn-compra-atualizar-api" title="Reconsulta cabeçalho, itens e resultados na API Compras.gov / PNCP">Atualizar da API</button>
+        </div>
+        <p id="compra-atualizar-api-meta" class="meta-line" hidden></p>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-fornecedor-cnpj" class="modal modal-sm">
+    <div class="modal-head">
+      <h3 id="modal-fornecedor-titulo">Fornecedor</h3>
+      <button class="btn ghost" id="modal-fornecedor-fechar" type="button">Fechar</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-fornecedor-resumo" class="compra-resumo"></div>
+      <section class="detail-panel detail-panel-wide">
+        <h4 class="detail-panel-title">Cadastro</h4>
+        <dl id="modal-fornecedor-cadastro" class="detail-grid"></dl>
+      </section>
+      <section class="detail-panel detail-panel-wide" id="modal-fornecedor-end-wrap">
+        <h4 class="detail-panel-title">Endereço cadastral</h4>
+        <dl id="modal-fornecedor-endereco" class="detail-grid"></dl>
+      </section>
+      <section class="detail-panel detail-panel-wide">
+        <h4 class="detail-panel-title">Quadro societário (QSA)</h4>
+        <p id="modal-fornecedor-qsa-meta" class="meta-line">-</p>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr><th>Sócio</th><th>CPF/CNPJ</th><th>Qualificação</th><th>Entrada</th></tr>
+            </thead>
+            <tbody id="modal-fornecedor-qsa"></tbody>
+          </table>
+        </div>
+      </section>
+      <div class="inline-form" style="margin-top:14px">
+        <button type="button" class="btn ghost" id="btn-fornecedor-refresh">Atualizar da API pública</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="modal-pbi" class="modal">
+    <div class="modal-head">
+      <h3 id="modal-pbi-titulo"></h3>
+      <button class="btn ghost" id="modal-pbi-fechar">Fechar</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-pbi-info"></div>
+      <section id="modal-pbi-objeto-wrap" class="detail-panel detail-panel-wide" hidden>
+        <h4 class="detail-panel-title">Objeto</h4>
+        <p id="modal-pbi-objeto" class="objeto-text muted-empty">-</p>
+      </section>
+      <form id="form-pbi-obs" class="edit-block" hidden>
+        <h4 class="detail-panel-title">Acompanhamento interno</h4>
+        <div class="inline-form">
+          <label class="field"><span>Observador</span><select id="edit-pbi-observador"><option value="">Nenhum</option></select></label>
+          <button type="submit" class="btn primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-orgao" class="modal modal-sm">
+    <div class="modal-head">
+      <h3 id="modal-orgao-titulo">Editar órgão</h3>
+      <button class="btn ghost" id="modal-orgao-fechar">Fechar</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-orgao-edit" class="form-col">
+        <div class="inline-form">
+          <label class="field"><span>Nome *</span><input type="text" id="org-edit-nome" required maxlength="200" /></label>
+          <label class="field"><span>Sigla</span><input type="text" id="org-edit-sigla" maxlength="40" /></label>
+        </div>
+        <label class="field"><span>Observações</span><textarea id="org-edit-obs" rows="2"></textarea></label>
+        <label class="chk-label"><input type="checkbox" id="org-edit-ativo" checked /> Ativo</label>
+        <div id="org-modal-vinculos" class="modal-vinculos"></div>
+        <button type="submit" class="btn primary">Salvar</button>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-mod" class="modal modal-sm">
+    <div class="modal-head">
+      <h3 id="modal-mod-titulo">Editar modalidade</h3>
+      <button class="btn ghost" id="modal-mod-fechar">Fechar</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-mod-edit" class="form-col">
+        <div class="inline-form">
+          <label class="field"><span>Nome *</span><input type="text" id="mod-edit-nome" required maxlength="200" /></label>
+          <label class="field"><span>Cód. PNCP</span><select id="mod-edit-pncp"><option value="">Opcional</option></select></label>
+        </div>
+        <label class="field"><span>Observações</span><textarea id="mod-edit-obs" rows="2"></textarea></label>
+        <label class="chk-label"><input type="checkbox" id="mod-edit-ativo" checked /> Ativo</label>
+        <div id="mod-modal-vinculos" class="modal-vinculos"></div>
+        <button type="submit" class="btn primary">Salvar</button>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="dialog-setup-wizard" class="modal modal-sm">
+    <div class="modal-head">
+      <h3>Configuração inicial</h3>
+    </div>
+    <div class="modal-body">
+      <p class="muted">
+        Bem-vindo ao Observatório Social. Escolha o <strong>ano inicial</strong> das coletas.
+        A partir dele o sistema prepara Compras.gov e Power BI até o ano corrente.
+      </p>
+      <form id="form-setup-wizard" class="form-col">
+        <label class="field"><span>Ano inicial de coleta</span><select id="wizard-ano-inicial" required></select></label>
+        <p id="wizard-anos-preview" class="muted small"></p>
+        <button type="submit" class="btn primary" id="btn-wizard-concluir">Concluir setup</button>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-prop-item" class="modal modal-prop">
+    <div class="modal-head">
+      <h3 id="modal-prop-titulo">Análise de preço</h3>
+      <div class="modal-head-actions">
+        <button type="button" class="btn ghost" id="btn-prop-gerar-pdf" disabled title="Aguarde o carregamento do registro">
+          Gerar PDF
+        </button>
+        <button type="button" class="btn ghost" id="btn-prop-abrir-compra">Abrir contratação</button>
+        <button type="button" class="btn ghost" id="modal-prop-fechar">Fechar</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="modal-prop-resumo" class="compra-resumo"></div>
+      <p id="modal-prop-leitura" class="prop-leitura"></p>
+
+      <section class="detail-panel detail-panel-wide prop-item-destaque" aria-label="Dados do item">
+        <h4 class="detail-panel-title">Dados do item</h4>
+        <div id="modal-prop-campos-chave" class="prop-campos-chave"></div>
+      </section>
+
+      <section class="detail-panel detail-panel-wide prop-ia-panel" aria-label="Pesquisa de preço de mercado">
+        <div class="prop-ia-head">
+          <h4 class="detail-panel-title">Pesquisa de preço de mercado (IA)</h4>
+          <p class="prop-ia-aviso" id="modal-prop-ia-aviso">
+            Resultado auxiliar para apoio à fiscalização — não constitui prova oficial de preço.
+            Utiliza os tokens ativos cadastrados em Setup → Provedores de IA (com rotação automática).
+          </p>
+          <div class="prop-ia-acoes">
+            <button type="button" class="btn primary" id="btn-prop-buscar-mercado">
+              Buscar preços de mercado
+            </button>
+            <button type="button" class="btn ghost" id="btn-prop-ver-prompt">
+              Ver prompt
+            </button>
+            <span id="modal-prop-ia-meta" class="meta-line"></span>
+          </div>
+        </div>
+        <details id="modal-prop-prompt-wrap" class="prop-prompt-wrap">
+          <summary>Prompt pré-montado (enviado à IA)</summary>
+          <pre id="modal-prop-prompt" class="prop-prompt"></pre>
+        </details>
+        <div id="modal-prop-ia-resultado" class="prop-ia-resultado" hidden></div>
+        <div id="modal-prop-ia-historico-wrap" class="prop-ia-historico-wrap" hidden>
+          <h5 class="prop-ia-hist-titulo">Histórico deste item</h5>
+          <ul id="modal-prop-ia-historico" class="prop-ia-historico"></ul>
+        </div>
+      </section>
+
+      <div class="detail-sections">
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Item</h4>
+          <dl id="modal-prop-dados-item" class="detail-grid"></dl>
+        </section>
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Prazo e contratação</h4>
+          <dl id="modal-prop-contratacao" class="detail-grid"></dl>
+        </section>
+        <section class="detail-panel">
+          <h4 class="detail-panel-title">Referência de catálogo</h4>
+          <dl id="modal-prop-benchmark" class="detail-grid"></dl>
+        </section>
+        <section class="detail-panel detail-panel-wide">
+          <h4 class="detail-panel-title">Comparáveis na base local</h4>
+          <p id="modal-prop-comp-meta" class="meta-line"></p>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Compra</th>
+                  <th>Ano</th>
+                  <th>Descrição</th>
+                  <th>Unitário</th>
+                  <th>Origem</th>
+                </tr>
+              </thead>
+              <tbody id="modal-prop-comparaveis"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="detail-panel detail-panel-wide" id="modal-prop-pesquisa-wrap" hidden>
+          <h4 class="detail-panel-title">Pesquisa de preço (módulo 03)</h4>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Fornecedor</th>
+                  <th>Município</th>
+                  <th>Unitário</th>
+                </tr>
+              </thead>
+              <tbody id="modal-prop-pesquisa"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </dialog>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="/static/shell.js?v=osb10"></script>
+  <script src="/static/auth.js?v=osb2"></script>
+  <script src="/static/coleta.js?v=osb4"></script>
+  <script src="/static/dashboard.js?v=osb5"></script>
+  <script src="/static/localidade.js?v=osb3"></script>
+  <script src="/static/consulta_processo.js?v=osb5"></script>
+  <script src="/static/propostas_abertas.js?v=osb10"></script>
+  <script src="/static/compras.js?v=osb8"></script>
+  <script src="/static/vencedores_cnpj.js?v=osb2"></script>
+  <script src="/static/powerbi.js?v=osb5"></script>
+  <script src="/static/orgaos.js?v=osb4"></script>
+  <script src="/static/modalidades.js?v=osb4"></script>
+  <script src="/static/observadores.js?v=osb4"></script>
+  <script src="/static/setup.js?v=osb10"></script>
+</body>
+</html>

@@ -18,6 +18,7 @@ from app.config import (
     HEADLESS,
     USER_AGENT,
 )
+from app.display_env import ensure_virtual_display
 
 SEL_EMPRESA = 'select[id="corpo:formulario:codigoEmpresaLicitacao"]'
 SEL_ANO = 'select[id="corpo:formulario:ano"]'
@@ -548,6 +549,11 @@ def coletar(
     log = on_log or (lambda _: None)
     total_orgaos = len(codigos)
     todos: list[LicitacaoItem] = []
+
+    if not HEADLESS:
+        display = ensure_virtual_display()
+        if display:
+            log(f"Display virtual ativo ({display})")
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(

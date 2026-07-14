@@ -53,9 +53,11 @@ class TimelinePoint:
     invested_unit_price: Decimal | None = None
     liquidated_unit_price: Decimal | None = None
     income_unit_price: Decimal | None = None
+    avg_purchase_unit_price: Decimal | None = None
+    income_avg_purchase_unit_price: Decimal | None = None
     asset_patrimony: Decimal = Decimal("0")
     savings_patrimony: Decimal = Decimal("0")
-    cdi_patrimony: Decimal = Decimal("0")
+    selic_patrimony: Decimal = Decimal("0")
 
 
 @dataclass
@@ -63,15 +65,15 @@ class PortfolioComparisonPoint:
     period: str
     asset_patrimony: Decimal
     savings_patrimony: Decimal
-    cdi_patrimony: Decimal = Decimal("0")
+    selic_patrimony: Decimal = Decimal("0")
 
 
 @dataclass
 class ComparisonMeta:
     savings_advantage: Decimal
-    cdi_advantage: Decimal
+    selic_advantage: Decimal
     savings_monthly_rate_pct: float
-    cdi_monthly_rate_pct: float
+    selic_monthly_rate_pct: float
 
 
 @dataclass
@@ -85,6 +87,8 @@ class TickerDashboard:
     total_income: Decimal
     current_price: Decimal | None = None
     market_value: Decimal | None = None
+    dividends_12m: Decimal = Decimal("0")
+    yield_ratio: Decimal | None = None
 
 
 @dataclass

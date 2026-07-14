@@ -57,10 +57,10 @@ def test_portfolio_timeline_aggregates_tickers() -> None:
 
     assert jan.asset_patrimony == Decimal("600.00")
     assert jan.savings_patrimony == Decimal("600.00")
-    assert jan.cdi_patrimony == Decimal("600.00")
+    assert jan.selic_patrimony == Decimal("600.00")
 
     assert feb.asset_patrimony == Decimal("715.00")
     assert feb.savings_patrimony == Decimal("603.00")
-    assert feb.cdi_patrimony == Decimal("605.10")
-    assert feb.cdi_patrimony > feb.savings_patrimony
-    assert feb.asset_patrimony > feb.cdi_patrimony
+    assert feb.selic_patrimony == Decimal("605.10")
+    assert feb.selic_patrimony > feb.savings_patrimony
+    assert feb.asset_patrimony > feb.selic_patrimony

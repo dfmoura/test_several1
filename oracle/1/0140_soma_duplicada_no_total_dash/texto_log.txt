@@ -1,0 +1,17 @@
+criar texto tecnico de no sentido de atividade andamento
+(utilizando como ideia o que foi descrito, para gerar os passos executados,
+sem encher linguiça ser objetivo e claro , sem palavras que possam mascarar a situação,
+ser simples e objetivo)
+
+Precisamos que vocês descrevam de forma clara, objetiva e completa, contando a “história” do atendimento:
+
+👤 Com quem foi realizado
+🎯 Qual era a demanda ( não apenas o ID no caso do backlog)
+🔎 O que foi analisado
+🛠️ O que foi feito (passo a passo do atendimento, como uma receita de bolo)
+✅ Se foi concluído ou não
+🔄 Se haverá continuação (e qual será o próximo passo)
+
+Pensem que quem vai validar talvez não participou do atendimento, então o registro precisa permitir que qualquer pessoa entenda exatamente o que aconteceu.
+
+Esse cuidado é fundamental para validação do cliente, faturamento e transparência do nosso trabalho.

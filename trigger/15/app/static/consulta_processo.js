@@ -345,8 +345,13 @@ function renderDetalhe(data) {
 async function carregarCpFiltros() {
   const selAno = $cp("#cp-filtro-ano");
   const selOrg = $cp("#cp-filtro-orgao");
+  const selMod = $cp("#cp-filtro-modalidade");
   const meta = $cp("#cp-consulta-meta");
-  if (!selAno && !selOrg) return;
+  if (!selAno && !selOrg && !selMod) return;
+
+  const prevAno = selAno?.value || "";
+  const prevOrg = selOrg?.value || "";
+  const prevMod = selMod?.value || "";
 
   if (meta && !meta.dataset.buscaAtiva) {
     meta.textContent = "Carregando filtros…";
@@ -362,6 +367,9 @@ async function carregarCpFiltros() {
         o.textContent = a;
         selAno.appendChild(o);
       });
+      if (prevAno && [...selAno.options].some((o) => o.value === prevAno)) {
+        selAno.value = prevAno;
+      }
     }
     if (selOrg) {
       selOrg.innerHTML = '<option value="">Todos (órgão consolidado)</option>';
@@ -380,11 +388,36 @@ async function carregarCpFiltros() {
           selOrg.appendChild(opt);
         });
       }
+      if (prevOrg && [...selOrg.options].some((o) => o.value === prevOrg)) {
+        selOrg.value = prevOrg;
+      }
+    }
+    if (selMod) {
+      selMod.innerHTML = '<option value="">Todas</option>';
+      const modalidades = data.modalidades || [];
+      if (!modalidades.length) {
+        const o = document.createElement("option");
+        o.value = "";
+        o.disabled = true;
+        o.textContent = "Nenhuma modalidade consolidada — cadastre em Modalidades · Vínculos";
+        selMod.appendChild(o);
+      } else {
+        modalidades.forEach((m) => {
+          const opt = document.createElement("option");
+          opt.value = m.id;
+          opt.textContent = m.nome;
+          selMod.appendChild(opt);
+        });
+      }
+      if (prevMod && [...selMod.options].some((o) => o.value === prevMod)) {
+        selMod.value = prevMod;
+      }
     }
     if (meta && !meta.dataset.buscaAtiva) {
       const nAnos = (data.anos || []).length;
       const nOrgs = (data.orgaos || []).length;
-      meta.textContent = `Filtros: ${nAnos} ano(s) · ${nOrgs} órgão(s) consolidado(s)`;
+      const nMods = (data.modalidades || []).length;
+      meta.textContent = `Filtros: ${nAnos} ano(s) · ${nOrgs} órgão(s) consolidado(s) · ${nMods} modalidade(s)`;
     }
   } catch (err) {
     console.error("Erro ao carregar filtros:", err);
@@ -403,6 +436,8 @@ function cpParamsBusca() {
   if (ano) params.set("ano", ano);
   const org = $cp("#cp-filtro-orgao")?.value;
   if (org) params.set("orgao_id", org);
+  const mod = $cp("#cp-filtro-modalidade")?.value;
+  if (mod) params.set("modalidade_id", mod);
   return params;
 }
 
@@ -453,6 +488,8 @@ async function abrirProcessoPorChave(card) {
     params.set("chave_orgao_id", card.dataset.chaveOrgao);
     params.set("chave_ano", card.dataset.chaveAno);
     params.set("chave_numero", card.dataset.chaveNumero);
+    const mod = $cp("#cp-filtro-modalidade")?.value;
+    if (mod) params.set("modalidade_id", mod);
   } else {
     const p = cpParamsBusca();
     if (!p) return;

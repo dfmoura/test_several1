@@ -1,0 +1,521 @@
+================================================================================
+PROMPT TÉCNICO — READEQUAÇÃO EVOLUTIVA DO MÓDULO COMPRAS.GOV
+Projeto: Verificação de Licitações — Observatório Social do Brasil (Uberlândia/MG)
+================================================================================
+
+Você é um engenheiro de software sênior especializado em integração de APIs
+governamentais, modelagem de dados transacionais/analíticos e sistemas Python
+(FastAPI + SQLAlchemy + SQLite). Sua tarefa é **evoluir** (não reescrever do
+zero) o módulo Compras.gov do projeto existente, alinhando-o ao modelo de
+relacionamento definido em `DIAGRAMA-RELACIONAMENTO-API-COMPRAS-GOV.txt`.
+
+================================================================================
+1. CONTEXTO E OBJETIVO
+================================================================================
+
+O sistema atual (`trigger/15`) consolida licitações/contratações de três fontes:
+
+  A) Portal da Prefeitura de Uberlândia (Playwright — `app/scraper.py`)
+  B) Power BI / Dados Abertos PMU (CSV — `app/powerbi_*.py`)
+  C) API Dados Abertos Compras.gov.br / PNCP (httpx — `app/compras_pncp.py`)
+
+O Observatório Social precisa responder, com base na API federal:
+
+  • Quem comprou (órgão / UASG / município)
+  • O que foi planejado (PGC) vs. o que foi contratado (PNCP)
+  • Quem venceu / foi homologado (resultado por item)
+  • Valor estimado vs. valor homologado (processo e item)
+  • Enriquecimento de fornecedor (CNPJ/CPF, porte, CNAE)
+  • Benchmark de preço de mercado (Pesquisa de Preço), quando aplicável
+
+**Escopo explícito:** módulos 01, 02, 03, 04, 05, 07 e 10 da API Compras.gov.
+**Fora de escopo:** módulo 06-LEGADO (Lei 8.666/1993).
+
+**Estratégia obrigatória:** adaptação incremental sobre o código existente.
+Não refatorar Portal, Power BI, Docker, UI global nem `consulta_processo.py`
+sem necessidade. Preservar campos manuais (`observador_id`, `valor_estimado`
+do portal) e comportamento de re-sincronização.
+
+
+================================================================================
+2. REFERÊNCIAS TÉCNICAS
+================================================================================
+
+Documentação de domínio (obrigatória):
+  • `DIAGRAMA-RELACIONAMENTO-API-COMPRAS-GOV.txt` — ER, join keys, camadas
+  • OpenAPI: https://dadosabertos.compras.gov.br/v3/api-docs
+  • Swagger UI: https://dadosabertos.compras.gov.br/swagger-ui/index.html
+
+Código existente a preservar e estender:
+  • `app/compras_pncp.py` — coleta PNCP (módulo 07, parcial)
+  • `app/database.py` — `CompraContratacao`, `CompraContratacaoItem`
+  • `app/main.py` — rotas `/api/compras/*`
+  • `app/consulta_processo.py` — agregação Portal + API + Power BI
+  • `app/orgaos_vinculo.py` — vínculo manual UASG ↔ órgãos locais
+  • `app/modalidades_vinculo.py` — vínculo modalidades entre fontes
+  • `app/static/compras.js` — UI de contratações
+  • `app/config.py` — `UNIDADES_COMPRADORAS`, endpoints PNCP
+
+Stack e restrições:
+  • Python 3.12, FastAPI, SQLAlchemy 2.x, httpx, SQLite (`data/licitacoes.db`)
+  • Padrão de coleta assíncrona com status em memória (`_compras_coleta_status`)
+  • Rate limiting entre requisições (`COMPRAS_PNCP_REQUEST_DELAY_SEC`)
+  • Paginação obrigatória (`pagina`, `tamanhoPagina`)
+  • User-Agent real (API retorna 403 sem ele)
+  • Migrações SQLite via `_ensure_columns` em `database.py` (sem Alembic)
+
+
+================================================================================
+3. ESTADO ATUAL vs. ESTADO ALVO (GAP ANALYSIS)
+================================================================================
+
+┌─────────────────────────┬──────────────────────────┬─────────────────────────┐
+│ Componente              │ Estado atual             │ Estado alvo               │
+├─────────────────────────┼──────────────────────────┼─────────────────────────┤
+│ 07 Contratações (cab.)  │ ✅ Implementado          │ Manter + sync incremental │
+│ 07 Itens                │ ✅ Implementado          │ Manter + FKs explícitas   │
+│ 07 Resultados           │ ❌ Não coletado (ep. 3)  │ Nova tabela + coletor     │
+│ 05 UASG / Órgão         │ ⚠️ Vínculo manual        │ Dimensões sincronizadas   │
+│ 10 Fornecedor           │ ⚠️ Só nome no item       │ Dimensão + enrich on-demand│
+│ 01 CATMAT               │ ⚠️ Só cod_item_catalogo  │ Cache sob demanda         │
+│ 02 CATSER               │ ⚠️ Idem                  │ Cache sob demanda         │
+│ 04 PGC                  │ ❌ Ausente               │ Coleta por órgão/ano      │
+│ 03 Pesquisa Preço       │ ❌ Ausente               │ Coleta por item/UASG      │
+│ Modelo ER unificado     │ ⚠️ Parcial               │ Star schema local         │
+│ UI Compras              │ ⚠️ Básica                │ Abas: execução/planej./preço│
+└─────────────────────────┴──────────────────────────┴─────────────────────────┘
+
+Lacuna crítica de negócio:
+  O endpoint `3_consultarResultadoItensContratacoes_PNCP_14133` não é consumido.
+  Dados de vencedor hoje vêm apenas dos campos espelhados no item (`nome_fornecedor`,
+  `valor_total_resultado`), que podem ser incompletos ou ausentes quando há
+  múltiplos classificados (SRP) ou resultado detalhado por `sequencialResultado`.
+
+
+================================================================================
+4. MODELO DE DADOS ALVO (SQLite)
+================================================================================
+
+Implementar/evoluir as entidades abaixo respeitando o diagrama ER. Usar
+snake_case, PK autoincrement local + chaves naturais da API com índice UNIQUE.
+
+--- CAMADA 1: DIMENSÕES (Master Data) ---
+
+DIM_ORGAO (`compras_orgaos`)
+  PK: id
+  UK: codigo_orgao
+  Campos API (05): cnpj_cpf_orgao, nome_orgao, esfera, poder, status_orgao,
+                   codigo_orgao_superior, nome_orgao_superior
+  coletado_em, data_hora_movimento
+
+DIM_UASG (`compras_uasgs`)
+  PK: id
+  UK: codigo_uasg
+  FK: orgao_id → compras_orgaos.id (nullable até sync)
+  Campos API (05): nome_uasg, sigla_uf, codigo_municipio_ibge, nome_municipio_ibge,
+                   cnpj_cpf_orgao, status_uasg, uso_sisg
+  Relacionar com `OrgaoConsolidado` / `OrgaoVinculo` existentes (não quebrar)
+
+DIM_FORNECEDOR (`compras_fornecedores`)
+  PK: id
+  UK: ni_fornecedor (CNPJ 14 dígitos ou CPF 11 dígitos, normalizado)
+  Campos API (10): cnpj, cpf, nome_razao_social_fornecedor, porte_empresa_id,
+                   porte_empresa_nome, natureza_juridica_id, natureza_juridica_nome,
+                   codigo_cnae, nome_cnae, uf_sigla, nome_municipio, ativo,
+                   habilitado_licitar
+  Separar de `pbi_fornecedores` (Power BI) — são domínios distintos
+
+DIM_ITEM_CATALOGO (`compras_itens_catalogo`)
+  PK: id
+  UK: (tipo_item, codigo_item_catalogo)  — tipo_item ∈ {'Material','Servico'}
+  Campos: descricao, codigo_grupo, codigo_classe, codigo_pdm (mat),
+          hierarquia serviço (secao, divisao, subclasse), status, dados_json
+  Populado on-demand via 01/02 quando item aparecer em 07/04/03
+
+--- CAMADA 2: PLANEJAMENTO ---
+
+FACT_PGC (`compras_pgc_itens`)
+  PK: id
+  UK: composta estável (orgao + ano_pca + codigo_uasg + codigo_item_catalogo +
+      numero_item_pncp + ordem_dfd) — ajustar após inspecionar payload real
+  FK: uasg_id, item_catalogo_id (nullable)
+  Campos API (04): orgao, ano_pca_projeto_compra, codigo_uasg, tipo_item,
+                   codigo_item_catalogo, descricao_item_catalogo, quantidade_item,
+                   valor_unitario_item, valor_total_item, titulo_projeto_compra,
+                   descricao_objeto_dfd, data_hora_publicacao_pncp, status_contratacao_execucao
+  dados_pgc_json (payload bruto)
+
+--- CAMADA 3: EXECUÇÃO E RESULTADO ---
+
+FACT_CONTRATACAO — evoluir `compras_contratacoes` existente
+  Manter compatibilidade com rotas/UI atuais
+  Adicionar FK opcional: uasg_id → compras_uasgs.id
+  Chaves: id_compra (UK), numero_controle_pncp (index)
+
+FACT_ITEM — evoluir `compras_contratacao_itens` existente
+  Adicionar FK: item_catalogo_id → compras_itens_catalogo.id
+  Manter id_compra_item (UK)
+
+FACT_RESULTADO (`compras_contratacao_resultados`) — NOVA
+  PK: id
+  UK: (id_compra_item, sequencial_resultado) ou id natural da API se existir
+  FK: contratacao_item_id → compras_contratacao_itens.id
+  FK: fornecedor_id → compras_fornecedores.id (nullable, preenchido após enrich)
+  Campos API (07 ep.3): id_compra, id_compra_item, ni_fornecedor,
+       nome_razao_social_fornecedor, sequencial_resultado, ordem_classificacao_srp,
+       quantidade_homologada, valor_unitario_homologado, valor_total_homologado,
+       situacao_compra_item_resultado_nome, porte_fornecedor_nome,
+       data_resultado_pncp, percentual_desconto
+  dados_resultado_json
+
+FACT_PRECO (`compras_precos_praticados`) — NOVA
+  PK: id
+  UK: (tipo_item, id_item_compra) ou chave composta do payload
+  FK: item_catalogo_id, uasg_id, fornecedor_id (nullable)
+  Campos API (03): codigo_item_catalogo, codigo_uasg, id_compra, id_compra_item,
+                   preco_unitario, quantidade, data_compra, data_resultado,
+                   modalidade, municipio, estado, nome_fornecedor, ni_fornecedor
+  tipo_item ∈ {'Material','Servico'}
+  dados_preco_json
+
+
+================================================================================
+5. ARQUITETURA DE MÓDULOS PYTHON (ALVO)
+================================================================================
+
+Reorganizar sem quebrar imports públicos. Sugestão:
+
+  app/compras/
+    __init__.py
+    config.py              # estender app/config.py ou reexportar constantes
+    client.py              # httpx wrapper: paginação, retry, delay, normalização
+    normalizers.py         # CNPJ/CPF, datas, decimais, idCompra int|string
+    coletor_contratacoes.py  # refatorar de compras_pncp.py (07.1)
+    coletor_itens.py         # refatorar (07.2)
+    coletor_resultados.py    # NOVO (07.3)
+    coletor_uasg.py          # NOVO (05)
+    coletor_fornecedor.py    # NOVO (10) — enrich on-demand
+    coletor_catalogo.py      # NOVO (01/02) — cache on-demand
+    coletor_pgc.py           # NOVO (04)
+    coletor_preco.py         # NOVO (03)
+    orquestrador.py          # pipeline por níveis de dependência (diagrama §7)
+    repository.py            # upsert idempotente SQLite
+
+Manter `app/compras_pncp.py` como façade de compatibilidade (reexportar funções
+`coletar`, `coletar_itens`, `item_para_db`) até migração completa da UI.
+
+Padrão de coleta (obrigatório em todos os coletores):
+  1. Dividir períodos quando API exigir janela máxima de datas
+  2. Iterar páginas até `totalPaginas` ou lista vazia
+  3. Retry com backoff em timeout/5xx (usar COMPRAS_PNCP_MAX_RETRIES)
+  4. Callback `on_log` para status em tempo real
+  5. Upsert por chave natural (não duplicar em re-sync)
+  6. Preservar campos manuais em UPDATE (observador_id, etc.)
+  7. Gravar payload JSON bruto em coluna `dados_*_json` para auditoria
+
+
+================================================================================
+6. ENDPOINTS A IMPLEMENTAR (POR FASE)
+================================================================================
+
+BASE: https://dadosabertos.compras.gov.br
+
+── FASE 1 — Completar núcleo transacional (07) ── PRIORIDADE MÁXIMA
+
+  GET /modulo-contratacoes/3_consultarResultadoItensContratacoes_PNCP_14133
+  GET /modulo-contratacoes/3.1_consultarResultadoItensContratacoes_PNCP_14133_Id
+
+  Parâmetros típicos: dataResultadoPncpInicio/Fim, codigoUasg, idCompra,
+                      pagina, tamanhoPagina
+
+  Após coleta de itens com `tem_resultado=true`, enfileirar coleta de resultados
+  por `idCompra` ou janela de datas.
+
+── FASE 2 — Dimensões organizacionais (05) e fornecedor (10) ──
+
+  GET /modulo-uasg/1_consultarUasg
+      Filtros Uberlândia: siglaUf=MG, codigoMunicipioIbge=3170206, statusUasg=true
+      OU codigoUasg ∈ UNIDADES_COMPRADORAS (config.py)
+
+  GET /modulo-uasg/2_consultarOrgao
+      Por cnpjCpfOrgao dos órgãos locais (PMU 18.431.312/0001-15, etc.)
+
+  GET /modulo-fornecedor/1_consultarFornecedor
+      Chamada on-demand: para cada ni_fornecedor distinto em resultados/itens
+      Normalizar NI antes da consulta; cache local; ativo=true
+
+── FASE 3 — Catálogo on-demand (01/02) ──
+
+  GET /modulo-material/4_consultarItemMaterial?codigoItem={codItemCatalogo}
+  GET /modulo-servico/6_consultarItemServico?codigoServico={codItemCatalogo}
+
+  Disparar quando `cod_item_catalogo` aparecer em item/resultado/PGC sem registro
+  em `compras_itens_catalogo`. Não sincronizar catálogo inteiro.
+
+── FASE 4 — Planejamento (04) ──
+
+  GET /modulo-pgc/1_consultarPgcDetalhe
+      orgao={CNPJ} + anoPcaProjetoCompra={ano} + codigoUasg opcional
+
+  GET /modulo-pgc/3_consultarPgcAgregacao
+      Visão consolidada por órgão/ano para dashboard
+
+── FASE 5 — Pesquisa de preço (03) ──
+
+  GET /modulo-pesquisa-preco/1_consultarMaterial
+  GET /modulo-pesquisa-preco/3_consultarServico
+      codigoItemCatalogo + codigoUasg + codigoMunicipio=3170206
+      dataCompraInicio/Fim alinhados ao período da contratação
+
+  Coleta sob demanda (não bulk): ao abrir detalhe de item ou via job assíncrono
+  pós-sync de contratações.
+
+
+================================================================================
+7. ORQUESTRAÇÃO DE SYNC (ORDEM DE CARGA)
+================================================================================
+
+Implementar pipeline em `orquestrador.py` seguindo dependências do diagrama:
+
+  Nível 0 (paralelo):
+    sync_uasg() + sync_orgao()
+    # catálogo e fornecedor: lazy — não bulk
+
+  Nível 1:
+    sync_pgc(ano, orgaos_locais)
+
+  Nível 2:
+    sync_contratacoes(periodo, uasgs)
+    → sync_itens(contratacoes_coletadas)
+    → sync_resultados(itens_com_tem_resultado)
+
+  Nível 3 (enriquecimento):
+    enrich_fornecedores(ni_distintos_de_resultados)
+    enrich_catalogo(codigos_distintos_de_itens)
+    sync_precos_sob_demanda(itens_selecionados)
+
+Expor via API:
+  POST /api/compras/coletar          — manter comportamento atual (só 07)
+  POST /api/compras/coletar-completo — novo: orquestrador full/por fases
+  GET  /api/compras/coleta-status    — manter; incluir fase atual e contadores
+
+Query params sugeridos para coletar-completo:
+  fases=07,07-resultados,05,10,04,03
+  ano_pgc=2025
+  data_inicio, data_fim
+  uasgs=926922,926287 (default: todas UNIDADES_COMPRADORAS)
+
+
+================================================================================
+8. REGRAS DE INTEGRAÇÃO E JOIN (OBRIGATÓRIAS)
+================================================================================
+
+Chaves de junção (implementar helpers em `normalizers.py`):
+
+  codigo_uasg:
+    CompraContratacao.unidade_compradora
+    = VwFtPNCPCompraDTO.unidadeOrgaoCodigoUnidade
+    = FtPgcDetalheDTO.codigoUasg
+    = FtPesqPrecoCompraMaterialDTO.codigoUasg
+
+  id_compra:
+    STRING em 07; normalizar para str em 03 (material pode retornar int)
+
+  codigo_item_catalogo:
+    CompraContratacaoItem.cod_item_catalogo
+    = codItemCatalogo (07) = codigoItemCatalogo (03/04)
+    tipo confirmado por materialOuServico / tipoItem
+
+  ni_fornecedor:
+    Normalizar: remover pontuação; pad CNPJ 14 / CPF 11
+    Join com compras_fornecedores.ni_fornecedor
+
+  numero_controle_pncp:
+    Ponte PGC ↔ Contratação (match probabilístico + confirmar por processo)
+
+  processo:
+    Ponte com Portal municipal e Power BI em `consulta_processo.py`
+    Usar normalização já existente em `dashboard_gerencial.py`
+
+Cardinalidades:
+  1 Contratação → N Itens → N Resultados (0..N por item)
+  Não assumir 1 resultado por item (SRP pode ter múltiplos)
+
+Limitações de negócio (documentar na UI):
+  A API **não garante** lista completa de todos os proponentes — apenas
+  resultados classificados/homologados. Exibir isso explicitamente.
+
+
+================================================================================
+9. EVOLUÇÃO DE API REST E UI
+================================================================================
+
+Rotas novas/estendidas em `app/main.py`:
+
+  GET /api/compras/contratacoes/{id}/resultados
+      Lista resultados por contratação (join item + fornecedor)
+
+  GET /api/compras/itens/{id_compra_item}/resultados
+  GET /api/compras/itens/{id_compra_item}/precos
+  GET /api/compras/fornecedores?ni=...&q=...
+  GET /api/compras/uasgs
+  GET /api/compras/pgc?orgao=&ano=
+  GET /api/compras/catalogo/{tipo}/{codigo}
+
+Estender `consulta_processo.py`:
+  Incluir resultados homologados e link PGC quando processo/UASG/item coincidir
+  Não remover agregação Portal/Power BI existente
+
+UI (`app/static/compras.js` + `index.html`):
+  • Aba "Contratação" — manter lista atual
+  • Aba "Itens e resultados" — tabela item + sub-tabela resultados/vencedores
+  • Aba "Planejamento (PGC)" — itens planejados vs. contratados (quando houver)
+  • Aba "Preços de mercado" — pesquisa de preço por item (sob demanda)
+  • Exibir: valor estimado, valor homologado, delta %, fornecedor vencedor
+  • Badge quando só houver estimado (sem homologação ainda)
+
+Dashboard (`dashboard_gerencial.py`):
+  Métricas: planejado (PGC) vs. executado (07), economia/superspend por órgão
+
+
+================================================================================
+10. CONFIGURAÇÃO E VARIÁVEIS DE AMBIENTE
+================================================================================
+
+Adicionar em `app/config.py` (com defaults sensatos):
+
+  COMPRAS_GOV_BASE_URL=https://dadosabertos.compras.gov.br
+  COMPRAS_RESULTADOS_ENDPOINT=.../3_consultarResultadoItensContratacoes_PNCP_14133
+  COMPRAS_UASG_ENDPOINT=.../modulo-uasg/1_consultarUasg
+  COMPRAS_ORGAO_ENDPOINT=.../modulo-uasg/2_consultarOrgao
+  COMPRAS_FORNECEDOR_ENDPOINT=.../modulo-fornecedor/1_consultarFornecedor
+  COMPRAS_PGC_DETALHE_ENDPOINT=.../modulo-pgc/1_consultarPgcDetalhe
+  COMPRAS_PRECO_MATERIAL_ENDPOINT=.../modulo-pesquisa-preco/1_consultarMaterial
+  COMPRAS_PRECO_SERVICO_ENDPOINT=.../modulo-pesquisa-preco/3_consultarServico
+  COMPRAS_CATALOGO_MATERIAL_ENDPOINT=.../modulo-material/4_consultarItemMaterial
+  COMPRAS_CATALOGO_SERVICO_ENDPOINT=.../modulo-servico/6_consultarItemServico
+
+  COMPRAS_IBGE_MUNICIPIO=3170206
+  COMPRAS_UF_FILTRO=MG
+  COMPRAS_ORGAOS_CNPJ=18.431.312/0001-15,...  # CNPJs PMU e autarquias conhecidas
+  COMPRAS_ENRICH_FORNECEDOR=true
+  COMPRAS_ENRICH_CATALOGO=true
+  COMPRAS_COLETAR_PGC=false   # opt-in (volume)
+  COMPRAS_COLETAR_PRECO=false # opt-in (volume)
+
+
+================================================================================
+11. QUALIDADE, TESTES E GOVERNANÇA
+================================================================================
+
+Testes mínimos (pytest):
+  • normalizers: CNPJ/CPF, id_compra int→str, parsing de valores
+  • repository: upsert idempotente não duplica por UK
+  • coletor_resultados: mock httpx com payload OpenAPI real
+  • join: item + resultado + fornecedor por id_compra_item
+
+Migração SQLite:
+  • Usar padrão `_ensure_columns` existente
+  • Novas tabelas via `Base.metadata.create_all` + ensure columns
+  • Não apagar dados existentes em `compras_contratacoes`
+
+Logging e observabilidade:
+  • Contadores por fase: lidos, novos, atualizados, erros
+  • Tempo por UASG e por janela de datas
+  • Registrar última data de sync por módulo (tabela `compras_sync_meta`)
+
+Tratamento de erros:
+  • 403 → verificar User-Agent
+  • Timeout → reduzir janela de datas / tamanhoPagina
+  • Payload vazio → não falhar sync inteiro; logar e continuar
+
+Performance:
+  • Não baixar catálogo completo (milhões de itens)
+  • Fornecedor: deduplicar NI antes de chamar API
+  • Pesquisa de preço: apenas itens visíveis ou fila com limite diário
+
+
+================================================================================
+12. CRITÉRIOS DE ACEITE (DEFINITION OF DONE)
+================================================================================
+
+Fase 1 considerada concluída quando:
+  [ ] Tabela `compras_contratacao_resultados` populada via endpoint 07.3
+  [ ] UI exibe vencedor(es) por item com valor homologado
+  [ ] Re-sync não duplica resultados (UK respeitada)
+  [ ] `consulta_processo` mostra fornecedor homologado da API quando existir
+
+Fase 2 concluída quando:
+  [ ] UASGs de Uberlândia sincronizadas em `compras_uasgs`
+  [ ] Fornecedores enriquecidos em `compras_fornecedores` a partir de resultados
+  [ ] FK uasg_id ligada em contratações (onde codigo bater)
+
+Fase 3–5 concluídas quando:
+  [ ] Catálogo on-demand resolve descrição de cod_item_catalogo
+  [ ] PGC consultável por órgão/ano com cruzamento básico vs. contratação
+  [ ] Pesquisa de preço consultável por item com filtro municipal
+
+Critérios globais:
+  [ ] Portal, Power BI e Docker continuam funcionando sem regressão
+  [ ] `docker compose up --build -d` sobe sem erro
+  [ ] Campos manuais preservados em re-sincronização
+  [ ] README atualizado com novas variáveis e fases de coleta
+  [ ] Código segue convenções existentes (snake_case, httpx, FastAPI routers)
+
+
+================================================================================
+13. CONTEXTO OPERACIONAL UBERLÂNDIA (FILTROS PADRÃO)
+================================================================================
+
+UASGs locais (`config.UNIDADES_COMPRADORAS`):
+  926922 PMU | 926287 DMAE | 926038 FUTEL | 931351 ARESAN
+  930403 FERUB | 929315 EMAM | 929301 IPREMU | 925010 Câmara Municipal
+
+Filtro geográfico API:
+  siglaUf=MG, codigoMunicipioIbge=3170206
+
+Fluxo do Observatório (manter compatível):
+  Buscar siglaUf=MG → filtrar codigoMunicipioIbge==3170206 localmente
+  Cruzar processo entre Portal, PNCP e Power BI via `consulta_processo`
+
+
+================================================================================
+14. INSTRUÇÕES DE EXECUÇÃO PARA O AGENTE
+================================================================================
+
+Ao implementar, siga esta ordem:
+
+  1. Ler `DIAGRAMA-RELACIONAMENTO-API-COMPRAS-GOV.txt` e código em `app/compras_pncp.py`
+  2. Implementar Fase 1 primeiro (resultados 07.3) — maior valor imediato
+  3. Extrair client HTTP comum antes de duplicar lógica de paginação/retry
+  4. Cada fase em PR/commit lógico separado
+  5. Não reescrever `scraper.py`, `powerbi_*.py` nem `consulta_processo.py` na Fase 1
+  6. Minimizar diff: preferir estender tabelas e rotas a criar sistema paralelo
+  7. Validar com coleta real de 1 UASG (926922) e período curto (7 dias)
+  8. Documentar limitações (participantes completos não disponíveis na API)
+
+Princípios de código:
+  • Simples > over-engineering
+  • Reutilizar funções existentes (`item_para_db`, `_fmt_valor`, etc.)
+  • Comentários apenas para regras de negócio não óbvias
+  • Sem dependências novas salvo necessidade comprovada
+
+
+================================================================================
+15. RESULTADO ESPERADO
+================================================================================
+
+Ao final, o módulo Compras.gov deve materializar localmente o ciclo:
+
+    UASG (05) → PGC (04) → CONTRATAÇÕES (07) → ITENS → RESULTADOS → FORNECEDOR (10)
+                                    ↕                              ↕
+                              CATÁLOGO (01/02)              PESQUISA PREÇO (03)
+
+Integrado ao ecossistema existente (Portal + Power BI + consulta por processo),
+permitindo ao Observatório Social auditar contratações públicas de Uberlândia
+com rastreabilidade técnica, dados de vencedor confiáveis e comparativo entre
+valor planejado, estimado e homologado.
+
+================================================================================
+FIM DO PROMPT — versão 1.0 · 2026-07-08
+================================================================================

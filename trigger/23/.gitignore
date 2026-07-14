@@ -1,0 +1,9 @@
+data/*.db
+data/.ia_fernet_key
+data/powerbi/*.csv
+data/backups/
+__pycache__/
+*.pyc
+.env
+.venv/
+.pytest_cache/

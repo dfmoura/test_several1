@@ -1,21 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, LineChart, Upload, Wallet } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  LineChart,
+  TrendingUp,
+  Upload,
+  Wallet,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "./api";
+import { MarketPage } from "./components/MarketPage";
+import { MethodologyPage } from "./components/MethodologyPage";
 import { TickerCard } from "./components/TickerCard";
 import { TickerModal } from "./components/TickerModal";
 import { PortfolioComparisonSection } from "./components/PortfolioComparisonSection";
 import { UploadZone } from "./components/UploadZone";
 import { formatCurrency } from "./utils";
 
+type AppView = "portfolio" | "market";
+
 export default function App() {
   const queryClient = useQueryClient();
+  const [view, setView] = useState<AppView>("portfolio");
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [showMethodology, setShowMethodology] = useState(false);
 
   const dashboardQuery = useQuery({
     queryKey: ["dashboard"],
     queryFn: api.getDashboard,
+    enabled: view === "portfolio",
   });
 
   const importMutation = useMutation({
@@ -40,6 +54,17 @@ export default function App() {
   const activePositions = filteredTickers.filter((t) => t.quantity > 0).length;
   const hasData = (dashboardQuery.data?.tickers.length ?? 0) > 0;
 
+  if (showMethodology) {
+    return (
+      <MethodologyPage
+        onBack={() => {
+          setShowMethodology(false);
+          window.scrollTo(0, 0);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-white/5 bg-surface-900/80 backdrop-blur-xl sticky top-0 z-20">
@@ -56,91 +81,127 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="search"
-              placeholder="Buscar ticker ou empresa..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-64 rounded-xl border border-white/10 bg-surface-800 px-4 py-2.5 text-sm outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
+          <nav className="flex items-center gap-1 rounded-2xl border border-white/10 bg-surface-800 p-1">
+            <NavButton
+              active={view === "portfolio"}
+              onClick={() => setView("portfolio")}
+              icon={<Wallet size={16} />}
+              label="Carteira"
             />
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-surface-900 transition hover:bg-accent-glow">
-              <Upload size={16} />
-              Importar XLSX
+            <NavButton
+              active={view === "market"}
+              onClick={() => setView("market")}
+              icon={<TrendingUp size={16} />}
+              label="Mercado"
+            />
+          </nav>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {view === "portfolio" && (
               <input
-                type="file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) importMutation.mutate(file);
-                  e.target.value = "";
-                }}
+                type="search"
+                placeholder="Buscar ticker ou empresa..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-64 rounded-xl border border-white/10 bg-surface-800 px-4 py-2.5 text-sm outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
               />
-            </label>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setShowMethodology(true);
+                window.scrollTo(0, 0);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-surface-800 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-accent/40 hover:text-white"
+            >
+              <BookOpen size={16} />
+              Como calculamos
+            </button>
+            {view === "portfolio" && (
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-surface-900 transition hover:bg-accent-glow">
+                <Upload size={16} />
+                Importar XLSX
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) importMutation.mutate(file);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-[1600px] px-6 py-8">
-        <UploadZone
-          isUploading={importMutation.isPending}
-          result={importMutation.data}
-          error={importMutation.error?.message}
-        />
-
-        {dashboardQuery.isLoading && (
-          <div className="grid place-items-center py-24 text-slate-400">
-            Carregando carteira...
-          </div>
-        )}
-
-        {dashboardQuery.isError && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-red-200">
-            Erro ao carregar dashboard. Verifique se a API está ativa.
-          </div>
-        )}
-
-        {dashboardQuery.data && (
+        {view === "market" ? (
+          <MarketPage />
+        ) : (
           <>
-            <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <SummaryKpi
-                label="Total investido"
-                value={formatCurrency(dashboardQuery.data.total_invested)}
-                icon={<BarChart3 size={18} />}
-              />
-              <SummaryKpi
-                label="Total liquidado"
-                value={formatCurrency(dashboardQuery.data.total_liquidated)}
-                icon={<LineChart size={18} />}
-              />
-              <SummaryKpi
-                label="Proventos recebidos"
-                value={formatCurrency(dashboardQuery.data.total_income)}
-                accent
-                icon={<Wallet size={18} />}
-              />
-              <SummaryKpi
-                label="Posições ativas"
-                value={String(activePositions)}
-                subtitle={`${filteredTickers.length} tickers na base`}
-              />
-            </section>
+            <UploadZone
+              isUploading={importMutation.isPending}
+              result={importMutation.data}
+              error={importMutation.error?.message}
+            />
 
-            {hasData && <PortfolioComparisonSection />}
+            {dashboardQuery.isLoading && (
+              <div className="grid place-items-center py-24 text-slate-400">
+                Carregando carteira...
+              </div>
+            )}
 
-            {!hasData ? (
-              <EmptyState />
-            ) : (
-              <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                {filteredTickers.map((ticker) => (
-                  <TickerCard
-                    key={ticker.ticker}
-                    data={ticker}
-                    onClick={() => setSelectedTicker(ticker.ticker)}
+            {dashboardQuery.isError && (
+              <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-red-200">
+                Erro ao carregar dashboard. Verifique se a API está ativa.
+              </div>
+            )}
+
+            {dashboardQuery.data && (
+              <>
+                <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <SummaryKpi
+                    label="Total investido"
+                    value={formatCurrency(dashboardQuery.data.total_invested)}
+                    icon={<BarChart3 size={18} />}
                   />
-                ))}
-              </section>
+                  <SummaryKpi
+                    label="Total liquidado"
+                    value={formatCurrency(dashboardQuery.data.total_liquidated)}
+                    icon={<LineChart size={18} />}
+                  />
+                  <SummaryKpi
+                    label="Proventos recebidos"
+                    value={formatCurrency(dashboardQuery.data.total_income)}
+                    accent
+                    icon={<Wallet size={18} />}
+                  />
+                  <SummaryKpi
+                    label="Posições ativas"
+                    value={String(activePositions)}
+                    subtitle={`${filteredTickers.length} tickers na base`}
+                  />
+                </section>
+
+                {hasData && <PortfolioComparisonSection />}
+
+                {!hasData ? (
+                  <EmptyState />
+                ) : (
+                  <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    {filteredTickers.map((ticker) => (
+                      <TickerCard
+                        key={ticker.ticker}
+                        data={ticker}
+                        onClick={() => setSelectedTicker(ticker.ticker)}
+                      />
+                    ))}
+                  </section>
+                )}
+              </>
             )}
           </>
         )}
@@ -153,6 +214,33 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+function NavButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+        active
+          ? "bg-accent text-surface-900 shadow-glow"
+          : "text-slate-300 hover:bg-white/5 hover:text-white"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@nfse/domain": ["../../packages/nfse-domain/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}

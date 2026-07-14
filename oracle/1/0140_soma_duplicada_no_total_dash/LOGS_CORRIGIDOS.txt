@@ -1,0 +1,120 @@
+================================================================================
+LOGS CORRIGIDOS — 0140_soma_duplicada_no_total_dash
+Data: 04/07/2026
+Pasta: /home/dfmoura/Documents/test_several1/oracle/1/0140_soma_duplicada_no_total_dash
+Problema: soma duplicada no total do dashboard (rodapé personalizado)
+================================================================================
+
+--------------------------------------------------------------------------------
+PROMPT 1
+--------------------------------------------------------------------------------
+Solicitação:
+  na soma personalizada do 792_component.xml
+  colocar um if para somar se o codprod = 41
+
+Arquivo: 792_component.xml
+Status: CORRIGIDO (versão intermediária)
+
+Alteração:
+  Antes: SUM($VLRTOT)
+  Depois: SUM(IF($CODPROD=41,$VLRTOT,0))
+
+Observação:
+  Tentativa inicial de filtrar o produto 41 direto na expressão personalizada.
+
+
+--------------------------------------------------------------------------------
+PROMPT 2
+--------------------------------------------------------------------------------
+Solicitação:
+  identar
+
+Arquivo: 792_component.xml
+Status: CORRIGIDO
+
+Alteração:
+  Indentação do XML com 2 espaços, no padrão dos demais componentes do projeto.
+
+
+--------------------------------------------------------------------------------
+PROMPT 3
+--------------------------------------------------------------------------------
+Solicitação:
+  Erro:
+  Ocorreu um erro ao avaliar expressão personalizada
+  Error: Um ou mais termos da expressão não possuem agregação
+
+Arquivo: 792_component.xml
+Status: CORRIGIDO
+
+Causa:
+  O motor da expressão personalizada do Sankhya exige agregação em todos os termos.
+  IF($CODPROD=41,$VLRTOT,0) falhava porque $CODPROD e $VLRTOT entravam sem agregação.
+
+Solução aplicada:
+  1) Condição movida para o SQL:
+     case when codprod = 41 then vlrtot else 0 end as vlrtot_41
+
+  2) Campo auxiliar oculto no metadata:
+     VLRTOT_41 (visible="false")
+
+  3) Soma personalizada do rodapé:
+     SUM($VLRTOT_41)
+
+Resultado:
+  Rodapé de VLRTOT soma apenas o produto 41, sem erro de agregação.
+
+
+--------------------------------------------------------------------------------
+PROMPT 4
+--------------------------------------------------------------------------------
+Solicitação:
+  adaptar a logica feita da query em 792_component.xml dos totais para a query2.sql
+  (nao precisa olhar o query1.sql)
+
+Arquivo: query2.sql
+Status: CORRIGIDO
+
+Causa:
+  A query une linhas TOTAL (RESUMO VENDEDOR) + DETALHE.
+  Um SUM no rodapé contava os dois conjuntos e duplicava o total.
+
+Solução aplicada (mesma ideia do 792_component.xml):
+  Colunas de exibição mantidas (QTDPREV, QTDREAL, VLR_PREV, VLR_REAL).
+  Colunas auxiliares só com o que deve entrar no rodapé:
+
+    CASE WHEN TOTAL = 'DETALHE' THEN QTDPREV ELSE 0 END AS QTDPREV_SOMA
+    CASE WHEN TOTAL = 'DETALHE' THEN QTDREAL ELSE 0 END AS QTDREAL_SOMA
+    CASE WHEN TOTAL = 'DETALHE' THEN VLR_PREV ELSE 0 END AS VLR_PREV_SOMA
+    CASE WHEN TOTAL = 'DETALHE' THEN VLR_REAL ELSE 0 END AS VLR_REAL_SOMA
+
+Uso no gadget (rodapé personalizado):
+  SUM($QTDPREV_SOMA)
+  SUM($QTDREAL_SOMA)
+  SUM($VLR_PREV_SOMA)
+  SUM($VLR_REAL_SOMA)
+
+Regra:
+  Linhas TOTAL (RESUMO VENDEDOR) → colunas *_SOMA = 0
+  Linhas DETALHE → colunas *_SOMA = valor real
+  Campos *_SOMA devem ficar ocultos (visible="false") no componente.
+
+
+================================================================================
+RESUMO DOS ARQUIVOS CORRIGIDOS
+================================================================================
+  [OK] 792_component.xml
+       - Indentação
+       - Campo VLRTOT_41 no SQL (CASE WHEN codprod = 41)
+       - Soma personalizada: SUM($VLRTOT_41)
+
+  [OK] query2.sql
+       - Colunas QTDPREV_SOMA, QTDREAL_SOMA, VLR_PREV_SOMA, VLR_REAL_SOMA
+       - Evita soma duplicada entre RESUMO e DETALHE no rodapé
+
+  [--] query1.sql
+       - Não alterado (solicitado explicitamente para não olhar)
+
+================================================================================
+FIM DO LOG
+================================================================================

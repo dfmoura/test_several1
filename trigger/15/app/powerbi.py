@@ -454,6 +454,26 @@ def licitacoes_modalidades(db: Session = Depends(get_db)):
     return [r for r in rows if r]
 
 
+@router.get("/api/powerbi/licitacoes/anos")
+def licitacoes_anos(db: Session = Depends(get_db)):
+    rows = db.scalars(
+        select(PbiProcessoLicitatorio.ano_processo)
+        .distinct()
+        .order_by(PbiProcessoLicitatorio.ano_processo.desc())
+    ).all()
+    return [r for r in rows if r]
+
+
+@router.get("/api/powerbi/contratos/anos")
+def contratos_anos(db: Session = Depends(get_db)):
+    rows = db.scalars(
+        select(PbiContrato.ano_contrato)
+        .distinct()
+        .order_by(PbiContrato.ano_contrato.desc())
+    ).all()
+    return [r for r in rows if r]
+
+
 @router.get("/api/powerbi/contratos/empresas")
 def contratos_empresas(db: Session = Depends(get_db)):
     return licitacoes_empresas(db)

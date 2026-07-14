@@ -1,0 +1,543 @@
+================================================================================
+  MANUAL PASSO A PASSO - COLOCAR O SISTEMA NFS-e NACIONAL EM PRODUCAO
+  Versao: julho/2026
+  Publico: usuario leigo (sem precisar ser programador)
+================================================================================
+
+Este manual ensina a deixar o sistema funcionando de verdade, conectado ao
+gov.br, para:
+
+  1) EMITIR notas fiscais de servico (NFS-e)
+  2) CANCELAR notas emitidas
+  3) VER notas que outras empresas emitiram CONTRA o seu CNPJ (voce como tomador)
+
+IMPORTANTE: Nao pule a homologacao. Primeiro teste tudo no ambiente oficial de
+testes (Producao Restrita). So depois mude para producao real.
+
+
+================================================================================
+PARTE 0 - O QUE VOCE PRECISA TER EM MAOS ANTES DE COMECAR
+================================================================================
+
+[ ] Um computador ou servidor com Linux (recomendado) ou Windows com WSL2
+[ ] Docker e Docker Compose instalados e funcionando
+[ ] Acesso a internet estavel
+[ ] Certificado digital A1 e-CNPJ (arquivo .pfx) valido e NAO vencido
+[ ] Senha do certificado digital
+[ ] CNPJ da empresa (o mesmo do certificado)
+[ ] Inscricao Municipal (IM) da empresa na prefeitura
+[ ] Codigo IBGE do municipio emissor (7 digitos) - exemplo: Uberlandia = 3170206
+[ ] CNPJ habilitado no Padrao Nacional NFS-e / prefeitura (CNC)
+
+Onde achar o codigo IBGE do municipio:
+  https://www.ibge.gov.br/
+  (Pesquise o nome da cidade e anote o codigo de 7 digitos)
+
+
+================================================================================
+PARTE 1 - INSTALAR O DOCKER (SE AINDA NAO TIVER)
+================================================================================
+
+No Linux (Ubuntu/Debian), abra o terminal e cole:
+
+  sudo apt update
+  sudo apt install -y docker.io docker-compose-v2
+  sudo usermod -aG docker $USER
+
+Depois FACA LOGOUT e LOGIN de novo no computador (ou reinicie).
+
+Teste se funcionou:
+
+  docker --version
+  docker compose version
+
+Se aparecer a versao, esta OK.
+
+
+================================================================================
+PARTE 2 - ENTRAR NA PASTA DO PROJETO
+================================================================================
+
+Abra o terminal e va ate a pasta do projeto. Exemplo:
+
+  cd /home/SEU_USUARIO/Documents/test_several1/trigger/20/nfse-nacional
+
+Dica: se voce nao sabe o caminho, abra a pasta no gerenciador de arquivos,
+clique com botao direito e escolha "Abrir no terminal".
+
+
+================================================================================
+PARTE 3 - COPIAR O ARQUIVO DE CONFIGURACAO
+================================================================================
+
+Se ainda NAO existir o arquivo .env, crie copiando o exemplo:
+
+  cp .env.example .env
+
+O arquivo .env e onde ficam todas as configuracoes do sistema.
+Voce vai editar ele no proximo passo.
+
+
+================================================================================
+PARTE 4 - CONFIGURAR O ARQUIVO .env (HOMOLOGACAO - TESTES OFICIAIS)
+================================================================================
+
+Abra o arquivo .env com um editor de texto simples:
+
+  nano .env
+
+(ou use o Bloco de Notas / VS Code / Cursor)
+
+Altere as linhas abaixo. Troque os valores de exemplo pelos SEUS dados:
+
+----------------------------------------------------------------------
+LINHA                          | O QUE COLOCAR
+----------------------------------------------------------------------
+NFSE_AMBIENTE                  | homolog
+NFSE_GOV_MOCK                  | false
+NFSE_CNPJ                      | seu CNPJ (14 digitos, sem pontos)
+NFSE_C_MUN_EMISSOR             | codigo IBGE do municipio (7 digitos)
+NFSE_INSCRICAO_MUNICIPAL       | sua inscricao municipal (IM)
+NFSE_DPS_SERIE                 | 00001 (ou outra serie de 5 caracteres)
+NFSE_CERT_REQUIRED             | true
+NFSE_API_KEY                   | invente uma senha forte (ex: Nfse@2026!ChaveSegura)
+NFSE_WEB_PASSWORD              | senha para entrar no painel web
+NFSE_JWT_SECRET                | outra senha forte (minimo 16 caracteres)
+NFSE_WEB_SESSION_SECRET        | outra senha forte (minimo 16 caracteres)
+----------------------------------------------------------------------
+
+EXEMPLO (NAO COPIE OS DADOS - USE OS SEUS):
+
+  NFSE_AMBIENTE=homolog
+  NFSE_GOV_MOCK=false
+  NFSE_CNPJ=53369941000163
+  NFSE_C_MUN_EMISSOR=3170206
+  NFSE_INSCRICAO_MUNICIPAL=12345678
+  NFSE_DPS_SERIE=00001
+  NFSE_CERT_REQUIRED=true
+  NFSE_API_KEY=Nfse@2026!MinhaChaveApiSegura
+  NFSE_WEB_PASSWORD=SenhaForteDoPainel@2026
+  NFSE_JWT_SECRET=JwtSegredoMinimo16Chars
+  NFSE_WEB_SESSION_SECRET=SessaoSegredoMinimo16Chars
+
+ATENCAO:
+  - O CNPJ no .env DEVE ser IGUAL ao CNPJ do certificado digital.
+  - A Inscricao Municipal (IM) NAO vem no certificado. Peca na prefeitura.
+  - O municipio (IBGE) NAO vem no certificado. Voce precisa informar manualmente.
+  - NAO deixe NFSE_INSCRICAO_MUNICIPAL vazio em producao/homolog.
+
+Para salvar no nano: pressione Ctrl+O, Enter, depois Ctrl+X.
+
+
+================================================================================
+PARTE 5 - INSTALAR O CERTIFICADO DIGITAL A1
+================================================================================
+
+O certificado e o arquivo .pfx que voce recebeu da certificadora.
+
+PASSO 5.1 - Copiar o arquivo do certificado
+
+  Copie seu arquivo .pfx para a pasta secrets/ do projeto.
+  O nome do arquivo DEVE ser exatamente:
+
+    secrets/certificado.pfx
+
+  Exemplo no terminal (ajuste o caminho de origem):
+
+    cp /caminho/para/seu-certificado.pfx secrets/certificado.pfx
+
+PASSO 5.2 - Criar o arquivo com a senha do certificado
+
+  Crie o arquivo secrets/certificado.senha com a senha do .pfx (uma linha so):
+
+    echo "SUA_SENHA_DO_CERTIFICADO" > secrets/certificado.senha
+
+  Substitua SUA_SENHA_DO_CERTIFICADO pela senha real do certificado.
+
+  ATENCAO: Nunca envie esses arquivos por e-mail ou coloque no GitHub.
+  A pasta secrets/ ja esta configurada para nao ser commitada.
+
+PASSO 5.3 - Conferir
+
+  Liste os arquivos:
+
+    ls -la secrets/
+
+  Deve aparecer:
+    certificado.pfx
+    certificado.senha
+
+
+================================================================================
+PARTE 6 - SUBIR O SISTEMA (HOMOLOGACAO)
+================================================================================
+
+No terminal, dentro da pasta do projeto, execute:
+
+  docker compose --profile homolog up -d --build
+
+O que esse comando faz:
+  - Baixa as imagens necessarias (na primeira vez demora mais)
+  - Constroi os programas
+  - Sobe banco de dados, API, painel web, sincronizacao, etc.
+
+Aguarde de 1 a 3 minutos na primeira vez.
+
+PASSO 6.1 - Ver se tudo subiu
+
+  docker compose --profile homolog ps
+
+Todos os servicos devem estar com status "running" ou "healthy".
+
+PASSO 6.2 - Se algo deu errado, veja os logs
+
+  docker compose --profile homolog logs -f nfse-api
+
+Para sair dos logs: pressione Ctrl+C.
+
+
+================================================================================
+PARTE 7 - TESTAR SE ESTA FUNCIONANDO
+================================================================================
+
+PASSO 7.1 - Teste de saude da API
+
+  Substitua SUA_API_KEY pela chave que voce colocou no .env (NFSE_API_KEY):
+
+  curl -H "X-API-Key: SUA_API_KEY" http://localhost:18100/health/ready
+
+O que voce DEVE ver no resultado (em JSON):
+  - "status": "ok"
+  - certificado ativo (ativo: true)
+  - dias para expirar do certificado maior que zero
+  - banco de dados conectado
+
+Se o certificado aparecer com erro:
+  - Confira a senha em secrets/certificado.senha
+  - Confira se o CNPJ no .env e igual ao do certificado
+  - Confira se o certificado nao esta vencido
+
+PASSO 7.2 - Abrir o painel web (console)
+
+  Abra o navegador (Chrome, Firefox, Edge) e acesse:
+
+    http://localhost:18100   (API - so para teste tecnico)
+    http://localhost:18102   (PAINEL WEB - use este)
+
+  Senha de login: o valor de NFSE_WEB_PASSWORD no arquivo .env
+
+PASSO 7.3 - Conferir configuracoes no painel
+
+  1. Faca login no painel
+  2. Clique em "Configuracoes" no menu
+  3. Aba "Visao geral":
+       - Ambiente deve mostrar: homolog
+       - Gov mock deve estar: desligado (false)
+       - Certificado deve estar: OK / ativo
+  4. Aba "Prestador":
+       - Preencha e salve: Inscricao Municipal, Municipio IBGE, Serie DPS
+  5. Aba "Console":
+       - Troque a senha do painel se ainda estiver padrao
+
+
+================================================================================
+PARTE 8 - EMITIR UMA NOTA FISCAL (TESTE EM HOMOLOGACAO)
+================================================================================
+
+OPCAO A - Pelo painel web (mais facil para leigo)
+
+  1. No menu, clique em "Emitir"
+  2. Preencha os dados do TOMADOR (cliente):
+       - Tipo: PF (pessoa fisica) ou PJ (empresa)
+       - CPF ou CNPJ do cliente
+       - Razao social / nome
+       - (Opcional) e-mail, telefone, endereco
+  3. Preencha os dados do SERVICO:
+       - Codigo do servico (LC 116)
+       - Codigo NBS
+       - Descricao do servico
+       - Municipio de incidencia (IBGE)
+  4. Preencha os VALORES:
+       - Valor do servico
+       - Tributacao (conforme regime da empresa)
+  5. Clique em "Emitir"
+
+  Se der certo:
+    - Aparece a CHAVE DE ACESSO (50 digitos)
+    - Situacao: AUTORIZADA
+
+  Anote a chave de acesso para os proximos testes.
+
+OPCAO B - Pela API (para integracao com outro sistema)
+
+  curl -X POST http://localhost:18100/v1/nfse \
+    -H "Content-Type: application/json" \
+    -H "X-API-Key: SUA_API_KEY" \
+    -H "X-Idempotency-Key: $(uuidgen)" \
+    -d '{
+      "tomador": {
+        "tipo": "PJ",
+        "cpfCnpj": "98765432000100",
+        "razaoSocial": "Cliente Teste LTDA"
+      },
+      "servico": {
+        "codigoServico": "010701",
+        "descricao": "Desenvolvimento de software",
+        "codigoMunicipioIncidencia": "3550308"
+      },
+      "valores": {
+        "valorServico": 1500.00
+      }
+    }'
+
+VER NOTAS QUE VOCE EMITIU:
+
+  No painel: menu "NFS-e" -> aba "Emitidas"
+
+  De cada nota voce pode:
+    - Ver detalhes
+    - Baixar XML
+    - Baixar PDF (DANFSe)
+
+
+================================================================================
+PARTE 9 - CANCELAR UMA NOTA FISCAL
+================================================================================
+
+So e possivel cancelar notas com situacao AUTORIZADA.
+
+PELO PAINEL WEB:
+
+  1. Menu "NFS-e" -> aba "Emitidas"
+  2. Clique na nota que deseja cancelar
+  3. Clique no botao "Cancelar"
+  4. Preencha:
+       Codigo do motivo: 1
+       Motivo: escreva pelo menos 15 caracteres
+               Exemplo: "Erro na emissao da nota fiscal de servico"
+  5. Confirme o cancelamento
+
+  A situacao da nota muda para CANCELADA.
+
+PELA API:
+
+  curl -X POST "http://localhost:18100/v1/nfse/CHAVE_DE_50_DIGITOS/cancelar" \
+    -H "Content-Type: application/json" \
+    -H "X-API-Key: SUA_API_KEY" \
+    -d '{
+      "codigoMotivo": "1",
+      "motivo": "Erro na emissao da nota fiscal de servico"
+    }'
+
+Substitua CHAVE_DE_50_DIGITOS pela chave real da nota.
+
+
+================================================================================
+PARTE 10 - VER NOTAS EMITIDAS CONTRA O SEU CNPJ (VOCE COMO TOMADOR)
+================================================================================
+
+ATENCAO - DIFERENCA IMPORTANTE:
+
+  Aba "Emitidas"  = notas que VOCE emitiu (voce e o prestador de servico)
+  Aba "Recebidas" = notas que OUTROS emitiram com SEU CNPJ como cliente (tomador)
+
+As notas recebidas vem do ADN (Ambiente de Dados Nacional do gov.br).
+O sistema busca automaticamente a cada 5 minutos (padrao).
+
+PASSO 10.1 - Ver no painel
+
+  1. Menu "NFS-e"
+  2. Clique na aba "Recebidas"
+  3. As notas onde seu CNPJ aparece como tomador serao listadas aqui
+
+PASSO 10.2 - Forcar sincronizacao imediata (se a lista estiver vazia)
+
+  1. Menu "Sincronizacao"
+  2. Clique em "Forcar sincronizacao"
+  3. Aguarde alguns segundos
+  4. Volte em "NFS-e" -> aba "Recebidas"
+
+  Nota: so aparecem notas que outra empresa ja emitiu com seu CNPJ como tomador.
+  Pode haver atraso de alguns minutos apos a emissao.
+
+PASSO 10.3 - Baixar XML de nota recebida (API)
+
+  curl -H "X-API-Key: SUA_API_KEY" \
+    "http://localhost:18100/v1/nfse/recebidas?limit=20"
+
+  curl -H "X-API-Key: SUA_API_KEY" \
+    "http://localhost:18100/v1/nfse/recebidas/CHAVE/xml" -o nota-recebida.xml
+
+
+================================================================================
+PARTE 11 - CHECKLIST ANTES DE IR PARA PRODUCAO REAL
+================================================================================
+
+Faca todos estes testes no ambiente HOMOLOG antes de mudar para PROD:
+
+  [ ] Emitir nota com tomador PJ (empresa)
+  [ ] Emitir nota com tomador PF (pessoa fisica)
+  [ ] Baixar XML de uma nota emitida
+  [ ] Baixar PDF (DANFSe) de uma nota emitida
+  [ ] Cancelar uma nota autorizada
+  [ ] Forcar sincronizacao ADN e verificar aba Recebidas
+  [ ] Certificado com mais de 30 dias para vencer
+  [ ] Inscricao Municipal correta no painel
+  [ ] Senhas padrao (admin, dev-api-key) ja foram trocadas
+
+So passe para producao real quando TODOS os itens acima estiverem OK.
+
+
+================================================================================
+PARTE 12 - COLOCAR EM PRODUCAO REAL (NOTAS COM VALOR FISCAL DE VERDADE)
+================================================================================
+
+PASSO 12.1 - Parar o ambiente de homolog (opcional, mas recomendado)
+
+  docker compose --profile homolog down
+
+PASSO 12.2 - Editar o .env para producao
+
+  nano .env
+
+  Altere APENAS estas linhas principais:
+
+    NFSE_AMBIENTE=prod
+    NFSE_GOV_MOCK=false
+    NFSE_CERT_REQUIRED=true
+
+  Confirme que TODAS as senhas foram trocadas:
+    NFSE_API_KEY
+    NFSE_WEB_PASSWORD
+    NFSE_JWT_SECRET
+    NFSE_WEB_SESSION_SECRET
+
+  Use o certificado A1 de PRODUCAO (substitua o .pfx se necessario):
+
+    cp /caminho/certificado-producao.pfx secrets/certificado.pfx
+    echo "SENHA_DO_CERT_PRODUCAO" > secrets/certificado.senha
+
+PASSO 12.3 - Subir em producao
+
+  docker compose --profile prod up -d --build
+
+PASSO 12.4 - Validar
+
+  curl -H "X-API-Key: SUA_API_KEY" http://localhost:18100/health/ready
+
+  No painel (http://localhost:18102):
+    Configuracoes -> Visao geral -> Ambiente deve mostrar: prod
+
+A partir deste momento, cada nota emitida e REAL e tem efeito fiscal.
+
+
+================================================================================
+PARTE 13 - COMANDOS UTEIS DO DIA A DIA
+================================================================================
+
+Ver status dos servicos:
+  docker compose --profile prod ps
+
+Ver logs da API:
+  docker compose --profile prod logs -f nfse-api
+
+Reiniciar tudo:
+  docker compose --profile prod restart
+
+Parar tudo (sem apagar dados):
+  docker compose --profile prod down
+
+Parar e APAGAR banco de dados (CUIDADO - perde todas as notas):
+  docker compose --profile prod down -v
+
+Renovar certificado (quando vencer):
+  1. Substitua secrets/certificado.pfx e secrets/certificado.senha
+  2. docker compose --profile prod restart nfse-api nfse-sync nfse-danfse
+  3. Teste: curl com /health/ready
+
+
+================================================================================
+PARTE 14 - TABELA DE PORTAS E ENDERECOS
+================================================================================
+
+  Servico              Porta    Endereco
+  -------------------  -------  ---------------------------------
+  Painel Web           18102    http://localhost:18102
+  API REST             18100    http://localhost:18100
+  Proxy Traefik        18180    http://localhost:18180
+  Grafana (monitor)    18200    http://localhost:18200
+  RabbitMQ (filas)     18672    http://localhost:18672
+  MinIO (arquivos)     19001    http://localhost:19001
+
+Se alguma porta estiver ocupada no seu servidor, altere no .env as variaveis
+NFSE_HOST_PORT_* e reinicie o docker compose.
+
+
+================================================================================
+PARTE 15 - PROBLEMAS COMUNS E SOLUCOES
+================================================================================
+
+PROBLEMA: "certificado.ativo: false" no health/ready
+SOLUCAO:
+  - Senha errada em secrets/certificado.senha
+  - Arquivo .pfx corrompido ou caminho errado
+  - Certificado vencido
+
+PROBLEMA: "CNPJ do certificado nao confere"
+SOLUCAO:
+  - Ajuste NFSE_CNPJ no .env para ser igual ao CNPJ do certificado
+
+PROBLEMA: Nota rejeitada na emissao
+SOLUCAO:
+  - Verifique Inscricao Municipal (IM) correta
+  - Verifique codigo IBGE do municipio
+  - Confirme com a prefeitura se o CNPJ esta habilitado no Padrao Nacional
+
+PROBLEMA: Aba "Recebidas" vazia
+SOLUCAO:
+  - Va em Sincronizacao -> Forcar sincronizacao
+  - Aguarde alguns minutos
+  - Confirme que existe nota emitida por OUTRA empresa com seu CNPJ como tomador
+
+PROBLEMA: API retorna erro 401 (nao autorizado)
+SOLUCAO:
+  - Header X-API-Key deve ser igual ao NFSE_API_KEY do .env
+
+PROBLEMA: Painel web nao abre
+SOLUCAO:
+  - docker compose --profile prod ps  (veja se nfse-web esta running)
+  - docker compose --profile prod logs nfse-web --tail 50
+
+PROBLEMA: Porta ja em uso
+SOLUCAO:
+  - Mude NFSE_HOST_PORT_WEB, NFSE_HOST_PORT_API etc. no .env
+  - docker compose --profile prod up -d
+
+
+================================================================================
+PARTE 16 - RESUMO RAPIDO (7 PASSOS)
+================================================================================
+
+  1. Tenha certificado A1 e-CNPJ + IM + CNPJ habilitado na prefeitura
+  2. Configure .env com NFSE_AMBIENTE=homolog e NFSE_GOV_MOCK=false
+  3. Coloque certificado em secrets/certificado.pfx + secrets/certificado.senha
+  4. Execute: docker compose --profile homolog up -d --build
+  5. Teste /health/ready e faca login no painel (porta 18102)
+  6. Emita, cancele e sincronize recebidas em homolog
+  7. Mude para NFSE_AMBIENTE=prod e execute: docker compose --profile prod up -d --build
+
+
+================================================================================
+CONTATOS E DOCUMENTACAO ADICIONAL NO PROJETO
+================================================================================
+
+  README.md                          - Guia rapido do projeto
+  PROJETO-NFSE-NACIONAL.md           - Especificacao completa
+  docs/runbooks/certificado-renovacao.md - Como renovar o certificado
+  secrets/README.md                  - Instrucoes do certificado
+  Portal oficial NFS-e: https://www.gov.br/nfse
+
+
+================================================================================
+FIM DO MANUAL
+================================================================================

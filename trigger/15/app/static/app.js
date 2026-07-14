@@ -35,6 +35,7 @@ $$(".nav-btn").forEach((btn) => {
     if (btn.dataset.page === "observadores") carregarObservadores();
     if (btn.dataset.page === "orgaos" && typeof carregarOrgaosPagina === "function") carregarOrgaosPagina();
     if (btn.dataset.page === "modalidades" && typeof carregarModalidadesPagina === "function") carregarModalidadesPagina();
+    if (btn.dataset.page === "setup" && typeof carregarSetupPagina === "function") carregarSetupPagina();
   });
 });
 
@@ -211,11 +212,21 @@ function preencherSelect(sel, items, placeholder) {
   if (atual && [...sel.options].some((o) => o.value === atual)) sel.value = atual;
 }
 
+function anosDeStats(porAno) {
+  return Object.keys(porAno || {})
+    .map((a) => parseInt(a, 10))
+    .filter((a) => !Number.isNaN(a))
+    .sort((a, b) => b - a)
+    .map(String);
+}
+
 async function carregarFiltros() {
-  const [mods, sits] = await Promise.all([
+  const [mods, sits, stats] = await Promise.all([
     api("/api/modalidades"),
     api("/api/situacoes"),
+    api("/api/stats"),
   ]);
+  preencherSelect($("#filtro-ano"), anosDeStats(stats.por_ano), "Todos");
   preencherSelect($("#filtro-modalidade"), mods, "Todas");
   preencherSelect($("#filtro-situacao"), sits, "Todas");
 }

@@ -1,0 +1,291 @@
+openapi: 3.1.0
+info:
+  title: NFS-e Nacional — API Interna
+  version: 1.0.0
+  description: API REST para emissão e gestão de NFS-e Padrão Nacional
+
+servers:
+  - url: http://localhost:18100
+    description: Desenvolvimento
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+paths:
+  /v1/nfse:
+    post:
+      summary: Emitir NFS-e
+      operationId: emitirNfse
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmitirNfseRequest'
+      responses:
+        '201':
+          description: NFS-e autorizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NfseAutorizada'
+    get:
+      summary: Listar NFS-e
+      parameters:
+        - name: situacao
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de NFS-e
+
+  /v1/nfse/{chave}:
+    get:
+      summary: Consultar NFS-e
+      parameters:
+        - name: chave
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 50
+            maxLength: 50
+        - name: refresh
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: NFS-e encontrada
+
+  /v1/nfse/{chave}/cancelar:
+    post:
+      summary: Cancelar NFS-e
+      parameters:
+        - name: chave
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelarRequest'
+      responses:
+        '200':
+          description: NFS-e cancelada
+
+  /v1/nfse/{chave}/substituir:
+    post:
+      summary: Substituir NFS-e
+      parameters:
+        - name: chave
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmitirNfseRequest'
+      responses:
+        '201':
+          description: NFS-e substituta autorizada
+
+  /v1/nfse/{chave}/eventos:
+    get:
+      summary: Listar eventos da NFS-e
+      parameters:
+        - name: chave
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Eventos
+
+  /v1/nfse/{chave}/xml:
+    get:
+      summary: Download XML autorizado
+      parameters:
+        - name: chave
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: XML
+          content:
+            application/xml:
+              schema:
+                type: string
+
+  /v1/nfse/{chave}/danfse:
+    get:
+      summary: Download DANFSe PDF
+      parameters:
+        - name: chave
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /v1/dps/{id}:
+    get:
+      summary: Consultar status DPS
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 43
+            maxLength: 43
+      responses:
+        '200':
+          description: Status DPS
+
+  /v1/sync/dfe:
+    post:
+      summary: Forçar sincronização ADN
+      responses:
+        '200':
+          description: Resultado sync
+
+  /health/live:
+    get:
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: OK
+
+  /health/ready:
+    get:
+      summary: Readiness probe
+      security: []
+      responses:
+        '200':
+          description: OK
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Tomador:
+      type: object
+      required: [tipo, cpfCnpj]
+      properties:
+        tipo:
+          type: string
+          enum: [PF, PJ]
+        cpfCnpj:
+          type: string
+        razaoSocial:
+          type: string
+        nome:
+          type: string
+        inscricaoMunicipal:
+          type: string
+          description: >
+            Cadastro municipal do tomador — somente informada manualmente no payload.
+            Não é retornada pela consulta de cartão CNPJ (/v1/cadastro/cnpj).
+
+    Servico:
+      type: object
+      required: [codigoServico, descricao, codigoMunicipioIncidencia]
+      properties:
+        codigoServico:
+          type: string
+        descricao:
+          type: string
+        codigoMunicipioIncidencia:
+          type: string
+        aliquotaIss:
+          type: number
+
+    Valores:
+      type: object
+      required: [valorServico]
+      properties:
+        valorServico:
+          type: number
+
+    EmitirNfseRequest:
+      type: object
+      required: [tomador, servico, valores]
+      properties:
+        tomador:
+          $ref: '#/components/schemas/Tomador'
+        servico:
+          $ref: '#/components/schemas/Servico'
+        valores:
+          $ref: '#/components/schemas/Valores'
+        discriminacao:
+          type: string
+
+    CancelarRequest:
+      type: object
+      required: [codigoMotivo, motivo]
+      properties:
+        codigoMotivo:
+          type: string
+        motivo:
+          type: string
+          minLength: 15
+
+    NfseAutorizada:
+      type: object
+      properties:
+        chaveAcesso:
+          type: string
+        idDps:
+          type: string
+        situacao:
+          type: string
+        valorServico:
+          type: number
+        emitidaEm:
+          type: string
+          format: date-time
+        xmlUrl:
+          type: string
+        pdfUrl:
+          type: string

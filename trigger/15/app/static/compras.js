@@ -1,6 +1,7 @@
 let comprasUnidades = [];
 let comprasModalidades = [];
 let compraAtualId = null;
+let compraItemSelecionado = null;
 let comprasPollTimer = null;
 
 const COMPRAS_CAMPOS_IDENT = [
@@ -99,10 +100,20 @@ function modalidadesSelecionadas() {
 
 $("#form-compras-coletar")?.addEventListener("submit", async (e) => {
   e.preventDefault();
+  await iniciarColetaCompras("/api/compras/coletar");
+});
+
+$("#btn-compras-coletar-completo")?.addEventListener("click", async () => {
+  await iniciarColetaCompras("/api/compras/coletar-completo");
+});
+
+async function iniciarColetaCompras(endpoint) {
   const btn = $("#btn-compras-coletar");
+  const btnFull = $("#btn-compras-coletar-completo");
   const logEl = $("#compras-coleta-log");
   const resEl = $("#compras-coleta-result");
   btn.disabled = true;
+  if (btnFull) btnFull.disabled = true;
   logEl.classList.remove("hidden");
   resEl.classList.add("hidden");
   logEl.textContent = "Consultando API Dados Abertos (PNCP)…";
@@ -119,29 +130,43 @@ $("#form-compras-coletar")?.addEventListener("submit", async (e) => {
       payload.data_inicial = di;
       payload.data_final = df;
     }
-    await api("/api/compras/coletar", { method: "POST", body: JSON.stringify(payload) });
+    if (endpoint.includes("completo")) {
+      payload.fases = ["07", "07-resultados", "05", "10", "01", "02"];
+    }
+    await api(endpoint, { method: "POST", body: JSON.stringify(payload) });
     comprasPollTimer = setInterval(pollComprasColeta, 1200);
   } catch (err) {
     logEl.textContent = err.message;
     btn.disabled = false;
+    if (btnFull) btnFull.disabled = false;
   }
-});
+}
 
 async function pollComprasColeta() {
   const st = await api("/api/compras/coletar/status");
-  $("#compras-coleta-log").textContent = (st.log || []).join("\n") || "Aguardando…";
+  const fase = st.fase && st.fase !== "idle" ? ` [${st.fase}]` : "";
+  $("#compras-coleta-log").textContent = (st.log || []).join("\n") + fase || "Aguardando…";
   if (!st.running && st.resultado) {
     clearInterval(comprasPollTimer);
     $("#btn-compras-coletar").disabled = false;
+    const btnFull = $("#btn-compras-coletar-completo");
+    if (btnFull) btnFull.disabled = false;
     const resEl = $("#compras-coleta-result");
     resEl.classList.remove("hidden");
     if (st.resultado.ok) {
       resEl.className = "result ok";
       let msg =
-        `Concluído: ${st.resultado.total} contratação(ões) (${st.resultado.novos} novas, ${st.resultado.atualizados} atualizadas).`;
+        `Concluído: ${st.resultado.total ?? "-"} contratação(ões)`;
+      if (st.resultado.novos != null) {
+        msg += ` (${st.resultado.novos} novas, ${st.resultado.atualizados} atualizadas).`;
+      }
       if (st.resultado.itens_total != null) {
         msg +=
           ` Itens: ${st.resultado.itens_total} (${st.resultado.itens_novos} novos, ${st.resultado.itens_atualizados} atualizados).`;
+      }
+      if (st.resultado.resultados_novos != null) {
+        msg +=
+          ` Resultados: ${st.resultado.resultados_novos} novos, ${st.resultado.resultados_atualizados} atualizados.`;
       }
       resEl.textContent = msg;
     } else {
@@ -152,7 +177,11 @@ async function pollComprasColeta() {
 }
 
 async function carregarComprasFiltros() {
-  const sits = await api("/api/compras/situacoes");
+  const [sits, stats] = await Promise.all([
+    api("/api/compras/situacoes"),
+    api("/api/compras/stats"),
+  ]);
+  preencherSelect($("#compras-filtro-ano"), anosDeStats(stats.por_ano), "Todos");
   preencherSelect($("#compras-filtro-situacao"), sits, "Todas");
 }
 
@@ -300,9 +329,57 @@ async function abrirDetalheCompra(id) {
   }
 
   await carregarItensCompra(id);
+  await carregarPgcCompra(r);
+  ativarComprasTab("execucao");
 
   $("#edit-compra-observador").value = r.observador_id || "";
   $("#modal-compras").showModal();
+}
+
+function ativarComprasTab(tab) {
+  document.querySelectorAll(".compras-tab").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === tab);
+  });
+  document.querySelectorAll(".compras-tab-panel").forEach((panel) => {
+    panel.classList.toggle("active", panel.id === `compras-tab-${tab}`);
+  });
+}
+
+document.querySelectorAll(".compras-tab")?.forEach((btn) => {
+  btn.addEventListener("click", () => ativarComprasTab(btn.dataset.tab));
+});
+
+function renderVencedores(it) {
+  const res = it.resultados || [];
+  if (res.length) {
+    return res.map((r) => {
+      const nome = r.nome_razao_social_fornecedor || r.nome_fornecedor || "-";
+      const val = r.valor_total_homologado || "";
+      const srp = r.ordem_classificacao_srp ? ` · ${r.ordem_classificacao_srp}º SRP` : "";
+      return `<div>${esc(nome)}${val ? ` · <strong>${esc(val)}</strong>` : ""}${srp}</div>`;
+    }).join("");
+  }
+  if (it.nome_fornecedor) {
+    return `${esc(it.nome_fornecedor)}${it.valor_total_resultado ? ` · ${esc(it.valor_total_resultado)}` : ""}`;
+  }
+  if (it.tem_resultado === false || (!it.valor_total_homologado && it.valor_total)) {
+    return '<span class="badge-estimado">Só estimado</span>';
+  }
+  return '<span class="muted-empty">Sem homologação</span>';
+}
+
+function deltaPct(estimado, homologado) {
+  const parse = (s) => {
+    if (!s) return null;
+    const n = parseFloat(String(s).replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  };
+  const e = parse(estimado);
+  const h = parse(homologado);
+  if (e == null || h == null || e === 0) return "";
+  const pct = ((h - e) / e) * 100;
+  const sign = pct > 0 ? "+" : "";
+  return `<span class="item-resultado-sub">${sign}${pct.toFixed(1)}%</span>`;
 }
 
 async function carregarItensCompra(cid) {
@@ -322,33 +399,88 @@ async function carregarItensCompra(cid) {
       tb.innerHTML = '<tr><td colspan="7">-</td></tr>';
       return;
     }
-    meta.textContent = `${data.total} item(ns) da contratação`;
+    meta.textContent = `${data.total} item(ns) · clique em um item para ver preços de mercado`;
     tb.innerHTML = data.items.map((it) => {
       const desc = it.descricao_detalhada || it.descricao_resumida || "-";
       const cat = it.cod_item_catalogo
         ? `${it.material_ou_servico_nome || ""} ${it.cod_item_catalogo}`.trim()
         : (it.material_ou_servico_nome || "-");
-      return `<tr>
+      const hom = it.resultados?.[0]?.valor_total_homologado || it.valor_total_resultado || "-";
+      return `<tr class="compra-item-row" data-item-id="${esc(it.id_compra_item)}" title="Ver preços de mercado">
         <td class="col-num">${esc(it.numero_item_pncp ?? it.numero_item_compra ?? "")}</td>
         <td class="col-desc" title="${esc(desc)}">${esc(it.descricao_resumida || desc)}</td>
         <td>${esc(cat)}</td>
         <td class="col-qtd">${esc(it.quantidade)} ${esc(it.unidade_medida || "")}</td>
-        <td class="col-val">${esc(it.valor_unitario_estimado)}</td>
-        <td class="col-val">${esc(it.valor_total)}</td>
-        <td>${pillSituacao(it.situacao_compra_item_nome)}</td>
-      </tr>
-      <tr class="item-fornecedor-row">
-        <td colspan="7" class="item-fornecedor-cell">
-          ${it.nome_fornecedor
-            ? `<span class="item-forn-label">Fornecedor:</span> ${esc(it.nome_fornecedor)}`
-              + (it.valor_total_resultado ? ` · <span class="item-forn-label">Homologado:</span> ${esc(it.valor_total_resultado)}` : "")
-            : '<span class="muted-empty">Sem resultado homologado</span>'}
-        </td>
+        <td class="col-val">${esc(it.valor_total)}${deltaPct(it.valor_total, hom)}</td>
+        <td class="col-val">${esc(hom)}</td>
+        <td>${renderVencedores(it)}</td>
       </tr>`;
     }).join("");
+    tb.querySelectorAll(".compra-item-row").forEach((tr) => {
+      tr.addEventListener("click", () => {
+        compraItemSelecionado = tr.dataset.itemId;
+        carregarPrecosItem(compraItemSelecionado);
+        ativarComprasTab("precos");
+      });
+    });
   } catch (err) {
     meta.textContent = "Erro ao carregar itens.";
     tb.innerHTML = `<tr><td colspan="7">${esc(err.message)}</td></tr>`;
+  }
+}
+
+async function carregarPgcCompra(contratacao) {
+  const meta = $("#modal-compras-pgc-meta");
+  const tb = $("#modal-compras-pgc-tabela");
+  if (!meta || !tb) return;
+  meta.textContent = "Carregando planejamento…";
+  try {
+    const cnpj = contratacao.dados_pncp?.orgao_entidade_cnpj || "";
+    const params = new URLSearchParams({ ano: String(contratacao.ano) });
+    if (cnpj) params.set("orgao", cnpj);
+    if (contratacao.unidade_compradora) params.set("uasg", contratacao.unidade_compradora);
+    const data = await api(`/api/compras/pgc?${params}`);
+    if (!data.items.length) {
+      meta.textContent = "Nenhum item PGC vinculado (colete fase 04).";
+      tb.innerHTML = '<tr><td colspan="4">-</td></tr>';
+      return;
+    }
+    meta.textContent = `${data.total} item(ns) planejados`;
+    tb.innerHTML = data.items.map((p) => `<tr>
+      <td>${esc(p.codigo_item_catalogo)}</td>
+      <td>${esc(p.descricao)}</td>
+      <td>${esc(p.valor_total_item)}</td>
+      <td>${esc(p.status)}</td>
+    </tr>`).join("");
+  } catch (err) {
+    meta.textContent = err.message;
+    tb.innerHTML = '<tr><td colspan="4">-</td></tr>';
+  }
+}
+
+async function carregarPrecosItem(idCompraItem) {
+  const meta = $("#modal-compras-precos-meta");
+  const tb = $("#modal-compras-precos-tabela");
+  if (!meta || !tb || !idCompraItem) return;
+  meta.textContent = "Carregando preços…";
+  try {
+    const data = await api(`/api/compras/itens/${encodeURIComponent(idCompraItem)}/precos`);
+    if (!data.items.length) {
+      meta.textContent = "Sem preços no cache local (colete fase 03 ou use coleta completa).";
+      tb.innerHTML = '<tr><td colspan="5">-</td></tr>';
+      return;
+    }
+    meta.textContent = `${data.total} preço(s) praticado(s)`;
+    tb.innerHTML = data.items.map((p) => `<tr>
+      <td>${esc(p.preco_unitario)}</td>
+      <td>${esc(p.quantidade)}</td>
+      <td>${esc(p.data_compra)}</td>
+      <td>${esc(p.nome_fornecedor)}</td>
+      <td>${esc(p.municipio)}${p.estado ? `/${esc(p.estado)}` : ""}</td>
+    </tr>`).join("");
+  } catch (err) {
+    meta.textContent = err.message;
+    tb.innerHTML = '<tr><td colspan="5">-</td></tr>';
   }
 }
 

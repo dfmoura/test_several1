@@ -12,8 +12,13 @@ from sqlalchemy.orm import Session
 from app.application.movement_importer import MovementImporter
 from app.domain.models import ComparisonMeta, Movement, PortfolioSummary, TickerDashboard, TimelinePoint
 from app.domain.position_calculator import PositionCalculator
+from app.domain.savings_comparator import (
+    DEFAULT_SAVINGS_MONTHLY_RATE,
+    DEFAULT_SELIC_MONTHLY_RATE,
+)
 from app.infrastructure.b3_parser import B3MovementParser
 from app.domain.transfer_resolver import apply_transfer_resolution
+from app.infrastructure.bcb_benchmark_provider import BcbBenchmarkProvider, BenchmarkMonthlyRates
 from app.infrastructure.database import ImportBatchORM, MovementORM
 from app.infrastructure.quote_provider import QuoteProvider
 
@@ -33,6 +38,7 @@ class PortfolioService:
         self.parser = B3MovementParser()
         self.calculator = PositionCalculator()
         self.quote_provider = QuoteProvider()
+        self.bcb_provider = BcbBenchmarkProvider()
 
     def import_xlsx(self, file_path: str, original_name: str) -> ImportResult:
         file_hash = self._file_hash(file_path)
@@ -98,6 +104,12 @@ class PortfolioService:
             pos = positions[ticker]
             price = quotes.get(ticker)
             market_value = (pos.quantity * price) if price is not None else None
+            dividends_12m = self.calculator.dividends_12m_per_share(movements, ticker)
+            yield_ratio = (
+                dividends_12m / price
+                if price is not None and price > 0
+                else None
+            )
 
             cards.append(
                 TickerDashboard(
@@ -110,6 +122,8 @@ class PortfolioService:
                     total_income=pos.total_income,
                     current_price=price,
                     market_value=market_value,
+                    dividends_12m=dividends_12m,
+                    yield_ratio=yield_ratio,
                 )
             )
             total_invested += pos.total_invested
@@ -127,34 +141,22 @@ class PortfolioService:
     async def get_ticker_timeline(
         self, ticker: str
     ) -> tuple[list[TimelinePoint], ComparisonMeta]:
-        from app.domain.savings_comparator import DEFAULT_CDI_MONTHLY_RATE, DEFAULT_SAVINGS_MONTHLY_RATE
-
         movements = self._load_domain_movements()
         normalized = ticker.upper()
+        ticker_movements = [m for m in movements if m.ticker == normalized]
+        rates = await self._benchmark_rates_for(ticker_movements)
         quotes = await self.quote_provider.get_quotes([normalized])
         current_price = quotes.get(normalized)
         points = self.calculator.build_timeline(
             movements,
             normalized,
             current_price=current_price,
+            savings_monthly_rate=rates.savings,
+            selic_monthly_rate=rates.selic,
         )
-        savings_advantage = Decimal("0")
-        cdi_advantage = Decimal("0")
-        if points:
-            last = points[-1]
-            savings_advantage = last.asset_patrimony - last.savings_patrimony
-            cdi_advantage = last.asset_patrimony - last.cdi_patrimony
-        meta = ComparisonMeta(
-            savings_advantage=savings_advantage,
-            cdi_advantage=cdi_advantage,
-            savings_monthly_rate_pct=float(DEFAULT_SAVINGS_MONTHLY_RATE * Decimal("100")),
-            cdi_monthly_rate_pct=float(DEFAULT_CDI_MONTHLY_RATE * Decimal("100")),
-        )
-        return points, meta
+        return points, self._comparison_meta(points, rates)
 
     async def get_portfolio_comparison(self) -> tuple[list, ComparisonMeta]:
-        from app.domain.savings_comparator import DEFAULT_CDI_MONTHLY_RATE, DEFAULT_SAVINGS_MONTHLY_RATE
-
         movements = self._load_domain_movements()
         positions = self.calculator.calculate_positions(movements)
         active_tickers = [
@@ -162,24 +164,40 @@ class PortfolioService:
             for ticker, pos in positions.items()
             if pos.quantity > 0 or pos.total_income > 0 or pos.total_invested > 0
         ]
+        rates = await self._benchmark_rates_for(movements)
         quotes = await self.quote_provider.get_quotes(active_tickers)
         points = self.calculator.build_portfolio_timeline(
             movements,
             current_prices=quotes,
+            savings_monthly_rate=rates.savings,
+            selic_monthly_rate=rates.selic,
         )
+        return points, self._comparison_meta(points, rates)
+
+    async def _benchmark_rates_for(self, movements: list[Movement]) -> BenchmarkMonthlyRates:
+        if not movements:
+            return BenchmarkMonthlyRates(
+                savings={},
+                selic={},
+            )
+        start_period = min(m.trade_date for m in movements).strftime("%Y-%m")
+        end_period = max(m.trade_date for m in movements).strftime("%Y-%m")
+        return await self.bcb_provider.get_monthly_rates(start_period, end_period)
+
+    @staticmethod
+    def _comparison_meta(points: list, rates: BenchmarkMonthlyRates) -> ComparisonMeta:
         savings_advantage = Decimal("0")
-        cdi_advantage = Decimal("0")
+        selic_advantage = Decimal("0")
         if points:
             last = points[-1]
             savings_advantage = last.asset_patrimony - last.savings_patrimony
-            cdi_advantage = last.asset_patrimony - last.cdi_patrimony
-        meta = ComparisonMeta(
+            selic_advantage = last.asset_patrimony - last.selic_patrimony
+        return ComparisonMeta(
             savings_advantage=savings_advantage,
-            cdi_advantage=cdi_advantage,
-            savings_monthly_rate_pct=float(DEFAULT_SAVINGS_MONTHLY_RATE * Decimal("100")),
-            cdi_monthly_rate_pct=float(DEFAULT_CDI_MONTHLY_RATE * Decimal("100")),
+            selic_advantage=selic_advantage,
+            savings_monthly_rate_pct=rates.latest_pct(rates.savings, DEFAULT_SAVINGS_MONTHLY_RATE),
+            selic_monthly_rate_pct=rates.latest_pct(rates.selic, DEFAULT_SELIC_MONTHLY_RATE),
         )
-        return points, meta
 
     def has_ticker(self, ticker: str) -> bool:
         movements = self._load_domain_movements()

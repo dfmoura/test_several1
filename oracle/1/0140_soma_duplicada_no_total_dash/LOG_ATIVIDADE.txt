@@ -1,0 +1,10 @@
+Atendimento interno (0140 — soma duplicada no total do dashboard): 
+a demanda era corrigir o total geral exibido no rodapé da tabela nativa do gadget, 
+que somava valores duplicados porque a query (query2.sql) retorna linhas de subtotal (TOTAL / RESUMO VENDEDOR) 
+junto com linhas de detalhe (DETALHE), e o agrupador SUM da tabela não distinguia esses dois conjuntos. 
+Analisamos a query, o componente 792_component.xml e o comportamento do rodapé personalizado no Sankhya; 
+identificamos que o SUM sobre QTDPREV, QTDREAL, VLR_PREV e VLR_REAL contabilizava resumo e detalhe ao mesmo tempo. 
+A correção aplicada foi incluir na query colunas auxiliares ocultas (*_SOMA) com CASE WHEN TOTAL = 'DETALHE' THEN valor ELSE 0 END, 
+mantendo as colunas de exibição inalteradas, 
+e apontar as somas do rodapé para SUM($QTDPREV_SOMA), SUM($QTDREAL_SOMA), SUM($VLR_PREV_SOMA) e SUM($VLR_REAL_SOMA), 
+de forma que apenas as linhas de detalhe entrem no total. Atividade concluída; não há continuação prevista.

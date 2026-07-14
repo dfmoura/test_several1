@@ -1,0 +1,820 @@
+gerar um novo sistema de verificação de licitacoes do zero
+da forma mais inteligente e profissional possivel, com os padroes mais coerentes para este projeto
+
+, utilizar como exemplo/idéia o que ja foi criado:
+/home/dfmoura/Documents/test_several1/uniube/1/licitacoes-hub
+
+
+
+Este sistema funcionara local, com vistas para ir em produção na estrutrua a seguir, onde ate quatro usuario irao utilizar, 
+aki no local nao... somente eu... subirá para produção somente quando estiver melhor/pronto:
+
+Oracle Cloud Free Tier (grátis para sempre)
+Até 4 vCPUs ARM
+24 GB de RAM
+200 GB de armazenamento
+Pode rodar Docker, bancos de dados, n8n, APIs e até projetos em produção leve.
+Exige cartão para verificação, mas não cobra se você permanecer dentro do plano gratuito.
+
+
+
+Serao 3 bases diferentes, com campos diferente, devemos carregar as informações de forma identica ao original o maximo de campos possiveis:
+
+1° Portal prefeitura: 
+https://weblicitacoes.uberlandia.mg.gov.br/weblicitacoes/f/n/licitacoescon?evento=y&descricaoEmpresaLicitacao=1&modoJanelaPlc=popup#
+Processo Licitatório Nº
+Descrição do Edital
+Data Abertura
+Habilitação
+Julgamento
+Homologação
+Situação
+Local da Abertura:
+Data da Visita Técnica:
+Responsável Visita Técnica:
+Local de saída Visita Técnica:
+Descrição do Edital:
+
+
+
+2° Bases csv do power bi:
+https://app.powerbi.com/view?r=eyJrIjoiMzk4ZWFhYmYtMjdjMC00Yzk4LTkxNTAtNzM2MzM0YTAwYWE0IiwidCI6IjdmNWY0YjY0LTcwZDAtNDMwZi1iMDc2LWE0ODg2MmI4NjUxOCJ9
+vamos baixar os dados e organiza-los nesta estrutura:
+FORNECEDORES
+    │
+    ├──────────────┐
+    │              │
+    ▼              ▼
+PROCESSOS      CONTRATOS
+LICITATÓRIOS       │
+    │              │
+    └──────1:N─────┘
+                   │
+                   ▼
+         CONTRATO_RESPONSAVEIS
+            │       │      │
+            │       │      │
+            ▼       ▼      ▼
+         PESSOAS  PAPÉIS  ÓRGÃOS
+
+
+
+
+3° Base da Compras Públicas em Dados Abertos:
+https://dadosabertos.compras.gov.br/swagger-ui/index.html#/
+*Detalhamento a Seguir.
+
+-------------------------------------------
+
+A partir destas bases vamos Criar a estrutura de coleta de modo a garantir sempre a integridade dos dados junto a base oficial, possibilitar 
+gerar as atualizações sem corromper nada.
+a priori manual posteriormente automatico.
+
+
+Na sequencia com um layout bem profissional e clean, aderente ao sistema
+
+seguiremos com a tela de consulta de cada base, 
+com diferente filtros e possibilidades de consulta,
+respeitando as particularidades de cada base.
+
+
+
+
+----------------------------------------------------
+
+
+Detalhamento para a 3° Base da Compras Públicas em Dados Abertos:
+** em anexo a documentação na raiz: DOC.pdf / INTEGRACAO_PNCP.pdf
+
+*******************************************************************
+*******************************************************************
+
+## Modelo Final (ER) – Compras Públicas + PNCP + Contratos Municipais
+
+Considerando:
+
+* as tabelas locais (`licitações`, `contratos`, `gestores e fiscais`);
+* a integração com o **Compras.gov / PNCP**;
+* as UASGs da Prefeitura;
+* itens das contratações;
+* catálogos CATMAT/CATSER;
+
+o modelo abaixo é o mais completo, normalizado e preparado para análises históricas e BI.
+
+---
+
+# Visão Geral do Fluxo
+
+```text
+ÓRGÃO
+  │
+  └──< UASG
+           │
+           └──< CONTRATAÇÃO (PNCP)
+                        │
+                        ├──< ITENS_CONTRATAÇÃO
+                        │           │
+                        │           └──> CATÁLOGO
+                        │
+                        ├──< CONTRATOS
+                        │          │
+                        │          └──< CONTRATO_RESPONSÁVEIS
+                        │                         │
+                        │                         ├──> PESSOAS
+                        │                         ├──> PAPÉIS
+                        │                         └──> ÓRGÃOS
+                        │
+                        └──> FORNECEDORES
+```
+
+---
+
+# Modelo Entidade-Relacionamento (ER)
+
+```text
+┌─────────────────────┐
+│       ORGAOS        │
+├─────────────────────┤
+│ PK id_orgao         │
+│ codigo_orgao        │
+│ cnpj                │
+│ nome                │
+│ esfera              │
+│ poder               │
+│ tipo_administracao  │
+│ orgao_superior_id FK│
+└─────────┬───────────┘
+          │ 1:N
+          ▼
+
+┌─────────────────────┐
+│        UASGS        │
+├─────────────────────┤
+│ PK id_uasg          │
+│ codigo_uasg         │
+│ orgao_id FK         │
+│ nome                │
+│ municipio_ibge      │
+│ municipio           │
+│ uf                  │
+│ adesao_siasg        │
+│ uso_sisg            │
+│ status              │
+└─────────┬───────────┘
+          │ 1:N
+          ▼
+
+┌──────────────────────────────┐
+│      CONTRATACOES_PNCP       │
+├──────────────────────────────┤
+│ PK id_compra                 │
+│ numero_controle_pncp UNIQUE  │
+│ uasg_id FK                   │
+│ fornecedor_id FK             │
+│ processo                     │
+│ numero_compra                │
+│ ano_compra                   │
+│ modalidade_id FK             │
+│ modo_disputa                 │
+│ amparo_legal                 │
+│ objeto                       │
+│ situacao                     │
+│ valor_estimado               │
+│ valor_homologado             │
+│ dt_publicacao                │
+│ dt_abertura                  │
+│ dt_encerramento              │
+└──────┬───────────────┬───────┘
+       │1:N            │N:1
+       │               ▼
+       │        ┌───────────────┐
+       │        │ FORNECEDORES  │
+       │        ├───────────────┤
+       │        │PK id_fornecedor
+       │        │cnpj_cpf UNIQUE
+       │        │razao_social
+       │        │tipo_pessoa
+       │        │pais
+       │        └───────────────┘
+       │
+       │
+       ▼
+
+┌──────────────────────────────┐
+│   ITENS_CONTRATACAO_PNCP     │
+├──────────────────────────────┤
+│ PK id_compra_item            │
+│ compra_id FK                 │
+│ numero_item                  │
+│ grupo                        │
+│ material_servico             │
+│ descricao                    │
+│ quantidade                   │
+│ unidade_medida               │
+│ valor_estimado               │
+│ valor_resultado              │
+│ fornecedor_id FK             │
+│ catalogo_id FK               │
+│ situacao_item                │
+└────────────┬─────────────────┘
+             │
+             ▼
+
+┌──────────────────────────────┐
+│         CATALOGO             │
+├──────────────────────────────┤
+│ PK id_catalogo               │
+│ tipo (MAT/SERV)              │
+│ codigo_catalogo              │
+│ codigo_grupo                 │
+│ nome_grupo                   │
+│ codigo_classe                │
+│ nome_classe                  │
+│ descricao                    │
+│ codigo_ncm_cpc               │
+│ status                       │
+└──────────────────────────────┘
+
+
+CONTRATAÇÕES → CONTRATOS
+
+┌──────────────────────────────┐
+│          CONTRATOS           │
+├──────────────────────────────┤
+│ PK id_contrato               │
+│ numero_controle_pncp UNIQUE  │
+│ compra_id FK                 │
+│ fornecedor_id FK             │
+│ sequencial_contrato          │
+│ numero_contrato_empenho      │
+│ processo                     │
+│ tipo_contrato                │
+│ objeto                       │
+│ valor_inicial                │
+│ valor_global                 │
+│ valor_parcela                │
+│ parcelas                     │
+│ dt_assinatura                │
+│ dt_vigencia_inicio           │
+│ dt_vigencia_fim              │
+│ categoria_processo           │
+└────────────┬─────────────────┘
+             │1:N
+             ▼
+
+┌──────────────────────────────┐
+│  CONTRATO_RESPONSAVEIS       │
+├──────────────────────────────┤
+│ PK id_responsavel            │
+│ contrato_id FK               │
+│ pessoa_id FK                 │
+│ papel_id FK                  │
+│ orgao_id FK                  │
+│ dt_inicio                    │
+│ dt_fim                       │
+└───────┬──────────┬───────────┘
+        │          │
+        │          │
+        ▼          ▼
+
+┌─────────────────┐    ┌────────────────┐
+│    PESSOAS      │    │    PAPEIS      │
+├─────────────────┤    ├────────────────┤
+│PK id_pessoa     │    │PK id_papel     │
+│nome             │    │descricao       │
+│cpf              │    │Gestor          │
+└─────────────────┘    │Fiscal          │
+                        │Fiscal Técnico  │
+                        │Fiscal Adm.     │
+                        └────────────────┘
+
+
+TABELAS DE APOIO
+
+┌──────────────────────┐
+│     MODALIDADES      │
+├──────────────────────┤
+│PK id_modalidade      │
+│codigo                │
+│descricao             │
+└──────────────────────┘
+```
+
+---
+
+# Relacionamentos
+
+| Origem      | Destino           | Cardinalidade |
+| ----------- | ----------------- | ------------- |
+| Órgão       | UASG              | 1:N           |
+| UASG        | Contratações PNCP | 1:N           |
+| Fornecedor  | Contratações      | 1:N           |
+| Contratação | Itens             | 1:N           |
+| Catálogo    | Itens             | 1:N           |
+| Contratação | Contratos         | 1:N           |
+| Fornecedor  | Contratos         | 1:N           |
+| Contrato    | Responsáveis      | 1:N           |
+| Pessoa      | Responsáveis      | 1:N           |
+| Papel       | Responsáveis      | 1:N           |
+| Órgão       | Responsáveis      | 1:N           |
+
+---
+
+# Tabela Modalidades
+
+```text
+1  Leilão
+2  Diálogo Competitivo
+3  Concurso
+4  Concorrência Eletrônica
+5  Concorrência Presencial
+6  Pregão Eletrônico
+7  Pregão Presencial
+8  Dispensa
+9  Inexigibilidade
+10 Manifestação de Interesse
+11 Pré-qualificação
+12 Credenciamento
+```
+
+---
+
+# Modelo Analítico do Processo
+
+O ciclo completo fica:
+
+```text
+ÓRGÃO
+ ↓
+UASG
+ ↓
+CONTRATAÇÃO PNCP
+ ↓
+ITENS
+ ↓
+FORNECEDOR VENCEDOR
+ ↓
+CONTRATO
+ ↓
+GESTORES/FISCAIS
+```
+
+---
+
+# Benefícios deste modelo
+
+* ✅ Integra dados internos e PNCP sem duplicidade.
+* ✅ Permite histórico completo da contratação pública.
+* ✅ Suporta múltiplos contratos originados da mesma contratação.
+* ✅ Suporta vários fiscais e gestores ao longo do tempo.
+* ✅ Aproveita CATMAT/CATSER para classificação dos itens.
+* ✅ Facilita construção de dashboards no Power BI, Metabase e Data Warehouse.
+* ✅ Permite responder perguntas como:
+
+> "Quais fornecedores venceram mais pregões da PMU?"
+
+> "Qual o valor contratado por UASG e secretaria?"
+
+> "Quem era o fiscal do contrato na data X?"
+
+> "Quais itens CATMAT geraram maior gasto?"
+
+> "Qual o tempo médio entre publicação, homologação e assinatura do contrato?"
+
+Esse modelo é suficientemente robusto para servir tanto como **base transacional integrada do PNCP** quanto como **camada dimensional para BI e transparência pública**.
+
+
+
+*******************************************************************
+*******************************************************************
+DETALHES DA API https://dadosabertos.compras.gov.br/
+
+MENU:
+
+05 - UASG - Consulta dados sobre Unidades Administrativas de Serviços Gerais (UASG).
+GET /modulo-uasg/2_consultarOrgao - CONSULTAR ORGAO:
+07 - CONTRATAÇÕES
+ITENS DA CONTRATAÇÃO
+CONSULTA CONTRATO POR - numeroControlePncpCompra
+CONSULTA POR CONTRATO:
+
+
+01 - CATÁLOGO - MATERIAL
+02 - CATÁLOGO - SERVIÇO
+
+
+
+
+
+
+
+05 - UASG
+Consulta dados sobre Unidades Administrativas de Serviços Gerais (UASG).
+
+
+GET /modulo-uasg/1_consultarUasg - CONSULTAR UASG:
+curl -X 'GET' \
+  'https://dadosabertos.compras.gov.br/modulo-uasg/1_consultarUasg?pagina=1&statusUasg=true' \
+  -H 'accept: */*'
+
+    {
+      "codigoUasg": "string",
+      "nomeUasg": "string",
+      "usoSisg": true,
+      "adesaoSiasg": true,
+      "siglaUf": "string",
+      "codigoMunicipio": 0,
+      "codigoMunicipioIbge": 0,
+      "nomeMunicipioIbge": "string",
+      "codigoUnidadePolo": 0,
+      "nomeUnidadePolo": "string",
+      "codigoUnidadeEspelho": 0,
+      "nomeUnidadeEspelho": "string",
+      "uasgCadastradora": true,
+      "cnpjCpfUasg": "string",
+      "codigoOrgao": 0,
+      "cnpjCpfOrgao": "string",
+      "cnpjCpfOrgaoVinculado": "string",
+      "cnpjCpfOrgaoSuperior": "string",
+      "codigoSiorg": "string",
+      "statusUasg": true,
+      "dataImplantacaoSidec": "2026-06-11T18:37:49.201Z",
+      "dataHoraMovimento": "2024-01-15T10:30:00"
+    }
+
+exemplo preenchido:
+    {
+      "codigoUasg": "926922",
+      "nomeUasg": "SECRETARIA M. ADMINISTRAÇÃO/PREF M.UBERLÂNDIA",
+      "usoSisg": false,
+      "adesaoSiasg": true,
+      "siglaUf": "MG",
+      "codigoMunicipio": 54038,
+      "codigoMunicipioIbge": 3170206,
+      "nomeMunicipioIbge": "UBERLÂNDIA",
+      "codigoUnidadePolo": 0,
+      "nomeUnidadePolo": null,
+      "codigoUnidadeEspelho": 0,
+      "nomeUnidadeEspelho": null,
+      "uasgCadastradora": false,
+      "cnpjCpfUasg": "",
+      "codigoOrgao": 98800,
+      "cnpjCpfOrgao": "18431312000620",
+      "cnpjCpfOrgaoVinculado": "18715615000160",
+      "cnpjCpfOrgaoSuperior": "0",
+      "codigoSiorg": "",
+      "statusUasg": true,
+      "dataImplantacaoSidec": "2018-06-06T03:00:00.000+00:00",
+      "dataHoraMovimento": "2025-07-29T17:12:00"
+    }
+
+
+
+
+---------------------------------------------------------------
+
+GET /modulo-uasg/2_consultarOrgao - CONSULTAR ORGAO:
+curl -X 'GET' \
+  'https://dadosabertos.compras.gov.br/modulo-uasg/2_consultarOrgao?pagina=1&codigoOrgao=26262&statusOrgao=true' \
+  -H 'accept: */*'
+
+curl -G 'https://dadosabertos.compras.gov.br/modulo-uasg/2_consultarOrgao' \
+  --data-urlencode 'pagina=1' \
+  --data-urlencode 'cnpjCpfOrgao=18431312000115' \
+  --data-urlencode 'statusOrgao=1' \
+  -H 'accept: application/json'
+
+
+exemplo preenchido:
+
+    {
+      "codigoOrgao": 97000,
+      "nomeOrgao": "REGIAO CENTRO-OESTE",
+      "nomeMnemonicoOrgao": "REGIAO CENTRO-OESTE",
+      "cnpjCpfOrgao": "0",
+      "codigoOrgaoVinculado": 99900,
+      "cnpjCpfOrgaoVinculado": "0",
+      "nomeOrgaoVinculado": "REPUBLICA FEDERATIVA DO BRASIL",
+      "codigoOrgaoSuperior": null,
+      "cnpjCpfOrgaoSuperior": null,
+      "nomeOrgaoSuperior": null,
+      "codigoTipoAdministracao": 11,
+      "nomeTipoAdministracao": "ADMINISTRACAO DIRETA ESTADUAL",
+      "poder": "E",
+      "esfera": "E",
+      "usoSisg": false,
+      "statusOrgao": true,
+      "dataHoraMovimento": "2007-11-30T23:00:00"
+    }  
+    
+    
+    {
+      "codigoOrgao": 98800,
+      "nomeOrgao": "SECRETARIA M. ADMINISTRAÇÃO/PREF M.UBERLÂNDIA",
+      "nomeMnemonicoOrgao": "PMU",
+      "cnpjCpfOrgao": "18431312000620",
+      "codigoOrgaoVinculado": 95120,
+      "cnpjCpfOrgaoVinculado": "18715615000160",
+      "nomeOrgaoVinculado": "EMG-ESTADO DE MINAS GERAIS",
+      "codigoOrgaoSuperior": 95000,
+      "cnpjCpfOrgaoSuperior": "0",
+      "nomeOrgaoSuperior": "REGIAO SUDESTE",
+      "codigoTipoAdministracao": 12,
+      "nomeTipoAdministracao": "ADMINISTRACAO DIRETA MUNICIPAL",
+      "poder": "E",
+      "esfera": "M",
+      "usoSisg": true,
+      "statusOrgao": true,
+      "dataHoraMovimento": "2025-07-29T17:17:00"
+    }    
+    
+    
+    
+-----------------------------
+
+07 - CONTRATAÇÕES
+Consulta contratações realizadas sob a Lei nº 14.133/2021.
+
+
+curl -X 'GET' \
+  'https://dadosabertos.compras.gov.br/modulo-contratacoes/1_consultarContratacoes_PNCP_14133?pagina=1&tamanhoPagina=10&unidadeOrgaoCodigoUnidade=926922&dataPublicacaoPncpInicial=2025-06-10&dataPublicacaoPncpFinal=2026-06-10&codigoModalidade=6' \
+  -H 'accept: */*'
+  
+curl -G 'https://dadosabertos.compras.gov.br/modulo-contratacoes/1.1_consultarContratacoes_PNCP_14133_Id' \
+  --data-urlencode 'codigo=18431312000115-1-000006/2023' \
+  --data-urlencode 'tipo=numeroControlePNCPCompra' \
+  -H 'accept: application/json'  
+  
+  
+  
+      {
+      "idCompra": "string",
+      "numeroControlePNCP": "string",
+      "anoCompraPncp": 0,
+      "sequencialCompraPncp": 0,
+      "orgaoEntidadeCnpj": "string",
+      "orgaoSubrogadoCnpj": "string",
+      "codigoOrgao": 0,
+      "orgaoEntidadeRazaoSocial": "string",
+      "orgaoSubrogadoRazaoSocial": "string",
+      "orgaoEntidadeEsferaId": "string",
+      "orgaoSubrogadoEsferaId": "string",
+      "orgaoEntidadePoderId": "string",
+      "orgaoSubrogadoPoderId": "string",
+      "unidadeOrgaoCodigoUnidade": "string",
+      "unidadeSubrogadaCodigoUnidade": "string",
+      "unidadeOrgaoNomeUnidade": "string",
+      "unidadeSubrogadaNomeUnidade": "string",
+      "unidadeOrgaoUfSigla": "string",
+      "unidadeSubrogadaUfSigla": "string",
+      "unidadeOrgaoMunicipioNome": "string",
+      "unidadeSubrogadaMunicipioNome": "string",
+      "unidadeOrgaoCodigoIbge": 0,
+      "unidadeSubrogadaCodigoIbge": 0,
+      "numeroCompra": "string",
+      "modalidadeIdPncp": 0,
+      "codigoModalidade": 0,
+      "modalidadeNome": "string",
+      "srp": 0,
+      "modoDisputaIdPncp": 0,
+      "codigoModoDisputa": 0,
+      "amparoLegalCodigoPncp": 0,
+      "amparoLegalNome": "string",
+      "amparoLegalDescricao": "string",
+      "informacaoComplementar": "string",
+      "processo": "string",
+      "objetoCompra": "string",
+      "existeResultado": 0,
+      "orcamentoSigilosoCodigo": 0,
+      "orcamentoSigilosoDescricao": "string",
+      "situacaoCompraIdPncp": 0,
+      "situacaoCompraNomePncp": "string",
+      "tipoInstrumentoConvocatorioCodigoPncp": 0,
+      "tipoInstrumentoConvocatorioNome": "string",
+      "modoDisputaNomePncp": "string",
+      "valorTotalEstimado": 0,
+      "valorTotalHomologado": 0,
+      "dataInclusaoPncp": "2024-01-15 10:30:00",
+      "dataAtualizacaoPncp": "2024-01-15 10:30:00",
+      "dataPublicacaoPncp": "2024-01-15 10:30:00",
+      "dataAberturaPropostaPncp": "2024-01-15 10:30:00",
+      "dataEncerramentoPropostaPncp": "2024-01-15 10:30:00",
+      "contratacaoExcluida": 0
+    }
+    
+exemplo preenchido:
+{"idCompra":"92692206902942025","numeroControlePNCP":"18431312001006-1-000403/2025","anoCompraPncp":2025,"sequencialCompraPncp":403,"orgaoEntidadeCnpj":"18431312001006","orgaoSubrogadoCnpj":null,"codigoOrgao":71118,"orgaoEntidadeRazaoSocial":"MUNICIPIO DE UBERLANDIA","orgaoSubrogadoRazaoSocial":null,"orgaoEntidadeEsferaId":"M","orgaoSubrogadoEsferaId":null,"orgaoEntidadePoderId":"N","orgaoSubrogadoPoderId":null,"unidadeOrgaoCodigoUnidade":"926922","unidadeSubrogadaCodigoUnidade":null,"unidadeOrgaoNomeUnidade":"SECRETARIA MUNICIPAL DE EDU. CULTURA - MG","unidadeSubrogadaNomeUnidade":null,"unidadeOrgaoUfSigla":"MG","unidadeSubrogadaUfSigla":null,"unidadeOrgaoMunicipioNome":"UBERLÂNDIA","unidadeSubrogadaMunicipioNome":null,"unidadeOrgaoCodigoIbge":3170206,"unidadeSubrogadaCodigoIbge":null,"numeroCompra":"90294","modalidadeIdPncp":8,"codigoModalidade":6,"modalidadeNome":"Dispensa","srp":false,"modoDisputaIdPncp":4,"codigoModoDisputa":4,"amparoLegalCodigoPncp":19,"amparoLegalNome":"Lei 14.133/2021, Art. 75, II","amparoLegalDescricao":"Dispensa de Licitação: para contratação que envolva valores inferiores a R$ 50.000,00 (cinquenta mil reais), no caso de outros serviços e compras","informacaoComplementar":"Modalidade definida pela diretora de compras, por meio do Despacho de Abertura do Processo de Contratação.","processo":"2942025","objetoCompra":"Aquisição de materiais de limpeza, utensílios domésticos e correlatos (garrafa térmica, coador, balde e outros), em atendimento à Secretaria Municipal de Trânsito e Transportes. Qualquer divergência entre os itens, prevalece o que está no termo de referência.","existeResultado":true,"orcamentoSigilosoCodigo":1,"orcamentoSigilosoDescricao":"Compra sem sigilo","situacaoCompraIdPncp":1,"situacaoCompraNomePncp":"Divulgada no PNCP","tipoInstrumentoConvocatorioCodigoPncp":2,"tipoInstrumentoConvocatorioNome":"Aviso de Contratação Direta","modoDisputaNomePncp":"Dispensa Com Disputa","valorTotalEstimado":11713.75000000,"valorTotalHomologado":9784.60000000,"dataInclusaoPncp":"2025-07-08T16:56:44","dataAtualizacaoPncp":"2025-07-08T16:56:44","dataPublicacaoPncp":"2025-07-08T16:56:44","dataAberturaPropostaPncp":"2025-07-08T16:56:43","dataEncerramentoPropostaPncp":"2025-07-14T10:29:59","contratacaoExcluida":false}    
+
+
+---------------------
+ITENS DA CONTRATAÇÃO
+
+
+ curl -G 'https://dadosabertos.compras.gov.br/modulo-contratacoes/2.1_consultarItensContratacoes_PNCP_14133_Id' \
+  --data-urlencode 'codigo=18431312000115-1-000006/2023' \
+  --data-urlencode 'tipo=numeroControlePNCPCompra' \
+  -H 'accept: application/json'
+{"resultado":[{"idCompra":"92692205002122023","idCompraItem":"9269220500212202300001","idContratacaoPNCP":"18431312000115-1-000006/2023","unidadeOrgaoCodigoUnidade":"926922","orgaoEntidadeCnpj":"18431312000115","numeroItemPncp":1,"numeroItemCompra":1,"numeroGrupo":0,"descricaoResumida":"Transporte rodoviário - pessoal por coletivos (auxílio transporte)","materialOuServico":"S","materialOuServicoNome":"Serviço","codigoClasse":null,"codigoGrupo":null,"codItemCatalogo":null,"descricaodetalhada":null,"unidadeMedida":"UNIDADE","orcamentoSigiloso":false,"itemCategoriaIdPncp":3,"itemCategoriaNome":"Informática (TIC)","criterioJulgamentoIdPncp":1,"criterioJulgamentoNome":"Menor preço","situacaoCompraItem":"2","situacaoCompraItemNome":"Homologado","tipoBeneficio":"5","tipoBeneficioNome":"Não se aplica","incentivoProdutivoBasico":false,"quantidade":20.00000000,"valorUnitarioEstimado":20556.54000000,"valorTotal":411130.80000000,"temResultado":true,"codFornecedor":"00272996000194","nomeFornecedor":"MANOS TRANSPORTES E TURISMO LTDA","quantidadeResultado":20.00000000,"valorUnitarioResultado":18810.00000000,"valorTotalResultado":376200.00000000,"dataInclusaoPncp":"2023-06-02T07:03:28","dataAtualizacaoPncp":"2026-02-09T09:11:51","dataResultado":"2023-08-30 00:00:00.0000000","margemPreferenciaNormal":false,"percentualMargemPreferenciaNormal":null,"margemPreferenciaAdicional":false,"percentualMargemPreferenciaAdicional":null,"codigoNCM":null,"descricaoNCM":null,"numeroControlePNCPCompra":"18431312000115-1-000006/2023"},{"idCompra":"92692205002122023","idCompraItem":"9269220500212202300001","idContratacaoPNCP":"18431312000115-1-000006/2023","unidadeOrgaoCodigoUnidade":"926922","orgaoEntidadeCnpj":"18431312000115","numeroItemPncp":1,"numeroItemCompra":1,"numeroGrupo":0,"descricaoResumida":"Transporte rodoviário - pessoal por coletivos (auxílio transporte)","materialOuServico":"S","materialOuServicoNome":"Serviço","codigoClasse":null,"codigoGrupo":null,"codItemCatalogo":null,"descricaodetalhada":null,"unidadeMedida":"UNIDADE","orcamentoSigiloso":false,"itemCategoriaIdPncp":3,"itemCategoriaNome":"Informática (TIC)","criterioJulgamentoIdPncp":1,"criterioJulgamentoNome":"Menor preço","situacaoCompraItem":"2","situacaoCompraItemNome":"Homologado","tipoBeneficio":"5","tipoBeneficioNome":"Não se aplica","incentivoProdutivoBasico":false,"quantidade":20.00000000,"valorUnitarioEstimado":20556.54000000,"valorTotal":411130.80000000,"temResultado":true,"codFornecedor":"00272996000194","nomeFornecedor":"MANOS TRANSPORTES E TURISMO LTDA","quantidadeResultado":20.00000000,"valorUnitarioResultado":18810.00000000,"valorTotalResultado":376200.00000000,"dataInclusaoPncp":"2023-06-02T07:03:28","dataAtualizacaoPncp":"2026-02-09T09:11:51","dataResultado":"2023-08-30 00:00:00.0000000","margemPreferenciaNormal":false,"percentualMargemPreferenciaNormal":null,"margemPreferenciaAdicional":false,"percentualMargemPreferenciaAdicional":null,"codigoNCM":null,"descricaoNCM":null,"numeroControlePNCPCompra":"18431312000115-1-000006/2023"},{"idCompra":"92692205002122023","idCompraItem":"9269220500212202300002","idContratacaoPNCP":"18431312000115-1-000006/2023","unidadeOrgaoCodigoUnidade":"926922","orgaoEntidadeCnpj":"18431312000115","numeroItemPncp":2,"numeroItemCompra":2,"numeroGrupo":0,"descricaoResumida":"Transporte rodoviário - pessoal por coletivos (auxílio transporte)","materialOuServico":"S","materialOuServicoNome":"Serviço","codigoClasse":null,"codigoGrupo":641,"codItemCatalogo":4391,"descricaodetalhada":"Ônibus escolar com mão-de-obra.","unidadeMedida":"UNIDADE","orcamentoSigiloso":false,"itemCategoriaIdPncp":3,"itemCategoriaNome":"Informática (TIC)","criterioJulgamentoIdPncp":1,"criterioJulgamentoNome":"Menor preço","situacaoCompraItem":"2","situacaoCompraItemNome":"Homologado","tipoBeneficio":"5","tipoBeneficioNome":"Não se aplica","incentivoProdutivoBasico":false,"quantidade":20.00000000,"valorUnitarioEstimado":20556.54000000,"valorTotal":411130.80000000,"temResultado":true,"codFornecedor":"00272996000194","nomeFornecedor":"MANOS TRANSPORTES E TURISMO LTDA","quantidadeResultado":20.00000000,"valorUnitarioResultado":18810.00000000,"valorTotalResultado":376200.00000000,"dataInclusaoPncp":"2023-06-02T07:03:28","dataAtualizacaoPncp":"2025-03-07T13:09:11","dataResultado":"2023-08-30 00:00:00.0000000","margemPreferenciaNormal":false,"percentualMargemPreferenciaNormal":null,"margemPreferenciaAdicional":false,"percentualMargemPreferenciaAdicional":null,"codigoNCM":null,"descricaoNCM":null,"numeroControlePNCPCompra":"18431312000115-1-000006/2023"},{"idCompra":"92692205002122023","idCompraItem":"9269220500212202300003","idContratacaoPNCP":"18431312000115-1-000006/2023","unidadeOrgaoCodigoUnidade":"926922","orgaoEntidadeCnpj":"18431312000115","numeroItemPncp":3,"numeroItemCompra":3,"numeroGrupo":0,"descricaoResumida":"Transporte rodoviário - pessoal por coletivos (auxílio transporte)","materialOuServico":"S","materialOuServicoNome":"Serviço","codigoClasse":null,"codigoGrupo":641,"codItemCatalogo":4391,"descricaodetalhada":"Ônibus escolar com mão-de-obra.","unidadeMedida":"UNIDADE","orcamentoSigiloso":false,"itemCategoriaIdPncp":3,"itemCategoriaNome":"Informática (TIC)","criterioJulgamentoIdPncp":1,"criterioJulgamentoNome":"Menor preço","situacaoCompraItem":"2","situacaoCompraItemNome":"Homologado","tipoBeneficio":"5","tipoBeneficioNome":"Não se aplica","incentivoProdutivoBasico":false,"quantidade":20.00000000,"valorUnitarioEstimado":20556.54000000,"valorTotal":411130.80000000,"temResultado":true,"codFornecedor":"00272996000194","nomeFornecedor":"MANOS TRANSPORTES E TURISMO LTDA","quantidadeResultado":20.00000000,"valorUnitarioResultado":18810.00000000,"valorTotalResultado":376200.00000000,"dataInclusaoPncp":"2023-06-02T07:03:28","dataAtualizacaoPncp":"2025-03-07T13:09:13","dataResultado":"2023-08-30 00:00:00.0000000","margemPreferenciaNormal":false,"percentualMargemPreferenciaNormal":null,"margemPreferenciaAdicional":false,"percentualMargemPreferenciaAdicional":null,"codigoNCM":null,"descricaoNCM":null,"numeroControlePNCPCompra":"18431312000115-1-000006/2023"},{"idCompra":"92692205002122023","idCompraItem":"9269220500212202300004","idContratacaoPNCP":"18431312000115-1-000006/2023","unidadeOrgaoCodigoUnidade":"926922","orgaoEntidadeCnpj":"18431312000115","numeroItemPncp":4,"numeroItemCompra":4,"numeroGrupo":0,"descricaoResumida":"Transporte rodoviário - pessoal por coletivos (auxílio transporte)","materialOuServico":"S","materialOuServicoNome":"Serviço","codigoClasse":null,"codigoGrupo":641,"codItemCatalogo":4391,"descricaodetalhada":"Ônibus escolar com mão-de-obra.","unidadeMedida":"UNIDADE","orcamentoSigiloso":false,"itemCategoriaIdPncp":3,"itemCategoriaNome":"Informática (TIC)","criterioJulgamentoIdPncp":1,"criterioJulgamentoNome":"Menor preço","situacaoCompraItem":"2","situacaoCompraItemNome":"Homologado","tipoBeneficio":"5","tipoBeneficioNome":"Não se aplica","incentivoProdutivoBasico":false,"quantidade":20.00000000,"valorUnitarioEstimado":20556.54000000,"valorTotal":411130.80000000,"temResultado":true,"codFornecedor":"00272996000194","nomeFornecedor":"MANOS TRANSPORTES E TURISMO LTDA","quantidadeResultado":20.00000000,"valorUnitarioResultado":18810.00000000,"valorTotalResultado":376200.00000000,"dataInclusaoPncp":"2023-06-02T07:03:28","dataAtualizacaoPncp":"2025-03-07T13:09:14","dataResultado":"2023-08-30 00:00:00.0000000","margemPreferenciaNormal":false,"percentualMargemPreferenciaNormal":null,"margemPreferenciaAdicional":false,"percentualMargemPreferenciaAdicional":null,"codigoNCM":null,"descricaoNCM":null,"numeroControlePNCPCompra":"18431312000115-1-000006/2023"}],"totalRegistros":5,"totalPaginas":0,"paginasRestantes":1}
+
+
+
+
+
+
+
+
+-----------------------------
+CONSULTA CONTRATO POR - numeroControlePncpCompra
+
+
+curl -s 'https://pncp.gov.br/api/pncp/v1/orgaos/18431312000115/contratos/2023/88' \os/2023/88' \
+  -H 'accept: application/json'
+{"valorParcela":90288000.0000,"anoContrato":2023,"tipoContrato":{"id":1,"nome":"Contrato (termo inicial)","descricao":null,"statusAtivo":true},"numeroContratoEmpenho":"350","orgaoEntidade":{"cnpj":"18431312000115","razaoSocial":"MUNICIPIO DE UBERLANDIA","esferaId":"M","poderId":"N"},"dataAssinatura":"2023-08-28","dataVigenciaFim":"2028-08-28","frutoAdesao":null,"dataVigenciaInicio":"2023-08-28","dataAtualizacao":"2023-08-30T17:34:29","niFornecedor":"00272996000194","tipoPessoa":"PJ","categoriaProcesso":{"id":8,"nome":"Serviços"},"nomeRazaoSocialFornecedor":"MANOS TRANSPORTES E TURISMO LTDA","niFornecedorSubContratado":null,"orgaoSubRogado":null,"dataPublicacaoPncp":"2023-08-30T17:34:27","unidadeOrgao":{"codigoUnidade":"926922","nomeUnidade":"PREF. MUN. DE UBERLANDIA - SEC. MUN. DE ADM.","municipioNome":"Uberlândia","codigoIbge":"3170206","ufSigla":"MG","ufNome":"Minas Gerais"},"unidadeSubRogada":null,"informacaoComplementar":null,"sequencialContrato":88,"processo":"212/2023","tipoPessoaSubContratada":null,"numeroRetificacao":0,"objetoContrato":"Contratação de empresa especializada para prestação de serviços de transporte automotivo escolar, com fornecimento de mão-de-obra (condutores e acompanhantes) e veículos.","nomeFornecedorSubContratado":null,"dataAtualizacaoGlobal":"2026-05-14T12:02:15","valorAcumulado":null,"valorInicial":90288000.0000,"valorGlobal":90288000.0000,"emendaParlamentar":null,"numeroParcelas":60,"temRemanejamento":null,"numeroControlePNCP":"18431312000115-2-000088/2023","receita":false,"urlCipi":null,"identificadorCipi":null,"usuarioNome":"Compras.gov.br","numeroControlePncpCompra":"18431312000115-1-000006/2023","codigoPaisFornecedor":"BRA","numeroControlePncpAta":null}
+
+
+
+-------------------------------
+CONSULTA POR CONTRATO:
+
+dfmoura@dfmoura-Nitro-ANV15-52:~$ curl -G 'https://pncp.gov.br/api/consulta/v1/contratos' \
+  --data-urlencode 'dataInicial=20230828' \
+  --data-urlencode 'dataFinal=20230831' \
+  --data-urlencode 'cnpjOrgao=18431312000115' \
+  --data-urlencode 'pagina=1' \
+  --data-urlencode 'tamanhoPagina=50' \
+  -H 'accept: application/json'
+{"data":[{"numeroControlePncpAta":null,"codigoPaisFornecedor":"BRA","numeroControlePncpCompra":"18431312000115-1-000122/2023","anoContrato":2023,"tipoContrato":{"id":1,"nome":"Contrato (termo inicial)"},"numeroContratoEmpenho":"353","dataAssinatura":"2023-08-22","dataVigenciaInicio":"2023-08-22","dataVigenciaFim":"2023-10-20","niFornecedor":"29801247000199","tipoPessoa":"PJ","orgaoEntidade":{"cnpj":"18431312000115","razaoSocial":"MUNICIPIO DE UBERLANDIA","poderId":"N","esferaId":"M"},"categoriaProcesso":{"id":8,"nome":"Serviços"},"dataPublicacaoPncp":"2023-08-28T14:59:51","dataAtualizacao":"2023-08-28T14:59:53","sequencialContrato":81,"unidadeOrgao":{"ufNome":"Minas Gerais","codigoUnidade":"926922","nomeUnidade":"PREF. MUN. DE UBERLANDIA - SEC. MUN. DE ADM.","ufSigla":"MG","municipioNome":"Uberlândia","codigoIbge":"3170206"},"informacaoComplementar":null,"processo":"401/2023","unidadeSubRogada":null,"orgaoSubRogado":null,"nomeRazaoSocialFornecedor":"VENOSA SHOW LTDA","niFornecedorSubContratado":null,"nomeFornecedorSubContratado":null,"numeroControlePNCP":"18431312000115-2-000081/2023","receita":false,"numeroParcelas":1,"numeroRetificacao":0,"temRemanejamento":null,"emendaParlamentar":null,"frutoAdesao":null,"tipoPessoaSubContratada":null,"objetoContrato":"Prestação de serviços artísticos, com apresentação de show musical de Venosa Show, no evento em comemoração ao aniversário de Uberlândia em 31/08/2023, em atendimento à Secretaria Municipal de Cultura e Turismo.","valorInicial":15000.0000,"valorParcela":15000.0000,"valorGlobal":15000.0000,"valorAcumulado":null,"dataAtualizacaoGlobal":"2023-08-28T14:59:53","identificadorCipi":null,"urlCipi":null,"usuarioNome":"Compras.gov.br"},{"numeroControlePncpAta":null,"codigoPaisFornecedor":"BRA","numeroControlePncpCompra":"18431312000115-1-000123/2023","anoContrato":2023,"tipoContrato":{"id":1,"nome":"Contrato (termo inicial)"},"numeroContratoEmpenho":"361","dataAssinatura":"2023-08-24","dataVigenciaInicio":"2023-08-24","dataVigenciaFim":"2023-10-22","niFornecedor":"38158080000180","tipoPessoa":"PJ","orgaoEntidade":{"cnpj":"18431312000115","razaoSocial":"MUNICIPIO DE UBERLANDIA","poderId":"N","esferaId":"M"},"categoriaProcesso":{"id":8,"nome":"Serviços"},"dataPublicacaoPncp":"2023-08-28T15:21:25","dataAtualizacao":"2023-08-28T15:21:26","sequencialContrato":82,"unidadeOrgao":{"ufNome":"Minas Gerais","codigoUnidade":"926922","nomeUnidade":"PREF. MUN. DE UBERLANDIA - SEC. MUN. DE ADM.","ufSigla":"MG","municipioNome":"Uberlândia","codigoIbge":"3170206"},"informacaoComplementar":null,"processo":"414/2023","unidadeSubRogada":null,"orgaoSubRogado":null,"nomeRazaoSocialFornecedor":"ROLE ASSESSORIA E ENTRETENIMENTO LTDA","niFornecedorSubContratado":null,"nomeFornecedorSubContratado":null,"numeroControlePNCP":"18431312000115-2-000082/2023","receita":false,"numeroParcelas":1,"numeroRetificacao":0,"temRemanejamento":null,"emendaParlamentar":null,"frutoAdesao":null,"tipoPessoaSubContratada":null,"objetoContrato":"Prestação de serviços artísticos, com apresentação de show musical de Mônica Costa e banda, no evento em comemoração ao aniversário de Uberlândia em 30/08/2023, em atendimento à Secretaria Municipal de Cultura e Turismo.","valorInicial":8000.0000,"valorParcela":8000.0000,"valorGlobal":8000.0000,"valorAcumulado":null,"dataAtualizacaoGlobal":"2023-08-28T15:21:26","identificadorCipi":null,"urlCipi":null,"usuarioNome":"Compras.gov.br"},],"totalRegistros":10,"totalPaginas":1,"numeroPagina":1,"paginasRestantes":0,"empty":false}dfmoura@dfmoura-Nitro-ANV15-52:
+
+
+
+------------------------------------------------
+CONTRATOS POR PERIODO E ORGAO
+dfmoura@dfmoura-Nitro-ANV15-52:~$ curl -G 'https://pncp.gov.br/api/consulta/v1/contratos' \
+  --data-urlencode 'dataInicial=20230801' \
+  --data-urlencode 'dataFinal=20230831' \
+  --data-urlencode 'cnpjOrgao=18431312000115' \
+  --data-urlencode 'pagina=1' \
+  --data-urlencode 'tamanhoPagina=50' \
+  -H 'accept: application/json'
+{"data":[{"numeroControlePncpCompra":"18431312000115-1-000076/2023","numeroControlePncpAta":null,"codigoPaisFornecedor":"BRA","anoContrato":2023,"tipoContrato":{"id":1,"nome":"Contrato (termo inicial)"},"numeroContratoEmpenho":"259","dataAssinatura":"2023-07-25","dataVigenciaInicio":"2023-07-25","dataVigenciaFim":"2024-07-25","niFornecedor":"03447242000205","tipoPessoa":"PJ","orgaoEntidade":{"cnpj":"18431312000115","razaoSocial":"MUNICIPIO DE UBERLANDIA","poderId":"N","esferaId":"M"},"categoriaProcesso":{"id":8,"nome":"Serviços"},"dataPublicacaoPncp":"2023-08-01T13:33:08","dataAtualizacao":"2023-08-01T13:33:11","sequencialContrato":56,"unidadeOrgao":{"ufNome":"Minas Gerais","codigoUnidade":"926922","nomeUnidade":"PREF. MUN. DE UBERLANDIA - SEC. MUN. DE ADM.","ufSigla":"MG","municipioNome":"Uberlândia","codigoIbge":"3170206"},"informacaoComplementar":null,"processo":"259/2023","unidadeSubRogada":null,"orgaoSubRogado":null,"nomeRazaoSocialFornecedor":"SERVICO NACIONAL DE APRENDIZAGEM COMERCIAL - SENAC MINAS","niFornecedorSubContratado":null,"nomeFornecedorSubContratado":null,"numeroControlePNCP":"18431312000115-2-000056/2023","receita":false,"numeroParcelas":12,"numeroRetificacao":0,"temRemanejamento":null,"emendaParlamentar":null,"frutoAdesao":null,"tipoPessoaSubContratada":null,"objetoContrato":"Contratação de instituição/empresa especializada em ministrar cursos profissionalizantes, destinados à jovens e adultos com idade acima de 16 anos em situação de vulnerabilidade social, conforme especificações do Termo de Referência.","valorInicial":596640.0000,"valorParcela":49720.0000,"valorGlobal":596640.0000,"valorAcumulado":null,"dataAtualizacaoGlobal":"2023-08-01T13:33:11","identificadorCipi":null,"urlCipi":null,"usuarioNome":"Compras.gov.br"},{"numeroControlePncpCompra":"18431312000115-1-000084/2023","numeroControlePncpAta":null,"codigoPaisFornecedor":"BRA","anoContrato":2023,"tipoContrato":{"id":1,"nome":"Contrato (termo inicial)"},"numeroContratoEmpenho":"332","dataAssinatura":"2023-07-31","dataVigenciaInicio":"2023-08-01","dataVigenciaFim":"2023-12-31","niFornecedor":"00272996000194","tipoPessoa":"PJ","orgaoEntidade":{"cnpj":"18431312000115","razaoSocial":"MUNICIPIO DE UBERLANDIA","poderId":"N","esferaId":"M"},"categoriaProcesso":{"id":8,"nome":"Serviços"},"dataPublicacaoPncp":"2023-08-03T11:59:23","dataAtualizacao":"2023-08-03T11:59:25","sequencialContrato":59,"unidadeOrgao":{"ufNome":"Minas Gerais","codigoUnidade":"926922","nomeUnidade":"PREF. MUN. DE UBERLANDIA - SEC. MUN. DE ADM.","ufSigla":"MG","municipioNome":"Uberlândia","codigoIbge":"3170206"},"informacaoComplementar":null,"processo":"398/2023","unidadeSubRogada":null,"orgaoSubRogado":null,"nomeRazaoSocialFornecedor":"MANOS TRANSPORTES E TURISMO LTDA","niFornecedorSubContratado":null,"nomeFornecedorSubContratado":null,"numeroControlePNCP":"18431312000115-2-000059/2023","receita":false,"numeroParcelas":5,"numeroRetificacao":0,"temRemanejamento":null,"emendaParlamentar":null,"frutoAdesao":null,"tipoPessoaSubContratada":null,"objetoContrato":"prestação de serviços de transporte automotivo escolar, com fornecimento de de mão de obra (condutores e acompanhantes) e veículos, em atendimento à Secretaria Municipal de Educação, conforme especificações no termo de referência","valorInicial":7524000.0000,"valorParcela":7524000.0000,"valorGlobal":7524000.0000,"valorAcumulado":null,"dataAtualizacaoGlobal":"2023-08-03T11:59:25","identificadorCipi":null,"urlCipi":null,"usuarioNome":"Compras.gov.br"},{"numeroControlePncpCompra":"18431312000115-1-000091/2023","numeroControlePncpAta":null,"codigoPaisFornecedor":"BRA","anoContrato":2023,"tipoContrato":{"id":7,"nome":"Empenho"},"numeroContratoEmpenho":"26979","dataAssinatura":"2023-08-03","dataVigenciaInicio":"2023-08-03","dataVigenciaFim":"2023-08-14","niFornecedor":"18774985000178","tipoPessoa":"PJ","orgaoEntidade":{"cnpj":"18431312000115","razaoSocial":"MUNICIPIO DE UBERLANDIA","poderId":"N","esferaId":"M"},"categoriaProcesso":{"id":2,"nome":"Compras"},"dataPublicacaoPncp":"2023-08-04T13:51:46","dataAtualizacao":"2023-08-04T13:51:46","sequencialContrato":62,"unidadeOrgao":{"ufNome":"Minas Gerais","codigoUnidade":"926922","nomeUnidade":"PREF. MUN. DE UBERLANDIA - SEC. MUN. DE ADM.","ufSigla":"MG","municipioNome":"Uberlândia","codigoIbge":"3170206"},"informacaoComplementar":"Fundamentado no art. 75, inciso VIII, da lei federal nº 14.133/2021.","processo":"3852023","unidadeSubRogada":null,"orgaoSubRogado":null,"nomeRazaoSocialFornecedor":"REGO ESPORTES E CIA LTDA","niFornecedorSubContratado":null,"nomeFornecedorSubContratado":null,"numeroControlePNCP":"18431312000115-2-000062/2023","receita":false,"numeroParcelas":1,"numeroRetificacao":0,"temRemanejamento":null,"emendaParlamentar":null,"frutoAdesao":null,"tipoPessoaSubContratada":null,"objetoContrato":"Aquisição de materiais esportivos e de premiação para a realização dos Jogos das Escolas Municiais de Uberlândia - JEMU 2023, em atendimento à Secretaria Municipal de Educação.","valorInicial":7912.7800,"valorParcela":7912.7800,"valorGlobal":7912.7800,"valorAcumulado":null,"dataAtualizacaoGlobal":"2023-08-04T13:51:46","identificadorCipi":null,"urlCipi":null,"usuarioNome":"Compras.gov.br"},{"numeroControlePncpCompra":"18431312000115-1-000091/2023","numeroControlePncpAta":null,"codigoPaisFornecedor":"BRA","anoContrato":2023,"tipoContrato":{"id":7,"nome":"Empenho"},"numeroContratoEmpenho":"26982","dataAssinatura":"2023-08-03","dataVigenciaInicio":"2023-08-03","dataVigenciaFim":"2023-08-14","niFornecedor":"18774985000178","tipoPessoa":"PJ","orgaoEntidade":{"cnpj":"18431312000115","razaoSocial":"MUNICIPIO DE UBERLANDIA","poderId":"N","esferaId":"M"},"categoriaProcesso":{"id":2,"nome":"Compras"},"dataPublicacaoPncp":"2023-08-04T13:53:38","dataAtualizacao":"2023-08-04T13:53:39","sequencialContrato":63,"unidadeOrgao":{"ufNome":"Minas Gerais","codigoUnidade":"926922","nomeUnidade":"PREF. MUN. DE UBERLANDIA - SEC. MUN. DE ADM.","ufSigla":"MG","municipioNome":"Uberlândia","codigoIbge":"3170206"},"informacaoComplementar":"Fundamentado no art. 75, inciso VIII, da lei federal nº 14.133/2021","processo":"3852023","unidadeSubRogada":null,"orgaoSubRogado":null,"nomeRazaoSocialFornecedor":"REGO ESPORTES E CIA LTDA","niFornecedorSubContratado":null,"nomeFornecedorSubContratado":null,"numeroControlePNCP":"18431312000115-2-000063/2023","receita":false,"numeroParcelas":1,"numeroRetificacao":0,"temRemanejamento":null,"emendaParlamentar":null,"frutoAdesao":null,"tipoPessoaSubContratada":null,"objetoContrato":"Aquisição de materiais esportivos e de premiação para a realização dos Jogos das Escolas Municiais de Uberlândia - JEMU 2023, em atendimento à Secretaria Municipal de Educação.","valorInicial":13969.0000,"valorParcela":13969.0000,"valorGlobal":13969.0000,"valorAcumulado":null,"dataAtualizacaoGlobal":"2023-08-04T13:53:39","identificadorCipi":null,"urlCipi":null,"usuarioNome":"Compras.gov.br"}],"totalRegistros":36,"totalPaginas":1,"numeroPagina":1,"paginasRestantes":0,"empty":false}
+
+
+
+
+
+--------------------------------------------
+01 - CATÁLOGO - MATERIAL
+Catálogo de Materiais (CATMAT): Consulta itens de materiais com dados detalhados.
+
+GET
+/modulo-material/4_consultarItemMaterial
+
+curl -X 'GET' \
+  'https://dadosabertos.compras.gov.br/modulo-material/4_consultarItemMaterial?pagina=1&bps=false' \
+  -H 'accept: */*'
+
+dados exemplo:
+
+{
+  "resultado": [
+    {
+      "codigoItem": 0,
+      "codigoGrupo": 0,
+      "nomeGrupo": "string",
+      "codigoClasse": 0,
+      "nomeClasse": "string",
+      "codigoPdm": 0,
+      "nomePdm": "string",
+      "descricaoItem": "string",
+      "statusItem": true,
+      "itemSustentavel": true,
+      "codigo_ncm": "string",
+      "descricao_ncm": "string",
+      "aplica_margem_preferencia": true,
+      "dataHoraAtualizacao": "2024-01-15T10:30:00"
+    }
+  ],
+  "totalRegistros": 0,
+  "totalPaginas": 0,
+  "paginasRestantes": 0
+}
+
+    {
+      "codigoItem": 206504,
+      "codigoGrupo": 71,
+      "nomeGrupo": "MOBILIÁRIOS",
+      "codigoClasse": 7110,
+      "nomeClasse": "MOBILIÁRIO PARA ESCRITÓRIO",
+      "codigoPdm": 313,
+      "nomePdm": "CADEIRA ESCRITÓRIO",
+      "descricaoItem": "CADEIRA ESCRITÓRIO, MATERIAL ESTRUTURA: TUBO AÇO , MATERIAL REVESTIMENTO ASSENTO E ENCOSTO: COURO , MATERIAL ENCOSTO: ESPUMA INJETADA , MATERIAL ASSENTO: ESPUMA LAMINADA , TRATAMENTO SUPERFICIAL ESTRUTURA: NIQUELADO , TIPO BASE: GIRATÓRIO , TIPO ENCOSTO: BAIXO , APOIO BRAÇO: COM BRAÇOS , REGULAGEM VERTICAL: COM REGULAGEM , COR: AMARELA ",
+      "statusItem": true,
+      "itemSustentavel": false,
+      "codigo_ncm": null,
+      "descricao_ncm": null,
+      "aplica_margem_preferencia": null,
+      "dataHoraAtualizacao": "2021-10-16T09:43:08.030221"
+    },
+
+------------------------------------------------------------
+
+02 - CATÁLOGO - SERVIÇO
+Catálogo de Serviços (CATSER): Consulta serviços com informações detalhadas.
+
+  GET
+/modulo-servico/6_consultarItemServico
+
+
+
+curl -X 'GET' \
+  'https://dadosabertos.compras.gov.br/modulo-servico/6_consultarItemServico?pagina=1&tamanhoPagina=10' \
+  -H 'accept: */*'
+  
+  
+
+
+
+    {
+      "codigoSecao": 9,
+      "nomeSecao": "SERVIÇOS DA COMUNIDADE, PESSOAIS E SOCIAIS E OUTROS SERVIÇOS",
+      "codigoDivisao": 93,
+      "nomeDivisao": "SERVIÇO SOCIAL E DE SAÚDE",
+      "codigoGrupo": 931,
+      "nomeGrupo": "SERVIÇOS DE SAÚDE HUMANA",
+      "codigoClasse": 9311,
+      "nomeClasse": "SERVIÇOS HOSPITALARES",
+      "codigoSubclasse": null,
+      "nomeSubclasse": null,
+      "codigoServico": 7250,
+      "nomeServico": "ENDOSCOPIA DIGESTIVA CIRURGICA - DRENAGEM CAVITARIA POR LAPAROSCOPIA",
+      "codigoCpc": 9311,
+      "exclusivoCentralCompras": false,
+      "statusServico": true,
+      "dataHoraAtualizacao": "2021-10-16T09:09:59.689615"
+    },
+    
+    
+    
+    
+{
+  "resultado": [
+    {
+      "codigoSecao": 0,
+      "nomeSecao": "string",
+      "codigoDivisao": 0,
+      "nomeDivisao": "string",
+      "codigoGrupo": 0,
+      "nomeGrupo": "string",
+      "codigoClasse": 0,
+      "nomeClasse": "string",
+      "codigoSubclasse": 0,
+      "nomeSubclasse": "string",
+      "codigoServico": 0,
+      "nomeServico": "string",
+      "codigoCpc": 0,
+      "exclusivoCentralCompras": true,
+      "statusServico": true,
+      "dataHoraAtualizacao": "2024-01-15T10:30:00"
+    }
+  ],
+  "totalRegistros": 0,
+  "totalPaginas": 0,
+  "paginasRestantes": 0
+}    
+
+
+
+
+********************************
+********************************
+INFORMAÇÕES
+
+
+
+*UASG PARA SEREM UTILIZADAS*
+926922 - PMU
+926287 - DMAE
+926038 - FUTEL
+931351 - ARESAN
+930403 - FERUB
+929315 - EMAM
+929301 - IPREMU
+925010 - Câmara Municipal
+
+
+*ENTENDIMENTO DE MODALIDADES:
+| Código | Modalidade                |
+| ------ | ------------------------- |
+| **1**  | Leilão                    |
+| **2**  | Diálogo Competitivo       |
+| **3**  | Concurso                  |
+| **4**  | Concorrência - Eletrônica |
+| **5**  | Concorrência - Presencial |
+| **6**  | Pregão - Eletrônico       |
+| **7**  | Pregão - Presencial       |
+| **8**  | Dispensa de Licitação     |
+| **9**  | Inexigibilidade           |
+| **10** | Manifestação de Interesse |
+| **11** | Pré-qualificação          |
+| **12** | Credenciamento            |
+

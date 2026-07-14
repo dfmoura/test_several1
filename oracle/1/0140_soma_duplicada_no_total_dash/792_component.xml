@@ -1,0 +1,26 @@
+<gadget>
+  <level id="01R" description="Principal">
+    <container orientacao="V" tamanhoRelativo="100">
+      <grid id="grd_01S" useNewGrid="S">
+        <expression type="sql" data-source="MGEDS"><![CDATA[
+select
+  codprod,
+  vlrtot,
+  case when codprod = 41 then vlrtot else 0 end as vlrtot_41
+from tgfite
+where rownum < 10
+]]></expression>
+        <metadata>
+          <field name="CODPROD" label="CODPROD" type="I" visible="true" useFooter="false"></field>
+          <field name="VLRTOT" label="VLRTOT" type="F" visible="true" useFooter="PER">
+            <aggregates per="PER">
+              <text><![CDATA[.]]></text>
+              <personalized><![CDATA[SUM($VLRTOT_41)]]></personalized>
+            </aggregates>
+          </field>
+          <field name="VLRTOT_41" label="VLRTOT_41" type="F" visible="false" useFooter="false"></field>
+        </metadata>
+      </grid>
+    </container>
+  </level>
+</gadget>

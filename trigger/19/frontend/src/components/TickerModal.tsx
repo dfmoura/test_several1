@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import { api } from "../api";
 import { PatrimonyComparisonChart } from "./PatrimonyComparisonChart";
-import { formatCurrency, formatPeriod, formatQuantity } from "../utils";
+import { formatCurrency, formatPeriod, formatPercent, formatQuantity } from "../utils";
 
 interface Props {
   ticker: string;
@@ -35,10 +35,12 @@ interface ChartPoint {
   invested_unit_price: number | null;
   liquidated_unit_price: number | null;
   income_unit_price: number | null;
+  avg_purchase_unit_price: number | null;
+  income_avg_purchase_unit_price: number | null;
   net_flow: number;
   asset_patrimony: number;
   savings_patrimony: number;
-  cdi_patrimony: number;
+  selic_patrimony: number;
 }
 
 type FlowChartPoint = ChartPoint;
@@ -57,9 +59,9 @@ export function TickerModal({ ticker, onClose }: Props) {
     })) ?? [];
 
   const savingsAdvantage = data?.comparison_advantage ?? 0;
-  const cdiAdvantage = data?.cdi_advantage ?? 0;
+  const selicAdvantage = data?.selic_advantage ?? 0;
   const savingsRate = data?.savings_monthly_rate_pct ?? 0.5;
-  const cdiRate = data?.cdi_monthly_rate_pct ?? 0.85;
+  const selicRate = data?.selic_monthly_rate_pct ?? 0.85;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
@@ -95,9 +97,9 @@ export function TickerModal({ ticker, onClose }: Props) {
               <PatrimonyComparisonChart
                 data={chartData}
                 savingsAdvantage={savingsAdvantage}
-                cdiAdvantage={cdiAdvantage}
+                selicAdvantage={selicAdvantage}
                 savingsRate={savingsRate}
-                cdiRate={cdiRate}
+                selicRate={selicRate}
               />
 
               <ChartPanel
@@ -282,13 +284,30 @@ function MonthlyIncomeTooltip({ active, payload, label }: TooltipProps<number, s
   const point = payload[0].payload as ChartPoint;
   if (point.income <= 0) return null;
 
+  const dividendUnitPrice = point.income_unit_price;
+  const avgPurchasePrice = point.income_avg_purchase_unit_price;
+  const yieldValue =
+    dividendUnitPrice != null &&
+    dividendUnitPrice > 0 &&
+    avgPurchasePrice != null &&
+    avgPurchasePrice > 0
+      ? dividendUnitPrice / avgPurchasePrice
+      : null;
+
   return (
     <TooltipShell
-      label={label}
       rows={[
-        { label: "Proventos do mês", value: formatCurrency(point.income), color: "#fbbf24" },
-        { label: "Quantidade", value: formatQuantity(point.income_quantity) },
-        { label: "Valor unitário", value: formatCurrency(point.income_unit_price) },
+        { label: "Data do provento", value: label ?? "—" },
+        { label: "Valor do provento", value: formatCurrency(point.income), color: "#fbbf24" },
+        {
+          label: "Valor unitário do provento",
+          value: formatCurrency(dividendUnitPrice, 4),
+        },
+        {
+          label: "Preço unitário médio de compra",
+          value: formatCurrency(avgPurchasePrice, 4),
+        },
+        { label: "Yield", value: formatPercent(yieldValue) },
       ]}
     />
   );

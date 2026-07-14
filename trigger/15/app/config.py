@@ -36,15 +36,93 @@ HEADLESS = os.environ.get("HEADLESS", "false").lower() in ("1", "true", "yes")
 DETALHE_SCRAPE = os.environ.get("DETALHE_SCRAPE", "false").lower() in ("1", "true", "yes")
 
 # --- Compras.gov — API Dados Abertos (PNCP / Lei 14.133) ---
-COMPRAS_PNCP_BASE_URL = "https://dadosabertos.compras.gov.br"
+COMPRAS_GOV_BASE_URL = os.environ.get(
+    "COMPRAS_GOV_BASE_URL", "https://dadosabertos.compras.gov.br"
+)
+COMPRAS_PNCP_BASE_URL = COMPRAS_GOV_BASE_URL
 COMPRAS_PNCP_ENDPOINT = (
-    f"{COMPRAS_PNCP_BASE_URL}/modulo-contratacoes/1_consultarContratacoes_PNCP_14133"
+    f"{COMPRAS_GOV_BASE_URL}/modulo-contratacoes/1_consultarContratacoes_PNCP_14133"
 )
 COMPRAS_PNCP_ITENS_ENDPOINT = (
-    f"{COMPRAS_PNCP_BASE_URL}/modulo-contratacoes/2_consultarItensContratacoes_PNCP_14133"
+    f"{COMPRAS_GOV_BASE_URL}/modulo-contratacoes/2_consultarItensContratacoes_PNCP_14133"
 )
 COMPRAS_PNCP_ITENS_ID_ENDPOINT = (
-    f"{COMPRAS_PNCP_BASE_URL}/modulo-contratacoes/2.1_consultarItensContratacoes_PNCP_14133_Id"
+    f"{COMPRAS_GOV_BASE_URL}/modulo-contratacoes/2.1_consultarItensContratacoes_PNCP_14133_Id"
+)
+COMPRAS_RESULTADOS_ENDPOINT = os.environ.get(
+    "COMPRAS_RESULTADOS_ENDPOINT",
+    f"{COMPRAS_GOV_BASE_URL}/modulo-contratacoes/3_consultarResultadoItensContratacoes_PNCP_14133",
+)
+COMPRAS_RESULTADOS_ID_ENDPOINT = (
+    f"{COMPRAS_GOV_BASE_URL}/modulo-contratacoes/3.1_consultarResultadoItensContratacoes_PNCP_14133_Id"
+)
+COMPRAS_UASG_ENDPOINT = os.environ.get(
+    "COMPRAS_UASG_ENDPOINT",
+    f"{COMPRAS_GOV_BASE_URL}/modulo-uasg/1_consultarUasg",
+)
+COMPRAS_ORGAO_ENDPOINT = os.environ.get(
+    "COMPRAS_ORGAO_ENDPOINT",
+    f"{COMPRAS_GOV_BASE_URL}/modulo-uasg/2_consultarOrgao",
+)
+COMPRAS_FORNECEDOR_ENDPOINT = os.environ.get(
+    "COMPRAS_FORNECEDOR_ENDPOINT",
+    f"{COMPRAS_GOV_BASE_URL}/modulo-fornecedor/1_consultarFornecedor",
+)
+COMPRAS_PGC_DETALHE_ENDPOINT = os.environ.get(
+    "COMPRAS_PGC_DETALHE_ENDPOINT",
+    f"{COMPRAS_GOV_BASE_URL}/modulo-pgc/1_consultarPgcDetalhe",
+)
+COMPRAS_PGC_AGREGACAO_ENDPOINT = (
+    f"{COMPRAS_GOV_BASE_URL}/modulo-pgc/3_consultarPgcAgregacao"
+)
+COMPRAS_PRECO_MATERIAL_ENDPOINT = os.environ.get(
+    "COMPRAS_PRECO_MATERIAL_ENDPOINT",
+    f"{COMPRAS_GOV_BASE_URL}/modulo-pesquisa-preco/1_consultarMaterial",
+)
+COMPRAS_PRECO_SERVICO_ENDPOINT = os.environ.get(
+    "COMPRAS_PRECO_SERVICO_ENDPOINT",
+    f"{COMPRAS_GOV_BASE_URL}/modulo-pesquisa-preco/3_consultarServico",
+)
+COMPRAS_CATALOGO_MATERIAL_ENDPOINT = os.environ.get(
+    "COMPRAS_CATALOGO_MATERIAL_ENDPOINT",
+    f"{COMPRAS_GOV_BASE_URL}/modulo-material/4_consultarItemMaterial",
+)
+COMPRAS_CATALOGO_SERVICO_ENDPOINT = os.environ.get(
+    "COMPRAS_CATALOGO_SERVICO_ENDPOINT",
+    f"{COMPRAS_GOV_BASE_URL}/modulo-servico/6_consultarItemServico",
+)
+COMPRAS_IBGE_MUNICIPIO = int(os.environ.get("COMPRAS_IBGE_MUNICIPIO", "3170206"))
+COMPRAS_UF_FILTRO = os.environ.get("COMPRAS_UF_FILTRO", "MG")
+COMPRAS_ORGAOS_CNPJ = [
+    c.strip()
+    for c in os.environ.get(
+        "COMPRAS_ORGAOS_CNPJ",
+        "18.431.312/0001-15",
+    ).split(",")
+    if c.strip()
+]
+COMPRAS_ENRICH_FORNECEDOR = os.environ.get("COMPRAS_ENRICH_FORNECEDOR", "true").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+COMPRAS_ENRICH_CATALOGO = os.environ.get("COMPRAS_ENRICH_CATALOGO", "true").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+COMPRAS_COLETAR_PGC = os.environ.get("COMPRAS_COLETAR_PGC", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+COMPRAS_COLETAR_PRECO = os.environ.get("COMPRAS_COLETAR_PRECO", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+COMPRAS_PNCP_MAX_DIAS_PERIODO_RESULTADOS = int(
+    os.environ.get("COMPRAS_PNCP_MAX_DIAS_PERIODO_RESULTADOS", "90")
 )
 COMPRAS_PNCP_PAGE_SIZE = int(os.environ.get("COMPRAS_PNCP_PAGE_SIZE", "500"))
 COMPRAS_PNCP_ITENS_PAGE_SIZE = int(os.environ.get("COMPRAS_PNCP_ITENS_PAGE_SIZE", "100"))
