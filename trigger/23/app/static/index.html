@@ -4,14 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OSB Uberlândia · Licitações</title>
-  <link rel="icon" type="image/png" href="/static/logo_oficial_udi.png" />
+  <link rel="icon" href="/static/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/static/style.css?v=osb20" />
+  <link rel="stylesheet" href="/static/style.css?v=osb27" />
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -104,7 +106,7 @@
         <button class="nav-btn" data-page="consulta" data-roles="admin,consulta">
           <span class="nav-ico" aria-hidden="true">⌕</span> Consulta · Processo
         </button>
-        <button class="nav-btn" data-page="vencedores" data-roles="admin">
+        <button class="nav-btn" data-page="vencedores" data-roles="admin,consulta">
           <span class="nav-ico" aria-hidden="true">◇</span> CNPJs vencedores
         </button>
         <button class="nav-btn" data-page="propostas" data-roles="admin,consulta">
@@ -310,10 +312,10 @@
                   <tr>
                     <th data-sort="municipio">Município</th>
                     <th data-sort="uf">UF</th>
-                    <th data-sort="quantidade">Resultados</th>
-                    <th data-sort="valor">Valor homologado</th>
-                    <th data-sort="contratacoes">Contratações</th>
-                    <th data-sort="fornecedores">Fornecedores</th>
+                    <th class="col-num" data-sort="quantidade">Resultados</th>
+                    <th class="col-num col-money" data-sort="valor">Valor homologado</th>
+                    <th class="col-num" data-sort="contratacoes">Contratações</th>
+                    <th class="col-num" data-sort="fornecedores">Fornecedores</th>
                     <th data-sort="de_uberlandia">Origem</th>
                   </tr>
                 </thead>
@@ -502,7 +504,8 @@
             <p class="muted">
               Fornecedores homologados a partir de <strong>compras_contratacao_resultados</strong>
               (módulo 07.3), com fallback seguro aos itens quando o resultado ainda não foi coletado.
-              Atualize cada CNPJ individualmente via API pública
+              Clique no <strong>nome</strong> para o QSA; no número de <strong>Itens</strong> para
+              detalhar as homologações. Atualize cada CNPJ individualmente via API pública
               (BrasilAPI → Minha Receita → CNPJá → Pública CNPJ.ws);
               o módulo 10 (Compras.gov) enriquece porte/CNAE/<code>habilitadoLicitar</code> na coleta.
             </p>
@@ -547,9 +550,9 @@
                   <tr>
                     <th class="sortable" data-sort="nome_fornecedor">Fornecedor</th>
                     <th class="sortable" data-sort="cod_fornecedor">CNPJ / CPF</th>
-                    <th class="sortable" data-sort="qtd_itens">Itens</th>
-                    <th class="sortable" data-sort="qtd_compras">Compras</th>
-                    <th class="sortable" data-sort="valor_total_homologado">Valor hom.</th>
+                    <th class="sortable col-num" data-sort="qtd_itens" title="Clique no número para ver as homologações">Itens</th>
+                    <th class="sortable col-num" data-sort="qtd_compras">Compras</th>
+                    <th class="sortable col-num col-money" data-sort="valor_total_homologado">Valor hom.</th>
                     <th class="sortable" data-sort="municipio">Município</th>
                     <th class="sortable" data-sort="status_cache">Cache CNPJ</th>
                     <th class="sortable" data-sort="cnpj_enriquecido_em">Última atualização</th>
@@ -622,13 +625,13 @@
                     <th class="sortable" data-sort="horas_restantes">Prazo</th>
                     <th class="sortable" data-sort="numero_compra">Compra</th>
                     <th class="sortable" data-sort="processo">Processo</th>
-                    <th class="sortable" data-sort="numero_item">Item</th>
+                    <th class="sortable col-num" data-sort="numero_item">Item</th>
                     <th class="sortable" data-sort="descricao_resumida">Descrição</th>
-                    <th class="sortable" data-sort="codigo_ncm">NCM</th>
-                    <th class="sortable" data-sort="quantidade">Qtd</th>
-                    <th class="sortable" data-sort="valor_unitario_estimado_num">Unitário</th>
-                    <th class="sortable" data-sort="valor_total_num">Total est.</th>
-                    <th class="sortable" data-sort="desvio_pct">vs mediana</th>
+                    <th class="sortable col-num" data-sort="codigo_ncm">NCM</th>
+                    <th class="sortable col-num" data-sort="quantidade">Qtd</th>
+                    <th class="sortable col-num col-money" data-sort="valor_unitario_estimado_num">Unitário</th>
+                    <th class="sortable col-num col-money" data-sort="valor_total_num">Total est.</th>
+                    <th class="sortable col-num" data-sort="desvio_pct">vs mediana</th>
                     <th class="sortable" data-sort="unidade_nome">Unidade</th>
                     <th>Ação</th>
                   </tr>
@@ -693,10 +696,10 @@
                     <th class="sortable" data-sort="numero">Nº / Modalidade</th>
                     <th class="sortable" data-sort="processo">Processo</th>
                     <th class="sortable" data-sort="unidade_nome">Unidade</th>
-                    <th class="sortable" data-sort="ano">Ano</th>
+                    <th class="sortable col-num" data-sort="ano">Ano</th>
                     <th class="sortable" data-sort="situacao_lista">Situação</th>
-                    <th class="sortable" data-sort="valor_total_estimado">Valor est.</th>
-                    <th class="sortable" data-sort="valor_total_homologado">Valor hom.</th>
+                    <th class="sortable col-num col-money" data-sort="valor_total_estimado">Valor est.</th>
+                    <th class="sortable col-num col-money" data-sort="valor_total_homologado">Valor hom.</th>
                     <th class="sortable" data-sort="numero_controle_pncp">PNCP</th>
                     <th class="sortable" data-sort="observador_nome">Observador</th>
                     <th class="sortable" data-sort="objeto">Objeto</th>
@@ -1251,6 +1254,39 @@
     </div>
   </dialog>
 
+  <dialog id="modal-vencedor-homologacoes" class="modal">
+    <div class="modal-head">
+      <h3 id="modal-vencedor-homologacoes-titulo">Homologações</h3>
+      <button class="btn ghost" id="modal-vencedor-homologacoes-fechar" type="button">Fechar</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-vencedor-homologacoes-resumo" class="compra-resumo"></div>
+      <section class="detail-panel detail-panel-wide">
+        <h4 class="detail-panel-title">Itens homologados</h4>
+        <p id="modal-vencedor-homologacoes-meta" class="meta-line">-</p>
+        <p class="muted small">
+          Fonte: resultados PNCP (07.3), com fallback aos itens quando o resultado ainda não foi coletado.
+          Textos longos quebram linha. Clique na linha para abrir a contratação, quando disponível.
+        </p>
+        <div class="table-scroll vencedor-homologacoes-scroll">
+          <table class="data-table vencedor-homologacoes-table">
+            <thead id="modal-vencedor-homologacoes-head">
+              <tr>
+                <th class="sortable col-meta" data-sort="data">Data</th>
+                <th class="sortable col-meta" data-sort="compra">Compra</th>
+                <th class="sortable col-meta" data-sort="processo">Processo</th>
+                <th class="sortable col-text" data-sort="objeto">Objeto</th>
+                <th class="sortable col-text" data-sort="descricao_item">Descrição do item</th>
+                <th class="sortable col-num col-money" data-sort="valor_homologado_num">Valor homologado</th>
+              </tr>
+            </thead>
+            <tbody id="modal-vencedor-homologacoes-tabela"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
   <dialog id="modal-pbi" class="modal">
     <div class="modal-head">
       <h3 id="modal-pbi-titulo"></h3>
@@ -1439,8 +1475,8 @@
   <script src="/static/localidade.js?v=osb3"></script>
   <script src="/static/consulta_processo.js?v=osb5"></script>
   <script src="/static/propostas_abertas.js?v=osb10"></script>
-  <script src="/static/compras.js?v=osb8"></script>
-  <script src="/static/vencedores_cnpj.js?v=osb3"></script>
+  <script src="/static/compras.js?v=osb9"></script>
+  <script src="/static/vencedores_cnpj.js?v=osb8"></script>
   <script src="/static/powerbi.js?v=osb5"></script>
   <script src="/static/orgaos.js?v=osb4"></script>
   <script src="/static/modalidades.js?v=osb4"></script>

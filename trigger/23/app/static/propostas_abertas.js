@@ -755,10 +755,10 @@ function renderPropTabela() {
       ${tdEllipsis(r.numero_item, { cls: "col-num" })}
       ${tdEllipsis(desc, { cls: "col-desc" })}
       ${tdEllipsis(ncm, { cls: "col-num", title: ncmTitle })}
-      ${tdEllipsis(qtd || "—")}
-      ${tdEllipsis(r.valor_unitario_estimado, { cls: "col-num" })}
-      ${tdEllipsis(r.valor_total, { cls: "col-num" })}
-      ${tdEllipsis(r.desvio_preco?.percentual_fmt, { html: pillDesvio(r.desvio_preco) })}
+      ${tdEllipsis(qtd || "—", { cls: "col-num" })}
+      ${tdEllipsis(r.valor_unitario_estimado, { cls: "col-num col-money" })}
+      ${tdEllipsis(r.valor_total, { cls: "col-num col-money" })}
+      ${tdEllipsis(r.desvio_preco?.percentual_fmt, { cls: "col-num", html: pillDesvio(r.desvio_preco) })}
       ${tdEllipsis(r.unidade_nome)}
       <td class="col-acao"><button type="button" class="btn ghost btn-prop-abrir-item">Abrir</button></td>
     </tr>`;

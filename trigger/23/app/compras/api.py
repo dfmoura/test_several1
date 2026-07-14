@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.auth.deps import require_admin
 from app.compras.atualizar_contratacao import atualizar_contratacao_da_api
 from app.compras.cnpj_publico import obter_fornecedor_detalhe
 from app.compras.job_pendentes_cnpj import (
@@ -25,7 +26,10 @@ from app.compras.job_pendentes_cnpj import (
 from app.compras.orquestrador import executar_pipeline
 from app.compras.repository import ensure_fornecedor_stub, upsert_resultado, vincular_fornecedores_resultados
 from app.compras.coletor_resultados import coletar_resultados, resultado_para_db
-from app.compras.vencedores_cnpj import listar_vencedores_consolidados
+from app.compras.vencedores_cnpj import (
+    listar_homologacoes_fornecedor,
+    listar_vencedores_consolidados,
+)
 from app.compras_pncp import coletar as coletar_compras
 from app.compras_pncp import coletar_itens
 from app.compras_pncp import item_itens_para_db
@@ -43,6 +47,7 @@ from app.database import (
     ComprasUasg,
     Observador,
     SessionLocal,
+    Usuario,
     get_db,
 )
 from app.unidades_compradoras import obter_unidades_compradoras
@@ -841,8 +846,24 @@ def listar_vencedores_cnpj(
     return listar_vencedores_consolidados(db, q=q, status=status, limit=limit)
 
 
+@router.get("/api/compras/vencedores-cnpj/{ni}/homologacoes")
+def listar_homologacoes_vencedor_cnpj(
+    ni: str,
+    db: Session = Depends(get_db),
+    limit: int = Query(2000, ge=1, le=5000),
+):
+    """Itens homologados de um fornecedor (data, objeto, descrição, valor)."""
+    try:
+        return listar_homologacoes_fornecedor(db, ni, limit=limit)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
 @router.post("/api/compras/vencedores-cnpj/atualizar-pendentes")
-def iniciar_atualizar_pendentes_cnpj(bg: BackgroundTasks):
+def iniciar_atualizar_pendentes_cnpj(
+    bg: BackgroundTasks,
+    _: Usuario = Depends(require_admin),
+):
     """Enriquece todos os CNPJs pendentes com cadência segura (padrão 3s entre chamadas)."""
     try:
         inicio = iniciar_job_pendentes_cnpj()
@@ -858,7 +879,9 @@ def status_atualizar_pendentes_cnpj():
 
 
 @router.post("/api/compras/vencedores-cnpj/atualizar-pendentes/cancelar")
-def cancelar_atualizar_pendentes_cnpj():
+def cancelar_atualizar_pendentes_cnpj(
+    _: Usuario = Depends(require_admin),
+):
     return cancelar_job_pendentes_cnpj()
 
 

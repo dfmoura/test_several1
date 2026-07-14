@@ -12,8 +12,8 @@ Implementar login simples com sessão, papéis e teto de contas, de forma extens
 
 1. **Login por usuário/senha** (sessão cookie no servidor). Sem OAuth/Cognito.
 2. **Papéis iniciais:**
-   - `consulta` — leitura das telas de análise (Painel, Mapa, Consulta, Propostas abertas em modo leitura). **Não** acessa Setup, Coleta, CNPJs vencedores (nem APIs dessas áreas).
-   - `admin` (ou `operacao`) — acesso total, inclusive Setup, Coleta, CNPJs vencedores e gestão de usuários.
+   - `consulta` — leitura das telas de análise (Painel, Mapa, Consulta, CNPJs vencedores, Propostas abertas em modo leitura). **Não** acessa Setup, Coleta nem dispara job de CNPJs pendentes (nem APIs dessas áreas).
+   - `admin` (ou `operacao`) — acesso total, inclusive Setup, Coleta, disparo/cancelamento de CNPJs pendentes e gestão de usuários.
 3. **Limites rígidos:**
    - no máximo **1** usuário `admin`
    - no máximo **3** usuários `consulta`
@@ -28,7 +28,7 @@ Implementar login simples com sessão, papéis e teto de contas, de forma extens
 6. **Segurança:**
    - senha com hash (ex.: bcrypt/argon2)
    - bloquear APIs sensíveis no backend (não confiar só em esconder botão)
-   - rotas de coleta, setup, job de CNPJs pendentes → exigem admin
+   - rotas de coleta, setup, POST do job de CNPJs pendentes → exigem admin; GET da listagem/status de vencedores → login (consulta ok)
 
 ## Requisitos técnicos
 
@@ -46,6 +46,6 @@ Implementar login simples com sessão, papéis e teto de contas, de forma extens
 ## Critérios de aceite
 
 - Visitante sem login não usa o sistema
-- Usuário `consulta` não vê nem chama Setup/Coleta/CNPJs vencedores
+- Usuário `consulta` vê CNPJs vencedores (leitura), mas não dispara/cancela o lote; não vê nem chama Setup/Coleta
 - Tentativa de criar 2º admin ou 4º consulta falha com mensagem clara
 - Reinício do container preserva usuários no SQLite

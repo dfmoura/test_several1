@@ -90,7 +90,7 @@ def _permissoes(user: Usuario) -> dict:
             "vinculos": True,
             "observadores": True,
             "coleta": admin,
-            "vencedores": admin,
+            "vencedores": True,
             "setup": admin,
         },
     }

@@ -11,13 +11,18 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Literal
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.compras.cnpj_publico import cache_cnpj_valido
-from app.compras.normalizers import normalizar_ni, parse_decimal
+from app.compras.normalizers import fmt_valor_br, normalizar_ni, parse_decimal
 from app.config import CNPJ_PUBLICO_CACHE_DIAS
-from app.database import CompraContratacaoItem, ComprasContratacaoResultado, ComprasFornecedor
+from app.database import (
+    CompraContratacao,
+    CompraContratacaoItem,
+    ComprasContratacaoResultado,
+    ComprasFornecedor,
+)
 
 StatusCache = Literal["atualizado", "vencido", "pendente", "cpf", "invalido"]
 
@@ -275,3 +280,195 @@ def listar_pendentes_enriquecimento(db: Session) -> list[dict[str, Any]]:
         for r in data["items"]
         if r.get("pode_atualizar") and r.get("cod_fornecedor")
     ]
+
+
+def _descricao_item(item: CompraContratacaoItem | None) -> str | None:
+    if item is None:
+        return None
+    detalhada = (item.descricao_detalhada or "").strip()
+    if detalhada:
+        return detalhada
+    resumida = (item.descricao_resumida or "").strip()
+    return resumida or None
+
+
+def _linha_homologacao(
+    *,
+    data: str | None,
+    objeto: str | None,
+    descricao_item: str | None,
+    valor_raw: str | None,
+    id_compra: str | None,
+    id_compra_item: str | None,
+    contratacao_id: int | None,
+    numero_item: int | None,
+    compra: str | None,
+    processo: str | None,
+    fonte: str,
+) -> dict[str, Any]:
+    valor_dec = parse_decimal(valor_raw)
+    compra_txt = (str(compra).strip() if compra else None) or None
+    if not compra_txt and id_compra:
+        compra_txt = str(id_compra)
+    return {
+        "data": (str(data).strip() if data else None) or None,
+        "compra": compra_txt,
+        "processo": (str(processo).strip() if processo else None) or None,
+        "objeto": (str(objeto).strip() if objeto else None) or None,
+        "descricao_item": (str(descricao_item).strip() if descricao_item else None) or None,
+        "valor_homologado": fmt_valor_br(valor_raw) if valor_raw not in (None, "") else None,
+        "valor_homologado_num": float(valor_dec.quantize(Decimal("0.01"))) if valor_dec is not None else None,
+        "id_compra": id_compra,
+        "id_compra_item": id_compra_item,
+        "contratacao_id": contratacao_id,
+        "numero_item": numero_item,
+        "fonte": fonte,
+    }
+
+
+def listar_homologacoes_fornecedor(
+    db: Session,
+    ni: str,
+    *,
+    limit: int = 2000,
+) -> dict[str, Any]:
+    """
+    Detalha itens homologados de um fornecedor (mesma regra da consolidação):
+
+    1) ``compras_contratacao_resultados`` (07.3)
+    2) Fallback em ``compras_contratacao_itens`` só quando o item ainda não tem resultado
+    """
+    ni_norm = normalizar_ni(ni)
+    if not ni_norm:
+        raise ValueError("CNPJ/CPF inválido")
+
+    ids_compra: set[str] = set()
+    itens_com_resultado: set[str] = set()
+    bruto: list[dict[str, Any]] = []
+
+    for res, item in db.execute(
+        select(ComprasContratacaoResultado, CompraContratacaoItem)
+        .outerjoin(
+            CompraContratacaoItem,
+            CompraContratacaoItem.id_compra_item == ComprasContratacaoResultado.id_compra_item,
+        )
+        .where(
+            ComprasContratacaoResultado.ni_fornecedor.isnot(None),
+            ComprasContratacaoResultado.ni_fornecedor != "",
+        )
+    ).all():
+        if normalizar_ni(res.ni_fornecedor) != ni_norm:
+            continue
+        if res.id_compra_item:
+            itens_com_resultado.add(str(res.id_compra_item))
+        id_compra = res.id_compra or (item.id_compra if item else None)
+        if id_compra:
+            ids_compra.add(str(id_compra))
+        bruto.append(
+            {
+                "data": res.data_resultado_pncp or (item.data_resultado if item else None),
+                "descricao_item": _descricao_item(item),
+                "valor_raw": res.valor_total_homologado,
+                "id_compra": str(id_compra) if id_compra else None,
+                "id_compra_item": res.id_compra_item,
+                "numero_item": item.numero_item_compra or item.numero_item_pncp if item else None,
+                "fonte": "resultados",
+                "nome": res.nome_razao_social_fornecedor,
+            }
+        )
+
+    for item in db.scalars(
+        select(CompraContratacaoItem).where(
+            CompraContratacaoItem.cod_fornecedor.isnot(None),
+            CompraContratacaoItem.cod_fornecedor != "",
+        )
+    ).all():
+        if item.id_compra_item and str(item.id_compra_item) in itens_com_resultado:
+            continue
+        if normalizar_ni(item.cod_fornecedor) != ni_norm:
+            continue
+        if item.id_compra:
+            ids_compra.add(str(item.id_compra))
+        bruto.append(
+            {
+                "data": item.data_resultado,
+                "descricao_item": _descricao_item(item),
+                "valor_raw": item.valor_total_resultado,
+                "id_compra": str(item.id_compra) if item.id_compra else None,
+                "id_compra_item": item.id_compra_item,
+                "numero_item": item.numero_item_compra or item.numero_item_pncp,
+                "fonte": "itens",
+                "nome": item.nome_fornecedor,
+            }
+        )
+
+    mapa_compra: dict[str, CompraContratacao] = {}
+    if ids_compra:
+        for c in db.scalars(
+            select(CompraContratacao).where(
+                or_(
+                    CompraContratacao.id_compra.in_(list(ids_compra)),
+                    CompraContratacao.chave_compra.in_(list(ids_compra)),
+                )
+            )
+        ).all():
+            if c.id_compra:
+                mapa_compra[str(c.id_compra)] = c
+            if c.chave_compra:
+                mapa_compra.setdefault(str(c.chave_compra), c)
+
+    forn = db.scalar(
+        select(ComprasFornecedor).where(ComprasFornecedor.ni_fornecedor == ni_norm)
+    )
+    nome = forn.nome_razao_social_fornecedor if forn else None
+
+    items: list[dict[str, Any]] = []
+    valor_total = Decimal("0")
+    tem_valor = False
+    for row in bruto:
+        if row.get("nome") and (not nome or len(str(row["nome"])) > len(nome)):
+            nome = str(row["nome"]).strip()
+        compra = mapa_compra.get(row["id_compra"] or "")
+        compra_label = None
+        if compra:
+            compra_label = compra.numero or compra.id_compra or compra.chave_compra
+        elif row["id_compra"]:
+            compra_label = row["id_compra"]
+        linha = _linha_homologacao(
+            data=row["data"] or (compra.data_atualizacao_pncp if compra else None),
+            objeto=compra.objeto if compra else None,
+            descricao_item=row["descricao_item"],
+            valor_raw=row["valor_raw"],
+            id_compra=row["id_compra"],
+            id_compra_item=row["id_compra_item"],
+            contratacao_id=compra.id if compra else None,
+            numero_item=row["numero_item"],
+            compra=compra_label,
+            processo=compra.processo if compra else None,
+            fonte=row["fonte"],
+        )
+        if linha["valor_homologado_num"] is not None:
+            valor_total += Decimal(str(linha["valor_homologado_num"]))
+            tem_valor = True
+        items.append(linha)
+
+    def _sort_key(r: dict[str, Any]) -> tuple:
+        data = r.get("data") or ""
+        return (0 if data else 1, data, r.get("id_compra") or "", r.get("numero_item") or 0)
+
+    items.sort(key=_sort_key, reverse=True)
+    total = len(items)
+    if limit and len(items) > limit:
+        items = items[:limit]
+
+    return {
+        "cod_fornecedor": ni_norm,
+        "nome_fornecedor": nome,
+        "tipo": "cpf" if len(ni_norm) <= 11 else "cnpj",
+        "qtd_itens": total,
+        "qtd_compras": len({i["id_compra"] for i in items if i.get("id_compra")}),
+        "valor_total_homologado": float(valor_total.quantize(Decimal("0.01"))) if tem_valor else None,
+        "items": items,
+        "total": total,
+        "fonte_canonica": "compras_contratacao_resultados",
+    }

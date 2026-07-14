@@ -26,6 +26,6 @@ Use cada arquivo como instrução completa para um agente/dev implementar a feat
 - Stack atual: FastAPI + SQLite + Docker + frontend estático em `app/static/`
 - Não quebrar coleta PNCP/Power BI nem o schema oficial das licitações
 - Features novas em tabelas/módulos isolados
-- Telas sensíveis: Setup, Coleta, CNPJs vencedores → só `admin`/`operacao`
+- Telas sensíveis / operação: Setup, Coleta, disparo de CNPJs pendentes → só `admin`/`operacao` (CNPJs vencedores em leitura para `consulta`)
 - Preferir constantes configuráveis a hardcode espalhado
 - Sem overengineering (sem Cognito, sem microserviços, sem RDS por enquanto)

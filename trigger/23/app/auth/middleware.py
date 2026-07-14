@@ -26,9 +26,11 @@ _ADMIN_PREFIXES = (
     "/api/sistema",
     "/api/coleta",
     "/api/compras/coletar",
-    "/api/compras/vencedores-cnpj",
     "/api/powerbi/coletar",
 )
+
+# Disparo/cancelamento do lote de CNPJs (GET status e listagem ficam liberados para consulta).
+_ADMIN_VENCEDORES_JOB_PREFIX = "/api/compras/vencedores-cnpj/atualizar-pendentes"
 
 
 def _caminho_publico(path: str) -> bool:
@@ -41,8 +43,16 @@ def _caminho_publico(path: str) -> bool:
     return False
 
 
-def _exige_admin(path: str) -> bool:
-    return any(path == p or path.startswith(p + "/") or path.startswith(p) for p in _ADMIN_PREFIXES)
+def _exige_admin(path: str, method: str = "GET") -> bool:
+    if any(path == p or path.startswith(p + "/") or path.startswith(p) for p in _ADMIN_PREFIXES):
+        return True
+    # POST start/cancel do lote; GET da listagem e do status permanecem para consulta.
+    if method.upper() != "GET" and (
+        path == _ADMIN_VENCEDORES_JOB_PREFIX
+        or path.startswith(_ADMIN_VENCEDORES_JOB_PREFIX + "/")
+    ):
+        return True
+    return False
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -73,7 +83,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 content={"detail": "Autenticação necessária."},
             )
 
-        if _exige_admin(path) and user.papel != PAPEL_ADMIN:
+        if _exige_admin(path, request.method) and user.papel != PAPEL_ADMIN:
             return JSONResponse(
                 status_code=403,
                 content={"detail": "Acesso restrito a administradores."},

@@ -141,7 +141,23 @@ def test_consulta_bloqueada_em_api_admin(client, db):
         assert client.get("/api/compras/stats").status_code == 200
         assert client.get("/api/sistema/config").status_code == 403
         assert client.post("/api/coleta", json={"fontes": ["compras"]}).status_code == 403
-        assert client.get("/api/compras/vencedores-cnpj").status_code == 403
+        # CNPJs vencedores: leitura liberada; disparo do lote só admin
+        assert client.get("/api/compras/vencedores-cnpj").status_code == 200
+        assert client.get("/api/compras/vencedores-cnpj/atualizar-pendentes/status").status_code == 200
+        assert (
+            client.post("/api/compras/vencedores-cnpj/atualizar-pendentes", json={}).status_code
+            == 403
+        )
+        assert (
+            client.post(
+                "/api/compras/vencedores-cnpj/atualizar-pendentes/cancelar",
+                json={},
+            ).status_code
+            == 403
+        )
+        me = client.get("/api/auth/me")
+        assert me.status_code == 200
+        assert me.json()["permissoes"]["paginas"]["vencedores"] is True
     finally:
         for nome in criados:
             _limpar_usuario(db, nome)

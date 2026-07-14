@@ -159,8 +159,8 @@ function renderComprasTabela() {
       ${tdEllipsis(r.unidade_nome)}
       ${tdEllipsis(r.ano, { cls: "col-num" })}
       ${tdEllipsis(sit, { html: pillSituacao(sit), title: sit || "—" })}
-      ${tdEllipsis(r.valor_total_estimado, { cls: "col-num" })}
-      ${tdEllipsis(r.valor_total_homologado, { cls: "col-num" })}
+      ${tdEllipsis(r.valor_total_estimado, { cls: "col-num col-money" })}
+      ${tdEllipsis(r.valor_total_homologado, { cls: "col-num col-money" })}
       ${tdEllipsis(pncp)}
       ${tdEllipsis(r.observador_nome)}
       ${tdEllipsis(r.objeto, { cls: "col-desc" })}
@@ -495,4 +495,5 @@ registrarPagina("compras", carregarComprasPagina);
 /* Exposto para a tela consolidada de CNPJs vencedores */
 window.OSB = window.OSB || { loaders: {} };
 window.OSB.abrirDetalheFornecedor = abrirDetalheFornecedor;
+window.OSB.abrirDetalheCompra = abrirDetalheCompra;
 window.OSB.fmtCnpjCpf = fmtCnpjCpf;

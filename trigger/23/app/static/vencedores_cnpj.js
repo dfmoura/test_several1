@@ -10,6 +10,14 @@ let vencedoresAtualizando = new Set();
 let vencedoresLotePolling = false;
 let vencedoresResumoAtual = null;
 
+let homologItems = [];
+let homologSortKey = "data";
+let homologSortDir = "desc";
+
+function vencedoresEhAdmin() {
+  return window.OSB?.usuario?.papel === "admin";
+}
+
 const STATUS_LABEL = {
   atualizado: "Atualizado",
   vencido: "Cache vencido",
@@ -43,6 +51,23 @@ function fmtDataCurta(iso) {
   });
 }
 
+function fmtDataHomolog(raw) {
+  if (!raw) return "—";
+  const s = String(raw).trim();
+  if (!s) return "—";
+  /* Preferir só a data (dd/mm/yyyy) — coluna compacta no modal. */
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) {
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+  return s.length > 10 ? s.slice(0, 10) : s;
+}
+
 function badgeCache(status) {
   const cls = {
     atualizado: "ok",
@@ -58,11 +83,16 @@ function atualizarBotoesLote(running) {
   const btn = $("#btn-vencedores-pendentes");
   const btnCancel = $("#btn-vencedores-pendentes-cancelar");
   const pendentes = Number(vencedoresResumoAtual?.pendente || 0);
+  const admin = vencedoresEhAdmin();
   if (btn) {
-    btn.disabled = !!running || pendentes <= 0;
+    btn.hidden = !admin;
+    btn.disabled = !admin || !!running || pendentes <= 0;
     btn.textContent = running ? "Atualizando pendentes…" : "Atualizar pendentes";
+    btn.title = admin
+      ? "Atualiza todos os CNPJs pendentes com intervalo seguro entre requisições"
+      : "Somente administradores podem atualizar pendentes";
   }
-  if (btnCancel) btnCancel.hidden = !running;
+  if (btnCancel) btnCancel.hidden = !admin || !running;
 }
 
 function renderVencedoresResumo(resumo, cacheDias) {
@@ -157,6 +187,7 @@ function renderVencedoresTabela() {
   }
 
   const loteBusy = vencedoresLotePolling;
+  const admin = vencedoresEhAdmin();
   tb.innerHTML = rows.map((r) => {
     const busy = vencedoresAtualizando.has(r.cod_fornecedor) || loteBusy;
     const pode = r.pode_atualizar;
@@ -164,26 +195,33 @@ function renderVencedoresTabela() {
     const mun = r.municipio
       ? `${r.municipio}${r.uf ? `/${r.uf}` : ""}`
       : "—";
+    let acao = `<span class="muted-inline" title="API pública de CNPJ não se aplica a CPF">—</span>`;
+    if (pode && admin) {
+      acao = `<button type="button" class="btn ghost btn-sm btn-vencedor-atualizar"
+              data-ni="${esc(r.cod_fornecedor)}" data-nome="${esc(nome)}"
+              title="Atualizar CNPJ via API pública"
+              ${busy ? "disabled" : ""}>${vencedoresAtualizando.has(r.cod_fornecedor) ? "…" : "Atualizar"}</button>`;
+    } else if (pode) {
+      acao = `<span class="muted-inline" title="Somente administradores podem atualizar">—</span>`;
+    }
     return `<tr data-ni="${esc(r.cod_fornecedor)}">
       <td title="${esc(nome)}">
         <button type="button" class="link-vencedor btn-vencedor-detalhe"
-          data-ni="${esc(r.cod_fornecedor)}" data-nome="${esc(nome)}">${esc(nome)}</button>
+          data-ni="${esc(r.cod_fornecedor)}" data-nome="${esc(nome)}"
+          title="Ver cadastro e QSA">${esc(nome)}</button>
       </td>
       <td class="mono">${esc(fmtCnpjLocal(r.cod_fornecedor))}</td>
-      <td>${fmtNum(r.qtd_itens)}</td>
-      <td>${fmtNum(r.qtd_compras)}</td>
-      <td class="col-num">${fmtMoeda(r.valor_total_homologado)}</td>
+      <td class="col-num">
+        <button type="button" class="link-vencedor link-vencedor-qtd btn-vencedor-homologacoes"
+          data-ni="${esc(r.cod_fornecedor)}" data-nome="${esc(nome)}"
+          title="Ver homologações deste fornecedor">${fmtNum(r.qtd_itens)}</button>
+      </td>
+      <td class="col-num">${fmtNum(r.qtd_compras)}</td>
+      <td class="col-num col-money">${fmtMoeda(r.valor_total_homologado)}</td>
       <td title="${esc(mun)}">${esc(mun)}</td>
       <td>${badgeCache(r.status_cache)}</td>
       <td>${esc(fmtDataCurta(r.cnpj_enriquecido_em))}</td>
-      <td class="col-acao">
-        ${pode
-          ? `<button type="button" class="btn ghost btn-sm btn-vencedor-atualizar"
-              data-ni="${esc(r.cod_fornecedor)}" data-nome="${esc(nome)}"
-              title="Atualizar CNPJ via API pública"
-              ${busy ? "disabled" : ""}>${vencedoresAtualizando.has(r.cod_fornecedor) ? "…" : "Atualizar"}</button>`
-          : `<span class="muted-inline" title="API pública de CNPJ não se aplica a CPF">—</span>`}
-      </td>
+      <td class="col-acao">${acao}</td>
     </tr>`;
   }).join("");
 
@@ -194,12 +232,131 @@ function renderVencedoresTabela() {
     });
   });
 
+  tb.querySelectorAll(".btn-vencedor-homologacoes").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      abrirHomologacoesFornecedor(btn.dataset.ni, btn.dataset.nome);
+    });
+  });
+
   tb.querySelectorAll(".btn-vencedor-atualizar").forEach((btn) => {
     btn.addEventListener("click", () => atualizarVencedorIndividual(btn.dataset.ni, btn.dataset.nome));
   });
 }
 
+function renderHomologacoesTabela() {
+  const tb = $("#modal-vencedor-homologacoes-tabela");
+  const thead = $("#modal-vencedor-homologacoes-head");
+  if (!tb) return;
+
+  let rows = homologItems.slice();
+  const sortState = getTableSortState(thead);
+  const key = sortState?.key || homologSortKey;
+  const dir = sortState?.dir || homologSortDir;
+  rows = sortItems(rows, key, dir);
+  markSortableHeaders(thead, { key, dir });
+
+  if (!rows.length) {
+    tb.innerHTML = '<tr><td colspan="6">Nenhuma homologação encontrada para este fornecedor.</td></tr>';
+    return;
+  }
+
+  tb.innerHTML = rows.map((r) => {
+    const cid = r.contratacao_id != null ? String(r.contratacao_id) : "";
+    const compra = r.compra || r.id_compra || "—";
+    const processo = r.processo || "—";
+    const objeto = r.objeto || "—";
+    const desc = r.descricao_item || "—";
+    const dataFmt = fmtDataHomolog(r.data);
+    const valorTxt = r.valor_homologado || fmtMoeda(r.valor_homologado_num) || "—";
+    const tip = [
+      r.compra ? `Compra: ${r.compra}` : "",
+      r.processo ? `Processo: ${r.processo}` : "",
+      r.numero_item != null ? `Item ${r.numero_item}` : "",
+      cid ? "Clique para abrir a contratação" : "",
+    ].filter(Boolean).join(" · ");
+    return `<tr${cid ? ` class="clickable" data-contratacao-id="${esc(cid)}"` : ""} title="${esc(tip)}">
+      <td class="col-data mono" title="${esc(dataFmt)}">${esc(dataFmt)}</td>
+      <td class="col-id mono" title="${esc(compra)}">${esc(compra)}</td>
+      <td class="col-id mono" title="${esc(processo)}">${esc(processo)}</td>
+      <td class="col-wrap">${esc(objeto)}</td>
+      <td class="col-wrap">${esc(desc)}</td>
+      <td class="col-num col-money" title="${esc(valorTxt)}">${esc(valorTxt)}</td>
+    </tr>`;
+  }).join("");
+
+  tb.querySelectorAll("tr[data-contratacao-id]").forEach((tr) => {
+    tr.addEventListener("click", () => {
+      const id = tr.dataset.contratacaoId;
+      if (!id) return;
+      const fn = window.OSB?.abrirDetalheCompra
+        || (typeof abrirDetalheCompra === "function" ? abrirDetalheCompra : null);
+      if (typeof fn === "function") fn(id);
+    });
+  });
+}
+
+async function abrirHomologacoesFornecedor(ni, nome) {
+  const digits = String(ni || "").replace(/\D/g, "");
+  if (!digits) return;
+
+  const dlg = $("#modal-vencedor-homologacoes");
+  const titulo = $("#modal-vencedor-homologacoes-titulo");
+  const resumo = $("#modal-vencedor-homologacoes-resumo");
+  const meta = $("#modal-vencedor-homologacoes-meta");
+  const tb = $("#modal-vencedor-homologacoes-tabela");
+
+  if (titulo) titulo.textContent = nome && nome !== "—" ? nome : "Homologações";
+  if (resumo) {
+    resumo.innerHTML = `
+      <div class="compra-resumo-main">
+        <span class="compra-resumo-num">${esc(nome && nome !== "—" ? nome : fmtCnpjLocal(digits))}</span>
+      </div>
+      <div class="compra-resumo-sub">${esc(fmtCnpjLocal(digits))} · carregando homologações…</div>`;
+  }
+  if (meta) meta.textContent = "Consultando…";
+  if (tb) tb.innerHTML = '<tr><td colspan="6">Carregando…</td></tr>';
+  homologItems = [];
+  clearTableSortState($("#modal-vencedor-homologacoes-head"));
+  homologSortKey = "data";
+  homologSortDir = "desc";
+  dlg?.showModal();
+
+  try {
+    const data = await api(`/api/compras/vencedores-cnpj/${encodeURIComponent(digits)}/homologacoes`);
+    homologItems = data.items || [];
+    const nomeFinal = data.nome_fornecedor || nome || "Fornecedor";
+    if (titulo) titulo.textContent = nomeFinal;
+    if (resumo) {
+      resumo.innerHTML = `
+        <div class="compra-resumo-main">
+          <span class="compra-resumo-num">${esc(nomeFinal)}</span>
+        </div>
+        <div class="compra-resumo-sub">
+          ${esc(fmtCnpjLocal(data.cod_fornecedor || digits))}
+          ${data.tipo === "cpf" ? " · CPF" : " · CNPJ"}
+          · ${fmtNum(data.qtd_itens)} item(ns)
+          · ${fmtNum(data.qtd_compras)} compra(s)
+          ${data.valor_total_homologado != null ? ` · total ${fmtMoeda(data.valor_total_homologado)}` : ""}
+        </div>`;
+    }
+    if (meta) {
+      meta.textContent = homologItems.length
+        ? `${fmtNum(homologItems.length)} homologação(ões) · ordenável pelas colunas`
+        : "Nenhuma homologação encontrada.";
+    }
+    renderHomologacoesTabela();
+  } catch (err) {
+    if (resumo) {
+      resumo.innerHTML = `<p class="meta-line">${esc(err.message)}</p>`;
+    }
+    if (meta) meta.textContent = "Falha ao carregar.";
+    if (tb) tb.innerHTML = `<tr><td colspan="6">${esc(err.message)}</td></tr>`;
+  }
+}
+
 async function atualizarVencedorIndividual(ni, nome) {
+  if (!vencedoresEhAdmin()) return;
   const digits = String(ni || "").replace(/\D/g, "");
   if (!digits || digits.length !== 14) return;
   if (vencedoresAtualizando.has(digits) || vencedoresLotePolling) return;
@@ -257,7 +414,9 @@ async function carregarVencedores({ silencioso = false } = {}) {
     vencedoresItems = data.items || [];
     vencedoresCacheDias = data.cache_dias ?? 30;
     if (meta) {
-      meta.textContent = `${fmtNum(data.total)} fornecedor(es) consolidado(s) · clique no nome para ver QSA · lotes de pendentes usam ${3}s entre requisições`;
+      meta.textContent = vencedoresEhAdmin()
+        ? `${fmtNum(data.total)} fornecedor(es) consolidado(s) · nome: QSA · nº em Itens: homologações · lotes de pendentes usam ${3}s entre requisições`
+        : `${fmtNum(data.total)} fornecedor(es) consolidado(s) · nome: QSA · nº em Itens: homologações · atualização de pendentes restrita ao administrador`;
     }
     renderVencedoresResumo(data.resumo, vencedoresCacheDias);
     renderVencedoresTabela();
@@ -301,6 +460,10 @@ async function acompanharLotePendentes() {
 }
 
 async function iniciarLotePendentes() {
+  if (!vencedoresEhAdmin()) {
+    alert("Somente administradores podem atualizar pendentes.");
+    return;
+  }
   if (vencedoresLotePolling) return;
   const n = Number(vencedoresResumoAtual?.pendente || 0);
   if (n <= 0) {
@@ -326,6 +489,7 @@ async function iniciarLotePendentes() {
 }
 
 async function cancelarLotePendentes() {
+  if (!vencedoresEhAdmin()) return;
   try {
     await api("/api/compras/vencedores-cnpj/atualizar-pendentes/cancelar", { method: "POST", body: "{}" });
   } catch (err) {
@@ -356,13 +520,22 @@ $("#btn-vencedores-limpar")?.addEventListener("click", () => {
 });
 $("#btn-vencedores-pendentes")?.addEventListener("click", () => iniciarLotePendentes());
 $("#btn-vencedores-pendentes-cancelar")?.addEventListener("click", () => cancelarLotePendentes());
+$("#modal-vencedor-homologacoes-fechar")?.addEventListener("click", () => {
+  $("#modal-vencedor-homologacoes")?.close();
+});
 wireSortableHeaders($("#vencedores-tabela-head"), (key, dir) => {
   vencedoresSortKey = key;
   vencedoresSortDir = dir;
   renderVencedoresTabela();
 });
+wireSortableHeaders($("#modal-vencedor-homologacoes-head"), (key, dir) => {
+  homologSortKey = key;
+  homologSortDir = dir;
+  renderHomologacoesTabela();
+});
 
 registrarPagina("vencedores", async () => {
+  atualizarBotoesLote(vencedoresLotePolling);
   await carregarVencedores();
   await restaurarLoteSeAtivo();
 });

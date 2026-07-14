@@ -466,10 +466,10 @@ function locRenderTabela(sortKey, sortDir) {
       return `<tr>
         ${tdEllipsis(m.municipio)}
         <td>${esc(m.uf)}</td>
-        <td>${fmtNum(m.quantidade)}</td>
-        <td>${fmtMoeda(m.valor)}</td>
-        <td>${fmtNum(m.contratacoes)}</td>
-        <td>${fmtNum(m.fornecedores)}</td>
+        <td class="col-num">${fmtNum(m.quantidade)}</td>
+        <td class="col-num col-money">${fmtMoeda(m.valor)}</td>
+        <td class="col-num">${fmtNum(m.contratacoes)}</td>
+        <td class="col-num">${fmtNum(m.fornecedores)}</td>
         <td>${origem}</td>
       </tr>`;
     })
