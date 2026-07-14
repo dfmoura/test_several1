@@ -1,4 +1,6 @@
 data/*.db
+data/*.db.*
+data/*.db.bak*
 data/.ia_fernet_key
 data/powerbi/*.csv
 data/backups/
