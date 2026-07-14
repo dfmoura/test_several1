@@ -139,7 +139,8 @@ COMPRAS_PNCP_HTTP_TIMEOUT_SEC = float(os.environ.get("COMPRAS_PNCP_HTTP_TIMEOUT_
 COMPRAS_PNCP_MAX_RETRIES = int(os.environ.get("COMPRAS_PNCP_MAX_RETRIES", "3"))
 COMPRAS_PNCP_REQUEST_DELAY_SEC = float(os.environ.get("COMPRAS_PNCP_DELAY_SEC", "0.35"))
 
-# CNPJ público (QSA sob demanda) — BrasilAPI com fallback Minha Receita
+# CNPJ público (QSA sob demanda) — cadeia de fallbacks gratuitos.
+# Ordem: BrasilAPI → Minha Receita → CNPJá Open → Pública CNPJ.ws
 CNPJ_PUBLICO_BRASILAPI_URL = os.environ.get(
     "CNPJ_PUBLICO_BRASILAPI_URL",
     "https://brasilapi.com.br/api/cnpj/v1",
@@ -148,11 +149,19 @@ CNPJ_PUBLICO_MINHARECEITA_URL = os.environ.get(
     "CNPJ_PUBLICO_MINHARECEITA_URL",
     "https://minhareceita.org",
 )
+CNPJ_PUBLICO_CNPJA_URL = os.environ.get(
+    "CNPJ_PUBLICO_CNPJA_URL",
+    "https://open.cnpja.com/office",
+)
+CNPJ_PUBLICO_PUBLICA_URL = os.environ.get(
+    "CNPJ_PUBLICO_PUBLICA_URL",
+    "https://publica.cnpj.ws/cnpj",
+)
 CNPJ_PUBLICO_CACHE_DIAS = int(os.environ.get("CNPJ_PUBLICO_CACHE_DIAS", "30"))
 CNPJ_PUBLICO_HTTP_TIMEOUT_SEC = float(os.environ.get("CNPJ_PUBLICO_HTTP_TIMEOUT_SEC", "25"))
 # Cadência do lote de pendentes (segundos entre consultas à API pública).
 CNPJ_PUBLICO_LOTE_INTERVALO_SEC = float(os.environ.get("CNPJ_PUBLICO_LOTE_INTERVALO_SEC", "3"))
-# Pausa extra ao detectar bloqueio / falha transitória (429 / 502).
+# Pausa extra ao detectar bloqueio / falha transitória (429 / 502 / 503).
 CNPJ_PUBLICO_LOTE_BACKOFF_SEC = float(os.environ.get("CNPJ_PUBLICO_LOTE_BACKOFF_SEC", "30"))
 UBERLANDIA_IBGE = COMPRAS_IBGE_MUNICIPIO
 UBERLANDIA_NOME = "UBERLANDIA"

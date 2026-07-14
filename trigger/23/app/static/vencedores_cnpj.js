@@ -152,7 +152,7 @@ function renderVencedoresTabela() {
   markSortableHeaders(thead, { key, dir });
 
   if (!rows.length) {
-    tb.innerHTML = '<tr><td colspan="8">Nenhum fornecedor vencedor encontrado com os filtros atuais.</td></tr>';
+    tb.innerHTML = '<tr><td colspan="9">Nenhum fornecedor vencedor encontrado com os filtros atuais.</td></tr>';
     return;
   }
 
@@ -172,6 +172,7 @@ function renderVencedoresTabela() {
       <td class="mono">${esc(fmtCnpjLocal(r.cod_fornecedor))}</td>
       <td>${fmtNum(r.qtd_itens)}</td>
       <td>${fmtNum(r.qtd_compras)}</td>
+      <td class="col-num">${fmtMoeda(r.valor_total_homologado)}</td>
       <td title="${esc(mun)}">${esc(mun)}</td>
       <td>${badgeCache(r.status_cache)}</td>
       <td>${esc(fmtDataCurta(r.cnpj_enriquecido_em))}</td>
@@ -179,7 +180,8 @@ function renderVencedoresTabela() {
         ${pode
           ? `<button type="button" class="btn ghost btn-sm btn-vencedor-atualizar"
               data-ni="${esc(r.cod_fornecedor)}" data-nome="${esc(nome)}"
-              ${busy ? "disabled" : ""}>${vencedoresAtualizando.has(r.cod_fornecedor) ? "Atualizando…" : "Atualizar CNPJ"}</button>`
+              title="Atualizar CNPJ via API pública"
+              ${busy ? "disabled" : ""}>${vencedoresAtualizando.has(r.cod_fornecedor) ? "…" : "Atualizar"}</button>`
           : `<span class="muted-inline" title="API pública de CNPJ não se aplica a CPF">—</span>`}
       </td>
     </tr>`;
@@ -242,7 +244,7 @@ async function atualizarVencedorIndividual(ni, nome) {
 async function carregarVencedores({ silencioso = false } = {}) {
   const tb = $("#vencedores-tabela");
   const meta = $("#vencedores-meta");
-  if (!silencioso && tb) tb.innerHTML = '<tr><td colspan="8">Carregando…</td></tr>';
+  if (!silencioso && tb) tb.innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
   if (!silencioso && meta) meta.textContent = "Consultando fornecedores vencedores…";
 
   try {
@@ -261,7 +263,7 @@ async function carregarVencedores({ silencioso = false } = {}) {
     renderVencedoresTabela();
   } catch (err) {
     if (meta) meta.textContent = "Erro ao carregar.";
-    if (tb) tb.innerHTML = `<tr><td colspan="8">${esc(err.message)}</td></tr>`;
+    if (tb) tb.innerHTML = `<tr><td colspan="9">${esc(err.message)}</td></tr>`;
   }
 }
 

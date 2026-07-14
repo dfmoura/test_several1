@@ -223,3 +223,89 @@ def test_mapear_payload_brasilapi():
     assert mapped["nome_municipio"] == "UBERLANDIA"
     assert "Fulano" in mapped["qsa_json"]
     assert mapped["_fonte"] == "cnpj_publico"
+
+
+def test_mapear_payload_cnpja():
+    mapped = mapear_payload_cnpj(
+        {
+            "taxId": "29761115000180",
+            "alias": "100 Sports",
+            "company": {
+                "name": "100 SPORTS LTDA",
+                "members": [
+                    {
+                        "since": "2018-02-23",
+                        "person": {
+                            "name": "Bruna Alves de Souza",
+                            "taxId": "***389051**",
+                            "age": "21-30",
+                            "country": {"name": "Brasil"},
+                        },
+                        "role": {"text": "Sócio-Administrador"},
+                    }
+                ],
+                "nature": {"text": "Sociedade Empresária Limitada"},
+                "size": {"text": "Empresa de Pequeno Porte", "acronym": "EPP"},
+            },
+            "status": {"text": "Ativa"},
+            "address": {
+                "municipality": 5204508,
+                "street": "Rua Major Vitor",
+                "number": "30",
+                "district": "Centro",
+                "city": "Caldas Novas",
+                "state": "GO",
+                "zip": "75680001",
+            },
+            "mainActivity": {"id": 4782201, "text": "Comércio varejista de calçados"},
+        },
+        fonte="cnpja",
+    )
+    assert mapped["ni_fornecedor"] == "29761115000180"
+    assert mapped["nome_razao_social_fornecedor"] == "100 SPORTS LTDA"
+    assert mapped["nome_municipio"] == "Caldas Novas"
+    assert mapped["uf_sigla"] == "GO"
+    assert mapped["de_uberlandia"] is False
+    assert mapped["situacao_cadastral"] == "Ativa"
+    assert "Bruna Alves de Souza" in mapped["qsa_json"]
+    assert mapped["_fonte"] == "cnpj_publico"
+
+
+def test_mapear_payload_publicacnpj():
+    mapped = mapear_payload_cnpj(
+        {
+            "razao_social": "100 SPORTS LTDA",
+            "porte": {"descricao": "Empresa de Pequeno Porte"},
+            "natureza_juridica": {"descricao": "Sociedade Empresária Limitada"},
+            "estabelecimento": {
+                "cnpj": "29761115000180",
+                "nome_fantasia": "100 Sports",
+                "situacao_cadastral": "Ativa",
+                "cep": "75680001",
+                "logradouro": "Rua Major Vitor",
+                "numero": "30",
+                "bairro": "Centro",
+                "cidade": {"nome": "Caldas Novas", "ibge_id": 5204508},
+                "estado": {"sigla": "GO"},
+                "atividade_principal": {
+                    "id": "4782201",
+                    "descricao": "Comércio varejista de calçados",
+                },
+            },
+            "socios": [
+                {
+                    "nome": "BRUNA ALVES DE SOUZA",
+                    "cpf_cnpj_socio": "***389051**",
+                    "data_entrada": "2018-02-23",
+                    "faixa_etaria": "21 a 30 anos",
+                    "qualificacao_socio": {"descricao": "Sócio-Administrador"},
+                    "pais": {"nome": "Brasil"},
+                }
+            ],
+        },
+        fonte="publicacnpj",
+    )
+    assert mapped["ni_fornecedor"] == "29761115000180"
+    assert mapped["nome_municipio"] == "Caldas Novas"
+    assert mapped["codigo_cnae"] == 4782201
+    assert "BRUNA ALVES DE SOUZA" in mapped["qsa_json"]

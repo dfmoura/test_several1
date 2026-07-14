@@ -8,13 +8,14 @@ não possuem linha de resultado (coleta 07-resultados pendente/parcial).
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.compras.cnpj_publico import cache_cnpj_valido
-from app.compras.normalizers import normalizar_ni
+from app.compras.normalizers import normalizar_ni, parse_decimal
 from app.config import CNPJ_PUBLICO_CACHE_DIAS
 from app.database import CompraContratacaoItem, ComprasContratacaoResultado, ComprasFornecedor
 
@@ -46,6 +47,8 @@ def _bucket_vazio(ni: str, nome: str | None) -> dict[str, Any]:
         "itens": 0,
         "compras": set(),
         "fontes": set(),  # "resultados" | "itens"
+        "valor_total": Decimal("0"),
+        "tem_valor": False,
     }
 
 
@@ -56,6 +59,7 @@ def _acumular(
     nome: str | None,
     id_compra: str | None,
     fonte: str,
+    valor_raw: str | None = None,
 ) -> None:
     bucket = agg.get(ni)
     if bucket is None:
@@ -67,6 +71,10 @@ def _acumular(
         bucket["compras"].add(str(id_compra))
     if nome and (not bucket["nome_fornecedor"] or len(str(nome)) > len(bucket["nome_fornecedor"])):
         bucket["nome_fornecedor"] = str(nome).strip()
+    valor = parse_decimal(valor_raw)
+    if valor is not None:
+        bucket["valor_total"] += valor
+        bucket["tem_valor"] = True
 
 
 def _agregar_vencedores(db: Session) -> dict[str, dict[str, Any]]:
@@ -80,12 +88,13 @@ def _agregar_vencedores(db: Session) -> dict[str, dict[str, Any]]:
     agg: dict[str, dict[str, Any]] = {}
 
     itens_com_resultado: set[str] = set()
-    for id_item, ni_raw, nome, id_compra in db.execute(
+    for id_item, ni_raw, nome, id_compra, valor in db.execute(
         select(
             ComprasContratacaoResultado.id_compra_item,
             ComprasContratacaoResultado.ni_fornecedor,
             ComprasContratacaoResultado.nome_razao_social_fornecedor,
             ComprasContratacaoResultado.id_compra,
+            ComprasContratacaoResultado.valor_total_homologado,
         ).where(
             ComprasContratacaoResultado.ni_fornecedor.isnot(None),
             ComprasContratacaoResultado.ni_fornecedor != "",
@@ -102,14 +111,16 @@ def _agregar_vencedores(db: Session) -> dict[str, dict[str, Any]]:
             nome=nome,
             id_compra=id_compra,
             fonte="resultados",
+            valor_raw=valor,
         )
 
-    for id_item, cod, nome, id_compra in db.execute(
+    for id_item, cod, nome, id_compra, valor in db.execute(
         select(
             CompraContratacaoItem.id_compra_item,
             CompraContratacaoItem.cod_fornecedor,
             CompraContratacaoItem.nome_fornecedor,
             CompraContratacaoItem.id_compra,
+            CompraContratacaoItem.valor_total_resultado,
         ).where(
             CompraContratacaoItem.cod_fornecedor.isnot(None),
             CompraContratacaoItem.cod_fornecedor != "",
@@ -127,6 +138,7 @@ def _agregar_vencedores(db: Session) -> dict[str, dict[str, Any]]:
             nome=nome,
             id_compra=id_compra,
             fonte="itens",
+            valor_raw=valor,
         )
 
     return agg
@@ -200,6 +212,11 @@ def listar_vencedores_consolidados(
 
         limite = datetime.utcnow() - timedelta(days=CNPJ_PUBLICO_CACHE_DIAS)
         enriquecido_em = forn.cnpj_enriquecido_em if forn else None
+        valor_total = (
+            float(bucket["valor_total"].quantize(Decimal("0.01")))
+            if bucket.get("tem_valor")
+            else None
+        )
         items.append(
             {
                 "cod_fornecedor": ni,
@@ -207,6 +224,7 @@ def listar_vencedores_consolidados(
                 "tipo": "cpf" if len(ni) <= 11 else "cnpj",
                 "qtd_itens": bucket["itens"],
                 "qtd_compras": len(bucket["compras"]),
+                "valor_total_homologado": valor_total,
                 "status_cache": st,
                 "cache_valido": st == "atualizado",
                 "cnpj_enriquecido_em": _fmt_iso(enriquecido_em),

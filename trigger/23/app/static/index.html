@@ -136,14 +136,23 @@
 
       <div class="sidebar-foot">
         <div id="auth-user-box" class="auth-user-box" hidden>
-          <p class="sidebar-foot-title">Sessão</p>
-          <p class="auth-user-name" id="auth-user-name">—</p>
-          <p class="auth-user-papel" id="auth-user-papel">—</p>
-          <button type="button" class="btn btn-sm auth-logout-btn" id="btn-auth-logout">Sair</button>
+          <div class="auth-user-row">
+            <div class="auth-user-meta">
+              <p class="sidebar-foot-title">Sessão</p>
+              <p class="auth-user-name" id="auth-user-name">—</p>
+              <p class="auth-user-papel" id="auth-user-papel">—</p>
+            </div>
+            <button type="button" class="btn btn-sm auth-logout-btn" id="btn-auth-logout">Sair</button>
+          </div>
         </div>
-        <p class="sidebar-foot-title">Fontes de dados</p>
-        <p class="sidebar-foot-item"><span class="dot dot-compras"></span> Compras.gov · PNCP</p>
-        <p class="sidebar-foot-item"><span class="dot dot-powerbi"></span> Power BI · Dados Abertos PMU</p>
+
+        <div class="sidebar-fontes">
+          <p class="sidebar-foot-title">Fontes</p>
+          <div class="sidebar-fontes-list">
+            <p class="sidebar-foot-item"><span class="dot dot-compras"></span> Compras.gov · PNCP</p>
+            <p class="sidebar-foot-item" title="Power BI · Dados Abertos PMU"><span class="dot dot-powerbi"></span> Power BI · PMU</p>
+          </div>
+        </div>
 
         <div class="sidebar-vendor">
           <a
@@ -153,7 +162,7 @@
             rel="noopener noreferrer"
             title="Trigger Data Intelligence"
           >
-            <img class="vendor-mark" src="/static/trigger-mark.png?v=2" width="18" height="18" alt="" decoding="async" />
+            <img class="vendor-mark" src="/static/trigger-mark.png?v=2" width="16" height="16" alt="" decoding="async" />
             <span>Desenvolvido pela <strong>Trigger</strong></span>
           </a>
           <details class="vendor-arch">
@@ -493,7 +502,8 @@
             <p class="muted">
               Fornecedores homologados a partir de <strong>compras_contratacao_resultados</strong>
               (módulo 07.3), com fallback seguro aos itens quando o resultado ainda não foi coletado.
-              Atualize cada CNPJ individualmente via API pública (BrasilAPI / Minha Receita);
+              Atualize cada CNPJ individualmente via API pública
+              (BrasilAPI → Minha Receita → CNPJá → Pública CNPJ.ws);
               o módulo 10 (Compras.gov) enriquece porte/CNAE/<code>habilitadoLicitar</code> na coleta.
             </p>
             <form id="form-vencedores-filtros" class="filters-grid">
@@ -539,6 +549,7 @@
                     <th class="sortable" data-sort="cod_fornecedor">CNPJ / CPF</th>
                     <th class="sortable" data-sort="qtd_itens">Itens</th>
                     <th class="sortable" data-sort="qtd_compras">Compras</th>
+                    <th class="sortable" data-sort="valor_total_homologado">Valor hom.</th>
                     <th class="sortable" data-sort="municipio">Município</th>
                     <th class="sortable" data-sort="status_cache">Cache CNPJ</th>
                     <th class="sortable" data-sort="cnpj_enriquecido_em">Última atualização</th>
@@ -1429,7 +1440,7 @@
   <script src="/static/consulta_processo.js?v=osb5"></script>
   <script src="/static/propostas_abertas.js?v=osb10"></script>
   <script src="/static/compras.js?v=osb8"></script>
-  <script src="/static/vencedores_cnpj.js?v=osb2"></script>
+  <script src="/static/vencedores_cnpj.js?v=osb3"></script>
   <script src="/static/powerbi.js?v=osb5"></script>
   <script src="/static/orgaos.js?v=osb4"></script>
   <script src="/static/modalidades.js?v=osb4"></script>

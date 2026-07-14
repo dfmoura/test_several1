@@ -77,6 +77,7 @@ def test_preferencia_resultados_sobre_itens():
             id_compra="c1",
             cod_fornecedor="12345678000199",
             nome_fornecedor="Nome no item",
+            valor_total_resultado="R$ 9.999,00",  # ignorado — há resultado 07.3
         )
     )
     db.add(
@@ -86,6 +87,7 @@ def test_preferencia_resultados_sobre_itens():
             sequencial_resultado=1,
             ni_fornecedor="12345678000199",
             nome_razao_social_fornecedor="Nome no resultado",
+            valor_total_homologado="R$ 1.500,50",
         )
     )
     # Item sem resultado — entra pelo fallback
@@ -95,6 +97,7 @@ def test_preferencia_resultados_sobre_itens():
             id_compra="c2",
             cod_fornecedor="11222333000181",
             nome_fornecedor="Só no item",
+            valor_total_resultado="250,00",
         )
     )
     db.commit()
@@ -105,9 +108,39 @@ def test_preferencia_resultados_sobre_itens():
     assert por_ni["12345678000199"]["qtd_itens"] == 1
     assert por_ni["12345678000199"]["nome_fornecedor"] == "Nome no resultado"
     assert por_ni["12345678000199"]["fonte_agregacao"] == "resultados"
+    assert por_ni["12345678000199"]["valor_total_homologado"] == 1500.50
     assert por_ni["11222333000181"]["fonte_agregacao"] == "itens"
+    assert por_ni["11222333000181"]["valor_total_homologado"] == 250.0
     db.close()
 
+
+def test_soma_valor_homologado_varios_resultados():
+    db = _db()
+    db.add_all(
+        [
+            ComprasContratacaoResultado(
+                id_compra="c1",
+                id_compra_item="i1",
+                sequencial_resultado=1,
+                ni_fornecedor="12345678000199",
+                nome_razao_social_fornecedor="ACME",
+                valor_total_homologado="100,00",
+            ),
+            ComprasContratacaoResultado(
+                id_compra="c2",
+                id_compra_item="i2",
+                sequencial_resultado=1,
+                ni_fornecedor="12345678000199",
+                nome_razao_social_fornecedor="ACME",
+                valor_total_homologado="R$ 50,25",
+            ),
+        ]
+    )
+    db.commit()
+    out = listar_vencedores_consolidados(db)
+    assert out["total"] == 1
+    assert out["items"][0]["valor_total_homologado"] == 150.25
+    db.close()
 
 def test_filtro_status_pendente():
     db = _db()

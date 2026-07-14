@@ -1,4 +1,8 @@
-"""Enriquecimento CNPJ público (QSA) — BrasilAPI + fallback Minha Receita."""
+"""Enriquecimento CNPJ público (QSA) — cadeia de APIs públicas com fallback.
+
+Ordem padrão: BrasilAPI → Minha Receita → CNPJá Open → Pública CNPJ.ws.
+Cada fonte é tentada só se a anterior falhar (indisponível / erro transitório).
+"""
 
 from __future__ import annotations
 
@@ -16,8 +20,10 @@ from app.compras.repository import ensure_fornecedor_stub, upsert_fornecedor
 from app.config import (
     CNPJ_PUBLICO_BRASILAPI_URL,
     CNPJ_PUBLICO_CACHE_DIAS,
+    CNPJ_PUBLICO_CNPJA_URL,
     CNPJ_PUBLICO_HTTP_TIMEOUT_SEC,
     CNPJ_PUBLICO_MINHARECEITA_URL,
+    CNPJ_PUBLICO_PUBLICA_URL,
     UBERLANDIA_IBGE,
     UBERLANDIA_NOME,
     USER_AGENT,
@@ -58,6 +64,18 @@ def _int_or_none(val: Any) -> int | None:
         return None
 
 
+def _texto_ou_none(val: Any) -> str | None:
+    if val is None:
+        return None
+    if isinstance(val, dict):
+        for key in ("text", "descricao", "nome", "name"):
+            if val.get(key):
+                return str(val.get(key)).strip() or None
+        return None
+    texto = str(val).strip()
+    return texto or None
+
+
 def _qsa_normalizado(raw_qsa: Any) -> list[dict[str, Any]]:
     if not isinstance(raw_qsa, list):
         return []
@@ -65,39 +83,159 @@ def _qsa_normalizado(raw_qsa: Any) -> list[dict[str, Any]]:
     for item in raw_qsa:
         if not isinstance(item, dict):
             continue
+        # CNPJá Open: members[].person / role
+        person = item.get("person") if isinstance(item.get("person"), dict) else {}
+        role = item.get("role") if isinstance(item.get("role"), dict) else {}
+        qualificacao = (
+            item.get("qualificacao_socio")
+            or item.get("qualificacao")
+            or item.get("qualificacao_do_socio")
+            or role.get("text")
+        )
+        if isinstance(qualificacao, dict):
+            qualificacao = qualificacao.get("descricao") or qualificacao.get("text")
+        pais = item.get("pais") or item.get("nome_pais_origem") or person.get("country")
+        if isinstance(pais, dict):
+            pais = pais.get("nome") or pais.get("name")
         out.append(
             {
-                "nome_socio": item.get("nome_socio") or item.get("nome") or item.get("nome_do_socio"),
-                "cnpj_cpf_socio": item.get("cnpj_cpf_do_socio")
-                or item.get("cnpj_cpf_socio")
-                or item.get("cpf_cnpj_socio"),
-                "qualificacao": item.get("qualificacao_socio")
-                or item.get("qualificacao")
-                or item.get("qualificacao_do_socio"),
-                "data_entrada": item.get("data_entrada_sociedade") or item.get("data_entrada"),
-                "faixa_etaria": item.get("faixa_etaria"),
-                "pais_origem": item.get("pais") or item.get("nome_pais_origem"),
+                "nome_socio": (
+                    item.get("nome_socio")
+                    or item.get("nome")
+                    or item.get("nome_do_socio")
+                    or person.get("name")
+                ),
+                "cnpj_cpf_socio": (
+                    item.get("cnpj_cpf_do_socio")
+                    or item.get("cnpj_cpf_socio")
+                    or item.get("cpf_cnpj_socio")
+                    or person.get("taxId")
+                ),
+                "qualificacao": _texto_ou_none(qualificacao),
+                "data_entrada": (
+                    item.get("data_entrada_sociedade")
+                    or item.get("data_entrada")
+                    or item.get("since")
+                ),
+                "faixa_etaria": item.get("faixa_etaria") or person.get("age"),
+                "pais_origem": _texto_ou_none(pais),
             }
         )
     return out
 
 
+def _adaptar_payload_cnpja(raw: dict[str, Any]) -> dict[str, Any]:
+    """Converte resposta CNPJá Open para o formato flat esperado pelo mapper."""
+    company = raw.get("company") if isinstance(raw.get("company"), dict) else {}
+    address = raw.get("address") if isinstance(raw.get("address"), dict) else {}
+    status = raw.get("status") if isinstance(raw.get("status"), dict) else {}
+    nature = company.get("nature") if isinstance(company.get("nature"), dict) else {}
+    size = company.get("size") if isinstance(company.get("size"), dict) else {}
+    activity = raw.get("mainActivity") if isinstance(raw.get("mainActivity"), dict) else {}
+    return {
+        "cnpj": raw.get("taxId") or raw.get("cnpj"),
+        "razao_social": company.get("name") or raw.get("razao_social"),
+        "nome_fantasia": raw.get("alias") or raw.get("nome_fantasia"),
+        "cnae_fiscal": activity.get("id"),
+        "cnae_fiscal_descricao": activity.get("text"),
+        "descricao_situacao_cadastral": status.get("text") or raw.get("situacao_cadastral"),
+        "municipio": address.get("city") or address.get("municipio"),
+        "uf": address.get("state") or address.get("uf"),
+        "codigo_municipio_ibge": address.get("municipality") or address.get("codigo_municipio_ibge"),
+        "cep": address.get("zip") or address.get("cep"),
+        "logradouro": address.get("street") or address.get("logradouro"),
+        "numero": address.get("number") or address.get("numero"),
+        "bairro": address.get("district") or address.get("bairro"),
+        "natureza_juridica": nature.get("text"),
+        "porte": size.get("text") or size.get("acronym"),
+        "qsa": company.get("members") or raw.get("qsa") or [],
+    }
+
+
+def _adaptar_payload_publica(raw: dict[str, Any]) -> dict[str, Any]:
+    """Converte resposta Pública CNPJ.ws para o formato flat esperado pelo mapper."""
+    est = raw.get("estabelecimento") if isinstance(raw.get("estabelecimento"), dict) else {}
+    cidade = est.get("cidade") if isinstance(est.get("cidade"), dict) else {}
+    estado = est.get("estado") if isinstance(est.get("estado"), dict) else {}
+    atividade = (
+        est.get("atividade_principal")
+        if isinstance(est.get("atividade_principal"), dict)
+        else {}
+    )
+    porte = raw.get("porte") if isinstance(raw.get("porte"), dict) else {}
+    natureza = (
+        raw.get("natureza_juridica") if isinstance(raw.get("natureza_juridica"), dict) else {}
+    )
+    cnpj = est.get("cnpj") or raw.get("cnpj")
+    if not cnpj:
+        raiz = est.get("cnpj_raiz") or raw.get("cnpj_raiz")
+        ordem = est.get("cnpj_ordem") or "0001"
+        dv = est.get("cnpj_digito_verificador") or ""
+        if raiz:
+            cnpj = f"{raiz}{ordem}{dv}"
+    socios = raw.get("socios") or []
+    qsa = []
+    for socio in socios if isinstance(socios, list) else []:
+        if not isinstance(socio, dict):
+            continue
+        qual = socio.get("qualificacao_socio")
+        qsa.append(
+            {
+                "nome_socio": socio.get("nome"),
+                "cnpj_cpf_do_socio": socio.get("cpf_cnpj_socio"),
+                "qualificacao_socio": (
+                    qual.get("descricao") if isinstance(qual, dict) else qual
+                ),
+                "data_entrada_sociedade": socio.get("data_entrada"),
+                "faixa_etaria": socio.get("faixa_etaria"),
+                "pais": socio.get("pais"),
+            }
+        )
+    return {
+        "cnpj": cnpj,
+        "razao_social": raw.get("razao_social"),
+        "nome_fantasia": est.get("nome_fantasia"),
+        "cnae_fiscal": atividade.get("id"),
+        "cnae_fiscal_descricao": atividade.get("descricao"),
+        "descricao_situacao_cadastral": est.get("situacao_cadastral"),
+        "municipio": cidade.get("nome"),
+        "uf": estado.get("sigla"),
+        "codigo_municipio_ibge": cidade.get("ibge_id"),
+        "cep": est.get("cep"),
+        "logradouro": est.get("logradouro"),
+        "numero": est.get("numero"),
+        "bairro": est.get("bairro"),
+        "natureza_juridica": natureza.get("descricao"),
+        "porte": porte.get("descricao"),
+        "qsa": qsa,
+    }
+
+
+def _payload_para_mapper(raw: dict[str, Any], *, fonte: str) -> dict[str, Any]:
+    if fonte == "cnpja":
+        return _adaptar_payload_cnpja(raw)
+    if fonte == "publicacnpj":
+        return _adaptar_payload_publica(raw)
+    return raw
+
+
 def mapear_payload_cnpj(raw: dict[str, Any], *, fonte: str) -> dict[str, Any]:
-    """Normaliza payloads BrasilAPI / Minha Receita para a dimensão local."""
-    ni = normalizar_ni(raw.get("cnpj") or raw.get("ni_fornecedor"))
+    """Normaliza payloads das APIs públicas para a dimensão local."""
+    adapted = _payload_para_mapper(raw, fonte=fonte)
+    ni = normalizar_ni(adapted.get("cnpj") or adapted.get("ni_fornecedor"))
     if not ni or len(ni) != 14:
         raise ValueError("Payload CNPJ sem identificador válido")
 
-    municipio = raw.get("municipio") or raw.get("nome_municipio")
-    estabelecimento = raw.get("estabelecimento")
+    municipio = adapted.get("municipio") or adapted.get("nome_municipio")
+    estabelecimento = adapted.get("estabelecimento")
     if not municipio and isinstance(estabelecimento, dict):
         municipio = estabelecimento.get("cidade")
 
-    uf = raw.get("uf") or raw.get("uf_sigla")
+    uf = adapted.get("uf") or adapted.get("uf_sigla")
     if not uf and isinstance(estabelecimento, dict):
         uf = estabelecimento.get("estado")
 
-    ibge = _int_or_none(raw.get("codigo_municipio_ibge") or raw.get("codigo_municipio"))
+    ibge = _int_or_none(adapted.get("codigo_municipio_ibge") or adapted.get("codigo_municipio"))
     if ibge is None and isinstance(estabelecimento, dict):
         ibge = _int_or_none(estabelecimento.get("codigo_municipio_ibge"))
 
@@ -107,41 +245,44 @@ def mapear_payload_cnpj(raw: dict[str, Any], *, fonte: str) -> dict[str, Any]:
         uf_sigla=str(uf) if uf else None,
     )
 
-    cnae = _int_or_none(raw.get("cnae_fiscal") or raw.get("codigo_cnae"))
-    cnae_nome = raw.get("cnae_fiscal_descricao") or raw.get("nome_cnae")
+    cnae = _int_or_none(adapted.get("cnae_fiscal") or adapted.get("codigo_cnae"))
+    cnae_nome = adapted.get("cnae_fiscal_descricao") or adapted.get("nome_cnae")
     situacao = (
-        raw.get("descricao_situacao_cadastral")
-        or raw.get("situacao_cadastral")
-        or raw.get("descricao_situacao")
+        adapted.get("descricao_situacao_cadastral")
+        or adapted.get("situacao_cadastral")
+        or adapted.get("descricao_situacao")
     )
     if situacao is not None:
         situacao = str(situacao)
 
-    qsa = _qsa_normalizado(raw.get("qsa") or raw.get("quadro_socios"))
+    qsa = _qsa_normalizado(adapted.get("qsa") or adapted.get("quadro_socios"))
 
     return {
         "ni_fornecedor": ni,
         "cnpj": ni,
         "nome_razao_social_fornecedor": (
-            str(raw.get("razao_social") or raw.get("nome_razao_social_fornecedor") or "") or None
+            str(adapted.get("razao_social") or adapted.get("nome_razao_social_fornecedor") or "")
+            or None
         ),
-        "nome_fantasia": str(raw.get("nome_fantasia") or "") or None,
+        "nome_fantasia": str(adapted.get("nome_fantasia") or "") or None,
         "codigo_cnae": cnae,
         "nome_cnae": str(cnae_nome or "") or None,
         "natureza_juridica_nome": str(
-            raw.get("natureza_juridica") or raw.get("natureza_juridica_nome") or ""
+            adapted.get("natureza_juridica") or adapted.get("natureza_juridica_nome") or ""
         )
         or None,
-        "porte_empresa_nome": str(raw.get("porte") or raw.get("porte_empresa_nome") or "") or None,
+        "porte_empresa_nome": str(adapted.get("porte") or adapted.get("porte_empresa_nome") or "")
+        or None,
         "uf_sigla": str(uf or "").upper()[:2] or None,
         "nome_municipio": str(municipio or "") or None,
         "codigo_municipio_ibge": ibge,
         "de_uberlandia": de_udi,
         "situacao_cadastral": situacao,
-        "cep": str(raw.get("cep") or "") or None,
-        "logradouro": str(raw.get("logradouro") or "") or None,
-        "numero_endereco": str(raw.get("numero") or raw.get("numero_endereco") or "") or None,
-        "bairro": str(raw.get("bairro") or "") or None,
+        "cep": str(adapted.get("cep") or "") or None,
+        "logradouro": str(adapted.get("logradouro") or "") or None,
+        "numero_endereco": str(adapted.get("numero") or adapted.get("numero_endereco") or "")
+        or None,
+        "bairro": str(adapted.get("bairro") or "") or None,
         "qsa_json": json.dumps(qsa, ensure_ascii=False),
         "cnpj_dados_json": json.dumps(
             {"fonte": fonte, "payload": raw},
@@ -170,16 +311,23 @@ def _http_get_json(url: str) -> dict[str, Any]:
         return data
 
 
+def _fontes_cnpj_publico(ni: str) -> list[tuple[str, str]]:
+    """Cadeia de fallbacks (ordem importa). URLs configuráveis via env."""
+    return [
+        ("brasilapi", f"{CNPJ_PUBLICO_BRASILAPI_URL.rstrip('/')}/{ni}"),
+        ("minhareceita", f"{CNPJ_PUBLICO_MINHARECEITA_URL.rstrip('/')}/{ni}"),
+        ("cnpja", f"{CNPJ_PUBLICO_CNPJA_URL.rstrip('/')}/{ni}"),
+        ("publicacnpj", f"{CNPJ_PUBLICO_PUBLICA_URL.rstrip('/')}/{ni}"),
+    ]
+
+
 def consultar_cnpj_publico(cnpj: str) -> dict[str, Any]:
     ni = normalizar_ni(cnpj)
     if not ni or len(ni) != 14:
         raise ValueError("Informe um CNPJ válido (14 dígitos)")
 
     erros: list[str] = []
-    for fonte, url in (
-        ("brasilapi", f"{CNPJ_PUBLICO_BRASILAPI_URL.rstrip('/')}/{ni}"),
-        ("minhareceita", f"{CNPJ_PUBLICO_MINHARECEITA_URL.rstrip('/')}/{ni}"),
-    ):
+    for fonte, url in _fontes_cnpj_publico(ni):
         try:
             raw = _http_get_json(url)
             return mapear_payload_cnpj(raw, fonte=fonte)
@@ -187,7 +335,10 @@ def consultar_cnpj_publico(cnpj: str) -> dict[str, Any]:
             raise
         except Exception as exc:  # noqa: BLE001
             erros.append(f"{fonte}: {exc}")
-    raise RuntimeError("Falha ao consultar CNPJ público — " + "; ".join(erros))
+    raise RuntimeError(
+        "Falha ao consultar CNPJ público (todas as fontes indisponíveis) — "
+        + "; ".join(erros)
+    )
 
 
 def cache_cnpj_valido(row: ComprasFornecedor, *, dias: int | None = None) -> bool:
