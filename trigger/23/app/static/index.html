@@ -13,7 +13,7 @@
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/static/style.css?v=osb27" />
+  <link rel="stylesheet" href="/static/style.css?v=osb28" />
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -257,8 +257,8 @@
               </label>
               <label class="field">
                 <span>Métrica do mapa</span>
-                <select id="loc-filtro-metrica">
-                  <option value="quantidade">Quantidade de resultados</option>
+                <select id="loc-filtro-metrica" title="Quantidade conta itens homologados (PNCP 07.3), não o número de licitações">
+                  <option value="quantidade">Itens homologados</option>
                   <option value="valor">Valor homologado</option>
                 </select>
               </label>
@@ -277,7 +277,7 @@
               <header class="loc-map-toolbar">
                 <div class="loc-map-title-wrap">
                   <h3 class="loc-map-title">Distribuição geográfica</h3>
-                  <p class="loc-map-hint">Sede cadastral do fornecedor vencedor · PNCP 07.3</p>
+                  <p class="loc-map-hint">Sede do fornecedor vencedor · intensidade por itens homologados ou valor (PNCP 07.3)</p>
                 </div>
                 <div class="loc-mode-toggle" role="group" aria-label="Modo do mapa">
                   <button type="button" class="loc-mode-btn active" data-mode="estados" id="loc-mode-estados">Estados</button>
@@ -312,9 +312,9 @@
                   <tr>
                     <th data-sort="municipio">Município</th>
                     <th data-sort="uf">UF</th>
-                    <th class="col-num" data-sort="quantidade">Resultados</th>
+                    <th class="col-num" data-sort="quantidade" title="Linhas de resultado homologado (PNCP 07.3) — por item/vencedor">Itens</th>
                     <th class="col-num col-money" data-sort="valor">Valor homologado</th>
-                    <th class="col-num" data-sort="contratacoes">Contratações</th>
+                    <th class="col-num" data-sort="contratacoes" title="Processos de contratação distintos (licitações)">Contratações</th>
                     <th class="col-num" data-sort="fornecedores">Fornecedores</th>
                     <th data-sort="de_uberlandia">Origem</th>
                   </tr>
@@ -973,7 +973,7 @@
               </div>
               <label class="chk-label">
                 <input type="checkbox" id="setup-ag-coleta" checked />
-                Coleta unificada (parâmetros padrão da tela Coleta: fontes, ano, UASGs, fases, datasets)
+                Coleta unificada (fontes, anos do Setup → corrente, UASGs, fases, datasets)
               </label>
               <label class="chk-label">
                 <input type="checkbox" id="setup-ag-cnpjs" checked />
@@ -1472,8 +1472,8 @@
   <script src="/static/auth.js?v=osb2"></script>
   <script src="/static/coleta.js?v=osb4"></script>
   <script src="/static/dashboard.js?v=osb5"></script>
-  <script src="/static/localidade.js?v=osb3"></script>
-  <script src="/static/consulta_processo.js?v=osb5"></script>
+  <script src="/static/localidade.js?v=osb4"></script>
+  <script src="/static/consulta_processo.js?v=osb6"></script>
   <script src="/static/propostas_abertas.js?v=osb10"></script>
   <script src="/static/compras.js?v=osb9"></script>
   <script src="/static/vencedores_cnpj.js?v=osb8"></script>

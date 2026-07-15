@@ -29,9 +29,14 @@ def test_stats_distribuicao_localidade():
     assert "por_municipio" in data
     resumo = data["resumo"]
     assert resumo["quantidade"] >= 0
+    assert resumo["contratacoes"] >= 0
+    # Itens (linhas 07.3) ≥ contratações distintas — nunca o inverso
+    assert resumo["quantidade"] >= resumo["contratacoes"]
     assert "uberlandia" in resumo
     assert "fora" in resumo
     assert data["filtros"]["metrica"] == "quantidade"
+    assert "itens" in data["interpretacao"]["quantidade"].lower()
+    assert "licita" in data["interpretacao"]["quantidade"].lower()
 
 
 def test_stats_filtro_uf_e_escopo():

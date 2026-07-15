@@ -141,7 +141,8 @@ function locPaintEstados() {
       const valor = row?.valor ?? 0;
       const tip = row
         ? `<strong>${esc(sigla)} · ${esc(nome)}</strong><br>
-           Resultados: <b>${fmtNum(qtd)}</b><br>
+           Itens homologados: <b>${fmtNum(qtd)}</b><br>
+           Contratações: <b>${fmtNum(row.contratacoes)}</b><br>
            Valor: <b>${fmtMoeda(valor)}</b><br>
            Municípios: ${fmtNum(row.municipios)} · Fornecedores: ${fmtNum(row.fornecedores)}`
         : `<strong>${esc(sigla)} · ${esc(nome)}</strong><br><span class="muted">Sem vencedores nos filtros</span>`;
@@ -214,7 +215,8 @@ function locPaintCalor() {
     });
     circle.bindTooltip(
       `<strong>${esc(m.municipio)}/${esc(m.uf)}</strong><br>
-       Resultados: <b>${fmtNum(m.quantidade)}</b><br>
+       Itens homologados: <b>${fmtNum(m.quantidade)}</b><br>
+       Contratações: <b>${fmtNum(m.contratacoes)}</b><br>
        Valor: <b>${fmtMoeda(m.valor)}</b><br>
        Fornecedores: ${fmtNum(m.fornecedores)}`,
       { sticky: true, className: "loc-tooltip", opacity: 1 },
@@ -232,7 +234,7 @@ function locPaintCalor() {
 function locRenderLegend(max) {
   const el = $("#loc-legend");
   if (!el) return;
-  const label = locMetrica() === "valor" ? "Valor homologado" : "Quantidade de resultados";
+  const label = locMetrica() === "valor" ? "Valor homologado" : "Itens homologados";
   const stops = LOC_PALETTE.map(
     (c, i) => `<span class="loc-legend-swatch" style="background:${c}"></span>`,
   ).join("");
@@ -313,14 +315,22 @@ function locRenderKpis() {
   const r = LOC.data.resumo || {};
   const udi = r.uberlandia || {};
   const fora = r.fora || {};
+  // quantidade = linhas de resultado 07.3 (por item vencedor); contratacoes = processos distintos
   el.innerHTML = `
-    <div class="loc-kpi loc-kpi-main">
+    <div class="loc-kpi loc-kpi-main" title="Linhas de resultado homologado no PNCP 07.3 — uma por item/vencedor, não por licitação">
       <span class="loc-kpi-n">${fmtNum(r.quantidade)}</span>
-      <span class="loc-kpi-l">Resultados homologados</span>
+      <span class="loc-kpi-l">Itens homologados</span>
+      <span class="loc-kpi-h">resultados PNCP 07.3</span>
+    </div>
+    <div class="loc-kpi" title="Processos de contratação distintos (licitações) com ao menos um item homologado">
+      <span class="loc-kpi-n">${fmtNum(r.contratacoes)}</span>
+      <span class="loc-kpi-l">Contratações</span>
+      <span class="loc-kpi-h">licitações / processos</span>
     </div>
     <div class="loc-kpi">
       <span class="loc-kpi-n loc-kpi-money">${fmtMoeda(r.valor)}</span>
       <span class="loc-kpi-l">Valor homologado</span>
+      <span class="loc-kpi-h">soma dos itens</span>
     </div>
     <div class="loc-kpi">
       <span class="loc-kpi-n">${fmtNum(r.ufs)}</span>
@@ -330,13 +340,15 @@ function locRenderKpis() {
       <span class="loc-kpi-n">${fmtNum(r.municipios)}</span>
       <span class="loc-kpi-l">Municípios</span>
     </div>
-    <div class="loc-kpi loc-kpi-udi">
+    <div class="loc-kpi loc-kpi-udi" title="Participação dos itens homologados cuja sede do vencedor é Uberlândia">
       <span class="loc-kpi-n">${fmtNum(udi.pct_quantidade)}%</span>
-      <span class="loc-kpi-l">Resultados em Uberlândia</span>
+      <span class="loc-kpi-l">Itens em Uberlândia</span>
+      <span class="loc-kpi-h">${fmtNum(udi.quantidade)} de ${fmtNum(r.quantidade)}</span>
     </div>
-    <div class="loc-kpi">
+    <div class="loc-kpi" title="Participação dos itens homologados com vencedor sediado fora de Uberlândia">
       <span class="loc-kpi-n">${fmtNum(fora.pct_quantidade)}%</span>
-      <span class="loc-kpi-l">Resultados de fora</span>
+      <span class="loc-kpi-l">Itens de fora</span>
+      <span class="loc-kpi-h">${fmtNum(fora.quantidade)} de ${fmtNum(r.quantidade)}</span>
     </div>`;
 }
 
@@ -353,14 +365,14 @@ function locRenderUdiSplit() {
   el.innerHTML = `
     <div class="loc-split-head">
       <span>Uberlândia × fora</span>
-      <span class="muted-inline">${metrica === "valor" ? "por valor" : "por quantidade"}</span>
+      <span class="muted-inline">${metrica === "valor" ? "por valor homologado" : "por itens homologados"}</span>
     </div>
     <div class="loc-split-bar" title="Uberlândia ${pctA}%">
       <div class="loc-split-udi" style="width:${pctA}%"></div>
       <div class="loc-split-fora" style="width:${100 - pctA}%"></div>
     </div>
     <div class="loc-split-meta">
-      <span><i class="loc-dot udi"></i> Uberlândia ${locFmtMetrica(a)} (${fmtNum(udi.pct_quantidade)}% qtd · ${fmtNum(udi.pct_valor)}% valor)</span>
+      <span><i class="loc-dot udi"></i> Uberlândia ${locFmtMetrica(a)} (${fmtNum(udi.pct_quantidade)}% itens · ${fmtNum(udi.pct_valor)}% valor)</span>
       <span><i class="loc-dot fora"></i> Fora ${locFmtMetrica(b)}</span>
     </div>`;
 }
@@ -395,9 +407,7 @@ function locRenderRanking() {
         const v = locValorDe(i);
         const pct = Math.round(locNorm(v, max) * 100);
         const label = i.municipio ? `${i.municipio}` : `${i.uf} · ${i.nome || ""}`;
-        const sub = i.municipio
-          ? `${fmtNum(i.quantidade)} · ${fmtMoeda(i.valor)}`
-          : `${fmtNum(i.quantidade)} · ${fmtMoeda(i.valor)}`;
+        const sub = `${fmtNum(i.quantidade)} itens · ${fmtNum(i.contratacoes)} contr. · ${fmtMoeda(i.valor)}`;
         const cls = i.de_uberlandia ? " loc-rank-udi" : "";
         const click = i.municipio
           ? ""
@@ -487,7 +497,11 @@ function locRenderResumo() {
   if (f.escopo && f.escopo !== "todos") {
     parts.push(f.escopo === "uberlandia" ? "Escopo <strong>Uberlândia</strong>" : "Escopo <strong>fora</strong>");
   }
-  parts.push(f.metrica === "valor" ? "Mapa por <strong>valor</strong>" : "Mapa por <strong>quantidade</strong>");
+  parts.push(
+    f.metrica === "valor"
+      ? "Mapa por <strong>valor homologado</strong>"
+      : "Mapa por <strong>itens homologados</strong>",
+  );
   if (LOC.ufFocus) parts.push(`Foco <strong>${esc(LOC.ufFocus)}</strong>`);
   el.innerHTML = parts.join(" · ");
 }

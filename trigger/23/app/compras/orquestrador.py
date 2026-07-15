@@ -339,38 +339,51 @@ def executar_pipeline(
 
         if ("01" in alvo or "02" in alvo) and COMPRAS_ENRICH_CATALOGO:
             fase("enrich_catalogo")
-            codigos = {
-                (r.cod_item_catalogo, r.material_ou_servico)
-                for r in db.scalars(select(CompraContratacaoItem))
-                if r.cod_item_catalogo
-            }
-            existentes = {
-                (c.tipo_item, c.codigo_item_catalogo)
-                for c in db.scalars(select(ComprasItemCatalogo))
-            }
-            pendentes = [
-                (c, m)
-                for c, m in codigos
-                if (tipo_item_catalogo(m or "M"), c) not in existentes
-            ]
-            for raw in enrich_catalogo(pendentes, on_log=log, on_fase=fase):
-                row, criado = upsert_catalogo(db, raw)
-                out.contadores["catalogo_novos" if criado else "catalogo_atualizados"] = (
-                    out.contadores.get(
-                        "catalogo_novos" if criado else "catalogo_atualizados", 0
+            try:
+                codigos = {
+                    (r.cod_item_catalogo, r.material_ou_servico)
+                    for r in db.scalars(select(CompraContratacaoItem))
+                    if r.cod_item_catalogo
+                }
+                existentes = {
+                    (c.tipo_item, c.codigo_item_catalogo)
+                    for c in db.scalars(select(ComprasItemCatalogo))
+                }
+                pendentes = [
+                    (c, m)
+                    for c, m in codigos
+                    if (tipo_item_catalogo(m or "M"), c) not in existentes
+                ]
+                log(f"  Catálogo pendente de enriquecimento (módulos 01/02): {len(pendentes)}")
+                for raw in enrich_catalogo(pendentes, on_log=log, on_fase=fase):
+                    row, criado = upsert_catalogo(db, raw)
+                    out.contadores[
+                        "catalogo_novos" if criado else "catalogo_atualizados"
+                    ] = (
+                        out.contadores.get(
+                            "catalogo_novos" if criado else "catalogo_atualizados",
+                            0,
+                        )
+                        + 1
                     )
-                    + 1
-                )
-                for item_row in db.scalars(
-                    select(CompraContratacaoItem).where(
-                        CompraContratacaoItem.cod_item_catalogo == row.codigo_item_catalogo
-                    )
-                ):
-                    if tipo_item_catalogo(item_row.material_ou_servico or "M") == row.tipo_item:
-                        item_row.item_catalogo_id = row.id
-            db.commit()
-            registrar_sync_meta(db, "01-02", out.contadores)
-            db.commit()
+                    for item_row in db.scalars(
+                        select(CompraContratacaoItem).where(
+                            CompraContratacaoItem.cod_item_catalogo
+                            == row.codigo_item_catalogo
+                        )
+                    ):
+                        if (
+                            tipo_item_catalogo(item_row.material_ou_servico or "M")
+                            == row.tipo_item
+                        ):
+                            item_row.item_catalogo_id = row.id
+                db.commit()
+                registrar_sync_meta(db, "01-02", out.contadores)
+                db.commit()
+            except Exception as exc:  # noqa: BLE001 — não aborta o restante do pipeline
+                log(f"⚠ Catálogo (01/02): {exc} — seguindo com demais fases")
+                out.contadores["catalogo_erro"] = 1
+                db.rollback()
 
         if "03" in alvo or COMPRAS_COLETAR_PRECO:
             fase("sync_precos")

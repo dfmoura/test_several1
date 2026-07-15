@@ -78,7 +78,10 @@ Health: `GET /api/health` — inclui `checks.database` (503 se o banco falhar). 
 | `COMPRAS_IBGE_MUNICIPIO` | `3170206` | Filtro IBGE (Uberlândia) |
 | `COMPRAS_UF_FILTRO` | `MG` | UF padrão na coleta UASG |
 | `COMPRAS_ENRICH_FORNECEDOR` | `true` | Enriquecer fornecedores (mód. 10) |
+| `COMPRAS_ENRICH_FORNECEDOR_MAX` | `150` | Teto de fornecedores por execução |
 | `COMPRAS_ENRICH_CATALOGO` | `true` | Cache CATMAT/CATSER on-demand |
+| `COMPRAS_ENRICH_CATALOGO_MAX` | `150` | Teto de itens de catálogo por execução |
+| `COMPRAS_PNCP_MAX_RETRIES` | `5` | Retries em timeout / 429 / 502–504 |
 | `COMPRAS_COLETAR_PGC` | `false` | Coleta PGC em massa (opt-in) |
 | `COMPRAS_COLETAR_PRECO` | `false` | Coleta pesquisa de preço em massa |
 | `IA_TOKEN_SECRET` | (auto) | Segredo Fernet para criptografar API keys no Setup; se vazio, gera `data/.ia_fernet_key` |

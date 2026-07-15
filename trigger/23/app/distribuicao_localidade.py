@@ -383,7 +383,14 @@ def stats_distribuicao(
         "por_municipio_total": len(por_mun_out),
         "interpretacao": {
             "eixo": "Localidade do fornecedor vencedor (sede cadastral)",
-            "quantidade": "Linhas de resultado homologado (módulo 07.3)",
-            "valor": "Soma de valor_total_homologado dos resultados",
+            "quantidade": (
+                "Itens homologados: linhas de resultado do módulo PNCP 07.3 "
+                "(por item/vencedor). Não é o número de licitações."
+            ),
+            "contratacoes": (
+                "Contratações/licitações distintas com ao menos um item homologado "
+                "nos filtros."
+            ),
+            "valor": "Soma de valor_total_homologado dos itens/resultados",
         },
     }

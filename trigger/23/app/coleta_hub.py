@@ -35,6 +35,9 @@ FASES_COMPRAS_PADRAO: list[str] = ["07", "07-resultados", "05"]
 # Sem heartbeat por este tempo → trava considerada órfã (liberável).
 STALE_AFTER_SEC = 180
 
+# Evita status JSON enorme (ex.: milhares de avisos 429) → 500 no poll da UI.
+MAX_COLETA_LOG_LINHAS = 400
+
 # Status compartilhado do job unificado (lido por GET /api/coleta/status).
 status: dict[str, Any] = {
     "running": False,
@@ -168,6 +171,31 @@ def _validar_modalidades(modalidades: list[int] | None) -> None:
             raise ValueError(f"Modalidade inválida: {m}")
 
 
+def _anos_compras_efetivos(
+    *,
+    ano: int | None,
+    anos_compras: list[int] | None,
+    data_inicial: date | None,
+    data_final: date | None,
+) -> list[int] | None:
+    """Lista de anos do Compras.gov, ou None para usar período explícito / ano único."""
+    if data_inicial and data_final:
+        return None
+    if anos_compras:
+        return sorted({int(a) for a in anos_compras})
+    if ano:
+        return [int(ano)]
+    return None
+
+
+def _somar_contadores(destino: dict[str, Any], origem: dict[str, Any]) -> None:
+    for chave, valor in origem.items():
+        if isinstance(valor, (int, float)) and not isinstance(valor, bool):
+            destino[chave] = destino.get(chave, 0) + valor
+        elif chave not in destino:
+            destino[chave] = valor
+
+
 def executar_coleta_unificada(
     *,
     fontes: list[str],
@@ -180,13 +208,29 @@ def executar_coleta_unificada(
     ano_pgc: int | None = None,
     datasets: list[str] | None = None,
     anos: list[int] | None = None,
+    anos_compras: list[int] | None = None,
 ) -> None:
-    """Executa a coleta das fontes selecionadas, em sequência, com log único."""
+    """Executa a coleta das fontes selecionadas, em sequência, com log único.
+
+    ``anos`` — Power BI (multi). ``anos_compras`` — Compras.gov multi-ano
+    (ex.: faixa do Setup no agendamento). A tela Coleta manual não envia
+    ``anos_compras`` e continua com um único ``ano`` / datas explícitas.
+    """
     logs: list[str] = []
     resultado_fontes: dict[str, Any] = {}
 
     def on_log(msg: str) -> None:
         logs.append(msg)
+        if len(logs) > MAX_COLETA_LOG_LINHAS:
+            omitidas = len(logs) - MAX_COLETA_LOG_LINHAS + 1
+            # Mantém cabeçalho + cauda recente (útil p/ diagnóstico sem estourar a API).
+            cabeca = logs[:30]
+            cauda = logs[-(MAX_COLETA_LOG_LINHAS - 31) :]
+            logs[:] = [
+                *cabeca,
+                f"… ({omitidas} linhas omitidas do log) …",
+                *cauda,
+            ]
         status["log"] = logs.copy()
         status["atualizado_em"] = _agora_iso()
 
@@ -199,24 +243,66 @@ def executar_coleta_unificada(
         _validar_unidades(unidades)
         _validar_modalidades(modalidades)
         di, df = _resolver_periodo(ano, data_inicial, data_final)
+        lista_anos_compras = _anos_compras_efetivos(
+            ano=ano,
+            anos_compras=anos_compras,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
 
         for fonte in fontes:
             if fonte == "compras":
                 on_fase("compras:iniciando")
-                on_log(f"══ Compras.gov / PNCP · {di.isoformat()} → {df.isoformat()} ══")
-                pipeline = executar_pipeline(
-                    fases=fases or FASES_COMPRAS_PADRAO,
-                    data_inicial=di,
-                    data_final=df,
-                    unidades=unidades,
-                    modalidades=modalidades,
-                    ano=ano,
-                    ano_pgc=ano_pgc,
-                    on_log=on_log,
-                    on_fase=on_fase,
-                )
-                status["contadores"]["compras"] = pipeline.contadores
-                resultado_fontes["compras"] = {"ok": True, **pipeline.contadores}
+                fases_run = fases or FASES_COMPRAS_PADRAO
+                contadores_compras: dict[str, Any] = {}
+
+                if lista_anos_compras is None:
+                    # Datas explícitas (tela Coleta com intervalo).
+                    on_log(
+                        f"══ Compras.gov / PNCP · {di.isoformat()} → {df.isoformat()} ══"
+                    )
+                    pipeline = executar_pipeline(
+                        fases=fases_run,
+                        data_inicial=di,
+                        data_final=df,
+                        unidades=unidades,
+                        modalidades=modalidades,
+                        ano=ano,
+                        ano_pgc=ano_pgc,
+                        on_log=on_log,
+                        on_fase=on_fase,
+                    )
+                    contadores_compras = dict(pipeline.contadores)
+                else:
+                    on_log(
+                        f"══ Compras.gov / PNCP · anos {lista_anos_compras} ══"
+                    )
+                    for i, ano_item in enumerate(lista_anos_compras):
+                        di_a, df_a = date(ano_item, 1, 1), date(ano_item, 12, 31)
+                        # Órgãos/UASG (05) só na primeira passagem — dimensão compartilhada.
+                        fases_ano = (
+                            fases_run
+                            if i == 0
+                            else [f for f in fases_run if f != "05"]
+                        )
+                        on_log(
+                            f"── Ano {ano_item}: {di_a.isoformat()} → {df_a.isoformat()} ──"
+                        )
+                        pipeline = executar_pipeline(
+                            fases=fases_ano or ["07", "07-resultados"],
+                            data_inicial=di_a,
+                            data_final=df_a,
+                            unidades=unidades,
+                            modalidades=modalidades,
+                            ano=ano_item,
+                            ano_pgc=ano_pgc or ano_item,
+                            on_log=on_log,
+                            on_fase=on_fase,
+                        )
+                        _somar_contadores(contadores_compras, pipeline.contadores)
+
+                status["contadores"]["compras"] = contadores_compras
+                resultado_fontes["compras"] = {"ok": True, **contadores_compras}
 
             elif fonte == "powerbi":
                 on_fase("powerbi:iniciando")

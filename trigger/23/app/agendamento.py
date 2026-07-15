@@ -103,7 +103,7 @@ def _obter_ou_criar_config(db: Session) -> AgendamentoConfig:
 
 
 def params_coleta_padrao(db: Session | None = None) -> dict[str, Any]:
-    """Defaults sensatos alinhados à tela Coleta + ano inicial do Setup."""
+    """Defaults do agendamento: faixa do Setup (ano inicial → corrente) para Compras.gov e Power BI."""
     close = False
     if db is None:
         db = SessionLocal()
@@ -354,6 +354,8 @@ def executar_cadeia(*, origem: str = "manual") -> None:
                 fases=params.get("fases"),
                 datasets=params.get("datasets"),
                 anos=params.get("anos"),
+                # Mesma faixa do Setup (ano inicial → corrente), como no Power BI.
+                anos_compras=params.get("anos"),
             )
             snap = coleta_hub.snapshot_status()
             resultado = snap.get("resultado") or {}
@@ -365,6 +367,7 @@ def executar_cadeia(*, origem: str = "manual") -> None:
                 "params": {
                     "ano": params.get("ano"),
                     "anos": params.get("anos"),
+                    "anos_compras": params.get("anos"),
                     "fases": params.get("fases"),
                     "datasets": params.get("datasets"),
                     "unidades": params.get("unidades"),

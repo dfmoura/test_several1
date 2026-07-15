@@ -136,7 +136,8 @@ COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS = int(
     os.environ.get("COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS", "90")
 )
 COMPRAS_PNCP_HTTP_TIMEOUT_SEC = float(os.environ.get("COMPRAS_PNCP_HTTP_TIMEOUT_SEC", "180"))
-COMPRAS_PNCP_MAX_RETRIES = int(os.environ.get("COMPRAS_PNCP_MAX_RETRIES", "3"))
+# Retries amplos: catálogo CATMAT/CATSER na APIM federal costuma responder 429.
+COMPRAS_PNCP_MAX_RETRIES = int(os.environ.get("COMPRAS_PNCP_MAX_RETRIES", "5"))
 COMPRAS_PNCP_REQUEST_DELAY_SEC = float(os.environ.get("COMPRAS_PNCP_DELAY_SEC", "0.35"))
 
 # CNPJ público (QSA sob demanda) — cadeia de fallbacks gratuitos.

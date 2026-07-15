@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 from datetime import date, timedelta
 from typing import Any, Callable, Iterator
@@ -14,6 +15,10 @@ from app.config import (
     COMPRAS_PNCP_REQUEST_DELAY_SEC,
     USER_AGENT,
 )
+
+# Status transitórios da API Azure/APIM (rate limit e indisponibilidade).
+_RETRYABLE_STATUS = frozenset({429, 502, 503, 504})
+_RETRY_IN_RE = re.compile(r"try again in\s+(\d+)\s+seconds?", re.IGNORECASE)
 
 
 def periodos(data_inicial: date, data_final: date, max_dias: int) -> list[tuple[date, date]]:
@@ -35,6 +40,21 @@ def httpx_timeout() -> httpx.Timeout:
         write=30.0,
         pool=30.0,
     )
+
+
+def espera_retry_http(resp: httpx.Response, *, tentativa: int) -> float:
+    """Calcula pausa (s) a partir de Retry-After, corpo 429 ou backoff exponencial."""
+    header = (resp.headers.get("Retry-After") or "").strip()
+    if header.isdigit():
+        return max(1.0, float(header))
+
+    texto = (resp.text or "")[:400]
+    m = _RETRY_IN_RE.search(texto)
+    if m:
+        return max(1.0, float(m.group(1)) + 0.5)
+
+    # Fallback: cresce com a tentativa (mín. ~2s).
+    return max(2.0, COMPRAS_PNCP_REQUEST_DELAY_SEC * 6 * tentativa)
 
 
 class ComprasGovClient:
@@ -91,6 +111,22 @@ class ComprasGovClient:
                 raise RuntimeError(
                     f"{contexto} HTTP 403 — verifique User-Agent ({contexto})"
                 )
+
+            if resp.status_code in _RETRYABLE_STATUS:
+                if tentativa >= COMPRAS_PNCP_MAX_RETRIES:
+                    raise RuntimeError(
+                        f"{contexto} HTTP {resp.status_code}: {resp.text[:300]}"
+                    )
+                espera = espera_retry_http(resp, tentativa=tentativa)
+                if self._on_log:
+                    self._on_log(
+                        f"    ⚠ HTTP {resp.status_code} ({contexto}); "
+                        f"tentativa {tentativa}/{COMPRAS_PNCP_MAX_RETRIES} — "
+                        f"aguardando {espera:.1f}s…"
+                    )
+                time.sleep(espera)
+                continue
+
             if resp.status_code >= 400:
                 raise RuntimeError(f"{contexto} HTTP {resp.status_code}: {resp.text[:300]}")
             data = resp.json()

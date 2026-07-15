@@ -410,7 +410,7 @@ const PAGINAS = {
   dashboard: { titulo: "Painel", sub: "Visão consolidada das duas bases" },
   localidade: {
     titulo: "Mapa · Localidade",
-    sub: "Distribuição geográfica dos vencedores · calor por valor e quantidade",
+    sub: "Sede dos vencedores · itens homologados (07.3) × contratações × valor",
   },
   coleta: { titulo: "Coleta", sub: "Ambiente único · Compras.gov + Power BI" },
   consulta: { titulo: "Consulta · Processo", sub: "Cruzamento do mesmo processo entre bases" },

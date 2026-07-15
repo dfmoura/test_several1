@@ -42,17 +42,26 @@ const CP_API_VALORES = [
 
 function cpItensApi(itens) {
   if (!itens?.length) return '<p class="muted small">Nenhum item coletado.</p>';
-  return `<div class="table-scroll">
-    <table class="data-table">
-      <thead><tr><th>Item</th><th>Descrição</th><th>Qtd.</th><th>V. total</th><th>Situação</th></tr></thead>
-      <tbody>${itens.map((it) => `
-        <tr>
-          <td>${esc(it.numero_item_pncp ?? it.id)}</td>
-          <td title="${esc(it.descricao_detalhada || it.descricao_resumida)}">${esc(it.descricao_resumida || it.descricao_detalhada)}</td>
-          <td>${esc(it.quantidade)} ${esc(it.unidade_medida)}</td>
-          <td>${esc(it.valor_total || it.valor_total_resultado)}</td>
-          <td>${pillSituacao(it.situacao_compra_item_nome)}</td>
-        </tr>`).join("")}
+  return `<div class="table-scroll cp-itens-scroll">
+    <table class="data-table cp-itens-table">
+      <thead><tr>
+        <th class="col-id">Item</th>
+        <th class="col-text">Descrição</th>
+        <th class="col-qtd">Qtd.</th>
+        <th class="col-num">V. total</th>
+        <th class="col-sit">Situação</th>
+      </tr></thead>
+      <tbody>${itens.map((it) => {
+        const desc = it.descricao_resumida || it.descricao_detalhada || "";
+        const title = it.descricao_detalhada || it.descricao_resumida || "";
+        return `<tr>
+          <td class="col-id">${esc(it.numero_item_pncp ?? it.id)}</td>
+          <td class="col-wrap" title="${esc(title)}">${esc(desc)}</td>
+          <td class="col-qtd">${esc(it.quantidade)} ${esc(it.unidade_medida)}</td>
+          <td class="col-num">${esc(it.valor_total || it.valor_total_resultado)}</td>
+          <td class="col-sit">${pillSituacao(it.situacao_compra_item_nome)}</td>
+        </tr>`;
+      }).join("")}
       </tbody>
     </table>
   </div>`;
