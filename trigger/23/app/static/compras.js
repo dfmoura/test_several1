@@ -19,7 +19,7 @@ const COMPRAS_SORT_GETTERS = {
   valor_total_estimado: (r) => r.valor_total_estimado,
   valor_total_homologado: (r) => r.valor_total_homologado,
   numero_controle_pncp: (r) => r.numero_controle_pncp || r.id_contratacao_pncp || "",
-  observador_nome: (r) => r.observador_nome || "",
+  tipos_item: (r) => comprasTipoLabel(r.tipos_item),
   objeto: (r) => r.objeto || "",
 };
 
@@ -67,6 +67,14 @@ function pillOrigemLocal(deUberlandia) {
   return "";
 }
 
+function comprasTipoLabel(tipos) {
+  const codigos = new Set((tipos || []).map((tipo) => String(tipo).trim().toUpperCase()));
+  if (codigos.has("M") && codigos.has("S")) return "Material e Serviço";
+  if (codigos.has("M")) return "Material";
+  if (codigos.has("S")) return "Serviço";
+  return "Não informado";
+}
+
 function fmtCnpjCpf(ni) {
   const d = String(ni || "").replace(/\D/g, "");
   if (d.length === 14) {
@@ -95,7 +103,11 @@ async function carregarComprasFiltros() {
     api("/api/compras/modalidades").catch(() => []),
     api("/api/compras/stats").catch(() => ({ por_ano: {} })),
   ]);
-  preencherSelect($("#compras-filtro-ano"), anosDeStats(stats.por_ano), "Todos");
+  preencherSelect(
+    $("#compras-filtro-ano"),
+    (stats.anos_periodo || anosDeStats(stats.por_ano)).map(String),
+    "Todos",
+  );
   preencherSelect($("#compras-filtro-situacao"), sits, "Todas");
   multiSelectOf("#compras-filtro-modalidade")?.setOptions(
     (mods || []).map((m) => ({
@@ -108,20 +120,22 @@ async function carregarComprasFiltros() {
 async function buscarCompras() {
   const params = new URLSearchParams();
   const g = (id) => $(id)?.value?.trim();
-  if ($("#compras-filtro-ano")?.value) params.set("ano", $("#compras-filtro-ano").value);
   if ($("#compras-filtro-unidade")?.value) params.set("unidade_codigo", $("#compras-filtro-unidade").value);
   if ($("#compras-filtro-situacao")?.value) params.set("situacao", $("#compras-filtro-situacao").value);
   appendQueryAll(params, "modalidade_codigo", multiSelectOf("#compras-filtro-modalidade")?.getValues());
   if (g("#compras-filtro-processo")) params.set("processo", g("#compras-filtro-processo"));
   if (g("#compras-filtro-numero")) params.set("numero", g("#compras-filtro-numero"));
+  if ($("#compras-filtro-tipo")?.value) params.set("material_ou_servico", $("#compras-filtro-tipo").value);
   if (g("#compras-filtro-texto")) params.set("texto", g("#compras-filtro-texto"));
   params.set("limit", "500");
 
   const tb = $("#compras-tabela");
   tb.innerHTML = '<tr><td colspan="10">Carregando…</td></tr>';
   try {
+    appendPeriodoParams(params, "compras");
     const data = await api(`/api/compras/contratacoes?${params}`);
-    $("#compras-consulta-meta").textContent = `${fmtNum(data.total)} registro(s) · Compras.gov / PNCP`;
+    const periodo = resumoFiltroPeriodo("compras");
+    $("#compras-consulta-meta").textContent = `${fmtNum(data.total)} registro(s) · Compras.gov / PNCP${periodo ? ` · ${periodo}` : ""}`;
     comprasLastItems = data.items || [];
     renderComprasTabela();
   } catch (err) {
@@ -162,7 +176,7 @@ function renderComprasTabela() {
       ${tdEllipsis(r.valor_total_estimado, { cls: "col-num col-money" })}
       ${tdEllipsis(r.valor_total_homologado, { cls: "col-num col-money" })}
       ${tdEllipsis(pncp)}
-      ${tdEllipsis(r.observador_nome)}
+      ${tdEllipsis(comprasTipoLabel(r.tipos_item))}
       ${tdEllipsis(r.objeto, { cls: "col-desc" })}
     </tr>`;
   }).join("");
@@ -409,7 +423,12 @@ async function abrirDetalheFornecedor(ni, nome, { refresh = false } = {}) {
 }
 
 $("#form-compras-filtros")?.addEventListener("submit", (e) => { e.preventDefault(); buscarCompras(); });
-$("#btn-compras-limpar")?.addEventListener("click", () => { $("#form-compras-filtros")?.reset(); buscarCompras(); });
+$("#btn-compras-limpar")?.addEventListener("click", () => {
+  $("#form-compras-filtros")?.reset();
+  limparFiltroPeriodo("compras");
+  multiSelectOf("#compras-filtro-modalidade")?.clear({ silent: true });
+  buscarCompras();
+});
 wireSortableHeaders($("#compras-tabela-head"), (key, dir) => {
   comprasSortKey = key;
   comprasSortDir = dir;
@@ -486,6 +505,7 @@ $("#btn-compra-atualizar-api")?.addEventListener("click", (e) => {
 
 let comprasIniciado = false;
 async function carregarComprasPagina() {
+  iniciarFiltroPeriodo("compras");
   await carregarComprasFiltros();
   if (!comprasIniciado) { comprasIniciado = true; buscarCompras(); }
 }

@@ -97,7 +97,8 @@ function dashBasePanel(id, titulo, badge, descricao, data, extras) {
 function dashResumoFiltros(f) {
   const el = $("#dash-filtros-resumo");
   if (!el) return;
-  const parts = [f.ano ? `Ano <strong>${f.ano}</strong>` : "Ano <strong>todos</strong>"];
+  const periodo = resumoFiltroPeriodo("dash");
+  const parts = [periodo ? `<strong>${esc(periodo)}</strong>` : "Período <strong>todos</strong>"];
   if (f.orgao_nome) parts.push(`Órgão <strong>${esc(f.orgao_nome)}</strong>`);
   if (f.modalidade_nome) parts.push(`Modalidade <strong>${esc(f.modalidade_nome)}</strong>`);
   el.innerHTML = parts.join(" · ");
@@ -126,15 +127,14 @@ async function carregarDashFiltros() {
 
 async function carregarDashStats() {
   const params = new URLSearchParams();
-  const ano = $("#dash-filtro-ano")?.value;
   const orgao = $("#dash-filtro-orgao")?.value;
-  if (ano) params.set("ano", ano);
   if (orgao) params.set("orgao_id", orgao);
   appendQueryAll(params, "modalidade_id", multiSelectOf("#dash-filtro-modalidade")?.getValues());
 
   const btn = $("#btn-dash-atualizar");
   if (btn) btn.disabled = true;
   try {
+    appendPeriodoParams(params, "dash");
     const data = await api(`/api/dashboard-gerencial/stats?${params}`);
     dashResumoFiltros(data.filtros || {});
     dashBasePanel(
@@ -163,6 +163,7 @@ async function carregarDashStats() {
 }
 
 async function carregarDashboard() {
+  iniciarFiltroPeriodo("dash");
   await carregarDashFiltros();
   await carregarDashStats();
 }
@@ -170,6 +171,8 @@ async function carregarDashboard() {
 $("#form-dash-filtros")?.addEventListener("submit", (e) => { e.preventDefault(); carregarDashStats(); });
 $("#btn-dash-limpar")?.addEventListener("click", () => {
   $("#form-dash-filtros")?.reset();
+  limparFiltroPeriodo("dash");
+  multiSelectOf("#dash-filtro-modalidade")?.clear({ silent: true });
   carregarDashStats();
 });
 

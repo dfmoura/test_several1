@@ -8,10 +8,11 @@ O eixo geográfico é a sede do fornecedor vencedor — não a UASG compradora
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -24,6 +25,13 @@ from app.database import (
     OrgaoConsolidado,
     OrgaoVinculo,
     get_db,
+)
+from app.filtros_periodo import (
+    TipoPeriodo,
+    anos_disponiveis,
+    condicao_periodo,
+    data_iso_pncp,
+    resolver_periodo,
 )
 
 router = APIRouter(tags=["distribuicao-localidade"])
@@ -156,9 +164,9 @@ def _fechar_agg(raw: dict[str, Any]) -> dict[str, Any]:
 
 @router.get("/api/distribuicao-localidade/filtros")
 def filtros_distribuicao(db: Session = Depends(get_db)):
-    anos = db.scalars(
-        select(CompraContratacao.ano).distinct().order_by(CompraContratacao.ano.desc())
-    ).all()
+    anos = anos_disponiveis(
+        db, data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp)
+    )
     orgaos = db.scalars(
         select(OrgaoConsolidado)
         .where(OrgaoConsolidado.ativo.is_(True))
@@ -196,6 +204,10 @@ def filtros_distribuicao(db: Session = Depends(get_db)):
 def stats_distribuicao(
     db: Session = Depends(get_db),
     ano: int | None = Query(None, ge=2000, le=2100),
+    periodo: TipoPeriodo | None = None,
+    quadrimestre: int | None = Query(None, ge=1, le=3),
+    data_inicial: date | None = None,
+    data_final: date | None = None,
     orgao_id: int | None = Query(None),
     modalidade_id: list[int] = Query(default=[]),
     uf: str | None = Query(None, min_length=2, max_length=2),
@@ -203,6 +215,16 @@ def stats_distribuicao(
     metrica: Metrica = Query("quantidade"),
 ):
     """Agrega resultados homologados pela localidade do fornecedor vencedor."""
+    try:
+        periodo_resolvido = resolver_periodo(
+            periodo=periodo,
+            ano=ano,
+            quadrimestre=quadrimestre,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     ids_mod = [int(v) for v in modalidade_id if v is not None]
     chaves_org = _chaves_orgao(db, orgao_id)
     chaves_mod = _chaves_modalidade(db, ids_mod)
@@ -235,7 +257,13 @@ def stats_distribuicao(
         ComprasFornecedor.uf_sigla.isnot(None),
         ComprasFornecedor.uf_sigla != "",
     ]
-    if ano:
+    filtro_periodo = condicao_periodo(
+        data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp),
+        periodo_resolvido,
+    )
+    if filtro_periodo is not None:
+        crit.append(filtro_periodo)
+    elif ano:
         crit.append(CompraContratacao.ano == ano)
     if chaves_org:
         crit.append(CompraContratacao.unidade_compradora.in_(chaves_org))
@@ -355,6 +383,10 @@ def stats_distribuicao(
     return {
         "filtros": {
             "ano": ano,
+            "periodo": periodo,
+            "quadrimestre": quadrimestre,
+            "data_inicial": data_inicial,
+            "data_final": data_final,
             "orgao_id": orgao_id,
             "orgao_nome": orgao_nome,
             "modalidade_id": ids_mod or None,

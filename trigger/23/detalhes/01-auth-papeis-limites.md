@@ -19,7 +19,7 @@ Implementar login simples com sessão, papéis e teto de contas, de forma extens
    - no máximo **3** usuários `consulta`
    - total máximo **4** contas
    - constantes fáceis de alterar depois (`MAX_ADMIN = 1`, `MAX_CONSULTA = 3`)
-   - **sessão única por conta:** se já houver login ativo, o 2º acesso recebe 409 (não derruba quem está dentro); admin pode **Liberar sessão** no Setup
+   - **múltiplas sessões por conta:** cada navegador/dispositivo mantém sua própria sessão; sair encerra apenas a sessão atual, e o admin pode encerrar todas em **Liberar sessão**
 4. **Bootstrap:** se não existir nenhum usuário, permitir criar o primeiro admin (setup inicial) ou seed via env.
 5. **UI:**
    - tela de login

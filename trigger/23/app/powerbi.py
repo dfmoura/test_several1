@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
@@ -21,6 +21,13 @@ from app.database import (
     PbiProcessoLicitatorio,
     SessionLocal,
     get_db,
+)
+from app.filtros_periodo import (
+    TipoPeriodo,
+    anos_disponiveis,
+    condicao_periodo,
+    data_iso_powerbi,
+    resolver_periodo,
 )
 from app.powerbi_arvore import agrupar_eventos, contagem_contratos, eventos_do_processo, responsaveis_do_contrato
 from app.powerbi_coletor import coletar as coletar_powerbi
@@ -456,12 +463,9 @@ def licitacoes_modalidades(db: Session = Depends(get_db)):
 
 @router.get("/api/powerbi/licitacoes/anos")
 def licitacoes_anos(db: Session = Depends(get_db)):
-    rows = db.scalars(
-        select(PbiProcessoLicitatorio.ano_processo)
-        .distinct()
-        .order_by(PbiProcessoLicitatorio.ano_processo.desc())
-    ).all()
-    return [r for r in rows if r]
+    return anos_disponiveis(
+        db, data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao)
+    )
 
 
 @router.get("/api/powerbi/contratos/anos")
@@ -496,6 +500,11 @@ def gestores_papeis(db: Session = Depends(get_db)):
 def listar_licitacoes(
     db: Session = Depends(get_db),
     ano_processo: int | None = None,
+    periodo: TipoPeriodo | None = None,
+    ano: int | None = Query(None, ge=2000, le=2100),
+    quadrimestre: int | None = Query(None, ge=1, le=3),
+    data_inicial: date | None = None,
+    data_final: date | None = None,
     fonte_ano: int | None = None,
     empresa: str | None = None,
     orgao_id: int | None = None,
@@ -509,7 +518,24 @@ def listar_licitacoes(
     stmt = select(PbiProcessoLicitatorio).options(*_PROC_OPTS)
     count = select(func.count()).select_from(PbiProcessoLicitatorio)
     orgao_joined = False
-    if ano_processo:
+    try:
+        periodo_resolvido = resolver_periodo(
+            periodo=periodo,
+            ano=ano,
+            quadrimestre=quadrimestre,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    filtro_periodo = condicao_periodo(
+        data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao),
+        periodo_resolvido,
+    )
+    if filtro_periodo is not None:
+        stmt = stmt.where(filtro_periodo)
+        count = count.where(filtro_periodo)
+    elif ano_processo:
         stmt = stmt.where(PbiProcessoLicitatorio.ano_processo == ano_processo)
         count = count.where(PbiProcessoLicitatorio.ano_processo == ano_processo)
     if fonte_ano:

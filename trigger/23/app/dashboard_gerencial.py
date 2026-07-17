@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -21,6 +22,15 @@ from app.database import (
     PbiOrgao,
     PbiProcessoLicitatorio,
     get_db,
+)
+from app.filtros_periodo import (
+    Periodo,
+    TipoPeriodo,
+    anos_disponiveis,
+    condicao_periodo,
+    data_iso_pncp,
+    data_iso_powerbi,
+    resolver_periodo,
 )
 
 router = APIRouter(tags=["dashboard-gerencial"])
@@ -315,12 +325,13 @@ def _resumo_cruzamento(
 def _calcular_cruzamentos(
     db: Session,
     ano: int | None,
+    periodo: Periodo | None,
     chaves_org: dict[str, set[str]],
     chaves_mod: dict[str, set[str]],
     mapa_org: dict[tuple[str, str], OrgaoConsolidado],
 ) -> dict[str, dict[str, Any]]:
-    crit_a = _where_compras(ano, chaves_org, chaves_mod)
-    crit_b = _where_pbi(ano, chaves_org, chaves_mod)
+    crit_a = _where_compras(ano, periodo, chaves_org, chaves_mod)
+    crit_b = _where_pbi(ano, periodo, chaves_org, chaves_mod)
 
     chaves_api: list[ChaveProcesso | None] = []
     set_api: set[ChaveProcesso] = set()
@@ -349,8 +360,33 @@ def _calcular_cruzamentos(
         else:
             sem_pbi.append(_item_sem_chave_powerbi(proc, orgao_nome, mapa_org))
 
-    ra = _resumo_cruzamento(chaves_api, set_pbi)
-    rb = _resumo_cruzamento(chaves_pbi, set_api)
+    # O período define os registros exibidos em cada base. Para "também na
+    # outra base", procura-se a mesma chave sem limitar a data da contraparte:
+    # encerramento e homologação podem ocorrer em períodos diferentes.
+    lookup_api = set_api
+    lookup_pbi = set_pbi
+    if periodo is not None:
+        lookup_api = {
+            chave
+            for row in db.scalars(
+                select(CompraContratacao).where(
+                    *_where_compras(None, None, chaves_org, chaves_mod)
+                )
+            ).all()
+            if (chave := _chave_api(row, mapa_org))
+        }
+        lookup_pbi = {
+            chave
+            for proc, orgao_nome in db.execute(
+                select(PbiProcessoLicitatorio, PbiOrgao.nome)
+                .join(PbiOrgao, PbiProcessoLicitatorio.orgao_id == PbiOrgao.id)
+                .where(*_where_pbi(None, None, chaves_org, chaves_mod))
+            ).all()
+            if (chave := _chave_powerbi(proc, orgao_nome, mapa_org))
+        }
+
+    ra = _resumo_cruzamento(chaves_api, lookup_pbi)
+    rb = _resumo_cruzamento(chaves_pbi, lookup_api)
 
     return {
         "api": _pack_cruzamento(ra, sem_api, "em_powerbi"),
@@ -450,11 +486,17 @@ def _agrupar_situacao(itens: list[tuple[str | None, int]]) -> list[dict[str, Any
 
 def _where_compras(
     ano: int | None,
+    periodo: Periodo | None,
     chaves_org: dict[str, set[str]],
     chaves_mod: dict[str, set[str]],
 ) -> list[Any]:
     crit: list[Any] = []
-    if ano:
+    filtro_periodo = condicao_periodo(
+        data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp), periodo
+    )
+    if filtro_periodo is not None:
+        crit.append(filtro_periodo)
+    elif ano:
         crit.append(CompraContratacao.ano == ano)
     org = chaves_org.get("compras_api")
     if org:
@@ -468,12 +510,13 @@ def _where_compras(
 def _stats_api(
     db: Session,
     ano: int | None,
+    periodo: Periodo | None,
     chaves_org: dict[str, set[str]],
     chaves_mod: dict[str, set[str]],
     mapa_org: dict[tuple[str, str], OrgaoConsolidado],
     mapa_mod: dict[tuple[str, str], ModalidadeConsolidada],
 ) -> dict[str, Any]:
-    crit = _where_compras(ano, chaves_org, chaves_mod)
+    crit = _where_compras(ano, periodo, chaves_org, chaves_mod)
 
     por_orgao_raw = db.execute(
         select(
@@ -534,11 +577,17 @@ def _stats_api(
 
 def _where_pbi(
     ano: int | None,
+    periodo: Periodo | None,
     chaves_org: dict[str, set[str]],
     chaves_mod: dict[str, set[str]],
 ) -> list[Any]:
     crit: list[Any] = []
-    if ano:
+    filtro_periodo = condicao_periodo(
+        data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao), periodo
+    )
+    if filtro_periodo is not None:
+        crit.append(filtro_periodo)
+    elif ano:
         crit.append(PbiProcessoLicitatorio.ano_processo == ano)
     pbi_org = chaves_org.get("powerbi")
     if pbi_org:
@@ -556,12 +605,13 @@ def _where_pbi(
 def _stats_powerbi(
     db: Session,
     ano: int | None,
+    periodo: Periodo | None,
     chaves_org: dict[str, set[str]],
     chaves_mod: dict[str, set[str]],
     mapa_org: dict[tuple[str, str], OrgaoConsolidado],
     mapa_mod: dict[tuple[str, str], ModalidadeConsolidada],
 ) -> dict[str, Any]:
-    crit = _where_pbi(ano, chaves_org, chaves_mod)
+    crit = _where_pbi(ano, periodo, chaves_org, chaves_mod)
 
     por_orgao_raw = db.execute(
         select(PbiOrgao.nome, PbiOrgao.nome, func.count())
@@ -614,14 +664,12 @@ def _stats_powerbi(
 
 @router.get("/api/dashboard-gerencial/filtros")
 def filtros_dashboard(db: Session = Depends(get_db)):
-    anos_api = db.scalars(
-        select(CompraContratacao.ano).distinct().order_by(CompraContratacao.ano.desc())
-    ).all()
-    anos_pbi = db.scalars(
-        select(PbiProcessoLicitatorio.ano_processo)
-        .distinct()
-        .order_by(PbiProcessoLicitatorio.ano_processo.desc())
-    ).all()
+    anos_api = anos_disponiveis(
+        db, data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp)
+    )
+    anos_pbi = anos_disponiveis(
+        db, data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao)
+    )
     anos = sorted(set(anos_api) | set(anos_pbi), reverse=True)
 
     orgaos = db.scalars(
@@ -646,9 +694,23 @@ def filtros_dashboard(db: Session = Depends(get_db)):
 def stats_dashboard(
     db: Session = Depends(get_db),
     ano: int | None = Query(None, ge=2000, le=2100),
+    periodo: TipoPeriodo | None = None,
+    quadrimestre: int | None = Query(None, ge=1, le=3),
+    data_inicial: date | None = None,
+    data_final: date | None = None,
     orgao_id: int | None = Query(None),
     modalidade_id: list[int] = Query(default=[]),
 ):
+    try:
+        periodo_resolvido = resolver_periodo(
+            periodo=periodo,
+            ano=ano,
+            quadrimestre=quadrimestre,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     ids_mod = _norm_ids(modalidade_id)
     mapa_org = _mapa_orgaos(db)
     mapa_mod = _mapa_modalidades(db)
@@ -661,15 +723,25 @@ def stats_dashboard(
         orgao_nome = org.sigla or org.nome if org else None
     mod_nome = _nomes_modalidades(db, ids_mod)
 
-    cruz = _calcular_cruzamentos(db, ano, chaves_org, chaves_mod, mapa_org)
-    api = _stats_api(db, ano, chaves_org, chaves_mod, mapa_org, mapa_mod)
-    powerbi = _stats_powerbi(db, ano, chaves_org, chaves_mod, mapa_org, mapa_mod)
+    cruz = _calcular_cruzamentos(
+        db, ano, periodo_resolvido, chaves_org, chaves_mod, mapa_org
+    )
+    api = _stats_api(
+        db, ano, periodo_resolvido, chaves_org, chaves_mod, mapa_org, mapa_mod
+    )
+    powerbi = _stats_powerbi(
+        db, ano, periodo_resolvido, chaves_org, chaves_mod, mapa_org, mapa_mod
+    )
     api["cruzamento"] = cruz["api"]
     powerbi["cruzamento"] = cruz["powerbi"]
 
     return {
         "filtros": {
             "ano": ano,
+            "periodo": periodo,
+            "quadrimestre": quadrimestre,
+            "data_inicial": data_inicial,
+            "data_final": data_final,
             "orgao_id": orgao_id,
             "orgao_nome": orgao_nome,
             "modalidade_id": ids_mod or None,
@@ -678,7 +750,15 @@ def stats_dashboard(
         "api": api,
         "powerbi": powerbi,
         "interpretacao_campos": {
-            "api": {"ano": "ANO", "processo": "PROCESSO (ex.: 5302023→530, 20.039/2023→20039, 25.528→25528)"},
-            "powerbi": {"ano": "ANOPROCESSO", "processo": "PROCESSO"},
+            "api": {
+                "data_filtro": "Encerramento das propostas",
+                "ano_identidade": "ANO",
+                "processo": "PROCESSO (ex.: 5302023→530, 20.039/2023→20039, 25.528→25528)",
+            },
+            "powerbi": {
+                "data_filtro": "Homologação",
+                "ano_identidade": "ANOPROCESSO",
+                "processo": "PROCESSO",
+            },
         },
     }

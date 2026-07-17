@@ -181,6 +181,7 @@ function cpRenderDetalhe(data) {
 }
 
 async function carregarCpFiltros() {
+  iniciarFiltroPeriodo("cp");
   const selAno = $("#cp-filtro-ano");
   const selOrg = $("#cp-filtro-orgao");
   try {
@@ -208,11 +209,12 @@ async function carregarCpFiltros() {
 
 function cpParamsBusca() {
   const proc = $("#cp-filtro-processo")?.value.trim();
-  if (!proc) return null;
+  const numeroCompra = $("#cp-filtro-numero-compra")?.value.trim();
+  if (!proc && !numeroCompra) return null;
   const params = new URLSearchParams();
-  params.set("processo", proc);
-  const ano = $("#cp-filtro-ano")?.value;
-  if (ano) params.set("ano", ano);
+  if (proc) params.set("processo", proc);
+  if (numeroCompra) params.set("numero_compra", numeroCompra);
+  appendPeriodoParams(params, "cp");
   const org = $("#cp-filtro-orgao")?.value;
   if (org) params.set("orgao_id", org);
   appendQueryAll(params, "modalidade_id", multiSelectOf("#cp-filtro-modalidade")?.getValues());
@@ -220,8 +222,15 @@ function cpParamsBusca() {
 }
 
 async function buscarProcessoUnificado() {
-  const params = cpParamsBusca();
-  if (!params) { alert("Informe o número ou texto do processo."); return; }
+  let params;
+  try {
+    params = cpParamsBusca();
+  } catch (err) {
+    const meta = $("#cp-consulta-meta");
+    if (meta) meta.textContent = err.message;
+    return;
+  }
+  if (!params) { alert("Informe o processo ou o número da compra."); return; }
   const meta = $("#cp-consulta-meta");
   const btn = $("#btn-cp-buscar");
   const resultado = $("#cp-resultado");
@@ -286,6 +295,8 @@ async function abrirCpPorChave(card) {
 $("#form-cp-filtros")?.addEventListener("submit", (e) => { e.preventDefault(); buscarProcessoUnificado(); });
 $("#btn-cp-limpar")?.addEventListener("click", () => {
   $("#form-cp-filtros")?.reset();
+  limparFiltroPeriodo("cp");
+  multiSelectOf("#cp-filtro-modalidade")?.clear({ silent: true });
   carregarCpFiltros();
   $("#cp-resultado")?.classList.add("hidden");
   $("#cp-resultado").innerHTML = "";

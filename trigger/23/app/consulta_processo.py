@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from collections import defaultdict
+from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -33,6 +34,15 @@ from app.database import (
     PbiOrgao,
     PbiProcessoLicitatorio,
     get_db,
+)
+from app.filtros_periodo import (
+    Periodo,
+    TipoPeriodo,
+    anos_disponiveis,
+    condicao_periodo,
+    data_iso_pncp,
+    data_iso_powerbi,
+    resolver_periodo,
 )
 from app.powerbi import (
     ArvoreLicitacaoOut,
@@ -78,6 +88,18 @@ def _filtro_processo_pbi(termo: str, numero: int | None) -> list[Any]:
     if numero is not None:
         conds.append(PbiProcessoLicitatorio.processo == str(numero))
     return [or_(*conds)]
+
+
+def _filtro_numero_compra(termo: str) -> list[Any]:
+    """Localiza a identificação da compra nos formatos armazenados pelo Compras.gov."""
+    p = f"%{termo.strip()}%"
+    return [
+        or_(
+            CompraContratacao.numero.ilike(p),
+            CompraContratacao.id_compra.ilike(p),
+            CompraContratacao.chave_compra.ilike(p),
+        )
+    ]
 
 
 def _norm_modalidade_texto(valor: str | None) -> str:
@@ -502,28 +524,72 @@ def _comparativo(
 
 def _buscar_registros(
     db: Session,
-    termo: str,
+    termo: str | None,
+    numero_compra: str | None,
     ano: int | None,
+    periodo: Periodo | None,
     orgao_id: int | None,
     modalidade_id: int | list[int] | None = None,
 ) -> tuple[list[CompraContratacao], list[tuple[PbiProcessoLicitatorio, str]]]:
-    numero = _extrair_numero_busca(termo)
+    termo = termo.strip() if termo else None
+    numero_compra = numero_compra.strip() if numero_compra else None
+    numero = _extrair_numero_busca(termo) if termo else None
     ids_mod = _norm_ids(modalidade_id)
     chaves_org = _chaves_orgao(db, orgao_id)
     chaves_mod = _chaves_modalidade(db, ids_mod)
     mapa_mod = _mapa_modalidades(db)
     mapa_nome, mapa_rotulo = _mapa_modalidades_por_nome(db)
 
-    crit_a: list[Any] = _filtro_processo_api(termo, numero)
-    if ano:
+    crit_a: list[Any] = []
+    if termo:
+        crit_a.extend(_filtro_processo_api(termo, numero))
+    if numero_compra:
+        crit_a.extend(_filtro_numero_compra(numero_compra))
+    filtro_api = condicao_periodo(
+        data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp), periodo
+    )
+    if filtro_api is not None:
+        crit_a.append(filtro_api)
+    elif ano:
         crit_a.append(CompraContratacao.ano == ano)
     api_org = chaves_org.get("compras_api")
     if api_org:
         crit_a.append(CompraContratacao.unidade_compradora.in_(api_org))
     crit_a.extend(_crit_modalidade_compras_api(db, ids_mod, chaves_mod))
 
-    crit_b: list[Any] = _filtro_processo_pbi(termo, numero)
-    if ano:
+    api_rows = list(
+        db.scalars(
+            select(CompraContratacao)
+            .options(selectinload(CompraContratacao.observador))
+            .where(*crit_a)
+            .order_by(CompraContratacao.ano.desc(), CompraContratacao.numero)
+            .limit(200)
+        ).all()
+    )
+
+    # O Power BI não possui número da compra. Quando esse filtro é usado,
+    # primeiro localizamos a compra e então consultamos o processo vinculado.
+    crit_b: list[Any] = []
+    if numero_compra:
+        filtros_processos = [
+            _filtro_processo_pbi(row.processo, _extrair_numero_busca(row.processo))[0]
+            for row in api_rows
+            if row.processo and row.processo.strip()
+        ]
+        if not filtros_processos:
+            return _filtrar_registros_modalidade(
+                api_rows, [], ids_mod, mapa_mod, mapa_nome, mapa_rotulo
+            )
+        crit_b.append(or_(*filtros_processos))
+    elif termo:
+        crit_b.extend(_filtro_processo_pbi(termo, numero))
+
+    filtro_pbi = condicao_periodo(
+        data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao), periodo
+    )
+    if filtro_pbi is not None:
+        crit_b.append(filtro_pbi)
+    elif ano:
         crit_b.append(PbiProcessoLicitatorio.ano_processo == ano)
     pbi_org = chaves_org.get("powerbi")
     if pbi_org:
@@ -536,15 +602,6 @@ def _buscar_registros(
         _crit_modalidade_fonte(ids_mod, chaves_mod, "powerbi", PbiProcessoLicitatorio.modalidade)
     )
 
-    api_rows = list(
-        db.scalars(
-            select(CompraContratacao)
-            .options(selectinload(CompraContratacao.observador))
-            .where(*crit_a)
-            .order_by(CompraContratacao.ano.desc(), CompraContratacao.numero)
-            .limit(200)
-        ).all()
-    )
     pbi_rows = list(
         db.execute(
             select(PbiProcessoLicitatorio, PbiOrgao.nome)
@@ -555,6 +612,16 @@ def _buscar_registros(
             .limit(200)
         ).all()
     )
+    if numero_compra:
+        mapa_org = _mapa_orgaos(db)
+        chaves_api = {
+            chave for row in api_rows if (chave := _chave_api(row, mapa_org)) is not None
+        }
+        pbi_rows = [
+            (proc, org_nome)
+            for proc, org_nome in pbi_rows
+            if _chave_powerbi(proc, org_nome, mapa_org) in chaves_api
+        ]
     return _filtrar_registros_modalidade(
         api_rows, pbi_rows, ids_mod, mapa_mod, mapa_nome, mapa_rotulo
     )
@@ -634,8 +701,12 @@ def _agrupar_resultados(
 
 @router.get("/api/consulta-processo/filtros")
 def filtros_consulta(db: Session = Depends(get_db)):
-    anos_api = db.scalars(select(CompraContratacao.ano).distinct()).all()
-    anos_pbi = db.scalars(select(PbiProcessoLicitatorio.ano_processo).distinct()).all()
+    anos_api = anos_disponiveis(
+        db, data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp)
+    )
+    anos_pbi = anos_disponiveis(
+        db, data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao)
+    )
     anos = sorted(set(anos_api) | set(anos_pbi), reverse=True)
     orgaos = db.scalars(
         select(OrgaoConsolidado)
@@ -657,23 +728,42 @@ def filtros_consulta(db: Session = Depends(get_db)):
 @router.get("/api/consulta-processo/buscar")
 def buscar_processo(
     db: Session = Depends(get_db),
-    processo: str = Query(..., min_length=1),
+    processo: str | None = Query(None),
+    numero_compra: str | None = Query(None),
     ano: int | None = Query(None, ge=2000, le=2100),
+    periodo: TipoPeriodo | None = None,
+    quadrimestre: int | None = Query(None, ge=1, le=3),
+    data_inicial: date | None = None,
+    data_final: date | None = None,
     orgao_id: int | None = Query(None),
     modalidade_id: list[int] = Query(default=[]),
     limit: int = Query(30, ge=1, le=100),
 ):
-    termo = processo.strip()
-    if not termo:
-        raise HTTPException(400, "Informe o número ou texto do processo")
+    termo = processo.strip() if processo else None
+    compra = numero_compra.strip() if numero_compra else None
+    if not termo and not compra:
+        raise HTTPException(400, "Informe o processo ou o número da compra")
+    try:
+        periodo_resolvido = resolver_periodo(
+            periodo=periodo,
+            ano=ano,
+            quadrimestre=quadrimestre,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
     mapa_org = _mapa_orgaos(db)
-    api_rows, pbi_rows = _buscar_registros(db, termo, ano, orgao_id, modalidade_id)
+    api_rows, pbi_rows = _buscar_registros(
+        db, termo, compra, ano, periodo_resolvido, orgao_id, modalidade_id
+    )
     grupos = _agrupar_resultados(api_rows, pbi_rows, mapa_org)[:limit]
 
     return {
         "termo": termo,
-        "numero_interpretado": _extrair_numero_busca(termo),
+        "numero_compra": compra,
+        "numero_interpretado": _extrair_numero_busca(termo) if termo else None,
         "total_grupos": len(grupos),
         "total_registros": len(api_rows) + len(pbi_rows),
         "grupos": grupos,
@@ -810,7 +900,12 @@ def _montar_resposta_detalhe(
 def detalhe_processo(
     db: Session = Depends(get_db),
     processo: str | None = Query(None),
+    numero_compra: str | None = Query(None),
     ano: int | None = Query(None, ge=2000, le=2100),
+    periodo: TipoPeriodo | None = None,
+    quadrimestre: int | None = Query(None, ge=1, le=3),
+    data_inicial: date | None = None,
+    data_final: date | None = None,
     orgao_id: int | None = Query(None),
     modalidade_id: list[int] = Query(default=[]),
     chave_orgao_id: int | None = Query(None),
@@ -828,14 +923,26 @@ def detalhe_processo(
             raise HTTPException(404, "Nenhum registro encontrado para esta chave de cruzamento")
         return _montar_resposta_detalhe(db, mapa_org, api_rows, pbi_rows)
 
-    if not processo or not processo.strip():
-        raise HTTPException(400, "Informe processo ou chave de cruzamento")
+    termo = processo.strip() if processo else None
+    compra = numero_compra.strip() if numero_compra else None
+    if not termo and not compra:
+        raise HTTPException(400, "Informe processo, número da compra ou chave de cruzamento")
+    try:
+        periodo_resolvido = resolver_periodo(
+            periodo=periodo,
+            ano=ano,
+            quadrimestre=quadrimestre,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
     api_rows, pbi_rows = _buscar_registros(
-        db, processo.strip(), ano, orgao_id, modalidade_id
+        db, termo, compra, ano, periodo_resolvido, orgao_id, modalidade_id
     )
     if not api_rows and not pbi_rows:
-        raise HTTPException(404, "Nenhum registro encontrado para este processo")
+        raise HTTPException(404, "Nenhum processo ou compra encontrado com esses filtros")
 
     grupos = _agrupar_para_detalhe(api_rows, pbi_rows, mapa_org)
     if len(grupos) > 1:
@@ -847,4 +954,11 @@ def detalhe_processo(
         }
 
     g = grupos[0]
+    if periodo_resolvido is not None and g.get("chave"):
+        api_completa, pbi_completa = _registros_por_chave(
+            db, g["chave"], mapa_org, modalidade_id
+        )
+        return _montar_resposta_detalhe(
+            db, mapa_org, api_completa, pbi_completa
+        )
     return _montar_resposta_detalhe(db, mapa_org, g["api"], g["pbi"])

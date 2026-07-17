@@ -213,9 +213,8 @@ def test_login_senha_errada(client, db):
         _limpar_usuario(db, user)
 
 
-def test_sessao_unica_bloqueia_segundo_login(client, db):
-    """Dois clientes com a mesma conta: o segundo recebe 409 e a 1ª sessão permanece."""
-    from app.auth.service import MSG_SESSAO_OCUPADA
+def test_multiplas_sessoes_do_mesmo_usuario_sao_independentes(client, db):
+    """A mesma conta pode entrar em dois clientes e sair de um sem derrubar o outro."""
     from app.config import AUTH_SESSION_COOKIE
 
     user = _uid("oper")
@@ -235,23 +234,20 @@ def test_sessao_unica_bloqueia_segundo_login(client, db):
         r_same = c1.post("/api/auth/login", json={"username": user, "password": "senha123"})
         assert r_same.status_code == 200, r_same.text
 
-        # Outro cliente sem o cookie da sessão ativa → bloqueado
+        # Outro cliente/dispositivo recebe uma sessão própria.
         with TestClient(app) as c2:
             r2 = c2.post("/api/auth/login", json={"username": user, "password": "senha123"})
-            assert r2.status_code == 409
-            assert "sessão" in r2.json()["detail"].lower()
-            assert MSG_SESSAO_OCUPADA.split(".")[0] in r2.json()["detail"]
+            assert r2.status_code == 200, r2.text
+            token2 = r2.cookies.get(AUTH_SESSION_COOKIE)
+            assert token2
+            assert token2 != token1
 
-        # Quem já estava logado continua válido
-        me = c1.get("/api/auth/me")
-        assert me.status_code == 200
-        assert me.json()["username"] == user
-
-        # Após logout, o segundo cliente consegue entrar
-        assert c1.post("/api/auth/logout").status_code == 200
-        with TestClient(app) as c3:
-            r3 = c3.post("/api/auth/login", json={"username": user, "password": "senha123"})
-            assert r3.status_code == 200, r3.text
+            # Encerrar a primeira sessão não afeta a segunda.
+            assert c1.post("/api/auth/logout").status_code == 200
+            assert c1.get("/api/auth/me").status_code == 401
+            me2 = c2.get("/api/auth/me")
+            assert me2.status_code == 200
+            assert me2.json()["username"] == user
     finally:
         _limpar_usuario(db, user)
 

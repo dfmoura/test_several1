@@ -490,7 +490,8 @@ function locRenderResumo() {
   const el = $("#loc-filtros-resumo");
   if (!el || !LOC.data) return;
   const f = LOC.data.filtros || {};
-  const parts = [f.ano ? `Ano <strong>${f.ano}</strong>` : "Ano <strong>todos</strong>"];
+  const periodo = resumoFiltroPeriodo("loc");
+  const parts = [periodo ? `<strong>${esc(periodo)}</strong>` : "Período <strong>todos</strong>"];
   if (f.orgao_nome) parts.push(`Órgão <strong>${esc(f.orgao_nome)}</strong>`);
   if (f.modalidade_nome) parts.push(`Modalidade <strong>${esc(f.modalidade_nome)}</strong>`);
   if (f.uf) parts.push(`UF <strong>${esc(f.uf)}</strong>`);
@@ -541,12 +542,10 @@ async function carregarLocFiltros() {
 
 async function carregarLocStats() {
   const params = new URLSearchParams();
-  const ano = $("#loc-filtro-ano")?.value;
   const orgao = $("#loc-filtro-orgao")?.value;
   const uf = $("#loc-filtro-uf")?.value;
   const escopo = $("#loc-filtro-escopo")?.value || "todos";
   const metrica = $("#loc-filtro-metrica")?.value || "quantidade";
-  if (ano) params.set("ano", ano);
   if (orgao) params.set("orgao_id", orgao);
   appendQueryAll(params, "modalidade_id", multiSelectOf("#loc-filtro-modalidade")?.getValues());
   if (uf) params.set("uf", uf);
@@ -556,6 +555,7 @@ async function carregarLocStats() {
   const btn = $("#btn-loc-atualizar");
   if (btn) btn.disabled = true;
   try {
+    appendPeriodoParams(params, "loc");
     const data = await api(`/api/distribuicao-localidade/stats?${params}`);
     LOC.data = data;
     LOC.municipios = data.por_municipio || [];
@@ -585,6 +585,7 @@ async function carregarLocStats() {
 }
 
 async function carregarLocalidade() {
+  iniciarFiltroPeriodo("loc");
   await locEnsureAssets();
   locInitMap();
   if (!LOC.ready) {
@@ -606,6 +607,8 @@ $("#form-loc-filtros")?.addEventListener("submit", (e) => {
 
 $("#btn-loc-limpar")?.addEventListener("click", () => {
   $("#form-loc-filtros")?.reset();
+  limparFiltroPeriodo("loc");
+  multiSelectOf("#loc-filtro-modalidade")?.clear({ silent: true });
   LOC.ufFocus = null;
   carregarLocStats();
 });

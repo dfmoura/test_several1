@@ -50,6 +50,13 @@ from app.database import (
     Usuario,
     get_db,
 )
+from app.filtros_periodo import (
+    TipoPeriodo,
+    anos_disponiveis,
+    condicao_periodo,
+    data_iso_pncp,
+    resolver_periodo,
+)
 from app.unidades_compradoras import obter_unidades_compradoras
 
 router = APIRouter(tags=["compras"])
@@ -111,6 +118,7 @@ class CompraContratacaoOut(BaseModel):
     dados_pncp: dict[str, Any] | None = None
     observador_id: int | None = None
     observador_nome: str | None = None
+    tipos_item: list[str] = Field(default_factory=list)
     coletado_em: datetime | None = None
 
     model_config = {"from_attributes": True}
@@ -176,8 +184,12 @@ class CompraResultadoOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-def _compra_to_out(row: CompraContratacao) -> CompraContratacaoOut:
-    skip = {"observador_nome", "dados_pncp"}
+def _compra_to_out(
+    row: CompraContratacao,
+    *,
+    tipos_item: set[str] | None = None,
+) -> CompraContratacaoOut:
+    skip = {"observador_nome", "dados_pncp", "tipos_item"}
     data = {
         c: getattr(row, c, None)
         for c in CompraContratacaoOut.model_fields
@@ -191,9 +203,41 @@ def _compra_to_out(row: CompraContratacao) -> CompraContratacaoOut:
             data["dados_pncp"] = None
     else:
         data["dados_pncp"] = None
+    data["tipos_item"] = sorted(tipos_item or [])
     if not data.get("id_compra"):
         data["id_compra"] = row.chave_compra
     return CompraContratacaoOut(**data)
+
+
+def _tipos_item_por_contratacao(
+    db: Session,
+    contratacoes: list[CompraContratacao],
+) -> dict[int, set[str]]:
+    """Agrupa M/S dos itens sem uma consulta adicional por contratação."""
+    if not contratacoes:
+        return {}
+    ids = [row.id for row in contratacoes]
+    ids_compra = [row.id_compra for row in contratacoes if row.id_compra]
+    filtro = CompraContratacaoItem.contratacao_id.in_(ids)
+    if ids_compra:
+        filtro = or_(filtro, CompraContratacaoItem.id_compra.in_(ids_compra))
+    itens = db.execute(
+        select(
+            CompraContratacaoItem.contratacao_id,
+            CompraContratacaoItem.id_compra,
+            CompraContratacaoItem.material_ou_servico,
+        ).where(filtro)
+    ).all()
+    por_id: dict[int, set[str]] = {row.id: set() for row in contratacoes}
+    id_por_compra = {row.id_compra: row.id for row in contratacoes if row.id_compra}
+    for contratacao_id, id_compra, tipo_bruto in itens:
+        tipo = (tipo_bruto or "").strip().upper()[:1]
+        if tipo not in {"M", "S"}:
+            continue
+        cid = contratacao_id if contratacao_id in por_id else id_por_compra.get(id_compra)
+        if cid is not None:
+            por_id[cid].add(tipo)
+    return por_id
 
 
 def _resultado_to_out(row: ComprasContratacaoResultado) -> CompraResultadoOut:
@@ -501,7 +545,10 @@ def compras_stats(db: Session = Depends(get_db)):
     por_ano = dict(
         db.execute(select(CompraContratacao.ano, func.count()).group_by(CompraContratacao.ano)).all()
     )
-    return {"total": total, "por_ano": por_ano}
+    anos_periodo = anos_disponiveis(
+        db, data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp)
+    )
+    return {"total": total, "por_ano": por_ano, "anos_periodo": anos_periodo}
 
 
 @router.post("/api/compras/coletar")
@@ -570,18 +617,41 @@ def compras_situacoes(db: Session = Depends(get_db)):
 def listar_compras(
     db: Session = Depends(get_db),
     ano: int | None = None,
+    periodo: TipoPeriodo | None = None,
+    quadrimestre: int | None = Query(None, ge=1, le=3),
+    data_inicial: date | None = None,
+    data_final: date | None = None,
     unidade_codigo: str | None = None,
     situacao: str | None = None,
-    modalidade_codigo: list[str] = Query(default=[]),
+    modalidade_codigo: list[int] = Query(default=[]),
     processo: str | None = None,
     numero: str | None = None,
     texto: str | None = None,
+    material_ou_servico: str | None = None,
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
     stmt = select(CompraContratacao).options(selectinload(CompraContratacao.observador))
     count = select(func.count()).select_from(CompraContratacao)
-    if ano:
+    try:
+        periodo_resolvido = resolver_periodo(
+            periodo=periodo,
+            ano=ano,
+            quadrimestre=quadrimestre,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    filtro_periodo = condicao_periodo(
+        data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp),
+        periodo_resolvido,
+    )
+    if filtro_periodo is not None:
+        stmt = stmt.where(filtro_periodo)
+        count = count.where(filtro_periodo)
+    elif ano:
+        # Compatibilidade: chamadas antigas continuam filtrando pelo ano estrutural.
         stmt = stmt.where(CompraContratacao.ano == ano)
         count = count.where(CompraContratacao.ano == ano)
     if unidade_codigo:
@@ -590,10 +660,10 @@ def listar_compras(
     if situacao:
         stmt = stmt.where(CompraContratacao.situacao_lista.ilike(f"%{situacao}%"))
         count = count.where(CompraContratacao.situacao_lista.ilike(f"%{situacao}%"))
-    codigos = [c.strip() for c in modalidade_codigo if c and c.strip()]
-    if codigos:
-        stmt = stmt.where(CompraContratacao.modalidade_codigo.in_(codigos))
-        count = count.where(CompraContratacao.modalidade_codigo.in_(codigos))
+    codigos_pncp = set(modalidade_codigo)
+    if codigos_pncp:
+        stmt = stmt.where(CompraContratacao.modalidade_id_pncp.in_(codigos_pncp))
+        count = count.where(CompraContratacao.modalidade_id_pncp.in_(codigos_pncp))
     if processo:
         termo = processo.strip()
         if termo:
@@ -621,11 +691,29 @@ def listar_compras(
             )
             stmt = stmt.where(f)
             count = count.where(f)
+    if material_ou_servico:
+        tipo = material_ou_servico.strip().upper()
+        if tipo not in {"M", "S"}:
+            raise HTTPException(422, "Tipo deve ser M (Material) ou S (Serviço)")
+        item_do_tipo = (
+            select(CompraContratacaoItem.id)
+            .where(
+                or_(
+                    CompraContratacaoItem.contratacao_id == CompraContratacao.id,
+                    CompraContratacaoItem.id_compra == CompraContratacao.id_compra,
+                ),
+                CompraContratacaoItem.material_ou_servico == tipo,
+            )
+            .exists()
+        )
+        stmt = stmt.where(item_do_tipo)
+        count = count.where(item_do_tipo)
 
     total = db.scalar(count) or 0
     rows = db.scalars(stmt.order_by(CompraContratacao.id.desc()).offset(offset).limit(limit)).all()
+    tipos_por_id = _tipos_item_por_contratacao(db, rows)
     return {
-        "items": [_compra_to_out(r) for r in rows],
+        "items": [_compra_to_out(r, tipos_item=tipos_por_id.get(r.id)) for r in rows],
         "total": total,
         "limit": limit,
         "offset": offset,

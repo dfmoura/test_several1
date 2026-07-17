@@ -147,13 +147,6 @@ def autenticar(db: Session, username: str, senha: str) -> Usuario:
     return user
 
 
-MSG_SESSAO_OCUPADA = (
-    "Já existe uma sessão ativa com este usuário. "
-    "Peça que a pessoa encerre o acesso (sair) ou tente mais tarde. "
-    "Se a sessão ficou órfã, o administrador pode liberá-la em Usuários."
-)
-
-
 def purgar_sessoes_expiradas(db: Session, usuario_id: int | None = None) -> int:
     """Remove sessões vencidas (opcionalmente de um usuário). Retorna quantas apagou."""
     agora = _utcnow()
@@ -187,11 +180,12 @@ def criar_sessao(
     *,
     token_atual: str | None = None,
 ) -> Sessao:
-    """Cria sessão com política de **uma ativa por usuário**.
+    """Cria uma sessão independente para cada navegador/dispositivo.
 
-    - Se já houver sessão de outra pessoa/dispositivo → 409 (não derruba a ativa).
     - Se ``token_atual`` for a sessão válida deste usuário (mesmo navegador),
       renova e reutiliza — evita bloqueio em reenvio do formulário de login.
+    - Sessões de outros navegadores permanecem válidas até logout, revogação
+      administrativa, troca de senha, desativação da conta ou expiração.
     """
     ativas = listar_sessoes_ativas(db, usuario.id)
     token_limpo = (token_atual or "").strip() or None
@@ -205,9 +199,6 @@ def criar_sessao(
             db.commit()
             db.refresh(propria)
             return propria
-
-    if ativas:
-        raise AuthError(MSG_SESSAO_OCUPADA, status_code=409)
 
     token = secrets.token_urlsafe(32)
     agora = _utcnow()

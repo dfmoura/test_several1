@@ -42,7 +42,6 @@ function propParams() {
   const params = new URLSearchParams();
   const g = (id) => $(id)?.value?.trim();
   if (g("#prop-filtro-horizonte")) params.set("horizonte", g("#prop-filtro-horizonte"));
-  if (g("#prop-filtro-ano")) params.set("ano", g("#prop-filtro-ano"));
   if (g("#prop-filtro-unidade")) params.set("unidade_codigo", g("#prop-filtro-unidade"));
   appendQueryAll(params, "modalidade_codigo", multiSelectOf("#prop-filtro-modalidade")?.getValues());
   if (g("#prop-filtro-tipo")) params.set("material_ou_servico", g("#prop-filtro-tipo"));
@@ -670,12 +669,10 @@ function gerarPdfPropItem() {
 
 async function carregarPropFiltros() {
   if (propFiltrosProntos) return;
-  const [unidades, mods, stats] = await Promise.all([
+  const [unidades, mods] = await Promise.all([
     api("/api/compras/unidades").catch(() => []),
     api("/api/compras/modalidades").catch(() => []),
-    api("/api/compras/stats").catch(() => ({ por_ano: {} })),
   ]);
-  preencherSelect($("#prop-filtro-ano"), anosDeStats(stats.por_ano), "Todos");
   const selU = $("#prop-filtro-unidade");
   if (selU) {
     selU.innerHTML = '<option value="">Todas</option>' +
@@ -782,11 +779,11 @@ function renderPropTabela() {
 }
 
 async function buscarPropostas() {
-  const params = propParams();
   const tb = $("#prop-tabela");
   const meta = $("#prop-consulta-meta");
   if (tb) tb.innerHTML = '<tr><td colspan="12">Carregando itens com proposta aberta…</td></tr>';
   try {
+    const params = propParams();
     const [data, resumo] = await Promise.all([
       api(`/api/propostas-abertas/itens?${params}`),
       api(`/api/propostas-abertas/resumo?${params}`),
@@ -1283,8 +1280,6 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#btn-prop-limpar")?.addEventListener("click", () => {
     const h = $("#prop-filtro-horizonte");
     if (h) h.value = "todos";
-    const ano = $("#prop-filtro-ano");
-    if (ano) ano.value = "";
     const uni = $("#prop-filtro-unidade");
     if (uni) uni.value = "";
     multiSelectOf("#prop-filtro-modalidade")?.clear({ silent: true });

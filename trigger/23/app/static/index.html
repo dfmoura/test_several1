@@ -13,7 +13,7 @@
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/static/style.css?v=osb28" />
+  <link rel="stylesheet" href="/static/style.css?v=osb29" />
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -198,9 +198,20 @@
           <div class="panel filters-panel">
             <form id="form-dash-filtros" class="filters-grid">
               <label class="field">
-                <span>Ano</span>
+                <span>Período</span>
+                <select id="dash-filtro-periodo">
+                  <option value="ano">Ano</option>
+                  <option value="quadrimestre">Quadrimestre</option>
+                  <option value="intervalo">Intervalo</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Ano de referência</span>
                 <select id="dash-filtro-ano"><option value="">Todos</option></select>
               </label>
+              <label class="field" hidden><span>Quadrimestre</span><select id="dash-filtro-quadrimestre"><option value="">Selecione</option><option value="1">1º · jan–abr</option><option value="2">2º · mai–ago</option><option value="3">3º · set–dez</option></select></label>
+              <label class="field" hidden><span>Data inicial</span><input type="date" id="dash-filtro-data-inicial" /></label>
+              <label class="field" hidden><span>Data final</span><input type="date" id="dash-filtro-data-final" /></label>
               <label class="field">
                 <span>Órgão consolidado</span>
                 <select id="dash-filtro-orgao"><option value="">Todos</option></select>
@@ -232,9 +243,16 @@
           <div class="panel filters-panel">
             <form id="form-loc-filtros" class="filters-grid loc-filters">
               <label class="field">
-                <span>Ano</span>
+                <span>Período</span>
+                <select id="loc-filtro-periodo"><option value="ano">Ano</option><option value="quadrimestre">Quadrimestre</option><option value="intervalo">Intervalo</option></select>
+              </label>
+              <label class="field">
+                <span>Ano de referência</span>
                 <select id="loc-filtro-ano"><option value="">Todos</option></select>
               </label>
+              <label class="field" hidden><span>Quadrimestre</span><select id="loc-filtro-quadrimestre"><option value="">Selecione</option><option value="1">1º · jan–abr</option><option value="2">2º · mai–ago</option><option value="3">3º · set–dez</option></select></label>
+              <label class="field" hidden><span>Data inicial</span><input type="date" id="loc-filtro-data-inicial" /></label>
+              <label class="field" hidden><span>Data final</span><input type="date" id="loc-filtro-data-final" /></label>
               <label class="field">
                 <span>Órgão consolidado</span>
                 <select id="loc-filtro-orgao"><option value="">Todos</option></select>
@@ -467,17 +485,29 @@
             <p class="muted">
               Visão unificada do mesmo processo licitatório nas duas bases:
               <strong>Compras.gov · PNCP</strong> e <strong>Power BI · PMU</strong>.
-              O cruzamento usa órgão consolidado + ano + número do processo.
+              Consulte pelo processo ou pelo número da compra. O cruzamento usa
+              órgão consolidado + ano + número do processo.
             </p>
             <form id="form-cp-filtros" class="filters-grid">
               <label class="field field-wide">
-                <span>Processo *</span>
-                <input type="text" id="cp-filtro-processo" placeholder="Ex.: 63, PE 63/2025, 5302023" autocomplete="off" required />
+                <span>Processo</span>
+                <input type="text" id="cp-filtro-processo" placeholder="Ex.: 63, PE 63/2025, 5302023" autocomplete="off" />
+              </label>
+              <label class="field field-wide">
+                <span>Nº da compra</span>
+                <input type="text" id="cp-filtro-numero-compra" placeholder="Ex.: 90063/2025" autocomplete="off" />
               </label>
               <label class="field">
-                <span>Ano</span>
+                <span>Período</span>
+                <select id="cp-filtro-periodo"><option value="ano">Ano</option><option value="quadrimestre">Quadrimestre</option><option value="intervalo">Intervalo</option></select>
+              </label>
+              <label class="field">
+                <span>Ano de referência</span>
                 <select id="cp-filtro-ano"><option value="">Todos</option></select>
               </label>
+              <label class="field" hidden><span>Quadrimestre</span><select id="cp-filtro-quadrimestre"><option value="">Selecione</option><option value="1">1º · jan–abr</option><option value="2">2º · mai–ago</option><option value="3">3º · set–dez</option></select></label>
+              <label class="field" hidden><span>Data inicial</span><input type="date" id="cp-filtro-data-inicial" /></label>
+              <label class="field" hidden><span>Data final</span><input type="date" id="cp-filtro-data-final" /></label>
               <label class="field">
                 <span>Órgão consolidado</span>
                 <select id="cp-filtro-orgao"><option value="">Todos</option></select>
@@ -585,10 +615,6 @@
                 </select>
               </label>
               <label class="field">
-                <span>Ano</span>
-                <select id="prop-filtro-ano"><option value="">Todos</option></select>
-              </label>
-              <label class="field">
                 <span>Unidade</span>
                 <select id="prop-filtro-unidade"><option value="">Todas</option></select>
               </label>
@@ -653,9 +679,16 @@
             </p>
             <form id="form-compras-filtros" class="filters-grid">
               <label class="field">
-                <span>Ano</span>
+                <span>Período</span>
+                <select id="compras-filtro-periodo"><option value="ano">Ano</option><option value="quadrimestre">Quadrimestre</option><option value="intervalo">Intervalo</option></select>
+              </label>
+              <label class="field">
+                <span>Ano de referência</span>
                 <select id="compras-filtro-ano"><option value="">Todos</option></select>
               </label>
+              <label class="field" hidden><span>Quadrimestre</span><select id="compras-filtro-quadrimestre"><option value="">Selecione</option><option value="1">1º · jan–abr</option><option value="2">2º · mai–ago</option><option value="3">3º · set–dez</option></select></label>
+              <label class="field" hidden><span>Data inicial</span><input type="date" id="compras-filtro-data-inicial" /></label>
+              <label class="field" hidden><span>Data final</span><input type="date" id="compras-filtro-data-final" /></label>
               <label class="field">
                 <span>Unidade</span>
                 <select id="compras-filtro-unidade"><option value="">Todas</option></select>
@@ -667,6 +700,14 @@
               <label class="field">
                 <span>Modalidade</span>
                 <div id="compras-filtro-modalidade" class="ms" data-placeholder="Todas"></div>
+              </label>
+              <label class="field">
+                <span>Tipo</span>
+                <select id="compras-filtro-tipo">
+                  <option value="">Todos</option>
+                  <option value="M">Material</option>
+                  <option value="S">Serviço</option>
+                </select>
               </label>
               <label class="field">
                 <span>Processo</span>
@@ -701,7 +742,7 @@
                     <th class="sortable col-num col-money" data-sort="valor_total_estimado">Valor est.</th>
                     <th class="sortable col-num col-money" data-sort="valor_total_homologado">Valor hom.</th>
                     <th class="sortable" data-sort="numero_controle_pncp">PNCP</th>
-                    <th class="sortable" data-sort="observador_nome">Observador</th>
+                    <th class="sortable" data-sort="tipos_item">Tipo</th>
                     <th class="sortable" data-sort="objeto">Objeto</th>
                   </tr>
                 </thead>
@@ -726,7 +767,11 @@
             </div>
             <form id="form-pbi-filtros" class="filters-grid">
               <div class="pbi-filtros-dataset" data-dataset="licitacoes">
-                <label class="field"><span>Ano</span><select id="pbi-filtro-lic-ano"><option value="">Todos</option></select></label>
+                <label class="field"><span>Período</span><select id="pbi-lic-filtro-periodo"><option value="ano">Ano</option><option value="quadrimestre">Quadrimestre</option><option value="intervalo">Intervalo</option></select></label>
+                <label class="field"><span>Ano de homologação</span><select id="pbi-lic-filtro-ano"><option value="">Todos</option></select></label>
+                <label class="field" hidden><span>Quadrimestre</span><select id="pbi-lic-filtro-quadrimestre"><option value="">Selecione</option><option value="1">1º · jan–abr</option><option value="2">2º · mai–ago</option><option value="3">3º · set–dez</option></select></label>
+                <label class="field" hidden><span>Data inicial</span><input type="date" id="pbi-lic-filtro-data-inicial" /></label>
+                <label class="field" hidden><span>Data final</span><input type="date" id="pbi-lic-filtro-data-final" /></label>
                 <label class="field"><span>Empresa</span><select id="pbi-filtro-lic-empresa"><option value="">Todas</option></select></label>
                 <label class="field"><span>Situação</span><select id="pbi-filtro-lic-situacao"><option value="">Todas</option></select></label>
                 <label class="field"><span>Modalidade</span><div id="pbi-filtro-lic-modalidade" class="ms" data-placeholder="Todas"></div></label>
@@ -1200,10 +1245,10 @@
         <h4 class="detail-panel-title">Itens e resultados</h4>
         <p id="modal-compras-itens-meta" class="meta-line">-</p>
         <p class="muted small">Somente classificados/homologados na API federal (SRP pode ter múltiplos). Clique no vencedor para ver o CNPJ e o QSA.</p>
-        <div class="table-scroll">
-          <table class="data-table">
+        <div class="table-scroll compras-itens-scroll">
+          <table class="data-table compras-itens-table">
             <thead>
-              <tr><th>Item</th><th>Descrição</th><th>Catálogo</th><th>Qtd.</th><th>Estimado</th><th>Homologado</th><th>Vencedor(es)</th></tr>
+              <tr><th>Item</th><th class="col-descricao">Descrição</th><th>Catálogo</th><th>Qtd.</th><th>Estimado</th><th>Homologado</th><th>Vencedor(es)</th></tr>
             </thead>
             <tbody id="modal-compras-itens-tabela"></tbody>
           </table>
@@ -1468,16 +1513,16 @@
     crossorigin=""
   ></script>
   <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-  <script src="/static/shell.js?v=osb10"></script>
+  <script src="/static/shell.js?v=osb11"></script>
   <script src="/static/auth.js?v=osb2"></script>
   <script src="/static/coleta.js?v=osb4"></script>
-  <script src="/static/dashboard.js?v=osb5"></script>
-  <script src="/static/localidade.js?v=osb4"></script>
-  <script src="/static/consulta_processo.js?v=osb6"></script>
-  <script src="/static/propostas_abertas.js?v=osb10"></script>
-  <script src="/static/compras.js?v=osb9"></script>
+  <script src="/static/dashboard.js?v=osb6"></script>
+  <script src="/static/localidade.js?v=osb5"></script>
+  <script src="/static/consulta_processo.js?v=osb8"></script>
+  <script src="/static/propostas_abertas.js?v=osb12"></script>
+  <script src="/static/compras.js?v=osb11"></script>
   <script src="/static/vencedores_cnpj.js?v=osb8"></script>
-  <script src="/static/powerbi.js?v=osb5"></script>
+  <script src="/static/powerbi.js?v=osb6"></script>
   <script src="/static/orgaos.js?v=osb4"></script>
   <script src="/static/modalidades.js?v=osb4"></script>
   <script src="/static/observadores.js?v=osb4"></script>

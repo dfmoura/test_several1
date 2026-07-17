@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from statistics import median
 from typing import Any, Literal
@@ -18,6 +18,13 @@ from app.database import (
     CompraContratacaoItem,
     ComprasPrecoPraticado,
     get_db,
+)
+from app.filtros_periodo import (
+    Periodo,
+    TipoPeriodo,
+    condicao_periodo,
+    data_iso_pncp,
+    resolver_periodo,
 )
 
 router = APIRouter(prefix="/api/propostas-abertas", tags=["propostas-abertas"])
@@ -179,6 +186,7 @@ def _carregar_contratacoes_abertas(
     agora: datetime | None = None,
     horizonte: Horizonte = "todos",
     ano: int | None = None,
+    periodo: Periodo | None = None,
     unidade_codigo: str | None = None,
     modalidade_codigo: str | list[str] | None = None,
     situacao: str | None = None,
@@ -192,7 +200,12 @@ def _carregar_contratacoes_abertas(
         CompraContratacao.data_encerramento_proposta_pncp.isnot(None),
         CompraContratacao.data_encerramento_proposta_pncp != "",
     )
-    if ano:
+    filtro_periodo = condicao_periodo(
+        data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp), periodo
+    )
+    if filtro_periodo is not None:
+        stmt = stmt.where(filtro_periodo)
+    elif ano:
         stmt = stmt.where(CompraContratacao.ano == ano)
     if unidade_codigo:
         stmt = stmt.where(CompraContratacao.unidade_compradora == unidade_codigo)
@@ -399,17 +412,32 @@ def resumo_propostas_abertas(
     db: Session = Depends(get_db),
     horizonte: Horizonte = Query("todos"),
     ano: int | None = None,
+    periodo: TipoPeriodo | None = None,
+    quadrimestre: int | None = Query(None, ge=1, le=3),
+    data_inicial: date | None = None,
+    data_final: date | None = None,
     unidade_codigo: str | None = None,
     modalidade_codigo: list[str] = Query(default=[]),
     situacao: str | None = None,
     texto: str | None = None,
 ):
     agora = datetime.now()
+    try:
+        periodo_resolvido = resolver_periodo(
+            periodo=periodo,
+            ano=ano,
+            quadrimestre=quadrimestre,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     abertas = _carregar_contratacoes_abertas(
         db,
         agora=agora,
         horizonte=horizonte,
         ano=ano,
+        periodo=periodo_resolvido,
         unidade_codigo=unidade_codigo,
         modalidade_codigo=modalidade_codigo,
         situacao=situacao,
@@ -498,6 +526,10 @@ def listar_itens_propostas_abertas(
     db: Session = Depends(get_db),
     horizonte: Horizonte = Query("todos"),
     ano: int | None = None,
+    periodo: TipoPeriodo | None = None,
+    quadrimestre: int | None = Query(None, ge=1, le=3),
+    data_inicial: date | None = None,
+    data_final: date | None = None,
     unidade_codigo: str | None = None,
     modalidade_codigo: list[str] = Query(default=[]),
     situacao: str | None = None,
@@ -508,11 +540,22 @@ def listar_itens_propostas_abertas(
     offset: int = Query(0, ge=0),
 ):
     agora = datetime.now()
+    try:
+        periodo_resolvido = resolver_periodo(
+            periodo=periodo,
+            ano=ano,
+            quadrimestre=quadrimestre,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     abertas = _carregar_contratacoes_abertas(
         db,
         agora=agora,
         horizonte=horizonte,
         ano=ano,
+        periodo=periodo_resolvido,
         unidade_codigo=unidade_codigo,
         modalidade_codigo=modalidade_codigo,
         situacao=situacao,

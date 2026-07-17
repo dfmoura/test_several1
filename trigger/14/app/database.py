@@ -48,6 +48,21 @@ class RegisteredApp(Base):
     valor_mensalidade = Column(Float, nullable=False, default=DEFAULT_VALOR_MENSALIDADE)
 
 
+class AiProviderToken(Base):
+    """Tokens de APIs de IA (OpenAI, Anthropic, etc.). Locais no SQLite — não vão ao Supabase/git."""
+
+    __tablename__ = "ai_provider_tokens"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    provider = Column(String, nullable=False, index=True)
+    label = Column(String, nullable=False, default="")
+    api_key = Column(String, nullable=False, default="")
+    base_url = Column(String, nullable=False, default="")
+    model_default = Column(String, nullable=False, default="")
+    enabled = Column(Boolean, nullable=False, default=True)
+    notes = Column(String, nullable=False, default="")
+
+
 class InterBillingConfig(Base):
     """Credenciais Inter da Trigger TI (cobrança de licenças). Separado do Inter dos condomínios."""
 

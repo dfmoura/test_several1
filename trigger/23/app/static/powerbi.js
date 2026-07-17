@@ -114,7 +114,7 @@ async function carregarPbiFiltros() {
     sel.innerHTML = `<option value="">${allLabel}</option>` +
       items.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
   };
-  fill($("#pbi-filtro-lic-ano"), anosLic.map(String), "Todos");
+  fill($("#pbi-lic-filtro-ano"), anosLic.map(String), "Todos");
   fill($("#pbi-filtro-lic-empresa"), empLic, "Todas");
   fill($("#pbi-filtro-lic-situacao"), sitLic, "Todas");
   multiSelectOf("#pbi-filtro-lic-modalidade")?.setOptions(
@@ -135,7 +135,7 @@ function pbiQueryParams() {
   p.set("limit", "200");
   const g = (id) => $(id)?.value;
   if (pbiDataset === "licitacoes") {
-    if (g("#pbi-filtro-lic-ano")) p.set("ano_processo", g("#pbi-filtro-lic-ano"));
+    appendPeriodoParams(p, "pbi-lic");
     if (g("#pbi-filtro-lic-empresa")) p.set("empresa", g("#pbi-filtro-lic-empresa"));
     if (g("#pbi-filtro-lic-situacao")) p.set("situacao", g("#pbi-filtro-lic-situacao"));
     appendQueryAll(p, "modalidade", multiSelectOf("#pbi-filtro-lic-modalidade")?.getValues());
@@ -172,7 +172,8 @@ async function buscarPbi() {
   try {
     const data = await api(`/api/powerbi/${cfg.endpoint}?${pbiQueryParams()}`);
     pbiLastItems = data.items || [];
-    meta.textContent = `${fmtNum(data.total)} registro(s) · ${cfg.label}`;
+    const periodo = pbiDataset === "licitacoes" ? resumoFiltroPeriodo("pbi-lic") : "";
+    meta.textContent = `${fmtNum(data.total)} registro(s) · ${cfg.label}${periodo ? ` · ${periodo}` : ""}`;
     renderPbiTabela();
   } catch (err) {
     pbiLastItems = [];
@@ -365,6 +366,7 @@ $("#btn-pbi-limpar")?.addEventListener("click", () => {
   $$(".pbi-filtros-dataset:not([hidden]) .ms").forEach((el) => {
     multiSelectOf(el)?.clear({ silent: true });
   });
+  if (pbiDataset === "licitacoes") limparFiltroPeriodo("pbi-lic");
   buscarPbi();
 });
 wireSortableHeaders($("#pbi-tabela-head"), (key, dir) => {
@@ -386,6 +388,7 @@ $("#form-pbi-obs")?.addEventListener("submit", async (e) => {
 
 let pbiIniciado = false;
 async function carregarPowerBiPagina() {
+  iniciarFiltroPeriodo("pbi-lic");
   pbiSetTabelaHead();
   if (!pbiFiltrosCarregados) await carregarPbiFiltros();
   if (!pbiIniciado) { pbiIniciado = true; buscarPbi(); }

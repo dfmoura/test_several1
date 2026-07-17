@@ -218,9 +218,9 @@ IA_FALLBACK_PROVIDER = (os.environ.get("IA_FALLBACK_PROVIDER") or "openai").stri
 IA_FALLBACK_MODEL = (os.environ.get("IA_FALLBACK_MODEL") or "").strip()
 IA_FALLBACK_BASE_URL = (os.environ.get("IA_FALLBACK_BASE_URL") or "").strip()
 
-# codigoModalidade na API (1–12) — conforme base.txt / PNCP
+# modalidadeIdPncp (1–14) — domínio oficial PNCP
 MODALIDADES_PNCP: dict[int, str] = {
-    1: "Leilão",
+    1: "Leilão - Eletrônico",
     2: "Diálogo Competitivo",
     3: "Concurso",
     4: "Concorrência - Eletrônica",
@@ -232,4 +232,6 @@ MODALIDADES_PNCP: dict[int, str] = {
     10: "Manifestação de Interesse",
     11: "Pré-qualificação",
     12: "Credenciamento",
+    13: "Leilão - Presencial",
+    14: "Inaplicabilidade da Licitação",
 }

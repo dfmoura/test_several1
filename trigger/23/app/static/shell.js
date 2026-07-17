@@ -289,6 +289,98 @@ function anosDeStats(porAno) {
     .map(String);
 }
 
+function _periodoEls(prefix) {
+  const get = (sufixo) => $(`#${prefix}-filtro-${sufixo}`);
+  return {
+    tipo: get("periodo"),
+    ano: get("ano"),
+    quadrimestre: get("quadrimestre"),
+    inicial: get("data-inicial"),
+    final: get("data-final"),
+  };
+}
+
+/** Mantém os controles temporais compactos, mostrando apenas o modo ativo. */
+function atualizarFiltroPeriodo(prefix) {
+  const e = _periodoEls(prefix);
+  if (!e.tipo) return;
+  const tipo = e.tipo.value || "ano";
+  e.ano?.closest(".field")?.toggleAttribute("hidden", tipo === "intervalo");
+  e.quadrimestre?.closest(".field")?.toggleAttribute("hidden", tipo !== "quadrimestre");
+  e.inicial?.closest(".field")?.toggleAttribute("hidden", tipo !== "intervalo");
+  e.final?.closest(".field")?.toggleAttribute("hidden", tipo !== "intervalo");
+}
+
+function iniciarFiltroPeriodo(prefix) {
+  const e = _periodoEls(prefix);
+  if (!e.tipo || e.tipo.dataset.periodoWired) return;
+  e.tipo.dataset.periodoWired = "1";
+  e.tipo.addEventListener("change", () => atualizarFiltroPeriodo(prefix));
+  atualizarFiltroPeriodo(prefix);
+}
+
+function appendPeriodoParams(params, prefix) {
+  const e = _periodoEls(prefix);
+  if (!e.tipo) return;
+  const tipo = e.tipo.value || "ano";
+  if (tipo === "ano") {
+    if (e.ano?.value) {
+      params.set("periodo", "ano");
+      params.set("ano", e.ano.value);
+    }
+    return;
+  }
+  if (tipo === "quadrimestre") {
+    if (!e.ano?.value || !e.quadrimestre?.value) {
+      throw new Error("Selecione o ano e o quadrimestre.");
+    }
+    params.set("periodo", "quadrimestre");
+    params.set("ano", e.ano.value);
+    params.set("quadrimestre", e.quadrimestre.value);
+    return;
+  }
+  if (!e.inicial?.value || !e.final?.value) {
+    throw new Error("Informe as datas inicial e final.");
+  }
+  if (e.inicial.value > e.final.value) {
+    throw new Error("A data inicial não pode ser posterior à data final.");
+  }
+  params.set("periodo", "intervalo");
+  params.set("data_inicial", e.inicial.value);
+  params.set("data_final", e.final.value);
+}
+
+function limparFiltroPeriodo(prefix) {
+  const e = _periodoEls(prefix);
+  if (!e.tipo) return;
+  e.tipo.value = "ano";
+  if (e.ano) e.ano.value = "";
+  if (e.quadrimestre) e.quadrimestre.value = "";
+  if (e.inicial) e.inicial.value = "";
+  if (e.final) e.final.value = "";
+  atualizarFiltroPeriodo(prefix);
+}
+
+function _fmtDataFiltro(valor) {
+  const [ano, mes, dia] = String(valor || "").split("-");
+  return ano && mes && dia ? `${dia}/${mes}/${ano}` : valor;
+}
+
+function resumoFiltroPeriodo(prefix) {
+  const e = _periodoEls(prefix);
+  if (!e.tipo) return "";
+  const tipo = e.tipo.value || "ano";
+  if (tipo === "ano") return e.ano?.value ? `Ano: ${e.ano.value}` : "";
+  if (tipo === "quadrimestre") {
+    return e.ano?.value && e.quadrimestre?.value
+      ? `${e.quadrimestre.value}º quadrimestre de ${e.ano.value}`
+      : "";
+  }
+  return e.inicial?.value && e.final?.value
+    ? `Período: ${_fmtDataFiltro(e.inicial.value)} a ${_fmtDataFiltro(e.final.value)}`
+    : "";
+}
+
 /** Célula de tabela com reticências + tooltip do valor completo */
 function tdEllipsis(value, { html, title, cls } = {}) {
   const raw = value == null || value === "" ? "—" : String(value);

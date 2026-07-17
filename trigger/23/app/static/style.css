@@ -403,6 +403,7 @@ a { color: var(--steel); }
 .pbi-filtros-dataset { display: contents; }
 .pbi-filtros-dataset[hidden] { display: none !important; }
 .field { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--text-soft); min-width: 0; }
+.field[hidden] { display: none !important; }
 .field > span { font-weight: 500; }
 .field-wide { grid-column: span 2; }
 .field-block { display: block; }
@@ -1051,6 +1052,43 @@ legend { font-size: 12px; font-weight: 600; color: var(--text-soft); padding: 0 
 .detail-grid-extra { grid-template-columns: minmax(140px, auto) 1fr; }
 .objeto-text { margin: 0; font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; }
 .link-pncp { font-weight: 500; }
+
+/* Detalhamento Compras.gov: contém a tabela e quebra descrições longas. */
+#modal-compras {
+  max-width: 94vw;
+  overflow: hidden;
+}
+#modal-compras .modal-body,
+#modal-compras .detail-panel {
+  min-width: 0;
+}
+.compras-itens-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.compras-itens-table {
+  width: 100%;
+  min-width: 720px;
+  table-layout: fixed;
+}
+.compras-itens-table th:nth-child(1) { width: 4rem; }
+.compras-itens-table th.col-descricao { width: 28%; }
+.compras-itens-table th:nth-child(3) { width: 13%; }
+.compras-itens-table th:nth-child(4) { width: 10%; }
+.compras-itens-table th:nth-child(5),
+.compras-itens-table th:nth-child(6) { width: 8rem; }
+.compras-itens-scroll .compras-itens-table th,
+.compras-itens-scroll .compras-itens-table td {
+  vertical-align: top;
+}
+.compras-itens-scroll .compras-itens-table th.col-descricao,
+.compras-itens-scroll .compras-itens-table td.col-desc,
+.compras-itens-scroll .compras-itens-table td:nth-child(3),
+.compras-itens-scroll .compras-itens-table td:nth-child(7) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 .link-vencedor {
   border: 0; background: transparent; padding: 0; margin: 0;
   color: var(--accent-ink); font: inherit; font-weight: 600;

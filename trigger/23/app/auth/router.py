@@ -163,7 +163,7 @@ def login(
     response: Response,
     db: Session = Depends(get_db),
 ) -> MeOut:
-    """Login com sessão única por usuário (não derruba quem já está dentro)."""
+    """Login com sessão independente por navegador ou dispositivo."""
     try:
         user = autenticar(db, body.username, body.password)
         sessao = criar_sessao(
