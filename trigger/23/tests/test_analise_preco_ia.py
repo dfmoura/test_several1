@@ -251,6 +251,71 @@ def test_listagem_expoe_resumo_da_ultima_analise_ia(client):
     assert item["analise_ia"]["desvio_percentual_aprox"] == -0.15
 
 
+def test_listagem_filtra_ia_desvio_acima_30(client):
+    """`ia_desvio=acima_30` mantém só análises ok com desvio > +30% vs. mercado."""
+    marca = uuid.uuid4().hex[:10]
+    id_acima = _criar_item_aberto(descricao=f"Filtro IA acima {marca}")
+    id_abaixo = _criar_item_aberto(descricao=f"Filtro IA abaixo {marca}")
+    id_sem = _criar_item_aberto(descricao=f"Filtro IA sem {marca}")
+
+    db = SessionLocal()
+    try:
+        db.add_all(
+            [
+                PropostaAnalisePreco(
+                    item_id=id_acima,
+                    prompt_enviado="acima",
+                    status="ok",
+                    resposta_json=json.dumps(
+                        {
+                            "comparativo": "mais_caro",
+                            "desvio_percentual_aprox": 45.0,
+                        }
+                    ),
+                ),
+                PropostaAnalisePreco(
+                    item_id=id_abaixo,
+                    prompt_enviado="abaixo",
+                    status="ok",
+                    resposta_json=json.dumps(
+                        {
+                            "comparativo": "mais_caro",
+                            "desvio_percentual_aprox": 18.0,
+                        }
+                    ),
+                ),
+                PropostaAnalisePreco(
+                    item_id=id_sem,
+                    prompt_enviado="erro",
+                    status="erro",
+                    erro="falha",
+                ),
+            ]
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    todos = client.get(
+        "/api/propostas-abertas/itens",
+        params={"texto": marca, "ia_desvio": "todos"},
+    )
+    assert todos.status_code == 200
+    ids_todos = {row["item_id"] for row in todos.json()["items"]}
+    assert {id_acima, id_abaixo, id_sem} <= ids_todos
+
+    filtrado = client.get(
+        "/api/propostas-abertas/itens",
+        params={"texto": marca, "ia_desvio": "acima_30"},
+    )
+    assert filtrado.status_code == 200
+    body = filtrado.json()
+    ids_filtrados = {row["item_id"] for row in body["items"]}
+    assert ids_filtrados == {id_acima}
+    assert body["total"] == 1
+    assert body["items"][0]["analise_ia"]["desvio_percentual_aprox"] == 45.0
+
+
 def test_listagem_normaliza_comparativo_invertido_no_historico(client):
     """Histórico antigo com rótulo invertido deve aparecer corrigido na listagem."""
     descricao = f"Sinalizador {uuid.uuid4().hex[:10]}"

@@ -45,6 +45,8 @@ function propParams() {
   if (g("#prop-filtro-unidade")) params.set("unidade_codigo", g("#prop-filtro-unidade"));
   appendQueryAll(params, "modalidade_codigo", multiSelectOf("#prop-filtro-modalidade")?.getValues());
   if (g("#prop-filtro-tipo")) params.set("material_ou_servico", g("#prop-filtro-tipo"));
+  const ia = g("#prop-filtro-ia");
+  if (ia && ia !== "todos") params.set("ia_desvio", ia);
   if (g("#prop-filtro-texto")) params.set("texto", g("#prop-filtro-texto"));
   params.set("limit", "1000");
   return params;
@@ -1353,6 +1355,8 @@ document.addEventListener("DOMContentLoaded", () => {
     multiSelectOf("#prop-filtro-modalidade")?.clear({ silent: true });
     const tipo = $("#prop-filtro-tipo");
     if (tipo) tipo.value = "";
+    const ia = $("#prop-filtro-ia");
+    if (ia) ia.value = "todos";
     const texto = $("#prop-filtro-texto");
     if (texto) texto.value = "";
     buscarPropostas();

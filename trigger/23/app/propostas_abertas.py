@@ -31,6 +31,9 @@ from app.filtros_periodo import (
 router = APIRouter(prefix="/api/propostas-abertas", tags=["propostas-abertas"])
 
 Horizonte = Literal["24h", "72h", "7d", "30d", "todos"]
+# Filtro da coluna IA: processo vs. preço típico de mercado (desvio_percentual_aprox).
+FiltroIaDesvio = Literal["todos", "acima_30"]
+_IA_DESVIO_ACIMA_PCT = 30.0
 
 _FMT_DATAS = (
     "%d/%m/%Y %H:%M",
@@ -227,6 +230,24 @@ def _ultimas_analises_ia(
             ),
         }
     return out
+
+
+def _match_ia_desvio(analise: dict[str, Any] | None, filtro: FiltroIaDesvio) -> bool:
+    """Aplica o filtro da coluna IA. `todos` não restringe."""
+    if filtro == "todos":
+        return True
+    if not analise or analise.get("status") != "ok":
+        return False
+    desvio = analise.get("desvio_percentual_aprox")
+    if desvio is None:
+        return False
+    try:
+        valor = float(desvio)
+    except (TypeError, ValueError):
+        return False
+    if filtro == "acima_30":
+        return valor > _IA_DESVIO_ACIMA_PCT
+    return True
 
 
 def _norm_codigos(valor: str | list[str] | None) -> list[str]:
@@ -594,6 +615,7 @@ def listar_itens_propostas_abertas(
     texto: str | None = None,
     material_ou_servico: str | None = None,
     com_catalogo: bool | None = None,
+    ia_desvio: FiltroIaDesvio = Query("todos"),
     limit: int = Query(500, ge=1, le=2000),
     offset: int = Query(0, ge=0),
 ):
@@ -689,7 +711,6 @@ def listar_itens_propostas_abertas(
         c, dt = mapa[item.contratacao_id]
         if not _match_texto(item, c):
             continue
-        horas = max((dt - agora).total_seconds() / 3600, 0)
         if item.cod_item_catalogo:
             bench = benches_cat.get(int(item.cod_item_catalogo))
         else:
@@ -706,11 +727,25 @@ def listar_itens_propostas_abertas(
             r["numero_item"] or 0,
         )
     )
-    total = len(linhas)
-    page = linhas[offset : offset + limit]
-    analises_ia = _ultimas_analises_ia(db, [int(row["item_id"]) for row in page])
-    for row in page:
-        row["analise_ia"] = analises_ia.get(int(row["item_id"]))
+
+    # Anexar IA antes da paginação quando o filtro depende do desvio.
+    ids_para_ia = [int(row["item_id"]) for row in linhas]
+    if ia_desvio != "todos":
+        analises_ia = _ultimas_analises_ia(db, ids_para_ia)
+        for row in linhas:
+            row["analise_ia"] = analises_ia.get(int(row["item_id"]))
+        linhas = [
+            row for row in linhas if _match_ia_desvio(row.get("analise_ia"), ia_desvio)
+        ]
+        total = len(linhas)
+        page = linhas[offset : offset + limit]
+    else:
+        total = len(linhas)
+        page = linhas[offset : offset + limit]
+        analises_ia = _ultimas_analises_ia(db, [int(row["item_id"]) for row in page])
+        for row in page:
+            row["analise_ia"] = analises_ia.get(int(row["item_id"]))
+
     return {
         "items": page,
         "total": total,
