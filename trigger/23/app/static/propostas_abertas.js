@@ -72,34 +72,64 @@ function pillDesvio(desvio) {
   return `<span class="${cls}" title="Em relação à mediana local do catálogo">${esc(desvio.percentual_fmt)}</span>`;
 }
 
-function pillAnaliseIa(analise) {
+function tituloAnaliseIa(analise) {
   if (!analise || analise.status === "pendente") {
-    return '<span class="prop-ia-table-pill prop-ia-table-pendente" title="Nenhuma análise concluída para este item">Aguardando IA</span>';
+    return "Nenhuma análise concluída para este item";
   }
   if (analise.status !== "ok") {
-    return '<span class="prop-ia-table-pill prop-ia-table-erro" title="A última análise não foi concluída">Análise indisponível</span>';
+    return "A última análise não foi concluída";
   }
-
   const comparativo = analise.comparativo || "indeterminado";
   const desvioNum = Number(analise.desvio_percentual_aprox);
   const temDesvio = analise.desvio_percentual_aprox != null && Number.isFinite(desvioNum);
-  const desvioAbs = temDesvio
-    ? Math.abs(desvioNum).toLocaleString("pt-BR", { maximumFractionDigits: 2 })
-    : "";
-  const labels = {
-    mais_barato: desvioAbs ? `${desvioAbs}% abaixo` : "Abaixo do mercado",
-    alinhado: desvioAbs ? `Alinhado · ${desvioAbs}%` : "Alinhado ao mercado",
-    mais_caro: desvioAbs ? `${desvioAbs}% acima` : "Acima do mercado",
-    indeterminado: "Análise inconclusiva",
-  };
-  const label = labels[comparativo] || "Análise concluída";
   const compDetalhe = PROP_COMP_LABEL[comparativo] || "Análise de mercado concluída";
   const desvioDetalhe = temDesvio
     ? ` · Desvio aproximado vs. processo: ${desvioNum > 0 ? "+" : ""}${desvioNum.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`
     : "";
   const dataDetalhe = analise.criado_em ? ` · ${analise.criado_em}` : "";
-  const title = `${compDetalhe}${desvioDetalhe}${dataDetalhe}`;
-  return `<span class="prop-ia-table-pill prop-ia-table-${esc(comparativo)}" title="${esc(title)}">${esc(label)}</span>`;
+  return `${compDetalhe}${desvioDetalhe}${dataDetalhe}`;
+}
+
+/** % compacto só quando a análise ok tem desvio numérico. */
+function fmtDesvioIaPct(analise) {
+  const desvioNum = Number(analise?.desvio_percentual_aprox);
+  if (analise?.desvio_percentual_aprox == null || !Number.isFinite(desvioNum)) return "";
+  const abs = Math.abs(desvioNum).toLocaleString("pt-BR", {
+    maximumFractionDigits: Math.abs(desvioNum) >= 10 ? 0 : 1,
+  });
+  const sign = desvioNum > 0 ? "+" : desvioNum < 0 ? "−" : "";
+  return `${sign}${abs}%`;
+}
+
+function pillAnaliseIa(analise) {
+  const title = tituloAnaliseIa(analise);
+  if (!analise || analise.status === "pendente") {
+    return (
+      `<span class="prop-ia-cell prop-ia-table-pendente" role="img" ` +
+      `aria-label="Aguardando análise de IA" title="${esc(title)}">` +
+      `<span class="prop-ia-mark" aria-hidden="true"></span></span>`
+    );
+  }
+  if (analise.status !== "ok") {
+    return (
+      `<span class="prop-ia-cell prop-ia-table-erro" role="img" ` +
+      `aria-label="Análise de IA indisponível" title="${esc(title)}">` +
+      `<span class="prop-ia-mark" aria-hidden="true"></span></span>`
+    );
+  }
+
+  const comparativo = analise.comparativo || "indeterminado";
+  const pct = fmtDesvioIaPct(analise);
+  const ariaBase = PROP_COMP_LABEL[comparativo] || "Análise concluída";
+  const aria = pct ? `${ariaBase} · ${pct}` : ariaBase;
+  const pctHtml = pct
+    ? `<span class="prop-ia-pct">${esc(pct)}</span>`
+    : "";
+  return (
+    `<span class="prop-ia-cell prop-ia-table-${esc(comparativo)}" role="img" ` +
+    `aria-label="${esc(aria)}" title="${esc(title)}">` +
+    `<span class="prop-ia-mark" aria-hidden="true"></span>${pctHtml}</span>`
+  );
 }
 
 function atualizarAnaliseIaTabela(itemId, analise) {
@@ -783,6 +813,7 @@ function renderPropTabela() {
       const compra = r.numero_compra || "—";
       const mod = r.modalidade_descricao || "";
       return `<tr class="clickable" data-item-id="${esc(String(r.item_id))}" data-contratacao-id="${esc(String(r.contratacao_id || ""))}" title="Clique para abrir análise de preço">
+      ${tdEllipsis("", { cls: "col-analise-ia", html: pillAnaliseIa(r.analise_ia), title: tituloAnaliseIa(r.analise_ia) })}
       ${tdEllipsis(fmtPrazoRestante(r.horas_restantes), {
         html: `${pillUrgencia(r.urgencia, r.horas_restantes)} <span class="prop-prazo-txt">${esc(r.data_encerramento_proposta_pncp || "")}</span>`,
         title: `${r.data_encerramento_proposta_pncp || ""} · ${fmtPrazoRestante(r.horas_restantes)}`,
@@ -800,7 +831,6 @@ function renderPropTabela() {
       ${tdEllipsis(r.valor_total, { cls: "col-num col-money" })}
       ${tdEllipsis(r.desvio_preco?.percentual_fmt, { cls: "col-num", html: pillDesvio(r.desvio_preco) })}
       ${tdEllipsis(r.unidade_nome)}
-      ${tdEllipsis("", { cls: "col-analise-ia", html: pillAnaliseIa(r.analise_ia) })}
     </tr>`;
     }).join("");
 

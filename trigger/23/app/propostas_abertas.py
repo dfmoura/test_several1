@@ -179,6 +179,9 @@ def _ultimas_analises_ia(
     if not item_ids:
         return {}
 
+    # Import tardio: evita ciclo com analise_preco (que usa helpers deste módulo).
+    from app.analise_preco import normalizar_comparativo_mercado
+
     ultimos_ids = (
         select(func.max(PropostaAnalisePreco.id))
         .where(PropostaAnalisePreco.item_id.in_(item_ids))
@@ -188,6 +191,20 @@ def _ultimas_analises_ia(
         select(PropostaAnalisePreco).where(PropostaAnalisePreco.id.in_(ultimos_ids))
     ).all()
 
+    unitarios_raw = db.execute(
+        select(
+            CompraContratacaoItem.id,
+            CompraContratacaoItem.valor_unitario_estimado,
+        ).where(CompraContratacaoItem.id.in_(item_ids))
+    ).all()
+    unitarios: dict[int, float | None] = {}
+    for item_id, valor in unitarios_raw:
+        parsed = _parse_valor_item(valor)
+        if parsed is not None and parsed > 0:
+            unitarios[int(item_id)] = float(parsed)
+        else:
+            unitarios[int(item_id)] = None
+
     out: dict[int, dict[str, Any]] = {}
     for row in rows:
         estruturado: dict[str, Any] = {}
@@ -195,7 +212,10 @@ def _ultimas_analises_ia(
             try:
                 parsed = json.loads(row.resposta_json)
                 if isinstance(parsed, dict):
-                    estruturado = parsed
+                    normalizado = normalizar_comparativo_mercado(
+                        parsed, unitarios.get(row.item_id)
+                    )
+                    estruturado = normalizado if isinstance(normalizado, dict) else parsed
             except (TypeError, ValueError, json.JSONDecodeError):
                 pass
         out[row.item_id] = {

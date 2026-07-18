@@ -56,11 +56,19 @@ Responda em português do Brasil:
 1) Resumo do item interpretado
 2) Achados de preço por site/fonte (3–8 itens: site, tipo, preço unitário, produto, URL/referência, data, nota)
 3) Faixa de preço unitário de mercado (mín / típico / máx) em R$
-4) Comparativo com o valor unitário do processo (mais barato / alinhado / mais caro / indeterminado) + desvio % aproximado
+4) Comparativo com o valor unitário do processo
+   O sujeito é o PROCESSO vs. o mercado (não o contrário):
+   mais_barato | alinhado | mais_caro | indeterminado
+   desvio_percentual_aprox = ((unitário_processo − típico_mercado) / típico_mercado) × 100
 5) Observações e limitações
 6) Síntese das fontes usadas
 
 JSON final com: resumo_item, faixa_unitario, comparativo, desvio_percentual_aprox, observacoes, fontes[], achados[{site, tipo, preco_unitario, produto, url, referencia_data, nota}]
+
+> **Normalização no servidor:** após a resposta da IA, o backend recalcula
+> `comparativo` e `desvio_percentual_aprox` a partir do unitário do processo e da
+> faixa/achados (típico preferencial). Evita inversão de sinal/rótulo pelo modelo.
+> Limiar de alinhamento: |desvio| < 15% (mesmo critério da mediana local).
 ```
 
 4. Persistir cada execução vinculada ao registro:

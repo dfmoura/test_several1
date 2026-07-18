@@ -3,11 +3,15 @@
 Monta prompt pré-definido com Descrição / NCM / QTD / Unitário / Total est.
 e consome ``IAClient.chat`` (rotação de tokens do Setup). Persistência isolada
 em ``proposta_analise_preco`` — não altera tabelas oficiais PNCP.
+
+O comparativo processo×mercado é normalizado no servidor a partir da faixa
+(e, se necessário, dos achados), para evitar inversão de sinal/rótulo pela IA.
 """
 
 from __future__ import annotations
 
 import json
+import math
 import re
 from datetime import datetime, timezone
 from typing import Any
@@ -27,7 +31,10 @@ from app.propostas_abertas import (
 
 router = APIRouter(prefix="/api/propostas-abertas", tags=["analise-preco-ia"])
 
-PROMPT_VERSAO = "v2"
+PROMPT_VERSAO = "v3"
+
+# Mesmo limiar da referência local (mediana do catálogo): |desvio| < 15% ⇒ alinhado.
+_COMPARATIVO_LIMIAR_PCT = 15.0
 
 _PROMPT_TEMPLATE = """Você é um assistente especializado em pesquisa de preços de mercado para apoio à fiscalização de compras públicas no Brasil.
 
@@ -75,7 +82,14 @@ Responda em português do Brasil, nesta ordem:
    Derive a faixa a partir dos achados; não use valores incompatíveis com eles sem justificar.
 
 4) Comparativo com o valor unitário do processo
-   Classifique como: mais barato | alinhado | mais caro | indeterminado.
+   O sujeito da classificação é SEMPRE o valor unitário estimado do PROCESSO
+   em relação ao preço típico de mercado (não o contrário):
+   - mais_barato: o processo está abaixo do mercado (processo < mercado)
+   - alinhado: desvio absoluto até cerca de 15%
+   - mais_caro: o processo está acima do mercado (processo > mercado)
+   - indeterminado: sem base suficiente para comparar
+   desvio_percentual_aprox = ((unitário_processo − típico_mercado) / típico_mercado) × 100
+   Ex.: processo 12,80 e mercado típico 16,00 → desvio ≈ -20 e comparativo mais_barato.
    Explique em 1–3 frases o desvio aproximado percentual, quando calculável.
 
 5) Observações e limitações
@@ -224,11 +238,99 @@ def extrair_json_resposta(texto: str | None) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
-def analise_para_out(row: PropostaAnalisePreco) -> dict[str, Any]:
+def _num_preco(val: Any) -> float | None:
+    if val is None or isinstance(val, bool):
+        return None
+    try:
+        n = float(val)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(n) or n <= 0:
+        return None
+    return n
+
+
+def referencia_preco_mercado(estruturado: dict[str, Any]) -> float | None:
+    """Preço de mercado de referência: típico da faixa, senão média min/máx, senão mediana dos achados."""
+    faixa = estruturado.get("faixa_unitario")
+    if isinstance(faixa, dict):
+        tipico = _num_preco(faixa.get("tipico"))
+        if tipico is not None:
+            return tipico
+        minimo = _num_preco(faixa.get("minimo"))
+        maximo = _num_preco(faixa.get("maximo"))
+        if minimo is not None and maximo is not None:
+            return (minimo + maximo) / 2.0
+        if minimo is not None:
+            return minimo
+        if maximo is not None:
+            return maximo
+
+    achados = estruturado.get("achados")
+    if not isinstance(achados, list):
+        return None
+    precos = [
+        p
+        for a in achados
+        if isinstance(a, dict)
+        for p in (_num_preco(a.get("preco_unitario")),)
+        if p is not None
+    ]
+    if not precos:
+        return None
+    precos.sort()
+    mid = len(precos) // 2
+    if len(precos) % 2:
+        return precos[mid]
+    return (precos[mid - 1] + precos[mid]) / 2.0
+
+
+def normalizar_comparativo_mercado(
+    estruturado: dict[str, Any] | None,
+    valor_unitario_processo: float | None,
+) -> dict[str, Any] | None:
+    """Recalcula comparativo e desvio: processo versus mercado.
+
+    Convenção alinhada à UI:
+    - mais_barato → unitário do processo abaixo do mercado
+    - mais_caro → unitário do processo acima do mercado
+    - desvio_percentual_aprox = ((processo − mercado) / mercado) × 100
+    """
+    if not isinstance(estruturado, dict):
+        return estruturado
+
+    out = dict(estruturado)
+    processo = _num_preco(valor_unitario_processo)
+    mercado = referencia_preco_mercado(out)
+    if processo is None or mercado is None:
+        return out
+
+    pct = ((processo - mercado) / mercado) * 100.0
+    pct_r = round(pct, 1)
+    if pct_r >= _COMPARATIVO_LIMIAR_PCT:
+        comparativo = "mais_caro"
+    elif pct_r <= -_COMPARATIVO_LIMIAR_PCT:
+        comparativo = "mais_barato"
+    else:
+        comparativo = "alinhado"
+    out["comparativo"] = comparativo
+    out["desvio_percentual_aprox"] = pct_r
+    return out
+
+
+def analise_para_out(
+    row: PropostaAnalisePreco,
+    *,
+    valor_unitario_processo: float | None = None,
+) -> dict[str, Any]:
     estruturado = None
     if row.resposta_json:
         try:
-            estruturado = json.loads(row.resposta_json)
+            parsed = json.loads(row.resposta_json)
+            if isinstance(parsed, dict):
+                estruturado = normalizar_comparativo_mercado(parsed, valor_unitario_processo)
+            else:
+                estruturado = None
         except (TypeError, ValueError, json.JSONDecodeError):
             estruturado = None
     return {
@@ -303,6 +405,9 @@ def executar_busca_mercado(
         row.modelo = resultado.modelo
         estruturado = extrair_json_resposta(resultado.texto)
         if estruturado is not None:
+            estruturado = normalizar_comparativo_mercado(
+                estruturado, campos.get("valor_unitario_num")
+            )
             row.resposta_json = json.dumps(estruturado, ensure_ascii=False)
     else:
         row.status = "erro"
@@ -338,7 +443,11 @@ def api_listar_mercado_ia(
     item, contratacao = _carregar_item(db, item_id)
     campos = campos_item_para_prompt(item)
     prompt = montar_prompt(campos)
-    historico = [analise_para_out(r) for r in listar_analises(db, item_id)]
+    unitario = campos.get("valor_unitario_num")
+    historico = [
+        analise_para_out(r, valor_unitario_processo=unitario)
+        for r in listar_analises(db, item_id)
+    ]
     return {
         "item_id": item.id,
         "campos": campos,
@@ -370,7 +479,9 @@ def api_buscar_mercado_ia(
     Sempre persiste o registro (ok ou erro). Falha de token não altera o item PNCP.
     """
     row = executar_busca_mercado(db, item_id, usuario=usuario)
-    return analise_para_out(row)
+    item, _ = _carregar_item(db, item_id)
+    unitario = campos_item_para_prompt(item).get("valor_unitario_num")
+    return analise_para_out(row, valor_unitario_processo=unitario)
 
 
 @router.get("/itens/{item_id}/mercado-ia/{analise_id}")
@@ -388,4 +499,6 @@ def api_obter_mercado_ia(
     )
     if not row:
         raise HTTPException(404, "Análise não encontrada")
-    return analise_para_out(row)
+    item, _ = _carregar_item(db, item_id)
+    unitario = campos_item_para_prompt(item).get("valor_unitario_num")
+    return analise_para_out(row, valor_unitario_processo=unitario)
