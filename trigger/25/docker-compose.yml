@@ -1,0 +1,134 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: whatsapp-agent-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://agent:agent@postgres:5432/whatsapp_agent
+      DATABASE_URL_SYNC: postgresql://agent:agent@postgres:5432/whatsapp_agent
+      REDIS_URL: redis://redis:6379/0
+      EVOLUTION_URL: http://evolution:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./prompts_override:/app/prompts_override:ro
+    networks:
+      - agent-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: whatsapp-agent-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agent
+      POSTGRES_DB: whatsapp_agent
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sh:/docker-entrypoint-initdb.d/01-init-databases.sh:ro
+    networks:
+      - agent-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent -d whatsapp_agent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: whatsapp-agent-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - agent-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: whatsapp-agent-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - agent-net
+
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: whatsapp-agent-evolution
+    restart: unless-stopped
+    ports:
+      - "8085:8080"
+    environment:
+      SERVER_URL: http://localhost:8085
+      AUTHENTICATION_API_KEY: ${EVOLUTION_KEY:-your-evolution-api-key}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://agent:agent@postgres:5432/evolution
+      DATABASE_CONNECTION_CLIENT_NAME: evolution
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/1
+      CACHE_REDIS_PREFIX_KEY: evolution
+      LOG_LEVEL: ERROR,WARN,DEBUG,INFO
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_URL: http://app:8000/webhook/evolution
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
+      WEBHOOK_EVENTS_MESSAGES_UPSERT: "true"
+      CONFIG_SESSION_PHONE_CLIENT: Chrome
+      CONFIG_SESSION_PHONE_NAME: Chrome
+      CONFIG_SESSION_PHONE_VERSION: 2.3000.1025190524
+      QRCODE_LIMIT: "30"
+      QRCODE_COLOR: "#198754"
+    volumes:
+      - evolution_data:/evolution/instances
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - agent-net
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+  evolution_data:
+
+networks:
+  agent-net:
+    driver: bridge

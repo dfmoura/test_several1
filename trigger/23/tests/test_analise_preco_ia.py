@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime, timedelta
 from unittest.mock import patch
@@ -149,6 +150,44 @@ def test_get_mercado_ia_campos_e_prompt(client):
     assert "8.500,00" in body["campos"]["total_estimado"]
     assert "Cadeira escolar empilhável" in body["prompt_previsto"]
     assert body["historico"] == []
+
+
+def test_listagem_expoe_resumo_da_ultima_analise_ia(client):
+    descricao = f"Indicador IA {uuid.uuid4().hex[:10]}"
+    item_id = _criar_item_aberto(descricao=descricao)
+    db = SessionLocal()
+    try:
+        db.add_all(
+            [
+                PropostaAnalisePreco(
+                    item_id=item_id,
+                    prompt_enviado="teste anterior",
+                    status="erro",
+                    erro="falha anterior",
+                ),
+                PropostaAnalisePreco(
+                    item_id=item_id,
+                    prompt_enviado="teste atual",
+                    status="ok",
+                    resposta_json=json.dumps(
+                        {
+                            "comparativo": "mais_barato",
+                            "desvio_percentual_aprox": -0.15,
+                        }
+                    ),
+                ),
+            ]
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    r = client.get("/api/propostas-abertas/itens", params={"texto": descricao})
+    assert r.status_code == 200
+    item = next(row for row in r.json()["items"] if row["item_id"] == item_id)
+    assert item["analise_ia"]["status"] == "ok"
+    assert item["analise_ia"]["comparativo"] == "mais_barato"
+    assert item["analise_ia"]["desvio_percentual_aprox"] == -0.15
 
 
 def test_post_mercado_ia_persiste_sucesso(client):

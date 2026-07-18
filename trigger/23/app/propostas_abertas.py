@@ -9,7 +9,7 @@ from statistics import median
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.compras.normalizers import parse_decimal
@@ -17,6 +17,7 @@ from app.database import (
     CompraContratacao,
     CompraContratacaoItem,
     ComprasPrecoPraticado,
+    PropostaAnalisePreco,
     get_db,
 )
 from app.filtros_periodo import (
@@ -169,6 +170,43 @@ def _desvio_vs_mediana(
         "sinal": sinal,
         "percentual_fmt": f"{pct:+.1f}%",
     }
+
+
+def _ultimas_analises_ia(
+    db: Session, item_ids: list[int]
+) -> dict[int, dict[str, Any]]:
+    """Resumo da análise mais recente de cada item, carregado em uma única consulta."""
+    if not item_ids:
+        return {}
+
+    ultimos_ids = (
+        select(func.max(PropostaAnalisePreco.id))
+        .where(PropostaAnalisePreco.item_id.in_(item_ids))
+        .group_by(PropostaAnalisePreco.item_id)
+    )
+    rows = db.scalars(
+        select(PropostaAnalisePreco).where(PropostaAnalisePreco.id.in_(ultimos_ids))
+    ).all()
+
+    out: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        estruturado: dict[str, Any] = {}
+        if row.resposta_json:
+            try:
+                parsed = json.loads(row.resposta_json)
+                if isinstance(parsed, dict):
+                    estruturado = parsed
+            except (TypeError, ValueError, json.JSONDecodeError):
+                pass
+        out[row.item_id] = {
+            "status": row.status,
+            "comparativo": estruturado.get("comparativo"),
+            "desvio_percentual_aprox": estruturado.get("desvio_percentual_aprox"),
+            "criado_em": (
+                row.criado_em.isoformat(timespec="seconds") if row.criado_em else None
+            ),
+        }
+    return out
 
 
 def _norm_codigos(valor: str | list[str] | None) -> list[str]:
@@ -650,6 +688,9 @@ def listar_itens_propostas_abertas(
     )
     total = len(linhas)
     page = linhas[offset : offset + limit]
+    analises_ia = _ultimas_analises_ia(db, [int(row["item_id"]) for row in page])
+    for row in page:
+        row["analise_ia"] = analises_ia.get(int(row["item_id"]))
     return {
         "items": page,
         "total": total,

@@ -72,6 +72,49 @@ function pillDesvio(desvio) {
   return `<span class="${cls}" title="Em relação à mediana local do catálogo">${esc(desvio.percentual_fmt)}</span>`;
 }
 
+function pillAnaliseIa(analise) {
+  if (!analise || analise.status === "pendente") {
+    return '<span class="prop-ia-table-pill prop-ia-table-pendente" title="Nenhuma análise concluída para este item">Aguardando IA</span>';
+  }
+  if (analise.status !== "ok") {
+    return '<span class="prop-ia-table-pill prop-ia-table-erro" title="A última análise não foi concluída">Análise indisponível</span>';
+  }
+
+  const comparativo = analise.comparativo || "indeterminado";
+  const desvioNum = Number(analise.desvio_percentual_aprox);
+  const temDesvio = analise.desvio_percentual_aprox != null && Number.isFinite(desvioNum);
+  const desvioAbs = temDesvio
+    ? Math.abs(desvioNum).toLocaleString("pt-BR", { maximumFractionDigits: 2 })
+    : "";
+  const labels = {
+    mais_barato: desvioAbs ? `${desvioAbs}% abaixo` : "Abaixo do mercado",
+    alinhado: desvioAbs ? `Alinhado · ${desvioAbs}%` : "Alinhado ao mercado",
+    mais_caro: desvioAbs ? `${desvioAbs}% acima` : "Acima do mercado",
+    indeterminado: "Análise inconclusiva",
+  };
+  const label = labels[comparativo] || "Análise concluída";
+  const compDetalhe = PROP_COMP_LABEL[comparativo] || "Análise de mercado concluída";
+  const desvioDetalhe = temDesvio
+    ? ` · Desvio aproximado vs. processo: ${desvioNum > 0 ? "+" : ""}${desvioNum.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`
+    : "";
+  const dataDetalhe = analise.criado_em ? ` · ${analise.criado_em}` : "";
+  const title = `${compDetalhe}${desvioDetalhe}${dataDetalhe}`;
+  return `<span class="prop-ia-table-pill prop-ia-table-${esc(comparativo)}" title="${esc(title)}">${esc(label)}</span>`;
+}
+
+function atualizarAnaliseIaTabela(itemId, analise) {
+  const item = propLastItems.find((r) => String(r.item_id) === String(itemId));
+  if (!item || !analise) return;
+  const estruturado = analise.resposta_estruturada || {};
+  item.analise_ia = {
+    status: analise.status,
+    comparativo: estruturado.comparativo || null,
+    desvio_percentual_aprox: estruturado.desvio_percentual_aprox ?? null,
+    criado_em: analise.criado_em || null,
+  };
+  renderPropTabela();
+}
+
 function fmtPrazoRestante(horas) {
   if (horas == null || !Number.isFinite(horas)) return "—";
   if (horas < 1) return `${Math.round(horas * 60)} min`;
@@ -757,18 +800,12 @@ function renderPropTabela() {
       ${tdEllipsis(r.valor_total, { cls: "col-num col-money" })}
       ${tdEllipsis(r.desvio_preco?.percentual_fmt, { cls: "col-num", html: pillDesvio(r.desvio_preco) })}
       ${tdEllipsis(r.unidade_nome)}
-      <td class="col-acao"><button type="button" class="btn ghost btn-prop-abrir-item">Abrir</button></td>
+      ${tdEllipsis("", { cls: "col-analise-ia", html: pillAnaliseIa(r.analise_ia) })}
     </tr>`;
     }).join("");
 
     tb.querySelectorAll("tr[data-item-id]").forEach((tr) => {
-      tr.addEventListener("click", (ev) => {
-        if (ev.target.closest("button")) return;
-        abrirAnalisePropItem(tr.dataset.itemId);
-      });
-      tr.querySelector(".btn-prop-abrir-item")?.addEventListener("click", (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
+      tr.addEventListener("click", () => {
         abrirAnalisePropItem(tr.dataset.itemId);
       });
     });
@@ -1091,6 +1128,7 @@ async function buscarPrecoMercadoIa() {
     });
     renderPropIaResultado(analise);
     if (analise) propIaUltima = analise;
+    atualizarAnaliseIaTabela(propItemAtual, analise);
     await carregarPropMercadoIa(propItemAtual);
     if (meta) {
       meta.textContent = analise.status === "ok"
