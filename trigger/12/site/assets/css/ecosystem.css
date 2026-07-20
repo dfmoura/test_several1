@@ -1,0 +1,462 @@
+/* Home “ecossistema” — só sob body.page-ecosystem.
+   Ritmo próximo a Ollama / Odysseus: ar, clareza, poucos elementos.
+   Não altera landings de produto nem styles.css base. */
+
+body.page-ecosystem {
+  --eco-ink: #0f2347;
+  --eco-navy: #1a3568;
+  --eco-line: rgba(26, 53, 104, 0.1);
+  --eco-soft: #f7f9fc;
+  --eco-muted: #5b6b7c;
+  color: var(--eco-ink);
+  overflow-x: hidden;
+  background: #fff;
+}
+
+body.page-ecosystem .site-header {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom-color: var(--eco-line);
+  backdrop-filter: blur(10px);
+}
+
+body.page-ecosystem .logo-link img {
+  height: 40px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+}
+
+body.page-ecosystem .logo-text {
+  display: none;
+}
+
+body.page-ecosystem .nav a {
+  font-weight: 500;
+}
+
+/* Prévia — discreta */
+.eco-preview-bar {
+  background: var(--eco-ink);
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.eco-preview-bar .container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem 1rem;
+  padding: 0.45rem 0;
+}
+
+.eco-preview-bar a {
+  color: #a3e635;
+  font-weight: 600;
+}
+
+.eco-preview-bar code {
+  color: #a3e635;
+  font-size: 0.7rem;
+}
+
+/* Hero — composição única, centrada, natural */
+.eco-hero {
+  padding: clamp(3.5rem, 8vw, 6.5rem) 0 clamp(3rem, 6vw, 5rem);
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(124, 181, 24, 0.09), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 20%, rgba(26, 53, 104, 0.05), transparent 50%),
+    #fff;
+  border-bottom: 1px solid var(--eco-line);
+}
+
+.eco-hero-shell {
+  width: min(100% - 2rem, 40rem);
+  margin-inline: auto;
+  text-align: center;
+  min-width: 0;
+}
+
+.eco-hero-mark {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  margin: 0 auto 1.5rem;
+  display: block;
+  animation: eco-mark-in 0.7s ease both;
+}
+
+.eco-hero h1 {
+  margin: 0 0 1.1rem;
+  font-size: clamp(1.85rem, 4.2vw, 2.75rem);
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: var(--eco-ink);
+  animation: eco-fade-up 0.65s ease 0.08s both;
+}
+
+.eco-hero-lead {
+  margin: 0 auto 1.75rem;
+  font-size: clamp(1.02rem, 1.6vw, 1.15rem);
+  line-height: 1.65;
+  color: var(--eco-muted);
+  max-width: 32em;
+  animation: eco-fade-up 0.65s ease 0.14s both;
+}
+
+.eco-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  animation: eco-fade-up 0.65s ease 0.2s both;
+}
+
+.eco-hero-trail {
+  margin: 2rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: rgba(26, 53, 104, 0.45);
+  animation: eco-fade-up 0.65s ease 0.28s both;
+}
+
+@keyframes eco-mark-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes eco-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Seções */
+.eco-section {
+  padding: clamp(3.25rem, 6vw, 5rem) 0;
+}
+
+.eco-section--alt {
+  background: var(--eco-soft);
+  border-block: 1px solid var(--eco-line);
+}
+
+.eco-section--paths {
+  padding-top: 0.5rem;
+}
+
+.eco-section-head {
+  max-width: 34rem;
+  margin: 0 0 2rem;
+}
+
+.eco-section-head--center {
+  margin-inline: auto;
+  text-align: center;
+}
+
+.eco-section-head h2 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--eco-ink);
+}
+
+.eco-section-head p {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: var(--eco-muted);
+}
+
+/* Fluxos — leve, sem caixa pesada */
+.eco-flows {
+  display: grid;
+  gap: 1.5rem 2rem;
+}
+
+@media (min-width: 800px) {
+  .eco-flows {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.eco-flow {
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.eco-flow-step {
+  display: block;
+  margin-bottom: 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--green);
+}
+
+.eco-flow h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: var(--eco-ink);
+  line-height: 1.25;
+}
+
+.eco-flow p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--eco-muted);
+}
+
+/* Rotas — estilo “quick verdict” Odysseus */
+.eco-paths {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 800px) {
+  .eco-paths {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.eco-path {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 1.25rem 1.2rem;
+  background: #fff;
+  border: 1px solid var(--eco-line);
+  border-radius: 14px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.eco-path:hover {
+  border-color: rgba(26, 53, 104, 0.28);
+  color: inherit;
+  transform: translateY(-1px);
+}
+
+.eco-path strong {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--eco-ink);
+  line-height: 1.3;
+}
+
+.eco-path span {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--eco-muted);
+}
+
+/* Nós */
+.eco-nodes {
+  display: grid;
+  gap: 0.65rem;
+}
+
+@media (min-width: 720px) {
+  .eco-nodes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.eco-node {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  min-width: 0;
+  padding: 1rem 1.1rem;
+  background: #fff;
+  border: 1px solid var(--eco-line);
+  border-radius: 14px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+a.eco-node:hover {
+  border-color: rgba(26, 53, 104, 0.28);
+  color: inherit;
+}
+
+.eco-node--static {
+  cursor: default;
+}
+
+.eco-node-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #fff;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.eco-node-mark--zap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--eco-navy);
+  background: rgba(124, 181, 24, 0.12);
+  padding: 0;
+}
+
+.eco-node-body {
+  min-width: 0;
+}
+
+.eco-node-body h3 {
+  margin: 0 0 0.2rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--eco-ink);
+}
+
+.eco-node-body p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--eco-muted);
+}
+
+.eco-node-meta {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--eco-navy);
+  white-space: nowrap;
+}
+
+.eco-node-meta--soon {
+  color: var(--eco-muted);
+}
+
+/* Contato */
+.eco-contact {
+  display: grid;
+  gap: 1.5rem;
+  min-width: 0;
+  max-width: 52rem;
+  margin-inline: auto;
+}
+
+@media (min-width: 800px) {
+  .eco-contact {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: 2rem;
+    align-items: start;
+  }
+}
+
+.eco-contact h2 {
+  margin: 0 0 0.55rem;
+  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+  font-weight: 750;
+  color: var(--eco-ink);
+  letter-spacing: -0.02em;
+}
+
+.eco-contact > div > p {
+  margin: 0 0 1.25rem;
+  color: var(--eco-muted);
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+.eco-contact-details {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  color: var(--eco-muted);
+}
+
+.eco-contact-details strong {
+  display: inline-block;
+  min-width: 5rem;
+  color: var(--eco-ink);
+}
+
+.eco-contact-cta {
+  min-width: 0;
+  background: var(--eco-ink);
+  color: #e2e8f0;
+  border-radius: 16px;
+  padding: 1.5rem 1.35rem;
+}
+
+.eco-contact-cta h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  color: #fff;
+}
+
+.eco-contact-cta p {
+  margin: 0 0 1.15rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #94a3b8;
+}
+
+.eco-contact-cta .btn-primary {
+  width: 100%;
+}
+
+body.page-ecosystem .footer-brand p {
+  max-width: 26em;
+}
+
+@media (max-width: 640px) {
+  .eco-preview-bar .container > span:last-child code {
+    display: none;
+  }
+
+  .eco-hero-mark {
+    width: 72px;
+    height: 72px;
+  }
+
+  .eco-node {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .eco-node-meta {
+    grid-column: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eco-hero-mark,
+  .eco-hero h1,
+  .eco-hero-lead,
+  .eco-hero-actions,
+  .eco-hero-trail {
+    animation: none !important;
+  }
+
+  .eco-path:hover {
+    transform: none;
+  }
+}

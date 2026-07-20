@@ -15,6 +15,12 @@ class UserRepository(BaseRepository[User]):
         result = await self.session.execute(select(User).where(User.phone == phone))
         return result.scalar_one_or_none()
 
+    async def list_ordered(self, *, limit: int = 100) -> list[User]:
+        result = await self.session.execute(
+            select(User).order_by(User.phone).limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def get_or_create(self, phone: str, name: str | None = None) -> User:
         user = await self.get_by_phone(phone)
         if user:

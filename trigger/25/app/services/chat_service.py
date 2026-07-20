@@ -12,6 +12,7 @@ from app.schemas.message import ChatMessage
 from app.schemas.webhook import IncomingMessage
 from app.services.conversation_service import ConversationService
 from app.services.user_service import UserService
+from app.utils.contact_profile import format_contact_profile
 
 logger = get_logger(__name__)
 
@@ -68,10 +69,26 @@ class ChatService:
         )
         context = await self._memory.append_message(incoming.phone, "user", text)
 
+        contact_profile = ""
+        if self._settings.contact_kb_enabled:
+            try:
+                contact_profile = format_contact_profile(
+                    relation=user.relation,
+                    notes=user.notes,
+                )
+            except Exception:
+                # Fail-open: never block a reply because of profile formatting.
+                logger.exception(
+                    "contact_profile_skipped",
+                    phone=incoming.phone,
+                )
+                contact_profile = ""
+
         system_prompt = self._prompts.build_system_prompt(
             owner_name=self._settings.owner_name,
             user_name=user.name or incoming.name,
             summary=context.summary,
+            contact_profile=contact_profile,
         )
 
         history: list[ChatMessage] = list(context.messages)

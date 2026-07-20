@@ -1,9 +1,12 @@
+from app.schemas.contact import ContactProfileOut, ContactProfileUpdate
 from app.schemas.health import HealthResponse
 from app.schemas.message import ChatMessage, ConversationContext, MessageCreate, MessageOut
 from app.schemas.metrics import MetricsResponse
 from app.schemas.webhook import IncomingMessage, WebhookAck
 
 __all__ = [
+    "ContactProfileOut",
+    "ContactProfileUpdate",
     "HealthResponse",
     "ChatMessage",
     "ConversationContext",

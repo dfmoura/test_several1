@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contatos — WhatsApp Agent</title>
+  <style>
+    :root {
+      --bg: #f3f1ec;
+      --surface: #fffdf8;
+      --ink: #1c1b19;
+      --muted: #5c574f;
+      --line: #d9d3c7;
+      --accent: #0f5c4c;
+      --accent-ink: #f4fffb;
+      --warn-bg: #fff4e5;
+      --warn-ink: #7a4b00;
+      --ok-bg: #e7f6ef;
+      --ok-ink: #0f5c4c;
+      --err-bg: #fdeceb;
+      --err-ink: #8a1f1b;
+      --focus: #1a7a66;
+      --radius: 10px;
+      --font: "IBM Plex Sans", "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 80% 50% at 0% 0%, #e4efe9 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 0%, #efe8d8 0%, transparent 50%),
+        var(--bg);
+    }
+    main {
+      width: min(920px, calc(100% - 2rem));
+      margin: 2rem auto 3rem;
+      display: grid;
+      gap: 1.25rem;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.55rem;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+      max-width: 42rem;
+      line-height: 1.45;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.2rem;
+    }
+    .banner {
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      font-size: 0.95rem;
+    }
+    .banner.warn { background: var(--warn-bg); color: var(--warn-ink); border-color: #efd2a0; }
+    .banner.ok { background: var(--ok-bg); color: var(--ok-ink); border-color: #b7dfd0; }
+    .banner.err { background: var(--err-bg); color: var(--err-ink); border-color: #f0b8b5; }
+    .banner[hidden] { display: none; }
+    label {
+      display: grid;
+      gap: 0.35rem;
+      font-size: 0.86rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.65rem 0.75rem;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+    input:focus, textarea:focus {
+      outline: 2px solid color-mix(in srgb, var(--focus) 35%, white);
+      border-color: var(--focus);
+    }
+    textarea { min-height: 5.5rem; resize: vertical; }
+    .grid {
+      display: grid;
+      gap: 0.9rem;
+      grid-template-columns: 1fr 1fr;
+    }
+    .grid .full { grid-column: 1 / -1; }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 0.3rem;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+    button.secondary {
+      background: #ece7dc;
+      color: var(--ink);
+    }
+    button:disabled { opacity: 0.55; cursor: wait; }
+    .hint {
+      margin: 0.55rem 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.65rem 0.4rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    td.phone { font-family: var(--mono); font-size: 0.86rem; }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover { background: #f7f3ea; }
+    .empty { color: var(--muted); padding: 0.5rem 0; }
+    .status { min-height: 1.25rem; font-size: 0.9rem; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Perfis por contato</h1>
+      <p>
+        Cadastre fatos estáveis (ex.: relação = esposa). O agente só usa isso se
+        <code>CONTACT_KB_ENABLED=true</code>.
+      </p>
+    </header>
+
+    <div id="kbBanner" class="banner warn" hidden></div>
+    <div id="flash" class="banner" hidden></div>
+
+    <section class="panel">
+      <div class="grid">
+        <label class="full">
+          Segredo (WEBHOOK_SECRET)
+          <input id="secret" type="password" autocomplete="off" placeholder="mesmo valor do .env" />
+        </label>
+      </div>
+      <p class="hint">Fica só neste navegador (sessionStorage). Não é enviado ao carregar a página.</p>
+    </section>
+
+    <section class="panel">
+      <form id="form" class="grid">
+        <label>
+          Telefone (com DDI)
+          <input id="phone" name="phone" required placeholder="5534999909660" inputmode="numeric" />
+        </label>
+        <label>
+          Nome
+          <input id="name" name="name" placeholder="Ana" maxlength="255" />
+        </label>
+        <label>
+          Relação
+          <input id="relation" name="relation" placeholder="esposa" maxlength="64" />
+        </label>
+        <label class="full">
+          Notas
+          <textarea id="notes" name="notes" placeholder="Prefere respostas curtas" maxlength="500"></textarea>
+        </label>
+        <div class="full actions">
+          <button type="submit" class="primary" id="saveBtn">Salvar</button>
+          <button type="button" class="secondary" id="loadBtn">Carregar</button>
+          <button type="button" class="secondary" id="refreshBtn">Atualizar lista</button>
+        </div>
+      </form>
+      <p id="formStatus" class="status hint"></p>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 0.75rem; font-size:1.05rem;">Contatos salvos</h2>
+      <div id="list"></div>
+    </section>
+  </main>
+
+  <script>
+    const SECRET_KEY = "wa_agent_admin_secret";
+
+    const els = {
+      secret: document.getElementById("secret"),
+      phone: document.getElementById("phone"),
+      name: document.getElementById("name"),
+      relation: document.getElementById("relation"),
+      notes: document.getElementById("notes"),
+      form: document.getElementById("form"),
+      loadBtn: document.getElementById("loadBtn"),
+      refreshBtn: document.getElementById("refreshBtn"),
+      saveBtn: document.getElementById("saveBtn"),
+      list: document.getElementById("list"),
+      flash: document.getElementById("flash"),
+      kbBanner: document.getElementById("kbBanner"),
+      formStatus: document.getElementById("formStatus"),
+    };
+
+    function secret() {
+      return (els.secret.value || "").trim();
+    }
+
+    function showFlash(type, message) {
+      els.flash.hidden = !message;
+      els.flash.className = "banner " + (type || "");
+      els.flash.textContent = message || "";
+    }
+
+    function setBusy(busy) {
+      els.saveBtn.disabled = busy;
+      els.loadBtn.disabled = busy;
+      els.refreshBtn.disabled = busy;
+    }
+
+    async function api(path, options = {}) {
+      const headers = Object.assign({}, options.headers || {});
+      const s = secret();
+      if (!s) throw new Error("Informe o WEBHOOK_SECRET");
+      headers["x-webhook-secret"] = s;
+      if (options.body) headers["Content-Type"] = "application/json";
+      const res = await fetch(path, { ...options, headers });
+      let data = null;
+      const text = await res.text();
+      if (text) {
+        try { data = JSON.parse(text); } catch { data = { message: text }; }
+      }
+      if (!res.ok) {
+        const msg = (data && (data.message || data.error)) || ("HTTP " + res.status);
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    function fillForm(contact) {
+      els.phone.value = contact.phone || "";
+      els.name.value = contact.name || "";
+      els.relation.value = contact.relation || "";
+      els.notes.value = contact.notes || "";
+    }
+
+    function renderList(contacts) {
+      if (!contacts.length) {
+        els.list.innerHTML = '<p class="empty">Nenhum contato cadastrado ainda.</p>';
+        return;
+      }
+      const rows = contacts.map((c) => {
+        const name = c.name || "—";
+        const relation = c.relation || "—";
+        const notes = (c.notes || "—").replace(/</g, "&lt;");
+        return `<tr class="clickable" data-phone="${c.phone}">
+          <td class="phone">${c.phone}</td>
+          <td>${name.replace(/</g, "&lt;")}</td>
+          <td>${relation.replace(/</g, "&lt;")}</td>
+          <td>${notes}</td>
+        </tr>`;
+      }).join("");
+      els.list.innerHTML = `<table>
+        <thead><tr><th>Telefone</th><th>Nome</th><th>Relação</th><th>Notas</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+      els.list.querySelectorAll("tr.clickable").forEach((row) => {
+        row.addEventListener("click", () => {
+          const found = contacts.find((c) => c.phone === row.dataset.phone);
+          if (found) {
+            fillForm(found);
+            showFlash("ok", "Contato carregado no formulário.");
+          }
+        });
+      });
+    }
+
+    async function refreshList() {
+      const contacts = await api("/contacts");
+      renderList(contacts);
+    }
+
+    async function loadMeta() {
+      const meta = await fetch("/admin/meta").then((r) => {
+        if (!r.ok) throw new Error("Admin indisponível");
+        return r.json();
+      });
+      if (!meta.contact_kb_enabled) {
+        els.kbBanner.hidden = false;
+        els.kbBanner.textContent =
+          "CONTACT_KB_ENABLED está false: você pode salvar perfis, mas o agente ainda não os injeta nas respostas.";
+      } else {
+        els.kbBanner.hidden = false;
+        els.kbBanner.className = "banner ok";
+        els.kbBanner.textContent =
+          "Base por contato ativa. Perfis com relação/notas entram no contexto das respostas de " +
+          (meta.owner_name || "você") + ".";
+      }
+    }
+
+    els.secret.value = sessionStorage.getItem(SECRET_KEY) || "";
+    els.secret.addEventListener("change", () => {
+      sessionStorage.setItem(SECRET_KEY, els.secret.value.trim());
+    });
+    els.secret.addEventListener("blur", () => {
+      sessionStorage.setItem(SECRET_KEY, els.secret.value.trim());
+    });
+
+    els.form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      showFlash("", "");
+      const phone = els.phone.value.trim();
+      if (!phone) return;
+      setBusy(true);
+      els.formStatus.textContent = "Salvando…";
+      try {
+        sessionStorage.setItem(SECRET_KEY, secret());
+        const saved = await api("/contacts/" + encodeURIComponent(phone), {
+          method: "PUT",
+          body: JSON.stringify({
+            name: els.name.value,
+            relation: els.relation.value,
+            notes: els.notes.value,
+          }),
+        });
+        fillForm(saved);
+        await refreshList();
+        showFlash("ok", "Perfil salvo.");
+        els.formStatus.textContent = "";
+      } catch (err) {
+        showFlash("err", err.message || String(err));
+        els.formStatus.textContent = "";
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    els.loadBtn.addEventListener("click", async () => {
+      showFlash("", "");
+      const phone = els.phone.value.trim();
+      if (!phone) {
+        showFlash("err", "Informe o telefone para carregar.");
+        return;
+      }
+      setBusy(true);
+      try {
+        sessionStorage.setItem(SECRET_KEY, secret());
+        const contact = await api("/contacts/" + encodeURIComponent(phone));
+        fillForm(contact);
+        showFlash("ok", "Contato carregado.");
+      } catch (err) {
+        showFlash("err", err.message || String(err));
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    els.refreshBtn.addEventListener("click", async () => {
+      showFlash("", "");
+      setBusy(true);
+      try {
+        sessionStorage.setItem(SECRET_KEY, secret());
+        await refreshList();
+        showFlash("ok", "Lista atualizada.");
+      } catch (err) {
+        showFlash("err", err.message || String(err));
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    loadMeta().catch(() => {
+      els.kbBanner.hidden = false;
+      els.kbBanner.className = "banner err";
+      els.kbBanner.textContent = "Não foi possível ler o status do admin.";
+    });
+  </script>
+</body>
+</html>

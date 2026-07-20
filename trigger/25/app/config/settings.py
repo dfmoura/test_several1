@@ -51,6 +51,12 @@ class Settings(BaseSettings):
 
     memory_max_messages: int = 20
 
+    # Manual per-contact knowledge (relation/notes). Off = identical to previous behavior.
+    contact_kb_enabled: bool = False
+
+    # Simple local UI to manage contact profiles. Disable if the app is publicly exposed.
+    admin_ui_enabled: bool = True
+
     @field_validator("ai_provider", mode="before")
     @classmethod
     def normalize_provider(cls, value: str) -> str:

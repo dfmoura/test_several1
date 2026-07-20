@@ -56,9 +56,12 @@ fi
 
 cd "$ROOT"
 echo "Site Trigger: http://localhost:${PORT}"
-echo "  Empresa:     http://localhost:${PORT}/"
-echo "  Consultoria: http://localhost:${PORT}/consultoria/"
-echo "  Estoque:     http://localhost:${PORT}/estoque-sankhya/"
-echo "  Produto:     http://localhost:${PORT}/gestao-condominial/"
+echo "  Home (ativa):     http://localhost:${PORT}/"
+echo "  Home ecossistema: http://localhost:${PORT}/index.ecosystem.html"
+echo "  Home anterior:    http://localhost:${PORT}/index.portfolio.html"
+echo "  Consultoria:      http://localhost:${PORT}/consultoria/"
+echo "  Estoque:          http://localhost:${PORT}/estoque-sankhya/"
+echo "  Produto:          http://localhost:${PORT}/gestao-condominial/"
+echo "  Alternar home:    ../scripts/switch-home.sh ecosystem|portfolio"
 echo "Ctrl+C para encerrar."
 exec python3 -m http.server "$PORT" --bind 127.0.0.1

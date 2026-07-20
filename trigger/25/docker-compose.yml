@@ -14,6 +14,9 @@ services:
       DATABASE_URL_SYNC: postgresql://agent:agent@postgres:5432/whatsapp_agent
       REDIS_URL: redis://redis:6379/0
       EVOLUTION_URL: http://evolution:8080
+    extra_hosts:
+      # Linux: resolve host.docker.internal → host gateway (Ollama on the machine)
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -69,6 +72,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # Linux: proxy host Ollama (127.0.0.1:11434) into the Docker bridge for the app.
+  ollama-proxy:
+    image: alpine/socat
+    container_name: whatsapp-agent-ollama-proxy
+    restart: unless-stopped
+    network_mode: host
+    command: TCP-LISTEN:11435,fork,reuseaddr,bind=172.17.0.1 TCP:127.0.0.1:11434
+    profiles:
+      - ollama
 
   pgadmin:
     image: dpage/pgadmin4:8

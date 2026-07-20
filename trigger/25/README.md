@@ -90,6 +90,7 @@ Ele **só responde** quando recebe mensagem. Não envia spam.
 | Health    | http://localhost:8000/health |
 | Metrics   | http://localhost:8000/metrics|
 | Docs      | http://localhost:8000/docs   |
+| Admin     | http://localhost:8000/admin  |
 | Evolution | http://localhost:8085        |
 | pgAdmin   | http://localhost:5050        |
 
@@ -115,18 +116,75 @@ Ele **só responde** quando recebe mensagem. Não envia spam.
 
 ---
 
-## Trocar para Ollama (opcional)
+## Trocar para Ollama
+
+1. Instale o Ollama no PC e puxe um modelo:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.2
+```
+
+2. No `.env`:
 
 ```env
 AI_PROVIDER=ollama
 MODEL_NAME=llama3.2
-OLLAMA_BASE_URL=http://host.docker.internal:11434
+# No Docker (Linux), use o proxy abaixo. Fora do Docker: http://127.0.0.1:11434
+OLLAMA_BASE_URL=http://172.17.0.1:11435
 ```
 
-Reinicie: `docker compose up -d --build app`
+3. Suba o proxy (só no Linux, para o container alcançar o Ollama do host) e reinicie o app:
+
+```bash
+docker compose --profile ollama up -d ollama-proxy
+docker compose up -d --force-recreate app
+```
+
+Voltar para OpenAI: `AI_PROVIDER=openai`, `MODEL_NAME=gpt-4o-mini`, reinicie o `app`.
 
 ---
 
 ## Personalidade
 
 Edite os textos em `app/prompts/` e reinicie o container `app`.
+
+---
+
+## Perfil por contato (opcional)
+
+Memória durável e **manual** por número (ex.: “é minha esposa”).  
+Desligada por padrão — com `CONTACT_KB_ENABLED=false` o agente se comporta como antes.
+
+### Pelo painel (recomendado)
+
+1. No `.env`:
+
+```env
+CONTACT_KB_ENABLED=true
+ADMIN_UI_ENABLED=true
+```
+
+2. Abra: http://localhost:8000/admin  
+3. Cole o `WEBHOOK_SECRET` do `.env` e salve o contato (telefone, relação, notas).
+
+Reinicie o app se mudou o `.env`: `docker compose up -d --build app`
+
+### Pela API
+
+```bash
+curl -X PUT http://localhost:8000/contacts/5534999909660 \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-secret: change-me-webhook-secret" \
+  -d '{"name":"Ana","relation":"esposa","notes":"Prefere respostas curtas"}'
+```
+
+Consultar:
+
+```bash
+curl http://localhost:8000/contacts/5534999909660 \
+  -H "x-webhook-secret: change-me-webhook-secret"
+```
+
+Só injeta no prompt se houver `relation` ou `notes`. Se falhar, a resposta segue normalmente (fail-open).  
+Se o app ficar exposto na internet, use `ADMIN_UI_ENABLED=false`.

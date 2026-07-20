@@ -28,6 +28,7 @@ class PromptLoader:
         owner_name: str | None = None,
         user_name: str | None = None,
         summary: str = "",
+        contact_profile: str = "",
     ) -> str:
         settings = get_settings()
         name = owner_name or settings.owner_name
@@ -40,6 +41,8 @@ class PromptLoader:
 
         if user_name:
             parts.append(f"Você está conversando com: {user_name}.")
+        if contact_profile:
+            parts.append(contact_profile)
         if summary:
             parts.append(f"Resumo recente da conversa:\n{summary}")
 
