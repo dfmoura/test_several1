@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Alterna a home ativa entre conceito ecossistema e a home portfolio anterior.
+# Alterna a home ativa (produção = ecossistema).
 # Uso:
-#   ./scripts/switch-home.sh ecosystem   # conceito novo
-#   ./scripts/switch-home.sh portfolio   # home profissional anterior
+#   ./scripts/switch-home.sh ecosystem   # produção (padrão)
+#   ./scripts/switch-home.sh portfolio   # rollback da home anterior
+# index.ecosystem.html e index.portfolio.html ficam fora do publish (.assetsignore).
 # Não altera landings de produto, consultoria nem CSS base (styles.css).
 set -euo pipefail
 

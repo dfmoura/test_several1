@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
+# Rascunhos / rollback (não indexar se vazarem no deploy)
+Disallow: /index.portfolio.html
+Disallow: /index.ecosystem.html
+
 Sitemap: https://www.triggerti.com/sitemap.xml

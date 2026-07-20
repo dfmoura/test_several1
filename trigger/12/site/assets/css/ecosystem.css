@@ -19,10 +19,17 @@ body.page-ecosystem .site-header {
   backdrop-filter: blur(10px);
 }
 
+/* Logo header: asset recortado (sem margem branca do PNG 384²).
+   Altura visual maior; padding compensado = mesma altura do header
+   (40 + 2×0.85rem ≈ 48 + 2×0.6rem). */
+body.page-ecosystem .header-inner {
+  padding: 0.6rem 0;
+}
+
 body.page-ecosystem .logo-link img {
-  height: 40px;
+  height: 48px;
   width: auto;
-  max-width: 220px;
+  display: block;
   object-fit: contain;
 }
 
@@ -32,33 +39,6 @@ body.page-ecosystem .logo-text {
 
 body.page-ecosystem .nav a {
   font-weight: 500;
-}
-
-/* Prévia — discreta */
-.eco-preview-bar {
-  background: var(--eco-ink);
-  color: #cbd5e1;
-  font-size: 0.78rem;
-  line-height: 1.4;
-}
-
-.eco-preview-bar .container {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.45rem 1rem;
-  padding: 0.45rem 0;
-}
-
-.eco-preview-bar a {
-  color: #a3e635;
-  font-weight: 600;
-}
-
-.eco-preview-bar code {
-  color: #a3e635;
-  font-size: 0.7rem;
 }
 
 /* Hero — composição única, centrada, natural */
@@ -429,10 +409,6 @@ body.page-ecosystem .footer-brand p {
 }
 
 @media (max-width: 640px) {
-  .eco-preview-bar .container > span:last-child code {
-    display: none;
-  }
-
   .eco-hero-mark {
     width: 72px;
     height: 72px;

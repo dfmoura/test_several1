@@ -7,3 +7,7 @@ bun.lockb
 wrangler.toml
 README.md
 .git/
+
+# Homes alternativas (só locais / rollback via scripts/switch-home.sh)
+index.portfolio.html
+index.ecosystem.html
