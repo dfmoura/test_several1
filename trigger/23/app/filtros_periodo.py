@@ -85,6 +85,23 @@ def data_iso_powerbi(campo: Any) -> Any:
     return _data_texto_iso(campo)
 
 
+def data_filtro_powerbi(
+    dt_abertura: Any,
+    dt_homologacao: Any,
+    *,
+    fallback_homologacao: bool = True,
+) -> Any:
+    """Data canônica dos filtros Power BI.
+
+    Prioriza ``dt_abertura``. Com ``fallback_homologacao=True`` (padrão), quando
+    a abertura estiver ausente ou não normalizável, usa ``dt_homologacao``.
+    """
+    abertura = data_iso_powerbi(dt_abertura)
+    if not fallback_homologacao:
+        return abertura
+    return func.coalesce(abertura, data_iso_powerbi(dt_homologacao))
+
+
 def condicao_periodo(data_iso: Any, periodo: Periodo | None) -> Any | None:
     if periodo is None:
         return None

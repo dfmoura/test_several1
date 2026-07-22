@@ -58,6 +58,7 @@ class TimelinePoint:
     asset_patrimony: Decimal = Decimal("0")
     savings_patrimony: Decimal = Decimal("0")
     selic_patrimony: Decimal = Decimal("0")
+    bitcoin_patrimony: Decimal = Decimal("0")
 
 
 @dataclass
@@ -66,6 +67,7 @@ class PortfolioComparisonPoint:
     asset_patrimony: Decimal
     savings_patrimony: Decimal
     selic_patrimony: Decimal = Decimal("0")
+    bitcoin_patrimony: Decimal = Decimal("0")
 
 
 @dataclass
@@ -74,6 +76,9 @@ class ComparisonMeta:
     selic_advantage: Decimal
     savings_monthly_rate_pct: float
     selic_monthly_rate_pct: float
+    bitcoin_advantage: Decimal = Decimal("0")
+    bitcoin_monthly_rate_pct: float = 0.0
+    bitcoin_available: bool = False
 
 
 @dataclass

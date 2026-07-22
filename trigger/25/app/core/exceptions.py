@@ -49,6 +49,16 @@ class EvolutionAPIError(AppError):
         )
 
 
+class MarketDataError(AppError):
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
+        super().__init__(
+            message,
+            code="market_data_error",
+            status_code=502,
+            details=details,
+        )
+
+
 class NotFoundError(AppError):
     def __init__(self, message: str = "Resource not found") -> None:
         super().__init__(message, code="not_found", status_code=404)

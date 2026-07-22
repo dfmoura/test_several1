@@ -218,6 +218,8 @@ function cpParamsBusca() {
   const org = $("#cp-filtro-orgao")?.value;
   if (org) params.set("orgao_id", org);
   appendQueryAll(params, "modalidade_id", multiSelectOf("#cp-filtro-modalidade")?.getValues());
+  const fallback = $("#cp-filtro-fallback-homologacao");
+  if (fallback) params.set("fallback_homologacao", fallback.checked ? "true" : "false");
   return params;
 }
 
@@ -296,6 +298,8 @@ $("#form-cp-filtros")?.addEventListener("submit", (e) => { e.preventDefault(); b
 $("#btn-cp-limpar")?.addEventListener("click", () => {
   $("#form-cp-filtros")?.reset();
   limparFiltroPeriodo("cp");
+  const fallback = $("#cp-filtro-fallback-homologacao");
+  if (fallback) fallback.checked = true;
   multiSelectOf("#cp-filtro-modalidade")?.clear({ silent: true });
   carregarCpFiltros();
   $("#cp-resultado")?.classList.add("hidden");

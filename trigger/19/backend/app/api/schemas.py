@@ -68,6 +68,7 @@ class TimelinePointResponse(BaseModel):
     asset_patrimony: float
     savings_patrimony: float
     selic_patrimony: float
+    bitcoin_patrimony: float = 0.0
 
 
 class TickerDetailResponse(BaseModel):
@@ -77,6 +78,9 @@ class TickerDetailResponse(BaseModel):
     selic_advantage: float
     savings_monthly_rate_pct: float
     selic_monthly_rate_pct: float
+    bitcoin_advantage: float = 0.0
+    bitcoin_monthly_rate_pct: float = 0.0
+    bitcoin_available: bool = False
 
 
 class PortfolioComparisonPointResponse(BaseModel):
@@ -84,6 +88,7 @@ class PortfolioComparisonPointResponse(BaseModel):
     asset_patrimony: float
     savings_patrimony: float
     selic_patrimony: float
+    bitcoin_patrimony: float = 0.0
 
 
 class PortfolioComparisonResponse(BaseModel):
@@ -92,6 +97,9 @@ class PortfolioComparisonResponse(BaseModel):
     selic_advantage: float
     savings_monthly_rate_pct: float
     selic_monthly_rate_pct: float
+    bitcoin_advantage: float = 0.0
+    bitcoin_monthly_rate_pct: float = 0.0
+    bitcoin_available: bool = False
 
 
 class MarketTickerRequest(BaseModel):

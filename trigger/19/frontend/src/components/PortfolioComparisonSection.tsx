@@ -28,6 +28,7 @@ export function PortfolioComparisonSection() {
     asset_patrimony: point.asset_patrimony,
     savings_patrimony: point.savings_patrimony,
     selic_patrimony: point.selic_patrimony,
+    bitcoin_patrimony: point.bitcoin_patrimony,
   }));
 
   return (
@@ -38,6 +39,9 @@ export function PortfolioComparisonSection() {
         selicAdvantage={data.selic_advantage}
         savingsRate={data.savings_monthly_rate_pct}
         selicRate={data.selic_monthly_rate_pct}
+        bitcoinAdvantage={data.bitcoin_advantage}
+        bitcoinRate={data.bitcoin_monthly_rate_pct}
+        bitcoinAvailable={data.bitcoin_available}
         title="Carteira vs benchmarks"
         subtitle={`Consolidado de todos os tickers — taxas BCB: poupança ${formatRate(data.savings_monthly_rate_pct)}% · Selic ${formatRate(data.selic_monthly_rate_pct)}% a.m.`}
       />

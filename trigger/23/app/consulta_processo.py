@@ -41,7 +41,7 @@ from app.filtros_periodo import (
     anos_disponiveis,
     condicao_periodo,
     data_iso_pncp,
-    data_iso_powerbi,
+    data_filtro_powerbi,
     resolver_periodo,
 )
 from app.powerbi import (
@@ -530,6 +530,8 @@ def _buscar_registros(
     periodo: Periodo | None,
     orgao_id: int | None,
     modalidade_id: int | list[int] | None = None,
+    *,
+    fallback_homologacao: bool = True,
 ) -> tuple[list[CompraContratacao], list[tuple[PbiProcessoLicitatorio, str]]]:
     termo = termo.strip() if termo else None
     numero_compra = numero_compra.strip() if numero_compra else None
@@ -585,7 +587,12 @@ def _buscar_registros(
         crit_b.extend(_filtro_processo_pbi(termo, numero))
 
     filtro_pbi = condicao_periodo(
-        data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao), periodo
+        data_filtro_powerbi(
+            PbiProcessoLicitatorio.dt_abertura,
+            PbiProcessoLicitatorio.dt_homologacao,
+            fallback_homologacao=fallback_homologacao,
+        ),
+        periodo,
     )
     if filtro_pbi is not None:
         crit_b.append(filtro_pbi)
@@ -705,7 +712,11 @@ def filtros_consulta(db: Session = Depends(get_db)):
         db, data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp)
     )
     anos_pbi = anos_disponiveis(
-        db, data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao)
+        db,
+        data_filtro_powerbi(
+            PbiProcessoLicitatorio.dt_abertura,
+            PbiProcessoLicitatorio.dt_homologacao,
+        ),
     )
     anos = sorted(set(anos_api) | set(anos_pbi), reverse=True)
     orgaos = db.scalars(
@@ -735,6 +746,7 @@ def buscar_processo(
     quadrimestre: int | None = Query(None, ge=1, le=3),
     data_inicial: date | None = None,
     data_final: date | None = None,
+    fallback_homologacao: bool = Query(True),
     orgao_id: int | None = Query(None),
     modalidade_id: list[int] = Query(default=[]),
     limit: int = Query(30, ge=1, le=100),
@@ -756,7 +768,14 @@ def buscar_processo(
 
     mapa_org = _mapa_orgaos(db)
     api_rows, pbi_rows = _buscar_registros(
-        db, termo, compra, ano, periodo_resolvido, orgao_id, modalidade_id
+        db,
+        termo,
+        compra,
+        ano,
+        periodo_resolvido,
+        orgao_id,
+        modalidade_id,
+        fallback_homologacao=fallback_homologacao,
     )
     grupos = _agrupar_resultados(api_rows, pbi_rows, mapa_org)[:limit]
 
@@ -906,6 +925,7 @@ def detalhe_processo(
     quadrimestre: int | None = Query(None, ge=1, le=3),
     data_inicial: date | None = None,
     data_final: date | None = None,
+    fallback_homologacao: bool = Query(True),
     orgao_id: int | None = Query(None),
     modalidade_id: list[int] = Query(default=[]),
     chave_orgao_id: int | None = Query(None),
@@ -939,7 +959,14 @@ def detalhe_processo(
         raise HTTPException(422, str(exc)) from exc
 
     api_rows, pbi_rows = _buscar_registros(
-        db, termo, compra, ano, periodo_resolvido, orgao_id, modalidade_id
+        db,
+        termo,
+        compra,
+        ano,
+        periodo_resolvido,
+        orgao_id,
+        modalidade_id,
+        fallback_homologacao=fallback_homologacao,
     )
     if not api_rows and not pbi_rows:
         raise HTTPException(404, "Nenhum processo ou compra encontrado com esses filtros")

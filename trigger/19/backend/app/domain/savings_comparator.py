@@ -70,3 +70,42 @@ def simulate_selic_balance(
         monthly_rate,
         default_rate=DEFAULT_SELIC_MONTHLY_RATE,
     )
+
+
+def _price_for_period(
+    period: str,
+    monthly_prices: Mapping[str, Decimal],
+) -> Decimal | None:
+    """Preço do período ou o último conhecido anterior a ele."""
+    if period in monthly_prices:
+        return monthly_prices[period]
+    prior = [p for p in monthly_prices if p <= period]
+    if prior:
+        return monthly_prices[max(prior)]
+    return None
+
+
+def simulate_bitcoin_balance(
+    monthly_flows: list[tuple[str, Decimal, Decimal]],
+    monthly_prices: Mapping[str, Decimal],
+) -> dict[str, Decimal]:
+    """Simula o saldo caso os mesmos aportes e resgates fossem em Bitcoin.
+
+    A cada período o saldo é reavaliado pela variação do preço do BTC/BRL entre o
+    período anterior e o atual; em seguida aplica-se o fluxo (aporte − resgate) do
+    mês. Sem cotação no período, usa-se o último preço conhecido.
+    """
+    balance = Decimal("0")
+    balances: dict[str, Decimal] = {}
+    prev_price: Decimal | None = None
+
+    for period, invested, liquidated in monthly_flows:
+        price = _price_for_period(period, monthly_prices)
+        if price is not None and prev_price is not None and prev_price > 0:
+            balance = balance * (price / prev_price)
+        balance += invested - liquidated
+        balances[period] = balance.quantize(Decimal("0.01"))
+        if price is not None:
+            prev_price = price
+
+    return balances

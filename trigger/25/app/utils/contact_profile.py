@@ -24,3 +24,29 @@ def format_contact_profile(
         return ""
 
     return "Sobre este contato:\n" + "\n".join(parts)
+
+
+def format_lead_context(
+    *,
+    segment: str | None = None,
+    system: str | None = None,
+    need: str | None = None,
+    next_step: str | None = None,
+    status: str | None = None,
+) -> str:
+    """Return what we already know about the lead so the agent does not re-ask."""
+    fields = [
+        ("Segmento", segment),
+        ("Sistema atual", system),
+        ("Necessidade", need),
+        ("Próximo passo", next_step),
+        ("Status", status),
+    ]
+    parts = [f"- {label}: {value.strip()}" for label, value in fields if (value or "").strip()]
+    if not parts:
+        return ""
+
+    return (
+        "O que você já sabe deste possível cliente (não pergunte de novo o que já está aqui):\n"
+        + "\n".join(parts)
+    )

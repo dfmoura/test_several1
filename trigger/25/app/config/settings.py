@@ -46,13 +46,25 @@ class Settings(BaseSettings):
     evolution_instance: str = "personal"
     evolution_webhook_path: str = "/webhook/evolution"
 
-    owner_name: str = "Diego"
+    owner_name: str = "Diogo"
     owner_phone: str = "5511999999999"
 
     memory_max_messages: int = 20
 
     # Manual per-contact knowledge (relation/notes). Off = identical to previous behavior.
     contact_kb_enabled: bool = False
+
+    # Automatic lead qualification from the conversation. Off = identical behavior.
+    lead_capture_enabled: bool = False
+
+    # Market data (currencies / commodities / futures). Off = identical behavior.
+    market_enabled: bool = False
+    market_base_currency: str = "BRL"
+    market_cache_ttl: int = 300
+    market_max_assets: int = 4
+    market_http_timeout: float = 8.0
+    frankfurter_base_url: str = "https://api.frankfurter.dev"
+    yahoo_base_url: str = "https://query1.finance.yahoo.com"
 
     # Simple local UI to manage contact profiles. Disable if the app is publicly exposed.
     admin_ui_enabled: bool = True

@@ -19,6 +19,10 @@ from app.domain.savings_comparator import (
 from app.infrastructure.b3_parser import B3MovementParser
 from app.domain.transfer_resolver import apply_transfer_resolution
 from app.infrastructure.bcb_benchmark_provider import BcbBenchmarkProvider, BenchmarkMonthlyRates
+from app.infrastructure.bitcoin_benchmark_provider import (
+    BitcoinBenchmarkProvider,
+    BitcoinMonthlyPrices,
+)
 from app.infrastructure.database import ImportBatchORM, MovementORM
 from app.infrastructure.quote_provider import QuoteProvider
 
@@ -39,6 +43,7 @@ class PortfolioService:
         self.calculator = PositionCalculator()
         self.quote_provider = QuoteProvider()
         self.bcb_provider = BcbBenchmarkProvider()
+        self.bitcoin_provider = BitcoinBenchmarkProvider()
 
     def import_xlsx(self, file_path: str, original_name: str) -> ImportResult:
         file_hash = self._file_hash(file_path)
@@ -145,6 +150,7 @@ class PortfolioService:
         normalized = ticker.upper()
         ticker_movements = [m for m in movements if m.ticker == normalized]
         rates = await self._benchmark_rates_for(ticker_movements)
+        bitcoin_prices = await self._bitcoin_prices_for(ticker_movements)
         quotes = await self.quote_provider.get_quotes([normalized])
         current_price = quotes.get(normalized)
         points = self.calculator.build_timeline(
@@ -153,8 +159,9 @@ class PortfolioService:
             current_price=current_price,
             savings_monthly_rate=rates.savings,
             selic_monthly_rate=rates.selic,
+            bitcoin_monthly_prices=bitcoin_prices.prices,
         )
-        return points, self._comparison_meta(points, rates)
+        return points, self._comparison_meta(points, rates, bitcoin_prices)
 
     async def get_portfolio_comparison(self) -> tuple[list, ComparisonMeta]:
         movements = self._load_domain_movements()
@@ -165,14 +172,16 @@ class PortfolioService:
             if pos.quantity > 0 or pos.total_income > 0 or pos.total_invested > 0
         ]
         rates = await self._benchmark_rates_for(movements)
+        bitcoin_prices = await self._bitcoin_prices_for(movements)
         quotes = await self.quote_provider.get_quotes(active_tickers)
         points = self.calculator.build_portfolio_timeline(
             movements,
             current_prices=quotes,
             savings_monthly_rate=rates.savings,
             selic_monthly_rate=rates.selic,
+            bitcoin_monthly_prices=bitcoin_prices.prices,
         )
-        return points, self._comparison_meta(points, rates)
+        return points, self._comparison_meta(points, rates, bitcoin_prices)
 
     async def _benchmark_rates_for(self, movements: list[Movement]) -> BenchmarkMonthlyRates:
         if not movements:
@@ -184,19 +193,36 @@ class PortfolioService:
         end_period = max(m.trade_date for m in movements).strftime("%Y-%m")
         return await self.bcb_provider.get_monthly_rates(start_period, end_period)
 
+    async def _bitcoin_prices_for(self, movements: list[Movement]) -> BitcoinMonthlyPrices:
+        if not movements:
+            return BitcoinMonthlyPrices(prices={})
+        start_period = min(m.trade_date for m in movements).strftime("%Y-%m")
+        end_period = max(m.trade_date for m in movements).strftime("%Y-%m")
+        return await self.bitcoin_provider.get_monthly_prices(start_period, end_period)
+
     @staticmethod
-    def _comparison_meta(points: list, rates: BenchmarkMonthlyRates) -> ComparisonMeta:
+    def _comparison_meta(
+        points: list,
+        rates: BenchmarkMonthlyRates,
+        bitcoin_prices: BitcoinMonthlyPrices,
+    ) -> ComparisonMeta:
         savings_advantage = Decimal("0")
         selic_advantage = Decimal("0")
+        bitcoin_advantage = Decimal("0")
         if points:
             last = points[-1]
             savings_advantage = last.asset_patrimony - last.savings_patrimony
             selic_advantage = last.asset_patrimony - last.selic_patrimony
+            if bitcoin_prices.available:
+                bitcoin_advantage = last.asset_patrimony - last.bitcoin_patrimony
         return ComparisonMeta(
             savings_advantage=savings_advantage,
             selic_advantage=selic_advantage,
             savings_monthly_rate_pct=rates.latest_pct(rates.savings, DEFAULT_SAVINGS_MONTHLY_RATE),
             selic_monthly_rate_pct=rates.latest_pct(rates.selic, DEFAULT_SELIC_MONTHLY_RATE),
+            bitcoin_advantage=bitcoin_advantage,
+            bitcoin_monthly_rate_pct=bitcoin_prices.latest_return_pct(),
+            bitcoin_available=bitcoin_prices.available,
         )
 
     def has_ticker(self, ticker: str) -> bool:

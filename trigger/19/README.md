@@ -11,7 +11,7 @@ Dashboard profissional para análise de carteira B3 a partir do **XLSX oficial**
 | Frontend | React 18 + TypeScript + Tailwind + Recharts |
 | Infra | Docker Compose |
 | Cotações | brapi.dev (gratuito) + fallback Yahoo Finance |
-| Benchmarks | API SGS do Banco Central (poupança, Selic) |
+| Benchmarks | API SGS do Banco Central (poupança, Selic) + Bitcoin BTC/BRL (Yahoo Finance / CoinGecko) |
 
 ## Arquitetura
 

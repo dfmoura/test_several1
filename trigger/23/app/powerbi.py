@@ -26,7 +26,7 @@ from app.filtros_periodo import (
     TipoPeriodo,
     anos_disponiveis,
     condicao_periodo,
-    data_iso_powerbi,
+    data_filtro_powerbi,
     resolver_periodo,
 )
 from app.powerbi_arvore import agrupar_eventos, contagem_contratos, eventos_do_processo, responsaveis_do_contrato
@@ -451,6 +451,20 @@ def licitacoes_situacoes(db: Session = Depends(get_db)):
     return [r for r in rows if r]
 
 
+@router.get("/api/powerbi/licitacoes/solicitantes")
+def licitacoes_solicitantes(db: Session = Depends(get_db)):
+    rows = db.scalars(
+        select(PbiProcessoLicitatorio.solicitante)
+        .distinct()
+        .where(
+            PbiProcessoLicitatorio.solicitante.isnot(None),
+            PbiProcessoLicitatorio.solicitante != "",
+        )
+        .order_by(PbiProcessoLicitatorio.solicitante)
+    ).all()
+    return [r for r in rows if r]
+
+
 @router.get("/api/powerbi/licitacoes/modalidades")
 def licitacoes_modalidades(db: Session = Depends(get_db)):
     rows = db.scalars(
@@ -462,9 +476,17 @@ def licitacoes_modalidades(db: Session = Depends(get_db)):
 
 
 @router.get("/api/powerbi/licitacoes/anos")
-def licitacoes_anos(db: Session = Depends(get_db)):
+def licitacoes_anos(
+    db: Session = Depends(get_db),
+    fallback_homologacao: bool = Query(True),
+):
     return anos_disponiveis(
-        db, data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao)
+        db,
+        data_filtro_powerbi(
+            PbiProcessoLicitatorio.dt_abertura,
+            PbiProcessoLicitatorio.dt_homologacao,
+            fallback_homologacao=fallback_homologacao,
+        ),
     )
 
 
@@ -505,10 +527,12 @@ def listar_licitacoes(
     quadrimestre: int | None = Query(None, ge=1, le=3),
     data_inicial: date | None = None,
     data_final: date | None = None,
+    fallback_homologacao: bool = Query(True),
     fonte_ano: int | None = None,
     empresa: str | None = None,
     orgao_id: int | None = None,
     situacao: str | None = None,
+    solicitante: str | None = None,
     modalidade: list[str] = Query(default=[]),
     processo: str | None = None,
     texto: str | None = None,
@@ -529,7 +553,11 @@ def listar_licitacoes(
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     filtro_periodo = condicao_periodo(
-        data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao),
+        data_filtro_powerbi(
+            PbiProcessoLicitatorio.dt_abertura,
+            PbiProcessoLicitatorio.dt_homologacao,
+            fallback_homologacao=fallback_homologacao,
+        ),
         periodo_resolvido,
     )
     if filtro_periodo is not None:
@@ -551,6 +579,9 @@ def listar_licitacoes(
     if situacao:
         stmt = stmt.where(PbiProcessoLicitatorio.situacao == situacao)
         count = count.where(PbiProcessoLicitatorio.situacao == situacao)
+    if solicitante:
+        stmt = stmt.where(PbiProcessoLicitatorio.solicitante == solicitante)
+        count = count.where(PbiProcessoLicitatorio.solicitante == solicitante)
     mods = [m.strip() for m in modalidade if m and m.strip()]
     if mods:
         stmt = stmt.where(PbiProcessoLicitatorio.modalidade.in_(mods))

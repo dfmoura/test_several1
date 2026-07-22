@@ -9,6 +9,7 @@ from app.integrations.ai.factory import AIProviderFactory
 from app.integrations.evolution.client import EvolutionClient
 from app.memory.context_memory import ContextMemory
 from app.services.chat_service import ChatService
+from app.services.market_service import MarketService
 from app.services.webhook_service import WebhookService
 
 
@@ -37,6 +38,14 @@ async def get_chat_service(
     session: AsyncSession = Depends(get_db),
 ) -> AsyncGenerator[ChatService, None]:
     service = ChatService(session)
+    try:
+        yield service
+    finally:
+        await service.close()
+
+
+async def get_market_service() -> AsyncGenerator[MarketService, None]:
+    service = MarketService()
     try:
         yield service
     finally:

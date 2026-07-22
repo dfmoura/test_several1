@@ -151,6 +151,55 @@ Edite os textos em `app/prompts/` e reinicie o container `app`.
 
 ---
 
+## Cotações de mercado (opcional)
+
+Deixa o agente responder sobre **câmbio, commodities e futuros de commodities** com
+dados reais. Duas fontes gratuitas e **sem chave**:
+
+| Categoria | Fonte | Observação |
+|-----------|-------|------------|
+| Moedas (dólar, euro, libra, iene, franco, CAD, AUD, yuan) | ECB / Frankfurter | referência diária do Banco Central Europeu |
+| Commodities / futuros (ouro, prata, cobre, petróleo WTI/Brent, gás, milho, soja, café, açúcar, trigo, boi) | Yahoo Finance | preço geralmente com atraso ~15 min |
+| Cripto (bitcoin, ethereum) | Yahoo Finance | — |
+
+Como funciona: quando a mensagem menciona um ativo do catálogo, o agente busca a
+cotação (com cache no Redis para respeitar os limites das APIs free) e injeta os
+valores no prompt. É **fail-open**: se a fonte cair, a resposta segue normal.
+
+### Ligar
+
+No `.env`:
+
+```env
+MARKET_ENABLED=true
+MARKET_BASE_CURRENCY=BRL   # moeda em que o câmbio é cotado
+MARKET_CACHE_TTL=300       # segundos de cache por ativo
+MARKET_MAX_ASSETS=4        # máx. de ativos buscados por mensagem
+```
+
+Reinicie o app: `docker compose up -d --build app`
+
+### Testar pela API
+
+```bash
+# catálogo de ativos suportados
+curl http://localhost:8000/market/assets
+
+# cotação de um ativo (ex.: ouro, dolar, brent, bitcoin)
+curl http://localhost:8000/market/quote/gold
+curl http://localhost:8000/market/quote/usd
+```
+
+### Escalar / adicionar ativos
+
+Estrutura profissional pronta para crescer:
+
+- `app/integrations/market/catalog.py` — adicione um `Asset` (nome, categoria, provider, símbolo, apelidos) e ele já é detectado, cacheado e injetado no prompt.
+- `app/integrations/market/*_provider.py` — novos provedores implementam o Protocol `MarketDataProvider` e são registrados em `factory.py`.
+- Troca de fonte é só mudar o `provider`/`symbol` no catálogo — o resto do sistema não muda.
+
+---
+
 ## Perfil por contato (opcional)
 
 Memória durável e **manual** por número (ex.: “é minha esposa”).  
@@ -188,3 +237,47 @@ curl http://localhost:8000/contacts/5534999909660 \
 
 Só injeta no prompt se houver `relation` ou `notes`. Se falhar, a resposta segue normalmente (fail-open).  
 Se o app ficar exposto na internet, use `ADMIN_UI_ENABLED=false`.
+
+---
+
+## Qualificação de lead (opcional)
+
+Faz o agente **entender o possível cliente durante a conversa** (segmento, sistema/ERP atual,
+necessidade, próximo passo) e **registrar isso automaticamente** no contato — no espírito da
+consultoria: ouvir a dor antes de propor solução. Desligada por padrão.
+
+### Ligar
+
+No `.env`:
+
+```env
+LEAD_CAPTURE_ENABLED=true
+ADMIN_UI_ENABLED=true
+```
+
+Reinicie o app: `docker compose up -d --build app`
+
+### Como funciona
+
+- Depois de responder (nunca antes — não atrasa a resposta), o agente faz uma leitura da conversa
+  e extrai os dados do lead em JSON.
+- Contato pessoal / assunto sem relação com negócio → nada é gravado (`eh_lead=false`).
+- Os campos entram de volta no contexto das próximas mensagens, então o agente **não repergunta**
+  o que já sabe.
+- É **fail-open**: se a extração falhar, a conversa segue normal.
+
+### Ver / corrigir os leads
+
+Abra http://localhost:8000/admin, informe o `WEBHOOK_SECRET` e a lista mostra
+segmento, necessidade e status. Você pode editar os campos de lead à mão (ex.: marcar `quente`).
+
+Pela API:
+
+```bash
+curl http://localhost:8000/contacts/5534999909660 \
+  -H "x-webhook-secret: change-me-webhook-secret"
+```
+
+
+iniciar o sistema
+docker compose up -d --build

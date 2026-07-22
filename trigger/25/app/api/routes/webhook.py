@@ -48,15 +48,18 @@ async def evolution_webhook(
     webhook_service: WebhookService = Depends(get_webhook_service),
 ) -> WebhookAck:
     settings = get_settings()
-    client_ip = extract_client_ip(request)
-    rate_limiter.check(f"webhook:{client_ip}", limit=settings.rate_limit_per_minute)
 
     raw = await request.json()
     incoming = webhook_service.parse(raw)
 
+    # Ignore non-message events (presence, delivery/read status, connection
+    # updates, etc.) BEFORE rate limiting so this flood does not consume the
+    # budget and block real messages.
     if incoming is None:
         return WebhookAck(status="ignored", detail="Event not actionable")
 
+    client_ip = extract_client_ip(request)
+    rate_limiter.check(f"webhook:{client_ip}", limit=settings.rate_limit_per_minute)
     rate_limiter.check(
         f"phone:{incoming.phone}",
         limit=settings.rate_limit_per_minute,

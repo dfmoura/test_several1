@@ -99,8 +99,9 @@ function setPbiDataset(ds) {
 }
 
 async function carregarPbiFiltros() {
-  const [empLic, sitLic, modLic, empCon, orgGest, papGest, anosLic, anosCon] = await Promise.all([
+  const [empLic, solLic, sitLic, modLic, empCon, orgGest, papGest, anosLic, anosCon] = await Promise.all([
     api("/api/powerbi/licitacoes/empresas").catch(() => []),
+    api("/api/powerbi/licitacoes/solicitantes").catch(() => []),
     api("/api/powerbi/licitacoes/situacoes").catch(() => []),
     api("/api/powerbi/licitacoes/modalidades").catch(() => []),
     api("/api/powerbi/contratos/empresas").catch(() => []),
@@ -116,6 +117,7 @@ async function carregarPbiFiltros() {
   };
   fill($("#pbi-lic-filtro-ano"), anosLic.map(String), "Todos");
   fill($("#pbi-filtro-lic-empresa"), empLic, "Todas");
+  fill($("#pbi-filtro-lic-solicitante"), solLic, "Todos");
   fill($("#pbi-filtro-lic-situacao"), sitLic, "Todas");
   multiSelectOf("#pbi-filtro-lic-modalidade")?.setOptions(
     (modLic || []).map((v) => ({ value: v, label: v })),
@@ -136,7 +138,10 @@ function pbiQueryParams() {
   const g = (id) => $(id)?.value;
   if (pbiDataset === "licitacoes") {
     appendPeriodoParams(p, "pbi-lic");
+    const fallback = $("#pbi-lic-filtro-fallback-homologacao");
+    if (fallback) p.set("fallback_homologacao", fallback.checked ? "true" : "false");
     if (g("#pbi-filtro-lic-empresa")) p.set("empresa", g("#pbi-filtro-lic-empresa"));
+    if (g("#pbi-filtro-lic-solicitante")) p.set("solicitante", g("#pbi-filtro-lic-solicitante"));
     if (g("#pbi-filtro-lic-situacao")) p.set("situacao", g("#pbi-filtro-lic-situacao"));
     appendQueryAll(p, "modalidade", multiSelectOf("#pbi-filtro-lic-modalidade")?.getValues());
     if (g("#pbi-filtro-lic-processo")) p.set("processo", g("#pbi-filtro-lic-processo"));
@@ -173,7 +178,10 @@ async function buscarPbi() {
     const data = await api(`/api/powerbi/${cfg.endpoint}?${pbiQueryParams()}`);
     pbiLastItems = data.items || [];
     const periodo = pbiDataset === "licitacoes" ? resumoFiltroPeriodo("pbi-lic") : "";
-    meta.textContent = `${fmtNum(data.total)} registro(s) · ${cfg.label}${periodo ? ` · ${periodo}` : ""}`;
+    const fallback = pbiDataset === "licitacoes" && $("#pbi-lic-filtro-fallback-homologacao")?.checked
+      ? " · fallback homologação"
+      : "";
+    meta.textContent = `${fmtNum(data.total)} registro(s) · ${cfg.label}${periodo ? ` · ${periodo}` : ""}${fallback}`;
     renderPbiTabela();
   } catch (err) {
     pbiLastItems = [];
@@ -362,7 +370,14 @@ $$("#pbi-tabs .tab").forEach((b) => b.addEventListener("click", () => setPbiData
 $("#form-pbi-filtros")?.addEventListener("submit", (e) => { e.preventDefault(); buscarPbi(); });
 $("#btn-pbi-limpar")?.addEventListener("click", () => {
   $$(".pbi-filtros-dataset:not([hidden]) input, .pbi-filtros-dataset:not([hidden]) select")
-    .forEach((el) => { if (el.tagName === "SELECT") el.selectedIndex = 0; else el.value = ""; });
+    .forEach((el) => {
+      if (el.type === "checkbox") {
+        el.checked = el.id === "pbi-lic-filtro-fallback-homologacao";
+        return;
+      }
+      if (el.tagName === "SELECT") el.selectedIndex = 0;
+      else el.value = "";
+    });
   $$(".pbi-filtros-dataset:not([hidden]) .ms").forEach((el) => {
     multiSelectOf(el)?.clear({ silent: true });
   });

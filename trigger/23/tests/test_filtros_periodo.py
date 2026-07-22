@@ -16,8 +16,8 @@ from app.database import (
 from app.filtros_periodo import (
     anos_disponiveis,
     condicao_periodo,
+    data_filtro_powerbi,
     data_iso_pncp,
-    data_iso_powerbi,
     resolver_periodo,
 )
 from app.main import app
@@ -83,14 +83,28 @@ def test_expressoes_normalizam_formatos_e_excluem_datas_invalidas():
             ano_processo=2025,
             processo="PERIODO-PBI",
             modalidade="Teste",
-            dt_homologacao="2026-05-01 00:00:00.0",
+            dt_abertura="2026-05-01 00:00:00.0",
+            dt_homologacao="2026-09-15 00:00:00.0",
             fonte_ano_coleta=2025,
         )
-        db.add_all([compra, pbi])
+        pbi_fallback = PbiProcessoLicitatorio(
+            orgao_id=orgao.id,
+            ano_processo=2025,
+            processo="PERIODO-PBI-FB",
+            modalidade="Teste",
+            dt_abertura=None,
+            dt_homologacao="2026-06-10 00:00:00.0",
+            fonte_ano_coleta=2025,
+        )
+        db.add_all([compra, pbi, pbi_fallback])
         db.commit()
 
         primeiro = resolver_periodo(periodo="quadrimestre", ano=2026, quadrimestre=1)
         segundo = resolver_periodo(periodo="quadrimestre", ano=2026, quadrimestre=2)
+        data_pbi = data_filtro_powerbi(
+            PbiProcessoLicitatorio.dt_abertura,
+            PbiProcessoLicitatorio.dt_homologacao,
+        )
 
         compras_q1 = db.scalars(
             select(CompraContratacao).where(
@@ -101,9 +115,16 @@ def test_expressoes_normalizam_formatos_e_excluem_datas_invalidas():
             )
         ).all()
         pbi_q2 = db.scalars(
+            select(PbiProcessoLicitatorio).where(condicao_periodo(data_pbi, segundo))
+        ).all()
+        pbi_so_abertura = db.scalars(
             select(PbiProcessoLicitatorio).where(
                 condicao_periodo(
-                    data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao),
+                    data_filtro_powerbi(
+                        PbiProcessoLicitatorio.dt_abertura,
+                        PbiProcessoLicitatorio.dt_homologacao,
+                        fallback_homologacao=False,
+                    ),
                     segundo,
                 )
             )
@@ -111,15 +132,18 @@ def test_expressoes_normalizam_formatos_e_excluem_datas_invalidas():
 
         assert compra in compras_q1
         assert pbi in pbi_q2
+        assert pbi_fallback in pbi_q2
+        assert pbi in pbi_so_abertura
+        assert pbi_fallback not in pbi_so_abertura
         assert 2026 in anos_disponiveis(
             db, data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp)
         )
-        assert 2026 in anos_disponiveis(
-            db, data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao)
-        )
+        assert 2026 in anos_disponiveis(db, data_pbi)
     finally:
         db.query(CompraContratacao).filter_by(chave_compra="PERIODO-PNCP").delete()
-        db.query(PbiProcessoLicitatorio).filter_by(processo="PERIODO-PBI").delete()
+        db.query(PbiProcessoLicitatorio).filter(
+            PbiProcessoLicitatorio.processo.in_(["PERIODO-PBI", "PERIODO-PBI-FB"])
+        ).delete()
         db.query(PbiOrgao).filter_by(nome="Teste período filtros").delete()
         db.commit()
         db.close()
@@ -147,7 +171,8 @@ def test_endpoints_usam_data_canonica_e_preservam_ano_legado(client):
             ano_processo=2097,
             processo=processo,
             modalidade="Teste",
-            dt_homologacao="2098-05-01 10:00:00.0",
+            dt_abertura="2098-05-01 10:00:00.0",
+            dt_homologacao="2098-09-01 10:00:00.0",
             fonte_ano_coleta=2097,
         )
         db.add(pbi)

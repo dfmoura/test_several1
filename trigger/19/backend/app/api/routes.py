@@ -184,12 +184,16 @@ async def portfolio_comparison(
         selic_advantage=float(meta.selic_advantage),
         savings_monthly_rate_pct=meta.savings_monthly_rate_pct,
         selic_monthly_rate_pct=meta.selic_monthly_rate_pct,
+        bitcoin_advantage=float(meta.bitcoin_advantage),
+        bitcoin_monthly_rate_pct=meta.bitcoin_monthly_rate_pct,
+        bitcoin_available=meta.bitcoin_available,
         timeline=[
             PortfolioComparisonPointResponse(
                 period=point.period,
                 asset_patrimony=float(point.asset_patrimony),
                 savings_patrimony=float(point.savings_patrimony),
                 selic_patrimony=float(point.selic_patrimony),
+                bitcoin_patrimony=float(point.bitcoin_patrimony),
             )
             for point in points
         ],
@@ -214,6 +218,9 @@ async def ticker_timeline(
         selic_advantage=float(meta.selic_advantage),
         savings_monthly_rate_pct=meta.savings_monthly_rate_pct,
         selic_monthly_rate_pct=meta.selic_monthly_rate_pct,
+        bitcoin_advantage=float(meta.bitcoin_advantage),
+        bitcoin_monthly_rate_pct=meta.bitcoin_monthly_rate_pct,
+        bitcoin_available=meta.bitcoin_available,
         timeline=[
             TimelinePointResponse(
                 period=point.period,
@@ -237,6 +244,7 @@ async def ticker_timeline(
                 asset_patrimony=float(point.asset_patrimony),
                 savings_patrimony=float(point.savings_patrimony),
                 selic_patrimony=float(point.selic_patrimony),
+                bitcoin_patrimony=float(point.bitcoin_patrimony),
             )
             for point in points
         ],

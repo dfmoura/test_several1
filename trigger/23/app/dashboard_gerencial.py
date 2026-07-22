@@ -29,7 +29,7 @@ from app.filtros_periodo import (
     anos_disponiveis,
     condicao_periodo,
     data_iso_pncp,
-    data_iso_powerbi,
+    data_filtro_powerbi,
     resolver_periodo,
 )
 
@@ -329,9 +329,13 @@ def _calcular_cruzamentos(
     chaves_org: dict[str, set[str]],
     chaves_mod: dict[str, set[str]],
     mapa_org: dict[tuple[str, str], OrgaoConsolidado],
+    *,
+    fallback_homologacao: bool = True,
 ) -> dict[str, dict[str, Any]]:
     crit_a = _where_compras(ano, periodo, chaves_org, chaves_mod)
-    crit_b = _where_pbi(ano, periodo, chaves_org, chaves_mod)
+    crit_b = _where_pbi(
+        ano, periodo, chaves_org, chaves_mod, fallback_homologacao=fallback_homologacao
+    )
 
     chaves_api: list[ChaveProcesso | None] = []
     set_api: set[ChaveProcesso] = set()
@@ -380,7 +384,15 @@ def _calcular_cruzamentos(
             for proc, orgao_nome in db.execute(
                 select(PbiProcessoLicitatorio, PbiOrgao.nome)
                 .join(PbiOrgao, PbiProcessoLicitatorio.orgao_id == PbiOrgao.id)
-                .where(*_where_pbi(None, None, chaves_org, chaves_mod))
+                .where(
+                    *_where_pbi(
+                        None,
+                        None,
+                        chaves_org,
+                        chaves_mod,
+                        fallback_homologacao=fallback_homologacao,
+                    )
+                )
             ).all()
             if (chave := _chave_powerbi(proc, orgao_nome, mapa_org))
         }
@@ -580,10 +592,17 @@ def _where_pbi(
     periodo: Periodo | None,
     chaves_org: dict[str, set[str]],
     chaves_mod: dict[str, set[str]],
+    *,
+    fallback_homologacao: bool = True,
 ) -> list[Any]:
     crit: list[Any] = []
     filtro_periodo = condicao_periodo(
-        data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao), periodo
+        data_filtro_powerbi(
+            PbiProcessoLicitatorio.dt_abertura,
+            PbiProcessoLicitatorio.dt_homologacao,
+            fallback_homologacao=fallback_homologacao,
+        ),
+        periodo,
     )
     if filtro_periodo is not None:
         crit.append(filtro_periodo)
@@ -610,8 +629,12 @@ def _stats_powerbi(
     chaves_mod: dict[str, set[str]],
     mapa_org: dict[tuple[str, str], OrgaoConsolidado],
     mapa_mod: dict[tuple[str, str], ModalidadeConsolidada],
+    *,
+    fallback_homologacao: bool = True,
 ) -> dict[str, Any]:
-    crit = _where_pbi(ano, periodo, chaves_org, chaves_mod)
+    crit = _where_pbi(
+        ano, periodo, chaves_org, chaves_mod, fallback_homologacao=fallback_homologacao
+    )
 
     por_orgao_raw = db.execute(
         select(PbiOrgao.nome, PbiOrgao.nome, func.count())
@@ -668,7 +691,11 @@ def filtros_dashboard(db: Session = Depends(get_db)):
         db, data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp)
     )
     anos_pbi = anos_disponiveis(
-        db, data_iso_powerbi(PbiProcessoLicitatorio.dt_homologacao)
+        db,
+        data_filtro_powerbi(
+            PbiProcessoLicitatorio.dt_abertura,
+            PbiProcessoLicitatorio.dt_homologacao,
+        ),
     )
     anos = sorted(set(anos_api) | set(anos_pbi), reverse=True)
 
@@ -698,6 +725,7 @@ def stats_dashboard(
     quadrimestre: int | None = Query(None, ge=1, le=3),
     data_inicial: date | None = None,
     data_final: date | None = None,
+    fallback_homologacao: bool = Query(True),
     orgao_id: int | None = Query(None),
     modalidade_id: list[int] = Query(default=[]),
 ):
@@ -724,13 +752,26 @@ def stats_dashboard(
     mod_nome = _nomes_modalidades(db, ids_mod)
 
     cruz = _calcular_cruzamentos(
-        db, ano, periodo_resolvido, chaves_org, chaves_mod, mapa_org
+        db,
+        ano,
+        periodo_resolvido,
+        chaves_org,
+        chaves_mod,
+        mapa_org,
+        fallback_homologacao=fallback_homologacao,
     )
     api = _stats_api(
         db, ano, periodo_resolvido, chaves_org, chaves_mod, mapa_org, mapa_mod
     )
     powerbi = _stats_powerbi(
-        db, ano, periodo_resolvido, chaves_org, chaves_mod, mapa_org, mapa_mod
+        db,
+        ano,
+        periodo_resolvido,
+        chaves_org,
+        chaves_mod,
+        mapa_org,
+        mapa_mod,
+        fallback_homologacao=fallback_homologacao,
     )
     api["cruzamento"] = cruz["api"]
     powerbi["cruzamento"] = cruz["powerbi"]
@@ -742,6 +783,7 @@ def stats_dashboard(
             "quadrimestre": quadrimestre,
             "data_inicial": data_inicial,
             "data_final": data_final,
+            "fallback_homologacao": fallback_homologacao,
             "orgao_id": orgao_id,
             "orgao_nome": orgao_nome,
             "modalidade_id": ids_mod or None,
@@ -756,7 +798,7 @@ def stats_dashboard(
                 "processo": "PROCESSO (ex.: 5302023→530, 20.039/2023→20039, 25.528→25528)",
             },
             "powerbi": {
-                "data_filtro": "Homologação",
+                "data_filtro": "Abertura (fallback: homologação, se marcado)",
                 "ano_identidade": "ANOPROCESSO",
                 "processo": "PROCESSO",
             },

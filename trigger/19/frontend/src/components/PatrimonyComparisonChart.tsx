@@ -11,11 +11,14 @@ import {
 } from "recharts";
 import { formatCurrency } from "../utils";
 
+const BITCOIN_COLOR = "#f7931a";
+
 export interface PatrimonyPoint {
   label: string;
   asset_patrimony: number;
   savings_patrimony: number;
   selic_patrimony: number;
+  bitcoin_patrimony?: number;
 }
 
 interface Props {
@@ -24,6 +27,9 @@ interface Props {
   selicAdvantage: number;
   savingsRate: number;
   selicRate: number;
+  bitcoinAdvantage?: number;
+  bitcoinRate?: number;
+  bitcoinAvailable?: boolean;
   title?: string;
   subtitle?: string;
 }
@@ -38,12 +44,19 @@ export function PatrimonyComparisonChart({
   selicAdvantage,
   savingsRate,
   selicRate,
+  bitcoinAdvantage = 0,
+  bitcoinRate = 0,
+  bitcoinAvailable = false,
   title = "Ativo vs benchmarks",
   subtitle,
 }: Props) {
+  const bitcoinNote = bitcoinAvailable
+    ? ` · Bitcoin ${bitcoinRate >= 0 ? "+" : ""}${formatRate(bitcoinRate)}% a.m.`
+    : "";
   const resolvedSubtitle =
-    subtitle ??
-    `Mesmos aportes e resgates — taxas BCB: poupança ${formatRate(savingsRate)}% · Selic ${formatRate(selicRate)}% a.m.`;
+    (subtitle ??
+      `Mesmos aportes e resgates — taxas BCB: poupança ${formatRate(savingsRate)}% · Selic ${formatRate(selicRate)}% a.m.`) +
+    bitcoinNote;
 
   if (!data.length) return null;
 
@@ -55,6 +68,7 @@ export function PatrimonyComparisonChart({
           <p className="mt-0.5 text-sm text-slate-500">{resolvedSubtitle}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {bitcoinAvailable && <AdvantageBadge value={bitcoinAdvantage} label="Bitcoin" />}
           <AdvantageBadge value={selicAdvantage} label="Selic" />
           <AdvantageBadge value={savingsAdvantage} label="poupança" muted />
         </div>
@@ -69,7 +83,7 @@ export function PatrimonyComparisonChart({
             fontSize={12}
             tickFormatter={(v) => (v >= 1000 ? `R$ ${(v / 1000).toFixed(0)}k` : `R$ ${v}`)}
           />
-          <Tooltip content={<PatrimonyTooltip />} />
+          <Tooltip content={<PatrimonyTooltip bitcoinAvailable={bitcoinAvailable} />} />
           <Legend />
           <Line
             type="monotone"
@@ -80,6 +94,18 @@ export function PatrimonyComparisonChart({
             dot={false}
             activeDot={{ r: 4 }}
           />
+          {bitcoinAvailable && (
+            <Line
+              type="monotone"
+              dataKey="bitcoin_patrimony"
+              name="Bitcoin"
+              stroke={BITCOIN_COLOR}
+              strokeWidth={2}
+              strokeDasharray="4 3"
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          )}
           <Line
             type="monotone"
             dataKey="selic_patrimony"
@@ -132,12 +158,19 @@ function AdvantageBadge({
   );
 }
 
-function PatrimonyTooltip({ active, payload, label }: TooltipProps<number, string>) {
+function PatrimonyTooltip({
+  active,
+  payload,
+  label,
+  bitcoinAvailable,
+}: TooltipProps<number, string> & { bitcoinAvailable?: boolean }) {
   if (!active || !payload?.length) return null;
 
   const point = payload[0].payload as PatrimonyPoint;
   const diffSelic = point.asset_patrimony - point.selic_patrimony;
   const diffSavings = point.asset_patrimony - point.savings_patrimony;
+  const bitcoinPatrimony = point.bitcoin_patrimony ?? 0;
+  const diffBitcoin = point.asset_patrimony - bitcoinPatrimony;
 
   return (
     <div className="rounded-xl border border-[#243352] bg-[#111b2e] px-4 py-3 shadow-xl">
@@ -148,6 +181,13 @@ function PatrimonyTooltip({ active, payload, label }: TooltipProps<number, strin
           value={formatCurrency(point.asset_patrimony)}
           color="#22c55e"
         />
+        {bitcoinAvailable && (
+          <TooltipRow
+            label="Patrimônio em Bitcoin"
+            value={formatCurrency(bitcoinPatrimony)}
+            color={BITCOIN_COLOR}
+          />
+        )}
         <TooltipRow
           label="Patrimônio na Selic"
           value={formatCurrency(point.selic_patrimony)}
@@ -158,6 +198,12 @@ function PatrimonyTooltip({ active, payload, label }: TooltipProps<number, strin
           value={formatCurrency(point.savings_patrimony)}
           color="#64748b"
         />
+        {bitcoinAvailable && (
+          <TooltipRow
+            label="Diferença vs Bitcoin"
+            value={`${diffBitcoin >= 0 ? "+" : ""}${formatCurrency(diffBitcoin)}`}
+          />
+        )}
         <TooltipRow
           label="Diferença vs Selic"
           value={`${diffSelic >= 0 ? "+" : ""}${formatCurrency(diffSelic)}`}

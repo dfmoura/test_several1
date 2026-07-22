@@ -130,6 +130,8 @@ async function carregarDashStats() {
   const orgao = $("#dash-filtro-orgao")?.value;
   if (orgao) params.set("orgao_id", orgao);
   appendQueryAll(params, "modalidade_id", multiSelectOf("#dash-filtro-modalidade")?.getValues());
+  const fallback = $("#dash-filtro-fallback-homologacao");
+  if (fallback) params.set("fallback_homologacao", fallback.checked ? "true" : "false");
 
   const btn = $("#btn-dash-atualizar");
   if (btn) btn.disabled = true;
@@ -172,6 +174,8 @@ $("#form-dash-filtros")?.addEventListener("submit", (e) => { e.preventDefault();
 $("#btn-dash-limpar")?.addEventListener("click", () => {
   $("#form-dash-filtros")?.reset();
   limparFiltroPeriodo("dash");
+  const fallback = $("#dash-filtro-fallback-homologacao");
+  if (fallback) fallback.checked = true;
   multiSelectOf("#dash-filtro-modalidade")?.clear({ silent: true });
   carregarDashStats();
 });

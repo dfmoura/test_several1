@@ -152,14 +152,17 @@
 <body>
   <main>
     <header>
-      <h1>Perfis por contato</h1>
+      <h1>Contatos e leads</h1>
       <p>
-        Cadastre fatos estáveis (ex.: relação = esposa). O agente só usa isso se
-        <code>CONTACT_KB_ENABLED=true</code>.
+        Cadastre fatos estáveis (ex.: relação = esposa) — usados se
+        <code>CONTACT_KB_ENABLED=true</code>. Os campos de lead são preenchidos
+        automaticamente pela conversa quando <code>LEAD_CAPTURE_ENABLED=true</code>,
+        e você pode corrigi-los aqui.
       </p>
     </header>
 
     <div id="kbBanner" class="banner warn" hidden></div>
+    <div id="leadBanner" class="banner warn" hidden></div>
     <div id="flash" class="banner" hidden></div>
 
     <section class="panel">
@@ -190,6 +193,33 @@
           Notas
           <textarea id="notes" name="notes" placeholder="Prefere respostas curtas" maxlength="500"></textarea>
         </label>
+        <label>
+          Lead · status
+          <input id="lead_status" name="lead_status" placeholder="novo / qualificando / quente / frio / descartado" maxlength="32" list="statusOptions" />
+          <datalist id="statusOptions">
+            <option value="novo"></option>
+            <option value="qualificando"></option>
+            <option value="quente"></option>
+            <option value="frio"></option>
+            <option value="descartado"></option>
+          </datalist>
+        </label>
+        <label>
+          Lead · segmento
+          <input id="lead_segment" name="lead_segment" placeholder="condomínio, indústria…" maxlength="120" />
+        </label>
+        <label>
+          Lead · sistema atual
+          <input id="lead_system" name="lead_system" placeholder="Sankhya, planilha…" maxlength="120" />
+        </label>
+        <label>
+          Lead · próximo passo
+          <input id="lead_next_step" name="lead_next_step" placeholder="agendar call, enviar exemplo…" maxlength="200" />
+        </label>
+        <label class="full">
+          Lead · necessidade
+          <textarea id="lead_need" name="lead_need" placeholder="dor / o que precisa resolver" maxlength="500"></textarea>
+        </label>
         <div class="full actions">
           <button type="submit" class="primary" id="saveBtn">Salvar</button>
           <button type="button" class="secondary" id="loadBtn">Carregar</button>
@@ -214,6 +244,11 @@
       name: document.getElementById("name"),
       relation: document.getElementById("relation"),
       notes: document.getElementById("notes"),
+      lead_status: document.getElementById("lead_status"),
+      lead_segment: document.getElementById("lead_segment"),
+      lead_system: document.getElementById("lead_system"),
+      lead_need: document.getElementById("lead_need"),
+      lead_next_step: document.getElementById("lead_next_step"),
       form: document.getElementById("form"),
       loadBtn: document.getElementById("loadBtn"),
       refreshBtn: document.getElementById("refreshBtn"),
@@ -221,6 +256,7 @@
       list: document.getElementById("list"),
       flash: document.getElementById("flash"),
       kbBanner: document.getElementById("kbBanner"),
+      leadBanner: document.getElementById("leadBanner"),
       formStatus: document.getElementById("formStatus"),
     };
 
@@ -264,6 +300,11 @@
       els.name.value = contact.name || "";
       els.relation.value = contact.relation || "";
       els.notes.value = contact.notes || "";
+      els.lead_status.value = contact.lead_status || "";
+      els.lead_segment.value = contact.lead_segment || "";
+      els.lead_system.value = contact.lead_system || "";
+      els.lead_need.value = contact.lead_need || "";
+      els.lead_next_step.value = contact.lead_next_step || "";
     }
 
     function renderList(contacts) {
@@ -271,19 +312,19 @@
         els.list.innerHTML = '<p class="empty">Nenhum contato cadastrado ainda.</p>';
         return;
       }
+      const esc = (v) => (v || "—").replace(/</g, "&lt;");
       const rows = contacts.map((c) => {
-        const name = c.name || "—";
-        const relation = c.relation || "—";
-        const notes = (c.notes || "—").replace(/</g, "&lt;");
+        const status = c.lead_status ? esc(c.lead_status) : "—";
         return `<tr class="clickable" data-phone="${c.phone}">
           <td class="phone">${c.phone}</td>
-          <td>${name.replace(/</g, "&lt;")}</td>
-          <td>${relation.replace(/</g, "&lt;")}</td>
-          <td>${notes}</td>
+          <td>${esc(c.name)}</td>
+          <td>${esc(c.lead_status ? c.lead_segment : c.relation)}</td>
+          <td>${esc(c.lead_need || c.notes)}</td>
+          <td>${status}</td>
         </tr>`;
       }).join("");
       els.list.innerHTML = `<table>
-        <thead><tr><th>Telefone</th><th>Nome</th><th>Relação</th><th>Notas</th></tr></thead>
+        <thead><tr><th>Telefone</th><th>Nome</th><th>Segmento / relação</th><th>Necessidade / notas</th><th>Status</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
       els.list.querySelectorAll("tr.clickable").forEach((row) => {
@@ -318,6 +359,17 @@
           "Base por contato ativa. Perfis com relação/notas entram no contexto das respostas de " +
           (meta.owner_name || "você") + ".";
       }
+
+      els.leadBanner.hidden = false;
+      if (meta.lead_capture_enabled) {
+        els.leadBanner.className = "banner ok";
+        els.leadBanner.textContent =
+          "Captura de lead ativa: o agente qualifica automaticamente (segmento, sistema, necessidade) durante a conversa.";
+      } else {
+        els.leadBanner.className = "banner warn";
+        els.leadBanner.textContent =
+          "LEAD_CAPTURE_ENABLED está false: os campos de lead ficam disponíveis para preencher à mão, mas o agente ainda não qualifica sozinho.";
+      }
     }
 
     els.secret.value = sessionStorage.getItem(SECRET_KEY) || "";
@@ -343,6 +395,11 @@
             name: els.name.value,
             relation: els.relation.value,
             notes: els.notes.value,
+            lead_status: els.lead_status.value,
+            lead_segment: els.lead_segment.value,
+            lead_system: els.lead_system.value,
+            lead_need: els.lead_need.value,
+            lead_next_step: els.lead_next_step.value,
           }),
         });
         fillForm(saved);

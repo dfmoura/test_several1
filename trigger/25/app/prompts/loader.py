@@ -29,6 +29,7 @@ class PromptLoader:
         user_name: str | None = None,
         summary: str = "",
         contact_profile: str = "",
+        market_context: str = "",
     ) -> str:
         settings = get_settings()
         name = owner_name or settings.owner_name
@@ -36,13 +37,16 @@ class PromptLoader:
         system = self._read("system.txt").format(owner_name=name)
         assistant = self._read("assistant.txt")
         personality = self._read("personality.txt")
+        comercial = self._read("comercial.txt")
 
-        parts = [system, assistant, personality]
+        parts = [system, assistant, personality, comercial]
 
         if user_name:
             parts.append(f"Você está conversando com: {user_name}.")
         if contact_profile:
             parts.append(contact_profile)
+        if market_context:
+            parts.append(market_context)
         if summary:
             parts.append(f"Resumo recente da conversa:\n{summary}")
 

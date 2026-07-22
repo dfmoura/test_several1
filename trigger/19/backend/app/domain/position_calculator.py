@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -17,6 +18,7 @@ from app.domain.savings_comparator import (
     DEFAULT_SAVINGS_MONTHLY_RATE,
     DEFAULT_SELIC_MONTHLY_RATE,
     MonthlyRateInput,
+    simulate_bitcoin_balance,
     simulate_savings_balance,
     simulate_selic_balance,
 )
@@ -85,6 +87,7 @@ class PositionCalculator:
         current_price: Decimal | None = None,
         savings_monthly_rate: MonthlyRateInput = DEFAULT_SAVINGS_MONTHLY_RATE,
         selic_monthly_rate: MonthlyRateInput = DEFAULT_SELIC_MONTHLY_RATE,
+        bitcoin_monthly_prices: Mapping[str, Decimal] | None = None,
     ) -> list[TimelinePoint]:
         filtered = [m for m in movements if m.ticker == ticker and m.kind != MovementKind.IGNORE]
         filtered.sort(key=lambda m: (m.trade_date, m.external_key))
@@ -167,6 +170,11 @@ class PositionCalculator:
         ]
         savings_balances = simulate_savings_balance(monthly_flows, savings_monthly_rate)
         selic_balances = simulate_selic_balance(monthly_flows, selic_monthly_rate)
+        bitcoin_balances = (
+            simulate_bitcoin_balance(monthly_flows, bitcoin_monthly_prices)
+            if bitcoin_monthly_prices
+            else {}
+        )
 
         cumulative_invested = Decimal("0")
         cumulative_liquidated = Decimal("0")
@@ -208,6 +216,7 @@ class PositionCalculator:
             ).quantize(Decimal("0.01"))
             savings_patrimony = savings_balances.get(period, Decimal("0"))
             selic_patrimony = selic_balances.get(period, Decimal("0"))
+            bitcoin_patrimony = bitcoin_balances.get(period, Decimal("0"))
 
             points.append(
                 TimelinePoint(
@@ -230,6 +239,7 @@ class PositionCalculator:
                     asset_patrimony=asset_patrimony,
                     savings_patrimony=savings_patrimony,
                     selic_patrimony=selic_patrimony,
+                    bitcoin_patrimony=bitcoin_patrimony,
                 )
             )
 
@@ -242,6 +252,7 @@ class PositionCalculator:
         current_prices: dict[str, Decimal] | None = None,
         savings_monthly_rate: MonthlyRateInput = DEFAULT_SAVINGS_MONTHLY_RATE,
         selic_monthly_rate: MonthlyRateInput = DEFAULT_SELIC_MONTHLY_RATE,
+        bitcoin_monthly_prices: Mapping[str, Decimal] | None = None,
     ) -> list[PortfolioComparisonPoint]:
         filtered = [m for m in movements if m.kind != MovementKind.IGNORE]
         filtered.sort(key=lambda m: (m.trade_date, m.external_key))
@@ -306,6 +317,11 @@ class PositionCalculator:
         ]
         savings_balances = simulate_savings_balance(monthly_flows, savings_monthly_rate)
         selic_balances = simulate_selic_balance(monthly_flows, selic_monthly_rate)
+        bitcoin_balances = (
+            simulate_bitcoin_balance(monthly_flows, bitcoin_monthly_prices)
+            if bitcoin_monthly_prices
+            else {}
+        )
         prices = current_prices or {}
 
         cumulative_liquidated = Decimal("0")
@@ -338,6 +354,7 @@ class PositionCalculator:
                     asset_patrimony=asset_patrimony,
                     savings_patrimony=savings_balances.get(period, Decimal("0")),
                     selic_patrimony=selic_balances.get(period, Decimal("0")),
+                    bitcoin_patrimony=bitcoin_balances.get(period, Decimal("0")),
                 )
             )
 

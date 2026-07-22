@@ -30,8 +30,10 @@ def settings() -> Settings:
         evolution_url="http://evolution.test",
         evolution_key="test-evo-key",
         evolution_instance="test",
-        owner_name="Diego",
+        owner_name="Diogo",
         rate_limit_per_minute=1000,
+        contact_kb_enabled=False,
+        lead_capture_enabled=False,
     )
 
 

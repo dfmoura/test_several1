@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { TooltipProps } from "recharts";
 import {
   Area,
@@ -23,6 +24,7 @@ interface Props {
 }
 
 interface ChartPoint {
+  period: string;
   label: string;
   invested: number;
   liquidated: number;
@@ -41,11 +43,22 @@ interface ChartPoint {
   asset_patrimony: number;
   savings_patrimony: number;
   selic_patrimony: number;
+  bitcoin_patrimony: number;
 }
 
 type FlowChartPoint = ChartPoint;
 
+interface IncomeChartPoint {
+  label: string;
+  income: number;
+  income_quantity: number;
+  income_unit_price: number | null;
+  income_avg_purchase_unit_price: number | null;
+}
+
 export function TickerModal({ ticker, onClose }: Props) {
+  const [groupIncomeByYear, setGroupIncomeByYear] = useState(false);
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ["timeline", ticker],
     queryFn: () => api.getTickerTimeline(ticker),
@@ -58,10 +71,27 @@ export function TickerModal({ ticker, onClose }: Props) {
       net_flow: point.invested - point.liquidated,
     })) ?? [];
 
+  const incomeChartData = useMemo(
+    () =>
+      groupIncomeByYear
+        ? aggregateIncomeByYear(chartData)
+        : chartData.map((point) => ({
+            label: point.label,
+            income: point.income,
+            income_quantity: point.income_quantity,
+            income_unit_price: point.income_unit_price,
+            income_avg_purchase_unit_price: point.income_avg_purchase_unit_price,
+          })),
+    [chartData, groupIncomeByYear],
+  );
+
   const savingsAdvantage = data?.comparison_advantage ?? 0;
   const selicAdvantage = data?.selic_advantage ?? 0;
   const savingsRate = data?.savings_monthly_rate_pct ?? 0.5;
   const selicRate = data?.selic_monthly_rate_pct ?? 0.85;
+  const bitcoinAdvantage = data?.bitcoin_advantage ?? 0;
+  const bitcoinRate = data?.bitcoin_monthly_rate_pct ?? 0;
+  const bitcoinAvailable = data?.bitcoin_available ?? false;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
@@ -100,6 +130,9 @@ export function TickerModal({ ticker, onClose }: Props) {
                 selicAdvantage={selicAdvantage}
                 savingsRate={savingsRate}
                 selicRate={selicRate}
+                bitcoinAdvantage={bitcoinAdvantage}
+                bitcoinRate={bitcoinRate}
+                bitcoinAvailable={bitcoinAvailable}
               />
 
               <ChartPanel
@@ -158,18 +191,44 @@ export function TickerModal({ ticker, onClose }: Props) {
               </ChartPanel>
 
               <ChartPanel
-                title="Proventos mensais"
-                subtitle="Distribuição de dividendos, JCP e rendimentos"
+                title={groupIncomeByYear ? "Proventos anuais" : "Proventos mensais"}
+                subtitle={
+                  groupIncomeByYear
+                    ? "Distribuição anual de dividendos, JCP e rendimentos"
+                    : "Distribuição de dividendos, JCP e rendimentos"
+                }
+                action={
+                  <label className="flex cursor-pointer items-center gap-2 select-none">
+                    <input
+                      type="checkbox"
+                      checked={groupIncomeByYear}
+                      onChange={(event) => setGroupIncomeByYear(event.target.checked)}
+                      className="h-4 w-4 rounded border-white/20 bg-surface-900 text-amber-400 accent-amber-400 focus:ring-amber-400/40"
+                    />
+                    <span className="text-sm text-slate-400 transition hover:text-slate-200">
+                      Agrupar por ano
+                    </span>
+                  </label>
+                }
               >
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={chartData}>
+                  <BarChart data={incomeChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#243352" />
                     <XAxis dataKey="label" stroke="#94a3b8" fontSize={12} />
                     <YAxis stroke="#94a3b8" fontSize={12} />
-                    <Tooltip content={<MonthlyIncomeTooltip />} />
+                    <Tooltip
+                      content={
+                        <IncomeTooltip
+                          periodLabel={groupIncomeByYear ? "Ano do provento" : "Data do provento"}
+                          valueLabel={
+                            groupIncomeByYear ? "Valor do ano" : "Valor do provento"
+                          }
+                        />
+                      }
+                    />
                     <Bar
                       dataKey="income"
-                      name="Proventos do mês"
+                      name={groupIncomeByYear ? "Proventos do ano" : "Proventos do mês"}
                       fill="#fbbf24"
                       radius={[4, 4, 0, 0]}
                     />
@@ -184,20 +243,80 @@ export function TickerModal({ ticker, onClose }: Props) {
   );
 }
 
+function aggregateIncomeByYear(points: ChartPoint[]): IncomeChartPoint[] {
+  type YearBucket = {
+    income: number;
+    income_quantity: number;
+    unitWeighted: number;
+    unitWeight: number;
+    avgPurchaseWeighted: number;
+    avgPurchaseWeight: number;
+  };
+
+  const byYear = new Map<string, YearBucket>();
+
+  for (const point of points) {
+    if (point.income <= 0) continue;
+
+    const year = point.period.slice(0, 4);
+    const bucket = byYear.get(year) ?? {
+      income: 0,
+      income_quantity: 0,
+      unitWeighted: 0,
+      unitWeight: 0,
+      avgPurchaseWeighted: 0,
+      avgPurchaseWeight: 0,
+    };
+
+    bucket.income += point.income;
+    bucket.income_quantity += point.income_quantity;
+
+    if (point.income_unit_price != null && point.income > 0) {
+      bucket.unitWeighted += point.income_unit_price * point.income;
+      bucket.unitWeight += point.income;
+    }
+    if (point.income_avg_purchase_unit_price != null && point.income > 0) {
+      bucket.avgPurchaseWeighted += point.income_avg_purchase_unit_price * point.income;
+      bucket.avgPurchaseWeight += point.income;
+    }
+
+    byYear.set(year, bucket);
+  }
+
+  return Array.from(byYear.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([year, bucket]) => ({
+      label: year,
+      income: bucket.income,
+      income_quantity: bucket.income_quantity,
+      income_unit_price:
+        bucket.unitWeight > 0 ? bucket.unitWeighted / bucket.unitWeight : null,
+      income_avg_purchase_unit_price:
+        bucket.avgPurchaseWeight > 0
+          ? bucket.avgPurchaseWeighted / bucket.avgPurchaseWeight
+          : null,
+    }));
+}
+
 function ChartPanel({
   title,
   subtitle,
+  action,
   children,
 }: {
   title: string;
   subtitle: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="rounded-2xl border border-white/5 bg-surface-900/60 p-5">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
-        <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>
+        </div>
+        {action}
       </div>
       {children}
     </section>
@@ -278,10 +397,19 @@ function CumulativeIncomeTooltip({ active, payload, label }: TooltipProps<number
   );
 }
 
-function MonthlyIncomeTooltip({ active, payload, label }: TooltipProps<number, string>) {
+function IncomeTooltip({
+  active,
+  payload,
+  label,
+  periodLabel,
+  valueLabel,
+}: TooltipProps<number, string> & {
+  periodLabel: string;
+  valueLabel: string;
+}) {
   if (!active || !payload?.length) return null;
 
-  const point = payload[0].payload as ChartPoint;
+  const point = payload[0].payload as IncomeChartPoint;
   if (point.income <= 0) return null;
 
   const dividendUnitPrice = point.income_unit_price;
@@ -297,8 +425,8 @@ function MonthlyIncomeTooltip({ active, payload, label }: TooltipProps<number, s
   return (
     <TooltipShell
       rows={[
-        { label: "Data do provento", value: label ?? "—" },
-        { label: "Valor do provento", value: formatCurrency(point.income), color: "#fbbf24" },
+        { label: periodLabel, value: label ?? "—" },
+        { label: valueLabel, value: formatCurrency(point.income), color: "#fbbf24" },
         {
           label: "Valor unitário do provento",
           value: formatCurrency(dividendUnitPrice, 4),

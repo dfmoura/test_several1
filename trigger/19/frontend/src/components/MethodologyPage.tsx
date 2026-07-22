@@ -292,14 +292,15 @@ export function MethodologyPage({ onBack }: Props) {
 
         <Section
           icon={<LineChart size={18} />}
-          title="7. Benchmarks: poupança e Selic"
-          subtitle="Taxas mensais oficiais do Banco Central (SGS)"
+          title="7. Benchmarks: poupança, Selic e Bitcoin"
+          subtitle="Renda fixa (Banco Central) e ativo de risco (BTC/BRL)"
         >
           <p>
-            Para responder “e se o mesmo dinheiro tivesse ido para renda fixa?”, o
-            sistema simula dois cenários com os{" "}
-            <strong>mesmos fluxos mensais de aporte e resgate</strong> do ativo,
-            usando as taxas mensais publicadas pelo Banco Central:
+            Para responder “e se o mesmo dinheiro tivesse ido para outro lugar?”, o
+            sistema simula cenários alternativos com os{" "}
+            <strong>mesmos fluxos mensais de aporte e resgate</strong> do ativo. Os
+            dois primeiros usam as taxas mensais publicadas pelo Banco Central; o
+            terceiro reavalia o saldo pela cotação do Bitcoin:
           </p>
           <MetricList
             items={[
@@ -314,18 +315,28 @@ export function MethodologyPage({ onBack }: Props) {
                 detail: "Série SGS 4391 — Selic acumulada no mês (% a.m.).",
                 formula: "taxa_mês = valor_BCB ÷ 100",
               },
+              {
+                name: "Bitcoin (BTC/BRL)",
+                detail:
+                  "Preço de fechamento mensal do Bitcoin em reais (Yahoo Finance, com fallback CoinGecko). O saldo varia conforme a valorização/desvalorização do BTC entre os meses.",
+                formula: "variação_mês = preço_atual ÷ preço_anterior",
+              },
             ]}
           />
           <p className="mt-4">
-            Em cada mês, o saldo simulado é atualizado nesta ordem:
+            Em cada mês, o saldo simulado de renda fixa é atualizado nesta ordem:
           </p>
           <FormulaBlock
-            title="Saldo mensal simulado"
+            title="Saldo mensal (poupança / Selic)"
             formula="saldo = saldo_anterior × (1 + taxa_mensal_BCB) + investido_mês − liquidado_mês"
+          />
+          <FormulaBlock
+            title="Saldo mensal (Bitcoin)"
+            formula="saldo = saldo_anterior × (preço_BTC_atual ÷ preço_BTC_anterior) + investido_mês − liquidado_mês"
           />
           <ul className="mt-4 list-disc space-y-2 pl-5 text-slate-300">
             <li>
-              O rendimento do mês incide sobre o saldo existente{" "}
+              O rendimento (ou a variação do BTC) incide sobre o saldo existente{" "}
               <em>antes</em> de aplicar o fluxo do mês.
             </li>
             <li>
@@ -338,6 +349,10 @@ export function MethodologyPage({ onBack }: Props) {
             <li>
               Se a API do BCB estiver indisponível, o sistema usa taxas de fallback
               (poupança 0,50% a.m.; Selic 0,85% a.m.).
+            </li>
+            <li>
+              Se a cotação do Bitcoin não puder ser obtida, a série de BTC é
+              simplesmente omitida do gráfico — os demais benchmarks continuam.
             </li>
           </ul>
         </Section>
@@ -360,10 +375,15 @@ export function MethodologyPage({ onBack }: Props) {
             title="Vantagem"
             formula="vantagem_poupança = patrimônio_ativo − patrimônio_poupança"
           />
+          <FormulaBlock
+            title="Vantagem"
+            formula="vantagem_Bitcoin = patrimônio_ativo − patrimônio_Bitcoin"
+          />
           <p className="mt-4">
             Valores positivos (badge verde) indicam que o investimento superou o
             benchmark; valores negativos (badge laranja) indicam desempenho abaixo
-            da referência no período analisado.
+            da referência no período analisado. A vantagem sobre o Bitcoin só
+            aparece quando há cotação disponível para o período.
           </p>
         </Section>
 
@@ -389,9 +409,9 @@ export function MethodologyPage({ onBack }: Props) {
               {
                 name: "Proventos mensais",
                 detail:
-                  "Valor creditado em cada mês. O tooltip calcula o yield do provento em relação ao preço médio de compra vigente nos eventos de provento.",
+                  "Valor creditado em cada mês (padrão). Com a flag “Agrupar por ano”, soma os proventos do calendário. O tooltip calcula o yield em relação ao preço médio de compra vigente nos eventos de provento (ponderado pelo valor no período).",
                 formula:
-                  "yield_mês = preço_unitário_provento ÷ preço_médio_compra_ponderado",
+                  "yield = preço_unitário_provento ÷ preço_médio_compra_ponderado",
               },
             ]}
           />
@@ -421,8 +441,8 @@ export function MethodologyPage({ onBack }: Props) {
               (no mês atual) ou da base de custo (meses anteriores).
             </li>
             <li>
-              Poupança e Selic usam os fluxos consolidados de aporte e resgate de
-              toda a carteira.
+              Poupança, Selic e Bitcoin usam os fluxos consolidados de aporte e
+              resgate de toda a carteira.
             </li>
           </ul>
         </Section>
@@ -484,7 +504,7 @@ function IntroCard() {
         Esta página descreve, em detalhe, todas as fórmulas e regras usadas pelo{" "}
         <strong className="text-white">B3 Dashboard</strong> para reconstruir sua
         carteira a partir do extrato de movimentação, calcular proventos, marcar
-        posições a mercado e comparar o resultado com poupança e Selic.
+        posições a mercado e comparar o resultado com poupança, Selic e Bitcoin.
       </p>
       <p className="mt-3 text-sm leading-relaxed text-slate-400">
         Nada aqui altera os números exibidos no dashboard — é apenas a documentação

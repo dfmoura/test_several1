@@ -1,0 +1,18 @@
+https://retaetiquetas.com.br/
+
+
+
+popup de fazer um orçamento com erro:
+https://retaetiquetas.com.br/#ts-button-popup-2
+
+
+botões de 'SOLICITAR ORÇAMENTO' estão com erro:
+https://orcamento.retaetiquetas.com.br/
+
+Server Not Found
+Firefox can’t connect to the server at orcamento.retaetiquetas.com.br.
+What can you do about it?
+Try connecting on a different device. Check your modem or router. Disconnect and reconnect to Wi-Fi.
+
+
+

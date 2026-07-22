@@ -15,6 +15,7 @@ _STATIC_ADMIN = Path(__file__).resolve().parents[2] / "static" / "admin" / "inde
 class AdminMeta(BaseModel):
     admin_ui_enabled: bool
     contact_kb_enabled: bool
+    lead_capture_enabled: bool
     owner_name: str
 
 
@@ -26,6 +27,7 @@ async def admin_meta() -> AdminMeta:
     return AdminMeta(
         admin_ui_enabled=settings.admin_ui_enabled,
         contact_kb_enabled=settings.contact_kb_enabled,
+        lead_capture_enabled=settings.lead_capture_enabled,
         owner_name=settings.owner_name,
     )
 

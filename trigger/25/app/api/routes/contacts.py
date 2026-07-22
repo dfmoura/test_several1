@@ -15,6 +15,12 @@ def _to_out(user) -> ContactProfileOut:
         name=user.name,
         relation=user.relation,
         notes=user.notes,
+        lead_status=user.lead_status,
+        lead_segment=user.lead_segment,
+        lead_system=user.lead_system,
+        lead_need=user.lead_need,
+        lead_next_step=user.lead_next_step,
+        lead_updated_at=user.lead_updated_at,
     )
 
 
@@ -58,5 +64,10 @@ async def upsert_contact_profile(
         name=body.name,
         relation=body.relation,
         notes=body.notes,
+        lead_status=body.lead_status,
+        lead_segment=body.lead_segment,
+        lead_system=body.lead_system,
+        lead_need=body.lead_need,
+        lead_next_step=body.lead_next_step,
     )
     return _to_out(user)

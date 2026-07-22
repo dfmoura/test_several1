@@ -11,8 +11,10 @@ from app.prompts.loader import PromptLoader, get_prompt_loader
 from app.schemas.message import ChatMessage
 from app.schemas.webhook import IncomingMessage
 from app.services.conversation_service import ConversationService
+from app.services.lead_service import LeadExtractor
+from app.services.market_service import MarketService
 from app.services.user_service import UserService
-from app.utils.contact_profile import format_contact_profile
+from app.utils.contact_profile import format_contact_profile, format_lead_context
 
 logger = get_logger(__name__)
 
@@ -28,6 +30,7 @@ class ChatService:
         evolution: EvolutionClient | None = None,
         memory: ContextMemory | None = None,
         prompts: PromptLoader | None = None,
+        market: MarketService | None = None,
         settings: Settings | None = None,
     ) -> None:
         self._session = session
@@ -40,6 +43,13 @@ class ChatService:
         self._prompts = prompts or get_prompt_loader()
         self._owns_ai = ai is None
         self._owns_evolution = evolution is None
+        self._owns_market = market is None
+        if market is not None:
+            self._market: MarketService | None = market
+        elif self._settings.market_enabled:
+            self._market = MarketService(settings=self._settings)
+        else:
+            self._market = None
 
     async def handle_incoming(self, incoming: IncomingMessage) -> str | None:
         metrics_store.incr_received()
@@ -84,11 +94,40 @@ class ChatService:
                 )
                 contact_profile = ""
 
+        if self._settings.lead_capture_enabled:
+            try:
+                lead_block = format_lead_context(
+                    segment=user.lead_segment,
+                    system=user.lead_system,
+                    need=user.lead_need,
+                    next_step=user.lead_next_step,
+                    status=user.lead_status,
+                )
+                if lead_block:
+                    contact_profile = (
+                        f"{contact_profile}\n\n{lead_block}".strip()
+                        if contact_profile
+                        else lead_block
+                    )
+            except Exception:
+                logger.exception("lead_context_skipped", phone=incoming.phone)
+
+        market_context = ""
+        if self._market is not None:
+            try:
+                quotes = await self._market.quotes_for_text(text)
+                market_context = self._market.format_for_prompt(quotes)
+            except Exception:
+                # Fail-open: market data is a bonus, never block a reply.
+                logger.exception("market_context_skipped", phone=incoming.phone)
+                market_context = ""
+
         system_prompt = self._prompts.build_system_prompt(
             owner_name=self._settings.owner_name,
             user_name=user.name or incoming.name,
             summary=context.summary,
             contact_profile=contact_profile,
+            market_context=market_context,
         )
 
         history: list[ChatMessage] = list(context.messages)
@@ -124,10 +163,45 @@ class ChatService:
             latency_ms=ai_result.latency_ms,
             tokens=ai_result.total_tokens,
         )
+
+        if self._settings.lead_capture_enabled:
+            # Best-effort: runs after the reply is sent, never blocks it.
+            try:
+                await self._capture_lead(user.phone, history, reply)
+            except Exception:
+                logger.exception("lead_capture_skipped", phone=incoming.phone)
+
         return reply
+
+    async def _capture_lead(
+        self,
+        phone: str,
+        history: list[ChatMessage],
+        reply: str,
+    ) -> None:
+        extractor = LeadExtractor(self._ai)
+        info = await extractor.extract(
+            history=history,
+            reply=reply,
+            owner_name=self._settings.owner_name,
+        )
+        if info is None or not info.eh_lead or not info.has_content():
+            return
+
+        await self._users.update_lead(
+            phone,
+            status=info.status,
+            segment=info.segmento,
+            system=info.sistema_atual,
+            need=info.necessidade,
+            next_step=info.proximo_passo,
+        )
+        logger.info("lead_captured", phone=phone, status=info.status or "n/a")
 
     async def close(self) -> None:
         if self._owns_ai:
             await self._ai.close()
         if self._owns_evolution:
             await self._evolution.close()
+        if self._owns_market and self._market is not None:
+            await self._market.close()

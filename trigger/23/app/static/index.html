@@ -212,6 +212,13 @@
               <label class="field" hidden><span>Quadrimestre</span><select id="dash-filtro-quadrimestre"><option value="">Selecione</option><option value="1">1º · jan–abr</option><option value="2">2º · mai–ago</option><option value="3">3º · set–dez</option></select></label>
               <label class="field" hidden><span>Data inicial</span><input type="date" id="dash-filtro-data-inicial" /></label>
               <label class="field" hidden><span>Data final</span><input type="date" id="dash-filtro-data-final" /></label>
+              <div class="field field-wide">
+                <span>Power BI · data de referência</span>
+                <label class="chk-label" title="Quando a data de abertura estiver vazia, o filtro do Power BI usa a data de homologação">
+                  <input type="checkbox" id="dash-filtro-fallback-homologacao" checked />
+                  Sem abertura → usar homologação
+                </label>
+              </div>
               <label class="field">
                 <span>Órgão consolidado</span>
                 <select id="dash-filtro-orgao"><option value="">Todos</option></select>
@@ -508,6 +515,13 @@
               <label class="field" hidden><span>Quadrimestre</span><select id="cp-filtro-quadrimestre"><option value="">Selecione</option><option value="1">1º · jan–abr</option><option value="2">2º · mai–ago</option><option value="3">3º · set–dez</option></select></label>
               <label class="field" hidden><span>Data inicial</span><input type="date" id="cp-filtro-data-inicial" /></label>
               <label class="field" hidden><span>Data final</span><input type="date" id="cp-filtro-data-final" /></label>
+              <div class="field field-wide">
+                <span>Power BI · data de referência</span>
+                <label class="chk-label" title="Quando a data de abertura estiver vazia, o filtro do Power BI usa a data de homologação">
+                  <input type="checkbox" id="cp-filtro-fallback-homologacao" checked />
+                  Sem abertura → usar homologação
+                </label>
+              </div>
               <label class="field">
                 <span>Órgão consolidado</span>
                 <select id="cp-filtro-orgao"><option value="">Todos</option></select>
@@ -775,15 +789,23 @@
             <form id="form-pbi-filtros" class="filters-grid">
               <div class="pbi-filtros-dataset" data-dataset="licitacoes">
                 <label class="field"><span>Período</span><select id="pbi-lic-filtro-periodo"><option value="ano">Ano</option><option value="quadrimestre">Quadrimestre</option><option value="intervalo">Intervalo</option></select></label>
-                <label class="field"><span>Ano de homologação</span><select id="pbi-lic-filtro-ano"><option value="">Todos</option></select></label>
+                <label class="field"><span>Ano de abertura</span><select id="pbi-lic-filtro-ano"><option value="">Todos</option></select></label>
                 <label class="field" hidden><span>Quadrimestre</span><select id="pbi-lic-filtro-quadrimestre"><option value="">Selecione</option><option value="1">1º · jan–abr</option><option value="2">2º · mai–ago</option><option value="3">3º · set–dez</option></select></label>
                 <label class="field" hidden><span>Data inicial</span><input type="date" id="pbi-lic-filtro-data-inicial" /></label>
                 <label class="field" hidden><span>Data final</span><input type="date" id="pbi-lic-filtro-data-final" /></label>
+                <div class="field field-wide">
+                  <span>Data de referência</span>
+                  <label class="chk-label" title="Quando a data de abertura estiver vazia, o filtro usa a data de homologação">
+                    <input type="checkbox" id="pbi-lic-filtro-fallback-homologacao" checked />
+                    Sem abertura → usar homologação
+                  </label>
+                </div>
                 <label class="field"><span>Empresa</span><select id="pbi-filtro-lic-empresa"><option value="">Todas</option></select></label>
+                <label class="field"><span>Solicitante</span><select id="pbi-filtro-lic-solicitante"><option value="">Todos</option></select></label>
                 <label class="field"><span>Situação</span><select id="pbi-filtro-lic-situacao"><option value="">Todas</option></select></label>
                 <label class="field"><span>Modalidade</span><div id="pbi-filtro-lic-modalidade" class="ms" data-placeholder="Todas"></div></label>
                 <label class="field"><span>Processo</span><input type="text" id="pbi-filtro-lic-processo" autocomplete="off" /></label>
-                <label class="field field-wide"><span>Busca</span><input type="text" id="pbi-filtro-lic-texto" placeholder="Objeto, solicitante, empresa…" /></label>
+                <label class="field field-wide"><span>Busca</span><input type="text" id="pbi-filtro-lic-texto" placeholder="Objeto, empresa…" /></label>
               </div>
               <div class="pbi-filtros-dataset" data-dataset="contratos" hidden>
                 <label class="field"><span>Ano contrato</span><select id="pbi-filtro-con-ano"><option value="">Todos</option></select></label>
@@ -1523,13 +1545,13 @@
   <script src="/static/shell.js?v=osb11"></script>
   <script src="/static/auth.js?v=osb2"></script>
   <script src="/static/coleta.js?v=osb4"></script>
-  <script src="/static/dashboard.js?v=osb6"></script>
+  <script src="/static/dashboard.js?v=osb7"></script>
   <script src="/static/localidade.js?v=osb5"></script>
-  <script src="/static/consulta_processo.js?v=osb8"></script>
+  <script src="/static/consulta_processo.js?v=osb9"></script>
   <script src="/static/propostas_abertas.js?v=osb12"></script>
   <script src="/static/compras.js?v=osb11"></script>
   <script src="/static/vencedores_cnpj.js?v=osb8"></script>
-  <script src="/static/powerbi.js?v=osb6"></script>
+  <script src="/static/powerbi.js?v=osb7"></script>
   <script src="/static/orgaos.js?v=osb4"></script>
   <script src="/static/modalidades.js?v=osb4"></script>
   <script src="/static/observadores.js?v=osb4"></script>

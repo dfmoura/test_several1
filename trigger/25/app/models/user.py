@@ -19,6 +19,18 @@ class User(Base):
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     relation: Mapped[str | None] = mapped_column(String(64), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # Lead qualification (filled automatically from the conversation).
+    lead_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    lead_segment: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    lead_system: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    lead_need: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    lead_next_step: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    lead_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

@@ -40,6 +40,7 @@ export interface TimelinePoint {
   asset_patrimony: number;
   savings_patrimony: number;
   selic_patrimony: number;
+  bitcoin_patrimony: number;
 }
 
 export interface TickerDetail {
@@ -49,6 +50,9 @@ export interface TickerDetail {
   selic_advantage: number;
   savings_monthly_rate_pct: number;
   selic_monthly_rate_pct: number;
+  bitcoin_advantage: number;
+  bitcoin_monthly_rate_pct: number;
+  bitcoin_available: boolean;
 }
 
 export interface PortfolioComparisonPoint {
@@ -56,6 +60,7 @@ export interface PortfolioComparisonPoint {
   asset_patrimony: number;
   savings_patrimony: number;
   selic_patrimony: number;
+  bitcoin_patrimony: number;
 }
 
 export interface PortfolioComparison {
@@ -64,6 +69,9 @@ export interface PortfolioComparison {
   selic_advantage: number;
   savings_monthly_rate_pct: number;
   selic_monthly_rate_pct: number;
+  bitcoin_advantage: number;
+  bitcoin_monthly_rate_pct: number;
+  bitcoin_available: boolean;
 }
 
 export interface ImportResult {

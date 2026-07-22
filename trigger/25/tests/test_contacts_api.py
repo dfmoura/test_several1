@@ -51,7 +51,7 @@ async def test_admin_page_and_meta(api_client: AsyncClient) -> None:
     page = await api_client.get("/admin")
     assert page.status_code == 200
     assert "text/html" in page.headers["content-type"]
-    assert "Perfis por contato" in page.text
+    assert "Contatos e leads" in page.text
 
 
 @pytest.mark.asyncio
