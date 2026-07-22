@@ -10,7 +10,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.backup_ops import criar_backup, podar_backups
-from app.compras.normalizers import normalizar_codigo_uasg
+from app.compras.normalizers import normalizar_codigo_uasg, normalizar_ni
 from app.config import DATA_DIR, DB_PATH
 from app.database import (
     CompraContratacao,
@@ -19,6 +19,17 @@ from app.database import (
     SistemaConfig,
     SistemaUnidadeCompradora,
     get_db,
+)
+from app.origem_sistema import (
+    aderir_uasgs_ao_setup,
+    atualizar_raiz,
+    cadastrar_raiz,
+    catalogo_para_api,
+    consultar_cnpj_raiz,
+    listar_catalogo_uasgs,
+    obter_raiz,
+    raiz_para_api,
+    sincronizar_uasgs_municipio,
 )
 from app.unidades_compradoras import (
     listar_unidades,
@@ -61,7 +72,9 @@ _TABELAS_PRESERVADAS: tuple[str, ...] = (
     "modalidades_consolidadas",
     "modalidades_vinculos",
     "sistema_config",
+    "sistema_raiz",
     "sistema_unidades_compradoras",
+    "sistema_uasgs_municipio",
     "usuarios",
     "sessoes",
     "agendamento_config",
@@ -302,6 +315,106 @@ def backup_dados(
         caminho=str(pasta),
         removidos=[str(p) for p in removidas],
     )
+
+
+# --- Raiz do sistema (CNPJ único + localidade IBGE) ---
+
+
+class RaizCnpjIn(BaseModel):
+    cnpj: str = Field(min_length=14, max_length=18)
+
+
+class AderirUasgsIn(BaseModel):
+    codigos: list[str] = Field(min_length=1)
+
+
+@router.get("/raiz")
+def obter_sistema_raiz(db: Session = Depends(get_db)) -> dict:
+    """Retorna a raiz cadastrada ou defaults do env (contingência)."""
+    return raiz_para_api(obter_raiz(db))
+
+
+@router.post("/raiz/consultar")
+def consultar_raiz_cnpj(body: RaizCnpjIn) -> dict:
+    """Consulta APIs públicas de CNPJ sem persistir (pré-visualização)."""
+    ni = normalizar_ni(body.cnpj)
+    if not ni or len(ni) != 14:
+        raise HTTPException(400, "Informe um CNPJ válido (14 dígitos)")
+    try:
+        preview = consultar_cnpj_raiz(ni)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    preview.pop("_mapped", None)
+    return {"ok": True, "preview": preview}
+
+
+@router.post("/raiz", status_code=201)
+def criar_sistema_raiz(body: RaizCnpjIn, db: Session = Depends(get_db)) -> dict:
+    """Cadastra a raiz uma única vez, preenchendo via APIs públicas de CNPJ."""
+    ni = normalizar_ni(body.cnpj)
+    if not ni or len(ni) != 14:
+        raise HTTPException(400, "Informe um CNPJ válido (14 dígitos)")
+    try:
+        row = cadastrar_raiz(db, ni)
+    except ValueError as exc:
+        msg = str(exc)
+        if "já está cadastrada" in msg:
+            raise HTTPException(409, msg) from exc
+        raise HTTPException(400, msg) from exc
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    return raiz_para_api(row)
+
+
+@router.post("/raiz/atualizar")
+def atualizar_sistema_raiz(db: Session = Depends(get_db)) -> dict:
+    """Reconsulta APIs públicas e atualiza dados da raiz (mesmo CNPJ)."""
+    try:
+        row = atualizar_raiz(db)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    return raiz_para_api(row)
+
+
+@router.get("/uasgs-municipio")
+def listar_uasgs_municipio(db: Session = Depends(get_db)) -> dict:
+    """Catálogo de UASGs do município da raiz + flag de adesão no Setup."""
+    rows = listar_catalogo_uasgs(db)
+    return {
+        "items": catalogo_para_api(db, rows),
+        "total": len(rows),
+    }
+
+
+@router.post("/uasgs-municipio/sincronizar")
+def sincronizar_uasgs_do_municipio(db: Session = Depends(get_db)) -> dict:
+    """Sincroniza o catálogo municipal via API Compras.gov (filtro IBGE/UF da raiz)."""
+    try:
+        return sincronizar_uasgs_municipio(db)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc)) from exc
+
+
+@router.post("/uasgs-municipio/aderir")
+def aderir_uasgs_municipio(body: AderirUasgsIn, db: Session = Depends(get_db)) -> dict:
+    """Inclui UASGs do catálogo na flag do Setup (sistema_unidades_compradoras)."""
+    if not body.codigos:
+        raise HTTPException(400, "Informe ao menos um código UASG")
+    return aderir_uasgs_ao_setup(db, body.codigos)
 
 
 # --- UASGs / unidades compradoras (Compras.gov) ---

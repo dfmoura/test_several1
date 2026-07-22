@@ -37,10 +37,12 @@ function renderSetupStatus(status) {
   const comDados = status.contagem.filter((c) => c.registros > 0);
   const coleta = status.contagem.filter((c) => !status.tabelas_preservadas.includes(c.tabela) && c.registros > 0);
   const uasgs = status.contagem.find((c) => c.tabela === "sistema_unidades_compradoras");
+  const raiz = status.contagem.find((c) => c.tabela === "sistema_raiz");
   el.innerHTML = `
     <div class="setup-stat"><span class="setup-stat-label">Banco de dados</span><strong>${status.banco_mb} MB</strong></div>
     <div class="setup-stat"><span class="setup-stat-label">Ano inicial configurado</span><strong>${cfg.ano_inicial_coleta ?? "Não definido"}</strong></div>
     <div class="setup-stat"><span class="setup-stat-label">Anos de coleta</span><strong>${anosColetaTexto(cfg.anos_coleta)}</strong></div>
+    <div class="setup-stat"><span class="setup-stat-label">Raiz cadastrada</span><strong>${raiz && raiz.registros > 0 ? "Sim" : "Não"}</strong></div>
     <div class="setup-stat"><span class="setup-stat-label">UASGs cadastradas</span><strong>${uasgs ? fmtNum(uasgs.registros) : "—"}</strong></div>
     <div class="setup-stat"><span class="setup-stat-label">Registros coletados</span><strong>${fmtNum(coleta.reduce((s, c) => s + c.registros, 0))}</strong></div>
     <div class="setup-stat setup-stat-wide"><span class="setup-stat-label">Tabelas com dados</span>
@@ -63,6 +65,258 @@ function atualizarPreviewAnos() {
 }
 
 /* ---------------------------- UASGs / unidades compradoras ---------------------------- */
+
+function formatarCnpjExibicao(cnpj) {
+  const d = String(cnpj || "").replace(/\D/g, "");
+  if (d.length !== 14) return cnpj || "—";
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+}
+
+function setupRaizMsg(texto, ok) {
+  const msg = $("#setup-raiz-msg");
+  if (!msg) return;
+  msg.textContent = texto || "";
+  msg.className = texto ? `meta-line ${ok ? "ok" : "err"}` : "meta-line";
+}
+
+function setupUasgCatMsg(texto, ok) {
+  const msg = $("#setup-uasg-cat-msg");
+  if (!msg) return;
+  msg.textContent = texto || "";
+  msg.className = texto ? `meta-line ${ok ? "ok" : "err"}` : "meta-line";
+}
+
+function renderSetupRaiz(data) {
+  const box = $("#setup-raiz-dados");
+  const btnSalvar = $("#btn-setup-raiz-salvar");
+  const btnAtualizar = $("#btn-setup-raiz-atualizar");
+  const btnSync = $("#btn-setup-uasg-sync");
+  const input = $("#setup-raiz-cnpj");
+  if (!box) return;
+
+  const raiz = data?.raiz;
+  const env = data?.defaults_env || {};
+  const cadastrada = Boolean(data?.cadastrada && raiz);
+
+  if (btnSalvar) btnSalvar.hidden = cadastrada;
+  if (btnAtualizar) btnAtualizar.hidden = !cadastrada;
+  if (btnSync) btnSync.disabled = !(cadastrada && raiz?.codigo_municipio_ibge);
+  if (input) {
+    input.readOnly = cadastrada;
+    if (cadastrada) input.value = formatarCnpjExibicao(raiz.cnpj);
+    else if (!input.value && env.cnpj) input.placeholder = `Ex.: ${formatarCnpjExibicao(env.cnpj)}`;
+  }
+
+  if (!cadastrada) {
+    box.innerHTML = `
+      <p class="muted small">
+        Nenhuma raiz cadastrada. Informe o CNPJ do órgão no topo da ramificação
+        e use <strong>Consultar</strong> / <strong>Cadastrar raiz</strong>.
+        Contingência atual (env): IBGE <code>${esc(String(env.codigo_municipio_ibge ?? "—"))}</code>
+        · UF <code>${esc(env.uf || "—")}</code>
+        ${env.cnpj ? `· CNPJ sugerido <code>${esc(formatarCnpjExibicao(env.cnpj))}</code>` : ""}.
+      </p>`;
+    return;
+  }
+
+  const end = [raiz.logradouro, raiz.numero, raiz.bairro, raiz.cep].filter(Boolean).join(", ");
+  box.innerHTML = `
+    <dl class="setup-raiz-grid">
+      <div><dt>CNPJ</dt><dd><code>${esc(formatarCnpjExibicao(raiz.cnpj))}</code></dd></div>
+      <div><dt>Razão social</dt><dd>${esc(raiz.razao_social || "—")}</dd></div>
+      <div><dt>Nome fantasia</dt><dd>${esc(raiz.nome_fantasia || "—")}</dd></div>
+      <div><dt>Situação</dt><dd>${esc(raiz.situacao_cadastral || "—")}</dd></div>
+      <div><dt>Município (origem)</dt><dd>${esc(raiz.nome_municipio || "—")} / ${esc(raiz.uf || "—")}</dd></div>
+      <div><dt>Código IBGE</dt><dd><code>${esc(String(raiz.codigo_municipio_ibge ?? "—"))}</code></dd></div>
+      <div><dt>Endereço</dt><dd>${esc(end || "—")}</dd></div>
+      <div><dt>Fonte CNPJ</dt><dd>${esc(raiz.fonte_cnpj || "—")}</dd></div>
+    </dl>`;
+}
+
+async function carregarSetupRaiz() {
+  const box = $("#setup-raiz-dados");
+  if (!box) return null;
+  try {
+    const data = await api("/api/sistema/raiz");
+    renderSetupRaiz(data);
+    return data;
+  } catch (err) {
+    box.innerHTML = `<p class="err">${esc(err.message)}</p>`;
+    return null;
+  }
+}
+
+async function consultarSetupRaiz() {
+  const cnpj = $("#setup-raiz-cnpj")?.value?.trim() || "";
+  const btn = $("#btn-setup-raiz-consultar");
+  if (!cnpj) return;
+  btn.disabled = true;
+  setupRaizMsg("Consultando APIs públicas…", true);
+  try {
+    const res = await api("/api/sistema/raiz/consultar", {
+      method: "POST",
+      body: JSON.stringify({ cnpj }),
+    });
+    const p = res.preview || {};
+    const box = $("#setup-raiz-dados");
+    if (box) {
+      box.innerHTML = `
+        <p class="muted small">Pré-visualização (ainda não salva):</p>
+        <dl class="setup-raiz-grid">
+          <div><dt>CNPJ</dt><dd><code>${esc(formatarCnpjExibicao(p.cnpj))}</code></dd></div>
+          <div><dt>Razão social</dt><dd>${esc(p.razao_social || "—")}</dd></div>
+          <div><dt>Município</dt><dd>${esc(p.nome_municipio || "—")} / ${esc(p.uf || "—")}</dd></div>
+          <div><dt>Código IBGE</dt><dd><code>${esc(String(p.codigo_municipio_ibge ?? "—"))}</code></dd></div>
+          <div><dt>Situação</dt><dd>${esc(p.situacao_cadastral || "—")}</dd></div>
+          <div><dt>Fonte</dt><dd>${esc(p.fonte_cnpj || "—")}</dd></div>
+        </dl>`;
+    }
+    setupRaizMsg("Consulta OK. Confirme com “Cadastrar raiz”.", true);
+  } catch (err) {
+    setupRaizMsg(err.message, false);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function cadastrarSetupRaiz(e) {
+  e.preventDefault();
+  const cnpj = $("#setup-raiz-cnpj")?.value?.trim() || "";
+  const btn = $("#btn-setup-raiz-salvar");
+  if (!cnpj) return;
+  btn.disabled = true;
+  setupRaizMsg("Cadastrando raiz…", true);
+  try {
+    const data = await api("/api/sistema/raiz", {
+      method: "POST",
+      body: JSON.stringify({ cnpj }),
+    });
+    renderSetupRaiz(data);
+    setupRaizMsg("Raiz cadastrada com sucesso.", true);
+    await carregarSetupUasgCatalogo();
+    await carregarSetup();
+  } catch (err) {
+    setupRaizMsg(err.message, false);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function atualizarSetupRaiz() {
+  const btn = $("#btn-setup-raiz-atualizar");
+  btn.disabled = true;
+  setupRaizMsg("Atualizando dados via API pública…", true);
+  try {
+    const data = await api("/api/sistema/raiz/atualizar", { method: "POST", body: "{}" });
+    renderSetupRaiz(data);
+    setupRaizMsg("Dados da raiz atualizados.", true);
+  } catch (err) {
+    setupRaizMsg(err.message, false);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function carregarSetupUasgCatalogo() {
+  const tb = $("#tabela-setup-uasg-catalogo");
+  const btnAderir = $("#btn-setup-uasg-aderir");
+  if (!tb) return;
+  tb.innerHTML = '<tr><td colspan="5">Carregando…</td></tr>';
+  try {
+    const res = await api("/api/sistema/uasgs-municipio");
+    const items = res.items || [];
+    if (btnAderir) btnAderir.disabled = !items.some((i) => !i.no_setup || !i.ativo_setup);
+    if (!items.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="muted">Nenhuma UASG no catálogo. Use “Sincronizar UASGs do município”.</td></tr>';
+      return;
+    }
+    tb.innerHTML = items.map((u) => {
+      const noSetupAtiva = u.no_setup && u.ativo_setup;
+      const status = noSetupAtiva
+        ? '<span class="badge ok">Ativa no Setup</span>'
+        : u.no_setup
+          ? '<span class="badge">Inativa no Setup</span>'
+          : '<span class="badge">Disponível</span>';
+      const disabled = noSetupAtiva ? "disabled" : "";
+      return `
+        <tr data-codigo="${esc(u.codigo_uasg)}">
+          <td><input type="checkbox" class="setup-uasg-cat-check" value="${esc(u.codigo_uasg)}" ${disabled} aria-label="Selecionar UASG ${esc(u.codigo_uasg)}" /></td>
+          <td><code>${esc(u.codigo_uasg)}</code></td>
+          <td>${esc(u.nome_uasg || "—")}</td>
+          <td>${status}</td>
+          <td class="setup-uasg-acoes">
+            ${noSetupAtiva ? "—" : `<button type="button" class="btn btn-sm" data-acao-cat="aderir" data-codigo="${esc(u.codigo_uasg)}">Incluir</button>`}
+          </td>
+        </tr>`;
+    }).join("");
+  } catch (err) {
+    tb.innerHTML = `<tr><td colspan="5" class="err">${esc(err.message)}</td></tr>`;
+    if (btnAderir) btnAderir.disabled = true;
+  }
+}
+
+async function sincronizarSetupUasgCatalogo() {
+  const btn = $("#btn-setup-uasg-sync");
+  btn.disabled = true;
+  setupUasgCatMsg("Sincronizando com Compras.gov…", true);
+  try {
+    const res = await api("/api/sistema/uasgs-municipio/sincronizar", {
+      method: "POST",
+      body: "{}",
+    });
+    setupUasgCatMsg(
+      `Catálogo atualizado: ${fmtNum(res.total_catalogo)} UASG(s) · IBGE ${esc(String(res.codigo_municipio_ibge))} / ${esc(res.uf)}.`,
+      true,
+    );
+    await carregarSetupUasgCatalogo();
+  } catch (err) {
+    setupUasgCatMsg(err.message, false);
+  } finally {
+    const raiz = await carregarSetupRaiz();
+    btn.disabled = !(raiz?.cadastrada && raiz?.raiz?.codigo_municipio_ibge);
+  }
+}
+
+async function aderirSetupUasgs(codigos) {
+  if (!codigos?.length) return;
+  setupUasgCatMsg("Incluindo no Setup…", true);
+  try {
+    const res = await api("/api/sistema/uasgs-municipio/aderir", {
+      method: "POST",
+      body: JSON.stringify({ codigos }),
+    });
+    const partes = [];
+    if (res.adicionados) partes.push(`${res.adicionados} adicionada(s)`);
+    if (res.reativados) partes.push(`${res.reativados} reativada(s)`);
+    if (res.ignorados) partes.push(`${res.ignorados} já ativa(s)`);
+    if (res.desconhecidos?.length) partes.push(`${res.desconhecidos.length} fora do catálogo`);
+    setupUasgCatMsg(partes.length ? partes.join(" · ") + `.` : "Nada a incluir.", true);
+    await carregarSetupUasgCatalogo();
+    await carregarSetupUnidades();
+    await carregarSetup();
+  } catch (err) {
+    setupUasgCatMsg(err.message, false);
+  }
+}
+
+async function onSetupUasgCatalogoAcao(e) {
+  const btn = e.target.closest("button[data-acao-cat]");
+  if (!btn) return;
+  const codigo = btn.dataset.codigo;
+  if (btn.dataset.acaoCat === "aderir" && codigo) {
+    await aderirSetupUasgs([codigo]);
+  }
+}
+
+async function aderirSetupUasgsSelecionadas() {
+  const checks = [...document.querySelectorAll(".setup-uasg-cat-check:checked:not(:disabled)")];
+  const codigos = checks.map((c) => c.value).filter(Boolean);
+  if (!codigos.length) {
+    setupUasgCatMsg("Selecione ao menos uma UASG disponível.", false);
+    return;
+  }
+  await aderirSetupUasgs(codigos);
+}
 
 async function carregarSetupUnidades() {
   const tb = $("#tabela-setup-unidades");
@@ -282,7 +536,13 @@ function setupAgMsg(texto, ok) {
 function fmtAgData(iso) {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString("pt-BR");
+    const s = String(iso).trim();
+    // Backend grava UTC; sem Z/+00:00 o JS trata como local e em BRT fica +3h.
+    const hasTz = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(s);
+    const normalized = hasTz ? s : `${s}Z`;
+    const d = new Date(normalized);
+    if (Number.isNaN(d.getTime())) return s;
+    return d.toLocaleString("pt-BR");
   } catch {
     return iso;
   }
@@ -841,6 +1101,8 @@ async function carregarSetup() {
   } catch (err) {
     if ($("#setup-status-grid")) $("#setup-status-grid").innerHTML = `<p class="result err">${esc(err.message)}</p>`;
   }
+  await carregarSetupRaiz();
+  await carregarSetupUasgCatalogo();
   await carregarSetupUnidades();
   await carregarAgendamento().catch(() => {});
   await carregarSetupIa().catch(() => {});
@@ -853,6 +1115,12 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#form-setup-config")?.addEventListener("submit", salvarSetup);
   $("#form-setup-limpar")?.addEventListener("submit", limparBaseDados);
   $("#form-setup-wizard")?.addEventListener("submit", concluirSetupWizard);
+  $("#form-setup-raiz")?.addEventListener("submit", cadastrarSetupRaiz);
+  $("#btn-setup-raiz-consultar")?.addEventListener("click", consultarSetupRaiz);
+  $("#btn-setup-raiz-atualizar")?.addEventListener("click", atualizarSetupRaiz);
+  $("#btn-setup-uasg-sync")?.addEventListener("click", sincronizarSetupUasgCatalogo);
+  $("#btn-setup-uasg-aderir")?.addEventListener("click", aderirSetupUasgsSelecionadas);
+  $("#tabela-setup-uasg-catalogo")?.addEventListener("click", onSetupUasgCatalogoAcao);
   $("#form-setup-unidade")?.addEventListener("submit", adicionarSetupUnidade);
   $("#btn-setup-unidade-padroes")?.addEventListener("click", restaurarSetupUnidadesPadrao);
   $("#tabela-setup-unidades")?.addEventListener("click", onSetupUnidadeAcao);

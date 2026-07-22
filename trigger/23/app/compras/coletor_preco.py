@@ -17,12 +17,12 @@ from app.compras.normalizers import (
     tipo_item_catalogo,
 )
 from app.config import (
-    COMPRAS_IBGE_MUNICIPIO,
     COMPRAS_PNCP_PAGE_SIZE,
     COMPRAS_PNCP_REQUEST_DELAY_SEC,
     COMPRAS_PRECO_MATERIAL_ENDPOINT,
     COMPRAS_PRECO_SERVICO_ENDPOINT,
 )
+from app.origem_sistema import resolver_ibge_municipio
 
 
 def preco_da_api(raw: dict[str, Any], *, tipo: str) -> dict[str, Any] | None:
@@ -68,7 +68,7 @@ def coletar_precos_item(
     params_base: dict[str, Any] = {
         "codigoItemCatalogo": codigo_item_catalogo,
         "codigoUasg": codigo_uasg,
-        "codigoMunicipio": COMPRAS_IBGE_MUNICIPIO,
+        "codigoMunicipio": resolver_ibge_municipio(),
     }
     if data_inicio:
         params_base["dataCompraInicio"] = data_inicio.isoformat()

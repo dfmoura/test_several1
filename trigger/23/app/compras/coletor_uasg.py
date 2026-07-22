@@ -8,12 +8,11 @@ from typing import Any, Callable
 from app.compras.client import ComprasGovClient
 from app.compras.normalizers import normalizar_codigo_uasg, normalizar_ni
 from app.config import (
-    COMPRAS_IBGE_MUNICIPIO,
     COMPRAS_PNCP_PAGE_SIZE,
     COMPRAS_PNCP_REQUEST_DELAY_SEC,
     COMPRAS_UASG_ENDPOINT,
-    COMPRAS_UF_FILTRO,
 )
+from app.origem_sistema import resolver_ibge_municipio, resolver_orgaos_cnpj, resolver_uf_filtro
 from app.unidades_compradoras import obter_unidades_compradoras
 
 
@@ -74,10 +73,12 @@ def coletar_uasgs(
     alvo = set(unidades or obter_unidades_compradoras().keys())
     vistos: set[str] = set()
     resultado: list[dict[str, Any]] = []
+    ibge = resolver_ibge_municipio()
+    uf = resolver_uf_filtro()
 
     with ComprasGovClient(on_log=log) as client:
         fase("coletando_uasg")
-        log(f"UASGs — filtro {COMPRAS_UF_FILTRO} / IBGE {COMPRAS_IBGE_MUNICIPIO}")
+        log(f"UASGs — filtro {uf} / IBGE {ibge}")
 
         for codigo in alvo:
             log(f"  UASG {codigo}")
@@ -99,7 +100,7 @@ def coletar_uasgs(
                 item = uasg_da_api(raw)
                 if not item or item["codigo_uasg"] in vistos:
                     continue
-                if item.get("codigo_municipio_ibge") not in (None, COMPRAS_IBGE_MUNICIPIO):
+                if item.get("codigo_municipio_ibge") not in (None, ibge):
                     continue
                 vistos.add(item["codigo_uasg"])
                 resultado.append(item)
@@ -110,8 +111,8 @@ def coletar_uasgs(
             for raw in client.paginar(
                 COMPRAS_UASG_ENDPOINT,
                 params_base={
-                    "siglaUf": COMPRAS_UF_FILTRO,
-                    "codigoMunicipioIbge": COMPRAS_IBGE_MUNICIPIO,
+                    "siglaUf": uf,
+                    "codigoMunicipioIbge": ibge,
                     "statusUasg": "true",
                 },
                 contexto="API UASG",
@@ -137,12 +138,12 @@ def coletar_orgaos(
     on_log: Callable[[str], None] | None = None,
     on_fase: Callable[[str], None] | None = None,
 ) -> list[dict[str, Any]]:
-    from app.config import COMPRAS_ORGAO_ENDPOINT, COMPRAS_ORGAOS_CNPJ
+    from app.config import COMPRAS_ORGAO_ENDPOINT
 
     log = on_log or (lambda _: None)
     fase = on_fase or (lambda _: None)
     # A API exige CNPJ/CPF só com dígitos; pontuação retorna lista vazia.
-    bruto = cnpjs if cnpjs is not None else COMPRAS_ORGAOS_CNPJ
+    bruto = cnpjs if cnpjs is not None else resolver_orgaos_cnpj()
     alvo: list[str] = []
     for c in bruto:
         ni = normalizar_ni(c)

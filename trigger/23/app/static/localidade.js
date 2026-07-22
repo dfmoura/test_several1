@@ -642,4 +642,49 @@ $("#loc-filtro-metrica")?.addEventListener("change", () => {
 
 wireSortableHeaders($("#loc-table-thead"), (key, dir) => locRenderTabela(key, dir));
 
+/* -------------------- tela cheia do mapa -------------------- */
+
+function locMapFullscreenEl() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function locIsMapFullscreen() {
+  const shell = $("#loc-map-shell");
+  return !!(shell && locMapFullscreenEl() === shell);
+}
+
+function locSyncMapFullscreenUi() {
+  const btn = $("#btn-loc-map-fs");
+  if (!btn) return;
+  const on = locIsMapFullscreen();
+  btn.setAttribute("aria-pressed", on ? "true" : "false");
+  btn.setAttribute("aria-label", on ? "Sair da tela cheia" : "Abrir mapa em tela cheia");
+  btn.title = on ? "Sair da tela cheia" : "Tela cheia";
+  setTimeout(() => LOC.map?.invalidateSize(), on ? 120 : 80);
+}
+
+async function locToggleMapFullscreen() {
+  const shell = $("#loc-map-shell");
+  if (!shell) return;
+  try {
+    if (locIsMapFullscreen()) {
+      if (document.exitFullscreen) await document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } else if (shell.requestFullscreen) {
+      await shell.requestFullscreen();
+    } else if (shell.webkitRequestFullscreen) {
+      shell.webkitRequestFullscreen();
+    }
+  } catch (_) {
+    /* usuário cancelou ou API indisponível — UI permanece intacta */
+  }
+}
+
+$("#btn-loc-map-fs")?.addEventListener("click", () => {
+  locToggleMapFullscreen();
+});
+
+document.addEventListener("fullscreenchange", locSyncMapFullscreenUi);
+document.addEventListener("webkitfullscreenchange", locSyncMapFullscreenUi);
+
 registrarPagina("localidade", carregarLocalidade);

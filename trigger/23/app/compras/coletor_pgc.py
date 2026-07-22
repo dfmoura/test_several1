@@ -9,11 +9,11 @@ from typing import Any, Callable
 from app.compras.client import ComprasGovClient
 from app.compras.normalizers import fmt_num_br, fmt_valor_br, normalizar_codigo_uasg, normalizar_ni
 from app.config import (
-    COMPRAS_ORGAOS_CNPJ,
     COMPRAS_PGC_DETALHE_ENDPOINT,
     COMPRAS_PNCP_PAGE_SIZE,
     COMPRAS_PNCP_REQUEST_DELAY_SEC,
 )
+from app.origem_sistema import resolver_orgaos_cnpj
 
 
 def pgc_da_api(raw: dict[str, Any]) -> dict[str, Any] | None:
@@ -60,7 +60,7 @@ def coletar_pgc(
 ) -> list[dict[str, Any]]:
     log = on_log or (lambda _: None)
     fase = on_fase or (lambda _: None)
-    alvo = [normalizar_ni(c) for c in (orgaos or COMPRAS_ORGAOS_CNPJ) if c]
+    alvo = [normalizar_ni(c) for c in (orgaos or resolver_orgaos_cnpj()) if c]
     vistos: set[tuple] = set()
     resultado: list[dict[str, Any]] = []
 

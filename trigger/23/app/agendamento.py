@@ -64,8 +64,26 @@ def _agora_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _agora_utc_naive() -> datetime:
+    """UTC sem tzinfo — formato de persistência no SQLite (legado)."""
+    return _agora_utc().replace(tzinfo=None)
+
+
 def _agora_iso() -> str:
     return _agora_utc().isoformat()
+
+
+def _iso_api(dt: datetime | None) -> str | None:
+    """ISO-8601 para a API. Datetimes naive no banco são UTC (Docker/AWS).
+
+    Sem sufixo de fuso, o JS trata a string como horário local e em
+    America/Sao_Paulo a exibição fica 3h adiantada.
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc).isoformat()
+    return dt.isoformat()
 
 
 def _anos_coleta(ano_inicial: int | None, ano_atual: int | None = None) -> list[int]:
@@ -77,19 +95,21 @@ def _anos_coleta(ano_inicial: int | None, ano_atual: int | None = None) -> list[
     return list(range(ano_inicial, fim + 1))
 
 
-def _log(msg: str) -> None:
-    linha = f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
-    logs = list(status.get("log") or [])
-    logs = [*logs, linha][-MAX_LOG_LINHAS:]
-    status["log"] = logs
-    status["atualizado_em"] = _agora_iso()
-
-
 def _fuso(nome: str | None) -> ZoneInfo:
     try:
         return ZoneInfo((nome or FUSO_PADRAO).strip() or FUSO_PADRAO)
     except Exception:  # noqa: BLE001 — fallback seguro
         return ZoneInfo(FUSO_PADRAO)
+
+
+def _log(msg: str) -> None:
+    # Relógio do log no fuso do agendamento (não no UTC do container).
+    agora_local = datetime.now(_fuso(FUSO_PADRAO))
+    linha = f"[{agora_local.strftime('%H:%M:%S')}] {msg}"
+    logs = list(status.get("log") or [])
+    logs = [*logs, linha][-MAX_LOG_LINHAS:]
+    status["log"] = logs
+    status["atualizado_em"] = _agora_iso()
 
 
 def _obter_ou_criar_config(db: Session) -> AgendamentoConfig:
@@ -208,8 +228,8 @@ def _execucao_para_dict(row: AgendamentoExecucao) -> dict[str, Any]:
         "resumo": row.resumo,
         "log": log,
         "detalhes": detalhes,
-        "iniciado_em": row.iniciado_em.isoformat() if row.iniciado_em else None,
-        "finalizado_em": row.finalizado_em.isoformat() if row.finalizado_em else None,
+        "iniciado_em": _iso_api(row.iniciado_em),
+        "finalizado_em": _iso_api(row.finalizado_em),
     }
 
 
@@ -238,7 +258,7 @@ def _persistir_execucao(
         if detalhes is not None:
             row.detalhes_json = json.dumps(detalhes, ensure_ascii=False, default=str)
         if finalizar:
-            row.finalizado_em = datetime.now(timezone.utc).replace(tzinfo=None)
+            row.finalizado_em = _agora_utc_naive()
         db.commit()
     finally:
         db.close()
@@ -275,6 +295,7 @@ def iniciar_cadeia(*, origem: str = "manual") -> dict[str, Any]:
                 fase="iniciando",
                 resumo="Cadeia iniciada",
                 log_json="[]",
+                iniciado_em=_agora_utc_naive(),
             )
             db.add(row)
             db.commit()

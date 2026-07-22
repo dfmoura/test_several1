@@ -139,6 +139,17 @@ No **Setup → Agendamento** (somente admin) é possível:
 
 O agendador roda **dentro do app** (thread daemon). Reinício do container reagenda conforme a config salva no SQLite. Sobreposição é recusada (lock da cadeia / coleta / job de CNPJs).
 
+## Órgão raiz e UASGs (Setup)
+
+No **Setup → Órgão raiz** (somente admin):
+
+- cadastrar **uma vez** o CNPJ do órgão no topo da ramificação (preenchimento via APIs públicas de CNPJ)
+- a localidade de origem (`codigo_municipio_ibge` + UF) passa a orientar filtros Compras.gov
+- **Sincronizar UASGs do município** materializa o catálogo municipal
+- a adesão ao Observatório continua em **UASGs — Compras.gov** (somente ativas entram na coleta)
+
+Sem raiz cadastrada, o sistema mantém o comportamento anterior via env (`COMPRAS_ORGAOS_CNPJ`, `COMPRAS_IBGE_MUNICIPIO`, `COMPRAS_UF_FILTRO`).
+
 ## Provedores de IA (Setup)
 
 No **Setup → Provedores de IA** (somente admin):

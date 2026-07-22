@@ -796,6 +796,56 @@ class SistemaUnidadeCompradora(Base):
     __table_args__ = (Index("uq_sistema_unidade_codigo", "codigo", unique=True),)
 
 
+class SistemaRaiz(Base):
+    """Órgão raiz do Observatório — linha única (id=1). CNPJ cadastrado uma vez."""
+
+    __tablename__ = "sistema_raiz"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    cnpj: Mapped[str] = mapped_column(String(14), nullable=False)
+    razao_social: Mapped[str | None] = mapped_column(String(300))
+    nome_fantasia: Mapped[str | None] = mapped_column(String(300))
+    situacao_cadastral: Mapped[str | None] = mapped_column(String(80))
+    natureza_juridica: Mapped[str | None] = mapped_column(String(200))
+    porte: Mapped[str | None] = mapped_column(String(80))
+    codigo_cnae: Mapped[int | None] = mapped_column(Integer)
+    nome_cnae: Mapped[str | None] = mapped_column(String(300))
+    codigo_municipio_ibge: Mapped[int | None] = mapped_column(Integer)
+    nome_municipio: Mapped[str | None] = mapped_column(String(120))
+    uf: Mapped[str | None] = mapped_column(String(2))
+    cep: Mapped[str | None] = mapped_column(String(12))
+    logradouro: Mapped[str | None] = mapped_column(String(200))
+    numero: Mapped[str | None] = mapped_column(String(30))
+    bairro: Mapped[str | None] = mapped_column(String(120))
+    fonte_cnpj: Mapped[str | None] = mapped_column(String(40))
+    cnpj_dados_json: Mapped[str | None] = mapped_column(Text)
+    enriquecido_em: Mapped[datetime | None] = mapped_column(DateTime)
+    cadastrado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (Index("uq_sistema_raiz_cnpj", "cnpj", unique=True),)
+
+
+class SistemaUasgMunicipio(Base):
+    """Catálogo de UASGs do município da raiz (Compras.gov) — disponíveis para adesão no Setup."""
+
+    __tablename__ = "sistema_uasgs_municipio"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    codigo_uasg: Mapped[str] = mapped_column(String(10), nullable=False)
+    nome_uasg: Mapped[str | None] = mapped_column(String(300))
+    sigla_uf: Mapped[str | None] = mapped_column(String(2))
+    codigo_municipio_ibge: Mapped[int | None] = mapped_column(Integer)
+    nome_municipio_ibge: Mapped[str | None] = mapped_column(String(120))
+    cnpj_cpf_orgao: Mapped[str | None] = mapped_column(String(14))
+    status_uasg: Mapped[bool | None] = mapped_column(Boolean)
+    sincronizado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (Index("uq_sistema_uasg_municipio_codigo", "codigo_uasg", unique=True),)
+
+
 # --- Agendamento (coleta noturna + cadeia CNPJs — preservado na limpeza) ---
 
 

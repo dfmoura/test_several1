@@ -78,6 +78,69 @@ def test_obter_e_salvar_agendamento(client):
     assert data["incluir_cnpjs"] is True
 
 
+def test_iso_api_marca_naive_como_utc():
+    """Timestamps naive no SQLite são UTC; API deve expor fuso para o frontend."""
+    from datetime import datetime, timezone
+
+    naive = datetime(2026, 7, 22, 13, 0, 0)
+    iso = agendamento._iso_api(naive)
+    assert iso is not None
+    assert iso.endswith("+00:00") or iso.endswith("Z")
+    # 13:00 UTC ≡ 10:00 America/Sao_Paulo
+    aware = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    local = aware.astimezone(agendamento._fuso("America/Sao_Paulo"))
+    assert local.hour == 10
+    assert local.minute == 0
+
+    assert agendamento._iso_api(None) is None
+    already = datetime(2026, 7, 22, 13, 0, 0, tzinfo=timezone.utc)
+    out = agendamento._iso_api(already)
+    assert out is not None
+    assert "+00:00" in out or out.endswith("Z")
+
+
+def test_tick_compara_hora_no_fuso_sao_paulo(client, monkeypatch):
+    """Disparo usa relógio America/Sao_Paulo — não UTC do container (+3h)."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    client.put(
+        "/api/sistema/agendamento",
+        json={
+            "ativo": True,
+            "hora": 10,
+            "minuto": 0,
+            "fuso": "America/Sao_Paulo",
+            "incluir_coleta": True,
+            "incluir_cnpjs": False,
+        },
+    )
+
+    disparos: list[str] = []
+
+    def _fake_disparar(*, origem: str = "manual"):
+        disparos.append(origem)
+        return {"status": "iniciada", "origem": origem}
+
+    monkeypatch.setattr(agendamento, "disparar_cadeia", _fake_disparar)
+    monkeypatch.setattr(agendamento, "cadeia_ocupada", lambda: False)
+
+    sp_10 = datetime(2026, 7, 22, 10, 0, 5, tzinfo=ZoneInfo("America/Sao_Paulo"))
+    with patch("app.agendamento.datetime") as mock_dt:
+        mock_dt.now = lambda tz=None: sp_10 if tz is not None else sp_10.replace(tzinfo=None)
+        agendamento._tick_scheduler()
+
+    assert disparos == ["agendado"]
+
+    # 13:00 SP não deve disparar (horário configurado é 10:00).
+    disparos.clear()
+    sp_13 = datetime(2026, 7, 22, 13, 0, 5, tzinfo=ZoneInfo("America/Sao_Paulo"))
+    with patch("app.agendamento.datetime") as mock_dt:
+        mock_dt.now = lambda tz=None: sp_13 if tz is not None else sp_13.replace(tzinfo=None)
+        agendamento._tick_scheduler()
+    assert disparos == []
+
+
 def test_salvar_exige_ao_menos_uma_etapa(client):
     r = client.put(
         "/api/sistema/agendamento",

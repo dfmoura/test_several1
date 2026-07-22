@@ -309,7 +309,24 @@
                   <button type="button" class="loc-mode-btn" data-mode="calor" id="loc-mode-calor">Calor · municípios</button>
                 </div>
               </header>
-              <div id="loc-map" class="loc-map" role="img" aria-label="Mapa de distribuição por localidade"></div>
+              <div class="loc-map-shell" id="loc-map-shell">
+                <div id="loc-map" class="loc-map" role="img" aria-label="Mapa de distribuição por localidade"></div>
+                <button
+                  type="button"
+                  class="loc-map-fs"
+                  id="btn-loc-map-fs"
+                  title="Tela cheia"
+                  aria-label="Abrir mapa em tela cheia"
+                  aria-pressed="false"
+                >
+                  <svg class="loc-map-fs-icon loc-map-fs-expand" width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M2.5 2.5h3.2v1.2H3.7v1.98H2.5V2.5zm7.8 0h3.2v3.18h-1.2V3.7H10.3V2.5zM2.5 10.32H3.7v1.98h1.98v1.2H2.5v-3.18zm9.98 1.98V10.32h1.2v3.18h-3.2v-1.2h1.98z"/>
+                  </svg>
+                  <svg class="loc-map-fs-icon loc-map-fs-compress" width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M6.2 2.5v3.18H2.5V4.48h2.5V2.5h1.2zm3.6 0h1.2v1.98h2.5v1.2H9.8V2.5zM2.5 9.82h3.7V13.5H5V11.02H2.5v-1.2zm7.3 0H13.5v1.2H11v2.48H9.8V9.82z"/>
+                  </svg>
+                </button>
+              </div>
               <div id="loc-legend" class="loc-legend"></div>
               <p id="loc-map-footer" class="loc-map-footer muted small"></p>
             </article>
@@ -990,8 +1007,9 @@
           <div class="panel intro-panel">
             <h3 class="panel-title">Configuração do sistema</h3>
             <p class="muted">
-              Defina o <strong>ano inicial de coleta</strong> e as <strong>UASGs</strong> do Compras.gov.
-              Observadores, vínculos e unidades compradoras <strong>não são removidos</strong> ao limpar a base.
+              Defina o <strong>órgão raiz</strong> (CNPJ), o <strong>ano inicial de coleta</strong>
+              e as <strong>UASGs</strong> do Compras.gov.
+              Observadores, vínculos, raiz e unidades compradoras <strong>não são removidos</strong> ao limpar a base.
             </p>
             <div id="setup-status-grid" class="setup-status-grid">
               <p class="muted">Carregando status…</p>
@@ -1014,7 +1032,7 @@
               <h4 class="sub-title">Limpar base de dados</h4>
               <p class="muted small">
                 Remove <strong>apenas dados coletados</strong> (Compras.gov e Power BI).
-                Preserva observadores, órgãos, modalidades, vínculos, UASGs, agendamento e tokens de IA.
+                Preserva observadores, órgãos, modalidades, vínculos, raiz, UASGs, agendamento e tokens de IA.
                 Operação irreversível.
               </p>
               <form id="form-setup-limpar" class="form-col">
@@ -1142,11 +1160,67 @@
             </div>
           </div>
 
+          <div class="panel" style="margin-top:18px" id="setup-raiz-panel">
+            <h4 class="sub-title">Órgão raiz — topo da ramificação</h4>
+            <p class="muted small">
+              Cadastro <strong>único</strong> do CNPJ que ancora o Observatório.
+              A localidade de origem (código IBGE) vem das APIs públicas de CNPJ
+              e define o município para sincronizar as UASGs disponíveis.
+            </p>
+            <form id="form-setup-raiz" class="form-col" style="max-width:640px">
+              <div class="inline-form" style="margin:0">
+                <label class="field"><span>CNPJ *</span>
+                  <input type="text" id="setup-raiz-cnpj" required maxlength="18"
+                    placeholder="Ex.: 18.431.312/0001-15" inputmode="numeric"
+                    autocomplete="off" />
+                </label>
+                <div class="field-actions" style="padding-bottom:0;align-self:flex-end">
+                  <button type="button" class="btn" id="btn-setup-raiz-consultar">Consultar</button>
+                  <button type="submit" class="btn primary" id="btn-setup-raiz-salvar">Cadastrar raiz</button>
+                  <button type="button" class="btn" id="btn-setup-raiz-atualizar" hidden>Atualizar dados</button>
+                </div>
+              </div>
+            </form>
+            <p id="setup-raiz-msg" class="meta-line"></p>
+            <div id="setup-raiz-dados" class="setup-raiz-dados" aria-live="polite">
+              <p class="muted small">Carregando raiz…</p>
+            </div>
+            <div class="field-actions" style="margin-top:12px;padding-bottom:0">
+              <button type="button" class="btn" id="btn-setup-uasg-sync" disabled
+                title="Requer raiz com IBGE cadastrado">
+                Sincronizar UASGs do município
+              </button>
+            </div>
+            <p id="setup-uasg-cat-msg" class="meta-line"></p>
+            <div class="table-scroll" style="margin-top:12px">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th scope="col" style="width:2.5rem"><span class="sr-only">Selecionar</span></th>
+                    <th>Código</th>
+                    <th>Nome (Compras.gov)</th>
+                    <th>No Setup</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-setup-uasg-catalogo">
+                  <tr><td colspan="5" class="muted">Cadastre a raiz e sincronize para listar as UASGs do município.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="field-actions" style="margin-top:8px;padding-bottom:0">
+              <button type="button" class="btn primary" id="btn-setup-uasg-aderir" disabled>
+                Incluir selecionadas no Setup
+              </button>
+            </div>
+          </div>
+
           <div class="panel" style="margin-top:18px">
             <h4 class="sub-title">UASGs — Compras.gov</h4>
             <p class="muted small">
-              Unidades compradoras usadas na coleta federal. Cadastre uma ou mais UASGs;
-              somente as <strong>ativas</strong> entram na coleta e nos filtros.
+              Unidades compradoras <strong>amarradas</strong> ao Observatório.
+              Somente as <strong>ativas</strong> entram na coleta e nos filtros.
+              Prefira incluir a partir do catálogo municipal acima; cadastro manual permanece disponível.
             </p>
             <form id="form-setup-unidade" class="inline-form">
               <label class="field"><span>Código UASG *</span><input type="text" id="setup-uasg-codigo" required maxlength="10" placeholder="Ex.: 926922" pattern="[0-9]+" inputmode="numeric" /></label>
