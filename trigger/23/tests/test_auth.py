@@ -53,6 +53,18 @@ def test_hash_senha_nao_armazena_texto_plano():
     assert verificar_senha("outra", h) is False
 
 
+def test_cookie_secure_auto_respeita_scheme(monkeypatch):
+    import app.config as cfg
+
+    monkeypatch.setattr(cfg, "AUTH_COOKIE_SECURE", "auto")
+    assert cfg.cookie_secure_for_request("https") is True
+    assert cfg.cookie_secure_for_request("http") is False
+    monkeypatch.setattr(cfg, "AUTH_COOKIE_SECURE", "1")
+    assert cfg.cookie_secure_for_request("http") is True
+    monkeypatch.setattr(cfg, "AUTH_COOKIE_SECURE", "0")
+    assert cfg.cookie_secure_for_request("https") is False
+
+
 def test_visitante_sem_login_bloqueado(client):
     r = client.get("/api/compras/stats")
     assert r.status_code == 401
@@ -213,8 +225,8 @@ def test_login_senha_errada(client, db):
         _limpar_usuario(db, user)
 
 
-def test_multiplas_sessoes_do_mesmo_usuario_sao_independentes(client, db):
-    """A mesma conta pode entrar em dois clientes e sair de um sem derrubar o outro."""
+def test_segunda_sessao_do_mesmo_usuario_e_recusada(client, db):
+    """Uma conta = uma sessão ativa; outro cliente recebe 409 até liberar ou substituir."""
     from app.config import AUTH_SESSION_COOKIE
 
     user = _uid("oper")
@@ -234,20 +246,88 @@ def test_multiplas_sessoes_do_mesmo_usuario_sao_independentes(client, db):
         r_same = c1.post("/api/auth/login", json={"username": user, "password": "senha123"})
         assert r_same.status_code == 200, r_same.text
 
-        # Outro cliente/dispositivo recebe uma sessão própria.
+        # Outro cliente/dispositivo é bloqueado enquanto a sessão estiver ativa.
         with TestClient(app) as c2:
             r2 = c2.post("/api/auth/login", json={"username": user, "password": "senha123"})
-            assert r2.status_code == 200, r2.text
-            token2 = r2.cookies.get(AUTH_SESSION_COOKIE)
-            assert token2
-            assert token2 != token1
+            assert r2.status_code == 409, r2.text
+            detail = (r2.json().get("detail") or "").lower()
+            assert "sessão" in detail or "sessao" in detail
 
-            # Encerrar a primeira sessão não afeta a segunda.
-            assert c1.post("/api/auth/logout").status_code == 200
-            assert c1.get("/api/auth/me").status_code == 401
-            me2 = c2.get("/api/auth/me")
-            assert me2.status_code == 200
-            assert me2.json()["username"] == user
+        # Após logout, novo login em outro cliente é permitido.
+        assert c1.post("/api/auth/logout").status_code == 200
+        with TestClient(app) as c3:
+            r3 = c3.post("/api/auth/login", json={"username": user, "password": "senha123"})
+            assert r3.status_code == 200, r3.text
+    finally:
+        _limpar_usuario(db, user)
+
+
+def test_login_substitui_sessao_anterior_com_senha(client, db):
+    """Revogação autenticada: senha ok + encerrar_sessao_anterior invalida a órfã."""
+    from app.config import AUTH_SESSION_COOKIE
+    from app.database import Sessao
+
+    user = _uid("take")
+    try:
+        criar_usuario(db, username=user, senha="senha123", papel="consulta")
+    except AuthError as exc:
+        pytest.skip(exc.message)
+
+    try:
+        r1 = client.post("/api/auth/login", json={"username": user, "password": "senha123"})
+        assert r1.status_code == 200, r1.text
+        token_antigo = r1.cookies.get(AUTH_SESSION_COOKIE)
+        assert token_antigo
+
+        # Sem flag continua 409
+        with TestClient(app) as c_block:
+            assert (
+                c_block.post(
+                    "/api/auth/login",
+                    json={"username": user, "password": "senha123"},
+                ).status_code
+                == 409
+            )
+
+        # Senha errada + flag → 401 (não derruba)
+        with TestClient(app) as c_bad:
+            r_bad = c_bad.post(
+                "/api/auth/login",
+                json={
+                    "username": user,
+                    "password": "errada999",
+                    "encerrar_sessao_anterior": True,
+                },
+            )
+            assert r_bad.status_code == 401
+
+        # Senha ok + flag → entra e invalida sessão antiga
+        with TestClient(app) as c_new:
+            r_new = c_new.post(
+                "/api/auth/login",
+                json={
+                    "username": user,
+                    "password": "senha123",
+                    "encerrar_sessao_anterior": True,
+                },
+            )
+            assert r_new.status_code == 200, r_new.text
+            token_novo = r_new.cookies.get(AUTH_SESSION_COOKIE)
+            assert token_novo
+            assert token_novo != token_antigo
+            assert c_new.get("/api/auth/me").status_code == 200
+
+        # Cookie antigo não autentica mais
+        with TestClient(app) as c_old:
+            c_old.cookies.set(AUTH_SESSION_COOKIE, token_antigo)
+            assert c_old.get("/api/auth/me").status_code == 401
+
+        # Uma sessão ativa no banco
+        from sqlalchemy import func
+
+        uid = db.scalar(select(Usuario).where(Usuario.username == user)).id
+        n = db.scalar(select(func.count()).select_from(Sessao).where(Sessao.usuario_id == uid))
+        assert n == 1
     finally:
         _limpar_usuario(db, user)
 

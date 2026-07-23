@@ -2314,6 +2314,16 @@ legend { font-size: 12px; font-weight: 600; color: var(--text-soft); padding: 0 
   margin: 0 auto;
 }
 .auth-lead { margin: 0 0 14px; }
+.auth-takeover {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.auth-takeover[hidden] { display: none; }
+.auth-takeover-lead { margin: 0; font-size: 13px; line-height: 1.45; }
 body.auth-locked .app-shell { display: none; }
 
 .auth-user-box {

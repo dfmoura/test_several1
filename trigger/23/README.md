@@ -23,6 +23,19 @@ docker compose up --build -d
 
 Acesse: **http://localhost:8096/** — na mesma Wi-Fi: `http://SEU_IP:8096/` (`hostname -I`)
 
+### Produção com HTTPS (domínio)
+
+Na VM (DNS do domínio já apontando para o IP; security group com **80** e **443**):
+
+```bash
+# liberar a porta 80 se o app estava publicado nela; depois:
+export DOMAIN=licitacoes.osbrasiluberlandia.org
+docker compose --profile https up -d --build
+```
+
+URL oficial: **https://licitacoes.osbrasiluberlandia.org/**  
+O Caddy obtém o certificado Let's Encrypt e faz proxy para o app. Detalhes em `detalhes/05-deploy-aws-free.md`.
+
 ## Desenvolvimento local
 
 No Ubuntu/Debian o Python do sistema é protegido (PEP 668). **Não use `pip install` global** — use o ambiente virtual:
@@ -72,7 +85,9 @@ Health: `GET /api/health` — inclui `checks.database` (503 se o banco falhar). 
 | `AUTH_MAX_CONSULTA` | `3` | Teto de contas `consulta` |
 | `AUTH_BOOTSTRAP_USERNAME` / `AUTH_BOOTSTRAP_PASSWORD` | — | Seed do 1º admin (se a base estiver vazia) |
 | `AUTH_SESSION_DIAS` | `7` | Validade da sessão (cookie) |
+| `AUTH_COOKIE_SECURE` | `auto` | `auto` = Secure só em HTTPS; `1` / `0` força |
 | `AUTH_DISABLED` | `false` | Desliga autenticação (apenas testes/emergência) |
+| `DOMAIN` | `licitacoes.osbrasiluberlandia.org` | Host do Caddy (profile `https`) |
 | `COMPRAS_PNCP_PAGE_SIZE` | `500` | Tamanho de página na API PNCP |
 | `COMPRAS_GOV_BASE_URL` | `https://dadosabertos.compras.gov.br` | Base da API federal |
 | `COMPRAS_IBGE_MUNICIPIO` | `3170206` | Filtro IBGE (Uberlândia) |

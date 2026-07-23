@@ -24,7 +24,7 @@ from app.auth.service import (
     obter_usuario,
     precisa_bootstrap,
 )
-from app.config import AUTH_SESSION_COOKIE, AUTH_SESSION_DIAS
+from app.config import AUTH_SESSION_COOKIE, AUTH_SESSION_DIAS, cookie_secure_for_request
 from app.database import Usuario, get_db
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -33,6 +33,8 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 class LoginIn(BaseModel):
     username: str = Field(min_length=1, max_length=80)
     password: str = Field(min_length=1, max_length=200)
+    # Revogação autenticada: após senha ok, encerra sessão órfã/outro dispositivo.
+    encerrar_sessao_anterior: bool = False
 
 
 class BootstrapIn(BaseModel):
@@ -104,19 +106,20 @@ def _me_out(user: Usuario) -> MeOut:
     return MeOut(**_usuario_out(user).model_dump(), permissoes=_permissoes(user))
 
 
-def _set_cookie(response: Response, token: str) -> None:
+def _set_cookie(response: Response, token: str, *, secure: bool = False) -> None:
     response.set_cookie(
         key=AUTH_SESSION_COOKIE,
         value=token,
         httponly=True,
         samesite="lax",
+        secure=secure,
         max_age=AUTH_SESSION_DIAS * 24 * 3600,
         path="/",
     )
 
 
-def _clear_cookie(response: Response) -> None:
-    response.delete_cookie(key=AUTH_SESSION_COOKIE, path="/")
+def _clear_cookie(response: Response, *, secure: bool = False) -> None:
+    response.delete_cookie(key=AUTH_SESSION_COOKIE, path="/", secure=secure)
 
 
 def _http_from_auth(exc: AuthError) -> HTTPException:
@@ -134,6 +137,7 @@ def bootstrap_status(db: Session = Depends(get_db)) -> BootstrapStatusOut:
 @router.post("/bootstrap", response_model=MeOut)
 def bootstrap_admin(
     body: BootstrapIn,
+    request: Request,
     response: Response,
     db: Session = Depends(get_db),
 ) -> MeOut:
@@ -152,7 +156,11 @@ def bootstrap_admin(
         sessao = criar_sessao(db, user)
     except AuthError as exc:
         raise _http_from_auth(exc) from exc
-    _set_cookie(response, sessao.token)
+    _set_cookie(
+        response,
+        sessao.token,
+        secure=cookie_secure_for_request(request.url.scheme),
+    )
     return _me_out(user)
 
 
@@ -163,17 +171,26 @@ def login(
     response: Response,
     db: Session = Depends(get_db),
 ) -> MeOut:
-    """Login com sessão independente por navegador ou dispositivo."""
+    """Login com política de uma sessão ativa por conta.
+
+    Com ``encerrar_sessao_anterior=true`` (senha válida), encerra a sessão
+    anterior (órfã ou outro dispositivo) e cria a nova — self-service seguro.
+    """
     try:
         user = autenticar(db, body.username, body.password)
         sessao = criar_sessao(
             db,
             user,
             token_atual=request.cookies.get(AUTH_SESSION_COOKIE),
+            substituir_ativa=bool(body.encerrar_sessao_anterior),
         )
     except AuthError as exc:
         raise _http_from_auth(exc) from exc
-    _set_cookie(response, sessao.token)
+    _set_cookie(
+        response,
+        sessao.token,
+        secure=cookie_secure_for_request(request.url.scheme),
+    )
     return _me_out(user)
 
 
@@ -185,7 +202,10 @@ def logout(
 ) -> dict:
     token = request.cookies.get(AUTH_SESSION_COOKIE)
     encerrar_sessao(db, token)
-    _clear_cookie(response)
+    _clear_cookie(
+        response,
+        secure=cookie_secure_for_request(request.url.scheme),
+    )
     return {"ok": True}
 
 
@@ -254,7 +274,7 @@ def liberar_sessao_usuario(
     db: Session = Depends(get_db),
     _: Usuario = Depends(require_admin),
 ) -> dict:
-    """Encerra sessões ativas da conta (admin) — libera login após sessão órfã."""
+    """Encerra sessões ativas da conta (admin) — libera a conta para novo login."""
     try:
         user = obter_usuario(db, uid)
     except AuthError as exc:

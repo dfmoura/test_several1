@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app import agendamento
 from app.analise_preco import router as analise_preco_router
@@ -43,6 +44,8 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
+# Caddy / proxy: confia em X-Forwarded-Proto/For para scheme HTTPS e cookies Secure.
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 app.add_middleware(AuthMiddleware)
 app.include_router(health_router)
 app.include_router(auth_router)

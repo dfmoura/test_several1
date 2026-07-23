@@ -15,6 +15,11 @@ function authMsg(texto, ok) {
   el.className = texto ? `meta-line ${ok ? "ok" : "err"}` : "meta-line";
 }
 
+function mostrarTakeover(visivel) {
+  const box = $("#auth-login-takeover");
+  if (box) box.hidden = !visivel;
+}
+
 function bumpAuthGen() {
   window.OSB._authGen = (window.OSB._authGen || 0) + 1;
 }
@@ -135,32 +140,55 @@ async function iniciarAuth() {
       return;
     }
     mostrarGate("login");
+    mostrarTakeover(false);
   } catch (err) {
     mostrarGate("login");
+    mostrarTakeover(false);
     authMsg(err.message || "Não foi possível verificar a sessão.", false);
   }
 }
 
 async function onLogin(e) {
   e.preventDefault();
+  await executarLogin({ encerrarSessaoAnterior: false });
+}
+
+async function onLoginTakeover() {
+  await executarLogin({ encerrarSessaoAnterior: true });
+}
+
+async function executarLogin({ encerrarSessaoAnterior }) {
   const btn = $("#btn-auth-login");
+  const btnTake = $("#btn-auth-login-takeover");
   const username = $("#auth-login-user")?.value?.trim() || "";
   const password = $("#auth-login-pass")?.value || "";
   if (!username || !password) return;
-  btn.disabled = true;
-  authMsg("Entrando…", true);
+  if (btn) btn.disabled = true;
+  if (btnTake) btnTake.disabled = true;
+  authMsg(encerrarSessaoAnterior ? "Encerrando sessão anterior…" : "Entrando…", true);
   try {
     const me = await api("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({
+        username,
+        password,
+        encerrar_sessao_anterior: !!encerrarSessaoAnterior,
+      }),
     });
+    mostrarTakeover(false);
     authMsg("Confirmando sessão…", true);
     await concluirAutenticacao(me);
     authMsg("");
   } catch (err) {
+    if (!encerrarSessaoAnterior && err.status === 409) {
+      mostrarTakeover(true);
+      authMsg(err.message || "Sessão ativa em outro lugar.", false);
+      return;
+    }
     authMsg(err.message, false);
   } finally {
-    btn.disabled = false;
+    if (btn) btn.disabled = false;
+    if (btnTake) btnTake.disabled = false;
   }
 }
 
@@ -205,6 +233,7 @@ async function onLogout() {
   bumpAuthGen();
   window.OSB.usuario = null;
   mostrarGate("login");
+  mostrarTakeover(false);
   authMsg("Sessão encerrada.", true);
   if ($("#auth-login-pass")) $("#auth-login-pass").value = "";
 }
@@ -215,11 +244,13 @@ window.OSB.onUnauthorized = () => {
   bumpAuthGen();
   window.OSB.usuario = null;
   mostrarGate("login");
+  mostrarTakeover(false);
   authMsg("Sessão expirada. Faça login novamente.", false);
 };
 
 document.addEventListener("DOMContentLoaded", () => {
   $("#form-auth-login")?.addEventListener("submit", onLogin);
+  $("#btn-auth-login-takeover")?.addEventListener("click", onLoginTakeover);
   $("#form-auth-bootstrap")?.addEventListener("submit", onBootstrap);
   $("#btn-auth-logout")?.addEventListener("click", onLogout);
   iniciarAuth();

@@ -1,0 +1,196 @@
+================================================================================
+QUAL API DE COBRANÇA É MAIS FÁCIL PARA CNPJ?
+Banco Inter  x  Banco do Brasil
+================================================================================
+Data: 22/07/2026
+Escopo: integração de API para emissão de cobrança (boleto / bolepix / Pix)
+público-alvo: empresa com CNPJ (conta PJ)
+
+--------------------------------------------------------------------------------
+VEREDITO (resumo)
+--------------------------------------------------------------------------------
+
+Para a maioria das empresas (PME, e-commerce, ERP próprio, SaaS):
+
+  >>> Banco Inter costuma ser MAIS FÁCIL de integrar. <<<
+
+Motivo principal: onboarding 100% digital no Internet Banking, emissão de
+chaves/certificado no próprio portal, sandbox acessível e API pensada para
+produto/ERP — com menos burocracia de agência e menos "processo bancário
+clássico" do que o Banco do Brasil.
+
+O BB continua excelente em escala, confiança institucional e ecossistema
+corporativo, mas o caminho até a produção em geral é mais longo e mais
+dependente de convênio, parâmetros de cobrança e suporte de agência/portal.
+
+
+================================================================================
+1. O QUE VOCÊ PRECISA EM AMBOS OS CASOS
+================================================================================
+
+- Conta PJ (CNPJ) ativa no banco
+- Produto de cobrança habilitado (boleto / bolepix / Pix cobrança)
+- Credenciais de API (OAuth / client_id / client_secret)
+- Certificado digital mTLS (comum nas APIs bancárias brasileiras)
+- Homologação/sandbox antes de produção
+- Webhook (recomendado) para baixas/pagamentos/cancelamentos
+
+
+================================================================================
+2. BANCO INTER — POR QUE É MAIS FÁCIL
+================================================================================
+
+Pontos fortes para integração CNPJ:
+
+1) Onboarding digital
+   - Login no Internet Banking / Super App
+   - Criar "Nova Integração" em Soluções para empresa
+   - Baixar e ativar chaves + certificado no próprio fluxo
+   - Menos dependência de agência física
+
+2) Documentação e portal de desenvolvedores
+   - Portal: https://developers.inter.co/
+   - API de Cobrança (boleto + QR Code / BolePix)
+   - Pix Cobrança (imediata e com vencimento)
+   - Sandbox para testar antes de produção
+   - SDKs oficiais (ex.: Java e C#)
+
+3) Operação típica da API de cobrança
+   - Emitir cobrança
+   - Consultar cobrança / sumário / coleção
+   - Gerar PDF da cobrança
+   - Cancelar cobrança
+   - Webhook de paga/cancelada
+
+4) Perfil de empresa que se beneficia
+   - PME que quer automatizar faturamento rápido
+   - Integração com ERP / sistema próprio
+   - Time enxuto de TI
+   - Quer boleto + Pix no mesmo fluxo de cobrança
+
+Limitações / atenção:
+- Conta e limites dependem do relacionamento Inter Empresas
+- Certificado mTLS exige cuidado de segurança (não versionar chave privada)
+- Como em qualquer banco, regras de liquidação, tarifa e layout podem mudar
+
+
+================================================================================
+3. BANCO DO BRASIL — MAIS ROBUSTO, EM GERAL MAIS TRABALHOSO
+================================================================================
+
+Pontos fortes:
+
+1) Marca institucional e aceitação ampla
+2) Portal Developers BB: https://developers.bb.com.br/
+3) API de Cobrança oficial (substituiu fluxos antigos de boleto)
+4) Bom encaixe em empresas maiores, órgãos públicos e operações com
+   histórico/convênio já no BB
+
+Onde costuma ser mais difícil:
+
+1) Onboarding e habilitação
+   - Mais etapas de cadastro no portal + parâmetros de cobrança
+   - Em muitos casos, alinhamento com agência / gerente / convênio
+   - Homologação pode ser mais demorada
+
+2) Mudanças recentes no fluxo de boleto (impacto em sistemas)
+   - Em integrações novas da API Cobrança, o BB pode não devolver o PDF
+     imediatamente como no modelo antigo
+   - Em alguns fluxos, retorna link seguro para o pagador gerar/visualizar
+     o boleto (com etapa de verificação tipo reCAPTCHA)
+   - Isso muda UX de e-mail, e-commerce e renovação automática
+     (anexo PDF direto deixa de ser o padrão em vários casos)
+
+3) Complexidade operacional
+   - Mais "cheiro" de banco tradicional: convênios, carteiras, códigos,
+     ambientes e regras por produto
+   - Documentação existe, mas o caminho até produção costuma exigir
+     mais idas e vindas administrativas
+
+Quando o BB pode valer a pena mesmo sendo mais difícil:
+- Empresa já opera pesadamente no BB
+- Exigência de clientes/contratos que pedem boleto BB
+- Volume alto e necessidade de estrutura corporativa consolidada
+- Time com experiência em APIs BB / CNAB / cobrança registrada
+
+
+================================================================================
+4. COMPARAÇÃO DIRETA (visão prática)
+================================================================================
+
+Critério                         | Inter              | Banco do Brasil
+---------------------------------+--------------------+------------------------
+Facilidade de começar (CNPJ)     | Mais fácil         | Mais burocrático
+Onboarding digital               | Forte              | Médio / variável
+Sandbox / testes                 | Bem acessível      | Existe, mais "bancário"
+Documentação para PME/dev        | Mais amigável      | Completa, menos fluida
+Boleto + Pix (bolepix)           | Nativo / prático   | Disponível (API Cobrança)
+PDF / entrega do boleto          | Fluxo mais direto  | Pode ser via link seguro
+Dependência de agência           | Baixa              | Mais comum
+Tempo até "1º boleto em prod"    | Em geral menor     | Em geral maior
+Adequação PME / SaaS / ERP       | Excelente          | Boa (mais esforço)
+Adequação enterprise / legado BB | Boa                | Excelente
+
+
+================================================================================
+5. RECOMENDAÇÃO OBJETIVA
+================================================================================
+
+Escolha BANCO INTER se:
+- Quer o caminho mais curto para API de cobrança com CNPJ
+- Precisa emitir boleto/Pix de forma automatizada no sistema
+- Tem time pequeno e quer menos atrito administrativo
+- Está montando integração nova (greenfield)
+
+Escolha BANCO DO BRASIL se:
+- Já tem conta, convênio e operação comercial no BB
+- Clientes/contratos exigem boleto BB
+- Precisa de ecossistema institucional específico do BB
+- Aceita mais tempo de onboarding em troca do relacionamento bancário
+
+Regra prática:
+  Integração nova + foco em velocidade e DX  ->  Inter
+  Relacionamento/legado BB dominante         ->  BB
+
+
+================================================================================
+6. CHECKLIST RÁPIDO PARA COMEÇAR (qualquer um dos dois)
+================================================================================
+
+[ ] Conta PJ ativa e produto de cobrança liberado
+[ ] Criar aplicativo/integração no portal do banco
+[ ] Guardar client_id / client_secret com segurança
+[ ] Instalar certificado mTLS (produção e sandbox separados)
+[ ] Implementar emissão + consulta + cancelamento
+[ ] Implementar webhook de liquidação (fonte da verdade de "pago")
+[ ] Testar sandbox com cenários: emitido, pago, vencido, cancelado
+[ ] Homologar produção com 1 CNPJ pagador de teste
+[ ] Definir política de retentativa, logs e idempotência
+[ ] Não commitar certificados/chaves no Git
+
+
+================================================================================
+7. LINKS ÚTEIS
+================================================================================
+
+Inter Developers:
+  https://developers.inter.co/
+  https://inter.co/empresas/api-banking/
+
+BB Developers / API Cobrança:
+  https://developers.bb.com.br/
+  https://www.bb.com.br/site/developers/api-cobranca/
+
+
+================================================================================
+CONCLUSÃO EM UMA FRASE
+================================================================================
+
+Para CNPJ, a integração de API de cobrança do Banco Inter é, na prática,
+mais fácil e rápida de colocar no ar; o Banco do Brasil é sólido, mas
+costuma exigir mais processo, tempo e adaptação de fluxo (especialmente
+no modelo novo de entrega do boleto).
+
+================================================================================
+fim do arquivo
+================================================================================

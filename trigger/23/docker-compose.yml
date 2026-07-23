@@ -1,12 +1,17 @@
 services:
   app:
     build: .
+    expose:
+      - "8096"
+    # Acesso direto (dev / contingência). Em produção com HTTPS, deixe vazio:
+    #   APP_HOST_PORT= docker compose --profile https up -d
     ports:
-      - "8096:8096"
+      - "${APP_HOST_PORT:-8096}:8096"
     volumes:
       - ./data:/app/data
     environment:
       - APP_PORT=8096
+      - AUTH_COOKIE_SECURE=${AUTH_COOKIE_SECURE:-auto}
     restart: unless-stopped
     healthcheck:
       test:
@@ -20,3 +25,26 @@ services:
       timeout: 8s
       retries: 3
       start_period: 20s
+
+  # HTTPS (Let's Encrypt) — use: docker compose --profile https up -d --build
+  # Pré-requisitos: DNS do DOMAIN → IP da VM; security group com 80 e 443.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-licitacoes.osbrasiluberlandia.org}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

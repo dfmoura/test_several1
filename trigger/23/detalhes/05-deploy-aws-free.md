@@ -23,9 +23,33 @@ Deixar o sistema publicável de forma barata/coberta por créditos, puxando cód
 
 ## Acesso
 
-- Usuários acessam `http://IP-PUBLICO:8096` (ou domínio depois)
-- Não usam `localhost`
+- **URL oficial (HTTPS):** `https://licitacoes.osbrasiluberlandia.org/`
+- IP em HTTP só como contingência interna — não é o endereço de trabalho
+- Auth: **uma sessão ativa por conta** (segundo login bloqueado até sair / Liberar sessão)
 - Telas sensíveis só admin
+
+## HTTPS na VM (Caddy + Let's Encrypt)
+
+Pré-requisitos:
+
+1. DNS A do `DOMAIN` → IP público da VM (já usado pelo Observatório)
+2. Security group / firewall: **TCP 80** e **TCP 443** abertos (entrada)
+3. Nada mais escutando na 80/443 (se o app estava em `80:8096`, pare e suba com o profile)
+
+```bash
+cd /caminho/do/projeto   # pasta com docker-compose.yml
+git pull                 # se aplicável
+export DOMAIN=licitacoes.osbrasiluberlandia.org
+# Se a porta 80 estava no container do app:
+# docker compose down
+docker compose --profile https up -d --build
+docker compose --profile https ps
+curl -sI "https://${DOMAIN}/api/health"
+```
+
+- Certificado: automático via Let's Encrypt (volume `caddy_data`)
+- Cookie de sessão: `AUTH_COOKIE_SECURE=auto` — flag `Secure` quando o request chega em HTTPS
+- HTTP no domínio redireciona para HTTPS (comportamento padrão do Caddy)
 
 ## Critérios de aceite
 

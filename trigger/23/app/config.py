@@ -15,6 +15,8 @@ MAX_ADMIN = int(os.environ.get("AUTH_MAX_ADMIN", "1"))
 MAX_CONSULTA = int(os.environ.get("AUTH_MAX_CONSULTA", "3"))
 AUTH_SESSION_COOKIE = os.environ.get("AUTH_SESSION_COOKIE", "osb_session")
 AUTH_SESSION_DIAS = int(os.environ.get("AUTH_SESSION_DIAS", "7"))
+# Cookie Secure: auto (HTTPS detectado via proxy) | 1/true | 0/false
+AUTH_COOKIE_SECURE = (os.environ.get("AUTH_COOKIE_SECURE") or "auto").strip().lower()
 # Seed opcional do 1º admin (só se a tabela usuários estiver vazia).
 AUTH_BOOTSTRAP_USERNAME = (os.environ.get("AUTH_BOOTSTRAP_USERNAME") or "").strip()
 AUTH_BOOTSTRAP_PASSWORD = os.environ.get("AUTH_BOOTSTRAP_PASSWORD") or ""
@@ -23,6 +25,20 @@ AUTH_BOOTSTRAP_PASSWORD = os.environ.get("AUTH_BOOTSTRAP_PASSWORD") or ""
 def auth_disabled() -> bool:
     """Desliga exigência de login (apenas testes / emergência). Lido em runtime."""
     return os.environ.get("AUTH_DISABLED", "").lower() in ("1", "true", "yes")
+
+
+def cookie_secure_for_request(request_scheme: str) -> bool:
+    """Define o flag Secure do cookie de sessão.
+
+    - auto: True só quando o request é HTTPS (ex.: atrás do Caddy com X-Forwarded-Proto)
+    - 1/true/yes: sempre Secure (só faz login por HTTPS)
+    - 0/false/no: nunca Secure (dev HTTP)
+    """
+    if AUTH_COOKIE_SECURE in ("1", "true", "yes"):
+        return True
+    if AUTH_COOKIE_SECURE in ("0", "false", "no"):
+        return False
+    return (request_scheme or "").lower() == "https"
 
 
 # User-Agent usado nas requisições HTTP às APIs oficiais (Compras.gov e Power BI PMU).
