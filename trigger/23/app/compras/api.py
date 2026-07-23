@@ -660,10 +660,11 @@ def listar_compras(
     if situacao:
         stmt = stmt.where(CompraContratacao.situacao_lista.ilike(f"%{situacao}%"))
         count = count.where(CompraContratacao.situacao_lista.ilike(f"%{situacao}%"))
-    codigos_pncp = set(modalidade_codigo)
-    if codigos_pncp:
-        stmt = stmt.where(CompraContratacao.modalidade_id_pncp.in_(codigos_pncp))
-        count = count.where(CompraContratacao.modalidade_id_pncp.in_(codigos_pncp))
+    # Mesmo campo do vínculo/Painel (codigoModalidade), não modalidadeIdPncp.
+    codigos_mod = {str(c).strip() for c in modalidade_codigo if c is not None and str(c).strip()}
+    if codigos_mod:
+        stmt = stmt.where(CompraContratacao.modalidade_codigo.in_(codigos_mod))
+        count = count.where(CompraContratacao.modalidade_codigo.in_(codigos_mod))
     if processo:
         termo = processo.strip()
         if termo:

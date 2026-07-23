@@ -45,6 +45,11 @@ def test_compras_stats_e_modalidades(client):
 
 
 def test_filtro_modalidade_restringe_a_selecao(client):
+    """Filtra por codigoModalidade (modalidade_codigo), alinhado ao Painel/vínculos.
+
+    A API federal expõe dois códigos distintos; o filtro da listagem não deve
+    usar modalidadeIdPncp, senão a busca diverge do agrupamento do Painel.
+    """
     db = SessionLocal()
     try:
         rows = [
@@ -52,8 +57,8 @@ def test_filtro_modalidade_restringe_a_selecao(client):
                 unidade_compradora="926922",
                 unidade_nome="Teste filtro modalidade",
                 ano=2099,
-                chave_compra=f"TESTE-FILTRO-MOD-{codigo_pncp}",
-                id_compra=f"TESTE-FILTRO-MOD-{codigo_pncp}",
+                chave_compra=f"TESTE-FILTRO-MOD-{codigo_compras}",
+                id_compra=f"TESTE-FILTRO-MOD-{codigo_compras}",
                 modalidade_id_pncp=codigo_pncp,
                 modalidade_codigo=str(codigo_compras),
                 modalidade_descricao=descricao,
@@ -69,20 +74,31 @@ def test_filtro_modalidade_restringe_a_selecao(client):
     finally:
         db.close()
 
-    somente_pregao = client.get(
+    # codigoModalidade=5 (não modalidadeIdPncp=6) → Pregão da fixture
+    somente_codigo_5 = client.get(
+        "/api/compras/contratacoes",
+        params={"ano": 2099, "modalidade_codigo": "5"},
+    )
+    assert somente_codigo_5.status_code == 200
+    assert somente_codigo_5.json()["total"] == 1
+    assert somente_codigo_5.json()["items"][0]["modalidade_descricao"] == "Pregão - Eletrônico"
+    assert somente_codigo_5.json()["items"][0]["modalidade_codigo"] == "5"
+
+    # Garante que não filtra pelo id PNCP: id_pncp=6 existe, mas codigo=6 é Dispensa
+    por_id_pncp_equivocado = client.get(
         "/api/compras/contratacoes",
         params={"ano": 2099, "modalidade_codigo": "6"},
     )
-    assert somente_pregao.status_code == 200
-    assert somente_pregao.json()["total"] == 1
-    assert somente_pregao.json()["items"][0]["modalidade_descricao"] == "Pregão - Eletrônico"
+    assert por_id_pncp_equivocado.status_code == 200
+    assert por_id_pncp_equivocado.json()["total"] == 1
+    assert por_id_pncp_equivocado.json()["items"][0]["modalidade_descricao"] == "Dispensa"
 
     duas_modalidades = client.get(
         "/api/compras/contratacoes",
         params=[
             ("ano", "2099"),
-            ("modalidade_codigo", "6"),
-            ("modalidade_codigo", "13"),
+            ("modalidade_codigo", "5"),
+            ("modalidade_codigo", "12"),
         ],
     )
     assert duas_modalidades.status_code == 200
