@@ -305,7 +305,7 @@ def _rotulo_etapa(nome: str, etapas: list[str]) -> str:
     titulos = {
         "coleta": "coleta unificada",
         "cnpjs": "CNPJs pendentes",
-        "mercado_ia": "preços de mercado (Materiais)",
+        "mercado_ia": "preços de mercado (Materiais pendentes)",
     }
     return f"── Etapa {n}/{total}: {titulos.get(nome, nome)} ──"
 

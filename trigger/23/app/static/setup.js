@@ -617,7 +617,7 @@ function renderAgendamento(cfg) {
     [
       cfg.incluir_coleta ? "coleta" : null,
       cfg.incluir_cnpjs ? "CNPJs pendentes" : null,
-      cfg.incluir_mercado_ia ? "preços de mercado (Materiais)" : null,
+      cfg.incluir_mercado_ia ? "preços de mercado (Materiais pendentes)" : null,
     ].filter(Boolean).join(" → ") || "nenhuma etapa"
   }</span></div>`);
   if (params.ano || (params.anos || []).length) {

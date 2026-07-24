@@ -1,7 +1,8 @@
 """Job em background: busca preços de mercado (IA) item a item — só Materiais.
 
 Reutiliza ``analise_preco.executar_busca_mercado`` (mesma rotina do botão
-*Buscar preços de mercado* em Propostas abertas). Cadência conservadora entre
+*Buscar preços de mercado* em Propostas abertas). Processa apenas itens que
+ainda **não** têm análise IA com status ``ok``. Cadência conservadora entre
 itens para respeitar cota/tokens do Setup. Falha em um item não interrompe a fila.
 """
 
@@ -103,14 +104,17 @@ def executar_job() -> None:
         status["total"] = len(fila)
         status["fase"] = "buscando"
         _log(
-            f"{len(fila)} material(is) em Propostas abertas · "
+            f"{len(fila)} material(is) sem preço de mercado IA · "
             f"intervalo {MERCADO_IA_LOTE_INTERVALO_SEC:g}s entre itens"
         )
 
         if not fila:
             status["resultado"] = {
                 "ok": True,
-                "mensagem": "Nenhum item Material em Propostas abertas para buscar preços",
+                "mensagem": (
+                    "Nenhum Material pendente de preço de mercado IA "
+                    "(todos já analisados ou sem itens abertos)"
+                ),
                 "total": 0,
                 "ok_count": 0,
                 "erros": 0,

@@ -515,12 +515,12 @@ def test_cadeia_nao_roda_mercado_se_coleta_falha(client):
 
 
 def test_job_mercado_ia_somente_material_e_um_a_um(client, monkeypatch):
-    """Fila = só Material; executa busca uma vez por item, na ordem."""
+    """Fila = só Material sem análise OK; um a um; ignora Serviço e já analisados."""
     from datetime import datetime, timedelta
     from unittest.mock import MagicMock
 
     from app import job_mercado_ia
-    from app.database import CompraContratacao, CompraContratacaoItem
+    from app.database import CompraContratacao, CompraContratacaoItem, PropostaAnalisePreco
 
     monkeypatch.setattr(job_mercado_ia, "MERCADO_IA_LOTE_INTERVALO_SEC", 0)
 
@@ -541,23 +541,47 @@ def test_job_mercado_ia_somente_material_e_um_a_um(client, monkeypatch):
         )
         db.add(c)
         db.flush()
-        mat = CompraContratacaoItem(
+        mat_pendente = CompraContratacaoItem(
             contratacao_id=c.id,
             id_compra=id_compra,
-            id_compra_item=f"{id_compra}m",
+            id_compra_item=f"{id_compra}m1",
             numero_item_compra=1,
-            descricao_resumida="Material teste agendamento",
+            descricao_resumida="Material sem análise",
             material_ou_servico="M",
             material_ou_servico_nome="Material",
             quantidade="10",
             valor_unitario_estimado="1,00",
             valor_total="10,00",
         )
+        mat_ja_ok = CompraContratacaoItem(
+            contratacao_id=c.id,
+            id_compra=id_compra,
+            id_compra_item=f"{id_compra}m2",
+            numero_item_compra=2,
+            descricao_resumida="Material já com preço IA",
+            material_ou_servico="M",
+            material_ou_servico_nome="Material",
+            quantidade="5",
+            valor_unitario_estimado="2,00",
+            valor_total="10,00",
+        )
+        mat_so_erro = CompraContratacaoItem(
+            contratacao_id=c.id,
+            id_compra=id_compra,
+            id_compra_item=f"{id_compra}m3",
+            numero_item_compra=3,
+            descricao_resumida="Material só com erro (retentar)",
+            material_ou_servico="M",
+            material_ou_servico_nome="Material",
+            quantidade="3",
+            valor_unitario_estimado="3,00",
+            valor_total="9,00",
+        )
         serv = CompraContratacaoItem(
             contratacao_id=c.id,
             id_compra=id_compra,
             id_compra_item=f"{id_compra}s",
-            numero_item_compra=2,
+            numero_item_compra=4,
             descricao_resumida="Serviço não deve entrar",
             material_ou_servico="S",
             material_ou_servico_nome="Serviço",
@@ -565,9 +589,33 @@ def test_job_mercado_ia_somente_material_e_um_a_um(client, monkeypatch):
             valor_unitario_estimado="100,00",
             valor_total="100,00",
         )
-        db.add_all([mat, serv])
+        db.add_all([mat_pendente, mat_ja_ok, mat_so_erro, serv])
+        db.flush()
+        db.add(
+            PropostaAnalisePreco(
+                item_id=mat_ja_ok.id,
+                id_compra_item=mat_ja_ok.id_compra_item,
+                prompt_versao="v3",
+                prompt_enviado="prompt teste",
+                status="ok",
+                resposta_texto="ok",
+            )
+        )
+        db.add(
+            PropostaAnalisePreco(
+                item_id=mat_so_erro.id,
+                id_compra_item=mat_so_erro.id_compra_item,
+                prompt_versao="v3",
+                prompt_enviado="prompt teste",
+                status="erro",
+                erro="falha simulada",
+            )
+        )
         db.commit()
-        mat_id = mat.id
+        pendente_id = mat_pendente.id
+        ja_ok_id = mat_ja_ok.id
+        so_erro_id = mat_so_erro.id
+        serv_id = serv.id
     finally:
         db.close()
 
@@ -584,7 +632,11 @@ def test_job_mercado_ia_somente_material_e_um_a_um(client, monkeypatch):
         job_mercado_ia.iniciar_job()
         job_mercado_ia.executar_job()
 
-    assert chamados == [mat_id]
+    assert pendente_id in chamados
+    assert so_erro_id in chamados
+    assert ja_ok_id not in chamados
+    assert serv_id not in chamados
     assert job_mercado_ia.status["resultado"]["ok"] is True
-    assert job_mercado_ia.status["resultado"]["ok_count"] == 1
+    assert int(job_mercado_ia.status["resultado"]["ok_count"] or 0) >= 2
     assert job_mercado_ia.status["resultado"]["erros"] == 0
+    assert len(chamados) == len(set(chamados))

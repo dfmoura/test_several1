@@ -1062,7 +1062,8 @@
               Dispara a <strong>coleta unificada</strong> no horário configurado (fuso America/Sao_Paulo)
               e, se a coleta concluir com sucesso, enriquece automaticamente os <strong>CNPJs pendentes</strong>.
               Opcionalmente, ao final da cadeia, busca <strong>preços de mercado</strong> (IA) item a item —
-              somente <strong>Tipo = Material</strong> em Propostas abertas (mesma rotina do botão do detalhamento).
+              somente <strong>Tipo = Material</strong> em Propostas abertas que ainda
+              <strong>não</strong> têm análise OK (mesma rotina do botão do detalhamento; não reprocessa).
               Se a coleta falhar, as etapas seguintes <strong>não</strong> são executadas.
             </p>
             <form id="form-setup-agendamento" class="form-col" style="max-width:520px">
@@ -1088,7 +1089,7 @@
               </label>
               <label class="chk-label">
                 <input type="checkbox" id="setup-ag-mercado" />
-                Ao final da cadeia → buscar preços de mercado (Materiais, item a item · tokens do Setup)
+                Ao final da cadeia → buscar preços de mercado (Materiais sem análise IA OK, item a item · tokens do Setup)
               </label>
               <div class="field-actions" style="padding-bottom:0">
                 <button type="submit" class="btn primary" id="btn-setup-ag-salvar">Salvar agendamento</button>

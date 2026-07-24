@@ -324,10 +324,14 @@ def listar_itens_materiais_propostas_abertas(
     db: Session,
     *,
     agora: datetime | None = None,
+    somente_sem_analise_ok: bool = True,
 ) -> list[dict[str, Any]]:
     """Itens Tipo=Material com prazo PNCP vigente (mesmo universo da tela Propostas abertas).
 
     Usado pela etapa final do agendamento — uma busca de mercado por item, em sequência.
+    Por padrão exclui itens que já têm pelo menos uma análise de mercado IA com
+    ``status == "ok"`` (evita reprocessar e consumir tokens). Itens só com erro
+    ou sem histórico continuam na fila (podem ser retentados).
     """
     agora = agora or datetime.now()
     abertas = _carregar_contratacoes_abertas(db, agora=agora, horizonte="todos")
@@ -342,6 +346,13 @@ def listar_itens_materiais_propostas_abertas(
         )
         .order_by(CompraContratacaoItem.id.asc())
     )
+    if somente_sem_analise_ok:
+        ja_com_preco = (
+            select(PropostaAnalisePreco.item_id)
+            .where(PropostaAnalisePreco.status == "ok")
+            .distinct()
+        )
+        stmt = stmt.where(CompraContratacaoItem.id.notin_(ja_com_preco))
     fila: list[dict[str, Any]] = []
     for item in db.scalars(stmt):
         desc = (item.descricao_resumida or item.descricao_detalhada or "").strip()
