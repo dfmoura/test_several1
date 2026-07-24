@@ -880,8 +880,14 @@
           <!-- ÓRGÃOS -->
           <div class="vinc-pane" data-vinc="orgaos">
             <div class="panel">
-              <div class="stats-bar" id="orgaos-stats"></div>
-              <button type="button" class="btn ghost tiny" id="btn-orgaos-recarregar">Atualizar</button>
+              <div class="vinc-stats-head">
+                <div>
+                  <h4 class="sub-title">Cobertura de vínculos · Órgãos</h4>
+                  <p class="muted small">Quanto já está unificado entre Compras.gov (UASG) e Power BI (Empresa).</p>
+                </div>
+                <button type="button" class="btn ghost" id="btn-orgaos-recarregar" title="Recarregar indicadores, lista e pendências">Atualizar</button>
+              </div>
+              <div class="stats-bar" id="orgaos-stats" aria-live="polite"></div>
             </div>
             <div class="panel">
               <h4 class="sub-title">Novo órgão consolidado</h4>
@@ -931,8 +937,14 @@
           <!-- MODALIDADES -->
           <div class="vinc-pane hidden" data-vinc="modalidades">
             <div class="panel">
-              <div class="stats-bar" id="modalidades-stats"></div>
-              <button type="button" class="btn ghost tiny" id="btn-modalidades-recarregar">Atualizar</button>
+              <div class="vinc-stats-head">
+                <div>
+                  <h4 class="sub-title">Cobertura de vínculos · Modalidades</h4>
+                  <p class="muted small">Quanto já está unificado entre Compras.gov (código) e Power BI (MODALIDADE).</p>
+                </div>
+                <button type="button" class="btn ghost" id="btn-modalidades-recarregar" title="Recarregar indicadores, lista e pendências">Atualizar</button>
+              </div>
+              <div class="stats-bar" id="modalidades-stats" aria-live="polite"></div>
             </div>
             <div class="panel">
               <h4 class="sub-title">Nova modalidade consolidada</h4>

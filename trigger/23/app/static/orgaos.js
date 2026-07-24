@@ -50,16 +50,54 @@ function renderOrgaosTabela() {
   tb.querySelectorAll(".org-btn-del").forEach((btn) => btn.addEventListener("click", () => excluirOrgao(Number(btn.dataset.oid))));
 }
 
+function orgStatCard({ n, label, hint, main = false, title = "" }) {
+  const cls = main ? "org-stat org-stat-main" : "org-stat";
+  const tit = title ? ` title="${esc(title)}"` : "";
+  return `<div class="${cls}"${tit}>
+    <span class="org-stat-n">${esc(String(n))}</span>
+    <span class="org-stat-l">${esc(label)}</span>
+    ${hint ? `<span class="org-stat-h">${esc(hint)}</span>` : ""}
+  </div>`;
+}
+
 async function carregarOrgaosStats() {
   const s = await api("/api/orgaos-consolidados/stats");
   const el = $("#orgaos-stats");
   if (!el) return;
   const pf = s.por_fonte || {};
-  el.innerHTML = `
-    <div class="org-stat"><span class="org-stat-n">${s.orgaos_ativos}</span><span class="org-stat-l">Órgãos ativos</span></div>
-    <div class="org-stat"><span class="org-stat-n">${s.vinculos_total}</span><span class="org-stat-l">Vínculos</span></div>
-    <div class="org-stat"><span class="org-stat-n">${pf.compras_api?.vinculados ?? 0}/${pf.compras_api?.total_valores ?? 0}</span><span class="org-stat-l">Compras.gov</span></div>
-    <div class="org-stat"><span class="org-stat-n">${pf.powerbi?.vinculados ?? 0}/${pf.powerbi?.total_valores ?? 0}</span><span class="org-stat-l">Power BI</span></div>`;
+  const cg = pf.compras_api || {};
+  const pbi = pf.powerbi || {};
+  const cgV = cg.vinculados ?? 0;
+  const cgT = cg.total_valores ?? 0;
+  const pbiV = pbi.vinculados ?? 0;
+  const pbiT = pbi.total_valores ?? 0;
+  el.innerHTML = [
+    orgStatCard({
+      n: s.orgaos_ativos,
+      label: "Órgãos ativos",
+      hint: "entidades canônicas",
+      main: true,
+      title: "Órgãos consolidados ativos no cadastro",
+    }),
+    orgStatCard({
+      n: s.vinculos_total,
+      label: "Vínculos",
+      hint: "mapeamentos feitos",
+      title: "Total de vínculos entre órgãos e valores das fontes",
+    }),
+    orgStatCard({
+      n: `${cgV}/${cgT}`,
+      label: "Compras.gov · UASG",
+      hint: "vinculados / total encontrados",
+      title: `${cgV} de ${cgT} UASGs já vinculadas`,
+    }),
+    orgStatCard({
+      n: `${pbiV}/${pbiT}`,
+      label: "Power BI · Empresa",
+      hint: "vinculados / total encontrados",
+      title: `${pbiV} de ${pbiT} empresas já vinculadas`,
+    }),
+  ].join("");
 }
 
 async function carregarOrgPendentes() {

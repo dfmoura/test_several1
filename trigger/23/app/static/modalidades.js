@@ -49,16 +49,54 @@ function renderModalidadesTabela() {
   tb.querySelectorAll(".mod-btn-del").forEach((btn) => btn.addEventListener("click", () => excluirModalidade(Number(btn.dataset.mid))));
 }
 
+function modStatCard({ n, label, hint, main = false, title = "" }) {
+  const cls = main ? "org-stat org-stat-main" : "org-stat";
+  const tit = title ? ` title="${esc(title)}"` : "";
+  return `<div class="${cls}"${tit}>
+    <span class="org-stat-n">${esc(String(n))}</span>
+    <span class="org-stat-l">${esc(label)}</span>
+    ${hint ? `<span class="org-stat-h">${esc(hint)}</span>` : ""}
+  </div>`;
+}
+
 async function carregarModalidadesStats() {
   const s = await api("/api/modalidades-consolidadas/stats");
   const el = $("#modalidades-stats");
   if (!el) return;
   const pf = s.por_fonte || {};
-  el.innerHTML = `
-    <div class="org-stat"><span class="org-stat-n">${s.modalidades_ativas}</span><span class="org-stat-l">Modalidades ativas</span></div>
-    <div class="org-stat"><span class="org-stat-n">${s.vinculos_total}</span><span class="org-stat-l">Vínculos</span></div>
-    <div class="org-stat"><span class="org-stat-n">${pf.compras_api?.vinculados ?? 0}/${pf.compras_api?.total_valores ?? 0}</span><span class="org-stat-l">Compras.gov</span></div>
-    <div class="org-stat"><span class="org-stat-n">${pf.powerbi?.vinculados ?? 0}/${pf.powerbi?.total_valores ?? 0}</span><span class="org-stat-l">Power BI</span></div>`;
+  const cg = pf.compras_api || {};
+  const pbi = pf.powerbi || {};
+  const cgV = cg.vinculados ?? 0;
+  const cgT = cg.total_valores ?? 0;
+  const pbiV = pbi.vinculados ?? 0;
+  const pbiT = pbi.total_valores ?? 0;
+  el.innerHTML = [
+    modStatCard({
+      n: s.modalidades_ativas,
+      label: "Modalidades ativas",
+      hint: "entidades canônicas",
+      main: true,
+      title: "Modalidades consolidadas ativas no cadastro",
+    }),
+    modStatCard({
+      n: s.vinculos_total,
+      label: "Vínculos",
+      hint: "mapeamentos feitos",
+      title: "Total de vínculos entre modalidades e valores das fontes",
+    }),
+    modStatCard({
+      n: `${cgV}/${cgT}`,
+      label: "Compras.gov · código",
+      hint: "vinculados / total encontrados",
+      title: `${cgV} de ${cgT} códigos já vinculados`,
+    }),
+    modStatCard({
+      n: `${pbiV}/${pbiT}`,
+      label: "Power BI · MODALIDADE",
+      hint: "vinculados / total encontrados",
+      title: `${pbiV} de ${pbiT} modalidades já vinculadas`,
+    }),
+  ].join("");
 }
 
 async function carregarModPendentes() {
