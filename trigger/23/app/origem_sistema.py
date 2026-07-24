@@ -20,7 +20,7 @@ from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 
 from app.compras.client import ComprasGovClient
-from app.compras.cnpj_publico import consultar_cnpj_publico
+from app.compras.cnpj_publico import cnaes_secundarios_de_registro, consultar_cnpj_publico
 from app.compras.normalizers import normalizar_codigo_uasg, normalizar_ni
 from app.config import (
     COMPRAS_IBGE_MUNICIPIO,
@@ -93,6 +93,7 @@ def consultar_cnpj_raiz(cnpj: str) -> dict[str, Any]:
         "porte": mapped.get("porte_empresa_nome"),
         "codigo_cnae": mapped.get("codigo_cnae"),
         "nome_cnae": mapped.get("nome_cnae"),
+        "cnaes_secundarios": cnaes_secundarios_de_registro(mapped.get("cnpj_dados_json")),
         "codigo_municipio_ibge": mapped.get("codigo_municipio_ibge"),
         "nome_municipio": mapped.get("nome_municipio"),
         "uf": mapped.get("uf_sigla"),
@@ -165,6 +166,7 @@ def raiz_para_api(row: SistemaRaiz | None) -> dict[str, Any]:
             "porte": row.porte,
             "codigo_cnae": row.codigo_cnae,
             "nome_cnae": row.nome_cnae,
+            "cnaes_secundarios": cnaes_secundarios_de_registro(row.cnpj_dados_json),
             "codigo_municipio_ibge": row.codigo_municipio_ibge,
             "nome_municipio": row.nome_municipio,
             "uf": row.uf,

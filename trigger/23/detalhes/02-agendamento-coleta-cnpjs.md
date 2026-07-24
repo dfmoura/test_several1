@@ -19,14 +19,17 @@ Permitir agendar a coleta para rodar de madrugada e, **ao finalizar com sucesso*
    - opções do que entra na cadeia:
      - [x] Coleta unificada (com parâmetros salvos: fontes, ano, unidades, fases, datasets — reutilizar defaults sensatos da tela Coleta)
      - [x] Após sucesso da coleta → job CNPJs pendentes
+     - [x] Ao final da cadeia → buscar preços de mercado (IA), **item a item**, somente **Tipo = Material** em Propostas abertas (reutilizar `executar_busca_mercado` — mesma rotina do botão do detalhamento; opt-in, desligado por padrão)
    - status da última execução (início, fim, ok/erro, resumo curto)
-2. **Cadeia obrigatória quando ambos ativos:**
-   1. roda coleta
-   2. se coleta OK → roda CNPJs pendentes
-   3. se coleta falhar → **não** roda CNPJs; registra erro
+2. **Cadeia obrigatória quando etapas ativas:**
+   1. roda coleta (se marcada)
+   2. se coleta OK (ou coleta omitida) → roda CNPJs (se marcada)
+   3. se etapas anteriores OK → roda preços de mercado Materiais (se marcada)
+   4. se coleta falhar → **não** roda CNPJs nem mercado; registra erro
 3. Execução também manual no Setup: botão “Rodar agora (cadeia)”.
 4. Apenas **admin** configura e dispara.
 5. Evitar sobreposição: se já houver job rodando, não iniciar outro (lock/flag).
+6. Busca de mercado: um item por vez; falha em um item não interrompe a fila; tokens/rotação do Setup.
 
 ## Requisitos técnicos
 

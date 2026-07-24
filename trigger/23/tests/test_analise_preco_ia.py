@@ -78,7 +78,7 @@ def _criar_item_aberto(
             ano=2026,
             unidade_compradora="926922",
             unidade_nome="TEST-ISOLADO",
-            modalidade_codigo="6",
+            modalidade_codigo="5",
             modalidade_descricao="Pregão - Eletrônico",
             objeto="[TESTE] Aquisição de mobiliário escolar",
             data_encerramento_proposta_pncp=enc,

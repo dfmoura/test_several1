@@ -35,6 +35,21 @@ def client(monkeypatch):
         atualizado_em=None,
         finalizado_em=None,
     )
+    from app import job_mercado_ia as jm
+
+    jm.status.update(
+        running=False,
+        fase="idle",
+        cancelado=False,
+        total=0,
+        processados=0,
+        ok=0,
+        erros=0,
+        atual=None,
+        ultimo_erro=None,
+        log=[],
+        resultado=None,
+    )
 
 
 @pytest.fixture()
@@ -58,6 +73,7 @@ def test_obter_e_salvar_agendamento(client):
     assert "ativo" in body
     assert body["fuso"] == "America/Sao_Paulo"
     assert "params_coleta" in body
+    assert body.get("incluir_mercado_ia") is False
 
     r2 = client.put(
         "/api/sistema/agendamento",
@@ -68,6 +84,7 @@ def test_obter_e_salvar_agendamento(client):
             "fuso": "America/Sao_Paulo",
             "incluir_coleta": True,
             "incluir_cnpjs": True,
+            "incluir_mercado_ia": True,
         },
     )
     assert r2.status_code == 200
@@ -76,6 +93,7 @@ def test_obter_e_salvar_agendamento(client):
     assert data["horario"] == "02:30"
     assert data["incluir_coleta"] is True
     assert data["incluir_cnpjs"] is True
+    assert data["incluir_mercado_ia"] is True
 
 
 def test_iso_api_marca_naive_como_utc():
@@ -150,9 +168,27 @@ def test_salvar_exige_ao_menos_uma_etapa(client):
             "minuto": 0,
             "incluir_coleta": False,
             "incluir_cnpjs": False,
+            "incluir_mercado_ia": False,
         },
     )
     assert r.status_code == 400
+
+
+def test_salvar_permite_somente_mercado_ia(client):
+    r = client.put(
+        "/api/sistema/agendamento",
+        json={
+            "ativo": False,
+            "hora": 3,
+            "minuto": 0,
+            "incluir_coleta": False,
+            "incluir_cnpjs": False,
+            "incluir_mercado_ia": True,
+        },
+    )
+    assert r.status_code == 200
+    assert r.json()["incluir_mercado_ia"] is True
+    assert r.json()["incluir_coleta"] is False
 
 
 def test_sem_login_bloqueado_no_agendamento(client_auth):
@@ -369,3 +405,186 @@ def test_cadeia_roda_cnpjs_apos_coleta_ok(client):
         assert ultima.origem == "manual"
     finally:
         db.close()
+
+
+def test_cadeia_roda_mercado_ia_apos_etapas_ok(client, monkeypatch):
+    """Etapa final: preços de mercado só após coleta/CNPJs OK; item a item."""
+    client.put(
+        "/api/sistema/agendamento",
+        json={
+            "ativo": False,
+            "hora": 2,
+            "minuto": 0,
+            "incluir_coleta": True,
+            "incluir_cnpjs": True,
+            "incluir_mercado_ia": True,
+        },
+    )
+
+    mercado_chamado = {"n": 0}
+
+    def _coleta_ok(**kwargs):
+        from app import coleta_hub as hub
+
+        hub.status["resultado"] = {"ok": True, "fontes": {"compras": {"ok": True}}}
+        hub.status["running"] = False
+        hub.status["fase"] = "idle"
+        hub.status["log"] = ["coleta mock ok"]
+
+    def _cnpj_ok():
+        from app.compras import job_pendentes_cnpj as jp
+
+        jp.status["resultado"] = {
+            "ok": True,
+            "mensagem": "ok",
+            "total": 0,
+            "ok_count": 0,
+            "erros": 0,
+        }
+        jp.status["log"] = ["cnpj mock ok"]
+        jp.status["running"] = False
+
+    def _mercado_ok():
+        mercado_chamado["n"] += 1
+        from app import job_mercado_ia as jm
+
+        jm.status["resultado"] = {
+            "ok": True,
+            "mensagem": "mercado mock",
+            "total": 2,
+            "ok_count": 2,
+            "erros": 0,
+        }
+        jm.status["log"] = ["mercado mock ok"]
+        jm.status["running"] = False
+
+    with patch("app.agendamento.coleta_hub.preparar_status"):
+        with patch("app.agendamento.coleta_hub.executar_coleta_unificada", side_effect=_coleta_ok):
+            with patch("app.agendamento.iniciar_job_pendentes_cnpj", return_value={"status": "iniciada"}):
+                with patch("app.agendamento.executar_job_pendentes_cnpj", side_effect=_cnpj_ok):
+                    with patch("app.agendamento.job_mercado_ia.iniciar_job", return_value={"status": "iniciada"}):
+                        with patch(
+                            "app.agendamento.job_mercado_ia.executar_job",
+                            side_effect=_mercado_ok,
+                        ):
+                            agendamento.iniciar_cadeia(origem="manual")
+                            agendamento.executar_cadeia(origem="manual")
+
+    assert mercado_chamado["n"] == 1
+    assert agendamento.status["resultado"]["ok"] is True
+    detalhes = agendamento.status["resultado"]["detalhes"]
+    assert detalhes["etapas"]["mercado_ia"]["ok"] is True
+    assert "mercado 2 ok" in (agendamento.status["resultado"]["resumo"] or "")
+
+def test_cadeia_nao_roda_mercado_se_coleta_falha(client):
+    client.put(
+        "/api/sistema/agendamento",
+        json={
+            "ativo": False,
+            "hora": 2,
+            "minuto": 0,
+            "incluir_coleta": True,
+            "incluir_cnpjs": False,
+            "incluir_mercado_ia": True,
+        },
+    )
+
+    mercado_chamado = {"n": 0}
+
+    def _coleta_falha(**kwargs):
+        from app import coleta_hub as hub
+
+        hub.status["resultado"] = {"ok": False, "erro": "falha simulada", "fontes": {}}
+        hub.status["running"] = False
+        hub.status["fase"] = "idle"
+
+    def _mercado_contar():
+        mercado_chamado["n"] += 1
+
+    with patch("app.agendamento.coleta_hub.preparar_status"):
+        with patch("app.agendamento.coleta_hub.executar_coleta_unificada", side_effect=_coleta_falha):
+            with patch(
+                "app.agendamento.job_mercado_ia.iniciar_job",
+                side_effect=_mercado_contar,
+            ):
+                agendamento.iniciar_cadeia(origem="manual")
+                agendamento.executar_cadeia(origem="manual")
+
+    assert mercado_chamado["n"] == 0
+    assert agendamento.status["resultado"]["ok"] is False
+
+
+def test_job_mercado_ia_somente_material_e_um_a_um(client, monkeypatch):
+    """Fila = só Material; executa busca uma vez por item, na ordem."""
+    from datetime import datetime, timedelta
+    from unittest.mock import MagicMock
+
+    from app import job_mercado_ia
+    from app.database import CompraContratacao, CompraContratacaoItem
+
+    monkeypatch.setattr(job_mercado_ia, "MERCADO_IA_LOTE_INTERVALO_SEC", 0)
+
+    db = SessionLocal()
+    try:
+        enc = (datetime.now() + timedelta(days=3)).strftime("%d/%m/%Y %H:%M")
+        sufixo = uuid.uuid4().hex[:8]
+        id_compra = f"ag{sufixo}"
+        c = CompraContratacao(
+            chave_compra=id_compra,
+            id_compra=id_compra,
+            numero="AG-MERC-1",
+            processo="PROC-AG/2026",
+            ano=2026,
+            unidade_compradora="926922",
+            unidade_nome="TEST",
+            data_encerramento_proposta_pncp=enc,
+        )
+        db.add(c)
+        db.flush()
+        mat = CompraContratacaoItem(
+            contratacao_id=c.id,
+            id_compra=id_compra,
+            id_compra_item=f"{id_compra}m",
+            numero_item_compra=1,
+            descricao_resumida="Material teste agendamento",
+            material_ou_servico="M",
+            material_ou_servico_nome="Material",
+            quantidade="10",
+            valor_unitario_estimado="1,00",
+            valor_total="10,00",
+        )
+        serv = CompraContratacaoItem(
+            contratacao_id=c.id,
+            id_compra=id_compra,
+            id_compra_item=f"{id_compra}s",
+            numero_item_compra=2,
+            descricao_resumida="Serviço não deve entrar",
+            material_ou_servico="S",
+            material_ou_servico_nome="Serviço",
+            quantidade="1",
+            valor_unitario_estimado="100,00",
+            valor_total="100,00",
+        )
+        db.add_all([mat, serv])
+        db.commit()
+        mat_id = mat.id
+    finally:
+        db.close()
+
+    chamados: list[int] = []
+
+    def _fake_busca(db, item_id, *, usuario=None):
+        chamados.append(item_id)
+        row = MagicMock()
+        row.status = "ok"
+        row.erro = None
+        return row
+
+    with patch("app.job_mercado_ia.executar_busca_mercado", side_effect=_fake_busca):
+        job_mercado_ia.iniciar_job()
+        job_mercado_ia.executar_job()
+
+    assert chamados == [mat_id]
+    assert job_mercado_ia.status["resultado"]["ok"] is True
+    assert job_mercado_ia.status["resultado"]["ok_count"] == 1
+    assert job_mercado_ia.status["resultado"]["erros"] == 0

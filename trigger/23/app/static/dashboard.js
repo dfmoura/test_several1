@@ -13,7 +13,7 @@ function dashBarList(items, maxItems = 7) {
       return `<li class="${cls.trim() || "dash-bar-item"}">
         <div class="dash-bar-meta">
           <span class="dash-bar-label" title="${esc(i.nome)}">${esc(i.nome)}</span>
-          <span class="dash-bar-val">${fmtNum(i.total)}</span>
+          <span class="dash-bar-val" title="${esc(String(fmtNum(i.total)))}">${fmtNum(i.total)}</span>
         </div>
         <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${pct}%"></div></div>
       </li>`;
@@ -63,18 +63,21 @@ function dashBasePanel(id, titulo, badge, descricao, data, extras) {
     <span class="dash-kpi-l">Total de processos</span>
   </div>`;
   if (extras?.valor_estimado != null || extras?.valor_homologado != null) {
+    const vEst = fmtMoeda(extras.valor_estimado);
+    const vHom = fmtMoeda(extras.valor_homologado);
     kpis += `<div class="dash-kpi">
-      <span class="dash-kpi-n dash-kpi-money">${fmtMoeda(extras.valor_estimado)}</span>
+      <span class="dash-kpi-n dash-kpi-money" title="${esc(vEst)}">${vEst}</span>
       <span class="dash-kpi-l">Valor estimado</span>
     </div>
     <div class="dash-kpi">
-      <span class="dash-kpi-n dash-kpi-money">${fmtMoeda(extras.valor_homologado)}</span>
+      <span class="dash-kpi-n dash-kpi-money" title="${esc(vHom)}">${vHom}</span>
       <span class="dash-kpi-l">Valor homologado</span>
     </div>`;
   }
   if (extras?.valor_solicitacao != null) {
+    const vSol = fmtMoeda(extras.valor_solicitacao);
     kpis += `<div class="dash-kpi">
-      <span class="dash-kpi-n dash-kpi-money">${fmtMoeda(extras.valor_solicitacao)}</span>
+      <span class="dash-kpi-n dash-kpi-money" title="${esc(vSol)}">${vSol}</span>
       <span class="dash-kpi-l">Valor solicitação</span>
     </div>`;
   }

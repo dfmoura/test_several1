@@ -1,0 +1,13 @@
+{
+  "name": "reta-gestao",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm --filter @reta/domain test",
+    "dev:api": "pnpm --filter @reta/api dev",
+    "dev:web": "pnpm --filter @reta/web dev",
+    "dev:worker": "pnpm --filter @reta/api worker:dev"
+  }
+}

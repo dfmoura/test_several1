@@ -39,12 +39,12 @@ function renderSetupStatus(status) {
   const uasgs = status.contagem.find((c) => c.tabela === "sistema_unidades_compradoras");
   const raiz = status.contagem.find((c) => c.tabela === "sistema_raiz");
   el.innerHTML = `
-    <div class="setup-stat"><span class="setup-stat-label">Banco de dados</span><strong>${status.banco_mb} MB</strong></div>
-    <div class="setup-stat"><span class="setup-stat-label">Ano inicial configurado</span><strong>${cfg.ano_inicial_coleta ?? "Não definido"}</strong></div>
-    <div class="setup-stat"><span class="setup-stat-label">Anos de coleta</span><strong>${anosColetaTexto(cfg.anos_coleta)}</strong></div>
+    <div class="setup-stat"><span class="setup-stat-label">Banco de dados</span><strong title="${esc(String(status.banco_mb) + ' MB')}">${status.banco_mb} MB</strong></div>
+    <div class="setup-stat"><span class="setup-stat-label">Ano inicial configurado</span><strong title="${esc(String(cfg.ano_inicial_coleta ?? "Não definido"))}">${cfg.ano_inicial_coleta ?? "Não definido"}</strong></div>
+    <div class="setup-stat"><span class="setup-stat-label">Anos de coleta</span><strong title="${esc(anosColetaTexto(cfg.anos_coleta))}">${anosColetaTexto(cfg.anos_coleta)}</strong></div>
     <div class="setup-stat"><span class="setup-stat-label">Raiz cadastrada</span><strong>${raiz && raiz.registros > 0 ? "Sim" : "Não"}</strong></div>
-    <div class="setup-stat"><span class="setup-stat-label">UASGs cadastradas</span><strong>${uasgs ? fmtNum(uasgs.registros) : "—"}</strong></div>
-    <div class="setup-stat"><span class="setup-stat-label">Registros coletados</span><strong>${fmtNum(coleta.reduce((s, c) => s + c.registros, 0))}</strong></div>
+    <div class="setup-stat"><span class="setup-stat-label">UASGs cadastradas</span><strong title="${esc(uasgs ? String(fmtNum(uasgs.registros)) : "—")}">${uasgs ? fmtNum(uasgs.registros) : "—"}</strong></div>
+    <div class="setup-stat"><span class="setup-stat-label">Registros coletados</span><strong title="${esc(String(fmtNum(coleta.reduce((s, c) => s + c.registros, 0))))}">${fmtNum(coleta.reduce((s, c) => s + c.registros, 0))}</strong></div>
     <div class="setup-stat setup-stat-wide"><span class="setup-stat-label">Tabelas com dados</span>
       <span class="setup-tabelas">${comDados.length ? comDados.map((c) => `${esc(c.tabela)} (${fmtNum(c.registros)})`).join(" · ") : "Nenhum dado coletado"}</span></div>`;
 }
@@ -120,6 +120,15 @@ function renderSetupRaiz(data) {
   }
 
   const end = [raiz.logradouro, raiz.numero, raiz.bairro, raiz.cep].filter(Boolean).join(", ");
+  const cnaePrin = raiz.codigo_cnae
+    ? `${raiz.codigo_cnae} — ${raiz.nome_cnae || ""}`.trim()
+    : (raiz.nome_cnae || "—");
+  const cnaesSec = Array.isArray(raiz.cnaes_secundarios) ? raiz.cnaes_secundarios : [];
+  const cnaesSecHtml = cnaesSec.length
+    ? `<ul class="setup-cnaes-sec">${cnaesSec.map((c) => {
+        return `<li><code>${esc(String(c.codigo ?? "—"))}</code> ${esc(c.descricao || "")}</li>`;
+      }).join("")}</ul>`
+    : `<p class="muted small">Nenhum CNAE secundário informado.</p>`;
   box.innerHTML = `
     <dl class="setup-raiz-grid">
       <div><dt>CNPJ</dt><dd><code>${esc(formatarCnpjExibicao(raiz.cnpj))}</code></dd></div>
@@ -128,9 +137,14 @@ function renderSetupRaiz(data) {
       <div><dt>Situação</dt><dd>${esc(raiz.situacao_cadastral || "—")}</dd></div>
       <div><dt>Município (origem)</dt><dd>${esc(raiz.nome_municipio || "—")} / ${esc(raiz.uf || "—")}</dd></div>
       <div><dt>Código IBGE</dt><dd><code>${esc(String(raiz.codigo_municipio_ibge ?? "—"))}</code></dd></div>
+      <div><dt>CNAE principal</dt><dd>${esc(cnaePrin)}</dd></div>
       <div><dt>Endereço</dt><dd>${esc(end || "—")}</dd></div>
       <div><dt>Fonte CNPJ</dt><dd>${esc(raiz.fonte_cnpj || "—")}</dd></div>
-    </dl>`;
+    </dl>
+    <div class="setup-cnaes-sec-wrap">
+      <p class="meta-line">CNAEs secundários${cnaesSec.length ? ` (${cnaesSec.length})` : ""}</p>
+      ${cnaesSecHtml}
+    </div>`;
 }
 
 async function carregarSetupRaiz() {
@@ -160,6 +174,15 @@ async function consultarSetupRaiz() {
     const p = res.preview || {};
     const box = $("#setup-raiz-dados");
     if (box) {
+      const cnaePrin = p.codigo_cnae
+        ? `${p.codigo_cnae} — ${p.nome_cnae || ""}`.trim()
+        : (p.nome_cnae || "—");
+      const cnaesSec = Array.isArray(p.cnaes_secundarios) ? p.cnaes_secundarios : [];
+      const cnaesSecHtml = cnaesSec.length
+        ? `<ul class="setup-cnaes-sec">${cnaesSec.map((c) =>
+            `<li><code>${esc(String(c.codigo ?? "—"))}</code> ${esc(c.descricao || "")}</li>`
+          ).join("")}</ul>`
+        : `<p class="muted small">Nenhum CNAE secundário informado.</p>`;
       box.innerHTML = `
         <p class="muted small">Pré-visualização (ainda não salva):</p>
         <dl class="setup-raiz-grid">
@@ -167,9 +190,14 @@ async function consultarSetupRaiz() {
           <div><dt>Razão social</dt><dd>${esc(p.razao_social || "—")}</dd></div>
           <div><dt>Município</dt><dd>${esc(p.nome_municipio || "—")} / ${esc(p.uf || "—")}</dd></div>
           <div><dt>Código IBGE</dt><dd><code>${esc(String(p.codigo_municipio_ibge ?? "—"))}</code></dd></div>
+          <div><dt>CNAE principal</dt><dd>${esc(cnaePrin)}</dd></div>
           <div><dt>Situação</dt><dd>${esc(p.situacao_cadastral || "—")}</dd></div>
           <div><dt>Fonte</dt><dd>${esc(p.fonte_cnpj || "—")}</dd></div>
-        </dl>`;
+        </dl>
+        <div class="setup-cnaes-sec-wrap">
+          <p class="meta-line">CNAEs secundários${cnaesSec.length ? ` (${cnaesSec.length})` : ""}</p>
+          ${cnaesSecHtml}
+        </div>`;
     }
     setupRaizMsg("Consulta OK. Confirme com “Cadastrar raiz”.", true);
   } catch (err) {
@@ -524,7 +552,7 @@ async function verificarSetupInicial() {
 
 window.verificarSetupInicial = verificarSetupInicial;
 
-/* ---------------------------- Agendamento (coleta → CNPJs) ---------------------------- */
+/* ---------------------------- Agendamento (coleta → CNPJs → mercado) ---------------------------- */
 
 function setupAgMsg(texto, ok) {
   const msg = $("#setup-ag-msg");
@@ -561,11 +589,13 @@ function renderAgendamento(cfg) {
   const fuso = $("#setup-ag-fuso");
   const coleta = $("#setup-ag-coleta");
   const cnpjs = $("#setup-ag-cnpjs");
+  const mercado = $("#setup-ag-mercado");
   if (ativo) ativo.checked = !!cfg.ativo;
   if (horario) horario.value = cfg.horario || "02:00";
   if (fuso) fuso.value = cfg.fuso || "America/Sao_Paulo";
   if (coleta) coleta.checked = cfg.incluir_coleta !== false;
   if (cnpjs) cnpjs.checked = cfg.incluir_cnpjs !== false;
+  if (mercado) mercado.checked = !!cfg.incluir_mercado_ia;
 
   const box = $("#setup-ag-status");
   const logEl = $("#setup-ag-log");
@@ -587,6 +617,7 @@ function renderAgendamento(cfg) {
     [
       cfg.incluir_coleta ? "coleta" : null,
       cfg.incluir_cnpjs ? "CNPJs pendentes" : null,
+      cfg.incluir_mercado_ia ? "preços de mercado (Materiais)" : null,
     ].filter(Boolean).join(" → ") || "nenhuma etapa"
   }</span></div>`);
   if (params.ano || (params.anos || []).length) {
@@ -675,6 +706,7 @@ async function salvarAgendamento(e) {
         fuso: $("#setup-ag-fuso")?.value || "America/Sao_Paulo",
         incluir_coleta: !!$("#setup-ag-coleta")?.checked,
         incluir_cnpjs: !!$("#setup-ag-cnpjs")?.checked,
+        incluir_mercado_ia: !!$("#setup-ag-mercado")?.checked,
       }),
     });
     renderAgendamento(cfg);
@@ -692,7 +724,7 @@ async function salvarAgendamento(e) {
 }
 
 async function rodarCadeiaAgora() {
-  if (!confirm("Rodar agora a cadeia configurada (coleta → CNPJs, conforme opções)?")) return;
+  if (!confirm("Rodar agora a cadeia configurada (coleta → CNPJs → preços de mercado, conforme opções)?")) return;
   const btn = $("#btn-setup-ag-rodar");
   btn.disabled = true;
   setupAgMsg("Iniciando cadeia…", true);

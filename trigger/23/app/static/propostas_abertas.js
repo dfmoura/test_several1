@@ -14,6 +14,14 @@ let propIaSnapshot = null;
 let propIaUltima = null;
 
 const PROP_SORT_GETTERS = {
+  analise_ia: (r) => {
+    const a = r.analise_ia;
+    if (!a || a.status !== "ok") return null;
+    const d = Number(a.desvio_percentual_aprox);
+    if (Number.isFinite(d)) return d;
+    const fallback = { mais_barato: -1, alinhado: 0, indeterminado: 0.5, mais_caro: 1 };
+    return fallback[a.comparativo] ?? null;
+  },
   horas_restantes: (r) => r.horas_restantes,
   numero_compra: (r) => r.numero_compra || "",
   processo: (r) => r.processo || "",
@@ -785,7 +793,7 @@ function renderPropResumo(resumo) {
     <div class="prop-chips">
       ${chips.map((c) => `
         <div class="prop-chip${c.urg ? ` prop-chip-${c.urg}` : ""}">
-          <span class="prop-chip-n">${c.n}</span>
+          <span class="prop-chip-n" title="${esc(String(c.n))}">${esc(String(c.n))}</span>
           <span class="prop-chip-l">${esc(c.l)}</span>
         </div>`).join("")}
     </div>`;
@@ -904,15 +912,15 @@ function renderPropCamposChave(it, camposIa) {
       </div>
       <div class="prop-campo prop-campo-metric">
         <span class="prop-campo-label">Qtd</span>
-        <span class="prop-campo-valor"><strong>${esc(qtd)}</strong></span>
+        <span class="prop-campo-valor" title="${esc(qtd)}"><strong>${esc(qtd)}</strong></span>
       </div>
       <div class="prop-campo prop-campo-metric">
         <span class="prop-campo-label">Unitário</span>
-        <span class="prop-campo-valor"><strong>${esc(unit)}</strong></span>
+        <span class="prop-campo-valor" title="${esc(unit)}"><strong>${esc(unit)}</strong></span>
       </div>
       <div class="prop-campo prop-campo-metric">
         <span class="prop-campo-label">Total est.</span>
-        <span class="prop-campo-valor"><strong>${esc(total)}</strong></span>
+        <span class="prop-campo-valor" title="${esc(total)}"><strong>${esc(total)}</strong></span>
       </div>
     </div>`;
 }

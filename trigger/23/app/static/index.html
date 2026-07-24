@@ -13,7 +13,7 @@
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/static/style.css?v=osb30" />
+  <link rel="stylesheet" href="/static/style.css?v=osb32" />
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -154,14 +154,6 @@
               <p class="auth-user-papel" id="auth-user-papel">—</p>
             </div>
             <button type="button" class="btn btn-sm auth-logout-btn" id="btn-auth-logout">Sair</button>
-          </div>
-        </div>
-
-        <div class="sidebar-fontes">
-          <p class="sidebar-foot-title">Fontes</p>
-          <div class="sidebar-fontes-list">
-            <p class="sidebar-foot-item"><span class="dot dot-compras"></span> Compras.gov · PNCP</p>
-            <p class="sidebar-foot-item" title="Power BI · Dados Abertos PMU"><span class="dot dot-powerbi"></span> Power BI · PMU</p>
           </div>
         </div>
 
@@ -435,7 +427,7 @@
                 </fieldset>
 
                 <fieldset class="chk-fieldset">
-                  <legend>Modalidades (código 1–14)</legend>
+                  <legend>Modalidades (codigoModalidade)</legend>
                   <div id="coleta-compras-modalidades" class="chk-grid chk-grid-compact">
                     <p class="muted small chk-loading">Carregando…</p>
                   </div>
@@ -695,7 +687,7 @@
               <table class="data-table">
                 <thead id="prop-tabela-head">
                   <tr>
-                    <th class="col-analise-ia" title="Análise de preço de mercado (IA)">IA</th>
+                    <th class="sortable col-analise-ia" data-sort="analise_ia" title="Análise de preço de mercado (IA)">IA</th>
                     <th class="sortable" data-sort="horas_restantes">Prazo</th>
                     <th class="sortable" data-sort="numero_compra">Compra</th>
                     <th class="sortable" data-sort="processo">Processo</th>
@@ -1057,7 +1049,9 @@
             <p class="muted small">
               Dispara a <strong>coleta unificada</strong> no horário configurado (fuso America/Sao_Paulo)
               e, se a coleta concluir com sucesso, enriquece automaticamente os <strong>CNPJs pendentes</strong>.
-              Se a coleta falhar, os CNPJs <strong>não</strong> são executados.
+              Opcionalmente, ao final da cadeia, busca <strong>preços de mercado</strong> (IA) item a item —
+              somente <strong>Tipo = Material</strong> em Propostas abertas (mesma rotina do botão do detalhamento).
+              Se a coleta falhar, as etapas seguintes <strong>não</strong> são executadas.
             </p>
             <form id="form-setup-agendamento" class="form-col" style="max-width:520px">
               <label class="chk-label">
@@ -1079,6 +1073,10 @@
               <label class="chk-label">
                 <input type="checkbox" id="setup-ag-cnpjs" checked />
                 Após sucesso da coleta → job CNPJs pendentes
+              </label>
+              <label class="chk-label">
+                <input type="checkbox" id="setup-ag-mercado" />
+                Ao final da cadeia → buscar preços de mercado (Materiais, item a item · tokens do Setup)
               </label>
               <div class="field-actions" style="padding-bottom:0">
                 <button type="submit" class="btn primary" id="btn-setup-ag-salvar">Salvar agendamento</button>
@@ -1394,6 +1392,18 @@
         <dl id="modal-fornecedor-endereco" class="detail-grid"></dl>
       </section>
       <section class="detail-panel detail-panel-wide">
+        <h4 class="detail-panel-title">CNAEs secundários</h4>
+        <p id="modal-fornecedor-cnaes-meta" class="meta-line">-</p>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr><th>Código</th><th>Descrição</th></tr>
+            </thead>
+            <tbody id="modal-fornecedor-cnaes"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="detail-panel detail-panel-wide">
         <h4 class="detail-panel-title">Quadro societário (QSA)</h4>
         <p id="modal-fornecedor-qsa-meta" class="meta-line">-</p>
         <div class="table-scroll">
@@ -1628,16 +1638,16 @@
   <script src="/static/shell.js?v=osb11"></script>
   <script src="/static/auth.js?v=osb3"></script>
   <script src="/static/coleta.js?v=osb4"></script>
-  <script src="/static/dashboard.js?v=osb7"></script>
-  <script src="/static/localidade.js?v=osb5"></script>
+  <script src="/static/dashboard.js?v=osb8"></script>
+  <script src="/static/localidade.js?v=osb6"></script>
   <script src="/static/consulta_processo.js?v=osb9"></script>
-  <script src="/static/propostas_abertas.js?v=osb12"></script>
+  <script src="/static/propostas_abertas.js?v=osb14"></script>
   <script src="/static/compras.js?v=osb11"></script>
   <script src="/static/vencedores_cnpj.js?v=osb8"></script>
   <script src="/static/powerbi.js?v=osb7"></script>
   <script src="/static/orgaos.js?v=osb4"></script>
   <script src="/static/modalidades.js?v=osb4"></script>
   <script src="/static/observadores.js?v=osb4"></script>
-  <script src="/static/setup.js?v=osb10"></script>
+  <script src="/static/setup.js?v=osb11"></script>
 </body>
 </html>

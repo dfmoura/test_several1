@@ -23,7 +23,8 @@ from app.config import (
     COMPRAS_PNCP_PAGE_SIZE,
     COMPRAS_PNCP_REQUEST_DELAY_SEC,
     DELAY_SEC,
-    MODALIDADES_PNCP,
+    MODALIDADES_COMPRAS,
+    nome_modalidade_compras,
     UNIDADES_COMPRADORAS,
     USER_AGENT,
 )
@@ -484,7 +485,7 @@ def coletar(
 
     mapa_unidades = obter_unidades_compradoras()
     unidades_alvo = unidades or list(mapa_unidades.keys())
-    modalidades_alvo = modalidades or list(MODALIDADES_PNCP.keys())
+    modalidades_alvo = modalidades or list(MODALIDADES_COMPRAS.keys())
     periodos = _periodos(data_inicial, data_final, COMPRAS_PNCP_MAX_DIAS_PERIODO)
 
     vistos: set[str] = set()
@@ -504,7 +505,7 @@ def coletar(
         for unidade in unidades_alvo:
             nome_u = mapa_unidades.get(unidade, unidade)
             for cod_mod in modalidades_alvo:
-                nome_mod = MODALIDADES_PNCP.get(cod_mod, str(cod_mod))
+                nome_mod = nome_modalidade_compras(cod_mod)
                 for per_ini, per_fim in periodos:
                     pagina = 1
                     total_paginas = 1

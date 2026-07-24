@@ -320,6 +320,41 @@ def _carregar_contratacoes_abertas(
     return out
 
 
+def listar_itens_materiais_propostas_abertas(
+    db: Session,
+    *,
+    agora: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Itens Tipo=Material com prazo PNCP vigente (mesmo universo da tela Propostas abertas).
+
+    Usado pela etapa final do agendamento — uma busca de mercado por item, em sequência.
+    """
+    agora = agora or datetime.now()
+    abertas = _carregar_contratacoes_abertas(db, agora=agora, horizonte="todos")
+    if not abertas:
+        return []
+    ids = [c.id for c, _ in abertas]
+    stmt = (
+        select(CompraContratacaoItem)
+        .where(
+            CompraContratacaoItem.contratacao_id.in_(ids),
+            CompraContratacaoItem.material_ou_servico == "M",
+        )
+        .order_by(CompraContratacaoItem.id.asc())
+    )
+    fila: list[dict[str, Any]] = []
+    for item in db.scalars(stmt):
+        desc = (item.descricao_resumida or item.descricao_detalhada or "").strip()
+        fila.append(
+            {
+                "item_id": item.id,
+                "id_compra_item": item.id_compra_item,
+                "descricao": desc[:120] if desc else None,
+            }
+        )
+    return fila
+
+
 def _parse_valor_item(val: Any) -> Decimal | None:
     """
     Aceita número, formato BR (1.234,56) e decimal com ponto (147.9)

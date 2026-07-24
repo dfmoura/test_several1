@@ -8,7 +8,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
 
 from app import coleta_hub
-from app.config import MODALIDADES_PNCP
+from app.config import MODALIDADES_COMPRAS
 from app.unidades_compradoras import obter_unidades_compradoras
 
 router = APIRouter(tags=["coleta"])
@@ -41,8 +41,8 @@ def iniciar_coleta_unificada(req: ColetaUnificadaRequest, bg: BackgroundTasks):
         if u not in obter_unidades_compradoras():
             raise HTTPException(400, f"Unidade inválida: {u}")
     for m in req.modalidades or []:
-        if m not in MODALIDADES_PNCP:
-            raise HTTPException(400, f"Modalidade inválida: {m}")
+        if m not in MODALIDADES_COMPRAS:
+            raise HTTPException(400, f"Modalidade inválida (codigoModalidade): {m}")
     if coleta_hub.status["running"]:
         if coleta_hub.is_stale():
             coleta_hub.liberar_trava(

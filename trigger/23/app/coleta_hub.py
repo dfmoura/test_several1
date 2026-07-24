@@ -18,7 +18,7 @@ from typing import Any
 
 from app.compras.orquestrador import executar_pipeline
 from app.config import (
-    MODALIDADES_PNCP,
+    MODALIDADES_COMPRAS,
     POWERBI_DATASETS,
 )
 from app.database import SessionLocal
@@ -167,8 +167,8 @@ def _validar_unidades(unidades: list[str] | None) -> None:
 
 def _validar_modalidades(modalidades: list[int] | None) -> None:
     for m in modalidades or []:
-        if m not in MODALIDADES_PNCP:
-            raise ValueError(f"Modalidade inválida: {m}")
+        if m not in MODALIDADES_COMPRAS:
+            raise ValueError(f"Modalidade inválida (codigoModalidade): {m}")
 
 
 def _anos_compras_efetivos(

@@ -1,0 +1,141 @@
+A empresa a seguir faz diversas atividades relacionada a estiquetas adesivas
+cnpj empresa: 01.423.183/0001-10
+
+----------------------------------------------------------------------------------------
+NÚMERO DE INSCRIÇÃO
+01.423.183/0001-10
+MATRIZ
+	
+COMPROVANTE DE INSCRIÇÃO E DE SITUAÇÃO CADASTRAL
+	
+DATA DE ABERTURA
+11/09/1996
+NOME EMPRESARIAL
+RLP ETIQUETAS AUTO ADESIVOS LTDA
+TÍTULO DO ESTABELECIMENTO (NOME DE FANTASIA)
+RETA ETIQUETAS
+		
+PORTE
+EPP
+CÓDIGO E DESCRIÇÃO DA ATIVIDADE ECONÔMICA PRINCIPAL
+18.13-0-99 - Impressão de material para outros usos
+CÓDIGO E DESCRIÇÃO DAS ATIVIDADES ECONÔMICAS SECUNDÁRIAS
+18.13-0-01 - Impressão de material para uso publicitário
+18.21-1-00 - Serviços de pré-impressão
+47.51-2-01 - Comércio varejista especializado de equipamentos e suprimentos de informática
+47.61-0-03 - Comércio varejista de artigos de papelaria
+77.33-1-00 - Aluguel de máquinas e equipamentos para escritórios
+CÓDIGO E DESCRIÇÃO DA NATUREZA JURÍDICA
+206-2 - Sociedade Empresária Limitada
+LOGRADOURO
+AV MARCOS DE FREITAS COSTA
+		
+NÚMERO
+385
+		
+COMPLEMENTO
+********
+CEP
+38.400-328
+		
+BAIRRO/DISTRITO
+DANIEL FONSECA
+		
+MUNICÍPIO
+UBERLANDIA
+		
+UF
+MG
+ENDEREÇO ELETRÔNICO
+RETAETIQUETAS@YAHOO.COM.BR
+		
+TELEFONE
+(34) 3238-3955
+ENTE FEDERATIVO RESPONSÁVEL (EFR)
+*****
+SITUAÇÃO CADASTRAL
+ATIVA
+		
+DATA DA SITUAÇÃO CADASTRAL
+20/12/2003 
+
+Consulta Quadro de Sócios e Administradores - QSA
+CNPJ:
+01.423.183/0001-10
+NOME EMPRESARIAL:
+RLP ETIQUETAS AUTO ADESIVOS LTDA
+CAPITAL SOCIAL:
+R$ 245.000,00 (Duzentos e quarenta e cinco mil reais)
+O Quadro de Sócios e Administradores(QSA) constante da base de dados do Cadastro Nacional da Pessoa Jurídica (CNPJ) é o seguinte:
+Nome/Nome Empresarial:
+LUANA ELIAS PEIXOTO
+Qualificação:
+49-Sócio-Administrador
+Nome/Nome Empresarial:
+TANIA MARA ELIAS DA SILVA PEIXOTO
+Qualificação:
+22-Sócio
+Para informações relativas à participação no QSA, acessar o e-CAC com certificado digital ou comparecer a uma unidade da RFB.
+Emitido no dia 23/07/2026 às 11:02:06 (data e hora de Brasília).
+
+----------------------------------------------------------------------------------------
+
+Atualmente eles utilizam um sistema caseiro para sua gestao, mas nao estao utilizando o sistema em sua plenitude:
+
+Reta Etiquetas: http://ro.retaetiquetas.com.br/contas/receber
+Nome de usuário: reta
+Senha: Reta@etiquetas123.#
+
+----------------------------------------------------------------------------------------
+
+Recentemente criaram uma planilha com todos os calculos possiveis para formular orçamentos
+esta na raiz:
+ORÇAMENTO OFICIAL 2607171006.xlsm
+
+----------------------------------------------------------------------------------------
+
+possuem um site https://retaetiquetas.com.br/ que alem tem possuir varias informações quebradas nao conversa com o sistema
+
+
+----------------------------------------------------------------------------------------
+
+todo o restante do serviço é controlado manualemte:
+compras
+controle de estoque 
+orçamento
+pedido
+ordem de serviço
+faturamento
+contas a pagar e a receber
+
+
+-----------------------------------------------------------------------------------------
+
+quero gerar a documentação de um sistema completa 
+que poderei seguir o fluxo completo da o funcionamento
+
+tenho diversas atividades acessorias dentre as que lembrei:
+cadastro de cliente (utilizar api's publica free de cnpj)
+endereços de entrega relacionado ao cliente
+utilizar tambem api's publicas de cep's para complementar algum endereço se for o caso
+
+
+orçamento> se aprovado >> pedido >> ordem de serviço >> emissão nf / cobrança >> entrega >> confirmação e validação entraga >> recebimento
+
+* de acordo com a planilha ORÇAMENTO OFICIAL 2607171006.xlsm o sistema deve contemplar a melhor e mais inteligente forma de gerar 
+* em algum momento tenho que ja acompanhar minha posição de estoque dos insumos para quando chegar a ordem de serviço executar
+* e tambem acompanha as compras 
+* e tambem acompanhar para que o prazo de pagamento seja maior que o de recebimento
+
+eu considerei para este primeiro momento o banco inter para utilizar estas apis:
+https://developers.inter.co/references/cobranca-bolepix
+https://developers.inter.co/references/banking#tag/Extrato
+
+os pagamento por enquanto serao manuais direto no banco mas tem que ser controlado tudo pelo sistema
+
+
+o as notas de entrada e saida iremos utilizar um melhor hub, abaixo tenho este de modelo mas fique a vonte de achar um melhor:
+https://app-v2.focusnfe.com.br/painel_api/requisicoes
+usuario: diogomou@gmail.com
+senha: Buc110t@2026
+

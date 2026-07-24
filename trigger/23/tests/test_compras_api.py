@@ -41,7 +41,39 @@ def test_compras_stats_e_modalidades(client):
     assert mods.status_code == 200
     assert isinstance(mods.json(), list)
     assert mods.json()
-    assert {m["codigo"] for m in mods.json()} >= {13, 14}
+    # Catálogo de codigoModalidade (não modalidadeIdPncp 1–14)
+    codigos = {m["codigo"] for m in mods.json()}
+    assert {5, 6, 12} <= codigos
+    por_codigo = {m["codigo"]: m["nome"] for m in mods.json()}
+    assert "Pregão" in por_codigo[5]
+    assert "Dispensa" in por_codigo[6]
+    # PNCP 6 = Pregão, mas codigoModalidade 6 = Dispensa
+    assert "Pregão" not in por_codigo[6]
+
+
+def test_modalidades_enriquece_rotulo_com_base(client):
+    """Rótulo da base (modalidadeNome) prevalece sobre o catálogo estático."""
+    db = SessionLocal()
+    try:
+        db.add(
+            CompraContratacao(
+                unidade_compradora="926922",
+                unidade_nome="Teste rótulo modalidade",
+                ano=2098,
+                chave_compra="TESTE-MOD-ROTULO-6",
+                id_compra="TESTE-MOD-ROTULO-6",
+                modalidade_codigo="6",
+                modalidade_descricao="Dispensa de Licitação",
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    mods = client.get("/api/compras/modalidades")
+    assert mods.status_code == 200
+    por_codigo = {m["codigo"]: m["nome"] for m in mods.json()}
+    assert por_codigo[6] == "Dispensa de Licitação"
 
 
 def test_filtro_modalidade_restringe_a_selecao(client):

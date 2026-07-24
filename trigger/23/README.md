@@ -149,10 +149,12 @@ No **Setup → Agendamento** (somente admin) é possível:
 
 - ligar/desligar a execução diária (horário + fuso `America/Sao_Paulo`)
 - escolher a cadeia: coleta unificada e/ou CNPJs pendentes após sucesso da coleta
+  e/ou, ao final, busca de **preços de mercado** (IA) item a item — só **Material**
+  em Propostas abertas (mesma rotina do botão do detalhamento; tokens do Setup)
 - ver a última execução (início, fim, ok/erro, resumo e log)
 - disparar manualmente com **Rodar agora (cadeia)**
 
-O agendador roda **dentro do app** (thread daemon). Reinício do container reagenda conforme a config salva no SQLite. Sobreposição é recusada (lock da cadeia / coleta / job de CNPJs).
+O agendador roda **dentro do app** (thread daemon). Reinício do container reagenda conforme a config salva no SQLite. Sobreposição é recusada (lock da cadeia / coleta / job de CNPJs / mercado IA).
 
 ## Órgão raiz e UASGs (Setup)
 

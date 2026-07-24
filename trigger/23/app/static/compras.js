@@ -345,7 +345,7 @@ function renderFornecedorDetalhe(data) {
     ["CNPJ/CPF", fmtCnpjCpf(data.ni_fornecedor)],
     ["Porte", data.porte],
     ["Natureza jurídica", data.natureza_juridica],
-    ["CNAE", data.cnae_codigo ? `${data.cnae_codigo} — ${data.cnae || ""}` : data.cnae],
+    ["CNAE principal", data.cnae_codigo ? `${data.cnae_codigo} — ${data.cnae || ""}` : data.cnae],
     ["Situação cadastral", data.situacao_cadastral],
     ["Município", data.municipio ? `${data.municipio}${data.uf ? `/${data.uf}` : ""}` : null],
     ["IBGE", data.codigo_municipio_ibge],
@@ -369,6 +369,25 @@ function renderFornecedorDetalhe(data) {
     .join("");
   $("#modal-fornecedor-end-wrap").hidden = !endHtml;
   $("#modal-fornecedor-endereco").innerHTML = endHtml;
+
+  const cnaesSec = data.cnaes_secundarios || [];
+  const cnaesMeta = $("#modal-fornecedor-cnaes-meta");
+  const cnaesTb = $("#modal-fornecedor-cnaes");
+  if (data.aviso) {
+    cnaesMeta.textContent = data.aviso;
+    cnaesTb.innerHTML = '<tr><td colspan="2">-</td></tr>';
+  } else if (!cnaesSec.length) {
+    cnaesMeta.textContent = data.tipo === "cnpj"
+      ? "Nenhum CNAE secundário informado pela API pública para este CNPJ."
+      : "Sem CNAEs secundários.";
+    cnaesTb.innerHTML = '<tr><td colspan="2">-</td></tr>';
+  } else {
+    cnaesMeta.textContent = `${cnaesSec.length} atividade(s) secundária(s)`;
+    cnaesTb.innerHTML = cnaesSec.map((c) => `<tr>
+      <td>${esc(c.codigo != null ? c.codigo : "-")}</td>
+      <td>${esc(c.descricao || "-")}</td>
+    </tr>`).join("");
+  }
 
   const qsa = data.qsa || [];
   const qsaMeta = $("#modal-fornecedor-qsa-meta");
@@ -404,6 +423,8 @@ async function abrirDetalheFornecedor(ni, nome, { refresh = false } = {}) {
   $("#modal-fornecedor-titulo").textContent = "Carregando…";
   $("#modal-fornecedor-resumo").innerHTML = `<p class="meta-line">Consultando cadastro${refresh ? " (atualizando)" : ""}…</p>`;
   $("#modal-fornecedor-cadastro").innerHTML = "";
+  $("#modal-fornecedor-cnaes").innerHTML = '<tr><td colspan="2">Carregando…</td></tr>';
+  $("#modal-fornecedor-cnaes-meta").textContent = "-";
   $("#modal-fornecedor-qsa").innerHTML = '<tr><td colspan="4">Carregando…</td></tr>';
   $("#modal-fornecedor-qsa-meta").textContent = "-";
   dlg.showModal();
@@ -417,6 +438,8 @@ async function abrirDetalheFornecedor(ni, nome, { refresh = false } = {}) {
   } catch (err) {
     $("#modal-fornecedor-resumo").innerHTML = `<p class="meta-line">${esc(err.message)}</p>`;
     $("#modal-fornecedor-cadastro").innerHTML = "";
+    $("#modal-fornecedor-cnaes-meta").textContent = "Falha ao carregar.";
+    $("#modal-fornecedor-cnaes").innerHTML = `<tr><td colspan="2">${esc(err.message)}</td></tr>`;
     $("#modal-fornecedor-qsa-meta").textContent = "Falha ao carregar.";
     $("#modal-fornecedor-qsa").innerHTML = `<tr><td colspan="4">${esc(err.message)}</td></tr>`;
   }

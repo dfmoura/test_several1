@@ -9,7 +9,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.config import MODALIDADES_PNCP
+from app.config import (
+    CODIGO_MODALIDADE_PARA_PNCP,
+    MODALIDADES_COMPRAS,
+    MODALIDADES_PNCP,
+    nome_modalidade_compras,
+)
 from app.database import (
     FONTES_MODALIDADE_VINCULO,
     CompraContratacao,
@@ -107,6 +112,150 @@ def _validar_fonte(fonte: str) -> str:
     return fonte
 
 
+def _consolidada_para_codigo_modalidade(
+    db: Session, codigo: int
+) -> ModalidadeConsolidada | None:
+    """Localiza a consolidada canônica para um codigoModalidade."""
+    pncp = CODIGO_MODALIDADE_PARA_PNCP.get(codigo)
+    if pncp is not None:
+        row = db.scalar(
+            select(ModalidadeConsolidada).where(ModalidadeConsolidada.codigo_pncp == pncp)
+        )
+        if row:
+            return row
+    # Leilão presencial (12→PNCP 13): muitas bases unificam em «Leilão» (PNCP 1).
+    if codigo == 12:
+        row = db.scalar(
+            select(ModalidadeConsolidada).where(ModalidadeConsolidada.codigo_pncp == 1)
+        )
+        if row:
+            return row
+    nome = MODALIDADES_COMPRAS.get(codigo)
+    if not nome:
+        return None
+    row = db.scalar(
+        select(ModalidadeConsolidada).where(ModalidadeConsolidada.nome == nome)
+    )
+    if row:
+        return row
+    # Prefixo (ex.: «Dispensa» ↔ «Dispensa de Licitação»)
+    token = nome.split("-")[0].split()[0].strip()
+    if len(token) >= 4:
+        return db.scalar(
+            select(ModalidadeConsolidada).where(ModalidadeConsolidada.nome.ilike(f"{token}%"))
+        )
+    return None
+
+
+def _vinculo_compras_alinhado(vinculo: ModalidadeVinculo) -> bool:
+    """True se a chave compras_api já é codigoModalidade apontando à consolidada certa."""
+    chave = (vinculo.chave or "").strip()
+    if not chave.isdigit():
+        return False
+    codigo = int(chave)
+    if codigo not in MODALIDADES_COMPRAS:
+        return False
+    cons = vinculo.modalidade_consolidada
+    if not cons or not cons.ativo:
+        return False
+    pncp_esperado = CODIGO_MODALIDADE_PARA_PNCP.get(codigo)
+    if pncp_esperado is not None and cons.codigo_pncp == pncp_esperado:
+        return True
+    if codigo == 12 and cons.codigo_pncp == 1:
+        return True
+    nome_cat = MODALIDADES_COMPRAS[codigo]
+    nome_cons = (cons.nome or "").casefold()
+    return nome_cat.casefold() in nome_cons or nome_cons in nome_cat.casefold()
+
+
+def reparar_vinculos_compras_api(db: Session) -> dict[str, int | bool]:
+    """Realinha vínculos ``compras_api`` para ``codigoModalidade`` (idempotente).
+
+    Não altera vínculos ``powerbi`` nem as modalidades consolidadas em si —
+    apenas as chaves da fonte Compras.gov, que historicamente foram semeadas
+    com ``modalidadeIdPncp`` (ex.: chave 6 → Pregão, quando 6 = Dispensa).
+    """
+    n_powerbi = (
+        db.scalar(
+            select(func.count())
+            .select_from(ModalidadeVinculo)
+            .where(ModalidadeVinculo.fonte == "powerbi")
+        )
+        or 0
+    )
+    vinculos = db.scalars(
+        select(ModalidadeVinculo)
+        .options(selectinload(ModalidadeVinculo.modalidade_consolidada))
+        .where(ModalidadeVinculo.fonte == "compras_api")
+    ).all()
+
+    alinhados = [v for v in vinculos if _vinculo_compras_alinhado(v)]
+    desalinhados = [v for v in vinculos if not _vinculo_compras_alinhado(v)]
+    chaves_ok = {v.chave.strip() for v in alinhados}
+    esperado = {str(c) for c in MODALIDADES_COMPRAS}
+
+    if not desalinhados and chaves_ok == esperado:
+        return {
+            "alterado": False,
+            "removidos": 0,
+            "criados": 0,
+            "preservados_powerbi": n_powerbi,
+        }
+
+    removidos = 0
+    for v in vinculos:
+        db.delete(v)
+        removidos += 1
+    db.flush()
+
+    criados = 0
+    for codigo, nome in sorted(MODALIDADES_COMPRAS.items()):
+        cons = _consolidada_para_codigo_modalidade(db, codigo)
+        if not cons:
+            continue
+        db.add(
+            ModalidadeVinculo(
+                modalidade_consolidada_id=cons.id,
+                fonte="compras_api",
+                chave=str(codigo),
+                rotulo=nome,
+            )
+        )
+        cons.atualizado_em = datetime.utcnow()
+        criados += 1
+
+    db.commit()
+    return {
+        "alterado": True,
+        "removidos": removidos,
+        "criados": criados,
+        "preservados_powerbi": n_powerbi,
+    }
+
+
+def _validar_chave_compras_api(db: Session, chave: str, consolidada: ModalidadeConsolidada) -> None:
+    """Impede vincular modalidadeIdPncp como se fosse codigoModalidade."""
+    if not chave.isdigit():
+        return
+    codigo = int(chave)
+    if codigo in MODALIDADES_PNCP and codigo not in MODALIDADES_COMPRAS:
+        raise HTTPException(
+            400,
+            f"A chave «{codigo}» é modalidadeIdPncp («{MODALIDADES_PNCP[codigo]}»), "
+            f"não codigoModalidade da API Dados Abertos. "
+            f"Para Compras.gov use o codigoModalidade correspondente "
+            f"(catálogo: {', '.join(f'{k}={v}' for k, v in sorted(MODALIDADES_COMPRAS.items()))}).",
+        )
+    if codigo in MODALIDADES_COMPRAS and consolidada.codigo_pncp == codigo:
+        raise HTTPException(
+            400,
+            f"A chave «{codigo}» no Compras.gov é codigoModalidade "
+            f"«{MODALIDADES_COMPRAS[codigo]}», não o id PNCP {codigo} "
+            f"(«{MODALIDADES_PNCP.get(codigo, consolidada.nome)}»). "
+            f"Vincule este código à consolidada da modalidade correta.",
+        )
+
+
 def _mapa_vinculos(db: Session) -> dict[tuple[str, str], ModalidadeVinculo]:
     rows = db.scalars(
         select(ModalidadeVinculo).options(selectinload(ModalidadeVinculo.modalidade_consolidada))
@@ -115,8 +264,9 @@ def _mapa_vinculos(db: Session) -> dict[tuple[str, str], ModalidadeVinculo]:
 
 
 def _valores_compras(db: Session) -> list[tuple[str, str, int]]:
+    """Valores pendentes/agrupados por codigoModalidade (não modalidadeIdPncp)."""
     vistos: dict[str, tuple[str, int]] = {}
-    for codigo, nome in MODALIDADES_PNCP.items():
+    for codigo, nome in MODALIDADES_COMPRAS.items():
         vistos[str(codigo)] = (nome, 0)
     rows = db.execute(
         select(
@@ -138,12 +288,20 @@ def _valores_compras(db: Session) -> list[tuple[str, str, int]]:
         chave = str(codigo).strip()
         if not chave:
             continue
+        # Preferir modalidadeNome da base sobre o catálogo estático.
+        rotulo_db = (nome or "").strip()
+        fallback = nome_modalidade_compras(chave) if chave.isdigit() else chave
         if chave in vistos:
-            rotulo, prev = vistos[chave]
-            vistos[chave] = (rotulo or nome or MODALIDADES_PNCP.get(int(chave), chave), prev + total)
+            _, prev = vistos[chave]
+            vistos[chave] = (rotulo_db or vistos[chave][0] or fallback, prev + total)
         else:
-            vistos[chave] = (nome or MODALIDADES_PNCP.get(int(chave), chave) if chave.isdigit() else nome or chave, total)
-    return [(cod, rotulo, total) for cod, (rotulo, total) in sorted(vistos.items(), key=lambda x: int(x[0]) if x[0].isdigit() else x[0])]
+            vistos[chave] = (rotulo_db or fallback, total)
+    return [
+        (cod, rotulo, total)
+        for cod, (rotulo, total) in sorted(
+            vistos.items(), key=lambda x: int(x[0]) if x[0].isdigit() else x[0]
+        )
+    ]
 
 
 def _valores_powerbi(db: Session) -> list[tuple[str, str, int]]:
@@ -179,6 +337,9 @@ def meta_fontes():
     return {
         "fontes": FONTES_META,
         "catalogo_pncp": [{"codigo": k, "nome": v} for k, v in sorted(MODALIDADES_PNCP.items())],
+        "catalogo_compras": [
+            {"codigo": k, "nome": v} for k, v in sorted(MODALIDADES_COMPRAS.items())
+        ],
     }
 
 
@@ -358,6 +519,8 @@ def adicionar_vinculo(mid: int, payload: VinculoCreate, db: Session = Depends(ge
     chave = payload.chave.strip()
     if not chave:
         raise HTTPException(400, "Chave obrigatória")
+    if fonte == "compras_api":
+        _validar_chave_compras_api(db, chave, row)
     existente = db.scalar(
         select(ModalidadeVinculo)
         .options(selectinload(ModalidadeVinculo.modalidade_consolidada))

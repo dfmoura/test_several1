@@ -5,7 +5,12 @@ from datetime import datetime
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
-from app.compras.cnpj_publico import classificar_uberlandia, mapear_payload_cnpj
+from app.compras.cnpj_publico import (
+    cnaes_secundarios_de_registro,
+    classificar_uberlandia,
+    fornecedor_para_api,
+    mapear_payload_cnpj,
+)
 from app.compras.coletor_fornecedor import fornecedor_da_api, listar_pendentes_compras_gov
 from app.compras.repository import (
     ensure_fornecedor_stub,
@@ -200,6 +205,10 @@ def test_mapear_payload_brasilapi():
             "nome_fantasia": "ACME",
             "cnae_fiscal": 6201501,
             "cnae_fiscal_descricao": "Desenvolvimento de software",
+            "cnaes_secundarios": [
+                {"codigo": 6202300, "descricao": "Desenvolvimento e licenciamento de software customizável"},
+                {"codigo": 6311900, "descricao": "Tratamento de dados"},
+            ],
             "descricao_situacao_cadastral": "ATIVA",
             "municipio": "UBERLANDIA",
             "uf": "MG",
@@ -223,6 +232,10 @@ def test_mapear_payload_brasilapi():
     assert mapped["nome_municipio"] == "UBERLANDIA"
     assert "Fulano" in mapped["qsa_json"]
     assert mapped["_fonte"] == "cnpj_publico"
+    secundarios = cnaes_secundarios_de_registro(mapped["cnpj_dados_json"])
+    assert len(secundarios) == 2
+    assert secundarios[0]["codigo"] == 6202300
+    assert "software" in (secundarios[0]["descricao"] or "").lower()
 
 
 def test_mapear_payload_cnpja():
@@ -258,6 +271,9 @@ def test_mapear_payload_cnpja():
                 "zip": "75680001",
             },
             "mainActivity": {"id": 4782201, "text": "Comércio varejista de calçados"},
+            "sideActivities": [
+                {"id": 4781400, "text": "Comércio varejista de artigos do vestuário"},
+            ],
         },
         fonte="cnpja",
     )
@@ -269,6 +285,9 @@ def test_mapear_payload_cnpja():
     assert mapped["situacao_cadastral"] == "Ativa"
     assert "Bruna Alves de Souza" in mapped["qsa_json"]
     assert mapped["_fonte"] == "cnpj_publico"
+    secundarios = cnaes_secundarios_de_registro(mapped["cnpj_dados_json"])
+    assert len(secundarios) == 1
+    assert secundarios[0]["codigo"] == 4781400
 
 
 def test_mapear_payload_publicacnpj():
@@ -291,6 +310,10 @@ def test_mapear_payload_publicacnpj():
                     "id": "4782201",
                     "descricao": "Comércio varejista de calçados",
                 },
+                "atividades_secundarias": [
+                    {"id": "4781400", "descricao": "Comércio varejista de artigos do vestuário"},
+                    {"id": "4763601", "descricao": "Comércio varejista de brinquedos"},
+                ],
             },
             "socios": [
                 {
@@ -309,3 +332,38 @@ def test_mapear_payload_publicacnpj():
     assert mapped["nome_municipio"] == "Caldas Novas"
     assert mapped["codigo_cnae"] == 4782201
     assert "BRUNA ALVES DE SOUZA" in mapped["qsa_json"]
+    secundarios = cnaes_secundarios_de_registro(mapped["cnpj_dados_json"])
+    assert [s["codigo"] for s in secundarios] == [4781400, 4763601]
+
+
+def test_fornecedor_para_api_expoe_cnaes_secundarios():
+    db = _db()
+    mapped = mapear_payload_cnpj(
+        {
+            "cnpj": "12345678000199",
+            "razao_social": "ACME LTDA",
+            "cnae_fiscal": 6201501,
+            "cnae_fiscal_descricao": "Desenvolvimento de software",
+            "cnaes_secundarios": [
+                {"codigo": 6202300, "descricao": "Software customizável"},
+            ],
+            "municipio": "UBERLANDIA",
+            "uf": "MG",
+            "codigo_municipio_ibge": 3170206,
+        },
+        fonte="brasilapi",
+    )
+    row, _ = upsert_fornecedor(db, mapped)
+    db.commit()
+    data = fornecedor_para_api(row)
+    assert data["cnae_codigo"] == 6201501
+    assert data["cnae"] == "Desenvolvimento de software"
+    assert len(data["cnaes_secundarios"]) == 1
+    assert data["cnaes_secundarios"][0]["codigo"] == 6202300
+    db.close()
+
+
+def test_cnaes_secundarios_sem_blob_retorna_vazio():
+    assert cnaes_secundarios_de_registro(None) == []
+    assert cnaes_secundarios_de_registro("{}") == []
+    assert cnaes_secundarios_de_registro('{"fonte":"10"}') == []

@@ -1,0 +1,27 @@
+services:
+  api:
+    environment:
+      APP_ENV: production
+      BILLING_PROVIDER: inter
+      NFE_PROVIDER: focusnfe
+      DATABASE_URL: ${DATABASE_URL}
+    secrets:
+      - inter_cert
+      - inter_key
+
+  worker:
+    environment:
+      APP_ENV: production
+      BILLING_PROVIDER: inter
+      NFE_PROVIDER: focusnfe
+
+  db:
+    ports: []
+    volumes:
+      - /var/lib/reta/pg:/var/lib/postgresql/data
+
+secrets:
+  inter_cert:
+    file: ./secrets/inter-cert.pem
+  inter_key:
+    file: ./secrets/inter-key.pem

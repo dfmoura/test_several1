@@ -320,22 +320,17 @@ TABELAS DE APOIO
 
 ---
 
-# Tabela Modalidades
+# Tabela Modalidades — codigoModalidade (API Dados Abertos / filtro)
 
 ```text
-1  Leilão
-2  Diálogo Competitivo
-3  Concurso
-4  Concorrência Eletrônica
-5  Concorrência Presencial
-6  Pregão Eletrônico
-7  Pregão Presencial
-8  Dispensa
-9  Inexigibilidade
-10 Manifestação de Interesse
-11 Pré-qualificação
-12 Credenciamento
+3   Concorrência - Eletrônica
+5   Pregão - Eletrônico
+6   Dispensa
+7   Inexigibilidade
+12  Leilão - Presencial
 ```
+
+(modalidadeIdPncp é outro domínio; ver "ENTENDIMENTO DE MODALIDADES" abaixo.)
 
 ---
 
@@ -803,18 +798,26 @@ INFORMAÇÕES
 
 
 *ENTENDIMENTO DE MODALIDADES:
-| Código | Modalidade                |
-| ------ | ------------------------- |
-| **1**  | Leilão                    |
-| **2**  | Diálogo Competitivo       |
-| **3**  | Concurso                  |
-| **4**  | Concorrência - Eletrônica |
-| **5**  | Concorrência - Presencial |
-| **6**  | Pregão - Eletrônico       |
-| **7**  | Pregão - Presencial       |
-| **8**  | Dispensa de Licitação     |
-| **9**  | Inexigibilidade           |
-| **10** | Manifestação de Interesse |
-| **11** | Pré-qualificação          |
-| **12** | Credenciamento            |
+
+A API Dados Abertos expõe DOIS códigos distintos no mesmo registro:
+
+| Campo              | Domínio                         | Uso no sistema                          |
+| ------------------ | ------------------------------- | --------------------------------------- |
+| modalidadeIdPncp   | 1–14 (catálogo PNCP)            | referencia / codigo_pncp consolidado    |
+| codigoModalidade   | domínio Compras.gov (SIASG-like)| filtro, coleta, modalidade_codigo       |
+| modalidadeNome     | rótulo oficial do registro      | modalidade_descricao                    |
+
+Exemplo real (codigoModalidade=6):
+  modalidadeIdPncp=8, codigoModalidade=6, modalidadeNome="Dispensa"
+
+Cruzamento observado (PNCP → codigoModalidade):
+| PNCP | codigoModalidade | Nome                      |
+| ---- | ---------------- | ------------------------- |
+| 4    | 3                | Concorrência - Eletrônica |
+| 6    | 5                | Pregão - Eletrônico       |
+| 8    | 6                | Dispensa                  |
+| 9    | 7                | Inexigibilidade           |
+| 13   | 12               | Leilão - Presencial       |
+
+NÃO usar a tabela PNCP (1–14) como valor de codigoModalidade.
 

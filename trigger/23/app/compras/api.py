@@ -34,7 +34,7 @@ from app.compras_pncp import coletar as coletar_compras
 from app.compras_pncp import coletar_itens
 from app.compras_pncp import item_itens_para_db
 from app.compras_pncp import item_para_db
-from app.config import MODALIDADES_PNCP
+from app.config import MODALIDADES_COMPRAS, nome_modalidade_compras
 from app.database import (
     COMPRAS_CAMPOS_PRESERVADOS_SYNC,
     CompraContratacao,
@@ -387,8 +387,8 @@ def _run_compras_coleta(req: ComprasColetaRequest) -> None:
         modalidades = req.modalidades
         if modalidades:
             for m in modalidades:
-                if m not in MODALIDADES_PNCP:
-                    raise ValueError(f"Modalidade inválida: {m}")
+                if m not in MODALIDADES_COMPRAS:
+                    raise ValueError(f"Modalidade inválida (codigoModalidade): {m}")
 
         items = coletar_compras(
             data_inicial=data_inicial,
@@ -598,8 +598,41 @@ def status_compras_coleta():
 
 
 @router.get("/api/compras/modalidades")
-def compras_modalidades():
-    return [{"codigo": k, "nome": v} for k, v in sorted(MODALIDADES_PNCP.items())]
+def compras_modalidades(db: Session = Depends(get_db)):
+    """Catálogo de codigoModalidade (filtro/coleta), enriquecido com rótulos da base."""
+    mapa: dict[int, str] = dict(MODALIDADES_COMPRAS)
+    rows = db.execute(
+        select(
+            CompraContratacao.modalidade_codigo,
+            CompraContratacao.modalidade_descricao,
+            func.count(),
+        )
+        .where(
+            CompraContratacao.modalidade_codigo.isnot(None),
+            CompraContratacao.modalidade_codigo != "",
+        )
+        .group_by(
+            CompraContratacao.modalidade_codigo,
+            CompraContratacao.modalidade_descricao,
+        )
+    ).all()
+    # Preferir modalidadeNome persistido; em empate de código, o maior volume.
+    por_codigo: dict[int, tuple[str, int]] = {}
+    for codigo, nome, total in rows:
+        try:
+            chave = int(str(codigo).strip())
+        except (TypeError, ValueError):
+            continue
+        rotulo = (nome or "").strip() or nome_modalidade_compras(chave)
+        prev = por_codigo.get(chave)
+        if prev is None or total > prev[1] or (total == prev[1] and rotulo and not prev[0]):
+            por_codigo[chave] = (rotulo, total)
+    for chave, (rotulo, _) in por_codigo.items():
+        if rotulo:
+            mapa[chave] = rotulo
+        elif chave not in mapa:
+            mapa[chave] = str(chave)
+    return [{"codigo": k, "nome": v} for k, v in sorted(mapa.items())]
 
 
 @router.get("/api/compras/situacoes")

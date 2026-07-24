@@ -1,8 +1,9 @@
-"""Agendamento diário: coleta unificada → CNPJs pendentes (cadeia).
+"""Agendamento diário: coleta unificada → CNPJs pendentes → preços de mercado (cadeia).
 
 Fonte da verdade: tabelas ``agendamento_config`` / ``agendamento_execucao``
 (editáveis no Setup). Scheduler interno (thread) no fuso America/Sao_Paulo.
-Reutiliza ``coleta_hub`` e ``job_pendentes_cnpj`` — sem duplicar lógica.
+Reutiliza ``coleta_hub``, ``job_pendentes_cnpj`` e ``job_mercado_ia`` —
+sem duplicar lógica.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import coleta_hub
+from app import job_mercado_ia
 from app.compras.job_pendentes_cnpj import (
     executar_job as executar_job_pendentes_cnpj,
     iniciar_job as iniciar_job_pendentes_cnpj,
@@ -165,6 +167,7 @@ def config_publica(db: Session) -> dict[str, Any]:
         "fuso": cfg.fuso or FUSO_PADRAO,
         "incluir_coleta": bool(cfg.incluir_coleta),
         "incluir_cnpjs": bool(cfg.incluir_cnpjs),
+        "incluir_mercado_ia": bool(getattr(cfg, "incluir_mercado_ia", False)),
         "ultima_chave_dia": cfg.ultima_chave_dia,
         "atualizado_em": cfg.atualizado_em.isoformat() if cfg.atualizado_em else None,
         "agora_local": agora.strftime("%Y-%m-%d %H:%M:%S %Z"),
@@ -184,13 +187,16 @@ def salvar_config(
     fuso: str | None = None,
     incluir_coleta: bool = True,
     incluir_cnpjs: bool = True,
+    incluir_mercado_ia: bool = False,
 ) -> dict[str, Any]:
     if not (0 <= hora <= 23):
         raise ValueError("Hora deve estar entre 0 e 23")
     if not (0 <= minuto <= 59):
         raise ValueError("Minuto deve estar entre 0 e 59")
-    if not incluir_coleta and not incluir_cnpjs:
-        raise ValueError("Selecione ao menos uma etapa da cadeia (coleta ou CNPJs)")
+    if not incluir_coleta and not incluir_cnpjs and not incluir_mercado_ia:
+        raise ValueError(
+            "Selecione ao menos uma etapa da cadeia (coleta, CNPJs ou preços de mercado)"
+        )
 
     fuso_nome = (fuso or FUSO_PADRAO).strip() or FUSO_PADRAO
     _fuso(fuso_nome)  # valida
@@ -202,6 +208,7 @@ def salvar_config(
     cfg.fuso = fuso_nome
     cfg.incluir_coleta = bool(incluir_coleta)
     cfg.incluir_cnpjs = bool(incluir_cnpjs)
+    cfg.incluir_mercado_ia = bool(incluir_mercado_ia)
     db.commit()
     db.refresh(cfg)
     return config_publica(db)
@@ -271,7 +278,36 @@ def cadeia_ocupada() -> bool:
         return True
     if status_job_pendentes_cnpj().get("running"):
         return True
+    if job_mercado_ia.status_publico().get("running"):
+        return True
     return False
+
+
+def _etapas_habilitadas(
+    incluir_coleta: bool, incluir_cnpjs: bool, incluir_mercado_ia: bool
+) -> list[str]:
+    etapas: list[str] = []
+    if incluir_coleta:
+        etapas.append("coleta")
+    if incluir_cnpjs:
+        etapas.append("cnpjs")
+    if incluir_mercado_ia:
+        etapas.append("mercado_ia")
+    return etapas
+
+
+def _rotulo_etapa(nome: str, etapas: list[str]) -> str:
+    total = len(etapas)
+    try:
+        n = etapas.index(nome) + 1
+    except ValueError:
+        return f"── Etapa: {nome} ──"
+    titulos = {
+        "coleta": "coleta unificada",
+        "cnpjs": "CNPJs pendentes",
+        "mercado_ia": "preços de mercado (Materiais)",
+    }
+    return f"── Etapa {n}/{total}: {titulos.get(nome, nome)} ──"
 
 
 def iniciar_cadeia(*, origem: str = "manual") -> dict[str, Any]:
@@ -279,14 +315,17 @@ def iniciar_cadeia(*, origem: str = "manual") -> dict[str, Any]:
     with _lock:
         if cadeia_ocupada():
             raise RuntimeError(
-                "Já existe uma cadeia, coleta ou job de CNPJs em andamento. "
+                "Já existe uma cadeia, coleta, job de CNPJs ou busca de mercado em andamento. "
                 "Aguarde a conclusão antes de disparar outra."
             )
 
         db = SessionLocal()
         try:
             cfg = _obter_ou_criar_config(db)
-            if not cfg.incluir_coleta and not cfg.incluir_cnpjs:
+            incluir_coleta = bool(cfg.incluir_coleta)
+            incluir_cnpjs = bool(cfg.incluir_cnpjs)
+            incluir_mercado_ia = bool(getattr(cfg, "incluir_mercado_ia", False))
+            if not incluir_coleta and not incluir_cnpjs and not incluir_mercado_ia:
                 raise RuntimeError("Nenhuma etapa da cadeia está habilitada na configuração")
 
             row = AgendamentoExecucao(
@@ -301,8 +340,6 @@ def iniciar_cadeia(*, origem: str = "manual") -> dict[str, Any]:
             db.commit()
             db.refresh(row)
             exec_id = row.id
-            incluir_coleta = bool(cfg.incluir_coleta)
-            incluir_cnpjs = bool(cfg.incluir_cnpjs)
         finally:
             db.close()
 
@@ -326,6 +363,7 @@ def iniciar_cadeia(*, origem: str = "manual") -> dict[str, Any]:
         "execucao_id": exec_id,
         "incluir_coleta": incluir_coleta,
         "incluir_cnpjs": incluir_cnpjs,
+        "incluir_mercado_ia": incluir_mercado_ia,
     }
 
 
@@ -342,15 +380,17 @@ def executar_cadeia(*, origem: str = "manual") -> None:
             cfg = _obter_ou_criar_config(db)
             incluir_coleta = bool(cfg.incluir_coleta)
             incluir_cnpjs = bool(cfg.incluir_cnpjs)
+            incluir_mercado_ia = bool(getattr(cfg, "incluir_mercado_ia", False))
             params = params_coleta_padrao(db) if incluir_coleta else {}
         finally:
             db.close()
 
+        etapas = _etapas_habilitadas(incluir_coleta, incluir_cnpjs, incluir_mercado_ia)
         coleta_ok = True
 
         if incluir_coleta:
             status["fase"] = "coleta"
-            _log("── Etapa 1/2: coleta unificada ──")
+            _log(_rotulo_etapa("coleta", etapas))
             _persistir_execucao(
                 execucao_id=exec_id,
                 ok=None,
@@ -402,18 +442,16 @@ def executar_cadeia(*, origem: str = "manual") -> None:
             else:
                 erro = resultado.get("erro") or "Coleta falhou"
                 _log(f"Coleta falhou: {erro}")
-                raise RuntimeError(f"Coleta falhou — CNPJs não serão executados. {erro}")
+                raise RuntimeError(
+                    f"Coleta falhou — etapas seguintes não serão executadas. {erro}"
+                )
 
         if incluir_cnpjs:
             if incluir_coleta and not coleta_ok:
                 _log("CNPJs omitidos (coleta sem sucesso)")
             else:
                 status["fase"] = "cnpjs"
-                _log(
-                    "── Etapa 2/2: CNPJs pendentes ──"
-                    if incluir_coleta
-                    else "── Etapa: CNPJs pendentes ──"
-                )
+                _log(_rotulo_etapa("cnpjs", etapas))
                 _persistir_execucao(
                     execucao_id=exec_id,
                     ok=None,
@@ -438,6 +476,36 @@ def executar_cadeia(*, origem: str = "manual") -> None:
                     )
                 _log(res_cnpj.get("mensagem") or "CNPJs concluídos")
 
+        if incluir_mercado_ia:
+            if incluir_coleta and not coleta_ok:
+                _log("Preços de mercado omitidos (coleta sem sucesso)")
+            else:
+                status["fase"] = "mercado_ia"
+                _log(_rotulo_etapa("mercado_ia", etapas))
+                _persistir_execucao(
+                    execucao_id=exec_id,
+                    ok=None,
+                    fase="mercado_ia",
+                    resumo="Buscando preços de mercado (Materiais)",
+                    detalhes=detalhes,
+                )
+                job_mercado_ia.iniciar_job()
+                job_mercado_ia.executar_job()
+                st_merc = job_mercado_ia.status_publico()
+                res_merc = st_merc.get("resultado") or {}
+                merc_ok = bool(res_merc.get("ok"))
+                detalhes["etapas"]["mercado_ia"] = {
+                    "ok": merc_ok,
+                    "resultado": res_merc,
+                }
+                for linha in (st_merc.get("log") or [])[-40:]:
+                    _log(f"mercado · {linha}")
+                if not merc_ok and not res_merc.get("cancelado"):
+                    raise RuntimeError(
+                        res_merc.get("erro") or "Job de preços de mercado falhou"
+                    )
+                _log(res_merc.get("mensagem") or "Preços de mercado concluídos")
+
         ok_final = True
         partes = []
         if incluir_coleta:
@@ -448,6 +516,13 @@ def executar_cadeia(*, origem: str = "manual") -> None:
                 f"CNPJs {c.get('ok_count', 0)} ok / {c.get('erros', 0)} erros"
                 if c
                 else "CNPJs OK"
+            )
+        if incluir_mercado_ia:
+            m = detalhes.get("etapas", {}).get("mercado_ia", {}).get("resultado") or {}
+            partes.append(
+                f"mercado {m.get('ok_count', 0)} ok / {m.get('erros', 0)} erros"
+                if m
+                else "mercado OK"
             )
         resumo = " · ".join(partes) if partes else "Cadeia concluída"
         _log(f"Cadeia finalizada: {resumo}")
@@ -501,7 +576,11 @@ def _tick_scheduler() -> None:
         cfg = _obter_ou_criar_config(db)
         if not cfg.ativo:
             return
-        if not cfg.incluir_coleta and not cfg.incluir_cnpjs:
+        if (
+            not cfg.incluir_coleta
+            and not cfg.incluir_cnpjs
+            and not getattr(cfg, "incluir_mercado_ia", False)
+        ):
             return
 
         tz = _fuso(cfg.fuso)
@@ -591,6 +670,7 @@ class AgendamentoConfigUpdate(BaseModel):
     fuso: str = Field(default=FUSO_PADRAO, max_length=64)
     incluir_coleta: bool = True
     incluir_cnpjs: bool = True
+    incluir_mercado_ia: bool = False
 
 
 @router.get("")
@@ -612,6 +692,7 @@ def atualizar_agendamento(
             fuso=body.fuso,
             incluir_coleta=body.incluir_coleta,
             incluir_cnpjs=body.incluir_cnpjs,
+            incluir_mercado_ia=body.incluir_mercado_ia,
         )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc

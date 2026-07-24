@@ -861,6 +861,8 @@ class AgendamentoConfig(Base):
     fuso: Mapped[str] = mapped_column(String(64), default="America/Sao_Paulo")
     incluir_coleta: Mapped[bool] = mapped_column(Boolean, default=True)
     incluir_cnpjs: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Etapa final: Buscar preços de mercado (IA) — só Tipo=Material, item a item.
+    incluir_mercado_ia: Mapped[bool] = mapped_column(Boolean, default=False)
     # YYYY-MM-DD no fuso configurado — evita disparo duplicado no mesmo dia.
     ultima_chave_dia: Mapped[str | None] = mapped_column(String(10))
     atualizado_em: Mapped[datetime] = mapped_column(
@@ -1346,6 +1348,19 @@ def _migrate_columns() -> None:
                     conn.execute(
                         text(f"ALTER TABLE compras_fornecedores ADD COLUMN {nome} {tipo}")
                     )
+
+        ag_cols = {
+            row[1]
+            for row in conn.execute(text("PRAGMA table_info(agendamento_config)")).fetchall()
+        }
+        if ag_cols and "incluir_mercado_ia" not in ag_cols:
+            conn.execute(
+                text(
+                    "ALTER TABLE agendamento_config "
+                    "ADD COLUMN incluir_mercado_ia BOOLEAN DEFAULT 0"
+                )
+            )
+
         conn.commit()
 
 
@@ -1363,6 +1378,9 @@ def init_db() -> None:
         from app.auth.service import garantir_bootstrap_env
 
         garantir_bootstrap_env(db)
+        from app.modalidades_vinculo import reparar_vinculos_compras_api
+
+        reparar_vinculos_compras_api(db)
     finally:
         db.close()
 

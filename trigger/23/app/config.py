@@ -233,8 +233,11 @@ IA_FALLBACK_API_KEY = (os.environ.get("IA_FALLBACK_API_KEY") or "").strip()
 IA_FALLBACK_PROVIDER = (os.environ.get("IA_FALLBACK_PROVIDER") or "openai").strip()
 IA_FALLBACK_MODEL = (os.environ.get("IA_FALLBACK_MODEL") or "").strip()
 IA_FALLBACK_BASE_URL = (os.environ.get("IA_FALLBACK_BASE_URL") or "").strip()
+# Cadência do lote agendado de preços de mercado (segundos entre itens Material).
+MERCADO_IA_LOTE_INTERVALO_SEC = float(os.environ.get("MERCADO_IA_LOTE_INTERVALO_SEC", "2"))
 
-# modalidadeIdPncp (1–14) — domínio oficial PNCP
+# modalidadeIdPncp (1–14) — domínio oficial PNCP (campo modalidadeIdPncp / codigo_pncp).
+# NÃO usar como valor de filtro/coleta da API Dados Abertos (ver MODALIDADES_COMPRAS).
 MODALIDADES_PNCP: dict[int, str] = {
     1: "Leilão - Eletrônico",
     2: "Diálogo Competitivo",
@@ -251,3 +254,39 @@ MODALIDADES_PNCP: dict[int, str] = {
     13: "Leilão - Presencial",
     14: "Inaplicabilidade da Licitação",
 }
+
+# codigoModalidade — domínio da API Dados Abertos Compras.gov (parâmetro, filtro e coleta).
+# Distinto de modalidadeIdPncp: o mesmo número pode significar modalidades diferentes.
+# Nomes alinhados ao campo modalidadeNome retornado pela API (amostras reais + fixture).
+MODALIDADES_COMPRAS: dict[int, str] = {
+    3: "Concorrência - Eletrônica",
+    5: "Pregão - Eletrônico",
+    6: "Dispensa",
+    7: "Inexigibilidade",
+    12: "Leilão - Presencial",
+}
+
+# Cruzamento observado na API (modalidadeIdPncp → codigoModalidade). Referência; incompleto.
+PNCP_PARA_CODIGO_MODALIDADE: dict[int, int] = {
+    4: 3,  # Concorrência - Eletrônica
+    6: 5,  # Pregão - Eletrônico
+    8: 6,  # Dispensa
+    9: 7,  # Inexigibilidade
+    13: 12,  # Leilão - Presencial
+}
+
+# Inverso: codigoModalidade → modalidadeIdPncp (para localizar a consolidada canônica).
+CODIGO_MODALIDADE_PARA_PNCP: dict[int, int] = {
+    codigo: pncp for pncp, codigo in PNCP_PARA_CODIGO_MODALIDADE.items()
+}
+
+
+def nome_modalidade_compras(codigo: int | str | None) -> str:
+    """Rótulo de codigoModalidade; fallback para o próprio código."""
+    if codigo is None or codigo == "":
+        return ""
+    try:
+        chave = int(codigo)
+    except (TypeError, ValueError):
+        return str(codigo)
+    return MODALIDADES_COMPRAS.get(chave, str(chave))

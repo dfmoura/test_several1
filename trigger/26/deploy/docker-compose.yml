@@ -1,0 +1,134 @@
+# Local — mesmos artefatos que produção (fake Inter/NF-e)
+services:
+  proxy:
+    image: caddy:2
+    ports:
+      - "80:80"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      web:
+        condition: service_started
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost/api
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost/api
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    env_file: ../.env
+    environment:
+      APP_ENV: local
+      APP_PORT: "3001"
+      DATABASE_URL: postgres://reta:reta@db:5432/reta
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      BILLING_PROVIDER: fake
+      NFE_PROVIDER: fake
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+  worker:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    command: ["node", "dist/worker.js"]
+    env_file: ../.env
+    environment:
+      APP_ENV: local
+      DATABASE_URL: postgres://reta:reta@db:5432/reta
+      REDIS_URL: redis://redis:6379/0
+      BILLING_PROVIDER: fake
+      NFE_PROVIDER: fake
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      api:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: reta
+      POSTGRES_PASSWORD: reta
+      POSTGRES_DB: reta
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../docs/schema-mvp.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../docs/seed-mvp.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reta -d reta"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio12345
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  adminer:
+    image: adminer:4
+    ports:
+      - "8081:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  minio_data:
+  caddy_data:

@@ -328,7 +328,7 @@ function locRenderKpis() {
       <span class="loc-kpi-h">licitações / processos</span>
     </div>
     <div class="loc-kpi">
-      <span class="loc-kpi-n loc-kpi-money">${fmtMoeda(r.valor)}</span>
+      <span class="loc-kpi-n loc-kpi-money" title="${esc(fmtMoeda(r.valor))}">${fmtMoeda(r.valor)}</span>
       <span class="loc-kpi-l">Valor homologado</span>
       <span class="loc-kpi-h">soma dos itens</span>
     </div>

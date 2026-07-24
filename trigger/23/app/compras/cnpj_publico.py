@@ -1,7 +1,8 @@
-"""Enriquecimento CNPJ público (QSA) — cadeia de APIs públicas com fallback.
+"""Enriquecimento CNPJ público (QSA / CNAEs) — cadeia de APIs públicas com fallback.
 
 Ordem padrão: BrasilAPI → Minha Receita → CNPJá Open → Pública CNPJ.ws.
 Cada fonte é tentada só se a anterior falhar (indisponível / erro transitório).
+CNAEs secundários são derivados do blob `cnpj_dados_json` (sem coluna dedicada).
 """
 
 from __future__ import annotations
@@ -124,6 +125,85 @@ def _qsa_normalizado(raw_qsa: Any) -> list[dict[str, Any]]:
     return out
 
 
+def _cnaes_secundarios_normalizado(raw_list: Any) -> list[dict[str, Any]]:
+    """Normaliza lista de CNAEs secundários das APIs públicas para {codigo, descricao}."""
+    if not isinstance(raw_list, list):
+        return []
+    out: list[dict[str, Any]] = []
+    seen: set[int | None] = set()
+    for item in raw_list:
+        if not isinstance(item, dict):
+            continue
+        codigo = _int_or_none(
+            item.get("codigo")
+            or item.get("id")
+            or item.get("code")
+            or item.get("cnae")
+            or item.get("cnae_fiscal")
+        )
+        descricao = _texto_ou_none(
+            item.get("descricao")
+            or item.get("text")
+            or item.get("nome")
+            or item.get("description")
+            or item.get("cnae_fiscal_descricao")
+        )
+        if codigo is None and not descricao:
+            continue
+        # Evita duplicar o mesmo código na lista (mantém a 1ª ocorrência)
+        if codigo is not None and codigo in seen:
+            continue
+        if codigo is not None:
+            seen.add(codigo)
+        out.append({"codigo": codigo, "descricao": descricao})
+    return out
+
+
+def extrair_cnaes_secundarios(
+    raw: dict[str, Any] | None,
+    *,
+    fonte: str | None = None,
+) -> list[dict[str, Any]]:
+    """Extrai CNAEs secundários do payload bruto (BrasilAPI, Minha Receita, CNPJá, Pública)."""
+    if not isinstance(raw, dict):
+        return []
+    fonte_l = (fonte or "").lower()
+
+    # BrasilAPI / Minha Receita (e formato já adaptado)
+    if isinstance(raw.get("cnaes_secundarios"), list):
+        return _cnaes_secundarios_normalizado(raw.get("cnaes_secundarios"))
+
+    # CNPJá Open
+    if fonte_l == "cnpja" or isinstance(raw.get("sideActivities"), list):
+        side = raw.get("sideActivities")
+        if isinstance(side, list):
+            return _cnaes_secundarios_normalizado(side)
+
+    # Pública CNPJ.ws
+    est = raw.get("estabelecimento") if isinstance(raw.get("estabelecimento"), dict) else {}
+    if fonte_l == "publicacnpj" or isinstance(est.get("atividades_secundarias"), list):
+        return _cnaes_secundarios_normalizado(est.get("atividades_secundarias"))
+
+    return []
+
+
+def cnaes_secundarios_de_registro(cnpj_dados_json: str | None) -> list[dict[str, Any]]:
+    """Lê CNAEs secundários do blob persistido em cnpj_dados_json (sem coluna nova)."""
+    if not cnpj_dados_json:
+        return []
+    try:
+        envelope = json.loads(cnpj_dados_json)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(envelope, dict):
+        return []
+    fonte = envelope.get("fonte")
+    payload = envelope.get("payload")
+    if isinstance(payload, dict):
+        return extrair_cnaes_secundarios(payload, fonte=str(fonte) if fonte else None)
+    return extrair_cnaes_secundarios(envelope, fonte=str(fonte) if fonte else None)
+
+
 def _adaptar_payload_cnpja(raw: dict[str, Any]) -> dict[str, Any]:
     """Converte resposta CNPJá Open para o formato flat esperado pelo mapper."""
     company = raw.get("company") if isinstance(raw.get("company"), dict) else {}
@@ -138,6 +218,7 @@ def _adaptar_payload_cnpja(raw: dict[str, Any]) -> dict[str, Any]:
         "nome_fantasia": raw.get("alias") or raw.get("nome_fantasia"),
         "cnae_fiscal": activity.get("id"),
         "cnae_fiscal_descricao": activity.get("text"),
+        "cnaes_secundarios": raw.get("sideActivities") or [],
         "descricao_situacao_cadastral": status.get("text") or raw.get("situacao_cadastral"),
         "municipio": address.get("city") or address.get("municipio"),
         "uf": address.get("state") or address.get("uf"),
@@ -197,6 +278,7 @@ def _adaptar_payload_publica(raw: dict[str, Any]) -> dict[str, Any]:
         "nome_fantasia": est.get("nome_fantasia"),
         "cnae_fiscal": atividade.get("id"),
         "cnae_fiscal_descricao": atividade.get("descricao"),
+        "cnaes_secundarios": est.get("atividades_secundarias") or [],
         "descricao_situacao_cadastral": est.get("situacao_cadastral"),
         "municipio": cidade.get("nome"),
         "uf": estado.get("sigla"),
@@ -358,6 +440,8 @@ def fornecedor_para_api(row: ComprasFornecedor) -> dict[str, Any]:
         except json.JSONDecodeError:
             qsa = []
 
+    cnaes_secundarios = cnaes_secundarios_de_registro(row.cnpj_dados_json)
+
     de_udi = row.de_uberlandia
     if de_udi is None:
         de_udi = classificar_uberlandia(
@@ -379,6 +463,7 @@ def fornecedor_para_api(row: ComprasFornecedor) -> dict[str, Any]:
         "natureza_juridica": row.natureza_juridica_nome,
         "cnae_codigo": row.codigo_cnae,
         "cnae": row.nome_cnae,
+        "cnaes_secundarios": cnaes_secundarios,
         "situacao_cadastral": row.situacao_cadastral,
         "uf": row.uf_sigla,
         "municipio": row.nome_municipio,
