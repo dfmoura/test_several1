@@ -620,6 +620,15 @@ function renderAgendamento(cfg) {
       cfg.incluir_mercado_ia ? "preços de mercado (Materiais pendentes)" : null,
     ].filter(Boolean).join(" → ") || "nenhuma etapa"
   }</span></div>`);
+  if (cfg.incluir_mercado_ia || cfg.mercado_ia_pendentes != null) {
+    const n = cfg.mercado_ia_pendentes;
+    const txt = n == null
+      ? "—"
+      : (cfg.incluir_mercado_ia
+        ? `${n} Material(is) sem análise IA OK (serão buscados na próxima cadeia)`
+        : `${n} Material(is) sem análise IA OK · etapa desligada`);
+    linhas.push(`<div class="ag-row"><span class="ag-label">Fila mercado IA</span><span class="ag-value">${esc(txt)}</span></div>`);
+  }
   if (params.ano || (params.anos || []).length) {
     linhas.push(`<div class="ag-row"><span class="ag-label">Params coleta</span><span class="ag-value">${
       esc(`ano ${params.ano ?? "—"} · Power BI ${(params.anos || []).join(", ") || "—"} · fases ${(params.fases || []).join(",")}`)

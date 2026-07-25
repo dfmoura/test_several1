@@ -329,10 +329,12 @@ def listar_itens_materiais_propostas_abertas(
     """Itens Tipo=Material com prazo PNCP vigente (mesmo universo da tela Propostas abertas).
 
     Usado pela etapa final do agendamento — uma busca de mercado por item, em sequência.
-    Por padrão exclui itens que já têm pelo menos uma análise de mercado IA com
-    ``status == "ok"`` (evita reprocessar e consumir tokens). Itens só com erro
-    ou sem histórico continuam na fila (podem ser retentados).
+    Por padrão exclui itens que já têm análise de mercado IA com ``status == "ok"``
+    (por ``item_id`` ou pelo mesmo ``id_compra_item`` — evita reprocessar após
+    recoleta). Itens só com erro ou sem histórico continuam na fila.
     """
+    from sqlalchemy import exists
+
     agora = agora or datetime.now()
     abertas = _carregar_contratacoes_abertas(db, agora=agora, horizonte="todos")
     if not abertas:
@@ -347,12 +349,20 @@ def listar_itens_materiais_propostas_abertas(
         .order_by(CompraContratacaoItem.id.asc())
     )
     if somente_sem_analise_ok:
-        ja_com_preco = (
-            select(PropostaAnalisePreco.item_id)
-            .where(PropostaAnalisePreco.status == "ok")
-            .distinct()
+        # Já tem preço de mercado por IA (status ok) — não entra na fila.
+        ok_por_item_id = exists().where(
+            PropostaAnalisePreco.item_id == CompraContratacaoItem.id,
+            PropostaAnalisePreco.status == "ok",
         )
-        stmt = stmt.where(CompraContratacaoItem.id.notin_(ja_com_preco))
+        ok_por_id_compra_item = exists().where(
+            PropostaAnalisePreco.id_compra_item.isnot(None),
+            PropostaAnalisePreco.id_compra_item != "",
+            CompraContratacaoItem.id_compra_item.isnot(None),
+            CompraContratacaoItem.id_compra_item != "",
+            PropostaAnalisePreco.id_compra_item == CompraContratacaoItem.id_compra_item,
+            PropostaAnalisePreco.status == "ok",
+        )
+        stmt = stmt.where(~ok_por_item_id, ~ok_por_id_compra_item)
     fila: list[dict[str, Any]] = []
     for item in db.scalars(stmt):
         desc = (item.descricao_resumida or item.descricao_detalhada or "").strip()
@@ -364,6 +374,11 @@ def listar_itens_materiais_propostas_abertas(
             }
         )
     return fila
+
+
+def contar_materiais_pendentes_mercado_ia(db: Session) -> int:
+    """Quantidade de Materiais abertos ainda sem análise de mercado IA OK."""
+    return len(listar_itens_materiais_propostas_abertas(db, somente_sem_analise_ok=True))
 
 
 def _parse_valor_item(val: Any) -> Decimal | None:

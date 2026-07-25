@@ -74,7 +74,8 @@ def test_obter_e_salvar_agendamento(client):
     assert body["fuso"] == "America/Sao_Paulo"
     assert "params_coleta" in body
     assert body.get("incluir_mercado_ia") is False
-
+    assert "mercado_ia_pendentes" in body
+    assert isinstance(body["mercado_ia_pendentes"], int)
     r2 = client.put(
         "/api/sistema/agendamento",
         json={

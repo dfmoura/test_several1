@@ -1,0 +1,13 @@
+{
+  "preco_caixa": 7.0,
+  "valor_cm2_matriz": 0.28,
+  "rpm_default": 1300,
+  "minutos_troca_bobina": 5,
+  "teto_metragem_troca_bobina": 1000,
+  "arredondamento_etiqueta": 10,
+  "arredondamento_matriz": 1,
+  "prazo_entrega": "12 dias úteis",
+  "validade": "7 dias",
+  "clausula_quantidade": "As quantidades podem variar ±20%",
+  "rebobinacao_preco": 17.0
+}

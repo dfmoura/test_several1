@@ -159,6 +159,14 @@ def config_publica(db: Session) -> dict[str, Any]:
     ).first()
     tz = _fuso(cfg.fuso)
     agora = datetime.now(tz)
+    # Contagem leve da fila prevista (Materiais abertos sem análise IA OK).
+    from app.propostas_abertas import contar_materiais_pendentes_mercado_ia
+
+    try:
+        mercado_pendentes = contar_materiais_pendentes_mercado_ia(db)
+    except Exception:  # noqa: BLE001 — status do Setup não pode quebrar
+        logger.exception("Falha ao contar Materiais pendentes de mercado IA")
+        mercado_pendentes = None
     return {
         "ativo": bool(cfg.ativo),
         "hora": int(cfg.hora),
@@ -168,6 +176,7 @@ def config_publica(db: Session) -> dict[str, Any]:
         "incluir_coleta": bool(cfg.incluir_coleta),
         "incluir_cnpjs": bool(cfg.incluir_cnpjs),
         "incluir_mercado_ia": bool(getattr(cfg, "incluir_mercado_ia", False)),
+        "mercado_ia_pendentes": mercado_pendentes,
         "ultima_chave_dia": cfg.ultima_chave_dia,
         "atualizado_em": cfg.atualizado_em.isoformat() if cfg.atualizado_em else None,
         "agora_local": agora.strftime("%Y-%m-%d %H:%M:%S %Z"),
