@@ -9,7 +9,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import false, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import (
@@ -326,8 +326,8 @@ def _calcular_cruzamentos(
     db: Session,
     ano: int | None,
     periodo: Periodo | None,
-    chaves_org: dict[str, set[str]],
-    chaves_mod: dict[str, set[str]],
+    chaves_org: dict[str, set[str] | None],
+    chaves_mod: dict[str, set[str] | None],
     mapa_org: dict[tuple[str, str], OrgaoConsolidado],
     *,
     fallback_homologacao: bool = True,
@@ -426,29 +426,63 @@ def _mapa_modalidades(db: Session) -> dict[tuple[str, str], ModalidadeConsolidad
     return {(v.fonte, v.chave): v.modalidade_consolidada for v in rows}
 
 
-def _chaves_orgao(db: Session, orgao_id: int | None) -> dict[str, set[str]]:
-    out: dict[str, set[str]] = {"compras_api": set(), "powerbi": set()}
+def _chaves_orgao(db: Session, orgao_id: int | None) -> dict[str, set[str] | None]:
+    """Chaves vinculadas por fonte.
+
+    ``None`` — filtro de órgão não solicitado (não restringe a fonte).
+    ``set()`` — órgão selecionado, porém sem vínculo nesta fonte → zero resultados.
+    ``set([...])`` — restringe aos valores vinculados.
+    """
     if orgao_id is None:
-        return out
+        return {"compras_api": None, "powerbi": None}
+    out: dict[str, set[str] | None] = {"compras_api": set(), "powerbi": set()}
     vinculos = db.scalars(
         select(OrgaoVinculo).where(OrgaoVinculo.orgao_consolidado_id == orgao_id)
     ).all()
     for v in vinculos:
-        out.setdefault(v.fonte, set()).add(v.chave)
+        bucket = out.setdefault(v.fonte, set())
+        if bucket is None:
+            bucket = set()
+            out[v.fonte] = bucket
+        bucket.add(v.chave)
     return out
 
 
-def _chaves_modalidade(db: Session, modalidade_id: int | list[int] | None) -> dict[str, set[str]]:
-    out: dict[str, set[str]] = {"compras_api": set(), "powerbi": set()}
+def _chaves_modalidade(
+    db: Session, modalidade_id: int | list[int] | None
+) -> dict[str, set[str] | None]:
+    """Chaves de modalidade por fonte — mesma semântica de ``_chaves_orgao``."""
     ids = _norm_ids(modalidade_id)
     if not ids:
-        return out
+        return {"compras_api": None, "powerbi": None}
+    out: dict[str, set[str] | None] = {"compras_api": set(), "powerbi": set()}
     vinculos = db.scalars(
         select(ModalidadeVinculo).where(ModalidadeVinculo.modalidade_consolidada_id.in_(ids))
     ).all()
     for v in vinculos:
-        out.setdefault(v.fonte, set()).add(v.chave)
+        bucket = out.setdefault(v.fonte, set())
+        if bucket is None:
+            bucket = set()
+            out[v.fonte] = bucket
+        bucket.add(v.chave)
     return out
+
+
+def _append_filtro_chaves(
+    crit: list[Any],
+    chaves: set[str] | None,
+    condicao,
+) -> None:
+    """Aplica restrição por chaves vinculadas de uma fonte.
+
+    ``None`` — sem filtro. Set vazio — nenhum registro. Set com valores — ``condicao``.
+    """
+    if chaves is None:
+        return
+    if not chaves:
+        crit.append(false())
+        return
+    crit.append(condicao(chaves))
 
 
 def _rotulo_orgao(orgao: OrgaoConsolidado | None) -> str:
@@ -499,8 +533,8 @@ def _agrupar_situacao(itens: list[tuple[str | None, int]]) -> list[dict[str, Any
 def _where_compras(
     ano: int | None,
     periodo: Periodo | None,
-    chaves_org: dict[str, set[str]],
-    chaves_mod: dict[str, set[str]],
+    chaves_org: dict[str, set[str] | None],
+    chaves_mod: dict[str, set[str] | None],
 ) -> list[Any]:
     crit: list[Any] = []
     filtro_periodo = condicao_periodo(
@@ -510,12 +544,16 @@ def _where_compras(
         crit.append(filtro_periodo)
     elif ano:
         crit.append(CompraContratacao.ano == ano)
-    org = chaves_org.get("compras_api")
-    if org:
-        crit.append(CompraContratacao.unidade_compradora.in_(org))
-    mod = chaves_mod.get("compras_api")
-    if mod:
-        crit.append(CompraContratacao.modalidade_codigo.in_(mod))
+    _append_filtro_chaves(
+        crit,
+        chaves_org.get("compras_api"),
+        lambda keys: CompraContratacao.unidade_compradora.in_(keys),
+    )
+    _append_filtro_chaves(
+        crit,
+        chaves_mod.get("compras_api"),
+        lambda keys: CompraContratacao.modalidade_codigo.in_(keys),
+    )
     return crit
 
 
@@ -523,8 +561,8 @@ def _stats_api(
     db: Session,
     ano: int | None,
     periodo: Periodo | None,
-    chaves_org: dict[str, set[str]],
-    chaves_mod: dict[str, set[str]],
+    chaves_org: dict[str, set[str] | None],
+    chaves_mod: dict[str, set[str] | None],
     mapa_org: dict[tuple[str, str], OrgaoConsolidado],
     mapa_mod: dict[tuple[str, str], ModalidadeConsolidada],
 ) -> dict[str, Any]:
@@ -590,8 +628,8 @@ def _stats_api(
 def _where_pbi(
     ano: int | None,
     periodo: Periodo | None,
-    chaves_org: dict[str, set[str]],
-    chaves_mod: dict[str, set[str]],
+    chaves_org: dict[str, set[str] | None],
+    chaves_mod: dict[str, set[str] | None],
     *,
     fallback_homologacao: bool = True,
 ) -> list[Any]:
@@ -608,16 +646,18 @@ def _where_pbi(
         crit.append(filtro_periodo)
     elif ano:
         crit.append(PbiProcessoLicitatorio.ano_processo == ano)
-    pbi_org = chaves_org.get("powerbi")
-    if pbi_org:
-        crit.append(
-            PbiProcessoLicitatorio.orgao_id.in_(
-                select(PbiOrgao.id).where(PbiOrgao.nome.in_(pbi_org))
-            )
-        )
-    pbi_mod = chaves_mod.get("powerbi")
-    if pbi_mod:
-        crit.append(PbiProcessoLicitatorio.modalidade.in_(pbi_mod))
+    _append_filtro_chaves(
+        crit,
+        chaves_org.get("powerbi"),
+        lambda keys: PbiProcessoLicitatorio.orgao_id.in_(
+            select(PbiOrgao.id).where(PbiOrgao.nome.in_(keys))
+        ),
+    )
+    _append_filtro_chaves(
+        crit,
+        chaves_mod.get("powerbi"),
+        lambda keys: PbiProcessoLicitatorio.modalidade.in_(keys),
+    )
     return crit
 
 
@@ -625,8 +665,8 @@ def _stats_powerbi(
     db: Session,
     ano: int | None,
     periodo: Periodo | None,
-    chaves_org: dict[str, set[str]],
-    chaves_mod: dict[str, set[str]],
+    chaves_org: dict[str, set[str] | None],
+    chaves_mod: dict[str, set[str] | None],
     mapa_org: dict[tuple[str, str], OrgaoConsolidado],
     mapa_mod: dict[tuple[str, str], ModalidadeConsolidada],
     *,

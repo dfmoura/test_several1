@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.dashboard_gerencial import (
     ChaveProcesso,
+    _append_filtro_chaves,
     _chave_api,
     _chave_powerbi,
     _chaves_modalidade,
@@ -287,7 +288,7 @@ def _filtrar_registros_modalidade(
     return api_rows, pbi_rows
 
 
-def _chaves_orgao(db: Session, orgao_id: int | None) -> dict[str, set[str]]:
+def _chaves_orgao(db: Session, orgao_id: int | None) -> dict[str, set[str] | None]:
     from app.dashboard_gerencial import _chaves_orgao as _co
 
     return _co(db, orgao_id)
@@ -554,9 +555,11 @@ def _buscar_registros(
         crit_a.append(filtro_api)
     elif ano:
         crit_a.append(CompraContratacao.ano == ano)
-    api_org = chaves_org.get("compras_api")
-    if api_org:
-        crit_a.append(CompraContratacao.unidade_compradora.in_(api_org))
+    _append_filtro_chaves(
+        crit_a,
+        chaves_org.get("compras_api"),
+        lambda keys: CompraContratacao.unidade_compradora.in_(keys),
+    )
     crit_a.extend(_crit_modalidade_compras_api(db, ids_mod, chaves_mod))
 
     api_rows = list(
@@ -598,13 +601,13 @@ def _buscar_registros(
         crit_b.append(filtro_pbi)
     elif ano:
         crit_b.append(PbiProcessoLicitatorio.ano_processo == ano)
-    pbi_org = chaves_org.get("powerbi")
-    if pbi_org:
-        crit_b.append(
-            PbiProcessoLicitatorio.orgao_id.in_(
-                select(PbiOrgao.id).where(PbiOrgao.nome.in_(pbi_org))
-            )
-        )
+    _append_filtro_chaves(
+        crit_b,
+        chaves_org.get("powerbi"),
+        lambda keys: PbiProcessoLicitatorio.orgao_id.in_(
+            select(PbiOrgao.id).where(PbiOrgao.nome.in_(keys))
+        ),
+    )
     crit_b.extend(
         _crit_modalidade_fonte(ids_mod, chaves_mod, "powerbi", PbiProcessoLicitatorio.modalidade)
     )
@@ -803,19 +806,21 @@ def _registros_por_chave(
     mapa_nome, mapa_rotulo = _mapa_modalidades_por_nome(db)
 
     crit_a: list[Any] = [CompraContratacao.ano == ano]
-    api_org = chaves_org.get("compras_api")
-    if api_org:
-        crit_a.append(CompraContratacao.unidade_compradora.in_(api_org))
+    _append_filtro_chaves(
+        crit_a,
+        chaves_org.get("compras_api"),
+        lambda keys: CompraContratacao.unidade_compradora.in_(keys),
+    )
     crit_a.extend(_crit_modalidade_compras_api(db, ids_mod, chaves_mod))
 
     crit_b: list[Any] = [PbiProcessoLicitatorio.ano_processo == ano]
-    pbi_org = chaves_org.get("powerbi")
-    if pbi_org:
-        crit_b.append(
-            PbiProcessoLicitatorio.orgao_id.in_(
-                select(PbiOrgao.id).where(PbiOrgao.nome.in_(pbi_org))
-            )
-        )
+    _append_filtro_chaves(
+        crit_b,
+        chaves_org.get("powerbi"),
+        lambda keys: PbiProcessoLicitatorio.orgao_id.in_(
+            select(PbiOrgao.id).where(PbiOrgao.nome.in_(keys))
+        ),
+    )
     crit_b.extend(
         _crit_modalidade_fonte(ids_mod, chaves_mod, "powerbi", PbiProcessoLicitatorio.modalidade)
     )
