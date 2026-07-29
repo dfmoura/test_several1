@@ -1,0 +1,55 @@
+{
+  "fixos": {
+    "0": {
+      "m2_fixo": 4,
+      "fator_largura": null,
+      "ml": null
+    },
+    "1": {
+      "m2_fixo": 4,
+      "fator_largura": null,
+      "ml": 40
+    },
+    "2": {
+      "m2_fixo": 6,
+      "fator_largura": null,
+      "ml": 60
+    },
+    "3": {
+      "m2_fixo": 8,
+      "fator_largura": null,
+      "ml": 90
+    },
+    "4": {
+      "m2_fixo": null,
+      "fator_largura": 180,
+      "ml": 200
+    },
+    "4V": {
+      "m2_fixo": null,
+      "fator_largura": 220,
+      "ml": 250
+    },
+    "5": {
+      "m2_fixo": null,
+      "fator_largura": 220,
+      "ml": 250
+    },
+    "6": {
+      "m2_fixo": null,
+      "fator_largura": null,
+      "ml": 260
+    },
+    "7": {
+      "m2_fixo": null,
+      "fator_largura": null,
+      "ml": 270
+    },
+    "8": {
+      "m2_fixo": null,
+      "fator_largura": null,
+      "ml": 280
+    }
+  },
+  "fator_cores4": 180.0
+}

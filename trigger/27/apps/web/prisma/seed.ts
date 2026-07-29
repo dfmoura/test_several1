@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient, Role, TipoParceiro, TipoPessoa, AmbienteFiscal, RegimeTributario, TipoCertificado, FinalidadeCertificado, StatusCertificado, TipoCnae } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -6,33 +6,270 @@ import { join } from "node:path";
 const prisma = new PrismaClient();
 const catalogs = join(__dirname, "../../../data/catalogs");
 
+const EMPRESA_ID = "seed-empresa-matriz";
+
+/** CNAEs oficiais da emitente (Receita / Minha Receita). */
+const EMPRESA_CNAES: Array<{
+  codigo: string;
+  descricao: string;
+  tipo: TipoCnae;
+  ordem: number;
+}> = [
+  {
+    codigo: "1813099",
+    descricao: "Impressão de material para outros usos",
+    tipo: TipoCnae.PRINCIPAL,
+    ordem: 0,
+  },
+  {
+    codigo: "1813001",
+    descricao: "Impressão de material para uso publicitário",
+    tipo: TipoCnae.SECUNDARIO,
+    ordem: 1,
+  },
+  {
+    codigo: "1821100",
+    descricao: "Serviços de pré-impressão",
+    tipo: TipoCnae.SECUNDARIO,
+    ordem: 2,
+  },
+  {
+    codigo: "4751201",
+    descricao: "Comércio varejista especializado de equipamentos e suprimentos de informática",
+    tipo: TipoCnae.SECUNDARIO,
+    ordem: 3,
+  },
+];
+
 function load<T>(file: string): T {
   return JSON.parse(readFileSync(join(catalogs, file), "utf-8")) as T;
 }
 
+async function upsertEmpresaRaiz() {
+  const principal = EMPRESA_CNAES.find((c) => c.tipo === TipoCnae.PRINCIPAL)!;
+  // Dados reais da emitente (NFS-e de referência) — ambiente de teste simula produção.
+  const empresa = await prisma.empresa.upsert({
+    where: { id: EMPRESA_ID },
+    update: {
+      codigo: "MATRIZ",
+      razaoSocial: "ADESIVOS, ETIQUETAS E ROTULOS UDI LTDA",
+      nomeFantasia: "Etiquetas UDI",
+      cnpj: "58820046000137",
+      cnaePrincipal: principal.codigo,
+      cnaePrincipalDescricao: principal.descricao,
+      regimeTributario: RegimeTributario.SIMPLES_NACIONAL,
+      email: "ETIQUETASUDI@YAHOO.COM.BR",
+      telefone: "3491807742",
+      cep: "38411160",
+      logradouro: "ALAMEDA SOSTHENES GUIMARAES",
+      numero: "65",
+      bairro: "MORADA DA COLINA",
+      cidade: "Uberlândia",
+      uf: "MG",
+      codigoMunicipioIbge: "3170206",
+      ambienteFiscal: AmbienteFiscal.HOMOLOGACAO,
+      simularProducao: true,
+      isMatriz: true,
+      ativo: true,
+    },
+    create: {
+      id: EMPRESA_ID,
+      codigo: "MATRIZ",
+      razaoSocial: "ADESIVOS, ETIQUETAS E ROTULOS UDI LTDA",
+      nomeFantasia: "Etiquetas UDI",
+      cnpj: "58820046000137",
+      cnaePrincipal: principal.codigo,
+      cnaePrincipalDescricao: principal.descricao,
+      regimeTributario: RegimeTributario.SIMPLES_NACIONAL,
+      email: "ETIQUETASUDI@YAHOO.COM.BR",
+      telefone: "3491807742",
+      cep: "38411160",
+      logradouro: "ALAMEDA SOSTHENES GUIMARAES",
+      numero: "65",
+      bairro: "MORADA DA COLINA",
+      cidade: "Uberlândia",
+      uf: "MG",
+      codigoMunicipioIbge: "3170206",
+      ambienteFiscal: AmbienteFiscal.HOMOLOGACAO,
+      simularProducao: true,
+      isMatriz: true,
+      ativo: true,
+      observacoes:
+        "Empresa raiz do sistema (seed). Ambiente de teste com simulação de produção.",
+    },
+  });
+
+  await prisma.empresaCnae.deleteMany({ where: { empresaId: empresa.id } });
+  await prisma.empresaCnae.createMany({
+    data: EMPRESA_CNAES.map((c) => ({
+      empresaId: empresa.id,
+      codigo: c.codigo,
+      descricao: c.descricao,
+      tipo: c.tipo,
+      ordem: c.ordem,
+      fonte: "seed",
+      ativo: true,
+    })),
+  });
+
+  return empresa;
+}
+
+async function upsertParceiro(opts: {
+  id: string;
+  codigo?: string;
+  tipoPessoa?: TipoPessoa;
+  nome: string;
+  razaoSocial?: string;
+  documento?: string;
+  email?: string;
+  tipos: TipoParceiro[];
+  comissaoPadraoPct?: number;
+  empresaId: string;
+}) {
+  const parceiro = await prisma.parceiro.upsert({
+    where: { id: opts.id },
+    update: {
+      empresaId: opts.empresaId,
+      codigo: opts.codigo,
+      tipoPessoa: opts.tipoPessoa ?? TipoPessoa.PJ,
+      nome: opts.nome,
+      razaoSocial: opts.razaoSocial,
+      documento: opts.documento,
+      email: opts.email,
+      ativo: true,
+    },
+    create: {
+      id: opts.id,
+      empresaId: opts.empresaId,
+      codigo: opts.codigo,
+      tipoPessoa: opts.tipoPessoa ?? TipoPessoa.PJ,
+      nome: opts.nome,
+      razaoSocial: opts.razaoSocial,
+      documento: opts.documento,
+      email: opts.email,
+      ativo: true,
+    },
+  });
+
+  await prisma.parceiroTipo.deleteMany({ where: { parceiroId: parceiro.id } });
+  await prisma.parceiroTipo.createMany({
+    data: opts.tipos.map((tipo) => ({
+      parceiroId: parceiro.id,
+      tipo,
+      comissaoPadraoPct: tipo === TipoParceiro.VENDEDOR ? (opts.comissaoPadraoPct ?? null) : null,
+    })),
+  });
+
+  return parceiro;
+}
+
 async function main() {
+  const empresa = await upsertEmpresaRaiz();
+
+  // Certificado NFS-e simulado (metadados) — arquivo real pode ser anexado no admin.
+  await prisma.empresaCertificado.upsert({
+    where: {
+      empresaId_apelido: { empresaId: empresa.id, apelido: "NFS-e homologação" },
+    },
+    update: {
+      tipo: TipoCertificado.A1,
+      finalidade: FinalidadeCertificado.NFSE,
+      status: StatusCertificado.PENDENTE,
+      subjectCn: "ADESIVOS ETIQUETAS E ROTULOS UDI LTDA:58820046000137",
+      validadeInicio: new Date("2025-01-01T00:00:00.000Z"),
+      validadeFim: new Date("2027-01-01T00:00:00.000Z"),
+      ativo: true,
+      observacoes: "Seed de teste — anexe o .pfx real quando disponível.",
+    },
+    create: {
+      empresaId: empresa.id,
+      apelido: "NFS-e homologação",
+      tipo: TipoCertificado.A1,
+      finalidade: FinalidadeCertificado.NFSE,
+      status: StatusCertificado.PENDENTE,
+      subjectCn: "ADESIVOS ETIQUETAS E ROTULOS UDI LTDA:58820046000137",
+      validadeInicio: new Date("2025-01-01T00:00:00.000Z"),
+      validadeFim: new Date("2027-01-01T00:00:00.000Z"),
+      ativo: true,
+      observacoes: "Seed de teste — anexe o .pfx real quando disponível.",
+    },
+  });
+
   const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD || "Admin@123", 12);
+
+  const adminParceiro = await upsertParceiro({
+    id: "seed-parceiro-admin",
+    empresaId: empresa.id,
+    codigo: "USR-ADMIN",
+    tipoPessoa: TipoPessoa.PF,
+    nome: "Administrador",
+    email: "admin@flexo.local",
+    tipos: [TipoParceiro.USUARIO],
+  });
+
+  const vendedorParceiro = await upsertParceiro({
+    id: "seed-parceiro-marcelo",
+    empresaId: empresa.id,
+    codigo: "VEN-001",
+    tipoPessoa: TipoPessoa.PF,
+    nome: "Marcelo",
+    email: "vendedor@flexo.local",
+    tipos: [TipoParceiro.VENDEDOR, TipoParceiro.USUARIO],
+    comissaoPadraoPct: 5,
+  });
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@flexo.local" },
-    update: {},
+    update: {
+      parceiroId: adminParceiro.id,
+      name: "Administrador",
+      empresaId: empresa.id,
+    },
     create: {
       email: "admin@flexo.local",
       name: "Administrador",
       passwordHash,
       role: Role.ADMIN,
+      parceiroId: adminParceiro.id,
+      empresaId: empresa.id,
     },
   });
 
   await prisma.user.upsert({
     where: { email: "vendedor@flexo.local" },
-    update: {},
+    update: {
+      parceiroId: vendedorParceiro.id,
+      name: "Marcelo",
+      empresaId: empresa.id,
+    },
     create: {
       email: "vendedor@flexo.local",
       name: "Marcelo",
       passwordHash: await bcrypt.hash("Vendedor@123", 12),
       role: Role.VENDEDOR,
+      parceiroId: vendedorParceiro.id,
+      empresaId: empresa.id,
     },
+  });
+
+  await upsertParceiro({
+    id: "seed-banca-dinei",
+    empresaId: empresa.id,
+    codigo: "CLI-001",
+    tipoPessoa: TipoPessoa.PJ,
+    nome: "BANCA DO DINEI",
+    razaoSocial: "BANCA DO DINEI",
+    tipos: [TipoParceiro.CLIENTE],
+  });
+
+  await upsertParceiro({
+    id: "seed-fornecedor-facas",
+    empresaId: empresa.id,
+    codigo: "FOR-001",
+    tipoPessoa: TipoPessoa.PJ,
+    nome: "Ferramentaria Exemplo",
+    tipos: [TipoParceiro.FORNECEDOR],
   });
 
   const papeis = load<Array<{ nome: string; preco_m2: number }>>("papeis.json");
@@ -129,8 +366,8 @@ async function main() {
   const valorGeral = JSON.parse(JSON.stringify({ ...params, tinta }));
   await prisma.parametroSistema.upsert({
     where: { chave: "geral" },
-    update: { valor: valorGeral },
-    create: { chave: "geral", valor: valorGeral },
+    update: { valor: valorGeral, empresaId: empresa.id },
+    create: { chave: "geral", valor: valorGeral, empresaId: empresa.id },
   });
 
   const facas = load<
@@ -184,12 +421,149 @@ async function main() {
     }
   }
 
-  await prisma.cliente.upsert({
-    where: { id: "seed-banca-dinei" },
-    update: {},
+  // ── Ciclo operacional: depósito, produtos, integrações, parâmetros ──
+  await prisma.deposito.upsert({
+    where: { empresaId_codigo: { empresaId: empresa.id, codigo: "PRINCIPAL" } },
+    update: { nome: "Depósito principal", padrao: true, ativo: true },
     create: {
-      id: "seed-banca-dinei",
-      nome: "BANCA DO DINEI",
+      empresaId: empresa.id,
+      codigo: "PRINCIPAL",
+      nome: "Depósito principal",
+      padrao: true,
+      ativo: true,
+    },
+  });
+
+  const cicloParams: Array<{ chave: string; valor: unknown }> = [
+    { chave: "estoque.depositoPadraoCodigo", valor: "PRINCIPAL" },
+    { chave: "mrp.reservaNaConfirmacao", valor: true },
+    { chave: "mrp.percentualMinimoLiberacaoOs", valor: 100 },
+    { chave: "faturamento.exigeOsConcluida", valor: true },
+    { chave: "faturamento.documentoPadrao", valor: "NFSE" },
+    { chave: "compra.toleranciaQtdPct", valor: 5 },
+    { chave: "compra.toleranciaValorPct", valor: 2 },
+    { chave: "pedido.liquidacaoExigeEntrega", valor: false },
+  ];
+  for (const p of cicloParams) {
+    await prisma.parametroSistema.upsert({
+      where: { chave: p.chave },
+      update: { valor: p.valor as object, empresaId: empresa.id },
+      create: { chave: p.chave, valor: p.valor as object, empresaId: empresa.id },
+    });
+  }
+
+  await prisma.empresaIntegracao.upsert({
+    where: { empresaId_provider: { empresaId: empresa.id, provider: "FOCUS_NFE" } },
+    update: { modo: "SIMULADO", ativo: true },
+    create: {
+      empresaId: empresa.id,
+      provider: "FOCUS_NFE",
+      modo: "SIMULADO",
+      baseUrlHomolog: "https://homologacao.focusnfe.com.br",
+      baseUrlProd: "https://api.focusnfe.com.br",
+      ativo: true,
+      observacoes: "Homologação — simularProducao da empresa controla emissão real vs mock",
+    },
+  });
+  await prisma.empresaIntegracao.upsert({
+    where: { empresaId_provider: { empresaId: empresa.id, provider: "INTER" } },
+    update: { modo: "SIMULADO", ativo: true },
+    create: {
+      empresaId: empresa.id,
+      provider: "INTER",
+      modo: "SIMULADO",
+      baseUrlHomolog: "https://cdpj.partners.bancointer.com.br",
+      ativo: true,
+      observacoes: "Bolepix sandbox / simulado",
+    },
+  });
+
+  const papeisDb = await prisma.papel.findMany({ where: { ativo: true } });
+  for (const papel of papeisDb) {
+    const codigo = `PAPEL-${papel.nome
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toUpperCase()
+      .slice(0, 36)}`;
+    await prisma.produto.upsert({
+      where: { empresaId_codigo: { empresaId: empresa.id, codigo } },
+      update: { descricao: papel.nome, papelId: papel.id, unidade: "M2", tipo: "INSUMO" },
+      create: {
+        empresaId: empresa.id,
+        codigo,
+        descricao: papel.nome,
+        tipo: "INSUMO",
+        unidade: "M2",
+        ncm: "48114110",
+        controlaEstoque: true,
+        papelId: papel.id,
+        ativo: true,
+      },
+    });
+  }
+
+  const acabDb = await prisma.acabamento.findMany({ where: { ativo: true } });
+  for (const acab of acabDb) {
+    const codigo = `ACAB-${acab.nome
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toUpperCase()
+      .slice(0, 36)}`;
+    await prisma.produto.upsert({
+      where: { empresaId_codigo: { empresaId: empresa.id, codigo } },
+      update: {
+        descricao: acab.nome,
+        acabamentoId: acab.id,
+        unidade: "M2",
+        tipo: "INSUMO",
+      },
+      create: {
+        empresaId: empresa.id,
+        codigo,
+        descricao: acab.nome,
+        tipo: "INSUMO",
+        unidade: "M2",
+        controlaEstoque: true,
+        acabamentoId: acab.id,
+        ativo: true,
+      },
+    });
+  }
+
+  const tubDb = await prisma.tubete.findMany({ where: { ativo: true } });
+  for (const tub of tubDb) {
+    const codigo = `TUB-${tub.tamanho.replace(/[^a-zA-Z0-9]+/g, "").toUpperCase()}`;
+    await prisma.produto.upsert({
+      where: { empresaId_codigo: { empresaId: empresa.id, codigo } },
+      update: { descricao: `Tubete ${tub.tamanho}`, tubeteId: tub.id, tipo: "INSUMO" },
+      create: {
+        empresaId: empresa.id,
+        codigo,
+        descricao: `Tubete ${tub.tamanho}`,
+        tipo: "INSUMO",
+        unidade: "UN",
+        controlaEstoque: true,
+        tubeteId: tub.id,
+        ativo: true,
+      },
+    });
+  }
+
+  await prisma.produto.upsert({
+    where: { empresaId_codigo: { empresaId: empresa.id, codigo: "CAIXA" } },
+    update: { descricao: "Caixa para embalagem", tipo: "INSUMO" },
+    create: {
+      empresaId: empresa.id,
+      codigo: "CAIXA",
+      descricao: "Caixa para embalagem",
+      tipo: "INSUMO",
+      unidade: "UN",
+      controlaEstoque: true,
+      ativo: true,
     },
   });
 
@@ -199,11 +573,19 @@ async function main() {
       entityId: "seed",
       action: "SEED",
       userId: admin.id,
-      newValue: { papeis: papeis.length, facas: facas.length },
+      newValue: {
+        empresaId: empresa.id,
+        empresaCnpj: empresa.cnpj,
+        papeis: papeis.length,
+        facas: facas.length,
+        produtos: await prisma.produto.count({ where: { empresaId: empresa.id } }),
+        parceiros: await prisma.parceiro.count(),
+      },
     },
   });
 
-  console.log("Seed OK — admin@flexo.local / Admin@123");
+  console.log("Seed OK — empresa raiz", empresa.nomeFantasia, empresa.cnpj);
+  console.log("Login: admin@flexo.local / Admin@123");
 }
 
 main()

@@ -28,6 +28,14 @@ type Faca = {
   ativo: boolean;
 };
 
+type PartnerOpt = {
+  id: string;
+  nome: string;
+  documentoFormatado: string;
+  codigo: string | null;
+  comissaoPadraoPct: number | null;
+};
+
 type QuoteResult = {
   valorMatrizBruto: number;
   alerts: string[];
@@ -62,50 +70,99 @@ type QuoteResult = {
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+type WizardForm = {
+  clienteParceiroId: string;
+  clienteNome: string;
+  vendedorParceiroId: string;
+  vendedorNome: string;
+  observacoes: string;
+  medida: string;
+  larguraPapel: number;
+  puxada: number;
+  cores: number | "4V";
+  papel: string;
+  acabamento: string;
+  qtdeModelos: number;
+  qtdeColunas: number;
+  etiqPorRolo: number;
+  tubete: string;
+  z: number | null;
+  formatoFaca: string;
+  repeticao: number;
+  maquinaRoda: string;
+  maquinaGrupo: string;
+  impostoPct: number;
+  matriz: boolean;
+  colunaRebobinacao: number;
+  rpm: number;
+  comissaoPct: number;
+  faixas: Array<{ quantidade: number; tipoParada: string }>;
+};
+
+const defaultForm = (defaultVendedor: string): WizardForm => ({
+  clienteParceiroId: "",
+  clienteNome: "BANCA DO DINEI",
+  vendedorParceiroId: "",
+  vendedorNome: defaultVendedor,
+  observacoes: "",
+  medida: "5,0X2,5",
+  larguraPapel: 7.5,
+  puxada: 2.72749,
+  cores: 1,
+  papel: "BOPP BRILHO",
+  acabamento: "COLD STAMP + COLA",
+  qtdeModelos: 1,
+  qtdeColunas: 2,
+  etiqPorRolo: 1000,
+  tubete: '3"',
+  z: 43,
+  formatoFaca: "ESPECIAL",
+  repeticao: 5,
+  maquinaRoda: "MODULAR",
+  maquinaGrupo: "MODULAR",
+  impostoPct: 16,
+  matriz: true,
+  colunaRebobinacao: 1,
+  rpm: 1300,
+  comissaoPct: 5,
+  faixas: [
+    { quantidade: 10000, tipoParada: "SEM PARADA" },
+    { quantidade: 20000, tipoParada: "SEM PARADA" },
+    { quantidade: 40000, tipoParada: "SEM PARADA" },
+    { quantidade: 60000, tipoParada: "SEM PARADA" },
+  ],
+});
+
 export function QuoteWizard({
   defaultVendedor,
+  mode = "create",
+  orcamentoId,
+  initialForm,
+  initialResult,
 }: {
   defaultVendedor: string;
+  mode?: "create" | "edit";
+  orcamentoId?: string;
+  initialForm?: Partial<WizardForm>;
+  initialResult?: QuoteResult | null;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(mode === "edit" ? 6 : 1);
   const [catalogs, setCatalogs] = useState<Catalogs | null>(null);
+  const [clientes, setClientes] = useState<PartnerOpt[]>([]);
+  const [vendedores, setVendedores] = useState<PartnerOpt[]>([]);
   const [facas, setFacas] = useState<Faca[]>([]);
-  const [facaQ, setFacaQ] = useState("5,0X2,5");
+  const [facaQ, setFacaQ] = useState(initialForm?.medida || "5,0X2,5");
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<QuoteResult | null>(null);
+  const [result, setResult] = useState<QuoteResult | null>(initialResult ?? null);
   const [saving, setSaving] = useState(false);
 
-  const [form, setForm] = useState({
-    clienteNome: "BANCA DO DINEI",
-    vendedorNome: defaultVendedor,
-    observacoes: "",
-    medida: "5,0X2,5",
-    larguraPapel: 7.5,
-    puxada: 2.72749,
-    cores: 1 as number | "4V",
-    papel: "BOPP BRILHO",
-    acabamento: "COLD STAMP + COLA",
-    qtdeModelos: 1,
-    qtdeColunas: 2,
-    etiqPorRolo: 1000,
-    tubete: '3"',
-    z: 43 as number | null,
-    formatoFaca: "ESPECIAL",
-    repeticao: 5,
-    maquinaRoda: "MODULAR",
-    maquinaGrupo: "MODULAR",
-    impostoPct: 16,
-    matriz: true,
-    colunaRebobinacao: 1,
-    rpm: 1300,
-    comissaoPct: 5,
-    faixas: [
-      { quantidade: 10000, tipoParada: "SEM PARADA" },
-      { quantidade: 20000, tipoParada: "SEM PARADA" },
-      { quantidade: 40000, tipoParada: "SEM PARADA" },
-      { quantidade: 60000, tipoParada: "SEM PARADA" },
-    ],
+  const [form, setForm] = useState<WizardForm>({
+    ...defaultForm(defaultVendedor),
+    ...initialForm,
+    faixas: initialForm?.faixas?.length
+      ? initialForm.faixas
+      : defaultForm(defaultVendedor).faixas,
   });
 
   useEffect(() => {
@@ -113,6 +170,38 @@ export function QuoteWizard({
       .then((r) => r.json())
       .then(setCatalogs)
       .catch(() => setError("Falha ao carregar catálogos"));
+
+    Promise.all([
+      fetch("/api/parceiros?tipo=CLIENTE").then((r) => r.json()),
+      fetch("/api/parceiros?tipo=VENDEDOR").then((r) => r.json()),
+    ])
+      .then(([cli, ven]) => {
+        const clientesList = (cli.items || []) as PartnerOpt[];
+        const vendedoresList = (ven.items || []) as PartnerOpt[];
+        setClientes(clientesList);
+        setVendedores(vendedoresList);
+
+        setForm((f) => {
+          const matchCliente =
+            clientesList.find((c) => c.nome.toUpperCase() === f.clienteNome.toUpperCase()) ||
+            null;
+          const matchVendedor =
+            vendedoresList.find((v) => v.nome.toUpperCase() === f.vendedorNome.toUpperCase()) ||
+            null;
+          return {
+            ...f,
+            clienteParceiroId: matchCliente?.id || f.clienteParceiroId,
+            clienteNome: matchCliente?.nome || f.clienteNome,
+            vendedorParceiroId: matchVendedor?.id || f.vendedorParceiroId,
+            vendedorNome: matchVendedor?.nome || f.vendedorNome,
+            comissaoPct:
+              matchVendedor?.comissaoPadraoPct != null
+                ? matchVendedor.comissaoPadraoPct
+                : f.comissaoPct,
+          };
+        });
+      })
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -127,6 +216,35 @@ export function QuoteWizard({
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function selectCliente(id: string) {
+    if (!id) {
+      setForm((f) => ({ ...f, clienteParceiroId: "", clienteNome: "" }));
+      return;
+    }
+    const c = clientes.find((x) => x.id === id);
+    if (!c) return;
+    setForm((f) => ({
+      ...f,
+      clienteParceiroId: c.id,
+      clienteNome: c.nome,
+    }));
+  }
+
+  function selectVendedor(id: string) {
+    if (!id) {
+      setForm((f) => ({ ...f, vendedorParceiroId: "", vendedorNome: "" }));
+      return;
+    }
+    const v = vendedores.find((x) => x.id === id);
+    if (!v) return;
+    setForm((f) => ({
+      ...f,
+      vendedorParceiroId: v.id,
+      vendedorNome: v.nome,
+      comissaoPct: v.comissaoPadraoPct != null ? v.comissaoPadraoPct : f.comissaoPct,
+    }));
   }
 
   function selectFaca(f: Faca) {
@@ -151,7 +269,9 @@ export function QuoteWizard({
   const payload = useMemo(
     () => ({
       clienteNome: form.clienteNome,
+      clienteParceiroId: form.clienteParceiroId || null,
       vendedorNome: form.vendedorNome,
+      vendedorParceiroId: form.vendedorParceiroId || null,
       observacoes: form.observacoes,
       medida: form.medida,
       larguraPapel: form.larguraPapel,
@@ -197,8 +317,12 @@ export function QuoteWizard({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/orcamentos", {
-        method: "POST",
+      const url =
+        mode === "edit" && orcamentoId
+          ? `/api/orcamentos/${orcamentoId}`
+          : "/api/orcamentos";
+      const res = await fetch(url, {
+        method: mode === "edit" ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -208,6 +332,7 @@ export function QuoteWizard({
         return;
       }
       router.push(`/orcamentos/${data.id}`);
+      router.refresh();
     } finally {
       setSaving(false);
     }
@@ -237,12 +362,47 @@ export function QuoteWizard({
       {step === 1 && (
         <section className="card-panel grid-2">
           <label>
-            Cliente
-            <input value={form.clienteNome} onChange={(e) => set("clienteNome", e.target.value)} />
+            Cliente (cadastro)
+            <select value={form.clienteParceiroId} onChange={(e) => selectCliente(e.target.value)}>
+              <option value="">— texto livre abaixo —</option>
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                  {c.documentoFormatado ? ` · ${c.documentoFormatado}` : ""}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
-            Vendedor
-            <input value={form.vendedorNome} onChange={(e) => set("vendedorNome", e.target.value)} />
+            Vendedor (cadastro)
+            <select value={form.vendedorParceiroId} onChange={(e) => selectVendedor(e.target.value)}>
+              <option value="">— texto livre abaixo —</option>
+              {vendedores.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Nome do cliente *
+            <input
+              value={form.clienteNome}
+              onChange={(e) => {
+                set("clienteNome", e.target.value);
+                set("clienteParceiroId", "");
+              }}
+            />
+          </label>
+          <label>
+            Nome do vendedor *
+            <input
+              value={form.vendedorNome}
+              onChange={(e) => {
+                set("vendedorNome", e.target.value);
+                set("vendedorParceiroId", "");
+              }}
+            />
           </label>
           <label style={{ gridColumn: "1 / -1" }}>
             Observações internas
@@ -618,7 +778,11 @@ export function QuoteWizard({
                   Breakdown
                 </button>
                 <button type="button" onClick={salvar} disabled={saving}>
-                  {saving ? "Salvando…" : "Salvar rascunho"}
+                  {saving
+                    ? "Salvando…"
+                    : mode === "edit"
+                      ? "Salvar alterações"
+                      : "Salvar rascunho"}
                 </button>
               </>
             )}

@@ -1,0 +1,21 @@
+/** Bridge Focus NFe — reexporta o pacote de integração. */
+export {
+  FOCUS_DEFAULTS,
+  emitirNfe,
+  emitirNfseNacional,
+  consultarNfe,
+  consultarNfseNacional,
+  cancelarNfe,
+  cancelarNfseNacional,
+  emitirCartaCorrecaoNfe,
+  enviarNfeEmail,
+  inutilizarNumeracaoNfe,
+  reenviarHookNfe,
+  reenviarHookNfseNacional,
+  consultarNfeRecebida,
+  type FocusAmbiente,
+  type FocusClientConfig,
+  type FocusEmitResult,
+  type FocusNfeRequest,
+  type FocusNfseNacionalRequest,
+} from "@reta/focus-nfe";

@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: reta-erp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: orcamento
+      POSTGRES_PASSWORD: orcamento_dev_change_me
+      POSTGRES_DB: orcamento
+    ports:
+      - "5434:5432"
+    volumes:
+      - reta_erp_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orcamento -d orcamento"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - reta_erp_net
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reta-erp-web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://orcamento:orcamento_dev_change_me@db:5432/orcamento?schema=public
+      AUTH_SECRET: local-dev-auth-secret-change-me-32chars
+      ADMIN_PASSWORD: Admin@123
+      PORT: "3848"
+      HOSTNAME: "0.0.0.0"
+      NODE_ENV: production
+    ports:
+      - "3848:3848"
+    networks:
+      - reta_erp_net
+
+volumes:
+  reta_erp_pg:
+
+networks:
+  reta_erp_net:
+    driver: bridge

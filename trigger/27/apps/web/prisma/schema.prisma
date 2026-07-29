@@ -7,19 +7,200 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Papel de autenticação no sistema (controle de acesso).
 enum Role {
   ADMIN
   VENDEDOR
   ORCAMENTISTA
+  PCP
+  COMPRAS
+  FINANCEIRO
+  EXPEDICAO
 }
 
 enum OrcamentoStatus {
   RASCUNHO
   ENVIADO
   APROVADO
+  REPROVADO
+  /// Legado — tratado como REPROVADO na UI/regras.
   PERDIDO
 }
 
+/// Pessoa física ou jurídica do parceiro comercial.
+enum TipoPessoa {
+  PF
+  PJ
+}
+
+/// Natureza comercial do parceiro. Um mesmo registro pode acumular vários tipos
+/// (ex.: cliente + fornecedor, vendedor + usuário do sistema).
+enum TipoParceiro {
+  CLIENTE
+  FORNECEDOR
+  VENDEDOR
+  USUARIO
+}
+
+/// Ambiente fiscal da empresa emitente (homologação ≈ teste; produção = real).
+enum AmbienteFiscal {
+  HOMOLOGACAO
+  PRODUCAO
+}
+
+enum RegimeTributario {
+  SIMPLES_NACIONAL
+  SIMPLES_EXCESSO
+  LUCRO_PRESUMIDO
+  LUCRO_REAL
+  MEI
+  OUTRO
+}
+
+/// Tipo de certificado digital ICP-Brasil.
+enum TipoCertificado {
+  A1
+  A3
+}
+
+enum FinalidadeCertificado {
+  NFSE
+  NFE
+  CTE
+  GERAL
+}
+
+enum StatusCertificado {
+  ATIVO
+  VENCIDO
+  REVOGADO
+  PENDENTE
+}
+
+/// Classificação CNAE da empresa (RFB).
+enum TipoCnae {
+  PRINCIPAL
+  SECUNDARIO
+}
+
+/// Raiz do sistema: cadastro único da empresa emitente (matriz/filial).
+/// Em fase 1 opera como single-tenant; o modelo já admite filiais (parentId).
+model Empresa {
+  id                     String           @id @default(cuid())
+  codigo                 String?          @unique
+  razaoSocial            String
+  nomeFantasia           String
+  cnpj                   String           @unique
+  inscricaoEstadual      String?
+  inscricaoMunicipal     String?
+  /// Denormalizado do CNAE PRINCIPAL (só dígitos) — atalho para PDF/relatórios.
+  cnaePrincipal          String?
+  cnaePrincipalDescricao String?
+  regimeTributario       RegimeTributario  @default(SIMPLES_NACIONAL)
+  email                  String?
+  telefone               String?
+  celular                String?
+  website                String?
+  cep                    String?
+  logradouro             String?
+  numero                 String?
+  complemento            String?
+  bairro                 String?
+  cidade                 String?
+  uf                     String?
+  codigoMunicipioIbge    String?
+  logoUrl                String?
+  /// Ambiente fiscal efetivo (teste pode simular PRODUCAO sem emitir de fato).
+  ambienteFiscal         AmbienteFiscal   @default(HOMOLOGACAO)
+  /// Quando true, UI/APIs tratam como se fosse produção (sem side-effects fiscais reais).
+  simularProducao        Boolean          @default(true)
+  isMatriz               Boolean          @default(true)
+  parentId               String?
+  ativo                  Boolean          @default(true)
+  observacoes            String?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  parent       Empresa?             @relation("EmpresaFiliais", fields: [parentId], references: [id])
+  filiais      Empresa[]            @relation("EmpresaFiliais")
+  cnaes       EmpresaCnae[]
+  certificados EmpresaCertificado[]
+  users          User[]
+  parceiros      Parceiro[]
+  orcamentos     Orcamento[]
+  parametros     ParametroSistema[]
+  produtos       Produto[]
+  depositos      Deposito[]
+  pedidosVenda   PedidoVenda[]
+  pedidosCompra  PedidoCompra[]
+  integracoes    EmpresaIntegracao[]
+  docsEntrada    DocumentoFiscalEntrada[]
+  docsSaida      DocumentoFiscalSaida[]
+
+  @@index([ativo])
+  @@index([nomeFantasia])
+  @@index([isMatriz])
+}
+
+/// CNAEs da empresa (1 principal + N secundários). Fonte de verdade fiscal.
+model EmpresaCnae {
+  id          String   @id @default(cuid())
+  empresaId   String
+  /// Código CNAE só dígitos (7).
+  codigo      String
+  descricao   String?
+  tipo        TipoCnae
+  /// Ordem de exibição (0 = principal).
+  ordem       Int      @default(0)
+  ativo       Boolean  @default(true)
+  /// Origem: brasilapi | minhareceita | manual
+  fonte       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, tipo])
+  @@index([codigo])
+}
+
+/// Certificado digital vinculado à empresa (metadados + arquivo opcional cifrado).
+/// Em ambiente de teste o arquivo pode ficar ausente (status PENDENTE) para simular o fluxo.
+model EmpresaCertificado {
+  id                 String               @id @default(cuid())
+  empresaId          String
+  apelido            String
+  tipo               TipoCertificado      @default(A1)
+  finalidade         FinalidadeCertificado @default(GERAL)
+  status             StatusCertificado    @default(PENDENTE)
+  subjectCn          String?
+  serialNumber       String?
+  emissor            String?
+  validadeInicio     DateTime?
+  validadeFim        DateTime?
+  arquivoNome        String?
+  /// SHA-256 do conteúdo (quando houver upload).
+  arquivoFingerprint String?
+  /// Conteúdo .pfx/.p12 cifrado (AES-GCM); null = só metadados / simulação.
+  arquivoCifrado     Bytes?
+  /// Senha do PFX cifrada; nunca em texto puro.
+  senhaCifrada       Bytes?
+  ativo              Boolean              @default(true)
+  observacoes        String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId, ativo])
+  @@index([finalidade])
+  @@index([validadeFim])
+  @@unique([empresaId, apelido])
+}
+
+/// Credenciais de acesso. Isoladas do cadastro comercial por segurança.
+/// Quando o parceiro tem tipo USUARIO, liga-se 1:1 via parceiroId.
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -27,26 +208,79 @@ model User {
   passwordHash String
   role         Role     @default(VENDEDOR)
   active       Boolean  @default(true)
+  /// Escopo na empresa raiz (single-tenant hoje; multi-tenant pronto).
+  empresaId    String?
+  parceiroId   String?  @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  orcamentos   Orcamento[] @relation("CreatedBy")
-  auditLogs    AuditLog[]
+  empresa              Empresa?    @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  parceiro             Parceiro?   @relation(fields: [parceiroId], references: [id], onDelete: SetNull)
+  orcamentos           Orcamento[] @relation("CreatedBy")
+  orcamentosDecididos  Orcamento[] @relation("OrcamentoDecididoPor")
+  auditLogs            AuditLog[]
+
+  @@index([empresaId])
 }
 
-model Cliente {
-  id        String   @id @default(cuid())
-  nome      String
-  documento String?
-  email     String?
-  telefone  String?
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+/// Entidade mestre de parceiros (Party Pattern / Business Partner).
+/// Unifica clientes, fornecedores, vendedores e usuários do sistema.
+model Parceiro {
+  id          String     @id @default(cuid())
+  empresaId   String?
+  codigo      String?    @unique
+  tipoPessoa  TipoPessoa @default(PJ)
+  nome        String
+  razaoSocial String?
+  documento   String?
+  email       String?
+  telefone    String?
+  celular     String?
+  website     String?
+  cep         String?
+  logradouro  String?
+  numero      String?
+  complemento String?
+  bairro      String?
+  cidade      String?
+  uf          String?
+  observacoes String?
+  ativo       Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  orcamentos Orcamento[]
+  empresa                Empresa?      @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  tipos                  ParceiroTipo[]
+  user                   User?
+  orcamentosComoCliente  Orcamento[] @relation("OrcamentoCliente")
+  orcamentosComoVendedor Orcamento[] @relation("OrcamentoVendedor")
+  pedidosComoCliente     PedidoVenda[] @relation("PedidoCliente")
+  pedidosComoVendedor    PedidoVenda[] @relation("PedidoVendedor")
+  pedidosCompra          PedidoCompra[] @relation("PedidoCompraFornecedor")
+  produtosFornecedor     ProdutoFornecedor[]
 
+  @@index([empresaId])
   @@index([nome])
+  @@index([documento])
+  @@index([ativo])
+  @@index([cidade, uf])
+}
+
+/// Papéis comerciais atribuídos ao parceiro (N:N tipado).
+model ParceiroTipo {
+  id                String       @id @default(cuid())
+  parceiroId        String
+  tipo              TipoParceiro
+  /// Comissão padrão sugerida no orçamento (apenas VENDEDOR).
+  comissaoPadraoPct Decimal?     @db.Decimal(5, 2)
+  ativo             Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  parceiro Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@unique([parceiroId, tipo])
+  @@index([tipo])
 }
 
 model Papel {
@@ -56,6 +290,8 @@ model Papel {
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  produtos Produto[] @relation("ProdutoPapel")
 }
 
 model Acabamento {
@@ -66,6 +302,8 @@ model Acabamento {
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  produtos Produto[] @relation("ProdutoAcabamento")
 }
 
 model Tubete {
@@ -76,21 +314,23 @@ model Tubete {
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  produtos Produto[] @relation("ProdutoTubete")
 }
 
 model HoraParada {
-  id      String  @id @default(cuid())
-  tipo    String  @unique
-  tempoH  Decimal @db.Decimal(12, 6)
+  id       String  @id @default(cuid())
+  tipo     String  @unique
+  tempoH   Decimal @db.Decimal(12, 6)
   tempoMin Int?
-  ativo   Boolean @default(true)
+  ativo    Boolean @default(true)
 }
 
 model Maquina {
-  id     String  @id @default(cuid())
-  nome   String  @unique
-  grupo  String
-  ativo  Boolean @default(true)
+  id    String  @id @default(cuid())
+  nome  String  @unique
+  grupo String
+  ativo Boolean @default(true)
 }
 
 model HoraMaquinaTarifa {
@@ -103,10 +343,10 @@ model HoraMaquinaTarifa {
 }
 
 model PerdaPapel {
-  id      String  @id @default(cuid())
-  cores   String  @unique
-  m2Fixo  Decimal? @db.Decimal(12, 4)
-  fator   Decimal? @db.Decimal(12, 4)
+  id     String   @id @default(cuid())
+  cores  String   @unique
+  m2Fixo Decimal? @db.Decimal(12, 4)
+  fator  Decimal? @db.Decimal(12, 4)
 }
 
 model CaixaLookup {
@@ -143,37 +383,60 @@ model Faca {
 }
 
 model ParametroSistema {
-  id    String @id @default(cuid())
-  chave String @unique
-  valor Json
+  id        String  @id @default(cuid())
+  empresaId String?
+  chave     String  @unique
+  valor     Json
+
+  empresa Empresa? @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+
+  @@index([empresaId])
 }
 
 model Orcamento {
-  id              String          @id @default(cuid())
-  numero          Int             @default(autoincrement())
-  versao          Int             @default(1)
-  status          OrcamentoStatus @default(RASCUNHO)
-  data            DateTime        @default(now())
-  clienteId       String?
-  clienteNome     String
-  vendedorNome    String
-  observacoes     String?
-  inputSnapshot   Json
-  resultSnapshot  Json?
-  createdById     String
-  parentId        String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                 String          @id @default(cuid())
+  numero             Int             @default(autoincrement())
+  versao             Int             @default(1)
+  status             OrcamentoStatus @default(RASCUNHO)
+  data               DateTime        @default(now())
+  empresaId          String?
+  clienteParceiroId  String?
+  vendedorParceiroId String?
+  /// Snapshot imutável do nome na versão do orçamento.
+  clienteNome        String
+  vendedorNome       String
+  observacoes        String?
+  inputSnapshot      Json
+  resultSnapshot     Json?
+  /// Quando enviado para aprovação comercial (RASCUNHO → ENVIADO).
+  enviadoEm          DateTime?
+  /// Momento da decisão final (aprovação ou reprovação).
+  decididoEm         DateTime?
+  decididoPorId      String?
+  /// Motivo obrigatório na reprovação; opcional na aprovação.
+  motivoDecisao      String?
+  createdById        String
+  parentId           String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
-  cliente   Cliente?   @relation(fields: [clienteId], references: [id])
-  createdBy User       @relation("CreatedBy", fields: [createdById], references: [id])
-  parent    Orcamento? @relation("Versions", fields: [parentId], references: [id])
-  versions  Orcamento[] @relation("Versions")
+  empresa          Empresa?    @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  clienteParceiro  Parceiro?   @relation("OrcamentoCliente", fields: [clienteParceiroId], references: [id])
+  vendedorParceiro Parceiro?   @relation("OrcamentoVendedor", fields: [vendedorParceiroId], references: [id])
+  createdBy        User        @relation("CreatedBy", fields: [createdById], references: [id])
+  decididoPor      User?       @relation("OrcamentoDecididoPor", fields: [decididoPorId], references: [id], onDelete: SetNull)
+  parent           Orcamento?  @relation("Versions", fields: [parentId], references: [id])
+  versions         Orcamento[] @relation("Versions")
+  pedidoVenda      PedidoVenda?
 
+  @@index([empresaId])
   @@index([status])
   @@index([clienteNome])
   @@index([vendedorNome])
+  @@index([clienteParceiroId])
+  @@index([vendedorParceiroId])
   @@index([createdAt])
+  @@index([decididoEm])
 }
 
 model AuditLog {
@@ -191,4 +454,627 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+
+// ─── Ciclo operacional (ver docs/CICLO_OPERACIONAL.md) ───────────────────────
+
+enum TipoProduto {
+  INSUMO
+  ACABADO
+  SERVICO
+  INTERMEDIARIO
+}
+
+enum DocumentoSaidaPadrao {
+  NFSE
+  NFE
+}
+
+enum PedidoVendaStatus {
+  RASCUNHO
+  CONFIRMADO
+  EM_PRODUCAO
+  FATURADO
+  ENTREGUE
+  LIQUIDADO
+  CANCELADO
+}
+
+enum OrdemServicoStatus {
+  PLANEJADA
+  AGUARDANDO_MATERIAL
+  LIBERADA
+  EM_PRODUCAO
+  CONCLUIDA
+  CANCELADA
+  RETRABALHO
+}
+
+enum NecessidadeLinhaStatus {
+  OK
+  PARCIAL
+  FALTA
+  SEM_PRODUTO
+  ATENDIDA
+}
+
+enum PedidoCompraStatus {
+  RASCUNHO
+  ENVIADO
+  PARCIAL
+  RECEBIDO
+  CANCELADO
+}
+
+enum NecessidadeCompraStatus {
+  ABERTA
+  EM_COMPRA
+  ATENDIDA
+  CANCELADA
+}
+
+enum DocEntradaStatus {
+  RECEBIDO_XML
+  VALIDANDO
+  DIVERGENTE
+  CONFERIDO
+  ESTOQUE_LANCADO
+  CANCELADO
+}
+
+enum DocEntradaItemStatus {
+  PENDENTE_MATCH
+  MATCHED
+  DIVERGENTE
+  IGNORADO
+}
+
+enum DocSaidaTipo {
+  NFSE
+  NFE
+}
+
+enum DocSaidaStatus {
+  RASCUNHO
+  ENVIADO
+  AUTORIZADO
+  ERRO
+  CANCELADO
+}
+
+enum TituloReceberStatus {
+  ABERTO
+  PAGO
+  VENCIDO
+  CANCELADO
+}
+
+enum CobrancaInterStatus {
+  PENDENTE
+  EMITIDA
+  PAGA
+  CANCELADA
+  ERRO
+}
+
+enum EstoqueMovimentoTipo {
+  ENTRADA_COMPRA
+  RESERVA
+  LIBERA_RESERVA
+  BAIXA_PRODUCAO
+  ENTRADA_PRODUCAO
+  SAIDA_VENDA
+  AJUSTE_INVENTARIO
+  ESTORNO
+}
+
+enum EstoqueReservaStatus {
+  ATIVA
+  CONSUMIDA
+  LIBERADA
+}
+
+enum IntegracaoProvider {
+  FOCUS_NFE
+  INTER
+}
+
+enum IntegracaoModo {
+  SANDBOX
+  PRODUCAO
+  SIMULADO
+}
+
+/// Credenciais de integração (Focus / Inter) cifradas por empresa.
+model EmpresaIntegracao {
+  id              String             @id @default(cuid())
+  empresaId       String
+  provider        IntegracaoProvider
+  modo            IntegracaoModo     @default(SIMULADO)
+  /// Token / clientId / etc. em JSON cifrado (AES-GCM).
+  credenciaisCifradas Bytes?
+  baseUrlHomolog  String?
+  baseUrlProd     String?
+  webhookSecretCifrado Bytes?
+  ativo           Boolean            @default(true)
+  observacoes     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, provider])
+  @@index([empresaId, ativo])
+}
+
+model Produto {
+  id                    String               @id @default(cuid())
+  empresaId             String
+  codigo                String
+  sku                   String?
+  descricao             String
+  descricaoFiscal       String?
+  tipo                  TipoProduto          @default(INSUMO)
+  unidade               String               @default("UN")
+  unidadeTributavel     String?
+  fatorTributavel       Decimal?             @db.Decimal(14, 6)
+  ncm                   String?
+  cest                  String?
+  origem                Int                  @default(0)
+  cfopCompraPadrao      String?
+  cfopVendaPadrao       String?
+  /// NFS-e: código tributação nacional (ex. 130501).
+  cTribNac              String?
+  cNbs                  String?
+  documentoSaidaPadrao  DocumentoSaidaPadrao @default(NFSE)
+  controlaEstoque       Boolean              @default(true)
+  estoqueMinimo         Decimal              @default(0) @db.Decimal(14, 4)
+  estoqueMaximo         Decimal?             @db.Decimal(14, 4)
+  permiteSaldoNegativo  Boolean              @default(false)
+  custoMedio            Decimal              @default(0) @db.Decimal(14, 6)
+  ultimoCusto           Decimal?             @db.Decimal(14, 6)
+  papelId               String?
+  acabamentoId          String?
+  tubeteId              String?
+  ativo                 Boolean              @default(true)
+  observacoes           String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  empresa      Empresa            @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  papel        Papel?             @relation("ProdutoPapel", fields: [papelId], references: [id], onDelete: SetNull)
+  acabamento   Acabamento?        @relation("ProdutoAcabamento", fields: [acabamentoId], references: [id], onDelete: SetNull)
+  tubete       Tubete?            @relation("ProdutoTubete", fields: [tubeteId], references: [id], onDelete: SetNull)
+  fornecedores ProdutoFornecedor[]
+  saldos       EstoqueSaldo[]
+  movimentos   EstoqueMovimento[]
+  reservas     EstoqueReserva[]
+  pedidoItens  PedidoItem[]
+  necessidades OsNecessidade[]
+  compraItens  PedidoCompraItem[]
+  docEntradaItens DocEntradaItem[]
+  necessidadeCompras NecessidadeCompra[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, tipo])
+  @@index([empresaId, ativo])
+  @@index([ncm])
+  @@index([papelId])
+  @@index([acabamentoId])
+  @@index([tubeteId])
+}
+
+model ProdutoFornecedor {
+  id                 String   @id @default(cuid())
+  produtoId          String
+  fornecedorId       String?
+  codigoFornecedor   String
+  descricaoFornecedor String?
+  ean                String?
+  ativo              Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  produto    Produto   @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  fornecedor Parceiro? @relation(fields: [fornecedorId], references: [id], onDelete: SetNull)
+
+  @@unique([produtoId, codigoFornecedor])
+  @@index([codigoFornecedor])
+  @@index([ean])
+  @@index([fornecedorId])
+}
+
+model Deposito {
+  id        String   @id @default(cuid())
+  empresaId String
+  codigo    String
+  nome      String
+  padrao    Boolean  @default(false)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  empresa    Empresa            @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  saldos     EstoqueSaldo[]
+  movimentos EstoqueMovimento[]
+  reservas   EstoqueReserva[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, padrao])
+}
+
+model EstoqueSaldo {
+  id          String  @id @default(cuid())
+  empresaId   String
+  depositoId  String
+  produtoId   String
+  quantidade  Decimal @default(0) @db.Decimal(14, 4)
+  reservado   Decimal @default(0) @db.Decimal(14, 4)
+  custoMedio  Decimal @default(0) @db.Decimal(14, 6)
+  updatedAt   DateTime @updatedAt
+
+  deposito Deposito @relation(fields: [depositoId], references: [id], onDelete: Cascade)
+  produto  Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@unique([depositoId, produtoId])
+  @@index([empresaId, produtoId])
+}
+
+model EstoqueMovimento {
+  id            String              @id @default(cuid())
+  empresaId     String
+  depositoId    String
+  produtoId     String
+  tipo          EstoqueMovimentoTipo
+  quantidade    Decimal             @db.Decimal(14, 4)
+  custoUnitario Decimal?            @db.Decimal(14, 6)
+  saldoApos     Decimal?            @db.Decimal(14, 4)
+  documentoTipo String?
+  documentoId   String?
+  observacao    String?
+  userId        String?
+  createdAt     DateTime            @default(now())
+
+  deposito Deposito @relation(fields: [depositoId], references: [id], onDelete: Cascade)
+  produto  Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId, produtoId, createdAt])
+  @@index([documentoTipo, documentoId])
+  @@index([tipo])
+}
+
+model EstoqueReserva {
+  id            String              @id @default(cuid())
+  empresaId     String
+  depositoId    String
+  produtoId     String
+  quantidade    Decimal             @db.Decimal(14, 4)
+  status        EstoqueReservaStatus @default(ATIVA)
+  pedidoVendaId String?
+  ordemServicoId String?
+  osNecessidadeId String?           @unique
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  deposito     Deposito       @relation(fields: [depositoId], references: [id], onDelete: Cascade)
+  produto      Produto        @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  pedidoVenda  PedidoVenda?   @relation(fields: [pedidoVendaId], references: [id], onDelete: SetNull)
+  ordemServico OrdemServico?  @relation(fields: [ordemServicoId], references: [id], onDelete: SetNull)
+  osNecessidade OsNecessidade? @relation(fields: [osNecessidadeId], references: [id], onDelete: SetNull)
+
+  @@index([empresaId, status])
+  @@index([pedidoVendaId])
+  @@index([ordemServicoId])
+}
+
+model PedidoVenda {
+  id                 String            @id @default(cuid())
+  empresaId          String
+  numero             Int               @default(autoincrement())
+  orcamentoId        String            @unique
+  status             PedidoVendaStatus @default(RASCUNHO)
+  clienteParceiroId  String?
+  vendedorParceiroId String?
+  clienteNome        String
+  vendedorNome       String
+  faixaIndex         Int               @default(0)
+  quantidade         Decimal           @db.Decimal(14, 4)
+  valorTotal         Decimal           @db.Decimal(14, 2)
+  condicaoPagamento  String?
+  prazoEntregaDias   Int?
+  dataPrevista       DateTime?
+  inputSnapshot      Json
+  comercialSnapshot  Json?
+  observacoes        String?
+  confirmadoEm       DateTime?
+  faturadoEm         DateTime?
+  entregueEm         DateTime?
+  liquidadoEm        DateTime?
+  canceladoEm        DateTime?
+  createdById        String
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  empresa          Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  orcamento        Orcamento   @relation(fields: [orcamentoId], references: [id], onDelete: Restrict)
+  clienteParceiro  Parceiro?   @relation("PedidoCliente", fields: [clienteParceiroId], references: [id], onDelete: SetNull)
+  vendedorParceiro Parceiro?   @relation("PedidoVendedor", fields: [vendedorParceiroId], references: [id], onDelete: SetNull)
+  itens            PedidoItem[]
+  ordensServico    OrdemServico[]
+  reservas         EstoqueReserva[]
+  necessidadesCompra NecessidadeCompra[]
+  docsSaida        DocumentoFiscalSaida[]
+  tituloReceber    TituloReceber?
+  entrega          EntregaPedido?
+
+  @@index([empresaId, status])
+  @@index([clienteParceiroId])
+  @@index([createdAt])
+}
+
+model PedidoItem {
+  id                    String  @id @default(cuid())
+  pedidoVendaId         String
+  produtoId             String?
+  descricao             String
+  quantidade            Decimal @db.Decimal(14, 4)
+  unidade               String  @default("UN")
+  valorUnitario         Decimal @db.Decimal(14, 4)
+  valorTotal            Decimal @db.Decimal(14, 2)
+  especificacaoSnapshot Json?
+  ordem                 Int     @default(0)
+
+  pedido  PedidoVenda @relation(fields: [pedidoVendaId], references: [id], onDelete: Cascade)
+  produto Produto?    @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+
+  @@index([pedidoVendaId])
+  @@index([produtoId])
+}
+
+model OrdemServico {
+  id             String             @id @default(cuid())
+  empresaId      String
+  numero         Int                @default(autoincrement())
+  pedidoVendaId  String
+  status         OrdemServicoStatus @default(PLANEJADA)
+  tecnicoSnapshot Json?
+  previstoEm     DateTime?
+  iniciadoEm     DateTime?
+  concluidoEm    DateTime?
+  responsavelId  String?
+  observacoes    String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  pedido       PedidoVenda     @relation(fields: [pedidoVendaId], references: [id], onDelete: Cascade)
+  necessidades OsNecessidade[]
+  reservas     EstoqueReserva[]
+
+  @@index([empresaId, status])
+  @@index([pedidoVendaId])
+}
+
+model OsNecessidade {
+  id              String                 @id @default(cuid())
+  ordemServicoId  String
+  produtoId       String?
+  descricao       String
+  unidade         String                 @default("UN")
+  qtdNecessaria   Decimal                @db.Decimal(14, 4)
+  qtdReservada    Decimal                @default(0) @db.Decimal(14, 4)
+  qtdAtendida     Decimal                @default(0) @db.Decimal(14, 4)
+  status          NecessidadeLinhaStatus @default(FALTA)
+  origemChave     String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  ordemServico OrdemServico    @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  produto      Produto?        @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+  reserva      EstoqueReserva?
+
+  @@index([ordemServicoId])
+  @@index([produtoId])
+  @@index([status])
+}
+
+model NecessidadeCompra {
+  id              String                  @id @default(cuid())
+  empresaId       String
+  pedidoVendaId   String?
+  produtoId       String?
+  descricao       String
+  unidade         String                  @default("UN")
+  quantidade      Decimal                 @db.Decimal(14, 4)
+  status          NecessidadeCompraStatus @default(ABERTA)
+  pedidoCompraId  String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  pedidoVenda  PedidoVenda?  @relation(fields: [pedidoVendaId], references: [id], onDelete: SetNull)
+  produto      Produto?      @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+  pedidoCompra PedidoCompra? @relation(fields: [pedidoCompraId], references: [id], onDelete: SetNull)
+
+  @@index([empresaId, status])
+  @@index([pedidoVendaId])
+  @@index([produtoId])
+}
+
+model PedidoCompra {
+  id            String             @id @default(cuid())
+  empresaId     String
+  numero        Int                @default(autoincrement())
+  fornecedorId  String?
+  fornecedorNome String?
+  status        PedidoCompraStatus @default(RASCUNHO)
+  observacoes   String?
+  enviadoEm     DateTime?
+  recebidoEm    DateTime?
+  createdById   String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  empresa      Empresa             @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  fornecedor   Parceiro?           @relation("PedidoCompraFornecedor", fields: [fornecedorId], references: [id], onDelete: SetNull)
+  itens        PedidoCompraItem[]
+  necessidades NecessidadeCompra[]
+  docsEntrada  DocumentoFiscalEntrada[]
+
+  @@index([empresaId, status])
+  @@index([fornecedorId])
+}
+
+model PedidoCompraItem {
+  id             String  @id @default(cuid())
+  pedidoCompraId String
+  produtoId      String?
+  descricao      String
+  unidade        String  @default("UN")
+  quantidade     Decimal @db.Decimal(14, 4)
+  valorUnitario  Decimal @default(0) @db.Decimal(14, 4)
+  valorTotal     Decimal @default(0) @db.Decimal(14, 2)
+
+  pedido  PedidoCompra @relation(fields: [pedidoCompraId], references: [id], onDelete: Cascade)
+  produto Produto?     @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+
+  @@index([pedidoCompraId])
+}
+
+model DocumentoFiscalEntrada {
+  id              String           @id @default(cuid())
+  empresaId       String
+  chave           String?
+  numero          String?
+  serie           String?
+  emitenteCnpj    String?
+  emitenteNome    String?
+  destinatarioCnpj String?
+  valorTotal      Decimal?         @db.Decimal(14, 2)
+  dataEmissao     DateTime?
+  xmlBruto        String
+  pdfUrl          String?
+  status          DocEntradaStatus @default(RECEBIDO_XML)
+  fonte           String           @default("UPLOAD")
+  pedidoCompraId  String?
+  divergencias    Json?
+  simulado        Boolean          @default(false)
+  lancadoEm       DateTime?
+  createdById     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  empresa      Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedidoCompra PedidoCompra?    @relation(fields: [pedidoCompraId], references: [id], onDelete: SetNull)
+  itens        DocEntradaItem[]
+
+  @@unique([empresaId, chave])
+  @@index([empresaId, status])
+  @@index([pedidoCompraId])
+}
+
+model DocEntradaItem {
+  id            String              @id @default(cuid())
+  documentoId   String
+  numeroItem    Int
+  codigoXml     String?
+  descricao     String
+  ncm           String?
+  cfop          String?
+  unidade       String?
+  quantidade    Decimal             @db.Decimal(14, 4)
+  valorUnitario Decimal             @db.Decimal(14, 6)
+  valorTotal    Decimal             @db.Decimal(14, 2)
+  produtoId     String?
+  status        DocEntradaItemStatus @default(PENDENTE_MATCH)
+
+  documento DocumentoFiscalEntrada @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  produto   Produto?               @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+
+  @@index([documentoId])
+  @@index([produtoId])
+}
+
+model DocumentoFiscalSaida {
+  id            String         @id @default(cuid())
+  empresaId     String
+  pedidoVendaId String
+  tipo          DocSaidaTipo   @default(NFSE)
+  status        DocSaidaStatus @default(RASCUNHO)
+  ambiente      AmbienteFiscal @default(HOMOLOGACAO)
+  refFocus      String?
+  numero        String?
+  serie         String?
+  chave         String?
+  xmlBruto      String?
+  pdfUrl        String?
+  mensagemErro  String?
+  discriminacao String?
+  valorTotal    Decimal        @db.Decimal(14, 2)
+  simulado      Boolean        @default(false)
+  autorizadoEm  DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  empresa     Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedidoVenda PedidoVenda @relation(fields: [pedidoVendaId], references: [id], onDelete: Cascade)
+
+  @@unique([pedidoVendaId, tipo])
+  @@index([empresaId, status])
+  @@index([refFocus])
+}
+
+model TituloReceber {
+  id            String              @id @default(cuid())
+  empresaId     String
+  pedidoVendaId String              @unique
+  valor         Decimal             @db.Decimal(14, 2)
+  vencimento    DateTime
+  status        TituloReceberStatus @default(ABERTO)
+  pagoEm        DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  pedidoVenda PedidoVenda    @relation(fields: [pedidoVendaId], references: [id], onDelete: Cascade)
+  cobranca    CobrancaInter?
+
+  @@index([empresaId, status])
+  @@index([vencimento])
+}
+
+model CobrancaInter {
+  id                String             @id @default(cuid())
+  tituloReceberId   String             @unique
+  codigoSolicitacao String?
+  nossoNumero       String?
+  linhaDigitavel    String?
+  pixCopiaECola     String?
+  pdfUrl            String?
+  status            CobrancaInterStatus @default(PENDENTE)
+  simulado          Boolean            @default(false)
+  mensagemErro      String?
+  pagoEm            DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  titulo TituloReceber @relation(fields: [tituloReceberId], references: [id], onDelete: Cascade)
+
+  @@index([codigoSolicitacao])
+  @@index([status])
+}
+
+model EntregaPedido {
+  id            String    @id @default(cuid())
+  pedidoVendaId String    @unique
+  dataEntrega   DateTime  @default(now())
+  volumes       Int?
+  rolos         Int?
+  caixas        Int?
+  transportadora String?
+  modalidade    String?   @default("CLIENTE_RETIRA")
+  comprovanteUrl String?
+  observacoes   String?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  pedidoVenda PedidoVenda @relation(fields: [pedidoVendaId], references: [id], onDelete: Cascade)
 }

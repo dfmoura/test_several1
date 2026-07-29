@@ -85,6 +85,7 @@ def _permissoes(user: Usuario) -> dict:
         "paginas": {
             "dashboard": True,
             "localidade": True,
+            "cobertura": True,
             "consulta": True,
             "propostas": True,
             "compras": True,

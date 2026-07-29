@@ -4,7 +4,9 @@ set -e
 echo "[entrypoint] Prisma db push (com retry)..."
 cd /app/apps/web
 i=0
-until npx prisma db push --skip-generate; do
+# --accept-data-loss: ambiente local/compose; schema evolui (ex.: Cliente → Parceiro)
+# e o seed recria os dados essenciais.
+until npx prisma db push --skip-generate --accept-data-loss; do
   i=$((i + 1))
   if [ "$i" -gt 30 ]; then
     echo "[entrypoint] Falha ao conectar no banco"

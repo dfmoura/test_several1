@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import {
+  isOrcamentoMutavel,
+  STATUS_CHIP_CLASS,
+  STATUS_LABEL,
+} from "@/lib/orcamento-status";
 
 export default async function ListaOrcamentosPage() {
   const session = await getSession();
@@ -16,8 +21,13 @@ export default async function ListaOrcamentosPage() {
   return (
     <div className="shell">
       <AppHeader name={session.name} role={session.role} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Orçamentos</h1>
+      <div className="toolbar">
+        <div>
+          <h1 style={{ marginBottom: "0.25rem" }}>Orçamentos</h1>
+          <p className="muted" style={{ margin: 0 }}>
+            Pendentes podem ser editados ou excluídos até a aprovação/reprovação.
+          </p>
+        </div>
         <Link className="btn" href="/orcamentos/novo">
           Novo
         </Link>
@@ -31,22 +41,47 @@ export default async function ListaOrcamentosPage() {
               <th>Vendedor</th>
               <th>Status</th>
               <th>Atualizado</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {items.map((o) => (
-              <tr key={o.id}>
-                <td>
-                  <Link href={`/orcamentos/${o.id}`}>
-                    {o.numero}-v{o.versao}
-                  </Link>
+            {items.map((o) => {
+              const mutavel = isOrcamentoMutavel(o.status);
+              return (
+                <tr key={o.id}>
+                  <td>
+                    <Link href={`/orcamentos/${o.id}`}>
+                      {o.numero}-v{o.versao}
+                    </Link>
+                  </td>
+                  <td>{o.clienteNome}</td>
+                  <td>{o.vendedorNome}</td>
+                  <td>
+                    <span className={`chip ${STATUS_CHIP_CLASS[o.status]}`}>
+                      {STATUS_LABEL[o.status]}
+                    </span>
+                  </td>
+                  <td>{new Date(o.updatedAt).toLocaleString("pt-BR")}</td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <Link href={`/orcamentos/${o.id}`}>Abrir</Link>
+                    {mutavel && (
+                      <>
+                        {" · "}
+                        <Link href={`/orcamentos/${o.id}/editar`}>Editar</Link>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={6} className="muted">
+                  Nenhum orçamento ainda.{" "}
+                  <Link href="/orcamentos/novo">Criar o primeiro</Link>
                 </td>
-                <td>{o.clienteNome}</td>
-                <td>{o.vendedorNome}</td>
-                <td>{o.status}</td>
-                <td>{new Date(o.updatedAt).toLocaleString("pt-BR")}</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </section>

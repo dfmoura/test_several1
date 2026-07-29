@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
+import { PageHeader } from "@/components/PageHeader";
 
 type Papel = { id: string; nome: string; precoM2: number; ativo: boolean };
 
-export default function AdminClient({
+export default function AdminPapeisClient({
   name,
   role,
 }: {
@@ -14,6 +15,7 @@ export default function AdminClient({
 }) {
   const [items, setItems] = useState<Papel[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch("/api/admin/papeis");
@@ -27,6 +29,7 @@ export default function AdminClient({
 
   async function save(id: string, precoM2: number) {
     setMsg(null);
+    setError(null);
     const res = await fetch("/api/admin/papeis", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -34,7 +37,7 @@ export default function AdminClient({
     });
     const data = await res.json();
     if (!res.ok) {
-      setMsg(data.error || "Erro");
+      setError(data.error || "Erro ao atualizar preço.");
       return;
     }
     setMsg(`Preço de ${data.nome} atualizado — audit log registrado.`);
@@ -42,12 +45,24 @@ export default function AdminClient({
   }
 
   return (
-    <div className="shell">
-      <AppHeader name={name} role={role} />
-      <h1>Cadastros — Papéis</h1>
-      <p className="muted">Alterações de preço geram audit log (quem, quando, antigo → novo).</p>
-      {msg && <div className="alert">{msg}</div>}
-      <section className="card-panel" style={{ marginTop: "1rem" }}>
+    <AppShell name={name} role={role}>
+      <PageHeader
+        kicker="Cadastros"
+        title="Papéis (materiais)"
+        subtitle="Alterações de preço geram audit log (quem, quando, antigo → novo)."
+        crumbs={[{ href: "/admin", label: "Cadastros" }]}
+      />
+      {error && (
+        <div className="alert" role="alert">
+          {error}
+        </div>
+      )}
+      {msg && (
+        <div className="alert-ok" role="status">
+          {msg}
+        </div>
+      )}
+      <section className="card-panel">
         <table className="table">
           <thead>
             <tr>
@@ -63,7 +78,7 @@ export default function AdminClient({
           </tbody>
         </table>
       </section>
-    </div>
+    </AppShell>
   );
 }
 

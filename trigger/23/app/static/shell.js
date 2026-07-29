@@ -506,6 +506,10 @@ const PAGINAS = {
   },
   coleta: { titulo: "Coleta", sub: "Ambiente único · Compras.gov + Power BI" },
   consulta: { titulo: "Consulta · Processo", sub: "Cruzamento do mesmo processo entre bases" },
+  cobertura: {
+    titulo: "Cobertura · Bases",
+    sub: "O que está em uma base e não na outra · Compras.gov × Power BI",
+  },
   vencedores: { titulo: "CNPJs vencedores", sub: "Resultados 07.3 · enriquecimento Compras.gov + CNPJ público" },
   propostas: { titulo: "Propostas abertas", sub: "Itens com prazo PNCP vigente · análise de preços antes do encerramento" },
   compras: { titulo: "Compras.gov", sub: "Contratações · API Dados Abertos / PNCP" },

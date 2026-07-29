@@ -1,0 +1,81 @@
+/** Parâmetros e helpers do ciclo operacional. */
+
+import { prisma } from "@/lib/db";
+
+export const PARAM_KEYS = {
+  depositoPadrao: "estoque.depositoPadraoCodigo",
+  reservaNaConfirmacao: "mrp.reservaNaConfirmacao",
+  percentualMinimoLiberacaoOs: "mrp.percentualMinimoLiberacaoOs",
+  exigeOsConcluida: "faturamento.exigeOsConcluida",
+  documentoPadrao: "faturamento.documentoPadrao",
+  /** Sempre emitir NF-e (revenda) + NFS-e (serviço) no faturamento de etiquetas. */
+  dualFiscal: "faturamento.dualFiscal",
+  toleranciaQtdPct: "compra.toleranciaQtdPct",
+  toleranciaValorPct: "compra.toleranciaValorPct",
+  liquidacaoExigeEntrega: "pedido.liquidacaoExigeEntrega",
+} as const;
+
+const DEFAULTS: Record<string, unknown> = {
+  [PARAM_KEYS.depositoPadrao]: "PRINCIPAL",
+  [PARAM_KEYS.reservaNaConfirmacao]: true,
+  [PARAM_KEYS.percentualMinimoLiberacaoOs]: 100,
+  [PARAM_KEYS.exigeOsConcluida]: true,
+  /** Padrão do negócio: dual — NF-e revenda + NFS-e serviço. */
+  [PARAM_KEYS.documentoPadrao]: "DUAL",
+  [PARAM_KEYS.dualFiscal]: true,
+  [PARAM_KEYS.toleranciaQtdPct]: 5,
+  [PARAM_KEYS.toleranciaValorPct]: 2,
+  [PARAM_KEYS.liquidacaoExigeEntrega]: false,
+};
+
+export async function getParametro<T>(chave: string, fallback?: T): Promise<T> {
+  const row = await prisma.parametroSistema.findUnique({ where: { chave } });
+  if (row == null) {
+    return (fallback !== undefined ? fallback : DEFAULTS[chave]) as T;
+  }
+  return row.valor as T;
+}
+
+export async function ensureDepositoPadrao(empresaId: string) {
+  const codigo = await getParametro<string>(PARAM_KEYS.depositoPadrao, "PRINCIPAL");
+  const existing = await prisma.deposito.findUnique({
+    where: { empresaId_codigo: { empresaId, codigo } },
+  });
+  if (existing) {
+    if (!existing.padrao) {
+      await prisma.deposito.update({ where: { id: existing.id }, data: { padrao: true } });
+    }
+    return existing;
+  }
+  await prisma.deposito.updateMany({
+    where: { empresaId, padrao: true },
+    data: { padrao: false },
+  });
+  return prisma.deposito.create({
+    data: {
+      empresaId,
+      codigo,
+      nome: "Depósito principal",
+      padrao: true,
+      ativo: true,
+    },
+  });
+}
+
+export function dec(n: unknown): number {
+  if (n == null) return 0;
+  if (typeof n === "number") return n;
+  if (typeof n === "string") return Number(n) || 0;
+  if (typeof n === "object" && n !== null && "toNumber" in n) {
+    return (n as { toNumber: () => number }).toNumber();
+  }
+  return Number(n) || 0;
+}
+
+export function round4(n: number): number {
+  return Math.round(n * 10000) / 10000;
+}
+
+export function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}

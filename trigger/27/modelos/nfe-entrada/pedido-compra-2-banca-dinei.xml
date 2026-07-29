@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NFe de entrada (homologação) — Pedido de Compra #2 (BANCA DO DINEI / OS):
+  - PAPEL-BOPP-BRILHO       102.3 M2
+  - ACAB-COLD-STAMP-COLA    127.8 M2
+  - TUB-3                    60 UN
+  - CAIXA                     5 UN
+  Destinatário = CNPJ Etiquetas UDI (58820046000137)
+  cProd = código interno do produto (matching automático)
+-->
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe31260711222333000181550010000005021260728142" versao="4.00">
+      <ide>
+        <cUF>31</cUF>
+        <cNF>00005012</cNF>
+        <natOp>Venda de mercadoria para industrializacao</natOp>
+        <mod>55</mod>
+        <serie>1</serie>
+        <nNF>5012</nNF>
+        <dhEmi>2026-07-28T14:20:00-03:00</dhEmi>
+        <tpNF>1</tpNF>
+        <idDest>1</idDest>
+        <cMunFG>3170206</cMunFG>
+        <tpImp>1</tpImp>
+        <tpEmis>1</tpEmis>
+        <cDV>2</cDV>
+        <tpAmb>2</tpAmb>
+        <finNFe>1</finNFe>
+        <indFinal>0</indFinal>
+        <indPres>9</indPres>
+        <procEmi>0</procEmi>
+        <verProc>homolog-udi-1.0</verProc>
+      </ide>
+      <emit>
+        <CNPJ>11222333000181</CNPJ>
+        <xNome>INSUMOS GRAFICOS HOMOL LTDA</xNome>
+        <xFant>Insumos Homolog</xFant>
+        <enderEmit>
+          <xLgr>AVENIDA DOS FORNECEDORES</xLgr>
+          <nro>450</nro>
+          <xBairro>DISTRITO INDUSTRIAL</xBairro>
+          <cMun>3170206</cMun>
+          <xMun>Uberlandia</xMun>
+          <UF>MG</UF>
+          <CEP>38400100</CEP>
+          <cPais>1058</cPais>
+          <xPais>Brasil</xPais>
+        </enderEmit>
+        <IE>0623456789012</IE>
+        <CRT>3</CRT>
+      </emit>
+      <dest>
+        <CNPJ>58820046000137</CNPJ>
+        <xNome>ADESIVOS, ETIQUETAS E ROTULOS UDI LTDA</xNome>
+        <enderDest>
+          <xLgr>ALAMEDA SOSTHENES GUIMARAES</xLgr>
+          <nro>65</nro>
+          <xBairro>MORADA DA COLINA</xBairro>
+          <cMun>3170206</cMun>
+          <xMun>Uberlandia</xMun>
+          <UF>MG</UF>
+          <CEP>38411160</CEP>
+          <cPais>1058</cPais>
+          <xPais>Brasil</xPais>
+        </enderDest>
+        <indIEDest>1</indIEDest>
+        <IE>ISENTO</IE>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <cProd>PAPEL-BOPP-BRILHO</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>PAPEL BOPP BRILHO ADESIVO</xProd>
+          <NCM>39199090</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>M2</uCom>
+          <qCom>102.3000</qCom>
+          <vUnCom>3.8000</vUnCom>
+          <vProd>388.74</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>M2</uTrib>
+          <qTrib>102.3000</qTrib>
+          <vUnTrib>3.8000</vUnTrib>
+          <indTot>1</indTot>
+          <xPed>2</xPed>
+          <nItemPed>1</nItemPed>
+        </prod>
+        <imposto>
+          <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>0.00</vBC><pICMS>0.00</pICMS><vICMS>0.00</vICMS></ICMS00></ICMS>
+          <PIS><PISNT><CST>07</CST></PISNT></PIS>
+          <COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS>
+        </imposto>
+      </det>
+      <det nItem="2">
+        <prod>
+          <cProd>ACAB-COLD-STAMP-COLA</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>ACABAMENTO COLD STAMP + COLA</xProd>
+          <NCM>39199090</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>M2</uCom>
+          <qCom>127.8000</qCom>
+          <vUnCom>4.2000</vUnCom>
+          <vProd>536.76</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>M2</uTrib>
+          <qTrib>127.8000</qTrib>
+          <vUnTrib>4.2000</vUnTrib>
+          <indTot>1</indTot>
+          <xPed>2</xPed>
+          <nItemPed>2</nItemPed>
+        </prod>
+        <imposto>
+          <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>0.00</vBC><pICMS>0.00</pICMS><vICMS>0.00</vICMS></ICMS00></ICMS>
+          <PIS><PISNT><CST>07</CST></PISNT></PIS>
+          <COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS>
+        </imposto>
+      </det>
+      <det nItem="3">
+        <prod>
+          <cProd>TUB-3</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>TUBETE 3 POLEGADAS PARA BOBINA</xProd>
+          <NCM>48229000</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>60.0000</qCom>
+          <vUnCom>1.5000</vUnCom>
+          <vProd>90.00</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>60.0000</qTrib>
+          <vUnTrib>1.5000</vUnTrib>
+          <indTot>1</indTot>
+          <xPed>2</xPed>
+          <nItemPed>3</nItemPed>
+        </prod>
+        <imposto>
+          <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>0.00</vBC><pICMS>0.00</pICMS><vICMS>0.00</vICMS></ICMS00></ICMS>
+          <PIS><PISNT><CST>07</CST></PISNT></PIS>
+          <COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS>
+        </imposto>
+      </det>
+      <det nItem="4">
+        <prod>
+          <cProd>CAIXA</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>CAIXA PARA EMBALAGEM DE ETIQUETAS</xProd>
+          <NCM>48191000</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>5.0000</qCom>
+          <vUnCom>8.5000</vUnCom>
+          <vProd>42.50</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>5.0000</qTrib>
+          <vUnTrib>8.5000</vUnTrib>
+          <indTot>1</indTot>
+          <xPed>2</xPed>
+          <nItemPed>4</nItemPed>
+        </prod>
+        <imposto>
+          <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>0.00</vBC><pICMS>0.00</pICMS><vICMS>0.00</vICMS></ICMS00></ICMS>
+          <PIS><PISNT><CST>07</CST></PISNT></PIS>
+          <COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS>
+        </imposto>
+      </det>
+      <total>
+        <ICMSTot>
+          <vBC>0.00</vBC>
+          <vICMS>0.00</vICMS>
+          <vICMSDeson>0.00</vICMSDeson>
+          <vFCP>0.00</vFCP>
+          <vBCST>0.00</vBCST>
+          <vST>0.00</vST>
+          <vFCPST>0.00</vFCPST>
+          <vFCPSTRet>0.00</vFCPSTRet>
+          <vProd>1058.00</vProd>
+          <vFrete>0.00</vFrete>
+          <vSeg>0.00</vSeg>
+          <vDesc>0.00</vDesc>
+          <vII>0.00</vII>
+          <vIPI>0.00</vIPI>
+          <vIPIDevol>0.00</vIPIDevol>
+          <vPIS>0.00</vPIS>
+          <vCOFINS>0.00</vCOFINS>
+          <vOutro>0.00</vOutro>
+          <vNF>1058.00</vNF>
+        </ICMSTot>
+      </total>
+      <transp>
+        <modFrete>9</modFrete>
+      </transp>
+      <pag>
+        <detPag>
+          <tPag>15</tPag>
+          <vPag>1058.00</vPag>
+        </detPag>
+      </pag>
+      <infAdic>
+        <infCpl>Homologacao Focus/UDI — entrada estoque Pedido Compra #2 (BANCA DO DINEI). Itens alinhados as necessidades MRP.</infCpl>
+      </infAdic>
+    </infNFe>
+  </NFe>
+  <protNFe versao="4.00">
+    <infProt>
+      <tpAmb>2</tpAmb>
+      <verAplic>homolog.udi</verAplic>
+      <chNFe>31260711222333000181550010000005021260728142</chNFe>
+      <dhRecbto>2026-07-28T14:21:00-03:00</dhRecbto>
+      <nProt>131260000050122</nProt>
+      <digVal>abcdefghijklmnopqrstuvwxyz0123456789ABCD=</digVal>
+      <cStat>100</cStat>
+      <xMotivo>Autorizado o uso da NF-e</xMotivo>
+    </infProt>
+  </protNFe>
+</nfeProc>

@@ -205,6 +205,37 @@ async function carregarCpFiltros() {
     const meta = $("#cp-consulta-meta");
     if (meta) meta.innerHTML = `<span class="err">Não foi possível carregar filtros: ${esc(err.message)}</span>`;
   }
+
+  // Abertura vinda da página Cobertura · Bases
+  const pendente = window.OSB?._cpChavePendente;
+  if (pendente?.orgaoId != null && pendente.ano != null && pendente.numero != null) {
+    window.OSB._cpChavePendente = null;
+    await abrirCpDetalhePorChave(pendente.orgaoId, pendente.ano, pendente.numero);
+  }
+}
+
+async function abrirCpDetalhePorChave(orgaoId, ano, numero) {
+  const params = new URLSearchParams();
+  params.set("chave_orgao_id", String(orgaoId));
+  params.set("chave_ano", String(ano));
+  params.set("chave_numero", String(numero));
+  const meta = $("#cp-consulta-meta");
+  if (meta) meta.textContent = "Carregando detalhes…";
+  try {
+    const data = await api(`/api/consulta-processo/detalhe?${params}`);
+    if (data.multiplos) {
+      $("#cp-picker").innerHTML = cpPickerGrid(data.grupos, data.mensagem);
+      $("#cp-picker").classList.remove("hidden");
+      $("#cp-picker").querySelectorAll(".cp-picker-card").forEach((c) =>
+        c.addEventListener("click", () => abrirCpPorChave(c))
+      );
+      return;
+    }
+    if (meta) meta.textContent = `Detalhe · ${data.chave?.rotulo || "Processo"}`;
+    cpRenderDetalhe(data);
+  } catch (err) {
+    if (meta) meta.textContent = err.message;
+  }
 }
 
 function cpParamsBusca() {
